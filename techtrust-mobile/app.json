@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "TechTrust",
+    "slug": "techtrust-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#1976d2"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.techtrust.mobile"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#1976d2"
+      },
+      "package": "com.techtrust.mobile"
+    }
+  }
+}

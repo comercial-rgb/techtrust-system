@@ -1,0 +1,725 @@
+// ============================================
+// TECHTRUST AUTOSOLUTIONS - PRISMA SCHEMA
+// ============================================
+// Este é o schema ORM que mapeia para o PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum UserRole {
+  CLIENT
+  PROVIDER
+  ADMIN
+}
+
+enum AccountStatus {
+  PENDING_VERIFICATION
+  ACTIVE
+  SUSPENDED
+  INACTIVE
+}
+
+enum Language {
+  EN
+  PT
+  ES
+}
+
+enum ServiceType {
+  SCHEDULED_MAINTENANCE
+  REPAIR
+  ROADSIDE_SOS
+  INSPECTION
+  DETAILING
+}
+
+enum ServiceRequestStatus {
+  DRAFT
+  SEARCHING_PROVIDERS
+  QUOTES_RECEIVED
+  QUOTE_ACCEPTED
+  SCHEDULED
+  IN_PROGRESS
+  WAITING_APPROVAL
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+enum QuoteStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+enum PaymentStatus {
+  PENDING
+  AUTHORIZED
+  CAPTURED
+  REFUNDED
+  FAILED
+  CANCELLED
+}
+
+enum SubscriptionPlan {
+  FREE
+  BASIC
+  PREMIUM
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  EXPIRED
+}
+
+enum NotificationType {
+  NEW_QUOTE
+  QUOTE_ACCEPTED
+  SERVICE_STARTED
+  SERVICE_COMPLETED
+  PAYMENT_RECEIVED
+  NEW_REQUEST
+  REMINDER
+  SYSTEM_ALERT
+  CHAT_MESSAGE
+}
+
+// ============================================
+// MODELS
+// ============================================
+
+model User {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  // Dados pessoais
+  fullName String
+  email    String  @unique
+  phone    String  @unique
+  passwordHash String
+  
+  // Tipo e status
+  role     UserRole      @default(CLIENT)
+  status   AccountStatus @default(PENDING_VERIFICATION)
+  language Language      @default(EN)
+  
+  // Verificação
+  emailVerified Boolean   @default(false)
+  phoneVerified Boolean   @default(false)
+  otpCode       String?
+  otpExpiresAt  DateTime?
+  
+  // Notificações
+  fcmToken            String?
+  pushEnabled         Boolean @default(true)
+  emailNotifications  Boolean @default(true)
+  smsNotifications    Boolean @default(false)
+  
+  // Localização
+  address String?
+  city    String?
+  state   String?
+  zipCode String?
+  
+  // Metadata
+  lastLoginAt DateTime?
+  
+  // Relacionamentos
+  providerProfile   ProviderProfile?
+  vehicles          Vehicle[]
+  serviceRequests   ServiceRequest[]
+  quotes            Quote[]
+  workOrdersAsCustomer WorkOrder[] @relation("CustomerWorkOrders")
+  workOrdersAsProvider WorkOrder[] @relation("ProviderWorkOrders")
+  paymentsAsCustomer   Payment[]   @relation("CustomerPayments")
+  paymentsAsProvider   Payment[]   @relation("ProviderPayments")
+  subscriptions     Subscription[]
+  reviewsGiven      Review[]       @relation("CustomerReviews")
+  reviewsReceived   Review[]       @relation("ProviderReviews")
+  notifications     Notification[]
+  paymentMethods    PaymentMethod[]
+  chatMessagesFrom  ChatMessage[]  @relation("MessageFrom")
+  chatMessagesTo    ChatMessage[]  @relation("MessageTo")
+
+  @@index([email])
+  @@index([phone])
+  @@index([role])
+  @@map("users")
+}
+
+model ProviderProfile {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Informações do negócio
+  businessName  String
+  businessType  String?
+  businessLicense String?
+  taxId         String?
+  
+  // Contato
+  businessPhone String?
+  businessEmail String?
+  website       String?
+  
+  // Endereço
+  address String
+  city    String
+  state   String
+  zipCode String
+  
+  // Raio de atendimento (em km)
+  serviceRadiusKm Int @default(25)
+  
+  // Especialidades (JSON array)
+  specialties Json @default("[]")
+  
+  // Horário de funcionamento (JSON)
+  businessHours Json?
+  
+  // Stripe
+  stripeAccountId String? @unique
+  stripeOnboardingCompleted Boolean @default(false)
+  
+  // Assinatura PRO
+  hasProSubscription Boolean @default(false)
+  proSubscriptionExpiresAt DateTime?
+  
+  // Verificação
+  isVerified Boolean @default(false)
+  verifiedAt DateTime?
+  backgroundCheckCompleted Boolean @default(false)
+  insuranceVerified Boolean @default(false)
+  
+  // Avaliações
+  averageRating Decimal @default(0) @db.Decimal(3, 2)
+  totalReviews  Int     @default(0)
+  totalServicesCompleted Int @default(0)
+
+  @@index([userId])
+  @@index([isVerified])
+  @@map("provider_profiles")
+}
+
+model Vehicle {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+  
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Identificação
+  plateNumber String
+  vin         String?
+  
+  // Dados do veículo
+  make  String
+  model String
+  year  Int
+  color String?
+  
+  // Hodômetro
+  currentMileage       Int?
+  lastMileageUpdate    DateTime?
+  
+  // Foto
+  photoUrl String?
+  
+  // Status
+  isPrimary Boolean @default(false)
+  isActive  Boolean @default(true)
+  
+  // Relacionamentos
+  serviceRequests ServiceRequest[]
+  workOrders      WorkOrder[]
+  maintenanceSchedule VehicleMaintenanceSchedule[]
+
+  @@unique([userId, plateNumber])
+  @@index([userId])
+  @@map("vehicles")
+}
+
+model VehicleMaintenanceSchedule {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  vehicleId String
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  
+  // Tipo de manutenção
+  maintenanceType String
+  description     String?
+  
+  // Quando fazer
+  recommendedMileage Int?
+  recommendedMonths  Int?
+  
+  // Última vez
+  lastServiceDate    DateTime?
+  lastServiceMileage Int?
+  
+  // Próxima vez
+  nextServiceDueDate    DateTime?
+  nextServiceDueMileage Int?
+  
+  // Status
+  isOverdue Boolean @default(false)
+  notificationSent Boolean @default(false)
+
+  @@index([vehicleId])
+  @@index([isOverdue])
+  @@map("vehicle_maintenance_schedule")
+}
+
+model ServiceRequest {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  requestNumber String @unique
+  
+  // Cliente e veículo
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicleId String
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  
+  // Tipo de serviço
+  serviceType ServiceType
+  title       String
+  description String?
+  
+  // Localização
+  serviceLocationType String
+  customerAddress     String?
+  
+  // Preferências
+  preferredDate     DateTime?
+  preferredTime     DateTime?
+  flexibleSchedule  Boolean @default(false)
+  
+  // Urgência
+  isUrgent Boolean @default(false)
+  
+  // Anexos (JSON array de URLs)
+  attachments Json @default("[]")
+  
+  // Status
+  status ServiceRequestStatus @default(DRAFT)
+  
+  // Cotações
+  quotesCount      Int @default(0)
+  maxQuotes        Int @default(5)
+  quoteDeadline    DateTime?
+  
+  // Orçamento aceito
+  acceptedQuoteId String?
+  
+  // Datas importantes
+  expiresAt    DateTime?
+  scheduledFor DateTime?
+  startedAt    DateTime?
+  completedAt  DateTime?
+  cancelledAt  DateTime?
+  cancellationReason String?
+  
+  // Relacionamentos
+  quotes     Quote[]
+  workOrders WorkOrder[]
+
+  @@index([userId])
+  @@index([vehicleId])
+  @@index([status])
+  @@index([serviceType])
+  @@index([createdAt])
+  @@map("service_requests")
+}
+
+model Quote {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  quoteNumber String @unique
+  
+  // Relacionamentos
+  serviceRequestId String
+  serviceRequest   ServiceRequest @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
+  providerId       String
+  provider         User           @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  
+  // Valores
+  partsCost      Decimal @db.Decimal(10, 2)
+  laborCost      Decimal @db.Decimal(10, 2)
+  additionalFees Decimal @default(0) @db.Decimal(10, 2)
+  taxAmount      Decimal @default(0) @db.Decimal(10, 2)
+  totalAmount    Decimal @db.Decimal(10, 2)
+  
+  // Detalhes (JSON)
+  partsList         Json
+  laborDescription  String?
+  estimatedHours    Decimal? @db.Decimal(4, 2)
+  
+  // Prazo
+  estimatedCompletionTime String?
+  availableDate           DateTime?
+  availableTime           DateTime?
+  
+  // Garantia
+  warrantyMonths      Int?
+  warrantyMileage     Int?
+  warrantyDescription String?
+  
+  // Notas
+  notes String?
+  
+  // Status
+  status QuoteStatus @default(PENDING)
+  
+  // Validade
+  validUntil DateTime
+  
+  // Datas
+  viewedByCustomerAt DateTime?
+  acceptedAt         DateTime?
+  rejectedAt         DateTime?
+  expiredAt          DateTime?
+  
+  // Relacionamentos
+  workOrders WorkOrder[]
+
+  @@unique([serviceRequestId, providerId])
+  @@index([serviceRequestId])
+  @@index([providerId])
+  @@index([status])
+  @@map("quotes")
+}
+
+model WorkOrder {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  orderNumber String @unique
+  
+  // Relacionamentos
+  serviceRequestId String
+  serviceRequest   ServiceRequest @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
+  quoteId          String
+  quote            Quote          @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  customerId       String
+  customer         User           @relation("CustomerWorkOrders", fields: [customerId], references: [id])
+  providerId       String
+  provider         User           @relation("ProviderWorkOrders", fields: [providerId], references: [id])
+  vehicleId        String
+  vehicle          Vehicle        @relation(fields: [vehicleId], references: [id])
+  
+  // Status
+  status String @default("PENDING_START")
+  
+  // Valores
+  originalAmount   Decimal @db.Decimal(10, 2)
+  additionalAmount Decimal @default(0) @db.Decimal(10, 2)
+  finalAmount      Decimal @db.Decimal(10, 2)
+  
+  // Aditivos (JSON)
+  additives Json @default("[]")
+  
+  // Hodômetro
+  startMileage Int?
+  endMileage   Int?
+  
+  // Datas
+  scheduledFor          DateTime?
+  startedAt             DateTime?
+  completedAt           DateTime?
+  approvedByCustomerAt  DateTime?
+  cancelledAt           DateTime?
+  
+  // Fotos (JSON arrays)
+  beforePhotos  Json @default("[]")
+  duringPhotos  Json @default("[]")
+  afterPhotos   Json @default("[]")
+  
+  // Notas
+  providerNotes String?
+  customerNotes String?
+  
+  // Garantia
+  warrantyMonths    Int?
+  warrantyMileage   Int?
+  warrantyExpiresAt DateTime?
+  
+  // Relacionamentos
+  payments Payment[]
+  reviews  Review[]
+
+  @@index([serviceRequestId])
+  @@index([customerId])
+  @@index([providerId])
+  @@index([status])
+  @@map("work_orders")
+}
+
+model Payment {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  paymentNumber String @unique
+  
+  // Relacionamentos
+  workOrderId String
+  workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  customerId  String
+  customer    User      @relation("CustomerPayments", fields: [customerId], references: [id])
+  providerId  String
+  provider    User      @relation("ProviderPayments", fields: [providerId], references: [id])
+  
+  // Stripe
+  stripePaymentIntentId String @unique
+  stripeChargeId        String?
+  stripeTransferId      String?
+  
+  // Valores
+  subtotal      Decimal @db.Decimal(10, 2)
+  platformFee   Decimal @db.Decimal(10, 2)
+  stripeFee     Decimal @db.Decimal(10, 2)
+  totalAmount   Decimal @db.Decimal(10, 2)
+  providerAmount Decimal @db.Decimal(10, 2)
+  
+  // Status
+  status PaymentStatus @default(PENDING)
+  
+  // Método de pagamento
+  paymentMethodId String?
+  cardLast4       String?
+  cardBrand       String?
+  
+  // Datas
+  authorizedAt           DateTime?
+  capturedAt             DateTime?
+  refundedAt             DateTime?
+  transferredToProviderAt DateTime?
+  
+  // Reembolso
+  refundAmount Decimal? @db.Decimal(10, 2)
+  refundReason String?
+
+  @@index([workOrderId])
+  @@index([customerId])
+  @@index([providerId])
+  @@index([status])
+  @@map("payments")
+}
+
+model Subscription {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Plano
+  plan  SubscriptionPlan   @default(FREE)
+  price Decimal            @default(0) @db.Decimal(10, 2)
+  
+  // Stripe
+  stripeSubscriptionId String?  @unique
+  stripeCustomerId     String?
+  
+  // Limites
+  maxVehicles                 Int  @default(1)
+  maxServiceRequestsPerMonth  Int?
+  
+  // Status
+  status SubscriptionStatus @default(ACTIVE)
+  
+  // Datas
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  trialEnd           DateTime?
+  cancelledAt        DateTime?
+  cancellationReason String?
+  
+  // Uso no período
+  vehiclesRegistered          Int @default(0)
+  serviceRequestsThisMonth    Int @default(0)
+
+  @@index([userId])
+  @@index([status])
+  @@map("subscriptions")
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relacionamentos
+  workOrderId String @unique
+  workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  customerId  String
+  customer    User      @relation("CustomerReviews", fields: [customerId], references: [id])
+  providerId  String
+  provider    User      @relation("ProviderReviews", fields: [providerId], references: [id])
+  
+  // Avaliação do cliente
+  customerRating      Int
+  customerComment     String?
+  customerReviewDate  DateTime @default(now())
+  
+  // Avaliação do fornecedor
+  providerRating      Int?
+  providerComment     String?
+  providerReviewDate  DateTime?
+  
+  // Categorias
+  qualityRating       Int?
+  timelinessRating    Int?
+  communicationRating Int?
+  valueRating         Int?
+  
+  // Flags
+  isVerified            Boolean @default(true)
+  isFeatured            Boolean @default(false)
+  flaggedAsInappropriate Boolean @default(false)
+  
+  // Resposta do fornecedor
+  providerResponse     String?
+  providerResponseDate DateTime?
+
+  @@index([workOrderId])
+  @@index([customerId])
+  @@index([providerId])
+  @@index([customerRating])
+  @@map("reviews")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Tipo e conteúdo
+  type    NotificationType
+  title   String
+  message String
+  
+  // Relacionamentos opcionais
+  relatedServiceRequestId String?
+  relatedQuoteId          String?
+  relatedWorkOrderId      String?
+  
+  // Data adicional (JSON)
+  data Json @default("{}")
+  
+  // Status
+  isRead Boolean  @default(false)
+  readAt DateTime?
+  
+  // Canais
+  sentViaPush  Boolean @default(false)
+  sentViaEmail Boolean @default(false)
+  sentViaSms   Boolean @default(false)
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+model PaymentMethod {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Stripe
+  stripePaymentMethodId String @unique
+  
+  // Dados do cartão
+  cardBrand    String?
+  cardLast4    String?
+  cardExpMonth Int?
+  cardExpYear  Int?
+  
+  // Billing
+  billingName String?
+  billingZip  String?
+  
+  // Status
+  isDefault Boolean @default(false)
+  isActive  Boolean @default(true)
+
+  @@index([userId])
+  @@index([userId, isDefault])
+  @@map("payment_methods")
+}
+
+model ChatMessage {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  
+  // Participantes
+  fromUserId String
+  fromUser   User   @relation("MessageFrom", fields: [fromUserId], references: [id])
+  toUserId   String
+  toUser     User   @relation("MessageTo", fields: [toUserId], references: [id])
+  
+  // Contexto (opcional)
+  workOrderId String?
+  
+  // Conteúdo
+  message String
+  
+  // Anexos (JSON array)
+  attachments Json @default("[]")
+  
+  // Status
+  isRead Boolean  @default(false)
+  readAt DateTime?
+
+  @@index([fromUserId])
+  @@index([toUserId])
+  @@index([workOrderId])
+  @@index([createdAt])
+  @@map("chat_messages")
+}
+
+model SystemSettings {
+  key         String   @id
+  value       Json
+  description String?
+  updatedAt   DateTime @updatedAt
+  updatedBy   String?
+
+  @@map("system_settings")
+}
