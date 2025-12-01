@@ -9,6 +9,7 @@ import { Card, Text, FAB, useTheme } from 'react-native-paper';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import { ServiceRequest } from '../types';
+import { useI18n } from '../i18n';
 
 // ✨ Importando componentes de UI
 import {
@@ -22,11 +23,9 @@ import {
 
 export default function DashboardScreen({ navigation }: any) {
   const theme = useTheme();
+  const { t } = useI18n();
   const { user } = useAuth();
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
-  const [vehicleCount, setVehicleCount] = useState(0);
-  const [workOrdersCount, setWorkOrdersCount] = useState(0);
-  const [quotesCount, setQuotesCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   
@@ -34,40 +33,19 @@ export default function DashboardScreen({ navigation }: any) {
   const { toast, error, hideToast } = useToast();
 
   useEffect(() => {
-    loadDashboardData();
+    loadRequests();
   }, []);
 
-  async function loadDashboardData() {
+  async function loadRequests() {
     if (!loading) setRefreshing(true);
     try {
-      // Carregar todos os dados em paralelo
-      const [requestsRes, vehiclesRes, workOrdersRes] = await Promise.all([
-        api.get('/service-requests', { params: { limit: 5 } }),
-        api.get('/vehicles'),
-        api.get('/work-orders', { params: { limit: 100 } }),
-      ]);
-
-      const requestsList = requestsRes.data.data.requests || [];
-      const vehiclesList = vehiclesRes.data.data || [];
-      const workOrdersList = workOrdersRes.data.data?.orders || workOrdersRes.data.data || [];
-
-      setRequests(requestsList);
-      setVehicleCount(vehiclesList.length);
-      
-      // Contar work orders em andamento
-      const inProgressOrders = workOrdersList.filter(
-        (wo: any) => wo.status === 'IN_PROGRESS' || wo.status === 'PENDING_START'
-      );
-      setWorkOrdersCount(inProgressOrders.length);
-
-      // Contar solicitações com orçamentos
-      const withQuotes = requestsList.filter(
-        (r: ServiceRequest) => r.status === 'QUOTES_RECEIVED'
-      );
-      setQuotesCount(withQuotes.length);
+      const response = await api.get('/service-requests', {
+        params: { limit: 5 },
+      });
+      setRequests(response.data.data.requests || []);
     } catch (err) {
-      console.error('Erro ao carregar dashboard:', err);
-      error('Erro ao carregar dados');
+      console.error('Erro ao carregar solicitações:', err);
+      error(t.common?.errorLoadingRequests || 'Error loading requests');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -86,11 +64,11 @@ export default function DashboardScreen({ navigation }: any) {
 
   const getStatusText = (status: string) => {
     const texts: any = {
-      SEARCHING_PROVIDERS: 'Buscando fornecedores',
-      QUOTES_RECEIVED: 'Orçamentos recebidos',
-      QUOTE_ACCEPTED: 'Orçamento aceito',
-      IN_PROGRESS: 'Em andamento',
-      COMPLETED: 'Concluído',
+      SEARCHING_PROVIDERS: t.status?.searchingProviders || 'Searching providers',
+      QUOTES_RECEIVED: t.status?.quotesReceived || 'Quotes received',
+      QUOTE_ACCEPTED: t.status?.quoteAccepted || 'Quote accepted',
+      IN_PROGRESS: t.status?.inProgress || 'In progress',
+      COMPLETED: t.status?.completed || 'Completed',
     };
     return texts[status] || status;
   };
@@ -124,7 +102,7 @@ export default function DashboardScreen({ navigation }: any) {
         refreshControl={
           <RefreshControl 
             refreshing={refreshing} 
-            onRefresh={loadDashboardData}
+            onRefresh={loadRequests}
             colors={[theme.colors.primary]}
           />
         }
@@ -133,10 +111,10 @@ export default function DashboardScreen({ navigation }: any) {
         <FadeInView delay={0}>
           <View style={styles.header}>
             <Text variant="headlineSmall" style={styles.greeting}>
-              Olá, {user?.fullName?.split(' ')[0]}! 👋
+              {t.dashboard?.greeting || 'Hello'}, {user?.fullName?.split(' ')[0]}! 👋
             </Text>
             <Text variant="bodyMedium" style={styles.subtitle}>
-              Bem-vindo ao TechTrust
+              {t.dashboard?.welcome || 'Welcome to TechTrust'}
             </Text>
           </View>
         </FadeInView>
@@ -147,24 +125,24 @@ export default function DashboardScreen({ navigation }: any) {
             <ScalePress onPress={() => navigation.navigate('WorkOrdersTab')} style={styles.statCard}>
               <View style={[styles.statCardInner, { backgroundColor: '#e3f2fd' }]}>
                 <Text style={styles.statEmoji}>🔧</Text>
-                <Text style={styles.statNumber}>{workOrdersCount}</Text>
-                <Text style={styles.statLabel}>Em andamento</Text>
+                <Text style={styles.statNumber}>{requests.filter(r => r.status === 'IN_PROGRESS').length}</Text>
+                <Text style={styles.statLabel}>{t.dashboard?.inProgress || 'In progress'}</Text>
               </View>
             </ScalePress>
             
             <ScalePress onPress={() => {}} style={styles.statCard}>
               <View style={[styles.statCardInner, { backgroundColor: '#e8f5e9' }]}>
                 <Text style={styles.statEmoji}>📋</Text>
-                <Text style={styles.statNumber}>{quotesCount}</Text>
-                <Text style={styles.statLabel}>Orçamentos</Text>
+                <Text style={styles.statNumber}>{requests.filter(r => r.status === 'QUOTES_RECEIVED').length}</Text>
+                <Text style={styles.statLabel}>{t.dashboard?.quotes || 'Quotes'}</Text>
               </View>
             </ScalePress>
             
             <ScalePress onPress={() => navigation.navigate('VehiclesTab')} style={styles.statCard}>
               <View style={[styles.statCardInner, { backgroundColor: '#fff3e0' }]}>
                 <Text style={styles.statEmoji}>🚗</Text>
-                <Text style={styles.statNumber}>{vehicleCount}</Text>
-                <Text style={styles.statLabel}>Veículos</Text>
+                <Text style={styles.statNumber}>-</Text>
+                <Text style={styles.statLabel}>{t.nav?.vehicles || 'Vehicles'}</Text>
               </View>
             </ScalePress>
           </View>
@@ -174,16 +152,16 @@ export default function DashboardScreen({ navigation }: any) {
         <FadeInView delay={200}>
           <View style={styles.section}>
             <Text variant="titleLarge" style={styles.sectionTitle}>
-              Solicitações Recentes
+              {t.dashboard?.recentRequests || 'Recent Requests'}
             </Text>
 
             {/* ✨ Empty State melhorado */}
             {requests.length === 0 && (
               <EmptyState
                 icon="clipboard-text-outline"
-                title="Nenhuma solicitação"
-                description="Crie sua primeira solicitação de serviço!"
-                actionLabel="Nova Solicitação"
+                title={t.dashboard?.noRequests || 'No requests'}
+                description={t.dashboard?.noRequestsDesc || 'Create your first service request!'}
+                actionLabel={t.dashboard?.newRequest || 'New Request'}
                 onAction={() => navigation.navigate('CreateRequest')}
               />
             )}
@@ -217,7 +195,7 @@ export default function DashboardScreen({ navigation }: any) {
                       {request.quotesCount > 0 && (
                         <View style={styles.quotesContainer}>
                           <Text variant="bodyMedium" style={styles.quotesCount}>
-                            📋 {request.quotesCount} orçamento(s) recebido(s)
+                            📋 {request.quotesCount} {t.dashboard?.quotesReceived || 'quote(s) received'}
                           </Text>
                         </View>
                       )}
@@ -235,7 +213,7 @@ export default function DashboardScreen({ navigation }: any) {
         icon="plus"
         style={[styles.fab, { backgroundColor: theme.colors.primary }]}
         onPress={() => navigation.navigate('CreateRequest')}
-        label="Nova Solicitação"
+        label={t.dashboard?.newRequest || 'New Request'}
       />
 
       {/* ✨ Toast para notificações */}

@@ -7,6 +7,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, StyleSheet, TextInput as RNTextInput } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import { useAuth } from '../contexts/AuthContext';
+import { useI18n } from '../i18n';
 
 // ✨ Importando componentes de UI
 import {
@@ -23,6 +24,7 @@ import {
 
 export default function OTPScreen({ route, navigation }: any) {
   const theme = useTheme();
+  const { t } = useI18n();
   const { verifyOTP } = useAuth();
   const { userId, phone } = route.params;
 
@@ -83,7 +85,7 @@ export default function OTPScreen({ route, navigation }: any) {
     
     if (otpCode.length !== 6) {
       setHasError(true);
-      error('Digite o código de 6 dígitos');
+      error(t.auth?.enterOtpCode || 'Enter the 6-digit code');
       setTimeout(() => setHasError(false), 500);
       return;
     }
@@ -91,10 +93,10 @@ export default function OTPScreen({ route, navigation }: any) {
     setLoading(true);
     try {
       await verifyOTP(userId, otpCode);
-      success('Verificação concluída!');
+      success(t.auth?.verificationComplete || 'Verification complete!');
     } catch (err: any) {
       setHasError(true);
-      error(err.message || 'Código inválido');
+      error(err.message || t.auth?.invalidCode || 'Invalid code');
       setTimeout(() => setHasError(false), 500);
       setOtp(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
@@ -107,7 +109,7 @@ export default function OTPScreen({ route, navigation }: any) {
     if (!canResend) return;
     
     // Simular reenvio
-    success('Código reenviado!');
+    success(t.auth?.codeSent || 'Code sent!');
     setResendTimer(60);
     setCanResend(false);
     setOtp(['', '', '', '', '', '']);
@@ -128,10 +130,10 @@ export default function OTPScreen({ route, navigation }: any) {
               </View>
             </PulseView>
             <Text variant="headlineMedium" style={[styles.title, { color: theme.colors.primary }]}>
-              Verificação
+              {t.auth?.verification || 'Verification'}
             </Text>
             <Text variant="bodyMedium" style={styles.subtitle}>
-              Digite o código enviado para
+              {t.auth?.enterCodeSentTo || 'Enter the code sent to'}
             </Text>
             <Text variant="bodyLarge" style={[styles.phone, { color: theme.colors.primary }]}>
               {phone}
@@ -169,7 +171,7 @@ export default function OTPScreen({ route, navigation }: any) {
         <FadeInView delay={150}>
           <View style={styles.hintContainer}>
             <Text style={styles.hintIcon}>💡</Text>
-            <Text style={styles.hintText}>Modo desenvolvimento: Use 123456</Text>
+            <Text style={styles.hintText}>{t.auth?.devModeHint || 'Dev mode: Use 123456'}</Text>
           </View>
         </FadeInView>
 
@@ -177,7 +179,7 @@ export default function OTPScreen({ route, navigation }: any) {
         <FadeInView delay={200}>
           <View style={styles.buttonsContainer}>
             <EnhancedButton
-              title="Verificar"
+              title={t.auth?.verify || 'Verify'}
               onPress={handleVerify}
               variant="primary"
               size="large"
@@ -195,12 +197,12 @@ export default function OTPScreen({ route, navigation }: any) {
             {canResend ? (
               <ScalePress onPress={handleResend}>
                 <Text style={[styles.resendText, { color: theme.colors.primary }]}>
-                  Reenviar código
+                  {t.auth?.resendCode || 'Resend code'}
                 </Text>
               </ScalePress>
             ) : (
               <Text style={styles.timerText}>
-                Reenviar em <Text style={styles.timerNumber}>{resendTimer}s</Text>
+                {t.auth?.resendIn || 'Resend in'} <Text style={styles.timerNumber}>{resendTimer}s</Text>
               </Text>
             )}
           </View>
@@ -211,14 +213,14 @@ export default function OTPScreen({ route, navigation }: any) {
           <ScalePress onPress={() => navigation.goBack()}>
             <View style={styles.backButton}>
               <Text style={styles.backIcon}>←</Text>
-              <Text style={styles.backText}>Voltar</Text>
+              <Text style={styles.backText}>{t.common?.back || 'Back'}</Text>
             </View>
           </ScalePress>
         </FadeInView>
       </View>
 
       {/* ✨ Loading Overlay */}
-      <LoadingOverlay visible={loading} message="Verificando..." />
+      <LoadingOverlay visible={loading} message={t.auth?.verifying || 'Verifying...'} />
 
       {/* ✨ Toast */}
       <Toast

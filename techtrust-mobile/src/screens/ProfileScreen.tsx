@@ -8,6 +8,7 @@ import { View, StyleSheet, FlatList, RefreshControl, Alert } from 'react-native'
 import { Card, Text, Button, Avatar, Divider, List, useTheme } from 'react-native-paper';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
+import { useI18n } from '../i18n';
 
 // ✨ Importando componentes de UI
 import {
@@ -21,6 +22,7 @@ import {
 
 export default function ProfileScreen({ navigation }: any) {
   const theme = useTheme();
+  const { t } = useI18n();
   const { user, logout } = useAuth();
   const [subscription, setSubscription] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -52,7 +54,7 @@ export default function ProfileScreen({ navigation }: any) {
       setSubscription(sub);
     } catch (err) {
       console.error('Erro ao carregar perfil:', err);
-      error('Erro ao carregar perfil');
+      error(t.common?.errorLoadingProfile || 'Error loading profile');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -60,10 +62,10 @@ export default function ProfileScreen({ navigation }: any) {
   }
 
   async function handleLogout() {
-    Alert.alert('Sair', 'Deseja realmente sair da sua conta?', [
-      { text: 'Cancelar', style: 'cancel' },
+    Alert.alert(t.auth?.logout || 'Logout', t.auth?.logoutConfirm || 'Do you want to logout?', [
+      { text: t.common?.cancel || 'Cancel', style: 'cancel' },
       {
-        text: 'Sair',
+        text: t.auth?.logout || 'Logout',
         style: 'destructive',
         onPress: async () => {
           setLoggingOut(true);
@@ -71,7 +73,7 @@ export default function ProfileScreen({ navigation }: any) {
             await logout();
           } catch (err) {
             console.error('Erro ao fazer logout:', err);
-            error('Erro ao sair da conta');
+            error(t.common?.errorLogout || 'Error logging out');
           } finally {
             setLoggingOut(false);
           }
@@ -101,10 +103,10 @@ export default function ProfileScreen({ navigation }: any) {
 
   const getPlanName = (plan: string) => {
     const names: any = {
-      FREE: 'Gratuito',
-      BASIC: 'Básico',
-      PREMIUM: 'Premium',
-      ENTERPRISE: 'Empresarial',
+      FREE: t.profile?.planFree || 'Free',
+      BASIC: t.profile?.planBasic || 'Basic',
+      PREMIUM: t.profile?.planPremium || 'Premium',
+      ENTERPRISE: t.profile?.planEnterprise || 'Enterprise',
     };
     return names[plan] || plan;
   };
@@ -132,28 +134,28 @@ export default function ProfileScreen({ navigation }: any) {
 
   const menuItems = [
     {
-      title: 'Editar Perfil',
-      description: 'Alterar nome, endereço, etc',
+      title: t.profile?.editProfile || 'Edit Profile',
+      description: t.profile?.editProfileDesc || 'Change name, address, etc',
       icon: 'account-edit',
-      onPress: () => Alert.alert('Em breve', 'Funcionalidade em desenvolvimento'),
+      onPress: () => Alert.alert(t.common?.comingSoon || 'Coming Soon', t.common?.featureInDevelopment || 'Feature in development'),
     },
     {
-      title: 'Alterar Senha',
-      description: 'Trocar sua senha de acesso',
+      title: t.profile?.changePassword || 'Change Password',
+      description: t.profile?.changePasswordDesc || 'Change your access password',
       icon: 'lock',
-      onPress: () => Alert.alert('Em breve', 'Funcionalidade em desenvolvimento'),
+      onPress: () => Alert.alert(t.common?.comingSoon || 'Coming Soon', t.common?.featureInDevelopment || 'Feature in development'),
     },
     {
-      title: 'Notificações',
-      description: 'Configurar alertas',
+      title: t.nav?.notifications || 'Notifications',
+      description: t.profile?.notificationsDesc || 'Configure alerts',
       icon: 'bell',
-      onPress: () => Alert.alert('Em breve', 'Funcionalidade em desenvolvimento'),
+      onPress: () => Alert.alert(t.common?.comingSoon || 'Coming Soon', t.common?.featureInDevelopment || 'Feature in development'),featureInDevelopment || 'Feature in development'),
     },
     {
-      title: 'Ajuda e Suporte',
-      description: 'Central de ajuda',
+      title: t.profile?.helpSupport || 'Help & Support',
+      description: t.profile?.helpSupportDesc || 'Help center',
       icon: 'help-circle',
-      onPress: () => Alert.alert('Em breve', 'Funcionalidade em desenvolvimento'),
+      onPress: () => Alert.alert(t.common?.comingSoon || 'Coming Soon', t.common?.featureInDevelopment || 'Feature in development'),
     },
   ];
 
@@ -206,7 +208,7 @@ export default function ProfileScreen({ navigation }: any) {
                   <View style={styles.subscriptionHeader}>
                     <View style={styles.planInfo}>
                       <Text style={styles.planEmoji}>{getPlanEmoji(subscription.plan)}</Text>
-                      <Text variant="titleMedium" style={styles.planTitle}>Assinatura</Text>
+                      <Text variant="titleMedium" style={styles.planTitle}>{t.profile?.subscription || 'Subscription'}</Text>
                     </View>
                     <View
                       style={[
@@ -227,7 +229,7 @@ export default function ProfileScreen({ navigation }: any) {
                         <Text style={styles.statValue}>
                           {subscription.vehiclesRegistered}/{subscription.maxVehicles}
                         </Text>
-                        <Text style={styles.statLabel}>Veículos</Text>
+                        <Text style={styles.statLabel}>{t.nav?.vehicles || 'Vehicles'}</Text>
                       </View>
                     </ScalePress>
 
@@ -237,7 +239,7 @@ export default function ProfileScreen({ navigation }: any) {
                         <Text style={styles.statValue}>
                           {subscription.serviceRequestsThisMonth}/{subscription.maxServiceRequestsPerMonth}
                         </Text>
-                        <Text style={styles.statLabel}>Solicitações/mês</Text>
+                        <Text style={styles.statLabel}>{t.profile?.requestsPerMonth || 'Requests/month'}</Text>
                       </View>
                     )}
                   </View>
@@ -279,7 +281,7 @@ export default function ProfileScreen({ navigation }: any) {
               <View style={styles.logoutButton}>
                 <Text style={styles.logoutIcon}>🚪</Text>
                 <Text style={[styles.logoutText, { color: theme.colors.error }]}>
-                  Sair da Conta
+                  {t.auth?.logout || 'Logout'}
                 </Text>
               </View>
             </ScalePress>
@@ -339,17 +341,14 @@ const styles = StyleSheet.create({
   userName: {
     marginTop: 16,
     fontWeight: '700',
-    color: '#1e293b',
   },
   userEmail: {
-    color: '#475569',
+    opacity: 0.7,
     marginTop: 6,
-    fontWeight: '500',
   },
   userPhone: {
-    color: '#64748b',
+    opacity: 0.5,
     marginTop: 4,
-    fontWeight: '500',
   },
   card: {
     marginBottom: 16,
@@ -389,45 +388,35 @@ const styles = StyleSheet.create({
   subscriptionDetails: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    gap: 12,
   },
   statBox: {
-    flex: 1,
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#f8fafc',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
+    padding: 12,
   },
   statEmoji: {
-    fontSize: 28,
-    marginBottom: 8,
+    fontSize: 24,
+    marginBottom: 4,
   },
   statValue: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '800',
-    color: '#1e293b',
+    color: '#1f2937',
   },
   statLabel: {
-    fontSize: 12,
-    color: '#64748b',
+    fontSize: 11,
+    color: '#6b7280',
     marginTop: 4,
-    fontWeight: '600',
   },
   menuIconContainer: {
-    backgroundColor: '#e3f2fd',
-    borderRadius: 12,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 10,
     marginLeft: 8,
-    padding: 2,
   },
   menuTitle: {
-    fontWeight: '700',
-    color: '#1e293b',
+    fontWeight: '600',
   },
   menuDescription: {
-    color: '#64748b',
-    fontSize: 13,
+    opacity: 0.6,
   },
   logoutButton: {
     flexDirection: 'row',

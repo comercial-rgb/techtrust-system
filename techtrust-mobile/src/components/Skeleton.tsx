@@ -139,6 +139,14 @@ export function ProfileSkeleton() {
 // Vehicle Card Skeleton
 // ============================================
 
+export function VehicleSkeleton() {
+  return (
+    <View style={{ marginBottom: 16 }}>
+      <Skeleton width="100%" height={180} style={{ borderRadius: 16 }} />
+    </View>
+  );
+}
+
 export function VehicleCardSkeleton() {
   return (
     <View style={styles.vehicleCard}>

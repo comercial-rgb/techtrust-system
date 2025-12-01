@@ -13,21 +13,24 @@ import {
 } from 'react-native';
 import { TextInput, Text, useTheme } from 'react-native-paper';
 import { useAuth } from '../contexts/AuthContext';
+import { useI18n } from '../i18n';
 
 // ✨ Importando componentes de UI
 import {
   FadeInView,
   SlideInView,
-  ShakeView,
   ScalePress,
+  ShakeView,
   Toast,
   useToast,
   LoadingOverlay,
   EnhancedButton,
+  AnimatedProgressBar,
 } from '../components';
 
 export default function SignupScreen({ navigation }: any) {
   const theme = useTheme();
+  const { t } = useI18n();
   const { signUp } = useAuth();
 
   const [fullName, setFullName] = useState('');
@@ -42,24 +45,46 @@ export default function SignupScreen({ navigation }: any) {
   // ✨ Toast hook
   const { toast, error, hideToast } = useToast();
 
+  // ✨ Calcular progresso do formulário
+  const calculateProgress = () => {
+    let filled = 0;
+    if (fullName.length > 0) filled++;
+    if (email.length > 0) filled++;
+    if (phone.length > 0) filled++;
+    if (password.length >= 8) filled++;
+    if (confirmPassword.length > 0 && confirmPassword === password) filled++;
+    return filled / 5;
+  };
+
+  // ✨ Validar força da senha
+  const getPasswordStrength = () => {
+    if (password.length === 0) return { level: 0, text: '', color: '#e5e7eb' };
+    if (password.length < 6) return { level: 1, text: t.auth?.passwordWeak || 'Weak', color: '#ef4444' };
+    if (password.length < 8) return { level: 2, text: t.auth?.passwordMedium || 'Medium', color: '#f59e0b' };
+    if (password.length >= 8 && /[A-Z]/.test(password) && /[0-9]/.test(password)) {
+      return { level: 4, text: t.auth?.passwordStrong || 'Strong', color: '#22c55e' };
+    }
+    return { level: 3, text: t.auth?.passwordGood || 'Good', color: '#3b82f6' };
+  };
+
   async function handleSignup() {
     if (!fullName || !email || !phone || !password || !confirmPassword) {
       setHasError(true);
-      error('Preencha todos os campos');
+      error(t.auth?.fillAllFields || 'Please fill all fields');
       setTimeout(() => setHasError(false), 500);
       return;
     }
 
     if (password !== confirmPassword) {
       setHasError(true);
-      error('As senhas não coincidem');
+      error(t.auth?.passwordsDoNotMatch || 'Passwords do not match');
       setTimeout(() => setHasError(false), 500);
       return;
     }
 
     if (password.length < 8) {
       setHasError(true);
-      error('A senha deve ter no mínimo 8 caracteres');
+      error(t.auth?.passwordMinLength || 'Password must be at least 8 characters');
       setTimeout(() => setHasError(false), 500);
       return;
     }
@@ -76,13 +101,13 @@ export default function SignupScreen({ navigation }: any) {
 
       navigation.navigate('OTP', { userId, phone });
     } catch (err: any) {
-      setHasError(true);
-      error(err.message || 'Erro ao criar conta');
-      setTimeout(() => setHasError(false), 500);
+      error(err.message || t.auth?.errorCreatingAccount || 'Error creating account');
     } finally {
       setLoading(false);
     }
   }
+
+  const passwordStrength = getPasswordStrength();
 
   return (
     <KeyboardAvoidingView
@@ -93,78 +118,94 @@ export default function SignupScreen({ navigation }: any) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ✨ Logo e Header animados */}
+        {/* ✨ Header animado */}
         <FadeInView delay={0}>
-          <View style={styles.logoContainer}>
-            <View style={[styles.logoCircle, { backgroundColor: theme.colors.primary }]}>
-              <Text style={styles.logoText}>✨</Text>
+          <View style={styles.header}>
+            <View style={[styles.iconContainer, { backgroundColor: theme.colors.primary }]}>
+              <Text style={styles.headerIcon}>👤</Text>
             </View>
+            <Text variant="headlineMedium" style={[styles.title, { color: theme.colors.primary }]}>
+              {t.auth?.createAccount || 'Create Account'}
+            </Text>
+            <Text variant="bodyMedium" style={styles.subtitle}>
+              {t.auth?.signupSubtitle || 'Sign up to get started'}
+            </Text>
           </View>
         </FadeInView>
 
-        <SlideInView direction="up" delay={100}>
-          <View style={styles.header}>
-            <Text variant="headlineMedium" style={[styles.title, { color: theme.colors.primary }]}>
-              Criar Conta
-            </Text>
-            <Text variant="bodyMedium" style={styles.subtitle}>
-              Cadastre-se para começar
+        {/* ✨ Progress bar */}
+        <FadeInView delay={50}>
+          <View style={styles.progressContainer}>
+            <AnimatedProgressBar
+              progress={calculateProgress()}
+              color={theme.colors.primary}
+              height={6}
+            />
+            <Text style={styles.progressText}>
+              {Math.round(calculateProgress() * 100)}% {t.common?.complete || 'complete'}
             </Text>
           </View>
-        </SlideInView>
+        </FadeInView>
 
-        {/* ✨ Formulário com animação */}
-        <SlideInView direction="up" delay={200}>
-          <ShakeView shake={hasError}>
-            <View style={styles.form}>
+        {/* ✨ Formulário com animações */}
+        <ShakeView shake={hasError}>
+          <View style={styles.form}>
+            <SlideInView direction="left" delay={100}>
               <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>👤 {t.auth?.fullName || 'Full Name'}</Text>
                 <TextInput
-                  label="Nome Completo"
                   value={fullName}
                   onChangeText={setFullName}
                   mode="outlined"
-                  left={<TextInput.Icon icon="account" />}
+                  placeholder={t.auth?.fullNamePlaceholder || 'Your full name'}
                   style={styles.input}
                   outlineStyle={styles.inputOutline}
                   error={hasError && !fullName}
                 />
               </View>
+            </SlideInView>
 
+            <SlideInView direction="right" delay={150}>
               <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>✉️ {t.auth?.email || 'Email'}</Text>
                 <TextInput
-                  label="Email"
                   value={email}
                   onChangeText={setEmail}
                   mode="outlined"
+                  placeholder="seu@email.com"
                   keyboardType="email-address"
                   autoCapitalize="none"
-                  left={<TextInput.Icon icon="email" />}
                   style={styles.input}
                   outlineStyle={styles.inputOutline}
                   error={hasError && !email}
                 />
               </View>
+            </SlideInView>
 
+            <SlideInView direction="left" delay={200}>
               <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>📱 {t.auth?.phone || 'Phone'}</Text>
                 <TextInput
-                  label="Telefone (+14075551234)"
                   value={phone}
                   onChangeText={setPhone}
                   mode="outlined"
+                  placeholder="+55 11 99999-9999"
                   keyboardType="phone-pad"
-                  left={<TextInput.Icon icon="phone" />}
                   style={styles.input}
                   outlineStyle={styles.inputOutline}
                   error={hasError && !phone}
                 />
               </View>
+            </SlideInView>
 
+            <SlideInView direction="right" delay={250}>
               <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>🔒 {t.auth?.password || 'Password'}</Text>
                 <TextInput
-                  label="Senha"
                   value={password}
                   onChangeText={setPassword}
                   mode="outlined"
+                  placeholder={t.auth?.passwordPlaceholder || 'Minimum 8 characters'}
                   secureTextEntry={!showPassword}
                   right={
                     <TextInput.Icon
@@ -172,41 +213,67 @@ export default function SignupScreen({ navigation }: any) {
                       onPress={() => setShowPassword(!showPassword)}
                     />
                   }
-                  left={<TextInput.Icon icon="lock" />}
                   style={styles.input}
                   outlineStyle={styles.inputOutline}
-                  error={hasError && !password}
+                  error={hasError && password.length < 8}
                 />
+                {/* ✨ Indicador de força da senha */}
+                {password.length > 0 && (
+                  <View style={styles.passwordStrength}>
+                    <View style={styles.strengthBars}>
+                      {[1, 2, 3, 4].map((level) => (
+                        <View
+                          key={level}
+                          style={[
+                            styles.strengthBar,
+                            {
+                              backgroundColor:
+                                level <= passwordStrength.level
+                                  ? passwordStrength.color
+                                  : '#e5e7eb',
+                            },
+                          ]}
+                        />
+                      ))}
+                    </View>
+                    <Text style={[styles.strengthText, { color: passwordStrength.color }]}>
+                      {passwordStrength.text}
+                    </Text>
+                  </View>
+                )}
               </View>
+            </SlideInView>
 
+            <SlideInView direction="left" delay={300}>
               <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>🔒 {t.auth?.confirmPassword || 'Confirm Password'}</Text>
                 <TextInput
-                  label="Confirmar Senha"
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   mode="outlined"
+                  placeholder={t.auth?.confirmPasswordPlaceholder || 'Enter password again'}
                   secureTextEntry={!showPassword}
-                  left={<TextInput.Icon icon="lock-check" />}
                   style={styles.input}
                   outlineStyle={styles.inputOutline}
-                  error={hasError && !confirmPassword}
+                  error={hasError && confirmPassword !== password}
                 />
+                {confirmPassword.length > 0 && (
+                  <View style={styles.matchIndicator}>
+                    {confirmPassword === password ? (
+                      <Text style={styles.matchSuccess}>✓ {t.auth?.passwordsMatch || 'Passwords match'}</Text>
+                    ) : (
+                      <Text style={styles.matchError}>✗ {t.auth?.passwordsDoNotMatch || 'Passwords do not match'}</Text>
+                    )}
+                  </View>
+                )}
               </View>
+            </SlideInView>
 
-              {/* ✨ Dica de senha */}
-              <FadeInView delay={300}>
-                <View style={styles.hintContainer}>
-                  <Text style={styles.hintIcon}>💡</Text>
-                  <Text style={styles.hintText}>
-                    A senha deve ter no mínimo 8 caracteres
-                  </Text>
-                </View>
-              </FadeInView>
-
-              {/* ✨ Botão de cadastrar */}
-              <FadeInView delay={350}>
+            {/* Botões */}
+            <FadeInView delay={350}>
+              <View style={styles.buttonsContainer}>
                 <EnhancedButton
-                  title="Criar Conta"
+                  title={t.auth?.createAccount || 'Create Account'}
                   onPress={handleSignup}
                   variant="primary"
                   size="large"
@@ -214,18 +281,18 @@ export default function SignupScreen({ navigation }: any) {
                   fullWidth
                   loading={loading}
                 />
-              </FadeInView>
-            </View>
-          </ShakeView>
-        </SlideInView>
+              </View>
+            </FadeInView>
+          </View>
+        </ShakeView>
 
         {/* ✨ Link para login */}
         <FadeInView delay={400}>
           <View style={styles.loginContainer}>
-            <Text style={styles.loginText}>Já tem uma conta? </Text>
+            <Text style={styles.loginText}>{t.auth?.alreadyHaveAccount || 'Already have an account?'} </Text>
             <ScalePress onPress={() => navigation.navigate('Login')}>
               <Text style={[styles.loginLink, { color: theme.colors.primary }]}>
-                Faça login
+                {t.auth?.login || 'Login'}
               </Text>
             </ScalePress>
           </View>
@@ -234,15 +301,15 @@ export default function SignupScreen({ navigation }: any) {
         {/* ✨ Footer */}
         <FadeInView delay={450}>
           <Text style={styles.footer}>
-            Ao criar sua conta, você concorda com nossos{'\n'}
-            <Text style={{ color: theme.colors.primary }}>Termos de Uso</Text> e{' '}
-            <Text style={{ color: theme.colors.primary }}>Política de Privacidade</Text>
+            {t.auth?.signupTerms || 'By signing up, you agree to our'}{'\n'}
+            <Text style={{ color: theme.colors.primary }}>{t.common?.termsOfUse || 'Terms of Use'}</Text> {t.common?.and || 'and'}{' '}
+            <Text style={{ color: theme.colors.primary }}>{t.common?.privacyPolicy || 'Privacy Policy'}</Text>
           </Text>
         </FadeInView>
       </ScrollView>
 
       {/* ✨ Loading Overlay */}
-      <LoadingOverlay visible={loading} message="Criando sua conta..." />
+      <LoadingOverlay visible={loading} message={t.auth?.creatingAccount || 'Creating your account...'} />
 
       {/* ✨ Toast */}
       <Toast
@@ -263,45 +330,50 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: 24,
-    justifyContent: 'center',
   },
-  logoContainer: {
+  header: {
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
-  logoCircle: {
+  iconContainer: {
     width: 70,
     height: 70,
     borderRadius: 35,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 16,
     elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
   },
-  logoText: {
+  headerIcon: {
     fontSize: 32,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 28,
   },
   title: {
     fontWeight: '700',
-    marginBottom: 8,
-    textAlign: 'center',
+    marginBottom: 4,
   },
   subtitle: {
     opacity: 0.6,
-    textAlign: 'center',
+  },
+  progressContainer: {
+    marginBottom: 24,
+  },
+  progressText: {
+    fontSize: 12,
+    color: '#6b7280',
+    textAlign: 'right',
+    marginTop: 4,
   },
   form: {
     width: '100%',
   },
   inputContainer: {
-    marginBottom: 14,
+    marginBottom: 18,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
   },
   input: {
     backgroundColor: '#fff',
@@ -309,22 +381,42 @@ const styles = StyleSheet.create({
   inputOutline: {
     borderRadius: 12,
   },
-  hintContainer: {
+  passwordStrength: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fffbeb',
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 20,
+    marginTop: 8,
   },
-  hintIcon: {
-    fontSize: 16,
-    marginRight: 8,
-  },
-  hintText: {
-    fontSize: 13,
-    color: '#92400e',
+  strengthBars: {
+    flexDirection: 'row',
     flex: 1,
+    gap: 4,
+  },
+  strengthBar: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
+  },
+  strengthText: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 8,
+    minWidth: 50,
+  },
+  matchIndicator: {
+    marginTop: 4,
+  },
+  matchSuccess: {
+    fontSize: 12,
+    color: '#22c55e',
+    fontWeight: '500',
+  },
+  matchError: {
+    fontSize: 12,
+    color: '#ef4444',
+    fontWeight: '500',
+  },
+  buttonsContainer: {
+    marginTop: 16,
   },
   loginContainer: {
     flexDirection: 'row',
@@ -342,7 +434,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 12,
     color: '#9e9e9e',
-    marginTop: 28,
+    marginTop: 24,
     lineHeight: 18,
   },
 });

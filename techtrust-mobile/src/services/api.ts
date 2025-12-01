@@ -1,12 +1,7 @@
-/**
- * API Service - Configuração Axios
- */
-
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// ALTERE ESTE IP PARA O IP DO SEU COMPUTADOR
-const API_URL = 'http://192.168.0.100:3000/api/v1';
+const API_URL = 'http://localhost:3000/api/v1';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -16,26 +11,53 @@ const api = axios.create({
   },
 });
 
-// Interceptor para adicionar token
+// Request interceptor - add token
 api.interceptors.request.use(
   async (config) => {
-    const token = await AsyncStorage.getItem('token');
+    const token = await AsyncStorage.getItem('@TechTrust:token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    return Promise.reject(error);
+  }
 );
 
-// Interceptor para lidar com erros
+// Response interceptor - handle token refresh
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401) {
-      // Token expirado - limpar storage
-      await AsyncStorage.multiRemove(['token', 'refreshToken', 'user']);
+    const originalRequest = error.config;
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      try {
+        const refreshToken = await AsyncStorage.getItem('@TechTrust:refreshToken');
+        
+        if (refreshToken) {
+          const response = await axios.post(`${API_URL}/auth/refresh`, {
+            refreshToken,
+          });
+
+          const { accessToken } = response.data.data;
+          await AsyncStorage.setItem('@TechTrust:token', accessToken);
+
+          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+          return api(originalRequest);
+        }
+      } catch (refreshError) {
+        // Refresh failed, clear auth
+        await AsyncStorage.multiRemove([
+          '@TechTrust:token',
+          '@TechTrust:refreshToken',
+          '@TechTrust:user',
+        ]);
+      }
     }
+
     return Promise.reject(error);
   }
 );

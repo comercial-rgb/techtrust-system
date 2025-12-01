@@ -1,625 +1,184 @@
 /**
- * Tela de Detalhes da Solicitação
- * ✨ Atualizada com animações e UI melhorada
+ * RequestDetailsScreen - Request Details
+ * With quotes and chat functionality
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, Alert } from 'react-native';
-import { Card, Text, Chip, Divider, useTheme } from 'react-native-paper';
-import api from '../services/api';
-import { ServiceRequest, Quote } from '../types';
-
-// ✨ Importando componentes de UI
 import {
-  FadeInView,
-  SlideInView,
-  ScalePress,
-  CardSkeleton,
-  Toast,
-  useToast,
-  LoadingOverlay,
-  SuccessAnimation,
-  EnhancedButton,
-  PulseView,
-} from '../components';
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { useI18n } from '../i18n';
 
-export default function RequestDetailsScreen({ route, navigation }: any) {
-  const theme = useTheme();
-  const { requestId } = route.params;
+interface Quote {
+  id: string;
+  provider: {
+    id: string;
+    businessName: string;
+    rating: number;
+    totalReviews: number;
+  };
+  partsCost: number;
+  laborCost: number;
+  totalAmount: number;
+  estimatedTime: string;
+  description: string;
+}
 
-  const [request, setRequest] = useState<ServiceRequest | null>(null);
-  const [quotes, setQuotes] = useState<Quote[]>([]);
+export default function RequestDetailsScreen({ navigation, route }: any) {
+  const { t } = useI18n();
+  const { requestId } = route.params || { requestId: '1' };
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [actionLoading, setActionLoading] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-
-  // ✨ Toast hook
-  const { toast, success, error, hideToast } = useToast();
+  const [request, setRequest] = useState<any>(null);
+  const [quotes, setQuotes] = useState<Quote[]>([]);
 
   useEffect(() => {
-    loadRequestDetails();
+    loadDetails();
   }, []);
 
-  async function loadRequestDetails() {
-    if (!loading) setRefreshing(true);
-    try {
-      const response = await api.get(`/service-requests/${requestId}`);
-      setRequest(response.data.data);
-      setQuotes(response.data.data.quotes || []);
-    } catch (err) {
-      console.error('Erro ao carregar detalhes:', err);
-      error('Não foi possível carregar os detalhes');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
+  async function loadDetails() {
+    await new Promise(resolve => setTimeout(resolve, 800));
+    setRequest({
+      id: requestId,
+      requestNumber: 'SR-2024-001',
+      title: 'Oil Change and Filters',
+      description: 'Full synthetic 5W30 oil change with air, oil, and fuel filter replacement.',
+      status: 'QUOTES_RECEIVED',
+      vehicle: { make: 'Honda', model: 'Civic', year: 2020, plateNumber: 'ABC-1234' },
+    });
+    setQuotes([
+      { id: '1', provider: { id: 'p1', businessName: 'Auto Center Express', rating: 4.8, totalReviews: 47 }, partsCost: 180, laborCost: 120, totalAmount: 300, estimatedTime: '2 hours', description: 'Full service with Mobil 1 oil' },
+      { id: '2', provider: { id: 'p2', businessName: 'Quick Lube Plus', rating: 4.5, totalReviews: 32 }, partsCost: 150, laborCost: 100, totalAmount: 250, estimatedTime: '2.5 hours', description: 'Synthetic oil with warranty' },
+      { id: '3', provider: { id: 'p3', businessName: 'Premium Auto Shop', rating: 4.9, totalReviews: 89 }, partsCost: 220, laborCost: 150, totalAmount: 370, estimatedTime: '1.5 hours', description: 'Premium complete service' },
+    ]);
+    setLoading(false);
   }
 
-  async function handleAcceptQuote(quoteId: string) {
-    Alert.alert(
-      'Aceitar Orçamento',
-      'Deseja realmente aceitar este orçamento? Uma ordem de serviço será criada.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Aceitar',
-          onPress: async () => {
-            setActionLoading(true);
-            try {
-              await api.post(`/quotes/${quoteId}/accept`);
-              setShowSuccess(true);
-              loadRequestDetails();
-            } catch (err: any) {
-              error(err.response?.data?.message || 'Erro ao aceitar orçamento');
-            } finally {
-              setActionLoading(false);
-            }
-          },
-        },
-      ]
-    );
-  }
-
-  async function handleCancelRequest() {
-    Alert.alert('Cancelar Solicitação', 'Deseja realmente cancelar esta solicitação?', [
-      { text: 'Não', style: 'cancel' },
-      {
-        text: 'Sim, Cancelar',
-        style: 'destructive',
-        onPress: async () => {
-          setActionLoading(true);
-          try {
-            await api.post(`/service-requests/${requestId}/cancel`);
-            success('Solicitação cancelada');
-            setTimeout(() => navigation.goBack(), 1500);
-          } catch (err: any) {
-            error(err.response?.data?.message || 'Erro ao cancelar');
-          } finally {
-            setActionLoading(false);
-          }
-        },
-      },
+  function handleAcceptQuote(quote: Quote) {
+    Alert.alert(t.common?.acceptQuote || 'Accept Quote', `${t.common?.acceptQuoteConfirm || 'Accept'} ${quote.provider.businessName} ${t.common?.for || 'for'} $${quote.totalAmount}?`, [
+      { text: t.common?.cancel || 'Cancel', style: 'cancel' },
+      { text: t.common?.accept || 'Accept', onPress: () => { Alert.alert(t.common?.success || 'Success!', t.common?.quoteAccepted || 'Quote accepted!'); navigation.goBack(); } },
     ]);
   }
 
-  const getStatusColor = (status: string) => {
-    const colors: any = {
-      SEARCHING_PROVIDERS: theme.colors.primary,
-      QUOTES_RECEIVED: '#4caf50',
-      QUOTE_ACCEPTED: '#ff9800',
-      IN_PROGRESS: '#ff9800',
-      COMPLETED: '#9e9e9e',
-      CANCELLED: '#f44336',
-    };
-    return colors[status] || theme.colors.primary;
-  };
-
-  const getStatusText = (status: string) => {
-    const texts: any = {
-      SEARCHING_PROVIDERS: 'Buscando Fornecedores',
-      QUOTES_RECEIVED: 'Orçamentos Recebidos',
-      QUOTE_ACCEPTED: 'Orçamento Aceito',
-      IN_PROGRESS: 'Em Andamento',
-      COMPLETED: 'Concluído',
-      CANCELLED: 'Cancelado',
-    };
-    return texts[status] || status;
-  };
-
-  const getServiceTypeText = (type: string) => {
-    const types: any = {
-      SCHEDULED_MAINTENANCE: '🔧 Manutenção',
-      REPAIR: '🛠️ Reparo',
-      ROADSIDE_SOS: '🆘 Socorro',
-      INSPECTION: '🔍 Inspeção',
-      DETAILING: '✨ Estética',
-    };
-    return types[type] || type;
-  };
-
-  // ✨ Loading state
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <CardSkeleton />
-          <View style={{ height: 16 }} />
-          <CardSkeleton />
-          <View style={{ height: 16 }} />
-          <CardSkeleton />
-        </ScrollView>
-      </View>
-    );
+  function handleViewQuoteDetails(quote: Quote) {
+    navigation.navigate('QuoteDetails', { quoteId: quote.id });
   }
 
-  if (!request) {
-    return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorEmoji}>😕</Text>
-        <Text style={styles.errorText}>Solicitação não encontrada</Text>
-        <EnhancedButton
-          title="Voltar"
-          onPress={() => navigation.goBack()}
-          variant="primary"
-        />
-      </View>
-    );
+  function handleChat(quote: Quote) {
+    navigation.navigate('Chat', { 
+      chatId: `chat-${quote.id}`,
+      participant: { id: quote.provider.id, name: quote.provider.businessName },
+      requestId: request?.requestNumber,
+    });
+  }
+
+  if (loading) {
+    return <SafeAreaView style={styles.container}><View style={styles.loading}><Text>{t.common?.loading || 'Loading...'}</Text></View></SafeAreaView>;
   }
 
   return (
-    <View style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
-            onRefresh={loadRequestDetails}
-            colors={[theme.colors.primary]}
-          />
-        }
-      >
-        {/* ✨ Header Card */}
-        <FadeInView delay={0}>
-          <Card style={styles.card}>
-            <Card.Content>
-              <View style={styles.header}>
-                <Text variant="headlineSmall" style={styles.title}>
-                  {request.title}
-                </Text>
-                <Chip
-                  icon="information"
-                  style={{ backgroundColor: getStatusColor(request.status) }}
-                  textStyle={styles.statusText}
-                >
-                  {getStatusText(request.status)}
-                </Chip>
-              </View>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <Ionicons name="arrow-back" size={24} color="#111827" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>{t.common?.details || 'Details'}</Text>
+        <View style={{ width: 40 }} />
+      </View>
 
-              <Text variant="bodySmall" style={styles.requestNumber}>
-                #{request.requestNumber}
-              </Text>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={styles.card}>
+          <Text style={styles.requestNumber}>#{request?.requestNumber}</Text>
+          <Text style={styles.title}>{request?.title}</Text>
+          <Text style={styles.description}>{request?.description}</Text>
+          <View style={styles.vehicleRow}>
+            <Ionicons name="car" size={18} color="#6b7280" />
+            <Text style={styles.vehicleText}>{request?.vehicle.make} {request?.vehicle.model} {request?.vehicle.year}</Text>
+          </View>
+        </View>
 
-              <Divider style={styles.divider} />
-
-              <View style={styles.detailsGrid}>
-                <View style={styles.detailItem}>
-                  <View style={styles.detailIconBox}>
-                    <Text style={styles.detailIcon}>🚗</Text>
-                  </View>
-                  <View style={styles.detailTextBox}>
-                    <Text style={styles.detailLabel}>Veículo</Text>
-                    <Text style={styles.detailValue}>
-                      {request.vehicle?.make} {request.vehicle?.model}
-                    </Text>
-                  </View>
-                </View>
-
-                <View style={styles.detailItem}>
-                  <View style={styles.detailIconBox}>
-                    <Text style={styles.detailIcon}>🔧</Text>
-                  </View>
-                  <View style={styles.detailTextBox}>
-                    <Text style={styles.detailLabel}>Tipo</Text>
-                    <Text style={styles.detailValue}>
-                      {getServiceTypeText(request.serviceType)}
-                    </Text>
-                  </View>
+        <Text style={styles.sectionTitle}>{t.common?.quotes || 'Quotes'} ({quotes.length})</Text>
+        {quotes.map((quote, idx) => (
+          <TouchableOpacity key={quote.id} style={styles.quoteCard} onPress={() => handleViewQuoteDetails(quote)}>
+            <View style={styles.providerRow}>
+              <View style={styles.avatar}><Ionicons name="business" size={20} color="#1976d2" /></View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.providerName}>{quote.provider.businessName}</Text>
+                <View style={styles.ratingRow}>
+                  <Ionicons name="star" size={14} color="#fbbf24" />
+                  <Text style={styles.ratingText}>{quote.provider.rating} ({quote.provider.totalReviews})</Text>
                 </View>
               </View>
-
-              <Divider style={styles.divider} />
-
-              <View style={styles.descriptionBox}>
-                <Text variant="titleSmall" style={styles.sectionTitle}>
-                  📝 Descrição
-                </Text>
-                <Text variant="bodyMedium" style={styles.description}>
-                  {request.description}
-                </Text>
-              </View>
-            </Card.Content>
-          </Card>
-        </FadeInView>
-
-        {/* ✨ Orçamentos Recebidos */}
-        {quotes.length > 0 && (
-          <FadeInView delay={100}>
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text variant="titleLarge" style={styles.sectionHeaderTitle}>
-                  📋 Orçamentos
-                </Text>
-                <View style={styles.quotesCount}>
-                  <Text style={styles.quotesCountText}>{quotes.length}</Text>
-                </View>
-              </View>
-
-              {quotes.map((quote, index) => (
-                <SlideInView key={quote.id} direction="left" delay={150 + index * 100}>
-                  <Card style={styles.quoteCard}>
-                    <Card.Content>
-                      <View style={styles.quoteHeader}>
-                        <View style={styles.providerInfo}>
-                          <View style={styles.providerAvatar}>
-                            <Text style={styles.providerInitial}>
-                              {(quote.provider?.fullName || 'F').charAt(0)}
-                            </Text>
-                          </View>
-                          <View>
-                            <Text variant="titleMedium" style={styles.providerName}>
-                              {quote.provider?.providerProfile?.businessName ||
-                                quote.provider?.fullName ||
-                                'Fornecedor'}
-                            </Text>
-                            {quote.provider?.providerProfile && (
-                              <Text style={styles.providerRating}>
-                                ⭐ {Number(quote.provider.providerProfile.averageRating).toFixed(1)} •{' '}
-                                {quote.provider.providerProfile.totalReviews} avaliações
-                              </Text>
-                            )}
-                          </View>
-                        </View>
-                        <Text variant="headlineSmall" style={[styles.quotePrice, { color: theme.colors.primary }]}>
-                          R$ {Number(quote.totalAmount).toFixed(2)}
-                        </Text>
-                      </View>
-
-                      <Divider style={styles.divider} />
-
-                      <View style={styles.priceBreakdown}>
-                        <View style={styles.priceRow}>
-                          <Text style={styles.priceLabel}>🔩 Peças:</Text>
-                          <Text style={styles.priceValue}>R$ {Number(quote.partsCost).toFixed(2)}</Text>
-                        </View>
-                        <View style={styles.priceRow}>
-                          <Text style={styles.priceLabel}>👨‍🔧 Mão de obra:</Text>
-                          <Text style={styles.priceValue}>R$ {Number(quote.laborCost).toFixed(2)}</Text>
-                        </View>
-                        {Number(quote.additionalFees) > 0 && (
-                          <View style={styles.priceRow}>
-                            <Text style={styles.priceLabel}>📋 Taxas:</Text>
-                            <Text style={styles.priceValue}>R$ {Number(quote.additionalFees).toFixed(2)}</Text>
-                          </View>
-                        )}
-                      </View>
-
-                      <View style={styles.laborDescriptionBox}>
-                        <Text style={styles.laborDescription}>
-                          📝 {quote.laborDescription}
-                        </Text>
-                      </View>
-
-                      {quote.status === 'PENDING' && request.status === 'QUOTES_RECEIVED' && (
-                        <EnhancedButton
-                          title="Aceitar Orçamento"
-                          onPress={() => handleAcceptQuote(quote.id)}
-                          variant="primary"
-                          size="medium"
-                          icon="check"
-                          fullWidth
-                          style={{ marginTop: 12 }}
-                        />
-                      )}
-
-                      {quote.status === 'ACCEPTED' && (
-                        <View style={styles.acceptedBadge}>
-                          <Text style={styles.acceptedText}>✓ Orçamento Aceito</Text>
-                        </View>
-                      )}
-                    </Card.Content>
-                  </Card>
-                </SlideInView>
-              ))}
+              {idx === 0 && <View style={styles.bestBadge}><Text style={styles.bestText}>{t.common?.bestValue || 'Best Value'}</Text></View>}
+              <Ionicons name="chevron-forward" size={20} color="#9ca3af" style={{ marginLeft: 8 }} />
             </View>
-          </FadeInView>
-        )}
-
-        {/* ✨ Aguardando Orçamentos */}
-        {quotes.length === 0 && request.status === 'SEARCHING_PROVIDERS' && (
-          <FadeInView delay={100}>
-            <Card style={styles.waitingCard}>
-              <Card.Content style={styles.waitingContent}>
-                <PulseView>
-                  <Text style={styles.waitingEmoji}>⏳</Text>
-                </PulseView>
-                <Text variant="titleMedium" style={styles.waitingTitle}>
-                  Aguardando Orçamentos
-                </Text>
-                <Text style={styles.waitingText}>
-                  Fornecedores têm até 2 horas para enviar orçamentos.{'\n'}
-                  Você receberá uma notificação quando recebermos o primeiro!
-                </Text>
-              </Card.Content>
-            </Card>
-          </FadeInView>
-        )}
-
-        {/* ✨ Botão Cancelar */}
-        {(request.status === 'SEARCHING_PROVIDERS' || request.status === 'QUOTES_RECEIVED') && (
-          <FadeInView delay={200}>
-            <EnhancedButton
-              title="Cancelar Solicitação"
-              onPress={handleCancelRequest}
-              variant="outline"
-              size="medium"
-              icon="close"
-              fullWidth
-              style={{ marginTop: 16 }}
-            />
-          </FadeInView>
-        )}
+            <View style={styles.detailsBox}>
+              <View style={styles.detailRow}><Text style={styles.detailLabel}>{t.workOrder?.parts || 'Parts'}:</Text><Text style={styles.detailValue}>${quote.partsCost}</Text></View>
+              <View style={styles.detailRow}><Text style={styles.detailLabel}>{t.workOrder?.labor || 'Labor'}:</Text><Text style={styles.detailValue}>${quote.laborCost}</Text></View>
+              <View style={styles.detailRow}><Text style={styles.detailLabel}>{t.workOrder?.estimatedTime || 'Est. Time'}:</Text><Text style={styles.detailValue}>{quote.estimatedTime}</Text></View>
+              <View style={[styles.detailRow, styles.totalRow]}><Text style={styles.totalLabel}>{t.common?.total || 'Total'}:</Text><Text style={styles.totalValue}>${quote.totalAmount}</Text></View>
+            </View>
+            <View style={styles.actions}>
+              <TouchableOpacity style={styles.chatBtn} onPress={(e) => { e.stopPropagation(); handleChat(quote); }}>
+                <Ionicons name="chatbubble-outline" size={18} color="#1976d2" />
+                <Text style={styles.chatText}>{t.common?.chat || 'Chat'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.acceptBtn} onPress={(e) => { e.stopPropagation(); handleAcceptQuote(quote); }}>
+                <Ionicons name="checkmark" size={18} color="#fff" />
+                <Text style={styles.acceptText}>{t.common?.accept || 'Accept'}</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.viewDetailsHint}>
+              <Text style={styles.viewDetailsText}>{t.common?.tapToViewFullDetails || 'Tap to view full details and share PDF'}</Text>
+            </View>
+          </TouchableOpacity>
+        ))}
+        <View style={{ height: 40 }} />
       </ScrollView>
-
-      {/* ✨ Loading Overlay */}
-      <LoadingOverlay visible={actionLoading} message="Processando..." />
-
-      {/* ✨ Success Animation */}
-      <SuccessAnimation
-        visible={showSuccess}
-        message="Orçamento aceito!"
-        onComplete={() => setShowSuccess(false)}
-      />
-
-      {/* ✨ Toast */}
-      <Toast
-        visible={toast.visible}
-        message={toast.message}
-        type={toast.type}
-        onDismiss={hideToast}
-      />
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-  errorContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 32,
-  },
-  errorEmoji: {
-    fontSize: 48,
-    marginBottom: 16,
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#6b7280',
-    marginBottom: 24,
-  },
-  card: {
-    marginBottom: 16,
-    borderRadius: 20,
-    elevation: 2,
-  },
-  header: {
-    marginBottom: 12,
-  },
-  title: {
-    fontWeight: '700',
-    marginBottom: 10,
-  },
-  statusText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  requestNumber: {
-    opacity: 0.5,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
-  divider: {
-    marginVertical: 16,
-  },
-  detailsGrid: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  detailItem: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f8fafc',
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  detailIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: '#e3f2fd',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-  },
-  detailIcon: {
-    fontSize: 20,
-  },
-  detailTextBox: {
-    flex: 1,
-  },
-  detailLabel: {
-    fontSize: 11,
-    color: '#64748b',
-    fontWeight: '500',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  detailValue: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1e293b',
-    marginTop: 2,
-  },
-  sectionTitle: {
-    fontWeight: '700',
-    marginBottom: 8,
-    color: '#374151',
-  },
-  descriptionBox: {
-    backgroundColor: '#f0fdf4',
-    padding: 14,
-    borderRadius: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#22c55e',
-  },
-  description: {
-    color: '#166534',
-    lineHeight: 22,
-    fontWeight: '500',
-  },
-  section: {
-    marginBottom: 16,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  sectionHeaderTitle: {
-    fontWeight: '700',
-    flex: 1,
-  },
-  quotesCount: {
-    backgroundColor: '#4caf50',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  quotesCountText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 14,
-  },
-  quoteCard: {
-    marginBottom: 12,
-    borderRadius: 16,
-    elevation: 2,
-  },
-  quoteHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  providerInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  providerAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#e3f2fd',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  providerInitial: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1976d2',
-  },
-  providerName: {
-    fontWeight: '600',
-  },
-  providerRating: {
-    fontSize: 12,
-    color: '#6b7280',
-    marginTop: 2,
-  },
-  quotePrice: {
-    fontWeight: '800',
-  },
-  priceBreakdown: {
-    marginBottom: 12,
-  },
-  priceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
-  priceLabel: {
-    fontSize: 13,
-    color: '#6b7280',
-  },
-  priceValue: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#1f2937',
-  },
-  laborDescriptionBox: {
-    backgroundColor: '#f9fafb',
-    padding: 12,
-    borderRadius: 10,
-  },
-  laborDescription: {
-    fontSize: 13,
-    color: '#4b5563',
-    lineHeight: 20,
-  },
-  acceptedBadge: {
-    backgroundColor: '#e8f5e9',
-    padding: 12,
-    borderRadius: 10,
-    marginTop: 12,
-    alignItems: 'center',
-  },
-  acceptedText: {
-    color: '#4caf50',
-    fontWeight: '700',
-  },
-  waitingCard: {
-    borderRadius: 20,
-    elevation: 2,
-  },
-  waitingContent: {
-    alignItems: 'center',
-    paddingVertical: 32,
-  },
-  waitingEmoji: {
-    fontSize: 48,
-    marginBottom: 16,
-  },
-  waitingTitle: {
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  waitingText: {
-    textAlign: 'center',
-    color: '#6b7280',
-    lineHeight: 22,
-  },
+  container: { flex: 1, backgroundColor: '#f8fafc' },
+  loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+  backBtn: { padding: 8 },
+  headerTitle: { fontSize: 18, fontWeight: '600', color: '#111827' },
+  card: { backgroundColor: '#fff', margin: 16, padding: 16, borderRadius: 16 },
+  requestNumber: { fontSize: 14, color: '#6b7280', marginBottom: 8 },
+  title: { fontSize: 20, fontWeight: '700', color: '#111827', marginBottom: 8 },
+  description: { fontSize: 14, color: '#6b7280', marginBottom: 16 },
+  vehicleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#f3f4f6' },
+  vehicleText: { fontSize: 14, color: '#374151' },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#111827', marginHorizontal: 16, marginBottom: 12 },
+  quoteCard: { backgroundColor: '#fff', marginHorizontal: 16, marginBottom: 12, padding: 16, borderRadius: 16 },
+  providerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  avatar: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#dbeafe', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  providerName: { fontSize: 16, fontWeight: '600', color: '#111827' },
+  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
+  ratingText: { fontSize: 13, color: '#6b7280' },
+  bestBadge: { backgroundColor: '#d1fae5', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  bestText: { fontSize: 11, fontWeight: '600', color: '#047857' },
+  detailsBox: { backgroundColor: '#f8fafc', borderRadius: 12, padding: 12, marginBottom: 12 },
+  detailRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+  detailLabel: { fontSize: 14, color: '#6b7280' },
+  detailValue: { fontSize: 14, color: '#374151', fontWeight: '500' },
+  totalRow: { marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#e5e7eb', marginBottom: 0 },
+  totalLabel: { fontSize: 16, fontWeight: '600', color: '#111827' },
+  totalValue: { fontSize: 18, fontWeight: '700', color: '#1976d2' },
+  actions: { flexDirection: 'row', gap: 12 },
+  chatBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#dbeafe', paddingVertical: 12, borderRadius: 10 },
+  chatText: { fontSize: 14, fontWeight: '600', color: '#1976d2' },
+  acceptBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#10b981', paddingVertical: 12, borderRadius: 10 },
+  acceptText: { fontSize: 14, fontWeight: '600', color: '#fff' },
+  viewDetailsHint: { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#f3f4f6', alignItems: 'center' },
+  viewDetailsText: { fontSize: 12, color: '#9ca3af', fontStyle: 'italic' },
 });

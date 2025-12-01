@@ -8,6 +8,7 @@ import { View, StyleSheet, ScrollView, RefreshControl, Alert } from 'react-nativ
 import { Card, Text, FAB, IconButton, useTheme, Chip } from 'react-native-paper';
 import api from '../services/api';
 import { Vehicle } from '../types';
+import { useI18n } from '../i18n';
 
 // ✨ Importando componentes de UI
 import {
@@ -22,6 +23,7 @@ import {
 } from '../components';
 
 export default function VehiclesScreen({ navigation }: any) {
+  const { t } = useI18n();
   const theme = useTheme();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,7 +46,7 @@ export default function VehiclesScreen({ navigation }: any) {
       setVehicles(response.data.data || []);
     } catch (err) {
       console.error('Erro ao carregar veículos:', err);
-      error('Não foi possível carregar os veículos');
+      error(t.vehicle?.loadError || 'Não foi possível carregar os veículos');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -53,22 +55,22 @@ export default function VehiclesScreen({ navigation }: any) {
 
   const handleDelete = async (vehicleId: string, plateNumber: string) => {
     Alert.alert(
-      'Confirmar exclusão',
-      `Deseja realmente excluir o veículo ${plateNumber}?`,
+      t.common?.confirmDelete || 'Confirmar exclusão',
+      `${t.vehicle?.deleteConfirmation || 'Deseja realmente excluir o veículo'} ${plateNumber}?`,
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: t.common?.cancel || 'Cancelar', style: 'cancel' },
         {
-          text: 'Excluir',
+          text: t.common?.delete || 'Excluir',
           style: 'destructive',
           onPress: async () => {
             setActionLoading(true);
             try {
               await api.delete(`/vehicles/${vehicleId}`);
-              setSuccessMessage('Veículo excluído!');
+              setSuccessMessage(t.vehicle?.vehicleDeleted || 'Veículo excluído!');
               setShowSuccess(true);
               loadVehicles();
             } catch (err: any) {
-              error(err.response?.data?.message || 'Erro ao excluir veículo');
+              error(err.response?.data?.message || t.vehicle?.deleteError || 'Erro ao excluir veículo');
             } finally {
               setActionLoading(false);
             }
@@ -82,10 +84,10 @@ export default function VehiclesScreen({ navigation }: any) {
     setActionLoading(true);
     try {
       await api.post(`/vehicles/${vehicleId}/set-primary`);
-      success('Veículo principal definido!');
+      success(t.vehicle?.primarySet || 'Veículo principal definido!');
       loadVehicles();
     } catch (err: any) {
-      error(err.response?.data?.message || 'Erro ao definir veículo principal');
+      error(err.response?.data?.message || t.vehicle?.primaryError || 'Erro ao definir veículo principal');
     } finally {
       setActionLoading(false);
     }
@@ -127,9 +129,9 @@ export default function VehiclesScreen({ navigation }: any) {
         {/* ✨ Header animado */}
         <FadeInView delay={0}>
           <View style={styles.header}>
-            <Text variant="titleLarge" style={styles.title}>Meus Veículos</Text>
+            <Text variant="titleLarge" style={styles.title}>{t.vehicle?.myVehicles || 'Meus Veículos'}</Text>
             <Text variant="bodyMedium" style={styles.subtitle}>
-              {vehicles.length} veículo(s) cadastrado(s)
+              {vehicles.length} {t.vehicle?.vehiclesRegistered || 'veículo(s) cadastrado(s)'}
             </Text>
           </View>
         </FadeInView>
@@ -139,9 +141,9 @@ export default function VehiclesScreen({ navigation }: any) {
           <FadeInView delay={100}>
             <EmptyState
               icon="car-off"
-              title="Nenhum veículo cadastrado"
-              description="Adicione seu primeiro veículo para começar!"
-              actionLabel="Adicionar Veículo"
+              title={t.vehicle?.noVehicles || 'Nenhum veículo cadastrado'}
+              description={t.vehicle?.addFirstVehicle || 'Adicione seu primeiro veículo para começar!'}
+              actionLabel={t.vehicle?.addVehicle || 'Adicionar Veículo'}
               onAction={() => navigation.navigate('AddVehicle')}
             />
           </FadeInView>
@@ -172,7 +174,7 @@ export default function VehiclesScreen({ navigation }: any) {
                           style={[styles.primaryChip, { backgroundColor: theme.colors.primary }]}
                           textStyle={styles.primaryChipText}
                         >
-                          Principal
+                          {t.vehicle?.primary || 'Principal'}
                         </Chip>
                       )}
                     </View>
@@ -213,7 +215,7 @@ export default function VehiclesScreen({ navigation }: any) {
                             iconColor={theme.colors.primary}
                           />
                           <Text style={[styles.actionText, { color: theme.colors.primary }]}>
-                            Definir principal
+                            {t.vehicle?.setAsPrimary || 'Definir principal'}
                           </Text>
                         </View>
                       </ScalePress>
@@ -226,7 +228,7 @@ export default function VehiclesScreen({ navigation }: any) {
                           iconColor={theme.colors.error}
                         />
                         <Text style={[styles.actionText, { color: theme.colors.error }]}>
-                          Excluir
+                          {t.common?.delete || 'Excluir'}
                         </Text>
                       </View>
                     </ScalePress>
@@ -243,11 +245,11 @@ export default function VehiclesScreen({ navigation }: any) {
         icon="plus"
         style={[styles.fab, { backgroundColor: theme.colors.primary }]}
         onPress={() => navigation.navigate('AddVehicle')}
-        label="Adicionar"
+        label={t.common?.add || 'Adicionar'}
       />
 
       {/* ✨ Loading Overlay */}
-      <LoadingOverlay visible={actionLoading} message="Processando..." />
+      <LoadingOverlay visible={actionLoading} message={t.common?.processing || 'Processando...'} />
 
       {/* ✨ Success Animation */}
       <SuccessAnimation

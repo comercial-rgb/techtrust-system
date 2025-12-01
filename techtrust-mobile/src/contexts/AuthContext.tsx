@@ -1,115 +1,193 @@
 /**
- * Auth Context - Gerenciamento de autenticação
+ * AuthContext - Contexto de Autenticação
+ * Suporta CUSTOMER e PROVIDER com modo demo
  */
 
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import api from '../services/api';
-import { User, AuthResponse, SignupData, LoginData } from '../types';
 
-interface AuthContextData {
-  user: User | null;
-  loading: boolean;
-  signUp: (data: SignupData) => Promise<{ userId: string }>;
-  verifyOTP: (userId: string, otpCode: string) => Promise<void>;
-  login: (data: LoginData) => Promise<void>;
-  logout: () => Promise<void>;
+// ============================================
+// TYPES
+// ============================================
+interface User {
+  id: string;
+  email: string;
+  fullName: string;
+  phone: string;
+  role: 'CUSTOMER' | 'PROVIDER';
+  providerProfile?: {
+    businessName: string;
+    businessType: string;
+    averageRating: number;
+    totalReviews: number;
+    isVerified: boolean;
+  };
 }
 
-const AuthContext = createContext<AuthContextData>({} as AuthContextData);
+interface AuthContextType {
+  user: User | null;
+  loading: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  loginAsProvider: (email: string, password: string) => Promise<void>;
+  signup: (data: SignupData) => Promise<void>;
+  logout: () => Promise<void>;
+  isAuthenticated: boolean;
+}
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+interface SignupData {
+  fullName: string;
+  email: string;
+  phone: string;
+  password: string;
+}
+
+// ============================================
+// DEMO DATA
+// ============================================
+const DEMO_CUSTOMER: User = {
+  id: 'demo-customer-001',
+  email: 'cliente@teste.com',
+  fullName: 'João Cliente',
+  phone: '+1 (407) 555-1234',
+  role: 'CUSTOMER',
+};
+
+const DEMO_PROVIDER: User = {
+  id: 'demo-provider-001',
+  email: 'fornecedor@teste.com',
+  fullName: 'Carlos Mecânico',
+  phone: '+1 (407) 555-5678',
+  role: 'PROVIDER',
+  providerProfile: {
+    businessName: 'Auto Center Express',
+    businessType: 'AUTO_REPAIR',
+    averageRating: 4.8,
+    totalReviews: 47,
+    isVerified: true,
+  },
+};
+
+// ============================================
+// CONTEXT
+// ============================================
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadStoredData();
+    checkAuth();
   }, []);
 
-  async function loadStoredData() {
+  const checkAuth = async () => {
     try {
-      const storedUser = await AsyncStorage.getItem('user');
-      const token = await AsyncStorage.getItem('token');
-
-      if (storedUser && token) {
+      const storedUser = await AsyncStorage.getItem('@TechTrust:user');
+      if (storedUser) {
         setUser(JSON.parse(storedUser));
       }
     } catch (error) {
-      console.error('Erro ao carregar dados:', error);
+      console.error('Erro ao verificar auth:', error);
     } finally {
       setLoading(false);
     }
-  }
+  };
 
-  async function signUp(data: SignupData) {
+  // Login como CLIENTE (padrão)
+  const login = async (email: string, password: string) => {
     try {
-      const response = await api.post('/auth/signup', data);
-      return { userId: response.data.data.userId };
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Erro ao cadastrar');
-    }
-  }
+      // Simular delay de rede
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-  async function verifyOTP(userId: string, otpCode: string) {
-    try {
-      const response = await api.post<AuthResponse>('/auth/verify-otp', {
-        userId,
-        otpCode,
-      });
+      if (!email || !password) {
+        throw new Error('Preencha email e senha');
+      }
 
-      const { user: userData, token, refreshToken } = response.data.data;
-
-      await AsyncStorage.multiSet([
-        ['user', JSON.stringify(userData)],
-        ['token', token],
-        ['refreshToken', refreshToken],
-      ]);
-
+      // Modo demo - usar dados do cliente
+      const userData = { ...DEMO_CUSTOMER, email };
+      
+      await AsyncStorage.setItem('@TechTrust:user', JSON.stringify(userData));
+      await AsyncStorage.setItem('@TechTrust:token', 'demo-token-customer');
+      
       setUser(userData);
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Código inválido');
+      throw new Error(error.message || 'Erro ao fazer login');
     }
-  }
+  };
 
-  async function login(data: LoginData) {
+  // Login como FORNECEDOR
+  const loginAsProvider = async (email: string, password: string) => {
     try {
-      const response = await api.post<AuthResponse>('/auth/login', data);
+      // Simular delay de rede
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      const { user: userData, token, refreshToken } = response.data.data;
+      if (!email || !password) {
+        throw new Error('Preencha email e senha');
+      }
 
-      await AsyncStorage.multiSet([
-        ['user', JSON.stringify(userData)],
-        ['token', token],
-        ['refreshToken', refreshToken],
-      ]);
-
+      // Modo demo - usar dados do fornecedor
+      const userData = { ...DEMO_PROVIDER, email };
+      
+      await AsyncStorage.setItem('@TechTrust:user', JSON.stringify(userData));
+      await AsyncStorage.setItem('@TechTrust:token', 'demo-token-provider');
+      
       setUser(userData);
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Erro ao fazer login');
+      throw new Error(error.message || 'Erro ao fazer login');
     }
-  }
+  };
 
-  async function logout() {
+  const signup = async (data: SignupData) => {
     try {
-      await api.post('/auth/logout');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      const newUser: User = {
+        id: `user-${Date.now()}`,
+        email: data.email,
+        fullName: data.fullName,
+        phone: data.phone,
+        role: 'CUSTOMER',
+      };
+
+      await AsyncStorage.setItem('@TechTrust:user', JSON.stringify(newUser));
+      await AsyncStorage.setItem('@TechTrust:token', 'demo-token-new-user');
+
+      setUser(newUser);
+    } catch (error: any) {
+      throw new Error(error.message || 'Erro ao criar conta');
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await AsyncStorage.removeItem('@TechTrust:user');
+      await AsyncStorage.removeItem('@TechTrust:token');
+      setUser(null);
     } catch (error) {
       console.error('Erro ao fazer logout:', error);
-    } finally {
-      await AsyncStorage.multiRemove(['user', 'token', 'refreshToken']);
-      setUser(null);
     }
-  }
+  };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signUp, verifyOTP, login, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        login,
+        loginAsProvider,
+        signup,
+        logout,
+        isAuthenticated: !!user,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
-};
+}
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
