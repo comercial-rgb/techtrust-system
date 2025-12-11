@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useI18n } from '../../i18n';
+import { useRoute } from '@react-navigation/native';
 
 interface FAQItem {
   id: string;
@@ -24,9 +25,20 @@ interface FAQItem {
 
 export default function HelpCenterScreen({ navigation }: any) {
   const { t } = useI18n();
+  const route = useRoute<any>();
+  const fromDashboard = route.params?.fromDashboard;
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState('all');
+
+  const handleBack = () => {
+    if (fromDashboard) {
+      navigation.navigate('Home', { screen: 'Dashboard' });
+    } else {
+      navigation.goBack();
+    }
+  };
 
   const categories = [
     { id: 'all', label: 'All', icon: 'grid' },
@@ -121,7 +133,7 @@ export default function HelpCenterScreen({ navigation }: any) {
       subtitle: 'Report a problem',
       icon: 'warning',
       color: '#f59e0b',
-      onPress: () => {},
+      onPress: () => navigation.navigate('ContactUs', { subject: 'Report Issue' }),
     },
     { 
       id: 'feedback', 
@@ -137,7 +149,7 @@ export default function HelpCenterScreen({ navigation }: any) {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+        <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color="#111827" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t.customer?.helpCenter || 'Help Center'}</Text>

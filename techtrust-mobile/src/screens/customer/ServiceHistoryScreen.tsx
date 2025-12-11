@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { CommonActions } from '@react-navigation/native';
 import { useI18n } from '../../i18n';
 
 interface ServiceRecord {
@@ -159,7 +160,7 @@ export default function ServiceHistoryScreen({ navigation }: any) {
   const renderServiceItem = ({ item }: { item: ServiceRecord }) => (
     <TouchableOpacity 
       style={styles.serviceCard}
-      onPress={() => navigation.navigate('ServiceHistoryDetails', { serviceId: item.id })}
+      onPress={() => navigation.navigate('ServiceHistoryWorkOrderDetails', { workOrderId: item.id })}
     >
       <View style={styles.serviceHeader}>
         <View style={[

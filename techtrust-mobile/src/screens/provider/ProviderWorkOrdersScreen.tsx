@@ -3,7 +3,7 @@
  * Serviços em andamento e concluídos do fornecedor
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { useFocusEffect } from '@react-navigation/native';
 import { useI18n } from '../../i18n';
 
 interface WorkOrder {
@@ -46,9 +47,12 @@ export default function ProviderWorkOrdersScreen({ navigation }: any) {
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
 
-  useEffect(() => {
-    loadWorkOrders();
-  }, []);
+  // Reload data when screen gains focus
+  useFocusEffect(
+    useCallback(() => {
+      loadWorkOrders();
+    }, [])
+  );
 
   useEffect(() => {
     filterWorkOrders();

@@ -33,6 +33,8 @@ import reviewRoutes from './routes/review.routes';
 import notificationRoutes from './routes/notification.routes';
 import providerRoutes from './routes/provider.routes';
 import chatRoutes from './routes/chat.routes';
+import adminRoutes from './routes/admin.routes';
+import contentRoutes from './routes/content.routes';
 
 // Carregar variáveis de ambiente
 dotenv.config();
@@ -136,6 +138,8 @@ app.use(`/api/${API_VERSION}/reviews`, reviewRoutes);
 app.use(`/api/${API_VERSION}/notifications`, notificationRoutes);
 app.use(`/api/${API_VERSION}/providers`, providerRoutes);
 app.use(`/api/${API_VERSION}/chat`, chatRoutes);
+app.use(`/api/${API_VERSION}/admin`, adminRoutes);
+app.use(`/api/${API_VERSION}/content`, contentRoutes); // Rotas públicas de conteúdo
 
 // ============================================
 // ERROR HANDLER (deve ser o último middleware)

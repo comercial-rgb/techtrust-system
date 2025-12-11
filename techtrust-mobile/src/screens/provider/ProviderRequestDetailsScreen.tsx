@@ -4,7 +4,7 @@
  * ATUALIZADO: Telefone oculto até aceite, mais info do veículo, campos individuais, agendamento
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -18,15 +18,19 @@ import {
   Platform,
   ActivityIndicator,
   Switch,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { useFocusEffect } from '@react-navigation/native';
 import { useI18n } from '../../i18n';
+import { useNotifications } from '../../contexts/NotificationsContext';
 
 interface QuoteLineItem {
   id: string;
   type: 'part' | 'service';
   description: string;
+  brand?: string;
   quantity: number;
   unitPrice: number;
 }
@@ -40,6 +44,11 @@ interface ServiceRequest {
   isUrgent: boolean;
   expiresIn: string;
   status: 'pending' | 'quoted' | 'accepted' | 'rejected';
+  serviceLocation: {
+    type: 'shop' | 'mobile' | 'roadside';
+    address?: string;
+    coordinates?: { lat: number; lng: number };
+  };
   customer: {
     name: string;
     phone: string;
@@ -70,11 +79,19 @@ interface ServiceRequest {
 export default function ProviderRequestDetailsScreen({ route, navigation }: any) {
   const { requestId } = route.params;
   const { t } = useI18n();
+  const { markRequestAsViewed } = useNotifications();
   const [loading, setLoading] = useState(true);
   const [request, setRequest] = useState<ServiceRequest | null>(null);
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [quoteSubmitted, setQuoteSubmitted] = useState(false);
+
+  // Mark request as viewed when screen opens
+  useEffect(() => {
+    if (requestId) {
+      markRequestAsViewed(requestId);
+    }
+  }, [requestId, markRequestAsViewed]);
 
   // Quote form state
   const [lineItems, setLineItems] = useState<QuoteLineItem[]>([
@@ -116,9 +133,16 @@ export default function ProviderRequestDetailsScreen({ route, navigation }: any)
     return extraKm * providerCostPerKm;
   };
 
-  useEffect(() => {
-    loadRequest();
-  }, [requestId]);
+  // Reset state and reload when requestId changes or screen gains focus
+  useFocusEffect(
+    useCallback(() => {
+      // Reset state when navigating to this screen
+      setRequest(null);
+      setLoading(true);
+      setQuoteSubmitted(false);
+      loadRequest();
+    }, [requestId])
+  );
 
   const loadRequest = async () => {
     setLoading(true);
@@ -128,15 +152,20 @@ export default function ProviderRequestDetailsScreen({ route, navigation }: any)
       setRequest({
         id: requestId,
         requestNumber: 'SR-2024-001',
-        title: 'Troca de óleo e filtros',
+        title: 'Oil change and filters',
         description:
-          'Preciso trocar o óleo e filtros do meu carro. Último serviço foi há 10.000 km. Gostaria de usar óleo sintético de boa qualidade. Também verificar se há necessidade de trocar o filtro de ar.',
+          'I need to change the oil and filters in my car. Last service was 10,000 km ago. I would like to use good quality synthetic oil. Also check if the air filter needs to be replaced.',
         serviceType: 'SCHEDULED_MAINTENANCE',
         isUrgent: false,
         expiresIn: '1h 30min',
         status: 'pending',
+        serviceLocation: {
+          type: 'mobile',
+          address: '123 Main Street, Orlando, FL 32801',
+          coordinates: { lat: 28.5383, lng: -81.3792 },
+        },
         customer: {
-          name: 'João Silva',
+          name: 'John Smith',
           phone: '+1 (407) 555-1234',
           location: 'Orlando, FL',
           distance: '3.2 km',
@@ -148,11 +177,11 @@ export default function ProviderRequestDetailsScreen({ route, navigation }: any)
           model: 'Civic',
           year: 2020,
           plateNumber: 'ABC1234',
-          color: 'Preto',
+          color: 'Black',
           mileage: 45000,
           vin: '1HGBH41JXMN109186',
-          fuelType: 'Gasolina',
-          transmission: 'Automático CVT',
+          fuelType: 'Gasoline',
+          transmission: 'Automatic CVT',
           engine: '2.0L i-VTEC',
           lastServiceDate: '2024-07-15',
           lastServiceMileage: 40000,
@@ -162,7 +191,7 @@ export default function ProviderRequestDetailsScreen({ route, navigation }: any)
         preferredTime: '09:00',
       });
     } catch (error) {
-      console.error('Erro ao carregar pedido:', error);
+      console.error('Error loading request:', error);
     } finally {
       setLoading(false);
     }
@@ -349,6 +378,72 @@ export default function ProviderRequestDetailsScreen({ route, navigation }: any)
           )}
         </View>
 
+        {/* Service Location Card */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardTitle}>📍 {t.provider?.serviceLocation || 'Service Location'}</Text>
+            <View style={[styles.locationTypeBadge, 
+              request.serviceLocation.type === 'shop' ? styles.locationShop :
+              request.serviceLocation.type === 'mobile' ? styles.locationMobile :
+              styles.locationRoadside
+            ]}>
+              <MaterialCommunityIcons 
+                name={request.serviceLocation.type === 'shop' ? 'store' : 
+                      request.serviceLocation.type === 'mobile' ? 'home-map-marker' : 'car-emergency'} 
+                size={14} 
+                color={request.serviceLocation.type === 'shop' ? '#1976d2' : 
+                       request.serviceLocation.type === 'mobile' ? '#10b981' : '#f59e0b'} 
+              />
+              <Text style={[styles.locationTypeText,
+                request.serviceLocation.type === 'shop' ? { color: '#1976d2' } :
+                request.serviceLocation.type === 'mobile' ? { color: '#10b981' } :
+                { color: '#f59e0b' }
+              ]}>
+                {request.serviceLocation.type === 'shop' ? (t.provider?.atShop || 'At Shop') :
+                 request.serviceLocation.type === 'mobile' ? (t.provider?.mobileService || 'Mobile Service') :
+                 (t.provider?.roadsideAssist || 'Roadside Assist')}
+              </Text>
+            </View>
+          </View>
+          
+          {request.serviceLocation.type !== 'shop' && request.serviceLocation.address && (
+            <View style={styles.locationAddressRow}>
+              <MaterialCommunityIcons name="map-marker" size={18} color="#6b7280" />
+              <Text style={styles.locationAddress}>{request.serviceLocation.address}</Text>
+            </View>
+          )}
+          
+          {request.serviceLocation.type === 'shop' && (
+            <Text style={styles.locationNote}>
+              {t.provider?.customerWillCome || 'Customer will bring the vehicle to your shop'}
+            </Text>
+          )}
+          
+          {request.serviceLocation.type === 'roadside' && (
+            <View style={styles.roadsideWarning}>
+              <MaterialCommunityIcons name="alert-circle" size={16} color="#f59e0b" />
+              <Text style={styles.roadsideWarningText}>
+                {t.provider?.roadsideUrgent || 'Urgent roadside assistance - Customer is waiting'}
+              </Text>
+            </View>
+          )}
+          
+          {request.serviceLocation.coordinates && request.serviceLocation.type !== 'shop' && (
+            <TouchableOpacity 
+              style={styles.openMapsBtn}
+              onPress={() => {
+                const url = Platform.OS === 'ios' 
+                  ? `maps://app?daddr=${request.serviceLocation.coordinates?.lat},${request.serviceLocation.coordinates?.lng}`
+                  : `google.navigation:q=${request.serviceLocation.coordinates?.lat},${request.serviceLocation.coordinates?.lng}`;
+                Linking.openURL(url);
+              }}
+            >
+              <MaterialCommunityIcons name="directions" size={18} color="#fff" />
+              <Text style={styles.openMapsText}>{t.provider?.getDirections || 'Get Directions'}</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
         {/* Customer Card */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
@@ -385,6 +480,21 @@ export default function ProviderRequestDetailsScreen({ route, navigation }: any)
               </View>
             )}
           </View>
+          
+          {/* Chat with Customer Button */}
+          <TouchableOpacity 
+            style={styles.chatWithCustomerBtn}
+            onPress={() => navigation.navigate('Chat', { 
+              participant: { 
+                id: request.customer.name.replace(/\s+/g, '-').toLowerCase(),
+                name: request.customer.name,
+              },
+              requestId: request.id 
+            })}
+          >
+            <MaterialCommunityIcons name="chat-outline" size={18} color="#1976d2" />
+            <Text style={styles.chatWithCustomerText}>{t.provider?.chatWithCustomer || 'Chat with Customer'}</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Vehicle Card - Enhanced */}
@@ -536,6 +646,16 @@ export default function ProviderRequestDetailsScreen({ route, navigation }: any)
                     value={item.description}
                     onChangeText={(text) => updateLineItem(item.id, 'description', text)}
                   />
+
+                  {/* Brand field - only for parts */}
+                  {item.type === 'part' && (
+                    <TextInput
+                      style={[styles.lineItemInput, styles.brandInput]}
+                      placeholder={t.quote?.brandPlaceholder || 'Brand (e.g., Mobil, Castrol, ACDelco)'}
+                      value={item.brand || ''}
+                      onChangeText={(text) => updateLineItem(item.id, 'brand', text)}
+                    />
+                  )}
 
                   <View style={styles.lineItemRow}>
                     <View style={styles.lineItemQuantity}>
@@ -1061,6 +1181,21 @@ const styles = StyleSheet.create({
     color: '#92400e',
     fontWeight: '500',
   },
+  chatWithCustomerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#dbeafe',
+    paddingVertical: 12,
+    borderRadius: 10,
+    marginTop: 12,
+    gap: 8,
+  },
+  chatWithCustomerText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1976d2',
+  },
   vehicleMain: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1250,6 +1385,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#1f2937',
     marginBottom: 10,
+  },
+  brandInput: {
+    borderColor: '#dbeafe',
+    backgroundColor: '#f8fafc',
   },
   lineItemRow: {
     flexDirection: 'row',
@@ -1708,5 +1847,78 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#059669',
     fontWeight: '500',
+  },
+  // Service Location Card styles
+  locationTypeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  locationShop: {
+    backgroundColor: '#eff6ff',
+  },
+  locationMobile: {
+    backgroundColor: '#ecfdf5',
+  },
+  locationRoadside: {
+    backgroundColor: '#fffbeb',
+  },
+  locationTypeText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  locationAddressRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#f3f4f6',
+  },
+  locationAddress: {
+    flex: 1,
+    fontSize: 14,
+    color: '#374151',
+    lineHeight: 20,
+  },
+  locationNote: {
+    fontSize: 14,
+    color: '#6b7280',
+    fontStyle: 'italic',
+    marginTop: 8,
+  },
+  roadsideWarning: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#fffbeb',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 12,
+  },
+  roadsideWarningText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#92400e',
+    fontWeight: '500',
+  },
+  openMapsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#1976d2',
+    paddingVertical: 12,
+    borderRadius: 10,
+    marginTop: 12,
+  },
+  openMapsText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

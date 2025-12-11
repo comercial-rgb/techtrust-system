@@ -156,6 +156,7 @@ model User {
   paymentMethods    PaymentMethod[]
   chatMessagesFrom  ChatMessage[]  @relation("MessageFrom")
   chatMessagesTo    ChatMessage[]  @relation("MessageTo")
+  articles          Article[]
 
   @@index([email])
   @@index([phone])
@@ -722,4 +723,167 @@ model SystemSettings {
   updatedBy   String?
 
   @@map("system_settings")
+}
+
+// ============================================
+// CONTENT MANAGEMENT - Gerenciamento de Conteúdo
+// ============================================
+
+// Banners/Publicidade
+model Banner {
+  id          String   @id @default(uuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  title       String
+  subtitle    String?
+  imageUrl    String
+  linkUrl     String?
+  linkType    String?  // internal, external, none
+  
+  // Ordenação e visibilidade
+  position    Int      @default(0)
+  isActive    Boolean  @default(true)
+  
+  // Período de exibição
+  startDate   DateTime?
+  endDate     DateTime?
+  
+  // Audiência
+  targetAudience String @default("all") // all, customers, providers
+  
+  // Criado por
+  createdById String?
+  
+  @@index([isActive])
+  @@index([position])
+  @@map("banners")
+}
+
+// Ofertas Especiais
+model SpecialOffer {
+  id          String   @id @default(uuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  title       String
+  description String
+  imageUrl    String?
+  
+  // Desconto
+  discountType  String   // percentage, fixed, free
+  discountValue Decimal? @db.Decimal(10, 2)
+  discountLabel String   // "15% OFF", "FREE", "$20 OFF"
+  
+  // Preços para exibição
+  originalPrice   Decimal? @db.Decimal(10, 2)
+  discountedPrice Decimal? @db.Decimal(10, 2)
+  
+  // Validade
+  validFrom   DateTime?
+  validUntil  DateTime?
+  
+  // Código promocional (opcional)
+  promoCode   String?
+  
+  // Configurações
+  position    Int      @default(0)
+  isActive    Boolean  @default(true)
+  isFeatured  Boolean  @default(false)
+  
+  // Limite de uso
+  usageLimit  Int?
+  usageCount  Int      @default(0)
+  
+  // Service type restrictions - NEW FIELDS
+  serviceType    String?  // oil, brake, tire, engine, etc.
+  vehicleTypes   Json     @default("[]") // ["Car", "SUV", "Pickup", "Van", "Light Truck"]
+  fuelTypes      Json     @default("[]") // ["Gasoline", "Diesel", "Hybrid", "Electric"]
+  
+  // Legacy field (keep for backwards compatibility)
+  applicableServices Json @default("[]") // array de ServiceType
+  
+  // Criado por
+  createdById String?
+  
+  @@index([isActive])
+  @@index([validUntil])
+  @@index([serviceType])
+  @@map("special_offers")
+}
+
+// Artigos/Dicas
+model Article {
+  id          String   @id @default(uuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  publishedAt DateTime?
+  
+  title       String
+  slug        String   @unique
+  excerpt     String
+  content     String   @db.Text
+  imageUrl    String?
+  
+  // Categorização
+  category    String   // tips, maintenance, news, safety, technology
+  tags        Json     @default("[]")
+  
+  // Meta
+  readTime    String?  // "5 min read"
+  
+  // Configurações
+  isPublished Boolean  @default(false)
+  isFeatured  Boolean  @default(false)
+  position    Int      @default(0)
+  
+  // Estatísticas
+  viewCount   Int      @default(0)
+  likeCount   Int      @default(0)
+  
+  // Autor
+  authorId    String?
+  author      User?    @relation(fields: [authorId], references: [id])
+  
+  @@index([isPublished])
+  @@index([category])
+  @@index([slug])
+  @@map("articles")
+}
+
+// Avisos/Notícias Importantes
+model Notice {
+  id          String   @id @default(uuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  title       String
+  message     String   @db.Text
+  
+  // Tipo e aparência
+  type        String   @default("info") // info, warning, alert, success
+  icon        String?  // nome do ícone
+  
+  // Visibilidade
+  isActive    Boolean  @default(true)
+  isPinned    Boolean  @default(false)
+  position    Int      @default(0)
+  
+  // Período de exibição
+  startDate   DateTime?
+  endDate     DateTime?
+  
+  // Audiência
+  targetAudience String @default("all") // all, customers, providers
+  
+  // Ação (opcional)
+  actionLabel String?
+  actionUrl   String?
+  
+  // Criado por
+  createdById String?
+  
+  @@index([isActive])
+  @@index([type])
+  @@map("notices")
 }

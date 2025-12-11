@@ -17,6 +17,9 @@ export default function PaymentScreen({ navigation, route }: any) {
   const [cardExpiry, setCardExpiry] = useState('');
   const [cardCvv, setCardCvv] = useState('');
   const [processing, setProcessing] = useState(false);
+  
+  // System balance
+  const [systemBalance] = useState(127.50);
 
   const serviceData = {
     title: 'Oil and filter change',
@@ -25,6 +28,7 @@ export default function PaymentScreen({ navigation, route }: any) {
   };
 
   const paymentMethods = [
+    { id: 'balance', label: t.payment?.systemBalance || 'System Balance', icon: 'wallet', balance: systemBalance },
     { id: 'card', label: t.payment?.creditCard || 'Credit Card', icon: 'card' },
     { id: 'pix', label: t.payment?.pix || 'PIX', icon: 'qr-code' },
     { id: 'boleto', label: t.payment?.bankSlip || 'Bank Slip', icon: 'document-text' },
@@ -70,15 +74,50 @@ export default function PaymentScreen({ navigation, route }: any) {
           {paymentMethods.map(method => (
             <TouchableOpacity
               key={method.id}
-              style={[styles.methodCard, selectedMethod === method.id && styles.methodCardSelected]}
-              onPress={() => setSelectedMethod(method.id)}
+              style={[
+                styles.methodCard, 
+                selectedMethod === method.id && styles.methodCardSelected,
+                method.id === 'balance' && method.balance < serviceData.amount && styles.methodCardDisabled
+              ]}
+              onPress={() => {
+                if (method.id === 'balance' && method.balance < serviceData.amount) {
+                  return; // Can't select if insufficient balance
+                }
+                setSelectedMethod(method.id);
+              }}
+              disabled={method.id === 'balance' && method.balance < serviceData.amount}
             >
               <Ionicons name={method.icon as any} size={24} color={selectedMethod === method.id ? '#1976d2' : '#6b7280'} />
-              <Text style={[styles.methodLabel, selectedMethod === method.id && styles.methodLabelSelected]}>{method.label}</Text>
+              <View style={styles.methodInfo}>
+                <Text style={[styles.methodLabel, selectedMethod === method.id && styles.methodLabelSelected]}>{method.label}</Text>
+                {method.id === 'balance' && (
+                  <Text style={[styles.balanceAmount, method.balance >= serviceData.amount ? styles.balanceSufficient : styles.balanceInsufficient]}>
+                    ${method.balance.toFixed(2)}
+                    {method.balance < serviceData.amount && ` (${t.payment?.insufficient || 'Insufficient'})`}
+                  </Text>
+                )}
+              </View>
               {selectedMethod === method.id && <Ionicons name="checkmark-circle" size={20} color="#1976d2" />}
             </TouchableOpacity>
           ))}
         </View>
+
+        {/* Balance Payment Info */}
+        {selectedMethod === 'balance' && (
+          <View style={styles.balancePaymentInfo}>
+            <Ionicons name="wallet" size={48} color="#10b981" />
+            <Text style={styles.balancePaymentTitle}>{t.payment?.payWithBalance || 'Pay with Balance'}</Text>
+            <Text style={styles.balancePaymentText}>
+              {t.payment?.currentBalance || 'Current Balance'}: <Text style={styles.balanceHighlight}>${systemBalance.toFixed(2)}</Text>
+            </Text>
+            <Text style={styles.balancePaymentText}>
+              {t.payment?.amountToPay || 'Amount to Pay'}: <Text style={styles.balanceHighlight}>${serviceData.amount.toFixed(2)}</Text>
+            </Text>
+            <Text style={styles.balanceRemainingText}>
+              {t.payment?.remainingBalance || 'Remaining Balance'}: ${(systemBalance - serviceData.amount).toFixed(2)}
+            </Text>
+          </View>
+        )}
 
         {/* Card Form */}
         {selectedMethod === 'card' && (
@@ -183,4 +222,10 @@ const styles = StyleSheet.create({
   payBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#10b981', paddingVertical: 16, borderRadius: 12 },
   payBtnDisabled: { backgroundColor: '#9ca3af' },
   payText: { fontSize: 18, fontWeight: '700', color: '#fff' },
+  balanceContainer: { backgroundColor: '#fff', margin: 16, marginTop: 0, padding: 16, borderRadius: 12, borderWidth: 2, borderColor: '#10b981' },
+  balanceHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  balanceLabel: { fontSize: 14, color: '#6b7280' },
+  balanceAmount: { fontSize: 24, fontWeight: '700', color: '#10b981' },
+  balanceSufficient: { fontSize: 12, color: '#10b981', marginTop: 4 },
+  balanceInsufficient: { fontSize: 12, color: '#ef4444', marginTop: 4 },
 });

@@ -142,16 +142,35 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
   };
 
   const handleAcceptQuote = () => {
+    if (!quote) return;
+    
     Alert.alert(
-      'Accept Quote',
-      'Are you sure you want to accept this quote? The provider will be notified to schedule your service.',
+      t.quote?.acceptQuote || 'Accept Quote',
+      `${t.quote?.acceptQuoteConfirm || 'By accepting this quote, a payment hold of'} $${quote.grandTotal.toFixed(2)} ${t.quote?.willBePlaced || 'will be placed on your card. The charge will only be completed after you confirm service completion.'}`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t.common?.cancel || 'Cancel', style: 'cancel' },
         { 
-          text: 'Accept', 
-          onPress: () => {
-            Alert.alert('Success', 'Quote accepted! The provider will contact you to schedule.');
-            navigation.goBack();
+          text: t.quote?.acceptAndHold || 'Accept & Hold Payment', 
+          onPress: async () => {
+            // Simulate payment hold
+            Alert.alert(
+              t.common?.processing || 'Processing...',
+              t.quote?.holdingPayment || 'Placing payment hold...',
+            );
+            
+            // In production: call API to create payment hold
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            Alert.alert(
+              t.common?.success || 'Success!',
+              `${t.quote?.quoteAcceptedPaymentHeld || 'Quote accepted! A payment hold of'} $${quote.grandTotal.toFixed(2)} ${t.quote?.hasBeenPlaced || 'has been placed. You will only be charged when you confirm service completion.'}`,
+              [
+                { 
+                  text: t.common?.ok || 'OK', 
+                  onPress: () => navigation.goBack()
+                }
+              ]
+            );
           }
         },
       ]

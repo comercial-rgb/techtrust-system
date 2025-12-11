@@ -3,7 +3,7 @@
  * Pedidos na região para o fornecedor orçar
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { useFocusEffect } from '@react-navigation/native';
 import { useI18n } from '../../i18n';
 
 interface ServiceRequest {
@@ -48,9 +49,12 @@ export default function ProviderRequestsScreen({ navigation }: any) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'urgent'>('all');
 
-  useEffect(() => {
-    loadRequests();
-  }, []);
+  // Reload data when screen gains focus
+  useFocusEffect(
+    useCallback(() => {
+      loadRequests();
+    }, [])
+  );
 
   useEffect(() => {
     filterRequests();

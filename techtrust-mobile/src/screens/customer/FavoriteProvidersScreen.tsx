@@ -122,7 +122,7 @@ export default function FavoriteProvidersScreen({ navigation }: any) {
   const renderProviderItem = ({ item }: { item: Provider }) => (
     <TouchableOpacity 
       style={styles.providerCard}
-      onPress={() => navigation.navigate('ProviderDetails', { providerId: item.id })}
+      onPress={() => navigation.navigate('Home', { screen: 'CreateRequest', params: { providerId: item.id, providerName: item.name } })}
     >
       <View style={styles.providerHeader}>
         <View style={styles.providerAvatar}>
@@ -183,7 +183,10 @@ export default function FavoriteProvidersScreen({ navigation }: any) {
           <Ionicons name="location-outline" size={14} color="#9ca3af" />
           <Text style={styles.addressText} numberOfLines={1}>{item.address}</Text>
         </View>
-        <TouchableOpacity style={styles.requestButton}>
+        <TouchableOpacity 
+          style={styles.requestButton}
+          onPress={() => navigation.navigate('Home', { screen: 'CreateRequest', params: { providerId: item.id } })}
+        >
           <Text style={styles.requestButtonText}>{t.customer?.requestQuote || 'Request Quote'}</Text>
           <Ionicons name="chevron-forward" size={16} color="#1976d2" />
         </TouchableOpacity>

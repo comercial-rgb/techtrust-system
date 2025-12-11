@@ -13,6 +13,7 @@ import {
   Switch,
   Alert,
   Modal,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
@@ -41,12 +42,45 @@ export default function ProviderProfileScreen({ navigation }: any) {
   });
   const [isAvailable, setIsAvailable] = useState(true);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
+  const [logoUri, setLogoUri] = useState<string | null>(null);
 
   const currentLanguage = languages.find(l => l.code === language) || languages[0];
 
   const handleLanguageSelect = async (langCode: Language) => {
     await setLanguage(langCode);
     setShowLanguageModal(false);
+  };
+
+  const handleChangeLogo = () => {
+    Alert.alert(
+      t.provider?.changeLogo || 'Change Logo',
+      t.provider?.selectImageSource || 'Select image source',
+      [
+        { text: t.common?.cancel || 'Cancel', style: 'cancel' },
+        { 
+          text: t.provider?.takePhoto || 'Take Photo', 
+          onPress: () => {
+            // In production, use expo-image-picker with camera
+            Alert.alert(t.common?.info || 'Info', t.provider?.cameraPlaceholder || 'Camera feature will be implemented with expo-image-picker');
+          }
+        },
+        { 
+          text: t.provider?.chooseFromGallery || 'Choose from Gallery', 
+          onPress: () => {
+            // In production, use expo-image-picker
+            // For mock, simulate selecting an image
+            Alert.alert(
+              t.common?.success || 'Success', 
+              t.provider?.logoUpdated || 'Logo updated successfully!',
+              [{ text: t.common?.ok || 'OK', onPress: () => {
+                // Mock: set a placeholder image URL
+                setLogoUri('https://via.placeholder.com/150');
+              }}]
+            );
+          }
+        },
+      ]
+    );
   };
 
   useEffect(() => {
@@ -78,7 +112,7 @@ export default function ProviderProfileScreen({ navigation }: any) {
     );
   };
 
-  const providerName = user?.providerProfile?.businessName || user?.fullName || 'Fornecedor';
+  const providerName = user?.providerProfile?.businessName || user?.fullName || (t.provider?.provider || 'Provider');
   const providerType = user?.providerProfile?.businessType || 'AUTO_REPAIR';
   const isVerified = user?.providerProfile?.isVerified || false;
 
@@ -100,16 +134,23 @@ export default function ProviderProfileScreen({ navigation }: any) {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Profile Header */}
         <View style={styles.profileHeader}>
-          <View style={styles.avatarContainer}>
+          <TouchableOpacity style={styles.avatarContainer} onPress={handleChangeLogo} activeOpacity={0.7}>
             <View style={styles.avatar}>
-              <MaterialCommunityIcons name="store" size={40} color="#1976d2" />
+              {logoUri ? (
+                <Image source={{ uri: logoUri }} style={styles.avatarImage} />
+              ) : (
+                <MaterialCommunityIcons name="store" size={40} color="#1976d2" />
+              )}
+            </View>
+            <View style={styles.editAvatarBadge}>
+              <MaterialCommunityIcons name="camera" size={14} color="#fff" />
             </View>
             {isVerified && (
               <View style={styles.verifiedBadge}>
                 <MaterialCommunityIcons name="check-decagram" size={20} color="#10b981" />
               </View>
             )}
-          </View>
+          </TouchableOpacity>
           <Text style={styles.businessName}>{providerName}</Text>
           <Text style={styles.businessType}>{getBusinessTypeLabel(providerType)}</Text>
 
@@ -491,6 +532,22 @@ const styles = StyleSheet.create({
     backgroundColor: '#dbeafe',
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 20,
+  },
+  editAvatarBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: '#1976d2',
+    borderRadius: 12,
+    padding: 6,
+    borderWidth: 2,
+    borderColor: '#fff',
   },
   verifiedBadge: {
     position: 'absolute',

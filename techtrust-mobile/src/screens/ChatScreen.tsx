@@ -13,10 +13,14 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  Modal,
+  Linking,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useI18n } from '../i18n';
+import { useNotifications } from '../contexts/NotificationsContext';
 
 interface Message {
   id: string;
@@ -38,6 +42,7 @@ interface ChatParticipant {
 
 export default function ChatScreen({ navigation, route }: any) {
   const { t } = useI18n();
+  const { markMessagesAsRead: markMessagesAsReadGlobal } = useNotifications();
   const { chatId, requestId, participant } = route.params || {};
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
@@ -50,10 +55,102 @@ export default function ChatScreen({ navigation, route }: any) {
     role: 'provider',
     isOnline: true,
   });
+  
+  const [showUserModal, setShowUserModal] = useState(false);
+
+  // User profile data (would come from API in production)
+  const [userProfile] = useState({
+    id: participant?.id || '1',
+    name: participant?.name || 'AutoCare Plus',
+    role: 'provider',
+    phone: '+1 (407) 555-1234',
+    email: 'contact@autocare.com',
+    address: '123 Auto Lane, Orlando, FL',
+    rating: 4.8,
+    totalServices: 156,
+    memberSince: '2022',
+    verified: true,
+  });
 
   useEffect(() => {
     loadMessages();
   }, []);
+
+  // Mark all unread messages as read when chat opens
+  useEffect(() => {
+    if (messages.length > 0) {
+      markMessagesAsRead();
+    }
+  }, [messages.length]);
+
+  async function markMessagesAsRead() {
+    // In production, this would call an API to mark messages as read
+    // For now, we'll update local state
+    setMessages(prev => 
+      prev.map(msg => 
+        !msg.isOwn && msg.status !== 'read' 
+          ? { ...msg, status: 'read' as const }
+          : msg
+      )
+    );
+    
+    // Update global notification badge count
+    markMessagesAsReadGlobal(chatId);
+  }
+
+  function handleCall() {
+    if (userProfile.phone) {
+      Linking.openURL(`tel:${userProfile.phone}`);
+    }
+  }
+
+  function handleWhatsApp() {
+    if (userProfile.phone) {
+      const phone = userProfile.phone.replace(/\D/g, '');
+      Linking.openURL(`whatsapp://send?phone=${phone}`);
+    }
+  }
+
+  function handleViewProfile() {
+    setShowUserModal(true);
+  }
+
+  function handleBlockUser() {
+    Alert.alert(
+      t.chat?.blockUser || 'Block User',
+      t.chat?.blockUserConfirm || 'Are you sure you want to block this user?',
+      [
+        { text: t.common?.cancel || 'Cancel', style: 'cancel' },
+        { 
+          text: t.chat?.block || 'Block', 
+          style: 'destructive',
+          onPress: () => {
+            // API call to block user
+            Alert.alert(t.common?.success || 'Success', t.chat?.userBlocked || 'User has been blocked');
+            navigation.goBack();
+          }
+        },
+      ]
+    );
+  }
+
+  function handleReportUser() {
+    Alert.alert(
+      t.chat?.reportUser || 'Report User',
+      t.chat?.reportUserMessage || 'What would you like to report?',
+      [
+        { text: t.chat?.spam || 'Spam', onPress: () => submitReport('spam') },
+        { text: t.chat?.inappropriate || 'Inappropriate', onPress: () => submitReport('inappropriate') },
+        { text: t.chat?.fraud || 'Fraud', onPress: () => submitReport('fraud') },
+        { text: t.common?.cancel || 'Cancel', style: 'cancel' },
+      ]
+    );
+  }
+
+  function submitReport(type: string) {
+    // API call to submit report
+    Alert.alert(t.common?.success || 'Success', t.chat?.reportSubmitted || 'Your report has been submitted. We will review it shortly.');
+  }
 
   async function loadMessages() {
     try {
@@ -228,12 +325,17 @@ export default function ChatScreen({ navigation, route }: any) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 25}
+      >
+        {/* Header */}
+        <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color="#111827" />
         </TouchableOpacity>
-        <View style={styles.headerInfo}>
+        <TouchableOpacity style={styles.headerInfo} onPress={handleViewProfile}>
           <View style={styles.avatarContainer}>
             <View style={styles.avatar}>
               <Ionicons name="business" size={20} color="#1976d2" />
@@ -243,15 +345,36 @@ export default function ChatScreen({ navigation, route }: any) {
           <View style={styles.headerText}>
             <Text style={styles.headerName}>{chatParticipant.name}</Text>
             <Text style={styles.headerStatus}>
-              {chatParticipant.isOnline ? (t.chat.online || 'Online') : (t.chat.offline || 'Offline')}
+              {chatParticipant.isOnline ? (t.chat?.online || 'Online') : (t.chat?.offline || 'Offline')}
             </Text>
           </View>
-        </View>
-        <TouchableOpacity style={styles.headerAction}>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.headerAction} onPress={handleCall}>
           <Ionicons name="call-outline" size={22} color="#1976d2" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.headerAction}>
-          <Ionicons name="ellipsis-vertical" size={22} color="#6b7280" />
+        <TouchableOpacity style={styles.headerAction} onPress={handleWhatsApp}>
+          <Ionicons name="logo-whatsapp" size={22} color="#25d366" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.headerAction} onPress={handleViewProfile}>
+          <Ionicons name="person-circle-outline" size={22} color="#6b7280" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Quick Actions Banner */}
+      <View style={styles.quickActionsBanner}>
+        <TouchableOpacity style={styles.quickActionBtn} onPress={handleViewProfile}>
+          <Ionicons name="person" size={16} color="#1976d2" />
+          <Text style={styles.quickActionText}>{t.chat?.viewProfile || 'Profile'}</Text>
+        </TouchableOpacity>
+        <View style={styles.quickActionDivider} />
+        <TouchableOpacity style={styles.quickActionBtn} onPress={handleReportUser}>
+          <Ionicons name="flag" size={16} color="#f59e0b" />
+          <Text style={styles.quickActionText}>{t.chat?.report || 'Report'}</Text>
+        </TouchableOpacity>
+        <View style={styles.quickActionDivider} />
+        <TouchableOpacity style={styles.quickActionBtn} onPress={handleBlockUser}>
+          <Ionicons name="ban" size={16} color="#ef4444" />
+          <Text style={styles.quickActionText}>{t.chat?.block || 'Block'}</Text>
         </TouchableOpacity>
       </View>
 
@@ -281,17 +404,13 @@ export default function ChatScreen({ navigation, route }: any) {
       />
 
       {/* Input */}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-      >
         <View style={styles.inputContainer}>
           <TouchableOpacity style={styles.attachButton}>
             <Ionicons name="attach" size={24} color="#6b7280" />
           </TouchableOpacity>
           <TextInput
             style={styles.input}
-            placeholder={t.chat.typeMessage || 'Type a message...'}
+            placeholder={t.chat?.typeMessage || 'Type a message...'}
             value={inputText}
             onChangeText={setInputText}
             multiline
@@ -310,6 +429,88 @@ export default function ChatScreen({ navigation, route }: any) {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      {/* User Profile Modal */}
+      <Modal
+        visible={showUserModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowUserModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t.chat?.userProfile || 'User Profile'}</Text>
+              <TouchableOpacity onPress={() => setShowUserModal(false)}>
+                <Ionicons name="close" size={24} color="#6b7280" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.profileSection}>
+              <View style={styles.profileAvatar}>
+                <Ionicons name="business" size={40} color="#1976d2" />
+              </View>
+              <Text style={styles.profileName}>{userProfile.name}</Text>
+              {userProfile.verified && (
+                <View style={styles.verifiedBadge}>
+                  <Ionicons name="shield-checkmark" size={14} color="#10b981" />
+                  <Text style={styles.verifiedText}>{t.common?.verified || 'Verified'}</Text>
+                </View>
+              )}
+            </View>
+
+            <View style={styles.profileStats}>
+              <View style={styles.profileStat}>
+                <Text style={styles.statValue}>{userProfile.rating}</Text>
+                <Text style={styles.statLabel}>{t.common?.rating || 'Rating'}</Text>
+              </View>
+              <View style={styles.profileStatDivider} />
+              <View style={styles.profileStat}>
+                <Text style={styles.statValue}>{userProfile.totalServices}</Text>
+                <Text style={styles.statLabel}>{t.common?.services || 'Services'}</Text>
+              </View>
+              <View style={styles.profileStatDivider} />
+              <View style={styles.profileStat}>
+                <Text style={styles.statValue}>{userProfile.memberSince}</Text>
+                <Text style={styles.statLabel}>{t.profile?.since || 'Since'}</Text>
+              </View>
+            </View>
+
+            <View style={styles.profileInfo}>
+              <View style={styles.infoRow}>
+                <Ionicons name="call" size={18} color="#6b7280" />
+                <Text style={styles.infoText}>{userProfile.phone}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Ionicons name="mail" size={18} color="#6b7280" />
+                <Text style={styles.infoText}>{userProfile.email}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Ionicons name="location" size={18} color="#6b7280" />
+                <Text style={styles.infoText}>{userProfile.address}</Text>
+              </View>
+            </View>
+
+            <View style={styles.profileActions}>
+              <TouchableOpacity style={styles.profileActionBtn} onPress={() => { setShowUserModal(false); handleCall(); }}>
+                <Ionicons name="call" size={20} color="#1976d2" />
+                <Text style={styles.profileActionText}>{t.common?.call || 'Call'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.profileActionBtn} onPress={() => { setShowUserModal(false); handleWhatsApp(); }}>
+                <Ionicons name="logo-whatsapp" size={20} color="#25d366" />
+                <Text style={[styles.profileActionText, { color: '#25d366' }]}>WhatsApp</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity 
+              style={styles.closeModalBtn} 
+              onPress={() => setShowUserModal(false)}
+            >
+              <Text style={styles.closeModalText}>{t.common?.close || 'Close'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -489,5 +690,160 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: {
     backgroundColor: '#e5e7eb',
+  },
+  // Quick Actions Banner
+  quickActionsBanner: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  quickActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    gap: 6,
+  },
+  quickActionText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#374151',
+  },
+  quickActionDivider: {
+    width: 1,
+    height: 16,
+    backgroundColor: '#e5e7eb',
+  },
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  profileSection: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  profileAvatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#dbeafe',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  profileName: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  verifiedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#d1fae5',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  verifiedText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#10b981',
+  },
+  profileStats: {
+    flexDirection: 'row',
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+  },
+  profileStat: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  profileStatDivider: {
+    width: 1,
+    backgroundColor: '#e5e7eb',
+    marginHorizontal: 8,
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginTop: 4,
+  },
+  profileInfo: {
+    gap: 12,
+    marginBottom: 20,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  infoText: {
+    fontSize: 14,
+    color: '#374151',
+  },
+  profileActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  profileActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#f3f4f6',
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  profileActionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1976d2',
+  },
+  closeModalBtn: {
+    backgroundColor: '#111827',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  closeModalText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

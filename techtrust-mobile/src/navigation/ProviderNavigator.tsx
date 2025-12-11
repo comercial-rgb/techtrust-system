@@ -3,6 +3,9 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { View, Text, StyleSheet } from 'react-native';
+import { useI18n } from '../i18n';
+import { useNotifications } from '../contexts/NotificationsContext';
+import { CommonActions } from '@react-navigation/native';
 
 // Provider Screens
 import ProviderDashboardScreen from '../screens/provider/ProviderDashboardScreen';
@@ -29,6 +32,7 @@ import ProviderTermsAndPoliciesScreen from '../screens/provider/ProviderTermsAnd
 // Common Screens
 import NotificationsScreen from '../screens/NotificationsScreen';
 import SupportChatScreen from '../screens/SupportChatScreen';
+import ChatScreen from '../screens/ChatScreen';
 import ProviderReviewsScreen from '../screens/provider/ProviderReviewsScreen';
 
 const Tab = createBottomTabNavigator();
@@ -51,6 +55,7 @@ function RequestsStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="ProviderRequestsList" component={ProviderRequestsScreen} />
       <Stack.Screen name="ProviderRequestDetails" component={ProviderRequestDetailsScreen} />
+      <Stack.Screen name="Chat" component={ChatScreen} />
     </Stack.Navigator>
   );
 }
@@ -61,6 +66,7 @@ function QuotesStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="ProviderQuotesList" component={ProviderQuotesScreen} />
       <Stack.Screen name="ProviderQuoteDetails" component={ProviderQuoteDetailsScreen} />
+      <Stack.Screen name="QuoteWorkOrderDetails" component={ProviderWorkOrderDetailsScreen} />
     </Stack.Navigator>
   );
 }
@@ -71,6 +77,7 @@ function WorkOrdersStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="ProviderWorkOrdersList" component={ProviderWorkOrdersScreen} />
       <Stack.Screen name="ProviderWorkOrderDetails" component={ProviderWorkOrderDetailsScreen} />
+      <Stack.Screen name="Chat" component={ChatScreen} />
     </Stack.Navigator>
   );
 }
@@ -120,8 +127,8 @@ function TabBarIcon({
 }
 
 export default function ProviderNavigator() {
-  // Mock badge count - em produção, buscar do estado/API
-  const pendingRequestsCount = 3;
+  const { t } = useI18n();
+  const { pendingRequestsCount } = useNotifications();
 
   return (
     <Tab.Navigator
@@ -147,7 +154,7 @@ export default function ProviderNavigator() {
         name="ProviderDashboard"
         component={DashboardStack}
         options={{
-          tabBarLabel: 'Início',
+          tabBarLabel: t.nav?.home || 'Home',
           tabBarIcon: ({ color, size }) => (
             <TabBarIcon name="home" color={color} size={size} />
           ),
@@ -158,7 +165,7 @@ export default function ProviderNavigator() {
         name="ProviderRequests"
         component={RequestsStack}
         options={{
-          tabBarLabel: 'Pedidos',
+          tabBarLabel: t.nav?.requests || 'Requests',
           tabBarIcon: ({ color, size }) => (
             <TabBarIcon 
               name="document-text" 
@@ -168,35 +175,66 @@ export default function ProviderNavigator() {
             />
           ),
         }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            // Reset stack to initial route on tab press
+            navigation.dispatch(
+              CommonActions.reset({
+                index: 0,
+                routes: [{ name: 'ProviderRequests', state: { routes: [{ name: 'ProviderRequestsList' }] } }],
+              })
+            );
+          },
+        })}
       />
       
       <Tab.Screen
         name="ProviderQuotes"
         component={QuotesStack}
         options={{
-          tabBarLabel: 'Orçamentos',
+          tabBarLabel: t.nav?.quotes || 'Quotes',
           tabBarIcon: ({ color, size }) => (
             <TabBarIcon name="pricetag" color={color} size={size} />
           ),
         }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            navigation.dispatch(
+              CommonActions.reset({
+                index: 0,
+                routes: [{ name: 'ProviderQuotes', state: { routes: [{ name: 'ProviderQuotesList' }] } }],
+              })
+            );
+          },
+        })}
       />
       
       <Tab.Screen
         name="ProviderWorkOrders"
         component={WorkOrdersStack}
         options={{
-          tabBarLabel: 'Serviços',
+          tabBarLabel: t.nav?.services || 'Services',
           tabBarIcon: ({ color, size }) => (
             <TabBarIcon name="construct" color={color} size={size} />
           ),
         }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            navigation.dispatch(
+              CommonActions.reset({
+                index: 0,
+                routes: [{ name: 'ProviderWorkOrders', state: { routes: [{ name: 'ProviderWorkOrdersList' }] } }],
+              })
+            );
+          },
+        })}
       />
       
       <Tab.Screen
         name="ProviderProfile"
         component={ProfileStack}
         options={{
-          tabBarLabel: 'Perfil',
+          tabBarLabel: t.nav?.profile || 'Profile',
           tabBarIcon: ({ color, size }) => (
             <TabBarIcon name="person" color={color} size={size} />
           ),

@@ -3,7 +3,7 @@
  * Shows all chats between customer and providers
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { FadeInView } from '../components/Animated';
 import { useI18n } from '../i18n';
 
@@ -38,12 +39,16 @@ export default function ChatListScreen({ navigation }: any) {
   const [refreshing, setRefreshing] = useState(false);
   const [chats, setChats] = useState<ChatPreview[]>([]);
 
-  useEffect(() => {
-    loadChats();
-  }, []);
+  // Reload chats every time the screen gains focus
+  useFocusEffect(
+    useCallback(() => {
+      loadChats();
+    }, [])
+  );
 
   async function loadChats() {
     try {
+      setLoading(true);
       await new Promise(resolve => setTimeout(resolve, 800));
       
       // Mock chats
@@ -124,16 +129,30 @@ export default function ChatListScreen({ navigation }: any) {
     }
   }
 
+  function markChatAsRead(chatId: string) {
+    setChats(prevChats => 
+      prevChats.map(chat => 
+        chat.id === chatId ? { ...chat, unreadCount: 0 } : chat
+      )
+    );
+  }
+
   function renderChat({ item, index }: { item: ChatPreview; index: number }) {
     return (
       <FadeInView delay={index * 50}>
         <TouchableOpacity
           style={styles.chatItem}
-          onPress={() => navigation.navigate('Chat', { 
-            chatId: item.id, 
-            participant: { id: item.participantId, name: item.participantName },
-            requestId: item.relatedRequest?.id,
-          })}
+          onPress={() => {
+            // Mark chat as read when opening
+            if (item.unreadCount > 0) {
+              markChatAsRead(item.id);
+            }
+            navigation.navigate('Chat', { 
+              chatId: item.id, 
+              participant: { id: item.participantId, name: item.participantName },
+              requestId: item.relatedRequest?.id,
+            });
+          }}
         >
           <View style={styles.avatarContainer}>
             <View style={styles.avatar}>
@@ -202,6 +221,12 @@ export default function ChatListScreen({ navigation }: any) {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color="#374151" />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>{t.chat.messages || 'Messages'}</Text>
         <TouchableOpacity style={styles.searchButton}>
           <Ionicons name="search" size={24} color="#374151" />
@@ -250,7 +275,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#f3f4f6',
   },
+  backButton: {
+    padding: 8,
+    marginRight: 8,
+  },
   headerTitle: {
+    flex: 1,
     fontSize: 24,
     fontWeight: '700',
     color: '#111827',

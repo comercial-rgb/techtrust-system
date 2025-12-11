@@ -74,48 +74,48 @@ export default function CustomerProfileScreen({ navigation }: any) {
   const menuItems = [
     {
       id: 'personal',
-      title: 'Personal Information',
-      subtitle: 'Name, email, phone',
+      title: t.profile?.personalInfo || 'Personal Information',
+      subtitle: t.profile?.personalInfoSubtitle || 'Name, email, phone',
       icon: 'person-circle',
       color: '#3b82f6',
       onPress: () => navigation.navigate('PersonalInfo'),
     },
     {
       id: 'vehicles',
-      title: 'My Vehicles',
-      subtitle: `${stats.vehiclesCount} vehicle(s) registered`,
+      title: t.profile?.myVehicles || 'My Vehicles',
+      subtitle: `${stats.vehiclesCount} ${t.profile?.vehiclesRegistered || 'vehicle(s) registered'}`,
       icon: 'car',
       color: '#f59e0b',
       onPress: () => navigation.navigate('Vehicles'),
     },
     {
       id: 'addresses',
-      title: 'Addresses',
-      subtitle: 'Saved addresses',
+      title: t.profile?.addresses || 'Addresses',
+      subtitle: t.profile?.savedAddresses || 'Saved addresses',
       icon: 'location',
       color: '#10b981',
       onPress: () => navigation.navigate('Addresses'),
     },
     {
       id: 'payment',
-      title: 'Payment Methods',
-      subtitle: 'Cards and methods',
+      title: t.profile?.paymentMethods || 'Payment Methods',
+      subtitle: t.profile?.cardsAndMethods || 'Cards and methods',
       icon: 'card',
       color: '#8b5cf6',
       onPress: () => navigation.navigate('PaymentMethods'),
     },
     {
       id: 'history',
-      title: 'Service History',
-      subtitle: `${stats.totalServices} services completed`,
+      title: t.profile?.serviceHistory || 'Service History',
+      subtitle: `${stats.totalServices} ${t.profile?.servicesCompleted || 'services completed'}`,
       icon: 'time',
       color: '#ec4899',
       onPress: () => navigation.navigate('ServiceHistory'),
     },
     {
       id: 'favorites',
-      title: 'Favorite Providers',
-      subtitle: 'Your preferred shops',
+      title: t.profile?.favoriteProviders || 'Favorite Providers',
+      subtitle: t.profile?.preferredShops || 'Your preferred shops',
       icon: 'heart',
       color: '#ef4444',
       onPress: () => navigation.navigate('FavoriteProviders'),
@@ -212,7 +212,7 @@ export default function CustomerProfileScreen({ navigation }: any) {
         {/* Menu Items */}
         <FadeInView delay={300}>
           <View style={styles.menuContainer}>
-            <Text style={styles.menuTitle}>My Account</Text>
+            <Text style={styles.menuTitle}>{t.profile?.myAccount || 'My Account'}</Text>
             {menuItems.map((item) => (
               <ScalePress key={item.id} onPress={item.onPress}>
                 <View style={styles.menuItem}>
@@ -289,7 +289,7 @@ export default function CustomerProfileScreen({ navigation }: any) {
         {/* Support Section */}
         <FadeInView delay={400}>
           <View style={styles.menuContainer}>
-            <Text style={styles.menuTitle}>Help & Support</Text>
+            <Text style={styles.menuTitle}>{t.profile?.helpAndSupport || 'Help & Support'}</Text>
             
             <ScalePress onPress={() => navigation.navigate('HelpCenter')}>
               <View style={styles.menuItem}>
@@ -297,8 +297,8 @@ export default function CustomerProfileScreen({ navigation }: any) {
                   <Ionicons name="help-circle" size={22} color="#6b7280" />
                 </View>
                 <View style={styles.menuContent}>
-                  <Text style={styles.menuItemTitle}>Help Center</Text>
-                  <Text style={styles.menuItemSubtitle}>FAQs</Text>
+                  <Text style={styles.menuItemTitle}>{t.profile?.helpCenter || 'Help Center'}</Text>
+                  <Text style={styles.menuItemSubtitle}>{t.profile?.faqs || 'FAQs'}</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
               </View>
@@ -310,8 +310,8 @@ export default function CustomerProfileScreen({ navigation }: any) {
                   <Ionicons name="chatbubble-ellipses" size={22} color="#6b7280" />
                 </View>
                 <View style={styles.menuContent}>
-                  <Text style={styles.menuItemTitle}>Contact Us</Text>
-                  <Text style={styles.menuItemSubtitle}>Chat support</Text>
+                  <Text style={styles.menuItemTitle}>{t.profile?.contactUs || 'Contact Us'}</Text>
+                  <Text style={styles.menuItemSubtitle}>{t.profile?.chatSupport || 'Chat support'}</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
               </View>
@@ -323,8 +323,8 @@ export default function CustomerProfileScreen({ navigation }: any) {
                   <Ionicons name="star" size={22} color="#6b7280" />
                 </View>
                 <View style={styles.menuContent}>
-                  <Text style={styles.menuItemTitle}>Rate the App</Text>
-                  <Text style={styles.menuItemSubtitle}>Leave your feedback</Text>
+                  <Text style={styles.menuItemTitle}>{t.profile?.rateApp || 'Rate the App'}</Text>
+                  <Text style={styles.menuItemSubtitle}>{t.profile?.leaveFeedback || 'Leave your feedback'}</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
               </View>
@@ -336,8 +336,8 @@ export default function CustomerProfileScreen({ navigation }: any) {
                   <Ionicons name="document-text" size={22} color="#6b7280" />
                 </View>
                 <View style={styles.menuContent}>
-                  <Text style={styles.menuItemTitle}>Terms & Policies</Text>
-                  <Text style={styles.menuItemSubtitle}>Terms of use and privacy</Text>
+                  <Text style={styles.menuItemTitle}>{t.profile?.termsAndPolicies || 'Terms & Policies'}</Text>
+                  <Text style={styles.menuItemSubtitle}>{t.profile?.termsSubtitle || 'Terms of use and privacy'}</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
               </View>
@@ -349,7 +349,7 @@ export default function CustomerProfileScreen({ navigation }: any) {
                   <Ionicons name="globe" size={22} color="#3b82f6" />
                 </View>
                 <View style={styles.menuContent}>
-                  <Text style={styles.menuItemTitle}>{t.settings.language}</Text>
+                  <Text style={styles.menuItemTitle}>{t.settings?.language || 'Language'}</Text>
                   <Text style={styles.menuItemSubtitle}>{currentLanguage.flag} {currentLanguage.nativeName}</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
@@ -362,7 +362,7 @@ export default function CustomerProfileScreen({ navigation }: any) {
         <FadeInView delay={500}>
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
             <Ionicons name="log-out" size={20} color="#ef4444" />
-            <Text style={styles.logoutText}>Log Out</Text>
+            <Text style={styles.logoutText}>{t.auth?.logout || 'Log Out'}</Text>
           </TouchableOpacity>
         </FadeInView>
 

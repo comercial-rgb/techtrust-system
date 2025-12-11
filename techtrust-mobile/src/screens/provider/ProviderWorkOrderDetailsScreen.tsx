@@ -1,9 +1,9 @@
 /**
  * ProviderWorkOrderDetailsScreen - Detalhes do Serviço + Ações
- * Iniciar, Concluir, Ligar para cliente, Timeline
+ * Iniciar, Concluir, Cancelar, Ligar para cliente, Timeline
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -18,7 +18,19 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { useFocusEffect } from '@react-navigation/native';
 import { useI18n } from '../../i18n';
+import { CANCELLATION_RULES, PROVIDER_POINTS_SYSTEM } from '../../config/businessRules';
+
+interface QuoteLineItem {
+  id: string;
+  type: 'part' | 'service';
+  description: string;
+  brand?: string;
+  partCode?: string;
+  quantity: number;
+  unitPrice: number;
+}
 
 interface WorkOrder {
   id: string;
@@ -47,6 +59,7 @@ interface WorkOrder {
     description: string;
   };
   quote: {
+    lineItems: QuoteLineItem[];
     partsCost: number;
     laborCost: number;
     laborDescription: string;
@@ -67,12 +80,25 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
   const [workOrder, setWorkOrder] = useState<WorkOrder | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showAdditionalPartsModal, setShowAdditionalPartsModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
   const [completionNotes, setCompletionNotes] = useState('');
   const [finalAmount, setFinalAmount] = useState('');
+  const [additionalPartsReason, setAdditionalPartsReason] = useState('');
+  const [additionalItems, setAdditionalItems] = useState<{type: 'part' | 'service', description: string, quantity: string, unitPrice: string}[]>([
+    { type: 'part', description: '', quantity: '1', unitPrice: '' }
+  ]);
 
-  useEffect(() => {
-    loadWorkOrder();
-  }, [workOrderId]);
+  // Reset state and reload when workOrderId changes or screen gains focus
+  useFocusEffect(
+    useCallback(() => {
+      // Reset state when navigating to this screen
+      setWorkOrder(null);
+      setLoading(true);
+      loadWorkOrder();
+    }, [workOrderId])
+  );
 
   const loadWorkOrder = async () => {
     setLoading(true);
@@ -97,32 +123,43 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
           model: 'Corolla',
           year: 2019,
           plateNumber: 'XYZ5678',
-          color: 'Prata',
+          color: 'Silver',
           mileage: 58000,
         },
         serviceRequest: {
-          title: 'Revisão completa',
+          title: 'Full Inspection',
           description:
-            'Revisão dos 30.000 km com verificação completa de freios, suspensão, fluidos e filtros. Cliente solicitou atenção especial aos freios.',
+            '30,000 mile inspection with complete brake, suspension, fluids and filter check. Customer requested special attention to brakes.',
         },
         quote: {
-          partsCost: 200.0,
-          laborCost: 250.0,
+          lineItems: [
+            { id: '1', type: 'part', description: 'Engine Oil 5W-30 Synthetic', brand: 'Mobil 1', partCode: 'MOB-5W30-5QT', quantity: 5, unitPrice: 12.99 },
+            { id: '2', type: 'part', description: 'Oil Filter', brand: 'Toyota OEM', partCode: 'TOY-90915-YZZD1', quantity: 1, unitPrice: 8.50 },
+            { id: '3', type: 'part', description: 'Air Filter', brand: 'K&N', partCode: 'KN-33-2360', quantity: 1, unitPrice: 35.00 },
+            { id: '4', type: 'part', description: 'Cabin Air Filter', brand: 'Denso', partCode: 'DEN-453-6019', quantity: 1, unitPrice: 18.00 },
+            { id: '5', type: 'part', description: 'Brake Pads Front', brand: 'Wagner', partCode: 'WAG-QC1211', quantity: 1, unitPrice: 55.00 },
+            { id: '6', type: 'service', description: 'Oil Change Service', quantity: 1, unitPrice: 45.00 },
+            { id: '7', type: 'service', description: 'Brake Inspection & Pad Replacement', quantity: 1, unitPrice: 85.00 },
+            { id: '8', type: 'service', description: 'Multi-Point Inspection', quantity: 1, unitPrice: 65.00 },
+            { id: '9', type: 'service', description: 'Fluid Top-Off', quantity: 1, unitPrice: 25.00 },
+          ],
+          partsCost: 194.45,
+          laborCost: 220.00,
           laborDescription:
-            'Revisão completa incluindo: troca de óleo e filtro, verificação de freios, suspensão, checagem de fluidos.',
+            'Full inspection including: oil and filter change, brake inspection, suspension check, fluid check.',
           estimatedDuration: '3h',
-          notes: 'Verificar ruído nos freios.',
+          notes: 'Check brake noise as reported by customer.',
         },
         timeline: [
           {
             status: 'CREATED',
             timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-            description: 'Orçamento aceito pelo cliente',
+            description: 'Quote accepted by customer',
           },
           {
             status: 'IN_PROGRESS',
             timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-            description: 'Serviço iniciado',
+            description: 'Service started',
           },
         ],
       };
@@ -217,6 +254,46 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
     }
   };
 
+  // Check if provider can cancel the work order
+  const canProviderCancel = useMemo(() => {
+    if (!workOrder) return false;
+    // Can cancel before start or while in progress (with penalty)
+    return ['PENDING_START', 'IN_PROGRESS'].includes(workOrder.status);
+  }, [workOrder]);
+
+  // Handle provider cancellation
+  const handleProviderCancel = async () => {
+    if (!cancelReason.trim()) {
+      Alert.alert(
+        t.common?.error || 'Error',
+        t.businessRules?.cancellation?.enterReason || 'Please provide a reason for cancellation'
+      );
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Provider gets penalty points for cancelling
+      const penaltyPoints = PROVIDER_POINTS_SYSTEM.NEGATIVE_ACTIONS.CANCEL_AFTER_ACCEPT;
+      
+      setShowCancelModal(false);
+      setCancelReason('');
+      
+      Alert.alert(
+        t.common?.success || 'Success',
+        t.businessRules?.cancellation?.providerCancelledSuccess?.replace('{points}', String(Math.abs(penaltyPoints))) || 
+          `Work order cancelled. You received ${Math.abs(penaltyPoints)} penalty points.`,
+        [{ text: 'OK', onPress: () => navigation.goBack() }]
+      );
+    } catch (error) {
+      Alert.alert(t.common?.error || 'Error', t.common?.tryAgain || 'Please try again');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const getStatusInfo = (status: string) => {
     const statuses: Record<string, { icon: string; color: string; bg: string; label: string }> = {
       PENDING_START: { icon: 'clock-outline', color: '#f59e0b', bg: '#fef3c7', label: t.workOrder?.statusPendingStart || 'Pending Start' },
@@ -307,6 +384,32 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
             </TouchableOpacity>
           )}
 
+          {/* Request Additional Items (Parts/Services) - Only for IN_PROGRESS */}
+          {workOrder.status === 'IN_PROGRESS' && (
+            <TouchableOpacity
+              style={[styles.actionButton, styles.additionalPartsButton]}
+              onPress={() => setShowAdditionalPartsModal(true)}
+            >
+              <MaterialCommunityIcons name="plus-circle-multiple-outline" size={22} color="#f59e0b" />
+              <Text style={[styles.actionButtonText, styles.additionalPartsButtonText]}>
+                {t.provider?.requestAdditionalItems || 'Request Additional Items'}
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Cancel Button - Available for PENDING_START and IN_PROGRESS */}
+          {canProviderCancel && (
+            <TouchableOpacity
+              style={[styles.actionButton, styles.providerCancelButton]}
+              onPress={() => setShowCancelModal(true)}
+            >
+              <MaterialCommunityIcons name="close-circle" size={22} color="#dc2626" />
+              <Text style={[styles.actionButtonText, styles.providerCancelButtonText]}>
+                {t.businessRules?.cancellation?.cancelWorkOrder || 'Cancel Work Order'}
+              </Text>
+            </TouchableOpacity>
+          )}
+
           <View style={styles.contactButtons}>
             <TouchableOpacity style={styles.contactButton} onPress={handleCallCustomer}>
               <MaterialCommunityIcons name="phone" size={20} color="#1976d2" />
@@ -326,13 +429,40 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
             <MaterialCommunityIcons name="account" size={18} color="#6b7280" />
             <Text style={styles.infoText}>{workOrder.customer.name}</Text>
           </View>
-          <TouchableOpacity style={styles.infoRow} onPress={handleCallCustomer}>
-            <MaterialCommunityIcons name="phone" size={18} color="#1976d2" />
-            <Text style={[styles.infoText, { color: '#1976d2' }]}>{workOrder.customer.phone}</Text>
-          </TouchableOpacity>
           <View style={styles.infoRow}>
             <MaterialCommunityIcons name="map-marker" size={18} color="#6b7280" />
             <Text style={styles.infoText}>{workOrder.customer.location}</Text>
+          </View>
+          
+          {/* Contact Actions */}
+          <View style={styles.customerContactRow}>
+            <TouchableOpacity style={styles.contactBtn} onPress={handleCallCustomer}>
+              <MaterialCommunityIcons name="phone" size={18} color="#1976d2" />
+              <Text style={styles.contactBtnText}>{t.workOrder?.call || 'Call'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.contactBtn, styles.chatBtn]} 
+              onPress={() => {
+                const phoneNumber = workOrder.customer.phone.replace(/[^0-9]/g, '');
+                const url = `whatsapp://send?phone=${phoneNumber}`;
+                Linking.openURL(url).catch(() => {
+                  Alert.alert(t.common?.error || 'Error', t.workOrder?.whatsappNotInstalled || 'WhatsApp not installed');
+                });
+              }}
+            >
+              <MaterialCommunityIcons name="whatsapp" size={18} color="#25D366" />
+              <Text style={[styles.contactBtnText, { color: '#25D366' }]}>WhatsApp</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.contactBtn, styles.messageChatBtn]} 
+              onPress={() => navigation.navigate('Chat', { 
+                participantId: workOrder.customer.name,
+                participantName: workOrder.customer.name 
+              })}
+            >
+              <MaterialCommunityIcons name="chat" size={18} color="#1976d2" />
+              <Text style={styles.contactBtnText}>{t.workOrder?.chat || 'Chat'}</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -362,15 +492,82 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
         {/* Quote Details */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>💰 {t.workOrder?.quoteDetails || 'Quote Details'}</Text>
+          
+          {/* Parts Section */}
+          {workOrder.quote.lineItems.filter(item => item.type === 'part').length > 0 && (
+            <View style={styles.lineItemsSection}>
+              <View style={styles.lineItemsSectionHeader}>
+                <MaterialCommunityIcons name="cog" size={16} color="#1976d2" />
+                <Text style={styles.lineItemsSectionTitle}>{t.workOrder?.parts || 'Parts'}</Text>
+              </View>
+              {workOrder.quote.lineItems.filter(item => item.type === 'part').map((item) => (
+                <View key={item.id} style={styles.lineItemCard}>
+                  <View style={styles.lineItemHeader}>
+                    <Text style={styles.lineItemDescription}>{item.description}</Text>
+                    <Text style={styles.lineItemTotal}>
+                      ${(item.quantity * item.unitPrice).toFixed(2)}
+                    </Text>
+                  </View>
+                  <View style={styles.lineItemDetails}>
+                    {item.brand && (
+                      <Text style={styles.lineItemBrand}>{item.brand}</Text>
+                    )}
+                    {item.partCode && (
+                      <Text style={styles.lineItemCode}>{item.partCode}</Text>
+                    )}
+                  </View>
+                  <View style={styles.lineItemQtyPrice}>
+                    <Text style={styles.lineItemQty}>
+                      {t.common?.qty || 'Qty'}: {item.quantity}
+                    </Text>
+                    <Text style={styles.lineItemUnitPrice}>
+                      @ ${item.unitPrice.toFixed(2)}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+              <View style={styles.subtotalRow}>
+                <Text style={styles.subtotalLabel}>{t.workOrder?.partsSubtotal || 'Parts Subtotal'}</Text>
+                <Text style={styles.subtotalValue}>${workOrder.quote.partsCost.toFixed(2)}</Text>
+              </View>
+            </View>
+          )}
+
+          {/* Services/Labor Section */}
+          {workOrder.quote.lineItems.filter(item => item.type === 'service').length > 0 && (
+            <View style={styles.lineItemsSection}>
+              <View style={styles.lineItemsSectionHeader}>
+                <MaterialCommunityIcons name="wrench" size={16} color="#10b981" />
+                <Text style={styles.lineItemsSectionTitle}>{t.workOrder?.labor || 'Labor'}</Text>
+              </View>
+              {workOrder.quote.lineItems.filter(item => item.type === 'service').map((item) => (
+                <View key={item.id} style={styles.lineItemCard}>
+                  <View style={styles.lineItemHeader}>
+                    <Text style={styles.lineItemDescription}>{item.description}</Text>
+                    <Text style={styles.lineItemTotal}>
+                      ${(item.quantity * item.unitPrice).toFixed(2)}
+                    </Text>
+                  </View>
+                  {item.quantity > 1 && (
+                    <View style={styles.lineItemQtyPrice}>
+                      <Text style={styles.lineItemQty}>
+                        {t.common?.qty || 'Qty'}: {item.quantity}
+                      </Text>
+                      <Text style={styles.lineItemUnitPrice}>
+                        @ ${item.unitPrice.toFixed(2)}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              ))}
+              <View style={styles.subtotalRow}>
+                <Text style={styles.subtotalLabel}>{t.workOrder?.laborSubtotal || 'Labor Subtotal'}</Text>
+                <Text style={styles.subtotalValue}>${workOrder.quote.laborCost.toFixed(2)}</Text>
+              </View>
+            </View>
+          )}
+
           <View style={styles.quoteDetails}>
-            <View style={styles.quoteRow}>
-              <Text style={styles.quoteLabel}>{t.workOrder?.parts || 'Parts'}</Text>
-              <Text style={styles.quoteValue}>${workOrder.quote.partsCost.toFixed(2)}</Text>
-            </View>
-            <View style={styles.quoteRow}>
-              <Text style={styles.quoteLabel}>{t.workOrder?.labor || 'Labor'}</Text>
-              <Text style={styles.quoteValue}>${workOrder.quote.laborCost.toFixed(2)}</Text>
-            </View>
             <View style={styles.quoteRow}>
               <Text style={styles.quoteLabel}>{t.workOrder?.estimatedTime || 'Estimated Time'}</Text>
               <Text style={styles.quoteValue}>{workOrder.quote.estimatedDuration}</Text>
@@ -484,6 +681,265 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
           </View>
         </View>
       </Modal>
+
+      {/* Provider Cancel Modal */}
+      <Modal
+        visible={showCancelModal}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowCancelModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t.businessRules?.cancellation?.cancelWorkOrder || 'Cancel Work Order'}</Text>
+              <TouchableOpacity onPress={() => setShowCancelModal(false)}>
+                <MaterialCommunityIcons name="close" size={24} color="#6b7280" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.warningBox}>
+              <MaterialCommunityIcons name="alert" size={24} color="#f59e0b" />
+              <View style={styles.warningContent}>
+                <Text style={styles.warningTitle}>{t.businessRules?.cancellation?.penaltyWarning || 'Penalty Warning'}</Text>
+                <Text style={styles.warningText}>
+                  {t.businessRules?.cancellation?.providerPenaltyMessage?.replace(
+                    '{points}',
+                    String(Math.abs(PROVIDER_POINTS_SYSTEM.NEGATIVE_ACTIONS.CANCEL_AFTER_ACCEPT))
+                  ) || `Cancelling this work order will result in ${Math.abs(PROVIDER_POINTS_SYSTEM.NEGATIVE_ACTIONS.CANCEL_AFTER_ACCEPT)} penalty points.`}
+                </Text>
+              </View>
+            </View>
+
+            <Text style={styles.inputLabel}>{t.businessRules?.cancellation?.reason || 'Reason for Cancellation'} *</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={cancelReason}
+              onChangeText={setCancelReason}
+              placeholder={t.businessRules?.cancellation?.reasonPlaceholder || 'Please explain why you need to cancel...'}
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => { setShowCancelModal(false); setCancelReason(''); }}
+              >
+                <Text style={styles.cancelButtonText}>{t.common?.back || 'Back'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.confirmButton, styles.cancelConfirmButton, actionLoading && styles.confirmButtonDisabled]}
+                onPress={handleProviderCancel}
+                disabled={actionLoading}
+              >
+                {actionLoading ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.confirmButtonText}>{t.businessRules?.cancellation?.confirmCancel || 'Confirm Cancel'}</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Additional Parts/Services Request Modal */}
+      <Modal
+        visible={showAdditionalPartsModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowAdditionalPartsModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { maxHeight: '85%' }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t.provider?.requestAdditionalItems || 'Request Additional Items'}</Text>
+              <TouchableOpacity onPress={() => setShowAdditionalPartsModal(false)}>
+                <MaterialCommunityIcons name="close" size={24} color="#6b7280" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <View style={styles.infoBox}>
+                <MaterialCommunityIcons name="information" size={18} color="#3b82f6" />
+                <Text style={styles.infoBoxText}>
+                  {t.provider?.additionalItemsInfo || 'Use this to request approval for additional parts or services discovered during work. The customer will be notified and must approve before proceeding.'}
+                </Text>
+              </View>
+
+              <Text style={styles.inputLabel}>{t.provider?.reasonForItems || 'Reason for Additional Items'} *</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                value={additionalPartsReason}
+                onChangeText={setAdditionalPartsReason}
+                placeholder={t.provider?.reasonPlaceholder || 'Explain why these items are needed...'}
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+              />
+
+              <Text style={[styles.inputLabel, { marginTop: 16 }]}>{t.provider?.itemsToAdd || 'Items to Add'}</Text>
+              
+              {additionalItems.map((item, index) => (
+                <View key={index} style={styles.additionalItemContainer}>
+                  {/* Type Selector */}
+                  <View style={styles.typeSelector}>
+                    <TouchableOpacity 
+                      style={[styles.typeBtn, item.type === 'part' && styles.typeBtnActive]}
+                      onPress={() => {
+                        const newItems = [...additionalItems];
+                        newItems[index].type = 'part';
+                        setAdditionalItems(newItems);
+                      }}
+                    >
+                      <MaterialCommunityIcons name="cog" size={16} color={item.type === 'part' ? '#fff' : '#6b7280'} />
+                      <Text style={[styles.typeBtnText, item.type === 'part' && styles.typeBtnTextActive]}>
+                        {t.provider?.part || 'Part'}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[styles.typeBtn, item.type === 'service' && styles.typeBtnActive]}
+                      onPress={() => {
+                        const newItems = [...additionalItems];
+                        newItems[index].type = 'service';
+                        setAdditionalItems(newItems);
+                      }}
+                    >
+                      <MaterialCommunityIcons name="wrench" size={16} color={item.type === 'service' ? '#fff' : '#6b7280'} />
+                      <Text style={[styles.typeBtnText, item.type === 'service' && styles.typeBtnTextActive]}>
+                        {t.provider?.service || 'Service'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  
+                  <View style={styles.partInputRow}>
+                    <View style={styles.partInputCol}>
+                      <TextInput
+                        style={styles.partInput}
+                        value={item.description}
+                        onChangeText={(text) => {
+                          const newItems = [...additionalItems];
+                          newItems[index].description = text;
+                          setAdditionalItems(newItems);
+                        }}
+                        placeholder={item.type === 'part' ? (t.provider?.partDescription || 'Part description') : (t.provider?.serviceDescription || 'Service description')}
+                      />
+                    </View>
+                    <View style={styles.partInputSmall}>
+                      <TextInput
+                        style={styles.partInput}
+                        value={item.quantity}
+                        onChangeText={(text) => {
+                          const newItems = [...additionalItems];
+                          newItems[index].quantity = text;
+                          setAdditionalItems(newItems);
+                        }}
+                        placeholder="Qty"
+                        keyboardType="numeric"
+                      />
+                    </View>
+                    <View style={styles.partInputSmall}>
+                      <TextInput
+                        style={styles.partInput}
+                        value={item.unitPrice}
+                        onChangeText={(text) => {
+                          const newItems = [...additionalItems];
+                          newItems[index].unitPrice = text;
+                          setAdditionalItems(newItems);
+                        }}
+                        placeholder="$"
+                        keyboardType="decimal-pad"
+                      />
+                    </View>
+                    {additionalItems.length > 1 && (
+                      <TouchableOpacity 
+                        style={styles.removePartBtn}
+                        onPress={() => {
+                          const newItems = additionalItems.filter((_, i) => i !== index);
+                          setAdditionalItems(newItems);
+                        }}
+                      >
+                        <MaterialCommunityIcons name="close-circle" size={20} color="#ef4444" />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+              ))}
+
+              <TouchableOpacity 
+                style={styles.addPartBtn}
+                onPress={() => setAdditionalItems([...additionalItems, { type: 'part', description: '', quantity: '1', unitPrice: '' }])}
+              >
+                <MaterialCommunityIcons name="plus-circle" size={20} color="#1976d2" />
+                <Text style={styles.addPartBtnText}>{t.provider?.addAnotherItem || 'Add Another Item'}</Text>
+              </TouchableOpacity>
+
+              {/* Total calculation */}
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>{t.provider?.additionalTotal || 'Additional Total'}:</Text>
+                <Text style={styles.totalValue}>
+                  ${additionalItems.reduce((sum, item) => {
+                    const qty = parseFloat(item.quantity) || 0;
+                    const price = parseFloat(item.unitPrice) || 0;
+                    return sum + (qty * price);
+                  }, 0).toFixed(2)}
+                </Text>
+              </View>
+            </ScrollView>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => {
+                  setShowAdditionalPartsModal(false);
+                  setAdditionalPartsReason('');
+                  setAdditionalItems([{ type: 'part', description: '', quantity: '1', unitPrice: '' }]);
+                }}
+              >
+                <Text style={styles.cancelButtonText}>{t.common?.cancel || 'Cancel'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.confirmButton, styles.additionalPartsConfirmBtn, actionLoading && styles.confirmButtonDisabled]}
+                onPress={async () => {
+                  if (!additionalPartsReason.trim()) {
+                    Alert.alert(t.common?.error || 'Error', t.provider?.enterReason || 'Please enter a reason for the additional items');
+                    return;
+                  }
+                  const validItems = additionalItems.filter(p => p.description.trim() && parseFloat(p.unitPrice) > 0);
+                  if (validItems.length === 0) {
+                    Alert.alert(t.common?.error || 'Error', t.provider?.addAtLeastOneItem || 'Please add at least one item with description and price');
+                    return;
+                  }
+                  setActionLoading(true);
+                  try {
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                    setShowAdditionalPartsModal(false);
+                    setAdditionalPartsReason('');
+                    setAdditionalItems([{ type: 'part', description: '', quantity: '1', unitPrice: '' }]);
+                    Alert.alert(
+                      t.common?.success || 'Success',
+                      t.provider?.additionalItemsRequested || 'Additional items request sent to customer for approval.'
+                    );
+                  } catch (error) {
+                    Alert.alert(t.common?.error || 'Error', t.common?.tryAgain || 'Please try again');
+                  } finally {
+                    setActionLoading(false);
+                  }
+                }}
+                disabled={actionLoading}
+              >
+                {actionLoading ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.confirmButtonText}>{t.provider?.sendRequest || 'Send Request'}</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -590,6 +1046,22 @@ const styles = StyleSheet.create({
   completeButton: {
     backgroundColor: '#10b981',
   },
+  additionalPartsButton: {
+    backgroundColor: '#fffbeb',
+    borderWidth: 1,
+    borderColor: '#fcd34d',
+  },
+  additionalPartsButtonText: {
+    color: '#b45309',
+  },
+  providerCancelButton: {
+    backgroundColor: '#fef2f2',
+    borderWidth: 1,
+    borderColor: '#fecaca',
+  },
+  providerCancelButtonText: {
+    color: '#dc2626',
+  },
   actionButtonText: {
     color: '#fff',
     fontSize: 16,
@@ -646,6 +1118,98 @@ const styles = StyleSheet.create({
   },
   quoteDetails: {
     gap: 8,
+  },
+  lineItemsSection: {
+    marginBottom: 16,
+  },
+  lineItemsSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  lineItemsSectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  lineItemCard: {
+    backgroundColor: '#f9fafb',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 8,
+  },
+  lineItemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 4,
+  },
+  lineItemDescription: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#1f2937',
+    marginRight: 12,
+  },
+  lineItemTotal: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1976d2',
+  },
+  lineItemDetails: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 4,
+  },
+  lineItemBrand: {
+    fontSize: 12,
+    color: '#6b7280',
+    backgroundColor: '#e5e7eb',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  lineItemCode: {
+    fontSize: 12,
+    color: '#6b7280',
+    fontFamily: 'monospace',
+  },
+  lineItemQtyPrice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 4,
+  },
+  lineItemQty: {
+    fontSize: 12,
+    color: '#6b7280',
+  },
+  lineItemUnitPrice: {
+    fontSize: 12,
+    color: '#9ca3af',
+  },
+  subtotalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingTop: 10,
+    marginTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+  },
+  subtotalLabel: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#6b7280',
+  },
+  subtotalValue: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#374151',
   },
   quoteRow: {
     flexDirection: 'row',
@@ -828,5 +1392,159 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: '#fff',
+  },
+  cancelConfirmButton: {
+    backgroundColor: '#dc2626',
+  },
+  additionalPartsConfirmBtn: {
+    backgroundColor: '#f59e0b',
+  },
+  additionalItemContainer: {
+    backgroundColor: '#f9fafb',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  typeSelector: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 10,
+  },
+  typeBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  typeBtnActive: {
+    backgroundColor: '#1976d2',
+    borderColor: '#1976d2',
+  },
+  typeBtnText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6b7280',
+  },
+  typeBtnTextActive: {
+    color: '#fff',
+  },
+  partInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  partInputCol: {
+    flex: 3,
+  },
+  partInputSmall: {
+    flex: 1,
+  },
+  partInput: {
+    backgroundColor: '#f9fafb',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 14,
+    color: '#111827',
+  },
+  removePartBtn: {
+    padding: 4,
+  },
+  addPartBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderStyle: 'dashed',
+    borderRadius: 10,
+  },
+  addPartBtnText: {
+    fontSize: 14,
+    color: '#1976d2',
+    fontWeight: '500',
+  },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+  },
+  totalLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  totalValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#f59e0b',
+  },
+  warningBox: {
+    flexDirection: 'row',
+    backgroundColor: '#fef3c7',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    gap: 12,
+    alignItems: 'flex-start',
+  },
+  warningContent: {
+    flex: 1,
+  },
+  warningTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#92400e',
+    marginBottom: 4,
+  },
+  warningText: {
+    fontSize: 13,
+    color: '#b45309',
+    lineHeight: 18,
+  },
+  customerContactRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#f3f4f6',
+  },
+  contactBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#eff6ff',
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  contactBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1976d2',
+  },
+  chatBtn: {
+    backgroundColor: '#dcfce7',
+  },
+  messageChatBtn: {
+    backgroundColor: '#eff6ff',
   },
 });

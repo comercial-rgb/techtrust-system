@@ -1,0 +1,466 @@
+'use client'
+
+import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/router'
+import { useAuth } from '@/contexts/AuthContext'
+import DashboardLayout from '@/components/DashboardLayout'
+import api from '@/services/api'
+import {
+  Search,
+  Clock,
+  Car,
+  ChevronRight,
+  Loader2,
+  AlertCircle,
+  CheckCircle,
+  XCircle,
+  DollarSign,
+  Calendar,
+  Filter,
+  TrendingUp,
+  TrendingDown,
+} from 'lucide-react'
+import Link from 'next/link'
+
+interface Quote {
+  id: string
+  status: string
+  totalAmount: number
+  partsCost: number
+  laborCost: number
+  estimatedDuration: string
+  createdAt: string
+  expiresAt: string
+  serviceRequest: {
+    id: string
+    requestNumber: string
+    title: string
+    description: string
+  }
+  vehicle: {
+    make: string
+    model: string
+    year: number
+  }
+  customer: {
+    fullName: string
+  }
+}
+
+export default function OrcamentosPage() {
+  const { isAuthenticated, loading: authLoading } = useAuth()
+  const router = useRouter()
+  const [loading, setLoading] = useState(true)
+  const [quotes, setQuotes] = useState<Quote[]>([])
+  const [filter, setFilter] = useState('all')
+  const [searchQuery, setSearchQuery] = useState('')
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.push('/login')
+    }
+  }, [authLoading, isAuthenticated, router])
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadQuotes()
+    }
+  }, [isAuthenticated])
+
+  async function loadQuotes() {
+    setLoading(true)
+    try {
+      // Em produção, buscar dados reais da API
+      // const response = await api.get('/provider/quotes')
+      
+      await new Promise(resolve => setTimeout(resolve, 800))
+      
+      setQuotes([
+        {
+          id: '1',
+          status: 'PENDING',
+          totalAmount: 450.00,
+          partsCost: 200.00,
+          laborCost: 250.00,
+          estimatedDuration: '3h',
+          createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+          expiresAt: new Date(Date.now() + 42 * 60 * 60 * 1000).toISOString(),
+          serviceRequest: {
+            id: 'sr1',
+            requestNumber: 'SR-2024-001',
+            title: 'Troca de óleo e filtros',
+            description: 'Troca de óleo sintético e filtros',
+          },
+          vehicle: {
+            make: 'Honda',
+            model: 'Civic',
+            year: 2020,
+          },
+          customer: {
+            fullName: 'João Silva',
+          },
+        },
+        {
+          id: '2',
+          status: 'ACCEPTED',
+          totalAmount: 320.00,
+          partsCost: 180.00,
+          laborCost: 140.00,
+          estimatedDuration: '2h',
+          createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+          expiresAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+          serviceRequest: {
+            id: 'sr2',
+            requestNumber: 'SR-2024-002',
+            title: 'Troca de pastilhas de freio',
+            description: 'Substituição das pastilhas dianteiras',
+          },
+          vehicle: {
+            make: 'Ford',
+            model: 'Focus',
+            year: 2021,
+          },
+          customer: {
+            fullName: 'Pedro Costa',
+          },
+        },
+        {
+          id: '3',
+          status: 'REJECTED',
+          totalAmount: 580.00,
+          partsCost: 350.00,
+          laborCost: 230.00,
+          estimatedDuration: '4h',
+          createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+          expiresAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+          serviceRequest: {
+            id: 'sr3',
+            requestNumber: 'SR-2024-003',
+            title: 'Revisão completa',
+            description: 'Revisão dos 60.000 km',
+          },
+          vehicle: {
+            make: 'BMW',
+            model: 'X3',
+            year: 2022,
+          },
+          customer: {
+            fullName: 'Ana Oliveira',
+          },
+        },
+        {
+          id: '4',
+          status: 'EXPIRED',
+          totalAmount: 180.00,
+          partsCost: 80.00,
+          laborCost: 100.00,
+          estimatedDuration: '1h',
+          createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+          expiresAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+          serviceRequest: {
+            id: 'sr4',
+            requestNumber: 'SR-2024-004',
+            title: 'Alinhamento e balanceamento',
+            description: 'Alinhamento completo',
+          },
+          vehicle: {
+            make: 'Chevrolet',
+            model: 'Cruze',
+            year: 2018,
+          },
+          customer: {
+            fullName: 'Carlos Lima',
+          },
+        },
+        {
+          id: '5',
+          status: 'PENDING',
+          totalAmount: 250.00,
+          partsCost: 100.00,
+          laborCost: 150.00,
+          estimatedDuration: '2h',
+          createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
+          expiresAt: new Date(Date.now() + 47 * 60 * 60 * 1000).toISOString(),
+          serviceRequest: {
+            id: 'sr5',
+            requestNumber: 'SR-2024-005',
+            title: 'Troca de correia dentada',
+            description: 'Substituição da correia dentada e tensor',
+          },
+          vehicle: {
+            make: 'Volkswagen',
+            model: 'Golf',
+            year: 2019,
+          },
+          customer: {
+            fullName: 'Fernanda Souza',
+          },
+        },
+      ])
+    } catch (error) {
+      console.error('Erro ao carregar orçamentos:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const getStatusInfo = (status: string) => {
+    const statuses: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
+      PENDING: { label: 'Aguardando', color: 'bg-yellow-100 text-yellow-700', icon: <Clock className="w-4 h-4" /> },
+      ACCEPTED: { label: 'Aceito', color: 'bg-green-100 text-green-700', icon: <CheckCircle className="w-4 h-4" /> },
+      REJECTED: { label: 'Recusado', color: 'bg-red-100 text-red-700', icon: <XCircle className="w-4 h-4" /> },
+      EXPIRED: { label: 'Expirado', color: 'bg-gray-100 text-gray-700', icon: <Clock className="w-4 h-4" /> },
+    }
+    return statuses[status] || { label: status, color: 'bg-gray-100 text-gray-700', icon: <Clock className="w-4 h-4" /> }
+  }
+
+  const filterOptions = [
+    { value: 'all', label: 'Todos' },
+    { value: 'PENDING', label: 'Aguardando' },
+    { value: 'ACCEPTED', label: 'Aceitos' },
+    { value: 'REJECTED', label: 'Recusados' },
+    { value: 'EXPIRED', label: 'Expirados' },
+  ]
+
+  const filteredQuotes = quotes.filter(quote => {
+    if (filter !== 'all' && quote.status !== filter) return false
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      return (
+        quote.serviceRequest.title.toLowerCase().includes(query) ||
+        quote.vehicle.make.toLowerCase().includes(query) ||
+        quote.vehicle.model.toLowerCase().includes(query) ||
+        quote.serviceRequest.requestNumber.toLowerCase().includes(query) ||
+        quote.customer.fullName.toLowerCase().includes(query)
+      )
+    }
+    return true
+  })
+
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
+
+  const getTimeStatus = (expiresAt: string, status: string) => {
+    if (status !== 'PENDING') return null
+    
+    const diff = new Date(expiresAt).getTime() - Date.now()
+    if (diff <= 0) return { text: 'Expirado', urgent: true }
+    
+    const hours = Math.floor(diff / (60 * 60 * 1000))
+    if (hours > 24) {
+      const days = Math.floor(hours / 24)
+      return { text: `${days}d restante(s)`, urgent: false }
+    }
+    return { text: `${hours}h restante(s)`, urgent: hours < 12 }
+  }
+
+  // Stats
+  const stats = {
+    total: quotes.length,
+    pending: quotes.filter(q => q.status === 'PENDING').length,
+    accepted: quotes.filter(q => q.status === 'ACCEPTED').length,
+    rejected: quotes.filter(q => q.status === 'REJECTED').length,
+    conversionRate: quotes.length > 0 
+      ? Math.round((quotes.filter(q => q.status === 'ACCEPTED').length / quotes.filter(q => q.status !== 'PENDING').length) * 100) || 0
+      : 0,
+  }
+
+  if (authLoading || !isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
+      </div>
+    )
+  }
+
+  return (
+    <DashboardLayout title="Orçamentos">
+      <div className="space-y-6 animate-fade-in">
+        {/* Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="bg-white rounded-xl p-4 shadow-soft">
+            <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+            <p className="text-sm text-gray-500">Total</p>
+          </div>
+          <div className="bg-white rounded-xl p-4 shadow-soft">
+            <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
+            <p className="text-sm text-gray-500">Aguardando</p>
+          </div>
+          <div className="bg-white rounded-xl p-4 shadow-soft">
+            <p className="text-2xl font-bold text-green-600">{stats.accepted}</p>
+            <p className="text-sm text-gray-500">Aceitos</p>
+          </div>
+          <div className="bg-white rounded-xl p-4 shadow-soft">
+            <p className="text-2xl font-bold text-red-600">{stats.rejected}</p>
+            <p className="text-sm text-gray-500">Recusados</p>
+          </div>
+          <div className="bg-white rounded-xl p-4 shadow-soft">
+            <div className="flex items-center gap-2">
+              <p className="text-2xl font-bold text-primary-600">{stats.conversionRate}%</p>
+              {stats.conversionRate >= 50 ? (
+                <TrendingUp className="w-5 h-5 text-green-500" />
+              ) : (
+                <TrendingDown className="w-5 h-5 text-red-500" />
+              )}
+            </div>
+            <p className="text-sm text-gray-500">Taxa de Conversão</p>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row gap-4">
+          {/* Search */}
+          <div className="flex-1 relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Buscar por título, cliente, veículo..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="input pl-12"
+            />
+          </div>
+
+          {/* Filter dropdown */}
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="input w-auto min-w-[160px]"
+          >
+            {filterOptions.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Quotes list */}
+        {loading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white rounded-2xl p-6 shadow-soft">
+                <div className="flex items-start gap-4">
+                  <div className="skeleton w-12 h-12 rounded-xl" />
+                  <div className="flex-1">
+                    <div className="skeleton h-5 w-48 mb-2 rounded" />
+                    <div className="skeleton h-4 w-64 mb-4 rounded" />
+                    <div className="flex gap-4">
+                      <div className="skeleton h-4 w-24 rounded" />
+                      <div className="skeleton h-4 w-24 rounded" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : filteredQuotes.length === 0 ? (
+          <div className="bg-white rounded-2xl p-12 shadow-soft text-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+              <AlertCircle className="w-8 h-8 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Nenhum orçamento encontrado
+            </h3>
+            <p className="text-gray-500 mb-6">
+              {searchQuery
+                ? 'Tente buscar com outros termos'
+                : 'Seus orçamentos aparecerão aqui'}
+            </p>
+            <Link href="/pedidos" className="btn btn-primary">
+              Ver Pedidos Disponíveis
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {filteredQuotes.map((quote) => {
+              const statusInfo = getStatusInfo(quote.status)
+              const timeStatus = getTimeStatus(quote.expiresAt, quote.status)
+              
+              return (
+                <div
+                  key={quote.id}
+                  className="bg-white rounded-2xl p-6 shadow-soft card-hover"
+                >
+                  <div className="flex items-start gap-4">
+                    {/* Status icon */}
+                    <div className={`w-12 h-12 rounded-xl ${statusInfo.color.split(' ')[0]} flex items-center justify-center flex-shrink-0`}>
+                      <div className={statusInfo.color.split(' ')[1]}>
+                        {statusInfo.icon}
+                      </div>
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-4 mb-2">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-semibold text-gray-900">{quote.serviceRequest.title}</h3>
+                            <span className={`badge ${statusInfo.color}`}>
+                              {statusInfo.label}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-500">
+                            {quote.customer.fullName} • {quote.vehicle.make} {quote.vehicle.model} {quote.vehicle.year}
+                          </p>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <p className="text-xl font-bold text-gray-900">${quote.totalAmount.toFixed(2)}</p>
+                          {timeStatus && (
+                            <p className={`text-xs ${timeStatus.urgent ? 'text-red-600' : 'text-gray-500'}`}>
+                              {timeStatus.text}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Details */}
+                      <div className="flex flex-wrap items-center gap-4 mt-4 text-sm text-gray-600">
+                        <div className="flex items-center gap-1.5">
+                          <DollarSign className="w-4 h-4 text-gray-400" />
+                          Peças: ${quote.partsCost.toFixed(2)}
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <DollarSign className="w-4 h-4 text-gray-400" />
+                          M.O.: ${quote.laborCost.toFixed(2)}
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Clock className="w-4 h-4 text-gray-400" />
+                          {quote.estimatedDuration}
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Calendar className="w-4 h-4 text-gray-400" />
+                          {formatDate(quote.createdAt)}
+                        </div>
+                      </div>
+
+                      {/* Footer */}
+                      <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
+                        <span className="text-xs text-gray-400">
+                          #{quote.serviceRequest.requestNumber}
+                        </span>
+                        {quote.status === 'ACCEPTED' && (
+                          <Link
+                            href={`/servicos`}
+                            className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1"
+                          >
+                            Ver Serviço
+                            <ChevronRight className="w-4 h-4" />
+                          </Link>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </DashboardLayout>
+  )
+}

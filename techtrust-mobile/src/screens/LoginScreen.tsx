@@ -20,6 +20,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n, languages, Language } from '../i18n';
 import { logos } from '../constants/images';
@@ -63,15 +64,25 @@ export default function LoginScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Language Selector Button */}
-      <TouchableOpacity 
-        style={styles.languageButton}
-        onPress={() => setShowLanguageModal(true)}
-      >
-        <Text style={styles.languageFlag}>{currentLanguage.flag}</Text>
-        <Text style={styles.languageText}>{currentLanguage.nativeName}</Text>
-        <MaterialCommunityIcons name="chevron-down" size={16} color="#6b7280" />
-      </TouchableOpacity>
+      {/* Header with Back Button and Language Selector */}
+      <View style={styles.headerRow}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color="#1976d2" />
+        </TouchableOpacity>
+        
+        {/* Language Selector Button */}
+        <TouchableOpacity 
+          style={styles.languageButtonInRow}
+          onPress={() => setShowLanguageModal(true)}
+        >
+          <Text style={styles.languageFlag}>{currentLanguage.flag}</Text>
+          <Text style={styles.languageText}>{currentLanguage.nativeName}</Text>
+          <MaterialCommunityIcons name="chevron-down" size={16} color="#6b7280" />
+        </TouchableOpacity>
+      </View>
 
       {/* Language Modal */}
       <Modal
@@ -271,7 +282,30 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
+  // Header Row Styles
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginTop: 8,
+  },
+  backButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: '#f3f4f6',
+  },
   // Language Selector Styles
+  languageButtonInRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#f3f4f6',
+    borderRadius: 20,
+    gap: 6,
+  },
   languageButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -353,8 +387,8 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   logoImage: {
-    width: 520,
-    height: 210,
+    width: 280,
+    height: 112,
     marginBottom: 12,
   },
   tagline: {

@@ -17,6 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useI18n } from '../../i18n';
+import { useRoute, CommonActions } from '@react-navigation/native';
 
 interface PaymentMethod {
   id: string;
@@ -29,12 +30,56 @@ interface PaymentMethod {
   isDefault: boolean;
 }
 
+interface WalletTransaction {
+  id: string;
+  type: 'credit' | 'debit';
+  amount: number;
+  description: string;
+  date: string;
+}
+
 export default function PaymentMethodsScreen({ navigation }: any) {
   const { t } = useI18n();
+  const route = useRoute<any>();
+  const fromDashboard = route.params?.fromDashboard;
+  const fromCreateRequest = route.params?.fromCreateRequest;
+  const addCardMode = route.params?.addCardMode;
+  
   const [loading, setLoading] = useState(true);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [showModal, setShowModal] = useState(false);
+  const [showAddBalanceModal, setShowAddBalanceModal] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [recentTransactions, setRecentTransactions] = useState<WalletTransaction[]>([]);
+  const [addBalanceAmount, setAddBalanceAmount] = useState('');
+  const [addBalanceMethod, setAddBalanceMethod] = useState<'card' | 'pix' | 'transfer'>('card');
+
+  const handleBack = () => {
+    // If we came from CreateRequest, navigate back to it
+    if (fromCreateRequest) {
+      // Get the parent tab navigator and navigate to Dashboard > CreateRequest
+      const parent = navigation.getParent();
+      if (parent) {
+        // Navigate to Dashboard with CreateRequest screen
+        parent.navigate('Dashboard', { screen: 'CreateRequest' });
+        // Pop Profile stack to ProfileMain
+        navigation.popToTop();
+      } else {
+        navigation.goBack();
+      }
+    } else if (fromDashboard) {
+      const parent = navigation.getParent();
+      if (parent) {
+        parent.navigate('Dashboard', { screen: 'DashboardMain' });
+        navigation.popToTop();
+      } else {
+        navigation.goBack();
+      }
+    } else {
+      navigation.goBack();
+    }
+  };
 
   const [formData, setFormData] = useState({
     type: 'credit' as 'credit' | 'debit' | 'pix',
@@ -52,6 +97,35 @@ export default function PaymentMethodsScreen({ navigation }: any) {
   const loadPaymentMethods = async () => {
     try {
       await new Promise(resolve => setTimeout(resolve, 800));
+      
+      // Load wallet balance
+      setWalletBalance(125.50);
+      
+      // Load recent transactions
+      setRecentTransactions([
+        {
+          id: '1',
+          type: 'credit',
+          amount: 100.00,
+          description: t.customer?.balanceAddedViaCard || 'Balance added via card',
+          date: '2024-11-28',
+        },
+        {
+          id: '2',
+          type: 'debit',
+          amount: 45.00,
+          description: t.customer?.paymentForService || 'Payment for service - Oil Change',
+          date: '2024-11-27',
+        },
+        {
+          id: '3',
+          type: 'credit',
+          amount: 70.50,
+          description: t.customer?.balanceAddedViaPix || 'Balance added via PIX',
+          date: '2024-11-25',
+        },
+      ]);
+      
       setPaymentMethods([
         {
           id: '1',
@@ -96,6 +170,55 @@ export default function PaymentMethodsScreen({ navigation }: any) {
       pixKey: '',
     });
     setShowModal(true);
+  };
+
+  const handleOpenAddBalanceModal = () => {
+    setAddBalanceAmount('');
+    setAddBalanceMethod('card');
+    setShowAddBalanceModal(true);
+  };
+
+  const handleAddBalance = async () => {
+    const amount = parseFloat(addBalanceAmount.replace(',', '.'));
+    if (!amount || amount <= 0) {
+      Alert.alert(t.common?.error || 'Error', t.customer?.enterValidAmount || 'Please enter a valid amount.');
+      return;
+    }
+    if (amount < 10) {
+      Alert.alert(t.common?.error || 'Error', t.customer?.minimumAmount || 'Minimum amount is $10.00.');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Add to balance
+      setWalletBalance(prev => prev + amount);
+      
+      // Add transaction record
+      const methodName = addBalanceMethod === 'card' 
+        ? (t.customer?.balanceAddedViaCard || 'Balance added via card')
+        : addBalanceMethod === 'pix'
+        ? (t.customer?.balanceAddedViaPix || 'Balance added via PIX')
+        : (t.customer?.balanceAddedViaTransfer || 'Balance added via transfer');
+      
+      setRecentTransactions(prev => [{
+        id: Date.now().toString(),
+        type: 'credit',
+        amount: amount,
+        description: methodName,
+        date: new Date().toISOString().split('T')[0],
+      }, ...prev]);
+      
+      setShowAddBalanceModal(false);
+      Alert.alert(
+        t.common?.success || 'Success', 
+        `${t.customer?.balanceAdded || 'Balance added'}: $${amount.toFixed(2)}`
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleSave = async () => {
@@ -198,7 +321,7 @@ export default function PaymentMethodsScreen({ navigation }: any) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={24} color="#111827" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{t.customer?.paymentMethods || 'Payment Methods'}</Text>
@@ -215,7 +338,7 @@ export default function PaymentMethodsScreen({ navigation }: any) {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+        <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color="#111827" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t.customer?.paymentMethods || 'Payment Methods'}</Text>
@@ -232,6 +355,61 @@ export default function PaymentMethodsScreen({ navigation }: any) {
             {t.customer?.paymentInfoSecure || 'Your payment information is encrypted and secure'}
           </Text>
         </View>
+
+        {/* Wallet Section */}
+        <View style={styles.walletSection}>
+          <View style={styles.walletCard}>
+            <View style={styles.walletHeader}>
+              <View style={styles.walletIconContainer}>
+                <Ionicons name="wallet" size={28} color="#1976d2" />
+              </View>
+              <View style={styles.walletInfo}>
+                <Text style={styles.walletLabel}>{t.customer?.walletBalance || 'Wallet Balance'}</Text>
+                <Text style={styles.walletBalance}>${walletBalance.toFixed(2)}</Text>
+              </View>
+            </View>
+            <TouchableOpacity 
+              style={styles.addBalanceButton}
+              onPress={handleOpenAddBalanceModal}
+            >
+              <Ionicons name="add-circle" size={20} color="#fff" />
+              <Text style={styles.addBalanceButtonText}>{t.customer?.addBalance || 'Add Balance'}</Text>
+            </TouchableOpacity>
+          </View>
+          
+          {recentTransactions.length > 0 && (
+            <View style={styles.transactionsContainer}>
+              <Text style={styles.transactionsTitle}>{t.customer?.recentTransactions || 'Recent Transactions'}</Text>
+              {recentTransactions.slice(0, 3).map((transaction) => (
+                <View key={transaction.id} style={styles.transactionItem}>
+                  <View style={[
+                    styles.transactionIcon,
+                    { backgroundColor: transaction.type === 'credit' ? '#dcfce7' : '#fee2e2' }
+                  ]}>
+                    <Ionicons 
+                      name={transaction.type === 'credit' ? 'arrow-down' : 'arrow-up'} 
+                      size={16} 
+                      color={transaction.type === 'credit' ? '#16a34a' : '#ef4444'} 
+                    />
+                  </View>
+                  <View style={styles.transactionInfo}>
+                    <Text style={styles.transactionDescription}>{transaction.description}</Text>
+                    <Text style={styles.transactionDate}>{transaction.date}</Text>
+                  </View>
+                  <Text style={[
+                    styles.transactionAmount,
+                    { color: transaction.type === 'credit' ? '#16a34a' : '#ef4444' }
+                  ]}>
+                    {transaction.type === 'credit' ? '+' : '-'}${transaction.amount.toFixed(2)}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+
+        {/* Payment Methods Title */}
+        <Text style={styles.sectionTitle}>{t.customer?.savedPaymentMethods || 'Saved Payment Methods'}</Text>
 
         {paymentMethods.length === 0 ? (
           <View style={styles.emptyState}>
@@ -447,6 +625,130 @@ export default function PaymentMethodsScreen({ navigation }: any) {
               >
                 <Text style={styles.saveButtonText}>
                   {saving ? 'Adding...' : 'Add Payment Method'}
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Add Balance Modal */}
+      <Modal
+        visible={showAddBalanceModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowAddBalanceModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t.customer?.addBalance || 'Add Balance'}</Text>
+              <TouchableOpacity onPress={() => setShowAddBalanceModal(false)}>
+                <Ionicons name="close" size={24} color="#6b7280" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {/* Amount Input */}
+              <Text style={styles.inputLabel}>{t.customer?.amount || 'Amount'} *</Text>
+              <View style={styles.amountInputContainer}>
+                <Text style={styles.currencySymbol}>$</Text>
+                <TextInput
+                  style={styles.amountInput}
+                  placeholder="0.00"
+                  value={addBalanceAmount}
+                  onChangeText={setAddBalanceAmount}
+                  keyboardType="decimal-pad"
+                />
+              </View>
+              <Text style={styles.minimumAmountText}>{t.customer?.minimumAmountNote || 'Minimum: $10.00'}</Text>
+
+              {/* Quick Amount Buttons */}
+              <View style={styles.quickAmountContainer}>
+                {[25, 50, 100, 200].map((amount) => (
+                  <TouchableOpacity
+                    key={amount}
+                    style={styles.quickAmountButton}
+                    onPress={() => setAddBalanceAmount(amount.toString())}
+                  >
+                    <Text style={styles.quickAmountText}>${amount}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Payment Method Selection */}
+              <Text style={styles.inputLabel}>{t.customer?.paymentMethod || 'Payment Method'}</Text>
+              <View style={styles.balanceMethodOptions}>
+                {[
+                  { type: 'card' as const, label: t.customer?.creditDebitCard || 'Credit/Debit Card', icon: 'card' },
+                  { type: 'pix' as const, label: 'PIX', icon: 'qr-code' },
+                  { type: 'transfer' as const, label: t.customer?.bankTransfer || 'Bank Transfer', icon: 'swap-horizontal' },
+                ].map((option) => (
+                  <TouchableOpacity
+                    key={option.type}
+                    style={[
+                      styles.balanceMethodOption,
+                      addBalanceMethod === option.type && styles.balanceMethodOptionActive,
+                    ]}
+                    onPress={() => setAddBalanceMethod(option.type)}
+                  >
+                    <Ionicons 
+                      name={option.icon as any} 
+                      size={24} 
+                      color={addBalanceMethod === option.type ? '#1976d2' : '#6b7280'} 
+                    />
+                    <Text style={[
+                      styles.balanceMethodText,
+                      addBalanceMethod === option.type && styles.balanceMethodTextActive,
+                    ]}>
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {addBalanceMethod === 'pix' && (
+                <View style={styles.pixInstructions}>
+                  <View style={styles.pixQRPlaceholder}>
+                    <Ionicons name="qr-code" size={80} color="#1976d2" />
+                    <Text style={styles.pixQRText}>{t.customer?.scanQRCode || 'Scan QR Code'}</Text>
+                  </View>
+                  <Text style={styles.pixNote}>
+                    {t.customer?.pixNote || 'Balance will be added automatically after payment confirmation.'}
+                  </Text>
+                </View>
+              )}
+
+              {addBalanceMethod === 'transfer' && (
+                <View style={styles.transferInstructions}>
+                  <Text style={styles.transferTitle}>{t.customer?.bankDetails || 'Bank Details'}</Text>
+                  <View style={styles.transferDetail}>
+                    <Text style={styles.transferLabel}>Bank:</Text>
+                    <Text style={styles.transferValue}>TechTrust Bank</Text>
+                  </View>
+                  <View style={styles.transferDetail}>
+                    <Text style={styles.transferLabel}>Account:</Text>
+                    <Text style={styles.transferValue}>123456-7</Text>
+                  </View>
+                  <View style={styles.transferDetail}>
+                    <Text style={styles.transferLabel}>Routing:</Text>
+                    <Text style={styles.transferValue}>000-000-000</Text>
+                  </View>
+                  <Text style={styles.transferNote}>
+                    {t.customer?.transferNote || 'Include your account email as reference. Balance typically credited within 1-2 business days.'}
+                  </Text>
+                </View>
+              )}
+
+              <TouchableOpacity
+                style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+                onPress={handleAddBalance}
+                disabled={saving}
+              >
+                <Text style={styles.saveButtonText}>
+                  {saving 
+                    ? (t.common?.processing || 'Processing...') 
+                    : (t.customer?.addBalance || 'Add Balance')}
                 </Text>
               </TouchableOpacity>
             </ScrollView>
@@ -747,5 +1049,243 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#fff',
+  },
+  // Wallet Section Styles
+  walletSection: {
+    margin: 16,
+  },
+  walletCard: {
+    backgroundColor: '#1976d2',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+  },
+  walletHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  walletIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  walletInfo: {
+    flex: 1,
+  },
+  walletLabel: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.8)',
+    marginBottom: 4,
+  },
+  walletBalance: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  addBalanceButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 8,
+  },
+  addBalanceButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  transactionsContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+  },
+  transactionsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 12,
+  },
+  transactionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  transactionIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  transactionInfo: {
+    flex: 1,
+  },
+  transactionDescription: {
+    fontSize: 14,
+    color: '#374151',
+    marginBottom: 2,
+  },
+  transactionDate: {
+    fontSize: 12,
+    color: '#9ca3af',
+  },
+  transactionAmount: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginHorizontal: 16,
+    marginBottom: 12,
+  },
+  // Add Balance Modal Styles
+  amountInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f3f4f6',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  currencySymbol: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#374151',
+    marginRight: 8,
+  },
+  amountInput: {
+    flex: 1,
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#111827',
+    paddingVertical: 16,
+  },
+  minimumAmountText: {
+    fontSize: 12,
+    color: '#9ca3af',
+    marginBottom: 16,
+  },
+  quickAmountContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+  },
+  quickAmountButton: {
+    flex: 1,
+    marginHorizontal: 4,
+    paddingVertical: 12,
+    backgroundColor: '#f3f4f6',
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  quickAmountText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  balanceMethodOptions: {
+    gap: 12,
+    marginBottom: 20,
+  },
+  balanceMethodOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#f9fafb',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    gap: 12,
+  },
+  balanceMethodOptionActive: {
+    backgroundColor: '#dbeafe',
+    borderColor: '#1976d2',
+  },
+  balanceMethodText: {
+    fontSize: 15,
+    color: '#374151',
+  },
+  balanceMethodTextActive: {
+    color: '#1976d2',
+    fontWeight: '600',
+  },
+  pixInstructions: {
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#f9fafb',
+    borderRadius: 12,
+    marginBottom: 20,
+  },
+  pixQRPlaceholder: {
+    width: 160,
+    height: 160,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: '#e5e7eb',
+    borderStyle: 'dashed',
+  },
+  pixQRText: {
+    fontSize: 14,
+    color: '#1976d2',
+    fontWeight: '500',
+    marginTop: 8,
+  },
+  pixNote: {
+    fontSize: 13,
+    color: '#6b7280',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  transferInstructions: {
+    backgroundColor: '#f9fafb',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+  },
+  transferTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 12,
+  },
+  transferDetail: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  transferLabel: {
+    fontSize: 14,
+    color: '#6b7280',
+  },
+  transferValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  transferNote: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginTop: 12,
+    lineHeight: 18,
   },
 });

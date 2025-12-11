@@ -3,7 +3,7 @@
  * With quotes and chat functionality
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -72,12 +72,31 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
   }
 
   function handleChat(quote: Quote) {
-    navigation.navigate('Chat', { 
-      chatId: `chat-${quote.id}`,
-      participant: { id: quote.provider.id, name: quote.provider.businessName },
-      requestId: request?.requestNumber,
+    navigation.navigate('Messages', { 
+      screen: 'Chat',
+      params: {
+        chatId: `chat-${quote.id}`,
+        recipientId: quote.provider.id,
+        recipientName: quote.provider.businessName,
+        recipientType: 'provider',
+        requestId: request?.requestNumber,
+      }
     });
   }
+
+  // Find the index of the quote with the lowest total amount (best value)
+  const bestValueIndex = useMemo(() => {
+    if (quotes.length === 0) return -1;
+    let minIndex = 0;
+    let minAmount = quotes[0].totalAmount;
+    quotes.forEach((quote, idx) => {
+      if (quote.totalAmount < minAmount) {
+        minAmount = quote.totalAmount;
+        minIndex = idx;
+      }
+    });
+    return minIndex;
+  }, [quotes]);
 
   if (loading) {
     return <SafeAreaView style={styles.container}><View style={styles.loading}><Text>{t.common?.loading || 'Loading...'}</Text></View></SafeAreaView>;
@@ -116,7 +135,7 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
                   <Text style={styles.ratingText}>{quote.provider.rating} ({quote.provider.totalReviews})</Text>
                 </View>
               </View>
-              {idx === 0 && <View style={styles.bestBadge}><Text style={styles.bestText}>{t.common?.bestValue || 'Best Value'}</Text></View>}
+              {idx === bestValueIndex && <View style={styles.bestBadge}><Text style={styles.bestText}>{t.common?.bestValue || 'Best Value'}</Text></View>}
               <Ionicons name="chevron-forward" size={20} color="#9ca3af" style={{ marginLeft: 8 }} />
             </View>
             <View style={styles.detailsBox}>

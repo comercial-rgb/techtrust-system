@@ -3,8 +3,12 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { View, Text, StyleSheet } from 'react-native';
+import { useI18n } from '../i18n';
+import { useNotifications } from '../contexts/NotificationsContext';
+import { CommonActions } from '@react-navigation/native';
 
 // Customer Screens - NOVAS TELAS COM DESIGN MODERNO E DADOS MOCKADOS
+import LandingScreen from '../screens/LandingScreen';
 import CustomerDashboardScreen from '../screens/CustomerDashboardScreen';
 import CustomerVehiclesScreen from '../screens/CustomerVehiclesScreen';
 import CustomerWorkOrdersScreen from '../screens/CustomerWorkOrdersScreen';
@@ -75,6 +79,14 @@ function TabBarIcon({
 function HomeStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="LandingMain" component={LandingScreen} />
+    </Stack.Navigator>
+  );
+}
+
+function DashboardStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="DashboardMain" component={CustomerDashboardScreen} />
       <Stack.Screen name="CreateRequest" component={CreateRequestScreen} />
       <Stack.Screen name="RequestDetails" component={RequestDetailsScreen} />
@@ -124,6 +136,7 @@ function ProfileStack() {
       <Stack.Screen name="Addresses" component={AddressesScreen} />
       <Stack.Screen name="PaymentMethods" component={PaymentMethodsScreen} />
       <Stack.Screen name="ServiceHistory" component={ServiceHistoryScreen} />
+      <Stack.Screen name="ServiceHistoryWorkOrderDetails" component={WorkOrderDetailsScreen} />
       <Stack.Screen name="FavoriteProviders" component={FavoriteProvidersScreen} />
       <Stack.Screen name="Reports" component={CustomerReportsScreen} />
       <Stack.Screen name="HelpCenter" component={HelpCenterScreen} />
@@ -137,8 +150,8 @@ function ProfileStack() {
 }
 
 export default function CustomerNavigator() {
-  // Mock badge count - em produção, buscar do estado/API
-  const unreadMessagesCount = 2;
+  const { t } = useI18n();
+  const { unreadMessagesCount } = useNotifications();
 
   return (
     <Tab.Navigator
@@ -164,37 +177,88 @@ export default function CustomerNavigator() {
         name="Home"
         component={HomeStack}
         options={{
-          tabBarLabel: 'Início',
+          tabBarLabel: t.nav?.home || 'Home',
           tabBarIcon: ({ color, size }) => (
             <TabBarIcon name="home" color={color} size={size} />
           ),
         }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            // Reset stack to Landing when tab is pressed
+            navigation.dispatch(
+              CommonActions.reset({
+                index: 0,
+                routes: [{ name: 'Home', state: { routes: [{ name: 'LandingMain' }] } }],
+              })
+            );
+          },
+        })}
+      />
+      <Tab.Screen
+        name="Dashboard"
+        component={DashboardStack}
+        options={{
+          tabBarLabel: t.nav?.dashboard || 'Dashboard',
+          tabBarIcon: ({ color, size }) => (
+            <TabBarIcon name="grid" color={color} size={size} />
+          ),
+        }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            navigation.dispatch(
+              CommonActions.reset({
+                index: 0,
+                routes: [{ name: 'Dashboard', state: { routes: [{ name: 'DashboardMain' }] } }],
+              })
+            );
+          },
+        })}
       />
       <Tab.Screen
         name="Vehicles"
         component={VehiclesStack}
         options={{
-          tabBarLabel: 'Veículos',
+          tabBarLabel: t.nav?.vehicles || 'Vehicles',
           tabBarIcon: ({ color, size }) => (
             <TabBarIcon name="car" color={color} size={size} />
           ),
         }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            navigation.dispatch(
+              CommonActions.reset({
+                index: 0,
+                routes: [{ name: 'Vehicles', state: { routes: [{ name: 'VehiclesList' }] } }],
+              })
+            );
+          },
+        })}
       />
       <Tab.Screen
         name="Services"
         component={WorkOrdersStack}
         options={{
-          tabBarLabel: 'Serviços',
+          tabBarLabel: t.nav?.services || 'Services',
           tabBarIcon: ({ color, size }) => (
             <TabBarIcon name="construct" color={color} size={size} />
           ),
         }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            navigation.dispatch(
+              CommonActions.reset({
+                index: 0,
+                routes: [{ name: 'Services', state: { routes: [{ name: 'WorkOrdersList' }] } }],
+              })
+            );
+          },
+        })}
       />
       <Tab.Screen
         name="Messages"
         component={ChatStack}
         options={{
-          tabBarLabel: 'Mensagens',
+          tabBarLabel: t.nav?.chat || 'Messages',
           tabBarIcon: ({ color, size }) => (
             <TabBarIcon 
               name="chatbubbles" 
@@ -204,16 +268,37 @@ export default function CustomerNavigator() {
             />
           ),
         }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            navigation.dispatch(
+              CommonActions.reset({
+                index: 0,
+                routes: [{ name: 'Messages', state: { routes: [{ name: 'ChatList' }] } }],
+              })
+            );
+          },
+        })}
       />
       <Tab.Screen
         name="Profile"
         component={ProfileStack}
         options={{
-          tabBarLabel: 'Perfil',
+          tabBarLabel: t.nav?.profile || 'Profile',
           tabBarIcon: ({ color, size }) => (
             <TabBarIcon name="person" color={color} size={size} />
           ),
         }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            // Always reset Profile stack to ProfileMain when tab is pressed
+            navigation.dispatch(
+              CommonActions.reset({
+                index: 0,
+                routes: [{ name: 'Profile', state: { routes: [{ name: 'ProfileMain' }] } }],
+              })
+            );
+          },
+        })}
       />
     </Tab.Navigator>
   );

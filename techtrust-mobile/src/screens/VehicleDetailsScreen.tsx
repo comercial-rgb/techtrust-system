@@ -225,7 +225,7 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
           <Ionicons name="arrow-back" size={24} color="#111827" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t.vehicle?.vehicleDetails || 'Vehicle Details'}</Text>
-        <TouchableOpacity style={styles.editBtn}>
+        <TouchableOpacity style={styles.editBtn} onPress={() => navigation.navigate('AddVehicle', { vehicle })}>
           <Ionicons name="create-outline" size={24} color="#1976d2" />
         </TouchableOpacity>
       </View>

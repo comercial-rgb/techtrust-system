@@ -82,24 +82,24 @@ export default function ProviderDashboardScreen({ navigation }: any) {
         {
           id: '1',
           type: 'new_request',
-          title: 'Nova solicitação',
-          description: 'Troca de óleo - Honda Civic 2020',
+          title: 'New request',
+          description: 'Oil change - Honda Civic 2020',
           time: '5 min',
         },
         {
           id: '2',
           type: 'quote_accepted',
-          title: 'Orçamento aceito!',
-          description: 'Revisão completa - Toyota Corolla',
+          title: 'Quote accepted!',
+          description: 'Full service - Toyota Corolla',
           time: '2h',
           amount: 450.0,
         },
         {
           id: '3',
           type: 'payment_received',
-          title: 'Pagamento recebido',
-          description: 'Alinhamento e balanceamento',
-          time: '1 dia',
+          title: 'Payment received',
+          description: 'Alignment and balancing',
+          time: '1 day',
           amount: 120.0,
         },
       ]);
@@ -107,7 +107,7 @@ export default function ProviderDashboardScreen({ navigation }: any) {
       setPendingRequests([
         {
           id: '1',
-          title: 'Troca de óleo e filtros',
+          title: 'Oil change and filters',
           vehicle: 'Honda Civic 2020',
           location: 'Orlando, FL - 3.2 km',
           timeAgo: '5 min',
@@ -115,7 +115,7 @@ export default function ProviderDashboardScreen({ navigation }: any) {
         },
         {
           id: '2',
-          title: 'Freio fazendo barulho',
+          title: 'Brake making noise',
           vehicle: 'Ford Focus 2021',
           location: 'Orlando, FL - 5.1 km',
           timeAgo: '15 min',
@@ -123,7 +123,7 @@ export default function ProviderDashboardScreen({ navigation }: any) {
         },
         {
           id: '3',
-          title: 'Revisão completa',
+          title: 'Full service',
           vehicle: 'Toyota Corolla 2019',
           location: 'Kissimmee, FL - 8.4 km',
           timeAgo: '30 min',

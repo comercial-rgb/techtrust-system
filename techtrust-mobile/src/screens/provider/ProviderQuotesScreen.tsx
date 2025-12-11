@@ -3,7 +3,7 @@
  * Fornecedor vê status dos orçamentos enviados
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { useFocusEffect } from '@react-navigation/native';
 import { useI18n } from '../../i18n';
 
 interface Quote {
@@ -48,9 +49,12 @@ export default function ProviderQuotesScreen({ navigation }: any) {
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'PENDING' | 'ACCEPTED' | 'REJECTED'>('all');
 
-  useEffect(() => {
-    loadQuotes();
-  }, []);
+  // Reload data when screen gains focus
+  useFocusEffect(
+    useCallback(() => {
+      loadQuotes();
+    }, [])
+  );
 
   useEffect(() => {
     filterQuotes();

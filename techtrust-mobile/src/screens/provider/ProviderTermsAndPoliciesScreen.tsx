@@ -32,45 +32,41 @@ export default function ProviderTermsAndPoliciesScreen({ navigation }: any) {
       case 'terms':
         return (
           <View style={styles.contentContainer}>
-            <Text style={styles.contentTitle}>Termos de Uso - Prestadores</Text>
-            <Text style={styles.lastUpdated}>Última atualização: Janeiro 2024</Text>
+            <Text style={styles.contentTitle}>{t.provider?.termsOfUseProviders || 'Terms of Use - Providers'}</Text>
+            <Text style={styles.lastUpdated}>{t.provider?.lastUpdated || 'Last updated'}: {t.common?.monthJanuary || 'January'} 2024</Text>
 
-            <Text style={styles.sectionHeading}>1. Cadastro e Elegibilidade</Text>
+            <Text style={styles.sectionHeading}>1. {t.provider?.registrationEligibility || 'Registration and Eligibility'}</Text>
             <Text style={styles.paragraph}>
-              Para se cadastrar como prestador de serviços na plataforma TechTrust, você deve:
+              {t.provider?.registrationRequirements || 'To register as a service provider on the TechTrust platform, you must:'}
             </Text>
             <View style={styles.bulletList}>
-              <Text style={styles.bulletItem}>• Ser maior de 18 anos</Text>
-              <Text style={styles.bulletItem}>• Possuir CNPJ ou MEI ativo</Text>
-              <Text style={styles.bulletItem}>• Ter experiência comprovada na área automotiva</Text>
-              <Text style={styles.bulletItem}>• Aceitar todos os termos desta plataforma</Text>
+              <Text style={styles.bulletItem}>• {t.provider?.reqAge18 || 'Be at least 18 years old'}</Text>
+              <Text style={styles.bulletItem}>• {t.provider?.reqBusinessId || 'Have an active business registration'}</Text>
+              <Text style={styles.bulletItem}>• {t.provider?.reqExperience || 'Have proven experience in the automotive field'}</Text>
+              <Text style={styles.bulletItem}>• {t.provider?.reqAcceptTerms || 'Accept all terms of this platform'}</Text>
             </View>
 
-            <Text style={styles.sectionHeading}>2. Obrigações do Prestador</Text>
+            <Text style={styles.sectionHeading}>2. {t.provider?.providerObligations || 'Provider Obligations'}</Text>
             <Text style={styles.paragraph}>
-              O prestador se compromete a:
+              {t.provider?.providerCommitment || 'The provider commits to:'}
             </Text>
             <View style={styles.bulletList}>
-              <Text style={styles.bulletItem}>• Prestar serviços de qualidade</Text>
-              <Text style={styles.bulletItem}>• Cumprir prazos acordados</Text>
-              <Text style={styles.bulletItem}>• Utilizar peças de procedência garantida</Text>
-              <Text style={styles.bulletItem}>• Manter comunicação clara com o cliente</Text>
-              <Text style={styles.bulletItem}>• Emitir nota fiscal quando solicitado</Text>
-              <Text style={styles.bulletItem}>• Responder às solicitações em tempo hábil</Text>
+              <Text style={styles.bulletItem}>• {t.provider?.oblQuality || 'Provide quality services'}</Text>
+              <Text style={styles.bulletItem}>• {t.provider?.oblDeadlines || 'Meet agreed deadlines'}</Text>
+              <Text style={styles.bulletItem}>• {t.provider?.oblGenuineParts || 'Use parts with guaranteed origin'}</Text>
+              <Text style={styles.bulletItem}>• {t.provider?.oblCommunication || 'Maintain clear communication with the customer'}</Text>
+              <Text style={styles.bulletItem}>• {t.provider?.oblInvoice || 'Issue invoice when requested'}</Text>
+              <Text style={styles.bulletItem}>• {t.provider?.oblRespond || 'Respond to requests in a timely manner'}</Text>
             </View>
 
-            <Text style={styles.sectionHeading}>3. Qualidade do Serviço</Text>
+            <Text style={styles.sectionHeading}>3. {t.provider?.serviceQuality || 'Service Quality'}</Text>
             <Text style={styles.paragraph}>
-              A TechTrust preza pela excelência. Prestadores que mantiverem 
-              avaliação abaixo de 3.5 estrelas por mais de 30 dias consecutivos 
-              poderão ter suas contas suspensas para análise.
+              {t.provider?.qualityStandards || 'TechTrust values excellence. Providers who maintain a rating below 3.5 stars for more than 30 consecutive days may have their accounts suspended for review.'}
             </Text>
 
-            <Text style={styles.sectionHeading}>4. Cancelamentos</Text>
+            <Text style={styles.sectionHeading}>4. {t.provider?.cancellations || 'Cancellations'}</Text>
             <Text style={styles.paragraph}>
-              Cancelamentos frequentes afetam negativamente sua reputação na 
-              plataforma. Taxas de cancelamento elevadas podem resultar em 
-              penalidades ou suspensão.
+              {t.provider?.cancellationPolicy || 'Frequent cancellations negatively affect your reputation on the platform. High cancellation rates may result in penalties or suspension.'}
             </Text>
           </View>
         );
@@ -78,25 +74,25 @@ export default function ProviderTermsAndPoliciesScreen({ navigation }: any) {
       case 'privacy':
         return (
           <View style={styles.contentContainer}>
-            <Text style={styles.contentTitle}>Política de Privacidade</Text>
-            <Text style={styles.lastUpdated}>Última atualização: Janeiro 2024</Text>
+            <Text style={styles.contentTitle}>{t.provider?.privacyPolicy || 'Privacy Policy'}</Text>
+            <Text style={styles.lastUpdated}>{t.provider?.lastUpdated || 'Last updated'}: {t.common?.monthJanuary || 'January'} 2024</Text>
 
-            <Text style={styles.sectionHeading}>1. Dados Coletados</Text>
+            <Text style={styles.sectionHeading}>1. {t.provider?.dataCollected || 'Data Collected'}</Text>
             <Text style={styles.paragraph}>
-              Coletamos as seguintes informações dos prestadores:
+              {t.provider?.dataCollectedDesc || 'We collect the following information from providers:'}
             </Text>
             <View style={styles.bulletList}>
-              <Text style={styles.bulletItem}>• Dados pessoais e empresariais</Text>
-              <Text style={styles.bulletItem}>• CNPJ/CPF e documentação</Text>
-              <Text style={styles.bulletItem}>• Endereço e área de atuação</Text>
-              <Text style={styles.bulletItem}>• Dados bancários para pagamentos</Text>
-              <Text style={styles.bulletItem}>• Histórico de serviços realizados</Text>
-              <Text style={styles.bulletItem}>• Avaliações e feedbacks recebidos</Text>
+              <Text style={styles.bulletItem}>• {t.provider?.dataPersonalBusiness || 'Personal and business data'}</Text>
+              <Text style={styles.bulletItem}>• {t.provider?.dataTaxId || 'Tax ID and documentation'}</Text>
+              <Text style={styles.bulletItem}>• {t.provider?.dataAddress || 'Address and service area'}</Text>
+              <Text style={styles.bulletItem}>• {t.provider?.dataBanking || 'Banking details for payments'}</Text>
+              <Text style={styles.bulletItem}>• {t.provider?.dataServiceHistory || 'Service history'}</Text>
+              <Text style={styles.bulletItem}>• {t.provider?.dataReviews || 'Ratings and feedback received'}</Text>
             </View>
 
-            <Text style={styles.sectionHeading}>2. Uso dos Dados</Text>
+            <Text style={styles.sectionHeading}>2. {t.provider?.dataUsage || 'Use of Data'}</Text>
             <Text style={styles.paragraph}>
-              Seus dados são utilizados para:
+              {t.provider?.dataUsageDesc || 'Your data is used to:'}
             </Text>
             <View style={styles.bulletList}>
               <Text style={styles.bulletItem}>• Conectar você aos clientes</Text>

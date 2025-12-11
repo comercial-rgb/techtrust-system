@@ -36,50 +36,50 @@ export default function ProviderHelpScreen({ navigation }: any) {
   const [expandedFAQ, setExpandedFAQ] = useState<string | null>(null);
 
   const helpCategories: HelpCategory[] = [
-    { id: '1', title: 'Primeiros Passos', icon: 'rocket-launch', color: '#1976d2', backgroundColor: '#dbeafe' },
-    { id: '2', title: 'Orçamentos', icon: 'file-document-edit', color: '#16a34a', backgroundColor: '#dcfce7' },
-    { id: '3', title: 'Pagamentos', icon: 'cash-multiple', color: '#d97706', backgroundColor: '#fef3c7' },
-    { id: '4', title: 'Ordens de Serviço', icon: 'clipboard-list', color: '#8b5cf6', backgroundColor: '#ede9fe' },
-    { id: '5', title: 'Avaliações', icon: 'star', color: '#ec4899', backgroundColor: '#fce7f3' },
-    { id: '6', title: 'Configurações', icon: 'cog', color: '#6b7280', backgroundColor: '#f3f4f6' },
+    { id: '1', title: t.provider?.gettingStarted || 'Getting Started', icon: 'rocket-launch', color: '#1976d2', backgroundColor: '#dbeafe' },
+    { id: '2', title: t.nav?.quotes || 'Quotes', icon: 'file-document-edit', color: '#16a34a', backgroundColor: '#dcfce7' },
+    { id: '3', title: t.common?.payments || 'Payments', icon: 'cash-multiple', color: '#d97706', backgroundColor: '#fef3c7' },
+    { id: '4', title: t.nav?.workOrders || 'Work Orders', icon: 'clipboard-list', color: '#8b5cf6', backgroundColor: '#ede9fe' },
+    { id: '5', title: t.reviews?.reviews || 'Reviews', icon: 'star', color: '#ec4899', backgroundColor: '#fce7f3' },
+    { id: '6', title: t.nav?.settings || 'Settings', icon: 'cog', color: '#6b7280', backgroundColor: '#f3f4f6' },
   ];
 
   const faqItems: FAQItem[] = [
     {
       id: '1',
-      category: 'Orçamentos',
-      question: 'Como criar um orçamento para um cliente?',
-      answer: 'Para criar um orçamento, acesse a solicitação do cliente, clique em "Criar Orçamento" e preencha os campos de peças e serviços. Você pode adicionar múltiplos itens e o sistema calculará automaticamente o valor total.',
+      category: t.nav?.quotes || 'Quotes',
+      question: t.provider?.faqHowToQuote || 'How do I create a quote for a customer?',
+      answer: t.provider?.faqHowToQuoteAnswer || 'To create a quote, access the customer\'s request, click "Create Quote" and fill in the parts and services fields. You can add multiple items and the system will automatically calculate the total.',
     },
     {
       id: '2',
-      category: 'Pagamentos',
-      question: 'Quando recebo o pagamento pelos serviços?',
-      answer: 'O pagamento é processado automaticamente em até 2 dias úteis após a conclusão do serviço. O valor será depositado na conta bancária cadastrada, com desconto de 10% de taxa da plataforma.',
+      category: t.common?.payments || 'Payments',
+      question: t.provider?.faqWhenPayment || 'When do I receive payment for services?',
+      answer: t.provider?.faqWhenPaymentAnswer || 'Payment is automatically processed within 2 business days after service completion. The amount will be deposited into the registered bank account, with a 10% platform fee deducted.',
     },
     {
       id: '3',
-      category: 'Orçamentos',
-      question: 'Posso alterar um orçamento já enviado?',
-      answer: 'Sim, enquanto o cliente não aceitar o orçamento, você pode editá-lo. Após a aceitação, qualquer alteração deve ser acordada com o cliente e um novo orçamento deve ser enviado.',
+      category: t.nav?.quotes || 'Quotes',
+      question: t.provider?.faqEditQuote || 'Can I change a quote already sent?',
+      answer: t.provider?.faqEditQuoteAnswer || 'Yes, as long as the customer has not accepted the quote, you can edit it. After acceptance, any changes must be agreed with the customer and a new quote must be sent.',
     },
     {
       id: '4',
-      category: 'Ordens de Serviço',
-      question: 'Como finalizar uma ordem de serviço?',
-      answer: 'Após concluir o serviço, acesse a ordem, clique em "Finalizar" e adicione fotos do trabalho realizado. O cliente receberá uma notificação e poderá avaliar o serviço.',
+      category: t.nav?.workOrders || 'Work Orders',
+      question: t.provider?.faqFinishOrder || 'How do I finish a work order?',
+      answer: t.provider?.faqFinishOrderAnswer || 'After completing the service, access the order, click "Finish" and add photos of the work done. The customer will receive a notification and can rate the service.',
     },
     {
       id: '5',
-      category: 'Avaliações',
-      question: 'Como funcionam as avaliações?',
-      answer: 'Após cada serviço finalizado, o cliente pode avaliar de 1 a 5 estrelas e deixar um comentário. Sua média de avaliações é exibida no seu perfil e influencia no ranking de busca.',
+      category: t.reviews?.reviews || 'Reviews',
+      question: t.provider?.faqReviews || 'How do reviews work?',
+      answer: t.provider?.faqReviewsAnswer || 'After each completed service, the customer can rate from 1 to 5 stars and leave a comment. Your average rating is displayed on your profile and influences search ranking.',
     },
     {
       id: '6',
-      category: 'Pagamentos',
-      question: 'Por que foi cobrada uma taxa de 10%?',
-      answer: 'A taxa de 10% é a comissão da plataforma que cobre custos de processamento de pagamento, suporte ao cliente, marketing e manutenção do aplicativo.',
+      category: t.common?.payments || 'Payments',
+      question: t.provider?.faqPlatformFee || 'Why was a 10% fee charged?',
+      answer: t.provider?.faqPlatformFeeAnswer || 'The 10% fee is the platform commission that covers payment processing costs, customer support, marketing and app maintenance.',
     },
   ];
 

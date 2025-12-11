@@ -1,29 +1,37 @@
 /**
- * AddVehicleScreen - Add Vehicle
+ * AddVehicleScreen - Add or Edit Vehicle
  * With additional fields for US market
+ * Supports editing existing vehicles
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useI18n } from '../i18n';
+import { useRoute } from '@react-navigation/native';
 
 export default function AddVehicleScreen({ navigation }: any) {
   const { t } = useI18n();
-  const [make, setMake] = useState('');
-  const [model, setModel] = useState('');
-  const [year, setYear] = useState('');
-  const [plateNumber, setPlateNumber] = useState('');
-  const [color, setColor] = useState('');
-  const [mileage, setMileage] = useState('');
-  const [vin, setVin] = useState('');
-  const [trim, setTrim] = useState('');
-  const [primaryDriver, setPrimaryDriver] = useState('');
-  const [fuelType, setFuelType] = useState('');
-  const [vehicleType, setVehicleType] = useState('');
-  const [insuranceProvider, setInsuranceProvider] = useState('');
-  const [insurancePolicy, setInsurancePolicy] = useState('');
+  const route = useRoute<any>();
+  
+  // Check if we're editing an existing vehicle
+  const editVehicle = route.params?.vehicle || null;
+  const isEditing = !!editVehicle;
+  
+  const [make, setMake] = useState(editVehicle?.make || '');
+  const [model, setModel] = useState(editVehicle?.model || '');
+  const [year, setYear] = useState(editVehicle?.year?.toString() || '');
+  const [plateNumber, setPlateNumber] = useState(editVehicle?.plateNumber || '');
+  const [color, setColor] = useState(editVehicle?.color || '');
+  const [mileage, setMileage] = useState(editVehicle?.currentMileage?.toString() || '');
+  const [vin, setVin] = useState(editVehicle?.vin || '');
+  const [trim, setTrim] = useState(editVehicle?.trim || '');
+  const [primaryDriver, setPrimaryDriver] = useState(editVehicle?.primaryDriver || '');
+  const [fuelType, setFuelType] = useState(editVehicle?.fuelType || '');
+  const [vehicleType, setVehicleType] = useState(editVehicle?.vehicleType || '');
+  const [insuranceProvider, setInsuranceProvider] = useState(editVehicle?.insuranceProvider || '');
+  const [insurancePolicy, setInsurancePolicy] = useState(editVehicle?.insurancePolicy || '');
   const [saving, setSaving] = useState(false);
 
   async function handleSave() {
@@ -34,7 +42,12 @@ export default function AddVehicleScreen({ navigation }: any) {
     setSaving(true);
     await new Promise(resolve => setTimeout(resolve, 1500));
     setSaving(false);
-    Alert.alert(t.common?.success || 'Success!', t.vehicle?.vehicleAddedSuccess || 'Vehicle added successfully.', [
+    
+    const successMsg = isEditing 
+      ? (t.vehicle?.vehicleUpdatedSuccess || 'Vehicle updated successfully.')
+      : (t.vehicle?.vehicleAddedSuccess || 'Vehicle added successfully.');
+    
+    Alert.alert(t.common?.success || 'Success!', successMsg, [
       { text: t.common?.ok || 'OK', onPress: () => navigation.goBack() }
     ]);
   }
@@ -49,7 +62,9 @@ export default function AddVehicleScreen({ navigation }: any) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color="#111827" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t.vehicle?.addVehicle || 'Add Vehicle'}</Text>
+        <Text style={styles.headerTitle}>
+          {isEditing ? (t.vehicle?.editVehicle || 'Edit Vehicle') : (t.vehicle?.addVehicle || 'Add Vehicle')}
+        </Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -189,7 +204,12 @@ export default function AddVehicleScreen({ navigation }: any) {
           {saving ? (
             <Text style={styles.saveText}>{t.common?.saving || 'Saving...'}</Text>
           ) : (
-            <><Ionicons name="checkmark" size={20} color="#fff" /><Text style={styles.saveText}>{t.vehicle?.addVehicle || 'Add Vehicle'}</Text></>
+            <>
+              <Ionicons name="checkmark" size={20} color="#fff" />
+              <Text style={styles.saveText}>
+                {isEditing ? (t.vehicle?.saveChanges || 'Save Changes') : (t.vehicle?.addVehicle || 'Add Vehicle')}
+              </Text>
+            </>
           )}
         </TouchableOpacity>
       </View>

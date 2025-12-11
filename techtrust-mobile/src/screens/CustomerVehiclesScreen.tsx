@@ -129,7 +129,11 @@ export default function CustomerVehiclesScreen({ navigation }: any) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="#111827" />
+          </TouchableOpacity>
           <Text style={styles.headerTitle}>{t.vehicles?.myVehicles || 'My Vehicles'}</Text>
+          <View style={{ width: 40 }} />
         </View>
         <VehicleSkeleton />
         <VehicleSkeleton />
@@ -141,6 +145,9 @@ export default function CustomerVehiclesScreen({ navigation }: any) {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#111827" />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>{t.vehicles?.myVehicles || 'My Vehicles'}</Text>
         <TouchableOpacity 
           style={styles.addButton}
@@ -287,11 +294,19 @@ export default function CustomerVehiclesScreen({ navigation }: any) {
                 <View style={styles.cardActions}>
                   <ScalePress 
                     style={styles.actionButton}
-                    onPress={() => navigation.navigate('CreateRequest', { vehicleId: vehicle.id })}
+                    onPress={() => navigation.navigate('Home', { screen: 'CreateRequest', params: { vehicleId: vehicle.id } })}
                   >
                     <Ionicons name="add-circle-outline" size={18} color="#1976d2" />
-                    <Text style={styles.actionButtonText}>Request Service</Text>
+                    <Text style={styles.actionButtonText}>{t.customer?.requestService || 'Request Service'}</Text>
                   </ScalePress>
+
+                  <TouchableOpacity 
+                    style={styles.actionButtonEdit}
+                    onPress={() => navigation.navigate('AddVehicle', { vehicle })}
+                  >
+                    <Ionicons name="pencil-outline" size={18} color="#f59e0b" />
+                    <Text style={[styles.actionButtonSecondaryText, { color: '#f59e0b' }]}>{t.common?.edit || 'Edit'}</Text>
+                  </TouchableOpacity>
 
                   {!vehicle.isDefault && (
                     <TouchableOpacity 
@@ -341,10 +356,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
   },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '700',
     color: '#111827',
+    flex: 1,
+    textAlign: 'center',
   },
   addButton: {
     width: 40,
@@ -553,6 +576,16 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: '#1976d2',
+  },
+  actionButtonEdit: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fef3c7',
+    paddingVertical: 12,
+    borderRadius: 10,
+    gap: 6,
   },
   actionButtonSecondary: {
     flex: 1,

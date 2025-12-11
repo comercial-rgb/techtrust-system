@@ -220,6 +220,18 @@ export default function VehiclesScreen({ navigation }: any) {
                         </View>
                       </ScalePress>
                     )}
+                    <ScalePress onPress={() => navigation.navigate('AddVehicle', { vehicle })}>
+                      <View style={styles.actionButton}>
+                        <IconButton
+                          icon="pencil-outline"
+                          size={20}
+                          iconColor="#f59e0b"
+                        />
+                        <Text style={[styles.actionText, { color: '#f59e0b' }]}>
+                          {t.common?.edit || 'Editar'}
+                        </Text>
+                      </View>
+                    </ScalePress>
                     <ScalePress onPress={() => handleDelete(vehicle.id, vehicle.plateNumber)}>
                       <View style={styles.actionButton}>
                         <IconButton

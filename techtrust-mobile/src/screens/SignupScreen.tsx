@@ -302,7 +302,8 @@ export default function SignupScreen({ navigation }: any) {
         <FadeInView delay={450}>
           <Text style={styles.footer}>
             {t.auth?.signupTerms || 'By signing up, you agree to our'}{'\n'}
-            <Text style={{ color: theme.colors.primary }}>{t.common?.termsOfUse || 'Terms of Use'}</Text> {t.common?.and || 'and'}{' '}
+            <Text style={{ color: theme.colors.primary }}>{t.common?.termsOfUse || 'Terms of Use'}</Text>
+            {' '}{t.common?.and || 'and'}{' '}
             <Text style={{ color: theme.colors.primary }}>{t.common?.privacyPolicy || 'Privacy Policy'}</Text>
           </Text>
         </FadeInView>

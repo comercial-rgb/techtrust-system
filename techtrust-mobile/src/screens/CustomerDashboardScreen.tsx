@@ -13,9 +13,11 @@ import {
   RefreshControl,
   Image,
   Dimensions,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { CommonActions } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { FadeInView, ScalePress } from '../components/Animated';
 import { DashboardStatsSkeleton } from '../components/Skeleton';
@@ -24,6 +26,76 @@ import { useI18n } from '../i18n';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = (SCREEN_WIDTH - 48) / 2; // 16 padding on each side + 16 gap
+
+// Mock data para ofertas especiais
+const SPECIAL_OFFERS = [
+  {
+    id: '1',
+    image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400',
+    title: 'Oil Change Special',
+    discount: '15% OFF',
+    description: 'Full synthetic oil change with filter',
+    validUntil: 'Dec 31, 2025',
+    originalPrice: '$89.99',
+    discountedPrice: '$76.49',
+    serviceType: 'oil',
+    vehicleTypes: ['Car', 'SUV', 'Pickup', 'Van'],
+    fuelTypes: ['Gasoline', 'Diesel', 'Hybrid'],
+    bgColor: '#fee2e2',
+    accentColor: '#ef4444',
+  },
+  {
+    id: '2',
+    image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400',
+    title: 'Brake Service',
+    discount: '20% OFF',
+    description: 'Front or rear brake pad replacement',
+    validUntil: 'Dec 25, 2025',
+    originalPrice: '$199.99',
+    discountedPrice: '$159.99',
+    serviceType: 'brake',
+    vehicleTypes: ['Car', 'SUV', 'Pickup', 'Van', 'Light Truck'],
+    fuelTypes: ['Gasoline', 'Diesel', 'Hybrid', 'Electric'],
+    bgColor: '#fef3c7',
+    accentColor: '#f59e0b',
+  },
+  {
+    id: '3',
+    image: 'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=400',
+    title: 'A/C Check',
+    discount: 'FREE',
+    description: 'Complete A/C system inspection',
+    validUntil: 'Dec 20, 2025',
+    originalPrice: '$49.99',
+    discountedPrice: 'FREE',
+    serviceType: 'ac',
+    vehicleTypes: ['Car', 'SUV', 'Van'],
+    fuelTypes: ['Gasoline', 'Diesel', 'Hybrid', 'Electric'],
+    bgColor: '#d1fae5',
+    accentColor: '#10b981',
+  },
+];
+
+// Estados e cidades para filtro
+const STATES = ['FL', 'GA', 'TX', 'CA', 'NY', 'NC', 'SC'];
+const CITIES: Record<string, string[]> = {
+  'FL': ['Orlando', 'Miami', 'Tampa', 'Jacksonville', 'Kissimmee'],
+  'GA': ['Atlanta', 'Savannah', 'Augusta'],
+  'TX': ['Houston', 'Dallas', 'Austin', 'San Antonio'],
+  'CA': ['Los Angeles', 'San Francisco', 'San Diego'],
+  'NY': ['New York', 'Buffalo', 'Albany'],
+  'NC': ['Charlotte', 'Raleigh', 'Durham'],
+  'SC': ['Charleston', 'Columbia', 'Greenville'],
+};
+
+// Mock providers
+const FULL_PROVIDERS = [
+  { id: '1', name: 'Auto Center Express', city: 'Orlando', state: 'FL', services: ['Oil Change', 'Brakes', 'Tires'], rating: 4.8, reviews: 124, specialOffers: ['1', '3'] },
+  { id: '2', name: 'Quick Lube Plus', city: 'Kissimmee', state: 'FL', services: ['Oil Change', 'Engine', 'A/C'], rating: 4.6, reviews: 89, specialOffers: ['1'] },
+  { id: '3', name: 'Premium Auto Shop', city: 'Tampa', state: 'FL', services: ['Transmission', 'Engine', 'Electrical'], rating: 4.9, reviews: 156, specialOffers: ['2'] },
+  { id: '4', name: 'Speedy Mechanics', city: 'Miami', state: 'FL', services: ['Brakes', 'Suspension', 'Diagnostics'], rating: 4.7, reviews: 203, specialOffers: ['2', '3'] },
+  { id: '5', name: 'Trusted Auto Care', city: 'Jacksonville', state: 'FL', services: ['Oil Change', 'Inspection', 'Tires'], rating: 4.5, reviews: 78, specialOffers: ['1', '2', '3'] },
+];
 
 interface ServiceRequest {
   id: string;
@@ -60,10 +132,64 @@ export default function CustomerDashboardScreen({ navigation }: any) {
     completedServices: 0,
     totalSpent: 0,
   });
+  
+  // Offer modal states
+  const [showOfferModal, setShowOfferModal] = useState(false);
+  const [selectedOffer, setSelectedOffer] = useState<typeof SPECIAL_OFFERS[0] | null>(null);
+  const [showOfferProvidersModal, setShowOfferProvidersModal] = useState(false);
+  const [offerProviderState, setOfferProviderState] = useState('');
+  const [offerProviderCity, setOfferProviderCity] = useState('');
+  const [showOfferStateDropdown, setShowOfferStateDropdown] = useState(false);
+  const [showOfferCityDropdown, setShowOfferCityDropdown] = useState(false);
+  const [offerProviders, setOfferProviders] = useState<typeof FULL_PROVIDERS>([]);
+  const [hasSearchedOfferProviders, setHasSearchedOfferProviders] = useState(false);
 
   useEffect(() => {
     loadDashboardData();
   }, []);
+  
+  // Handle offer card click
+  const handleOfferPress = (offer: typeof SPECIAL_OFFERS[0]) => {
+    setSelectedOffer(offer);
+    setShowOfferModal(true);
+  };
+
+  // Find providers for offer
+  const handleFindOfferProviders = () => {
+    setShowOfferModal(false);
+    setShowOfferProvidersModal(true);
+  };
+
+  // Search providers for offer
+  const handleSearchOfferProviders = () => {
+    if (!selectedOffer) return;
+    let results = FULL_PROVIDERS.filter(p => p.specialOffers.includes(selectedOffer.id));
+    if (offerProviderState) {
+      results = results.filter(p => p.state === offerProviderState);
+    }
+    if (offerProviderCity) {
+      results = results.filter(p => p.city === offerProviderCity);
+    }
+    setOfferProviders(results);
+    setHasSearchedOfferProviders(true);
+  };
+
+  // Clear offer provider search
+  const clearOfferProviderSearch = () => {
+    setOfferProviderState('');
+    setOfferProviderCity('');
+    setOfferProviders([]);
+    setHasSearchedOfferProviders(false);
+  };
+
+  // Request service from a provider
+  const handleRequestService = (provider: typeof FULL_PROVIDERS[0], offer?: typeof SPECIAL_OFFERS[0] | null) => {
+    setShowOfferProvidersModal(false);
+    navigation.navigate('CreateRequest', { 
+      preSelectedProvider: provider,
+      specialOffer: offer || null
+    });
+  };
 
   async function loadDashboardData() {
     try {
@@ -160,18 +286,28 @@ export default function CustomerDashboardScreen({ navigation }: any) {
           <View style={styles.header}>
             <View style={styles.headerLeft}>
               <Image source={logos.noText} style={styles.headerLogo} />
-              <View>
+              <View style={styles.headerTextContainer}>
                 <Text style={styles.greeting}>{t.customerDashboard?.greeting || 'Hi'}, {user?.fullName?.split(' ')[0]}! 👋</Text>
-                <Text style={styles.subtitle}>{t.customerDashboard?.howCanWeHelp || 'How can we help you today?'}</Text>
+                <Text style={styles.subtitle} numberOfLines={1}>{t.customerDashboard?.howCanWeHelp || 'How can we help you today?'}</Text>
               </View>
             </View>
-            <TouchableOpacity 
-              style={styles.notificationButton}
-              onPress={() => navigation.navigate('Notifications')}
-            >
-              <Ionicons name="notifications-outline" size={24} color="#374151" />
-              <View style={styles.notificationDot} />
-            </TouchableOpacity>
+            <View style={styles.headerRight}>
+              {/* Balance Card */}
+              <TouchableOpacity 
+                style={styles.balanceButton}
+                onPress={() => navigation.navigate('Profile', { screen: 'PaymentMethods' })}
+              >
+                <Ionicons name="wallet-outline" size={18} color="#10b981" />
+                <Text style={styles.balanceText}>$127.50</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.notificationButton}
+                onPress={() => navigation.navigate('Notifications')}
+              >
+                <Ionicons name="notifications-outline" size={24} color="#374151" />
+                <View style={styles.notificationDot} />
+              </TouchableOpacity>
+            </View>
           </View>
         </FadeInView>
 
@@ -239,6 +375,70 @@ export default function CustomerDashboardScreen({ navigation }: any) {
           </View>
         </FadeInView>
 
+        {/* Quick Access */}
+        <FadeInView delay={250}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>{t.customerDashboard?.quickAccess || 'Quick Access'}</Text>
+          </View>
+          <View style={styles.quickAccessGrid}>
+            <TouchableOpacity 
+              style={styles.quickAccessCard}
+              onPress={() => navigation.navigate('Services')}
+            >
+              <View style={[styles.quickAccessIcon, { backgroundColor: '#fef3c7' }]}>
+                <Ionicons name="construct" size={22} color="#f59e0b" />
+              </View>
+              <Text style={styles.quickAccessLabel}>{t.customerDashboard?.myServices || 'My Services'}</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.quickAccessCard}
+              onPress={() => navigation.dispatch(
+                CommonActions.navigate({
+                  name: 'Profile',
+                  params: {
+                    screen: 'PaymentMethods',
+                    initial: false,
+                  },
+                })
+              )}
+            >
+              <View style={[styles.quickAccessIcon, { backgroundColor: '#ede9fe' }]}>
+                <Ionicons name="card" size={22} color="#8b5cf6" />
+              </View>
+              <Text style={styles.quickAccessLabel}>{t.customerDashboard?.payments || 'Payments'}</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.quickAccessCard}
+              onPress={() => navigation.navigate('Messages')}
+            >
+              <View style={[styles.quickAccessIcon, { backgroundColor: '#d1fae5' }]}>
+                <Ionicons name="chatbubbles" size={22} color="#10b981" />
+              </View>
+              <Text style={styles.quickAccessLabel}>{t.customerDashboard?.chat || 'Chat'}</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.quickAccessCard}
+              onPress={() => navigation.dispatch(
+                CommonActions.navigate({
+                  name: 'Profile',
+                  params: {
+                    screen: 'HelpCenter',
+                    initial: false,
+                  },
+                })
+              )}
+            >
+              <View style={[styles.quickAccessIcon, { backgroundColor: '#fee2e2' }]}>
+                <Ionicons name="help-circle" size={22} color="#ef4444" />
+              </View>
+              <Text style={styles.quickAccessLabel}>{t.customerDashboard?.help || 'Help'}</Text>
+            </TouchableOpacity>
+          </View>
+        </FadeInView>
+
         {/* My Vehicles */}
         <FadeInView delay={300}>
           <View style={styles.sectionHeader}>
@@ -274,9 +474,15 @@ export default function CustomerDashboardScreen({ navigation }: any) {
               </ScalePress>
             ))}
 
-            <ScalePress onPress={() => navigation.navigate('Vehicles', { 
-              screen: 'AddVehicle' 
-            })}>
+            <ScalePress onPress={() => navigation.dispatch(
+              CommonActions.navigate({
+                name: 'Vehicles',
+                params: {
+                  screen: 'AddVehicle',
+                  initial: false,
+                },
+              })
+            )}>
               <View style={[styles.vehicleCard, styles.addVehicleCard]}>
                 <View style={[styles.vehicleIconContainer, styles.addVehicleIcon]}>
                   <Ionicons name="add" size={32} color="#6b7280" />
@@ -360,6 +566,51 @@ export default function CustomerDashboardScreen({ navigation }: any) {
           )}
         </FadeInView>
 
+        {/* Special Offers */}
+        <FadeInView delay={500}>
+          <View style={styles.offersSection}>
+            <View style={styles.offersSectionHeader}>
+              <Ionicons name="pricetags" size={24} color="#ef4444" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.offersSectionTitle}>Special Offers</Text>
+                <Text style={styles.offersSectionSubtitle}>Limited time deals</Text>
+              </View>
+            </View>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.offersListContainer}
+            >
+              {SPECIAL_OFFERS.map((offer) => (
+                <TouchableOpacity 
+                  key={offer.id} 
+                  style={styles.offerCard}
+                  activeOpacity={0.9}
+                  onPress={() => handleOfferPress(offer)}
+                >
+                  <Image source={{ uri: offer.image }} style={styles.offerImage} />
+                  <View style={[styles.offerDiscountBadge, { backgroundColor: offer.accentColor }]}>
+                    <Text style={styles.offerDiscountText}>{offer.discount}</Text>
+                  </View>
+                  <View style={styles.offerContent}>
+                    <Text style={styles.offerTitle} numberOfLines={1}>{offer.title}</Text>
+                    <Text style={styles.offerDescription} numberOfLines={2}>{offer.description}</Text>
+                    <View style={styles.offerPricing}>
+                      <Text style={styles.offerOriginalPrice}>{offer.originalPrice}</Text>
+                      <Text style={[styles.offerDiscountedPrice, { color: offer.accentColor }]}>{offer.discountedPrice}</Text>
+                    </View>
+                    <Text style={styles.offerValidUntil}>Valid until {offer.validUntil}</Text>
+                  </View>
+                  <View style={styles.offerTapHint}>
+                    <Ionicons name="finger-print" size={16} color="#6b7280" />
+                    <Text style={styles.offerTapHintText}>Tap for details</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </FadeInView>
+
         {/* Quick Tips */}
         <FadeInView delay={600}>
           <View style={styles.tipsSection}>
@@ -375,6 +626,235 @@ export default function CustomerDashboardScreen({ navigation }: any) {
 
         <View style={{ height: 100 }} />
       </ScrollView>
+
+      {/* Offer Detail Modal */}
+      <Modal visible={showOfferModal} transparent animationType="slide">
+        <View style={styles.offerModalOverlay}>
+          <View style={styles.offerModalContent}>
+            {selectedOffer && (
+              <>
+                <TouchableOpacity 
+                  style={styles.offerModalClose}
+                  onPress={() => setShowOfferModal(false)}
+                >
+                  <Ionicons name="close-circle" size={32} color="#6b7280" />
+                </TouchableOpacity>
+                
+                <Image source={{ uri: selectedOffer.image }} style={styles.offerModalImage} />
+                
+                <View style={[styles.offerModalBadge, { backgroundColor: selectedOffer.accentColor }]}>
+                  <Text style={styles.offerModalBadgeText}>{selectedOffer.discount}</Text>
+                </View>
+                
+                <View style={styles.offerModalBody}>
+                  <Text style={styles.offerModalTitle}>{selectedOffer.title}</Text>
+                  <Text style={styles.offerModalDescription}>{selectedOffer.description}</Text>
+                  
+                  <View style={styles.offerModalPricing}>
+                    <View>
+                      <Text style={styles.offerModalPriceLabel}>Regular Price</Text>
+                      <Text style={styles.offerModalOriginalPrice}>{selectedOffer.originalPrice}</Text>
+                    </View>
+                    <Ionicons name="arrow-forward" size={24} color="#10b981" />
+                    <View>
+                      <Text style={styles.offerModalPriceLabel}>Special Price</Text>
+                      <Text style={styles.offerModalDiscountedPrice}>{selectedOffer.discountedPrice}</Text>
+                    </View>
+                  </View>
+                  
+                  <View style={styles.offerModalValidity}>
+                    <Ionicons name="time" size={18} color="#f59e0b" />
+                    <Text style={styles.offerModalValidityText}>Valid until {selectedOffer.validUntil}</Text>
+                  </View>
+                  
+                  <View style={styles.offerModalActions}>
+                    <TouchableOpacity 
+                      style={styles.offerModalFindButton}
+                      onPress={handleFindOfferProviders}
+                    >
+                      <Ionicons name="search" size={20} color="#fff" />
+                      <Text style={styles.offerModalFindButtonText}>Find a Provider</Text>
+                    </TouchableOpacity>
+                    <View style={styles.offerModalDisclaimer}>
+                      <Ionicons name="information-circle" size={16} color="#f59e0b" />
+                      <Text style={styles.offerModalDisclaimerText}>
+                        Special offers may not be available with all providers. Check participating providers below.
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Offer Providers Search Modal */}
+      <Modal visible={showOfferProvidersModal} transparent animationType="slide">
+        <View style={styles.offerProvidersModalOverlay}>
+          <View style={styles.offerProvidersModalContent}>
+            <View style={styles.offerProvidersModalHeader}>
+              <TouchableOpacity 
+                onPress={() => {
+                  setShowOfferProvidersModal(false);
+                  clearOfferProviderSearch();
+                }}
+              >
+                <Ionicons name="arrow-back" size={24} color="#374151" />
+              </TouchableOpacity>
+              <Text style={styles.offerProvidersModalTitle}>Find Participating Providers</Text>
+              <View style={{ width: 24 }} />
+            </View>
+            
+            {selectedOffer && (
+              <View style={styles.offerProvidersOfferBadge}>
+                <Text style={styles.offerProvidersOfferTitle}>{selectedOffer.title}</Text>
+                <Text style={styles.offerProvidersOfferDiscount}>{selectedOffer.discount}</Text>
+              </View>
+            )}
+            
+            <View style={styles.offerProvidersFilters}>
+              {/* State Dropdown */}
+              <TouchableOpacity 
+                style={styles.offerProvidersDropdown}
+                onPress={() => setShowOfferStateDropdown(!showOfferStateDropdown)}
+              >
+                <Ionicons name="map" size={18} color="#6b7280" />
+                <Text style={[styles.filterText, !offerProviderState && styles.filterPlaceholder]}>
+                  {offerProviderState || 'Select State'}
+                </Text>
+                <Ionicons name="chevron-down" size={18} color="#6b7280" />
+              </TouchableOpacity>
+              
+              {/* City Dropdown */}
+              <TouchableOpacity 
+                style={[styles.offerProvidersDropdown, !offerProviderState && styles.filterDisabled]}
+                onPress={() => offerProviderState && setShowOfferCityDropdown(!showOfferCityDropdown)}
+              >
+                <Ionicons name="business" size={18} color="#6b7280" />
+                <Text style={[styles.filterText, !offerProviderCity && styles.filterPlaceholder]}>
+                  {offerProviderCity || 'Select City'}
+                </Text>
+                <Ionicons name="chevron-down" size={18} color="#6b7280" />
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.offerProvidersSearchButton}
+                onPress={handleSearchOfferProviders}
+              >
+                <Ionicons name="search" size={20} color="#fff" />
+                <Text style={styles.offerProvidersSearchButtonText}>Search</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.offerProvidersList}>
+              {hasSearchedOfferProviders ? (
+                offerProviders.length > 0 ? (
+                  <>
+                    <Text style={styles.offerProvidersResultsTitle}>
+                      {offerProviders.length} Participating Provider{offerProviders.length !== 1 ? 's' : ''}
+                    </Text>
+                    {offerProviders.map(provider => (
+                      <View key={provider.id} style={styles.providerCard}>
+                        <View style={styles.providerIcon}>
+                          <Ionicons name="storefront" size={28} color="#1976d2" />
+                        </View>
+                        <View style={styles.providerInfo}>
+                          <Text style={styles.providerName}>{provider.name}</Text>
+                          <View style={styles.providerLocation}>
+                            <Ionicons name="location" size={14} color="#6b7280" />
+                            <Text style={styles.providerLocationText}>{provider.city}, {provider.state}</Text>
+                          </View>
+                          <View style={styles.providerRating}>
+                            <Ionicons name="star" size={14} color="#f59e0b" />
+                            <Text style={styles.providerRatingText}>{provider.rating} ({provider.reviews} reviews)</Text>
+                          </View>
+                        </View>
+                        <TouchableOpacity 
+                          style={styles.providerRequestButton}
+                          onPress={() => handleRequestService(provider, selectedOffer)}
+                        >
+                          <Text style={styles.providerRequestButtonText}>Request</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </>
+                ) : (
+                  <View style={styles.offerProvidersNoResults}>
+                    <Ionicons name="search-outline" size={48} color="#d1d5db" />
+                    <Text style={styles.offerProvidersNoResultsText}>No providers found</Text>
+                    <Text style={styles.offerProvidersNoResultsSubtext}>Try selecting a different location</Text>
+                  </View>
+                )
+              ) : (
+                <View style={styles.offerProvidersEmptyState}>
+                  <Ionicons name="storefront-outline" size={64} color="#d1d5db" />
+                  <Text style={styles.offerProvidersEmptyText}>Select a location to find participating providers</Text>
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Offer State Dropdown */}
+      <Modal visible={showOfferStateDropdown} transparent animationType="fade">
+        <TouchableOpacity 
+          style={styles.dropdownOverlay} 
+          onPress={() => setShowOfferStateDropdown(false)}
+        >
+          <View style={styles.dropdownContent}>
+            <Text style={styles.dropdownTitle}>Select State</Text>
+            <ScrollView style={styles.dropdownScroll}>
+              {STATES.map(state => (
+                <TouchableOpacity
+                  key={state}
+                  style={[styles.dropdownItem, offerProviderState === state && styles.dropdownItemSelected]}
+                  onPress={() => {
+                    setOfferProviderState(state);
+                    setOfferProviderCity('');
+                    setShowOfferStateDropdown(false);
+                  }}
+                >
+                  <Text style={[styles.dropdownItemText, offerProviderState === state && styles.dropdownItemTextSelected]}>
+                    {state}
+                  </Text>
+                  {offerProviderState === state && <Ionicons name="checkmark" size={20} color="#1976d2" />}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Offer City Dropdown */}
+      <Modal visible={showOfferCityDropdown} transparent animationType="fade">
+        <TouchableOpacity 
+          style={styles.dropdownOverlay} 
+          onPress={() => setShowOfferCityDropdown(false)}
+        >
+          <View style={styles.dropdownContent}>
+            <Text style={styles.dropdownTitle}>Select City</Text>
+            <ScrollView style={styles.dropdownScroll}>
+              {(CITIES[offerProviderState] || []).map(city => (
+                <TouchableOpacity
+                  key={city}
+                  style={[styles.dropdownItem, offerProviderCity === city && styles.dropdownItemSelected]}
+                  onPress={() => {
+                    setOfferProviderCity(city);
+                    setShowOfferCityDropdown(false);
+                  }}
+                >
+                  <Text style={[styles.dropdownItemText, offerProviderCity === city && styles.dropdownItemTextSelected]}>
+                    {city}
+                  </Text>
+                  {offerProviderCity === city && <Ionicons name="checkmark" size={20} color="#1976d2" />}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* FAB */}
       <TouchableOpacity 
@@ -404,12 +884,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    marginRight: 8,
   },
   headerLogo: {
     width: 44,
     height: 44,
     borderRadius: 12,
     marginRight: 12,
+  },
+  headerTextContainer: {
+    flex: 1,
   },
   greeting: {
     fontSize: 24,
@@ -420,6 +904,26 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     color: '#6b7280',
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    flexShrink: 0,
+  },
+  balanceButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#d1fae5',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 4,
+  },
+  balanceText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#10b981',
   },
   notificationButton: {
     position: 'relative',
@@ -497,6 +1001,38 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     marginTop: 6,
     lineHeight: 18,
+  },
+  // Quick Access
+  quickAccessGrid: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    gap: 12,
+    marginBottom: 24,
+  },
+  quickAccessCard: {
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingVertical: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  quickAccessIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  quickAccessLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#374151',
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -731,5 +1267,450 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
+  },
+  // Special Offers Section
+  offersSection: {
+    marginVertical: 8,
+  },
+  offersSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    gap: 12,
+  },
+  offersSectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  offersSectionSubtitle: {
+    fontSize: 13,
+    color: '#6b7280',
+    marginTop: 2,
+  },
+  offersListContainer: {
+    paddingHorizontal: 16,
+  },
+  offerCard: {
+    width: 260,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    marginRight: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  offerImage: {
+    width: '100%',
+    height: 120,
+    resizeMode: 'cover',
+  },
+  offerDiscountBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  offerDiscountText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  offerContent: {
+    padding: 12,
+  },
+  offerTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  offerDescription: {
+    fontSize: 13,
+    color: '#6b7280',
+    lineHeight: 18,
+    marginBottom: 8,
+  },
+  offerPricing: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  offerOriginalPrice: {
+    fontSize: 13,
+    color: '#9ca3af',
+    textDecorationLine: 'line-through',
+  },
+  offerDiscountedPrice: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  offerValidUntil: {
+    fontSize: 11,
+    color: '#9ca3af',
+    marginTop: 4,
+  },
+  offerTapHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#f3f4f6',
+  },
+  offerTapHintText: {
+    fontSize: 12,
+    color: '#6b7280',
+  },
+  // Offer Modal
+  offerModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  offerModalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '85%',
+  },
+  offerModalClose: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    zIndex: 10,
+  },
+  offerModalImage: {
+    width: '100%',
+    height: 180,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+  },
+  offerModalBadge: {
+    position: 'absolute',
+    top: 140,
+    right: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  offerModalBadgeText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  offerModalBody: {
+    padding: 20,
+  },
+  offerModalTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  offerModalDescription: {
+    fontSize: 15,
+    color: '#6b7280',
+    lineHeight: 22,
+    marginBottom: 20,
+  },
+  offerModalPricing: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    backgroundColor: '#f8fafc',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  offerModalPriceLabel: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  offerModalOriginalPrice: {
+    fontSize: 18,
+    color: '#9ca3af',
+    textDecorationLine: 'line-through',
+    textAlign: 'center',
+  },
+  offerModalDiscountedPrice: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#10b981',
+    textAlign: 'center',
+  },
+  offerModalValidity: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 20,
+  },
+  offerModalValidityText: {
+    fontSize: 14,
+    color: '#f59e0b',
+    fontWeight: '500',
+  },
+  offerModalActions: {
+    gap: 12,
+  },
+  offerModalFindButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#1976d2',
+    paddingVertical: 16,
+    borderRadius: 12,
+  },
+  offerModalFindButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  offerModalDisclaimer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#fffbeb',
+    padding: 12,
+    borderRadius: 8,
+  },
+  offerModalDisclaimerText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#92400e',
+    lineHeight: 16,
+  },
+  // Offer Providers Modal
+  offerProvidersModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  offerProvidersModalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    height: '90%',
+  },
+  offerProvidersModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  offerProvidersModalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  offerProvidersOfferBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#eff6ff',
+    marginHorizontal: 20,
+    marginTop: 10,
+    padding: 12,
+    borderRadius: 12,
+  },
+  offerProvidersOfferTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1e40af',
+  },
+  offerProvidersOfferDiscount: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#10b981',
+  },
+  offerProvidersFilters: {
+    flexDirection: 'row',
+    padding: 16,
+    gap: 8,
+  },
+  offerProvidersDropdown: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f3f4f6',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    gap: 6,
+  },
+  filterText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#374151',
+  },
+  filterPlaceholder: {
+    color: '#9ca3af',
+  },
+  filterDisabled: {
+    opacity: 0.5,
+  },
+  offerProvidersSearchButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1976d2',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    gap: 6,
+  },
+  offerProvidersSearchButtonText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  offerProvidersList: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  offerProvidersResultsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 12,
+    marginTop: 8,
+  },
+  offerProvidersNoResults: {
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  offerProvidersNoResultsText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6b7280',
+    marginTop: 16,
+  },
+  offerProvidersNoResultsSubtext: {
+    fontSize: 14,
+    color: '#9ca3af',
+    marginTop: 4,
+  },
+  offerProvidersEmptyState: {
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  offerProvidersEmptyText: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  // Provider Card
+  providerCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  providerIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#dbeafe',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  providerInfo: {
+    flex: 1,
+  },
+  providerName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  providerLocation: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 2,
+  },
+  providerLocationText: {
+    fontSize: 13,
+    color: '#6b7280',
+  },
+  providerRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  providerRatingText: {
+    fontSize: 12,
+    color: '#6b7280',
+  },
+  providerRequestButton: {
+    backgroundColor: '#1976d2',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  providerRequestButtonText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  // Dropdown styles
+  dropdownOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dropdownContent: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    width: '80%',
+    maxHeight: 300,
+    padding: 16,
+  },
+  dropdownTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 12,
+  },
+  dropdownScroll: {
+    maxHeight: 220,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  dropdownItemSelected: {
+    backgroundColor: '#eff6ff',
+  },
+  dropdownItemText: {
+    fontSize: 15,
+    color: '#374151',
+  },
+  dropdownItemTextSelected: {
+    color: '#1976d2',
+    fontWeight: '600',
   },
 });

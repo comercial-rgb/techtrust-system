@@ -7,6 +7,7 @@ export type QuoteLineItem = {
   id: string;
   type: 'PART' | 'LABOR';
   description: string;
+  brand?: string; // Brand/Manufacturer
   partCode?: string; // Part code/reference number
   quantity: string; // store as string for controlled input
   unitPrice: string; // store as string for controlled input
@@ -24,6 +25,7 @@ export default function QuoteLineItemsEditor({ items, onChange }: Props) {
       id: Math.random().toString(36).slice(2),
       type: 'PART',
       description: '',
+      brand: '',
       partCode: '',
       quantity: '1',
       unitPrice: '0.00',
@@ -96,12 +98,20 @@ export default function QuoteLineItemsEditor({ items, onChange }: Props) {
               onChangeText={text => updateItem(item.id, { description: text })}
             />
             {item.type === 'PART' && (
-              <TextInput
-                style={styles.input}
-                placeholder={t.quote?.partCode || 'Part code (e.g., OEM-12345, ABC-789)'}
-                value={item.partCode || ''}
-                onChangeText={text => updateItem(item.id, { partCode: text })}
-              />
+              <>
+                <TextInput
+                  style={styles.input}
+                  placeholder={t.quote?.brand || 'Brand / Manufacturer *'}
+                  value={item.brand || ''}
+                  onChangeText={text => updateItem(item.id, { brand: text })}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder={t.quote?.partCode || 'Part code (e.g., OEM-12345, ABC-789)'}
+                  value={item.partCode || ''}
+                  onChangeText={text => updateItem(item.id, { partCode: text })}
+                />
+              </>
             )}
             <View style={styles.inlineRow}>
               <View style={styles.inlineField}>

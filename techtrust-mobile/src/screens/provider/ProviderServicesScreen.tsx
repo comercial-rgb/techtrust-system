@@ -23,29 +23,80 @@ interface Service {
   category: string;
   enabled: boolean;
   description?: string;
+  nameKey: string;
+  categoryKey: string;
+  descriptionKey?: string;
 }
 
 export default function ProviderServicesScreen({ navigation }: any) {
   const { t } = useI18n();
+  
+  const getServiceName = (key: string) => {
+    const names: Record<string, string> = {
+      oilChange: t.serviceTypes?.oilChange || 'Oil Change',
+      alignmentBalancing: t.serviceTypes?.alignmentBalancing || 'Alignment & Balancing',
+      brakes: t.serviceTypes?.brakes || 'Brakes',
+      suspension: t.serviceTypes?.suspension || 'Suspension',
+      engine: t.serviceTypes?.engine || 'Engine',
+      transmission: t.serviceTypes?.transmission || 'Transmission',
+      electricalSystem: t.serviceTypes?.electricalSystem || 'Electrical System',
+      airConditioning: t.serviceTypes?.airConditioning || 'Air Conditioning',
+      diagnostics: t.serviceTypes?.diagnostics || 'Diagnostics',
+      vehicleInspection: t.serviceTypes?.vehicleInspection || 'Vehicle Inspection',
+      fullWash: t.serviceTypes?.fullWash || 'Full Wash',
+      polishing: t.serviceTypes?.polishing || 'Polishing',
+      roadsideAssistance: t.serviceTypes?.roadsideAssistance || 'Roadside Assistance',
+      outOfGas: t.serviceTypes?.outOfGas || 'Out of Gas',
+      tireChange: t.serviceTypes?.tireChange || 'Tire Change',
+      towing: t.serviceTypes?.towing || 'Towing',
+      batteryCharge: t.serviceTypes?.batteryCharge || 'Battery Charge',
+      autoLocksmith: t.serviceTypes?.autoLocksmith || 'Auto Locksmith',
+    };
+    return names[key] || key;
+  };
+
+  const getCategoryName = (key: string) => {
+    const categories: Record<string, string> = {
+      maintenance: t.serviceTypes?.categoryMaintenance || 'Maintenance',
+      repairs: t.serviceTypes?.categoryRepairs || 'Repairs',
+      inspection: t.serviceTypes?.categoryInspection || 'Inspection',
+      detailing: t.serviceTypes?.categoryDetailing || 'Detailing',
+      sos: t.serviceTypes?.categorySOS || 'SOS',
+    };
+    return categories[key] || key;
+  };
+
+  const getDescription = (key: string) => {
+    const descriptions: Record<string, string> = {
+      roadsideAssistance: t.serviceTypes?.roadsideAssistanceDesc || 'Roadside assistance, towing, out of gas, tire change',
+      outOfGas: t.serviceTypes?.outOfGasDesc || 'Emergency fuel delivery',
+      tireChange: t.serviceTypes?.tireChangeDesc || 'Flat tire change on the road',
+      towing: t.serviceTypes?.towingDesc || 'Towing and wrecker service',
+      batteryCharge: t.serviceTypes?.batteryChargeDesc || 'Recharge or replace dead battery',
+      autoLocksmith: t.serviceTypes?.autoLocksmithDesc || 'Vehicle opening, key copy',
+    };
+    return descriptions[key];
+  };
+
   const [services, setServices] = useState<Service[]>([
-    { id: '1', name: 'Troca de Óleo', icon: 'oil', category: 'Manutenção', enabled: true },
-    { id: '2', name: 'Alinhamento e Balanceamento', icon: 'tire', category: 'Manutenção', enabled: true },
-    { id: '3', name: 'Freios', icon: 'car-brake-abs', category: 'Manutenção', enabled: true },
-    { id: '4', name: 'Suspensão', icon: 'car-traction-control', category: 'Manutenção', enabled: true },
-    { id: '5', name: 'Motor', icon: 'engine', category: 'Reparos', enabled: true },
-    { id: '6', name: 'Transmissão', icon: 'car-shift-pattern', category: 'Reparos', enabled: false },
-    { id: '7', name: 'Sistema Elétrico', icon: 'flash', category: 'Reparos', enabled: true },
-    { id: '8', name: 'Ar Condicionado', icon: 'air-conditioner', category: 'Reparos', enabled: true },
-    { id: '9', name: 'Diagnóstico', icon: 'stethoscope', category: 'Inspeção', enabled: true },
-    { id: '10', name: 'Inspeção Veicular', icon: 'clipboard-check', category: 'Inspeção', enabled: false },
-    { id: '11', name: 'Lavagem Completa', icon: 'car-wash', category: 'Estética', enabled: false },
-    { id: '12', name: 'Polimento', icon: 'auto-fix', category: 'Estética', enabled: false },
-    { id: '13', name: 'Assistência Rodoviária', icon: 'tow-truck', category: 'SOS', enabled: false, description: 'Socorro em estrada, reboque, pane seca, troca de pneu' },
-    { id: '14', name: 'Pane Seca', icon: 'gas-station', category: 'SOS', enabled: false, description: 'Entrega de combustível de emergência' },
-    { id: '15', name: 'Troca de Pneu', icon: 'tire', category: 'SOS', enabled: false, description: 'Troca de pneu furado na estrada' },
-    { id: '16', name: 'Reboque', icon: 'tow-truck', category: 'SOS', enabled: false, description: 'Serviço de reboque e guincho' },
-    { id: '17', name: 'Carga de Bateria', icon: 'car-battery', category: 'SOS', enabled: false, description: 'Recarga ou troca de bateria descarregada' },
-    { id: '18', name: 'Chaveiro Automotivo', icon: 'key-variant', category: 'SOS', enabled: false, description: 'Abertura de veículos, cópia de chaves' },
+    { id: '1', nameKey: 'oilChange', name: '', icon: 'oil', category: '', categoryKey: 'maintenance', enabled: true },
+    { id: '2', nameKey: 'alignmentBalancing', name: '', icon: 'tire', category: '', categoryKey: 'maintenance', enabled: true },
+    { id: '3', nameKey: 'brakes', name: '', icon: 'car-brake-abs', category: '', categoryKey: 'maintenance', enabled: true },
+    { id: '4', nameKey: 'suspension', name: '', icon: 'car-traction-control', category: '', categoryKey: 'maintenance', enabled: true },
+    { id: '5', nameKey: 'engine', name: '', icon: 'engine', category: '', categoryKey: 'repairs', enabled: true },
+    { id: '6', nameKey: 'transmission', name: '', icon: 'car-shift-pattern', category: '', categoryKey: 'repairs', enabled: false },
+    { id: '7', nameKey: 'electricalSystem', name: '', icon: 'flash', category: '', categoryKey: 'repairs', enabled: true },
+    { id: '8', nameKey: 'airConditioning', name: '', icon: 'air-conditioner', category: '', categoryKey: 'repairs', enabled: true },
+    { id: '9', nameKey: 'diagnostics', name: '', icon: 'stethoscope', category: '', categoryKey: 'inspection', enabled: true },
+    { id: '10', nameKey: 'vehicleInspection', name: '', icon: 'clipboard-check', category: '', categoryKey: 'inspection', enabled: false },
+    { id: '11', nameKey: 'fullWash', name: '', icon: 'car-wash', category: '', categoryKey: 'detailing', enabled: false },
+    { id: '12', nameKey: 'polishing', name: '', icon: 'auto-fix', category: '', categoryKey: 'detailing', enabled: false },
+    { id: '13', nameKey: 'roadsideAssistance', name: '', icon: 'tow-truck', category: '', categoryKey: 'sos', enabled: false, descriptionKey: 'roadsideAssistance' },
+    { id: '14', nameKey: 'outOfGas', name: '', icon: 'gas-station', category: '', categoryKey: 'sos', enabled: false, descriptionKey: 'outOfGas' },
+    { id: '15', nameKey: 'tireChange', name: '', icon: 'tire', category: '', categoryKey: 'sos', enabled: false, descriptionKey: 'tireChange' },
+    { id: '16', nameKey: 'towing', name: '', icon: 'tow-truck', category: '', categoryKey: 'sos', enabled: false, descriptionKey: 'towing' },
+    { id: '17', nameKey: 'batteryCharge', name: '', icon: 'car-battery', category: '', categoryKey: 'sos', enabled: false, descriptionKey: 'batteryCharge' },
+    { id: '18', nameKey: 'autoLocksmith', name: '', icon: 'key-variant', category: '', categoryKey: 'sos', enabled: false, descriptionKey: 'autoLocksmith' },
   ]);
 
   const toggleService = (id: string) => {
@@ -56,7 +107,7 @@ export default function ProviderServicesScreen({ navigation }: any) {
 
   const enabledCount = services.filter(s => s.enabled).length;
 
-  const categories = [...new Set(services.map(s => s.category))];
+  const categoryKeys = [...new Set(services.map(s => s.categoryKey))];
 
   const handleSave = () => {
     Alert.alert(t.common.success, t.success?.updated || 'Services updated successfully!');
@@ -85,12 +136,12 @@ export default function ProviderServicesScreen({ navigation }: any) {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        {categories.map(category => (
-          <View key={category} style={styles.categorySection}>
-            <Text style={styles.categoryTitle}>{category}</Text>
+        {categoryKeys.map(categoryKey => (
+          <View key={categoryKey} style={styles.categorySection}>
+            <Text style={styles.categoryTitle}>{getCategoryName(categoryKey)}</Text>
             <View style={styles.servicesCard}>
               {services
-                .filter(s => s.category === category)
+                .filter(s => s.categoryKey === categoryKey)
                 .map((service, index, arr) => (
                   <View 
                     key={service.id}
@@ -114,8 +165,13 @@ export default function ProviderServicesScreen({ navigation }: any) {
                         styles.serviceName,
                         !service.enabled && styles.serviceNameDisabled,
                       ]}>
-                        {service.name}
+                        {getServiceName(service.nameKey)}
                       </Text>
+                      {service.descriptionKey && (
+                        <Text style={styles.serviceDescription}>
+                          {getDescription(service.descriptionKey)}
+                        </Text>
+                      )}
                     </View>
                     <Switch
                       value={service.enabled}
@@ -132,15 +188,14 @@ export default function ProviderServicesScreen({ navigation }: any) {
         {/* Add Custom Service */}
         <TouchableOpacity style={styles.addServiceButton}>
           <MaterialCommunityIcons name="plus-circle" size={22} color="#1976d2" />
-          <Text style={styles.addServiceText}>Adicionar Serviço Personalizado</Text>
+          <Text style={styles.addServiceText}>{t.provider?.addCustomService || 'Add Custom Service'}</Text>
         </TouchableOpacity>
 
         {/* Info Banner */}
         <View style={styles.infoBanner}>
           <MaterialCommunityIcons name="information" size={20} color="#3b82f6" />
           <Text style={styles.infoText}>
-            Você só receberá pedidos para os serviços que estiverem ativos. 
-            Desative temporariamente serviços que não puder atender.
+            {t.provider?.servicesBannerInfo || 'You will only receive requests for active services. Temporarily disable services you cannot provide.'}
           </Text>
         </View>
 

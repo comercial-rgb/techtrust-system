@@ -235,7 +235,7 @@ export default function CustomerReportsScreen({ navigation }: any) {
         {/* By Vehicle */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t.customer?.byVehicle || 'By Vehicle'}</Text>
-          {vehicleSpending.map((vehicle) => ( (
+          {vehicleSpending.map((vehicle) => (
             <TouchableOpacity 
               key={vehicle.id}
               style={styles.vehicleCard}
