@@ -196,10 +196,10 @@ export default function ConteudoPage() {
         api.get('/admin/content/notices').catch(() => ({ data: [] })),
       ]);
 
-      setBanners(bannersRes.data || []);
-      setOffers(offersRes.data || []);
-      setArticles(articlesRes.data || []);
-      setNotices(noticesRes.data || []);
+      setBanners((bannersRes.data || []) as Banner[]);
+      setOffers((offersRes.data || []) as SpecialOffer[]);
+      setArticles((articlesRes.data || []) as Article[]);
+      setNotices((noticesRes.data || []) as Notice[]);
     } catch (error) {
       console.error('Error loading content:', error);
     }
