@@ -337,6 +337,11 @@ class AdminApiService {
     });
   }
 
+  // Mantém compatibilidade com páginas que usam o nome antigo
+  async updateSystemConfig(data: Record<string, any>) {
+    return this.updateSettings(data);
+  }
+
   // ============================================
   // NOTIFICATIONS
   // ============================================
