@@ -202,10 +202,10 @@ export default function ConteudoPage() {
       setNotices((noticesRes.data || []) as Notice[]);
     } catch (error) {
       console.error('Error loading content:', error);
-    }
-    setLoading(false);
-  }
-
+        setBanners(((bannersRes as any).data || []) as Banner[]);
+        setOffers(((offersRes as any).data || []) as SpecialOffer[]);
+        setArticles(((articlesRes as any).data || []) as Article[]);
+        setNotices(((noticesRes as any).data || []) as Notice[]);
   // CRUD Functions
   async function handleSaveBanner(e: React.FormEvent) {
     e.preventDefault();
