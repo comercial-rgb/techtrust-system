@@ -188,6 +188,7 @@ export default function ConteudoPage() {
   useEffect(() => { if (isAuthenticated) loadData(); }, [isAuthenticated]);
 
   async function loadData() {
+    setLoading(true);
     try {
       const [bannersRes, offersRes, articlesRes, noticesRes] = await Promise.all([
         api.get('/admin/content/banners').catch(() => ({ data: [] })),
@@ -196,17 +197,23 @@ export default function ConteudoPage() {
         api.get('/admin/content/notices').catch(() => ({ data: [] })),
       ]);
 
-      setBanners((bannersRes.data || []) as Banner[]);
-      setOffers((offersRes.data || []) as SpecialOffer[]);
-      setArticles((articlesRes.data || []) as Article[]);
-      setNotices((noticesRes.data || []) as Notice[]);
+      setBanners(((bannersRes as any).data || []) as Banner[]);
+      setOffers(((offersRes as any).data || []) as SpecialOffer[]);
+      setArticles(((articlesRes as any).data || []) as Article[]);
+      setNotices(((noticesRes as any).data || []) as Notice[]);
     } catch (error) {
       console.error('Error loading content:', error);
-        setBanners(((bannersRes as any).data || []) as Banner[]);
-        setOffers(((offersRes as any).data || []) as SpecialOffer[]);
-        setArticles(((articlesRes as any).data || []) as Article[]);
-        setNotices(((noticesRes as any).data || []) as Notice[]);
+      setBanners([]);
+      setOffers([]);
+      setArticles([]);
+      setNotices([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   // CRUD Functions
+
   async function handleSaveBanner(e: React.FormEvent) {
     e.preventDefault();
     try {
@@ -451,7 +458,7 @@ export default function ConteudoPage() {
 
       {/* Tabs */}
       <div className="flex flex-wrap gap-2 mb-6">
-        {tabs.map(tab => {
+        {tabs.map((tab) => {
           const Icon = tab.icon;
           return (
             <button
@@ -468,10 +475,6 @@ export default function ConteudoPage() {
             </button>
           );
         })}
-      </div>
-
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
           <input
