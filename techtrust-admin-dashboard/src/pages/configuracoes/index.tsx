@@ -67,7 +67,7 @@ export default function ConfiguracoesPage() {
   async function handleSave() {
     setSaving(true);
     try {
-      await api.updateSystemConfig(config);
+      await api.updateSettings(config);
       alert('Configurações salvas com sucesso!');
     } catch (error) {
       console.error('Erro ao salvar configurações:', error);
