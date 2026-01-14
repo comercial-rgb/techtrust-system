@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminLayout from '../../components/AdminLayout';
 import { Settings, Save, DollarSign, Bell, Shield, Clock, Percent, MessageSquare, Mail, Smartphone } from 'lucide-react';
-import api from '../../services/api';
+import { adminApi as api } from '../../services/api';
 
 interface SystemConfig {
   platformFee: number;
