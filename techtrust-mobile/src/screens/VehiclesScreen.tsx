@@ -1,11 +1,13 @@
 /**
  * Tela de Veículos
  * ✨ Atualizada com animações e UI melhorada
+ * 📸 Agora exibe foto do veículo quando disponível
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, Alert, Image } from 'react-native';
 import { Card, Text, FAB, IconButton, useTheme, Chip } from 'react-native-paper';
+import { useFocusEffect } from '@react-navigation/native';
 import api from '../services/api';
 import { Vehicle } from '../types';
 import { useI18n } from '../i18n';
@@ -22,7 +24,7 @@ import {
   SuccessAnimation,
 } from '../components';
 
-export default function VehiclesScreen({ navigation }: any) {
+export default function VehiclesScreen({ navigation, route }: any) {
   const { t } = useI18n();
   const theme = useTheme();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -39,14 +41,34 @@ export default function VehiclesScreen({ navigation }: any) {
     loadVehicles();
   }, []);
 
+  // 📸 Detectar quando volta da tela AddVehicle com um novo veículo
+  useFocusEffect(
+    useCallback(() => {
+      if (route.params?.newVehicle) {
+        const newVehicle: Vehicle = {
+          ...route.params.newVehicle,
+          id: `local-${Date.now()}`,
+          isPrimary: vehicles.length === 0,
+          createdAt: new Date().toISOString(),
+        };
+        setVehicles(prev => [newVehicle, ...prev]);
+        success(t.vehicle?.vehicleAddedSuccess || 'Vehicle added successfully!');
+        // Clear the parameter to avoid adding again
+        navigation.setParams({ newVehicle: undefined });
+      }
+    }, [route.params?.newVehicle])
+  );
+
   const loadVehicles = useCallback(async () => {
     if (!loading) setRefreshing(true);
     try {
       const response = await api.get('/vehicles');
       setVehicles(response.data.data || []);
     } catch (err) {
-      console.error('Erro ao carregar veículos:', err);
-      error(t.vehicle?.loadError || 'Não foi possível carregar os veículos');
+      console.error('Error loading vehicles:', err);
+      // 📱 Works offline - don't show error, just empty list
+      // error(t.vehicle?.loadError || 'Could not load vehicles');
+      setVehicles([]); // Empty list to work without backend
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -55,22 +77,22 @@ export default function VehiclesScreen({ navigation }: any) {
 
   const handleDelete = async (vehicleId: string, plateNumber: string) => {
     Alert.alert(
-      t.common?.confirmDelete || 'Confirmar exclusão',
-      `${t.vehicle?.deleteConfirmation || 'Deseja realmente excluir o veículo'} ${plateNumber}?`,
+      t.common?.confirmDelete || 'Confirm deletion',
+      `${t.vehicle?.deleteConfirmation || 'Do you really want to delete vehicle'} ${plateNumber}?`,
       [
-        { text: t.common?.cancel || 'Cancelar', style: 'cancel' },
+        { text: t.common?.cancel || 'Cancel', style: 'cancel' },
         {
-          text: t.common?.delete || 'Excluir',
+          text: t.common?.delete || 'Delete',
           style: 'destructive',
           onPress: async () => {
             setActionLoading(true);
             try {
               await api.delete(`/vehicles/${vehicleId}`);
-              setSuccessMessage(t.vehicle?.vehicleDeleted || 'Veículo excluído!');
+              setSuccessMessage(t.vehicle?.vehicleDeleted || 'Vehicle deleted!');
               setShowSuccess(true);
               loadVehicles();
             } catch (err: any) {
-              error(err.response?.data?.message || t.vehicle?.deleteError || 'Erro ao excluir veículo');
+              error(err.response?.data?.message || t.vehicle?.deleteError || 'Error deleting vehicle');
             } finally {
               setActionLoading(false);
             }
@@ -84,10 +106,10 @@ export default function VehiclesScreen({ navigation }: any) {
     setActionLoading(true);
     try {
       await api.post(`/vehicles/${vehicleId}/set-primary`);
-      success(t.vehicle?.primarySet || 'Veículo principal definido!');
+      success(t.vehicle?.primarySet || 'Primary vehicle set!');
       loadVehicles();
     } catch (err: any) {
-      error(err.response?.data?.message || t.vehicle?.primaryError || 'Erro ao definir veículo principal');
+      error(err.response?.data?.message || t.vehicle?.primaryError || 'Error setting primary vehicle');
     } finally {
       setActionLoading(false);
     }
@@ -129,9 +151,9 @@ export default function VehiclesScreen({ navigation }: any) {
         {/* ✨ Header animado */}
         <FadeInView delay={0}>
           <View style={styles.header}>
-            <Text variant="titleLarge" style={styles.title}>{t.vehicle?.myVehicles || 'Meus Veículos'}</Text>
+            <Text variant="titleLarge" style={styles.title}>{t.vehicle?.myVehicles || 'My Vehicles'}</Text>
             <Text variant="bodyMedium" style={styles.subtitle}>
-              {vehicles.length} {t.vehicle?.vehiclesRegistered || 'veículo(s) cadastrado(s)'}
+              {vehicles.length} {t.vehicle?.vehiclesRegistered || 'vehicle(s) registered'}
             </Text>
           </View>
         </FadeInView>
@@ -141,9 +163,9 @@ export default function VehiclesScreen({ navigation }: any) {
           <FadeInView delay={100}>
             <EmptyState
               icon="car-off"
-              title={t.vehicle?.noVehicles || 'Nenhum veículo cadastrado'}
-              description={t.vehicle?.addFirstVehicle || 'Adicione seu primeiro veículo para começar!'}
-              actionLabel={t.vehicle?.addVehicle || 'Adicionar Veículo'}
+              title={t.vehicle?.noVehicles || 'No vehicles registered'}
+              description={t.vehicle?.addFirstVehicle || 'Add your first vehicle to get started!'}
+              actionLabel={t.vehicle?.addVehicle || 'Add Vehicle'}
               onAction={() => navigation.navigate('AddVehicle')}
             />
           </FadeInView>
@@ -157,9 +179,17 @@ export default function VehiclesScreen({ navigation }: any) {
                 <Card.Content>
                   <View style={styles.cardHeader}>
                     <View style={styles.cardTitleRow}>
-                      <View style={styles.vehicleIcon}>
-                        <Text style={styles.vehicleEmoji}>🚗</Text>
-                      </View>
+                      {/* 📸 Mostra foto do veículo ou ícone padrão */}
+                      {vehicle.photos && vehicle.photos.length > 0 ? (
+                        <Image 
+                          source={{ uri: vehicle.photos[0] }} 
+                          style={styles.vehiclePhoto}
+                        />
+                      ) : (
+                        <View style={styles.vehicleIcon}>
+                          <Text style={styles.vehicleEmoji}>🚗</Text>
+                        </View>
+                      )}
                       <View style={styles.vehicleInfo}>
                         <Text variant="titleMedium" style={styles.cardTitle}>
                           {vehicle.make} {vehicle.model}
@@ -240,7 +270,7 @@ export default function VehiclesScreen({ navigation }: any) {
                           iconColor={theme.colors.error}
                         />
                         <Text style={[styles.actionText, { color: theme.colors.error }]}>
-                          {t.common?.delete || 'Excluir'}
+                          {t.common?.delete || 'Delete'}
                         </Text>
                       </View>
                     </ScalePress>
@@ -257,11 +287,11 @@ export default function VehiclesScreen({ navigation }: any) {
         icon="plus"
         style={[styles.fab, { backgroundColor: theme.colors.primary }]}
         onPress={() => navigation.navigate('AddVehicle')}
-        label={t.common?.add || 'Adicionar'}
+        label={t.common?.add || 'Add'}
       />
 
       {/* ✨ Loading Overlay */}
-      <LoadingOverlay visible={actionLoading} message={t.common?.processing || 'Processando...'} />
+      <LoadingOverlay visible={actionLoading} message={t.common?.processing || 'Processing...'} />
 
       {/* ✨ Success Animation */}
       <SuccessAnimation
@@ -334,6 +364,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#e3f2fd',
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 12,
+  },
+  vehiclePhoto: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
     marginRight: 12,
   },
   vehicleEmoji: {

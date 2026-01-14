@@ -334,7 +334,7 @@ export default function ProviderRequestDetailsScreen({ route, navigation }: any)
         {quoteSubmitted && (
           <View style={styles.successBanner}>
             <MaterialCommunityIcons name="check-circle" size={20} color="#10b981" />
-            <Text style={styles.successText}>Orçamento enviado com sucesso!</Text>
+            <Text style={styles.successText}>{t.quote?.sentSuccessfully || 'Quote sent successfully!'}</Text>
           </View>
         )}
 
@@ -518,27 +518,27 @@ export default function ProviderRequestDetailsScreen({ route, navigation }: any)
           <View style={styles.vehicleGrid}>
             <View style={styles.vehicleGridItem}>
               <MaterialCommunityIcons name="card-text" size={16} color="#6b7280" />
-              <Text style={styles.vehicleGridLabel}>Placa</Text>
+              <Text style={styles.vehicleGridLabel}>{t.vehicle?.plate || 'Plate'}</Text>
               <Text style={styles.vehicleGridValue}>{request.vehicle.plateNumber}</Text>
             </View>
             <View style={styles.vehicleGridItem}>
               <MaterialCommunityIcons name="speedometer" size={16} color="#6b7280" />
-              <Text style={styles.vehicleGridLabel}>Quilometragem</Text>
+              <Text style={styles.vehicleGridLabel}>{t.vehicle?.mileage || 'Mileage'}</Text>
               <Text style={styles.vehicleGridValue}>{request.vehicle.mileage.toLocaleString()} km</Text>
             </View>
             <View style={styles.vehicleGridItem}>
               <MaterialCommunityIcons name="gas-station" size={16} color="#6b7280" />
-              <Text style={styles.vehicleGridLabel}>Combustível</Text>
+              <Text style={styles.vehicleGridLabel}>{t.vehicle?.fuelType || 'Fuel'}</Text>
               <Text style={styles.vehicleGridValue}>{request.vehicle.fuelType}</Text>
             </View>
             <View style={styles.vehicleGridItem}>
               <MaterialCommunityIcons name="car-shift-pattern" size={16} color="#6b7280" />
-              <Text style={styles.vehicleGridLabel}>Câmbio</Text>
+              <Text style={styles.vehicleGridLabel}>{t.vehicle?.transmission || 'Transmission'}</Text>
               <Text style={styles.vehicleGridValue}>{request.vehicle.transmission}</Text>
             </View>
             <View style={styles.vehicleGridItem}>
               <MaterialCommunityIcons name="engine" size={16} color="#6b7280" />
-              <Text style={styles.vehicleGridLabel}>Motor</Text>
+              <Text style={styles.vehicleGridLabel}>{t.vehicle?.engine || 'Engine'}</Text>
               <Text style={styles.vehicleGridValue}>{request.vehicle.engine}</Text>
             </View>
             <View style={styles.vehicleGridItem}>
@@ -555,7 +555,7 @@ export default function ProviderRequestDetailsScreen({ route, navigation }: any)
             <View style={styles.lastServiceBanner}>
               <MaterialCommunityIcons name="history" size={18} color="#1976d2" />
               <View style={styles.lastServiceInfo}>
-                <Text style={styles.lastServiceTitle}>Último serviço</Text>
+                <Text style={styles.lastServiceTitle}>{t.vehicle?.lastService || 'Last Service'}</Text>
                 <Text style={styles.lastServiceText}>
                   {formatDate(request.vehicle.lastServiceDate)} • {request.vehicle.lastServiceMileage?.toLocaleString()} km
                 </Text>
@@ -569,9 +569,9 @@ export default function ProviderRequestDetailsScreen({ route, navigation }: any)
           <MaterialCommunityIcons name="account-group" size={24} color="#6b7280" />
           <View style={styles.competitionInfo}>
             <Text style={styles.competitionTitle}>
-              {request.quotesCount} fornecedor(es) já enviaram orçamento
+              {request.quotesCount} {t.provider?.providersSubmittedQuotes || 'provider(s) have already submitted quotes'}
             </Text>
-            <Text style={styles.competitionSubtitle}>Seja competitivo para aumentar suas chances!</Text>
+            <Text style={styles.competitionSubtitle}>{t.provider?.beCompetitive || 'Be competitive to increase your chances!'}</Text>
           </View>
         </View>
 

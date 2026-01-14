@@ -160,7 +160,8 @@ export default function ServiceHistoryScreen({ navigation }: any) {
   const renderServiceItem = ({ item }: { item: ServiceRecord }) => (
     <TouchableOpacity 
       style={styles.serviceCard}
-      onPress={() => navigation.navigate('ServiceHistoryWorkOrderDetails', { workOrderId: item.id })}
+      // Use orderNumber as a stable key; the local item.id is just a list identifier and may collide
+      onPress={() => navigation.navigate('ServiceHistoryWorkOrderDetails', { workOrderId: item.orderNumber })}
     >
       <View style={styles.serviceHeader}>
         <View style={[

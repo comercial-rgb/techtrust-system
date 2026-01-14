@@ -1,11 +1,14 @@
 import type { AppProps } from 'next/app';
 import { AuthProvider } from '../contexts/AuthContext';
+import { I18nProvider } from '../i18n';
 import '../styles/globals.css';
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
-    <AuthProvider>
-      <Component {...pageProps} />
-    </AuthProvider>
+    <I18nProvider>
+      <AuthProvider>
+        <Component {...pageProps} />
+      </AuthProvider>
+    </I18nProvider>
   );
 }

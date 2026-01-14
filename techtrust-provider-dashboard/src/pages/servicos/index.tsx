@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '@/contexts/AuthContext'
+import { useI18n } from '@/i18n'
 import DashboardLayout from '@/components/DashboardLayout'
 import api from '@/services/api'
 import {
@@ -51,6 +52,7 @@ interface WorkOrder {
 
 export default function ServicosPage() {
   const { isAuthenticated, loading: authLoading } = useAuth()
+  const { translate: t } = useI18n()
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([])
@@ -187,21 +189,21 @@ export default function ServicosPage() {
 
   const getStatusInfo = (status: string) => {
     const statuses: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-      PENDING_START: { label: 'Aguardando', color: 'bg-yellow-100 text-yellow-700', icon: <Clock className="w-4 h-4" /> },
-      IN_PROGRESS: { label: 'Em Andamento', color: 'bg-blue-100 text-blue-700', icon: <Play className="w-4 h-4" /> },
-      AWAITING_APPROVAL: { label: 'Aguardando Aprovação', color: 'bg-purple-100 text-purple-700', icon: <CheckCircle className="w-4 h-4" /> },
-      COMPLETED: { label: 'Concluído', color: 'bg-green-100 text-green-700', icon: <CheckCircle className="w-4 h-4" /> },
-      DISPUTED: { label: 'Em Disputa', color: 'bg-red-100 text-red-700', icon: <AlertCircle className="w-4 h-4" /> },
+      PENDING_START: { label: t('common.status.pending'), color: 'bg-yellow-100 text-yellow-700', icon: <Clock className="w-4 h-4" /> },
+      IN_PROGRESS: { label: t('common.status.inProgress'), color: 'bg-blue-100 text-blue-700', icon: <Play className="w-4 h-4" /> },
+      AWAITING_APPROVAL: { label: t('common.status.awaitingApproval'), color: 'bg-purple-100 text-purple-700', icon: <CheckCircle className="w-4 h-4" /> },
+      COMPLETED: { label: t('common.status.completed'), color: 'bg-green-100 text-green-700', icon: <CheckCircle className="w-4 h-4" /> },
+      DISPUTED: { label: t('common.status.disputed'), color: 'bg-red-100 text-red-700', icon: <AlertCircle className="w-4 h-4" /> },
     }
     return statuses[status] || { label: status, color: 'bg-gray-100 text-gray-700', icon: <Clock className="w-4 h-4" /> }
   }
 
   const filterOptions = [
-    { value: 'all', label: 'Todos' },
-    { value: 'PENDING_START', label: 'Aguardando' },
-    { value: 'IN_PROGRESS', label: 'Em Andamento' },
-    { value: 'AWAITING_APPROVAL', label: 'Aguardando Aprovação' },
-    { value: 'COMPLETED', label: 'Concluídos' },
+    { value: 'all', label: t('services.filters.all') },
+    { value: 'PENDING_START', label: t('common.status.pending') },
+    { value: 'IN_PROGRESS', label: t('common.status.inProgress') },
+    { value: 'AWAITING_APPROVAL', label: t('common.status.awaitingApproval') },
+    { value: 'COMPLETED', label: t('services.filters.completed') },
   ]
 
   const filteredWorkOrders = workOrders.filter(wo => {
@@ -237,7 +239,7 @@ export default function ServicosPage() {
   }
 
   return (
-    <DashboardLayout title="Serviços">
+    <DashboardLayout title={t('services.title')}>
       <div className="space-y-6 animate-fade-in">
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -245,25 +247,25 @@ export default function ServicosPage() {
             <p className="text-2xl font-bold text-yellow-600">
               {workOrders.filter(w => w.status === 'PENDING_START').length}
             </p>
-            <p className="text-sm text-gray-500">Aguardando</p>
+            <p className="text-sm text-gray-500">{t('common.status.pending')}</p>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-soft">
             <p className="text-2xl font-bold text-blue-600">
               {workOrders.filter(w => w.status === 'IN_PROGRESS').length}
             </p>
-            <p className="text-sm text-gray-500">Em Andamento</p>
+            <p className="text-sm text-gray-500">{t('common.status.inProgress')}</p>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-soft">
             <p className="text-2xl font-bold text-purple-600">
               {workOrders.filter(w => w.status === 'AWAITING_APPROVAL').length}
             </p>
-            <p className="text-sm text-gray-500">Aguardando Aprovação</p>
+            <p className="text-sm text-gray-500">{t('common.status.awaitingApproval')}</p>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-soft">
             <p className="text-2xl font-bold text-green-600">
               {workOrders.filter(w => w.status === 'COMPLETED').length}
             </p>
-            <p className="text-sm text-gray-500">Concluídos</p>
+            <p className="text-sm text-gray-500">{t('services.filters.completed')}</p>
           </div>
         </div>
 
@@ -274,7 +276,7 @@ export default function ServicosPage() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Buscar por título, cliente, veículo..."
+              placeholder={t('services.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="input pl-12"
@@ -318,12 +320,12 @@ export default function ServicosPage() {
               <AlertCircle className="w-8 h-8 text-gray-400" />
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Nenhum serviço encontrado
+              {t('services.empty.title')}
             </h3>
             <p className="text-gray-500">
               {searchQuery
-                ? 'Tente buscar com outros termos'
-                : 'Seus serviços aparecerão aqui'}
+                ? t('services.empty.searchHint')
+                : t('services.empty.description')}
             </p>
           </div>
         ) : (

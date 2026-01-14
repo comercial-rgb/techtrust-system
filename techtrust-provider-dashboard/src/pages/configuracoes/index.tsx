@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '@/contexts/AuthContext'
+import { useI18n } from '@/i18n'
 import DashboardLayout from '@/components/DashboardLayout'
 import api from '@/services/api'
 import {
@@ -63,6 +64,7 @@ interface ProviderProfile {
 
 export default function ConfiguracoesPage() {
   const { user, isAuthenticated, loading: authLoading, logout } = useAuth()
+  const { translate: t } = useI18n()
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -167,50 +169,50 @@ export default function ConfiguracoesPage() {
       // await api.put('/provider/profile', profile)
       await new Promise(resolve => setTimeout(resolve, 1500))
       
-      setSuccessMessage('Configurações salvas com sucesso!')
+      setSuccessMessage(t('settings.messages.savedSuccess'))
       setTimeout(() => setSuccessMessage(''), 3000)
     } catch (error) {
-      console.error('Erro ao salvar:', error)
-      alert('Erro ao salvar configurações. Tente novamente.')
+      console.error(t('settings.messages.loadError'), error)
+      alert(t('settings.messages.saveError'))
     } finally {
       setSaving(false)
     }
   }
 
   const serviceTypes = [
-    { id: 'SCHEDULED_MAINTENANCE', label: 'Manutenção', icon: Wrench },
-    { id: 'REPAIR', label: 'Reparo', icon: AlertCircle },
-    { id: 'INSPECTION', label: 'Inspeção', icon: Shield },
-    { id: 'DETAILING', label: 'Estética', icon: Sparkles },
-    { id: 'ROADSIDE_SOS', label: 'Socorro', icon: Zap },
+    { id: 'SCHEDULED_MAINTENANCE', label: t('common.maintenance'), icon: Wrench },
+    { id: 'REPAIR', label: t('common.repair'), icon: AlertCircle },
+    { id: 'INSPECTION', label: t('common.inspection'), icon: Shield },
+    { id: 'DETAILING', label: t('common.detailing'), icon: Sparkles },
+    { id: 'ROADSIDE_SOS', label: t('common.sos'), icon: Zap },
   ]
 
   const businessTypes = [
-    { id: 'AUTO_REPAIR', label: 'Oficina Mecânica' },
-    { id: 'TIRE_SHOP', label: 'Borracharia' },
-    { id: 'AUTO_ELECTRIC', label: 'Auto Elétrica' },
-    { id: 'BODY_SHOP', label: 'Funilaria/Pintura' },
-    { id: 'DETAILING', label: 'Estética Automotiva' },
-    { id: 'TOWING', label: 'Guincho' },
-    { id: 'MULTI_SERVICE', label: 'Multisserviços' },
+    { id: 'AUTO_REPAIR', label: t('common.autoRepairShop') },
+    { id: 'TIRE_SHOP', label: t('common.tireShop') },
+    { id: 'AUTO_ELECTRIC', label: t('common.autoElectric') },
+    { id: 'BODY_SHOP', label: t('common.bodyShop') },
+    { id: 'DETAILING', label: t('common.autoDetailing') },
+    { id: 'TOWING', label: t('common.towing') },
+    { id: 'MULTI_SERVICE', label: t('common.multiService') },
   ]
 
   const weekDays = [
-    { key: 'monday', label: 'Segunda' },
-    { key: 'tuesday', label: 'Terça' },
-    { key: 'wednesday', label: 'Quarta' },
-    { key: 'thursday', label: 'Quinta' },
-    { key: 'friday', label: 'Sexta' },
-    { key: 'saturday', label: 'Sábado' },
-    { key: 'sunday', label: 'Domingo' },
+    { key: 'monday', label: t('common.monday') },
+    { key: 'tuesday', label: t('common.tuesday') },
+    { key: 'wednesday', label: t('common.wednesday') },
+    { key: 'thursday', label: t('common.thursday') },
+    { key: 'friday', label: t('common.friday') },
+    { key: 'saturday', label: t('common.saturday') },
+    { key: 'sunday', label: t('common.sunday') },
   ]
 
   const tabs = [
-    { id: 'profile', label: 'Perfil', icon: Building2 },
-    { id: 'services', label: 'Serviços', icon: Wrench },
-    { id: 'hours', label: 'Horários', icon: Clock },
-    { id: 'notifications', label: 'Notificações', icon: Bell },
-    { id: 'security', label: 'Segurança', icon: Lock },
+    { id: 'profile', label: t('settings.tabs.profile'), icon: Building2 },
+    { id: 'services', label: t('settings.tabs.services'), icon: Wrench },
+    { id: 'hours', label: t('settings.tabs.hours'), icon: Clock },
+    { id: 'notifications', label: t('settings.tabs.notifications'), icon: Bell },
+    { id: 'security', label: t('settings.tabs.security'), icon: Lock },
   ]
 
   if (authLoading || !isAuthenticated) {
@@ -223,7 +225,7 @@ export default function ConfiguracoesPage() {
 
   if (loading) {
     return (
-      <DashboardLayout title="Configurações">
+      <DashboardLayout title={t('settings.title')}>
         <div className="max-w-4xl mx-auto">
           <div className="bg-white rounded-2xl p-6 shadow-soft">
             <div className="skeleton h-8 w-48 mb-6 rounded" />
@@ -239,7 +241,7 @@ export default function ConfiguracoesPage() {
   }
 
   return (
-    <DashboardLayout title="Configurações">
+    <DashboardLayout title={t('settings.title')}>
       <div className="max-w-4xl mx-auto animate-fade-in">
         {/* Success message */}
         {successMessage && (

@@ -36,6 +36,9 @@ export default function SupportChatScreen({ navigation }: any) {
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
+    let isMounted = true;
+    let innerTimer: ReturnType<typeof setTimeout> | undefined;
+    
     // Load initial messages
     setMessages([
       {
@@ -48,8 +51,10 @@ export default function SupportChatScreen({ navigation }: any) {
 
     // Simulate support typing after initial load
     const timer = setTimeout(() => {
+      if (!isMounted) return;
       setIsTyping(true);
-      setTimeout(() => {
+      innerTimer = setTimeout(() => {
+        if (!isMounted) return;
         setIsTyping(false);
         setMessages(prev => [...prev, {
           id: '2',
@@ -60,7 +65,11 @@ export default function SupportChatScreen({ navigation }: any) {
       }, 2000);
     }, 1000);
 
-    return () => clearTimeout(timer);
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+      if (innerTimer) clearTimeout(innerTimer);
+    };
   }, []);
 
   const sendMessage = () => {

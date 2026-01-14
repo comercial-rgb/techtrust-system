@@ -7,11 +7,10 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../config/database';
 import { asyncHandler } from '../utils/async-handler';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // ============================================
 // BANNERS - Publicidade

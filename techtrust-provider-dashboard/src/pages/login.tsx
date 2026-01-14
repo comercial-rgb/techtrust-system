@@ -3,18 +3,22 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '@/contexts/AuthContext'
-import { Wrench, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { Wrench, Mail, Lock, Eye, EyeOff, Loader2, Globe2 } from 'lucide-react'
 import Link from 'next/link'
+import { useI18n, languages, Language } from '@/i18n'
 
 export default function LoginPage() {
   const { login, isAuthenticated, loading: authLoading } = useAuth()
   const router = useRouter()
+  const { translate, language, setLanguage } = useI18n()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  const tr = translate
 
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
@@ -27,7 +31,7 @@ export default function LoginPage() {
     setError('')
 
     if (!email || !password) {
-      setError('Preencha todos os campos')
+      setError(tr('auth.missingFields'))
       return
     }
 
@@ -35,7 +39,7 @@ export default function LoginPage() {
     try {
       await login(email, password)
     } catch (err: any) {
-      setError(err.message || 'Erro ao fazer login')
+      setError(err.message || tr('auth.loginError'))
     } finally {
       setLoading(false)
     }
@@ -55,23 +59,41 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           {/* Logo */}
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 rounded-2xl bg-primary-500 flex items-center justify-center shadow-lg shadow-primary-500/30">
-              <Wrench className="w-6 h-6 text-white" />
+          <div className="flex items-center justify-between gap-3 mb-8">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-primary-500 flex items-center justify-center shadow-lg shadow-primary-500/30">
+                <Wrench className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">{tr('brand.name')}</h1>
+                <p className="text-sm text-gray-500">{tr('provider.subtitle')}</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">TechTrust</h1>
-              <p className="text-sm text-gray-500">Portal do Fornecedor</p>
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <Globe2 className="w-4 h-4" />
+              <label className="sr-only" htmlFor="lang-select">{tr('common.language')}</label>
+              <select
+                id="lang-select"
+                value={language}
+                onChange={(e) => setLanguage(e.target.value as Language)}
+                className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-200"
+              >
+                {languages.map((lang) => (
+                  <option key={lang.code} value={lang.code}>
+                    {lang.label}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
           {/* Welcome text */}
           <div className="mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Bem-vindo de volta! 👋
+              {tr('auth.welcomeBack')}
             </h2>
             <p className="text-gray-600">
-              Entre na sua conta para gerenciar seus serviços
+              {tr('auth.providerIntro')}
             </p>
           </div>
 
@@ -86,7 +108,7 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email
+                {tr('auth.email')}
               </label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -103,7 +125,7 @@ export default function LoginPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Senha
+                {tr('auth.password')}
               </label>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -128,10 +150,10 @@ export default function LoginPage() {
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-primary-500 focus:ring-primary-500" />
-                <span className="text-sm text-gray-600">Lembrar de mim</span>
+                <span className="text-sm text-gray-600">{tr('auth.rememberMe')}</span>
               </label>
               <Link href="/esqueci-senha" className="text-sm text-primary-600 hover:text-primary-700 font-medium">
-                Esqueci a senha
+                {tr('auth.forgotPassword')}
               </Link>
             </div>
 
@@ -143,10 +165,10 @@ export default function LoginPage() {
               {loading ? (
                 <span className="flex items-center gap-2">
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Entrando...
+                  {tr('auth.signingIn')}
                 </span>
               ) : (
-                'Entrar'
+                tr('auth.signIn')
               )}
             </button>
           </form>
@@ -157,7 +179,7 @@ export default function LoginPage() {
               <div className="w-full border-t border-gray-200" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-gray-500">Ainda não é parceiro?</span>
+              <span className="px-4 bg-white text-gray-500">{tr('provider.notPartner')}</span>
             </div>
           </div>
 
@@ -166,14 +188,14 @@ export default function LoginPage() {
             href="/cadastro"
             className="btn btn-outline w-full py-3 text-base"
           >
-            Cadastre sua oficina
+            {tr('provider.registerCta')}
           </Link>
 
           {/* Help */}
           <p className="mt-8 text-center text-sm text-gray-500">
-            Precisa de ajuda?{' '}
+            {tr('common.help')}{' '}
             <a href="mailto:suporte@techtrust.com" className="text-primary-600 hover:text-primary-700 font-medium">
-              Fale conosco
+              {tr('common.contactUs')}
             </a>
           </p>
         </div>
@@ -186,11 +208,11 @@ export default function LoginPage() {
             <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center mb-6">
               <Wrench className="w-8 h-8" />
             </div>
-            <h2 className="text-3xl font-bold mb-4">
-              Gerencie seus serviços com facilidade
+              <h2 className="text-3xl font-bold mb-4">
+              {tr('provider.heroTitle')}
             </h2>
             <p className="text-lg text-primary-100 leading-relaxed">
-              Receba novos pedidos, envie orçamentos e acompanhe seus serviços em um só lugar.
+              {tr('provider.heroDescription')}
             </p>
           </div>
 
@@ -198,19 +220,19 @@ export default function LoginPage() {
           <div className="grid grid-cols-2 gap-6 mt-12">
             <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5">
               <p className="text-3xl font-bold">500+</p>
-              <p className="text-primary-100 text-sm">Fornecedores ativos</p>
+              <p className="text-primary-100 text-sm">{tr('provider.stats.suppliers')}</p>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5">
               <p className="text-3xl font-bold">10k+</p>
-              <p className="text-primary-100 text-sm">Serviços realizados</p>
+              <p className="text-primary-100 text-sm">{tr('provider.stats.services')}</p>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5">
               <p className="text-3xl font-bold">4.8</p>
-              <p className="text-primary-100 text-sm">Avaliação média</p>
+              <p className="text-primary-100 text-sm">{tr('provider.stats.rating')}</p>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5">
               <p className="text-3xl font-bold">$2M+</p>
-              <p className="text-primary-100 text-sm">Pagos a fornecedores</p>
+              <p className="text-primary-100 text-sm">{tr('provider.stats.paid')}</p>
             </div>
           </div>
         </div>

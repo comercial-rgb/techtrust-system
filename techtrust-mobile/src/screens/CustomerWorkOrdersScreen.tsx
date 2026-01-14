@@ -76,12 +76,12 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
     try {
       await new Promise(resolve => setTimeout(resolve, 800));
       
-      // Solicitações abertas (aguardando/recebendo orçamentos)
+      // Open service requests (awaiting/receiving quotes)
       setServiceRequests([
         {
           id: '1',
           requestNumber: 'SR-2024-005',
-          title: 'Troca de óleo e filtros',
+          title: 'Oil change and filters',
           status: 'QUOTES_RECEIVED',
           quotesCount: 4,
           createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
@@ -90,7 +90,7 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
         {
           id: '2',
           requestNumber: 'SR-2024-006',
-          title: 'Barulho no freio dianteiro',
+          title: 'Noise from front brake',
           status: 'SEARCHING',
           quotesCount: 0,
           createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
@@ -99,7 +99,7 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
         {
           id: '3',
           requestNumber: 'SR-2024-007',
-          title: 'Revisão completa 50k',
+          title: '50k mile service',
           status: 'QUOTES_RECEIVED',
           quotesCount: 2,
           createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
@@ -107,13 +107,13 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
         },
       ]);
       
-      // Work Orders (serviços em andamento/concluídos)
+      // Work Orders (in progress/completed services)
       setWorkOrders([
         {
           id: '1',
           orderNumber: 'WO-2024-001',
           status: 'IN_PROGRESS',
-          title: 'Revisão completa 30k',
+          title: '30k mile service',
           finalAmount: 450.00,
           createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
           provider: { businessName: 'Auto Center Express', rating: 4.8 },
@@ -123,7 +123,7 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
           id: '2',
           orderNumber: 'WO-2024-002',
           status: 'AWAITING_PAYMENT',
-          title: 'Troca de óleo e filtros',
+          title: 'Oil change and filters',
           finalAmount: 180.00,
           createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
           provider: { businessName: "John's Auto Repair", rating: 4.5 },
@@ -133,7 +133,7 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
           id: '3',
           orderNumber: 'WO-2024-003',
           status: 'COMPLETED',
-          title: 'Alinhamento e balanceamento',
+          title: 'Alignment and balancing',
           finalAmount: 120.00,
           createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
           completedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
@@ -144,7 +144,7 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
           id: '4',
           orderNumber: 'WO-2024-004',
           status: 'COMPLETED',
-          title: 'Troca de pastilhas de freio',
+          title: 'Brake pad replacement',
           finalAmount: 320.00,
           createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
           completedAt: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
@@ -168,9 +168,9 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
   const getRequestStatusInfo = (status: string) => {
     switch (status) {
       case 'SEARCHING':
-        return { label: t.serviceRequest?.searching || 'Buscando', color: '#3b82f6', bgColor: '#dbeafe', icon: 'search' };
+        return { label: t.serviceRequest?.searching || 'Searching', color: '#3b82f6', bgColor: '#dbeafe', icon: 'search' };
       case 'QUOTES_RECEIVED':
-        return { label: t.serviceRequest?.quotesReceived || 'Orçamentos', color: '#f59e0b', bgColor: '#fef3c7', icon: 'pricetag' };
+        return { label: t.serviceRequest?.quotesReceived || 'Quotes Received', color: '#f59e0b', bgColor: '#fef3c7', icon: 'pricetag' };
       default:
         return { label: status, color: '#6b7280', bgColor: '#f3f4f6', icon: 'ellipse' };
     }
@@ -200,15 +200,15 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
 
   const filterOptions = activeTab === 'requests' 
     ? [
-        { value: 'all', label: t.common?.all || 'Todos' },
-        { value: 'SEARCHING', label: t.serviceRequest?.searching || 'Buscando' },
-        { value: 'QUOTES_RECEIVED', label: t.serviceRequest?.quotes || 'Orçamentos' },
+        { value: 'all', label: t.common?.all || 'All' },
+        { value: 'SEARCHING', label: t.serviceRequest?.searching || 'Searching' },
+        { value: 'QUOTES_RECEIVED', label: t.serviceRequest?.quotes || 'Quotes' },
       ]
     : [
-        { value: 'all', label: t.common?.all || 'Todos' },
-        { value: 'active', label: t.workOrder?.active || 'Ativos' },
-        { value: 'AWAITING_PAYMENT', label: t.workOrder?.payment || 'Pagamento' },
-        { value: 'COMPLETED', label: t.workOrder?.completed || 'Concluídos' },
+        { value: 'all', label: t.common?.all || 'All' },
+        { value: 'active', label: t.workOrder?.active || 'Active' },
+        { value: 'AWAITING_PAYMENT', label: t.workOrder?.payment || 'Payment' },
+        { value: 'COMPLETED', label: t.workOrder?.completed || 'Completed' },
       ];
 
   const filteredRequests = serviceRequests.filter(req => {
@@ -373,17 +373,17 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
               <View style={[styles.statCard, { backgroundColor: '#dbeafe' }]}>
                 <Ionicons name="construct" size={20} color="#3b82f6" />
                 <Text style={[styles.statValue, { color: '#1e40af' }]}>{stats.active}</Text>
-                <Text style={styles.statLabel}>{t.workOrder?.active || 'Ativos'}</Text>
+                <Text style={styles.statLabel}>{t.workOrder?.active || 'Active'}</Text>
               </View>
               <View style={[styles.statCard, { backgroundColor: '#ede9fe' }]}>
                 <Ionicons name="card" size={20} color="#8b5cf6" />
                 <Text style={[styles.statValue, { color: '#5b21b6' }]}>{stats.awaitingPayment}</Text>
-                <Text style={styles.statLabel}>{t.workOrder?.payment || 'Pagamento'}</Text>
+                <Text style={styles.statLabel}>{t.workOrder?.payment || 'Payment'}</Text>
               </View>
               <View style={[styles.statCard, { backgroundColor: '#d1fae5' }]}>
                 <Ionicons name="checkmark-done" size={20} color="#10b981" />
                 <Text style={[styles.statValue, { color: '#047857' }]}>{stats.completed}</Text>
-                <Text style={styles.statLabel}>{t.workOrder?.completed || 'Concluídos'}</Text>
+                <Text style={styles.statLabel}>{t.workOrder?.completed || 'Completed'}</Text>
               </View>
               <View style={[styles.statCard, { backgroundColor: '#fef3c7' }]}>
                 <Ionicons name="wallet" size={20} color="#f59e0b" />
@@ -516,7 +516,7 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
                       {request.status === 'SEARCHING' && (
                         <View style={styles.searchingHint}>
                           <Ionicons name="time" size={16} color="#3b82f6" />
-                          <Text style={styles.searchingHintText}>Aguardando orçamentos...</Text>
+                          <Text style={styles.searchingHintText}>{t.serviceRequest?.awaitingQuotes || 'Awaiting quotes...'}</Text>
                         </View>
                       )}
                     </View>
@@ -530,9 +530,9 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
           filteredOrders.length === 0 ? (
           <View style={styles.emptyState}>
               <Ionicons name="construct-outline" size={64} color="#d1d5db" />
-              <Text style={styles.emptyTitle}>{t.workOrder?.noServicesFound || 'Nenhum serviço encontrado'}</Text>
+              <Text style={styles.emptyTitle}>{t.workOrder?.noServicesFound || 'No services found'}</Text>
               <Text style={styles.emptySubtitle}>
-                {searchQuery ? t.workOrder?.tryOtherTerms || 'Tente buscar com outros termos' : t.workOrder?.servicesWillAppear || 'Seus serviços aparecerão aqui'}
+                {searchQuery ? t.workOrder?.tryOtherTerms || 'Try searching with other terms' : t.workOrder?.servicesWillAppear || 'Your services will appear here'}
               </Text>
             </View>
           ) : (
@@ -588,7 +588,7 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
                           onPress={() => navigation.navigate('Payment', { workOrderId: wo.id })}
                         >
                           <Ionicons name="card" size={16} color="#8b5cf6" />
-                          <Text style={styles.paymentHintText}>{t.workOrder?.makePayment || 'Realizar pagamento'}</Text>
+                          <Text style={styles.paymentHintText}>{t.workOrder?.makePayment || 'Make Payment'}</Text>
                           <Ionicons name="chevron-forward" size={16} color="#8b5cf6" />
                         </TouchableOpacity>
                       )}

@@ -6,14 +6,12 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../config/database';
 import { authenticate, authorize } from '../middleware/auth';
 import { asyncHandler } from '../utils/async-handler';
 import { hashPassword } from '../utils/password';
-const bcrypt = require('bcryptjs');
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // Middleware para todas as rotas - requer autenticação e role ADMIN
 router.use(authenticate, authorize('ADMIN'));
@@ -325,7 +323,7 @@ router.post('/users/:id/reset-password', asyncHandler(async (req: Request, res: 
   const { id } = req.params;
   const { newPassword } = req.body;
 
-  const passwordHash = await bcrypt.hash(newPassword || 'TechTrust@123', 12);
+  const passwordHash = await hashPassword(newPassword || 'TechTrust@123');
 
   await prisma.user.update({
     where: { id },

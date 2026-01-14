@@ -7,6 +7,8 @@
 
 import { Request, Response } from 'express';
 import { prisma } from '../config/database';
+import { geocodeAddress, formatAddress } from '../services/geocoding.service';
+import { findProvidersWithinRadius } from '../utils/distance';
 
 /**
  * GET /api/v1/providers/dashboard
@@ -256,7 +258,28 @@ export const updateProfile = async (req: Request, res: Response) => {
     serviceRadiusKm,
     specialties,
     businessHours,
+    mobileService,
+    roadsideAssistance,
+    freeKm,
+    extraFeePerKm,
   } = req.body;
+
+  // Se endereço foi fornecido, tenta fazer geocoding
+  let baseLatitude = undefined;
+  let baseLongitude = undefined;
+  
+  if (address && city && state) {
+    const fullAddress = formatAddress(address, city, state, zipCode);
+    const geocoded = await geocodeAddress(fullAddress);
+    
+    if (geocoded) {
+      baseLatitude = geocoded.latitude;
+      baseLongitude = geocoded.longitude;
+      console.log(`Geocoding bem-sucedido: ${fullAddress} -> (${baseLatitude}, ${baseLongitude})`);
+    } else {
+      console.warn(`Geocoding falhou para: ${fullAddress}`);
+    }
+  }
 
   const profile = await prisma.providerProfile.upsert({
     where: { userId: providerId },
@@ -270,6 +293,12 @@ export const updateProfile = async (req: Request, res: Response) => {
       state,
       zipCode,
       serviceRadiusKm: serviceRadiusKm || 50,
+      baseLatitude,
+      baseLongitude,
+      mobileService: mobileService || false,
+      roadsideAssistance: roadsideAssistance || false,
+      freeKm: freeKm || 0,
+      extraFeePerKm: extraFeePerKm || 0,
       specialties: specialties || [],
       businessHours: businessHours || {},
       isVerified: false,
@@ -286,6 +315,12 @@ export const updateProfile = async (req: Request, res: Response) => {
       ...(state !== undefined && { state }),
       ...(zipCode !== undefined && { zipCode }),
       ...(serviceRadiusKm && { serviceRadiusKm: Number(serviceRadiusKm) }),
+      ...(baseLatitude !== undefined && { baseLatitude }),
+      ...(baseLongitude !== undefined && { baseLongitude }),
+      ...(mobileService !== undefined && { mobileService }),
+      ...(roadsideAssistance !== undefined && { roadsideAssistance }),
+      ...(freeKm !== undefined && { freeKm: Number(freeKm) }),
+      ...(extraFeePerKm !== undefined && { extraFeePerKm: Number(extraFeePerKm) }),
       ...(specialties && { specialties }),
       ...(businessHours && { businessHours }),
     },
@@ -295,5 +330,97 @@ export const updateProfile = async (req: Request, res: Response) => {
     success: true,
     message: 'Perfil atualizado com sucesso',
     data: profile,
+  });
+};
+
+/**
+ * GET /api/v1/providers/search
+ * Buscar providers por localização e raio
+ * Query params: lat, lng, radius (km), serviceType
+ */
+export const searchProvidersByLocation = async (req: Request, res: Response): Promise<void> => {
+  const { lat, lng, radius = 50 } = req.query;
+
+  if (!lat || !lng) {
+    res.status(400).json({
+      success: false,
+      message: 'Latitude e longitude são obrigatórios',
+    });
+    return;
+  }
+
+  const latitude = parseFloat(lat as string);
+  const longitude = parseFloat(lng as string);
+  const radiusKm = parseFloat(radius as string);
+
+  // Buscar todos os providers ativos com coordenadas
+  const providers = await prisma.providerProfile.findMany({
+    where: {
+      baseLatitude: { not: null },
+      baseLongitude: { not: null },
+      isVerified: true,
+      user: {
+        status: 'ACTIVE',
+      },
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          fullName: true,
+          phone: true,
+          email: true,
+        },
+      },
+    },
+  });
+
+  // Transformar para formato esperado pela função
+  const mappedProviders = providers.map(p => ({
+    ...p,
+    baseLocation: {
+      latitude: Number(p.baseLatitude),
+      longitude: Number(p.baseLongitude),
+    },
+    freeKm: Number(p.freeKm),
+    feePerKm: Number(p.extraFeePerKm),
+  }));
+
+  // Filtrar e ordenar por distância
+  const serviceLocation = { latitude, longitude };
+  const providersWithDistance = findProvidersWithinRadius(
+    serviceLocation,
+    mappedProviders
+  );
+
+  // Enriquecer resultado com dados adicionais
+  const enrichedProviders = providersWithDistance.map((item) => ({
+    id: item.id,
+    userId: item.userId,
+    businessName: item.businessName,
+    address: item.address,
+    city: item.city,
+    state: item.state,
+    serviceRadiusKm: item.serviceRadiusKm,
+    averageRating: item.averageRating,
+    totalReviews: item.totalReviews,
+    user: item.user,
+    distance: {
+      distanceKm: item.distanceInfo.distanceKm,
+      distanceMiles: item.distanceInfo.distanceMiles,
+      withinRadius: item.distanceInfo.withinRadius,
+      estimatedTimeMinutes: item.distanceInfo.estimatedTimeMinutes,
+    },
+    travelFee: item.distanceInfo.travelFee,
+  }));
+
+  res.json({
+    success: true,
+    data: {
+      providers: enrichedProviders,
+      searchLocation: { latitude, longitude },
+      searchRadius: radiusKm,
+      totalFound: enrichedProviders.length,
+    },
   });
 };

@@ -5,6 +5,10 @@ import { asyncHandler } from '../utils/async-handler';
 
 const router = Router();
 
+// Endpoint público de busca (não requer autenticação)
+router.get('/search', asyncHandler(providerController.searchProvidersByLocation));
+
+// Endpoints protegidos (requerem autenticação como PROVIDER)
 router.use(authenticate);
 router.use(authorize('PROVIDER'));
 

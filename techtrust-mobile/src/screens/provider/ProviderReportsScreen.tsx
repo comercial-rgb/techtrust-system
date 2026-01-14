@@ -182,7 +182,7 @@ export default function ProviderReportsScreen({ navigation }: any) {
                   ]} 
                 />
               </View>
-              <Text style={styles.breakdownCount}>{service.count} serviços ({service.percentage}%)</Text>
+              <Text style={styles.breakdownCount}>{service.count} {t.provider?.services || 'services'} ({service.percentage}%)</Text>
             </View>
           ))}
         </View>

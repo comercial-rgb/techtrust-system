@@ -2,6 +2,7 @@ import React, { useState, ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
+import { useI18n, languages, Language } from '../i18n';
 import {
   Home,
   Car,
@@ -21,18 +22,21 @@ interface DashboardLayoutProps {
 }
 
 const menuItems = [
-  { href: '/dashboard', label: 'Início', icon: Home },
-  { href: '/veiculos', label: 'Meus Veículos', icon: Car },
-  { href: '/solicitacoes', label: 'Solicitações', icon: FileText, badge: 2 },
-  { href: '/servicos', label: 'Meus Serviços', icon: Briefcase },
-  { href: '/perfil', label: 'Meu Perfil', icon: User },
+  { href: '/dashboard', labelKey: 'client.nav.home', icon: Home },
+  { href: '/veiculos', labelKey: 'client.nav.vehicles', icon: Car },
+  { href: '/solicitacoes', labelKey: 'client.nav.requests', icon: FileText, badge: 2 },
+  { href: '/servicos', labelKey: 'client.nav.services', icon: Briefcase },
+  { href: '/perfil', labelKey: 'client.nav.profile', icon: User },
 ];
 
 export default function DashboardLayout({ children, title }: DashboardLayoutProps) {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const { translate, language, setLanguage } = useI18n();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+  const tr = translate;
 
   const isActive = (href: string) => {
     if (href === '/dashboard') {
@@ -63,7 +67,7 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
             <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
               <Car className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-gray-900">TechTrust</span>
+            <span className="text-xl font-bold text-gray-900">{tr('brand.name')}</span>
           </Link>
           <button
             onClick={() => setSidebarOpen(false)}
@@ -83,7 +87,7 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-gray-900 truncate">
-                {user?.fullName || 'Usuário'}
+                {user?.fullName || tr('client.layout.profile')}
               </p>
               <p className="text-xs text-gray-500 truncate">{user?.email}</p>
             </div>
@@ -106,7 +110,7 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
                 }`}
               >
                 <Icon className={`w-5 h-5 ${active ? 'text-primary-600' : 'text-gray-400'}`} />
-                <span className="font-medium">{item.label}</span>
+                <span className="font-medium">{tr(item.labelKey)}</span>
                 {item.badge && (
                   <span className="ml-auto bg-primary-600 text-white text-xs font-semibold px-2 py-0.5 rounded-full">
                     {item.badge}
@@ -124,7 +128,7 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
             className="flex items-center gap-3 w-full px-3 py-2.5 text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors"
           >
             <LogOut className="w-5 h-5" />
-            <span className="font-medium">Sair</span>
+            <span className="font-medium">{tr('client.nav.logout')}</span>
           </button>
         </div>
       </aside>
@@ -145,6 +149,21 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
             </div>
 
             <div className="flex items-center gap-3">
+              <div className="hidden sm:flex items-center gap-2 text-sm text-gray-600">
+                <label className="sr-only" htmlFor="lang-select">{tr('common.language')}</label>
+                <select
+                  id="lang-select"
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value as Language)}
+                  className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-200"
+                >
+                  {languages.map((lang) => (
+                    <option key={lang.code} value={lang.code}>
+                      {lang.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
               {/* Notifications */}
               <button className="relative p-2 hover:bg-gray-100 rounded-lg">
                 <Bell className="w-5 h-5 text-gray-600" />
@@ -177,21 +196,21 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                         onClick={() => setUserMenuOpen(false)}
                       >
-                        Meu Perfil
+                        {tr('client.layout.profile')}
                       </Link>
                       <Link
                         href="/configuracoes"
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                         onClick={() => setUserMenuOpen(false)}
                       >
-                        Configurações
+                        {tr('client.layout.settings')}
                       </Link>
                       <hr className="my-1" />
                       <button
                         onClick={logout}
                         className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                       >
-                        Sair
+                        {tr('client.layout.logout')}
                       </button>
                     </div>
                   </>

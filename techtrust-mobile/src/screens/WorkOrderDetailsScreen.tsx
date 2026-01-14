@@ -126,6 +126,230 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
           { status: 'PAID', label: t.workOrder?.paymentReceived || 'Payment Received', date: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString() },
         ],
       },
+
+      // Vehicle maintenance history (VehicleDetailsScreen)
+      'WO-VH-2024-1015': {
+        id: 'WO-VH-2024-1015',
+        orderNumber: 'WO-VH-2024-1015',
+        title: 'Oil Change',
+        status: 'COMPLETED',
+        finalAmount: 75,
+        partsCost: 35,
+        laborCost: 40,
+        estimatedTime: '45 minutes',
+        description: 'Full synthetic oil change and filter replacement.',
+        createdAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
+        scheduledDate: new Date(Date.now() - 88 * 24 * 60 * 60 * 1000).toISOString(),
+        completedAt: new Date(Date.now() - 88 * 24 * 60 * 60 * 1000).toISOString(),
+        provider: { id: 'provider-quicklube', businessName: 'Quick Lube Express', phone: '+1 (407) 555-1000', rating: 4.8, address: 'Orlando, FL' },
+        vehicle: { make: 'Honda', model: 'Civic', year: 2020, plateNumber: 'ABC-1234' },
+        timeline: [
+          { status: 'SCHEDULED', label: t.workOrder?.serviceScheduled || 'Service Scheduled', date: new Date(Date.now() - 89 * 24 * 60 * 60 * 1000).toISOString() },
+          { status: 'IN_PROGRESS', label: t.workOrder?.serviceStarted || 'Service Started', date: new Date(Date.now() - 88 * 24 * 60 * 60 * 1000).toISOString() },
+          { status: 'COMPLETED', label: t.workOrder?.serviceCompleted || 'Service Completed', date: new Date(Date.now() - 88 * 24 * 60 * 60 * 1000).toISOString() },
+          { status: 'PAID', label: t.workOrder?.paymentReceived || 'Payment Received', date: new Date(Date.now() - 88 * 24 * 60 * 60 * 1000).toISOString() },
+        ],
+      },
+      'WO-VH-2024-0820': {
+        id: 'WO-VH-2024-0820',
+        orderNumber: 'WO-VH-2024-0820',
+        title: 'Tire Rotation',
+        status: 'COMPLETED',
+        finalAmount: 45,
+        partsCost: 0,
+        laborCost: 45,
+        estimatedTime: '30 minutes',
+        description: 'Tire rotation and balance.',
+        createdAt: new Date(Date.now() - 140 * 24 * 60 * 60 * 1000).toISOString(),
+        scheduledDate: new Date(Date.now() - 139 * 24 * 60 * 60 * 1000).toISOString(),
+        completedAt: new Date(Date.now() - 139 * 24 * 60 * 60 * 1000).toISOString(),
+        provider: { id: 'provider-discounttire', businessName: 'Discount Tire', phone: '+1 (407) 555-2000', rating: 4.7, address: 'Orlando, FL' },
+        vehicle: { make: 'Honda', model: 'Civic', year: 2020, plateNumber: 'ABC-1234' },
+        timeline: [
+          { status: 'SCHEDULED', label: t.workOrder?.serviceScheduled || 'Service Scheduled', date: new Date(Date.now() - 139.5 * 24 * 60 * 60 * 1000).toISOString() },
+          { status: 'IN_PROGRESS', label: t.workOrder?.serviceStarted || 'Service Started', date: new Date(Date.now() - 139 * 24 * 60 * 60 * 1000).toISOString() },
+          { status: 'COMPLETED', label: t.workOrder?.serviceCompleted || 'Service Completed', date: new Date(Date.now() - 139 * 24 * 60 * 60 * 1000).toISOString() },
+          { status: 'PAID', label: t.workOrder?.paymentReceived || 'Payment Received', date: new Date(Date.now() - 139 * 24 * 60 * 60 * 1000).toISOString() },
+        ],
+      },
+      'WO-VH-2024-0510': {
+        id: 'WO-VH-2024-0510',
+        orderNumber: 'WO-VH-2024-0510',
+        title: 'Brake Service',
+        status: 'COMPLETED',
+        finalAmount: 450,
+        partsCost: 280,
+        laborCost: 170,
+        estimatedTime: '2 hours',
+        description: 'Front brake pads and rotors replacement.',
+        createdAt: new Date(Date.now() - 220 * 24 * 60 * 60 * 1000).toISOString(),
+        scheduledDate: new Date(Date.now() - 219 * 24 * 60 * 60 * 1000).toISOString(),
+        completedAt: new Date(Date.now() - 219 * 24 * 60 * 60 * 1000).toISOString(),
+        provider: { id: 'provider-autocare', businessName: 'AutoCare Plus', phone: '+1 (407) 555-3000', rating: 4.9, address: 'Orlando, FL' },
+        vehicle: { make: 'Honda', model: 'Civic', year: 2020, plateNumber: 'ABC-1234' },
+        timeline: [
+          { status: 'SCHEDULED', label: t.workOrder?.serviceScheduled || 'Service Scheduled', date: new Date(Date.now() - 219.5 * 24 * 60 * 60 * 1000).toISOString() },
+          { status: 'IN_PROGRESS', label: t.workOrder?.serviceStarted || 'Service Started', date: new Date(Date.now() - 219 * 24 * 60 * 60 * 1000).toISOString() },
+          { status: 'COMPLETED', label: t.workOrder?.serviceCompleted || 'Service Completed', date: new Date(Date.now() - 219 * 24 * 60 * 60 * 1000).toISOString() },
+          { status: 'PAID', label: t.workOrder?.paymentReceived || 'Payment Received', date: new Date(Date.now() - 219 * 24 * 60 * 60 * 1000).toISOString() },
+        ],
+      },
+      'WO-VH-2024-0215': {
+        id: 'WO-VH-2024-0215',
+        orderNumber: 'WO-VH-2024-0215',
+        title: '30K Service',
+        status: 'COMPLETED',
+        finalAmount: 680,
+        partsCost: 420,
+        laborCost: 260,
+        estimatedTime: '3 hours',
+        description: 'Full 30,000 mile service - spark plugs, filters, fluids.',
+        createdAt: new Date(Date.now() - 320 * 24 * 60 * 60 * 1000).toISOString(),
+        scheduledDate: new Date(Date.now() - 319 * 24 * 60 * 60 * 1000).toISOString(),
+        completedAt: new Date(Date.now() - 319 * 24 * 60 * 60 * 1000).toISOString(),
+        provider: { id: 'provider-dealer', businessName: 'Honda Dealership', phone: '+1 (407) 555-4000', rating: 4.5, address: 'Orlando, FL' },
+        vehicle: { make: 'Honda', model: 'Civic', year: 2020, plateNumber: 'ABC-1234' },
+        timeline: [
+          { status: 'SCHEDULED', label: t.workOrder?.serviceScheduled || 'Service Scheduled', date: new Date(Date.now() - 319.5 * 24 * 60 * 60 * 1000).toISOString() },
+          { status: 'IN_PROGRESS', label: t.workOrder?.serviceStarted || 'Service Started', date: new Date(Date.now() - 319 * 24 * 60 * 60 * 1000).toISOString() },
+          { status: 'COMPLETED', label: t.workOrder?.serviceCompleted || 'Service Completed', date: new Date(Date.now() - 319 * 24 * 60 * 60 * 1000).toISOString() },
+          { status: 'PAID', label: t.workOrder?.paymentReceived || 'Payment Received', date: new Date(Date.now() - 319 * 24 * 60 * 60 * 1000).toISOString() },
+        ],
+      },
+      'WO-VH-2023-0720': {
+        id: 'WO-VH-2023-0720',
+        orderNumber: 'WO-VH-2023-0720',
+        title: 'A/C Service',
+        status: 'COMPLETED',
+        finalAmount: 150,
+        partsCost: 40,
+        laborCost: 110,
+        estimatedTime: '1 hour',
+        description: 'A/C system recharge and inspection.',
+        createdAt: new Date(Date.now() - 560 * 24 * 60 * 60 * 1000).toISOString(),
+        scheduledDate: new Date(Date.now() - 559 * 24 * 60 * 60 * 1000).toISOString(),
+        completedAt: new Date(Date.now() - 559 * 24 * 60 * 60 * 1000).toISOString(),
+        provider: { id: 'provider-coolair', businessName: 'Cool Air Auto', phone: '+1 (407) 555-5000', rating: 4.6, address: 'Orlando, FL' },
+        vehicle: { make: 'Honda', model: 'Civic', year: 2020, plateNumber: 'ABC-1234' },
+        timeline: [
+          { status: 'SCHEDULED', label: t.workOrder?.serviceScheduled || 'Service Scheduled', date: new Date(Date.now() - 559.5 * 24 * 60 * 60 * 1000).toISOString() },
+          { status: 'IN_PROGRESS', label: t.workOrder?.serviceStarted || 'Service Started', date: new Date(Date.now() - 559 * 24 * 60 * 60 * 1000).toISOString() },
+          { status: 'COMPLETED', label: t.workOrder?.serviceCompleted || 'Service Completed', date: new Date(Date.now() - 559 * 24 * 60 * 60 * 1000).toISOString() },
+          { status: 'PAID', label: t.workOrder?.paymentReceived || 'Payment Received', date: new Date(Date.now() - 559 * 24 * 60 * 60 * 1000).toISOString() },
+        ],
+      },
+
+      // Service history screen (ServiceHistoryScreen)
+      'WO-2024-012': {
+        id: 'WO-2024-012',
+        orderNumber: 'WO-2024-012',
+        title: 'Full Synthetic Oil Change',
+        status: 'COMPLETED',
+        finalAmount: 85,
+        partsCost: 40,
+        laborCost: 45,
+        estimatedTime: '45 minutes',
+        description: 'Oil change with Mobil 1 synthetic, oil filter replacement.',
+        createdAt: new Date(Date.now() - 70 * 24 * 60 * 60 * 1000).toISOString(),
+        scheduledDate: new Date(Date.now() - 69 * 24 * 60 * 60 * 1000).toISOString(),
+        completedAt: new Date(Date.now() - 69 * 24 * 60 * 60 * 1000).toISOString(),
+        provider: { id: 'provider-quicklube', businessName: 'Quick Lube Express', phone: '+1 (407) 555-1000', rating: 4.8, address: 'Orlando, FL' },
+        vehicle: { make: 'Honda', model: 'Civic', year: 2020, plateNumber: 'ABC-1234' },
+        timeline: [
+          { status: 'SCHEDULED', label: t.workOrder?.serviceScheduled || 'Service Scheduled', date: new Date(Date.now() - 69.5 * 24 * 60 * 60 * 1000).toISOString() },
+          { status: 'IN_PROGRESS', label: t.workOrder?.serviceStarted || 'Service Started', date: new Date(Date.now() - 69 * 24 * 60 * 60 * 1000).toISOString() },
+          { status: 'COMPLETED', label: t.workOrder?.serviceCompleted || 'Service Completed', date: new Date(Date.now() - 69 * 24 * 60 * 60 * 1000).toISOString() },
+          { status: 'PAID', label: t.workOrder?.paymentReceived || 'Payment Received', date: new Date(Date.now() - 69 * 24 * 60 * 60 * 1000).toISOString() },
+        ],
+      },
+      'WO-2024-010': {
+        id: 'WO-2024-010',
+        orderNumber: 'WO-2024-010',
+        title: 'Brake Pad Replacement',
+        status: 'COMPLETED',
+        finalAmount: 450,
+        partsCost: 280,
+        laborCost: 170,
+        estimatedTime: '2 hours',
+        description: 'Front brake pads and rotors replaced, brake fluid flush.',
+        createdAt: new Date(Date.now() - 88 * 24 * 60 * 60 * 1000).toISOString(),
+        scheduledDate: new Date(Date.now() - 87 * 24 * 60 * 60 * 1000).toISOString(),
+        completedAt: new Date(Date.now() - 87 * 24 * 60 * 60 * 1000).toISOString(),
+        provider: { id: 'provider-autocare', businessName: 'AutoCare Plus', phone: '+1 (407) 555-3000', rating: 4.9, address: 'Orlando, FL' },
+        vehicle: { make: 'Honda', model: 'Civic', year: 2020, plateNumber: 'ABC-1234' },
+        timeline: [
+          { status: 'SCHEDULED', label: t.workOrder?.serviceScheduled || 'Service Scheduled', date: new Date(Date.now() - 87.5 * 24 * 60 * 60 * 1000).toISOString() },
+          { status: 'IN_PROGRESS', label: t.workOrder?.serviceStarted || 'Service Started', date: new Date(Date.now() - 87 * 24 * 60 * 60 * 1000).toISOString() },
+          { status: 'COMPLETED', label: t.workOrder?.serviceCompleted || 'Service Completed', date: new Date(Date.now() - 87 * 24 * 60 * 60 * 1000).toISOString() },
+          { status: 'PAID', label: t.workOrder?.paymentReceived || 'Payment Received', date: new Date(Date.now() - 87 * 24 * 60 * 60 * 1000).toISOString() },
+        ],
+      },
+      'WO-2024-008': {
+        id: 'WO-2024-008',
+        orderNumber: 'WO-2024-008',
+        title: 'Tire Rotation & Balance',
+        status: 'COMPLETED',
+        finalAmount: 65,
+        partsCost: 0,
+        laborCost: 65,
+        estimatedTime: '30 minutes',
+        description: 'All 4 tires rotated and balanced.',
+        createdAt: new Date(Date.now() - 110 * 24 * 60 * 60 * 1000).toISOString(),
+        scheduledDate: new Date(Date.now() - 109 * 24 * 60 * 60 * 1000).toISOString(),
+        completedAt: new Date(Date.now() - 109 * 24 * 60 * 60 * 1000).toISOString(),
+        provider: { id: 'provider-discounttire', businessName: 'Discount Tire', phone: '+1 (407) 555-2000', rating: 4.7, address: 'Orlando, FL' },
+        vehicle: { make: 'Toyota', model: 'Corolla', year: 2019, plateNumber: 'XYZ5678' },
+        timeline: [
+          { status: 'SCHEDULED', label: t.workOrder?.serviceScheduled || 'Service Scheduled', date: new Date(Date.now() - 109.5 * 24 * 60 * 60 * 1000).toISOString() },
+          { status: 'IN_PROGRESS', label: t.workOrder?.serviceStarted || 'Service Started', date: new Date(Date.now() - 109 * 24 * 60 * 60 * 1000).toISOString() },
+          { status: 'COMPLETED', label: t.workOrder?.serviceCompleted || 'Service Completed', date: new Date(Date.now() - 109 * 24 * 60 * 60 * 1000).toISOString() },
+          { status: 'PAID', label: t.workOrder?.paymentReceived || 'Payment Received', date: new Date(Date.now() - 109 * 24 * 60 * 60 * 1000).toISOString() },
+        ],
+      },
+      'WO-2024-006': {
+        id: 'WO-2024-006',
+        orderNumber: 'WO-2024-006',
+        title: 'A/C System Repair',
+        status: 'COMPLETED',
+        finalAmount: 680,
+        partsCost: 420,
+        laborCost: 260,
+        estimatedTime: '3 hours',
+        description: 'Compressor replacement and refrigerant recharge.',
+        createdAt: new Date(Date.now() - 150 * 24 * 60 * 60 * 1000).toISOString(),
+        scheduledDate: new Date(Date.now() - 149 * 24 * 60 * 60 * 1000).toISOString(),
+        completedAt: new Date(Date.now() - 149 * 24 * 60 * 60 * 1000).toISOString(),
+        provider: { id: 'provider-coolair', businessName: 'Cool Air Auto', phone: '+1 (407) 555-5000', rating: 4.6, address: 'Orlando, FL' },
+        vehicle: { make: 'Honda', model: 'Civic', year: 2020, plateNumber: 'ABC1234' },
+        timeline: [
+          { status: 'SCHEDULED', label: t.workOrder?.serviceScheduled || 'Service Scheduled', date: new Date(Date.now() - 149.5 * 24 * 60 * 60 * 1000).toISOString() },
+          { status: 'IN_PROGRESS', label: t.workOrder?.serviceStarted || 'Service Started', date: new Date(Date.now() - 149 * 24 * 60 * 60 * 1000).toISOString() },
+          { status: 'COMPLETED', label: t.workOrder?.serviceCompleted || 'Service Completed', date: new Date(Date.now() - 149 * 24 * 60 * 60 * 1000).toISOString() },
+          { status: 'PAID', label: t.workOrder?.paymentReceived || 'Payment Received', date: new Date(Date.now() - 149 * 24 * 60 * 60 * 1000).toISOString() },
+        ],
+      },
+      'WO-2024-004': {
+        id: 'WO-2024-004',
+        orderNumber: 'WO-2024-004',
+        title: '30K Mile Service',
+        status: 'COMPLETED',
+        finalAmount: 520,
+        partsCost: 320,
+        laborCost: 200,
+        estimatedTime: '3 hours',
+        description: 'Full inspection, fluid changes, spark plugs.',
+        createdAt: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString(),
+        scheduledDate: new Date(Date.now() - 179 * 24 * 60 * 60 * 1000).toISOString(),
+        completedAt: new Date(Date.now() - 179 * 24 * 60 * 60 * 1000).toISOString(),
+        provider: { id: 'provider-dealer', businessName: 'Honda Dealership', phone: '+1 (407) 555-4000', rating: 4.5, address: 'Orlando, FL' },
+        vehicle: { make: 'Honda', model: 'Civic', year: 2020, plateNumber: 'ABC1234' },
+        timeline: [
+          { status: 'SCHEDULED', label: t.workOrder?.serviceScheduled || 'Service Scheduled', date: new Date(Date.now() - 179.5 * 24 * 60 * 60 * 1000).toISOString() },
+          { status: 'IN_PROGRESS', label: t.workOrder?.serviceStarted || 'Service Started', date: new Date(Date.now() - 179 * 24 * 60 * 60 * 1000).toISOString() },
+          { status: 'COMPLETED', label: t.workOrder?.serviceCompleted || 'Service Completed', date: new Date(Date.now() - 179 * 24 * 60 * 60 * 1000).toISOString() },
+          { status: 'PAID', label: t.workOrder?.paymentReceived || 'Payment Received', date: new Date(Date.now() - 179 * 24 * 60 * 60 * 1000).toISOString() },
+        ],
+      },
     };
 
     // Get work order data based on ID, fallback to first one
@@ -168,12 +392,12 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
 
   const getStatusInfo = (status: string) => {
     switch (status) {
-      case 'PENDING_START': return { label: t.workOrder?.awaitingStart || 'Aguardando Início', color: '#f59e0b', bgColor: '#fef3c7' };
-      case 'IN_PROGRESS': return { label: t.workOrder?.inProgress || 'Em Andamento', color: '#3b82f6', bgColor: '#dbeafe' };
-      case 'AWAITING_PAYMENT': return { label: t.workOrder?.awaitingPayment || 'Aguardando Pagamento', color: '#8b5cf6', bgColor: '#ede9fe' };
-      case 'COMPLETED': return { label: t.workOrder?.completed || 'Concluído', color: '#10b981', bgColor: '#d1fae5' };
-      case 'CANCELLED': return { label: t.workOrder?.cancelled || 'Cancelado', color: '#ef4444', bgColor: '#fee2e2' };
-      case 'DISPUTED': return { label: t.workOrder?.disputed || 'Em Disputa', color: '#f97316', bgColor: '#fed7aa' };
+      case 'PENDING_START': return { label: t.workOrder?.awaitingStart || 'Awaiting Start', color: '#f59e0b', bgColor: '#fef3c7' };
+      case 'IN_PROGRESS': return { label: t.workOrder?.inProgress || 'In Progress', color: '#3b82f6', bgColor: '#dbeafe' };
+      case 'AWAITING_PAYMENT': return { label: t.workOrder?.awaitingPayment || 'Awaiting Payment', color: '#8b5cf6', bgColor: '#ede9fe' };
+      case 'COMPLETED': return { label: t.workOrder?.completed || 'Completed', color: '#10b981', bgColor: '#d1fae5' };
+      case 'CANCELLED': return { label: t.workOrder?.cancelled || 'Cancelled', color: '#ef4444', bgColor: '#fee2e2' };
+      case 'DISPUTED': return { label: t.workOrder?.disputed || 'Disputed', color: '#f97316', bgColor: '#fed7aa' };
       default: return { label: status, color: '#6b7280', bgColor: '#f3f4f6' };
     }
   };
@@ -246,12 +470,12 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
       
       setShowCancelModal(false);
       Alert.alert(
-        t.common?.success || 'Sucesso',
-        t.businessRules?.cancellation?.cancelledSuccessfully || 'Serviço cancelado com sucesso',
+        t.common?.success || 'Success',
+        t.businessRules?.cancellation?.cancelledSuccessfully || 'Service cancelled successfully',
         [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
     } catch (error) {
-      Alert.alert(t.common?.error || 'Erro', t.common?.tryAgain || 'Tente novamente');
+      Alert.alert(t.common?.error || 'Error', t.common?.tryAgain || 'Try again');
     } finally {
       setProcessingAction(false);
     }
@@ -260,7 +484,7 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
   // Handle dispute submission
   const handleDispute = async () => {
     if (!disputeReason.trim()) {
-      Alert.alert(t.common?.error || 'Erro', t.businessRules?.dispute?.enterReason || 'Por favor, descreva o motivo da disputa');
+      Alert.alert(t.common?.error || 'Error', t.businessRules?.dispute?.enterReason || 'Please describe the reason for the dispute');
       return;
     }
     
@@ -272,19 +496,19 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
       setShowDisputeModal(false);
       setDisputeReason('');
       Alert.alert(
-        t.common?.success || 'Sucesso',
-        t.businessRules?.dispute?.submittedSuccessfully || 'Disputa enviada. Aguarde nossa análise.',
+        t.common?.success || 'Success',
+        t.businessRules?.dispute?.submittedSuccessfully || 'Dispute submitted. Please wait for our analysis.',
         [{ text: 'OK', onPress: () => loadDetails() }]
       );
     } catch (error) {
-      Alert.alert(t.common?.error || 'Erro', t.common?.tryAgain || 'Tente novamente');
+      Alert.alert(t.common?.error || 'Error', t.common?.tryAgain || 'Try again');
     } finally {
       setProcessingAction(false);
     }
   };
 
   if (loading) {
-    return <SafeAreaView style={styles.container}><View style={styles.loading}><Text>{t.common?.loading || 'Carregando...'}</Text></View></SafeAreaView>;
+    return <SafeAreaView style={styles.container}><View style={styles.loading}><Text>{t.common?.loading || 'Loading...'}</Text></View></SafeAreaView>;
   }
 
   const statusInfo = getStatusInfo(workOrder?.status);
@@ -295,7 +519,7 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color="#111827" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t.workOrder?.serviceDetails || 'Detalhes do Serviço'}</Text>
+        <Text style={styles.headerTitle}>{t.workOrder?.serviceDetails || 'Service Details'}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -387,7 +611,7 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
 
         {/* Service Info */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>{t.workOrder?.service || 'Serviço'}</Text>
+          <Text style={styles.cardTitle}>{t.workOrder?.service || 'Service'}</Text>
           <Text style={styles.serviceTitle}>{workOrder?.title}</Text>
           <Text style={styles.serviceDescription}>{workOrder?.description}</Text>
         </View>
@@ -438,7 +662,7 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
 
         {/* Vehicle Info */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>{t.workOrder?.vehicle || 'Veículo'}</Text>
+          <Text style={styles.cardTitle}>{t.workOrder?.vehicle || 'Vehicle'}</Text>
           <View style={styles.vehicleRow}>
             <Ionicons name="car" size={20} color="#6b7280" />
             <Text style={styles.vehicleText}>{workOrder?.vehicle.make} {workOrder?.vehicle.model} {workOrder?.vehicle.year}</Text>
@@ -448,10 +672,10 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
 
         {/* Price Info - Detailed Breakdown */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>{t.workOrder?.quoteDetails || 'Detalhes do Orçamento'}</Text>
+          <Text style={styles.cardTitle}>{t.workOrder?.quoteDetails || 'Quote Details'}</Text>
           
           {/* Parts Section */}
-          <Text style={styles.sectionSubtitle}>{t.workOrder?.parts || 'Peças'}</Text>
+          <Text style={styles.sectionSubtitle}>{t.workOrder?.parts || 'Parts'}</Text>
           {workOrder?.lineItems?.filter((item: any) => item.type === 'part').map((item: any) => (
             <View key={item.id} style={styles.lineItemRow}>
               <View style={styles.lineItemInfo}>
@@ -462,30 +686,30 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
             </View>
           ))}
           <View style={styles.subtotalRow}>
-            <Text style={styles.subtotalLabel}>{t.workOrder?.partsSubtotal || 'Subtotal Peças'}</Text>
+            <Text style={styles.subtotalLabel}>{t.workOrder?.partsSubtotal || 'Parts Subtotal'}</Text>
             <Text style={styles.subtotalValue}>${workOrder?.partsCost}</Text>
           </View>
 
           {/* Labor Section */}
-          <Text style={styles.sectionSubtitle}>{t.workOrder?.labor || 'Mão de obra'}</Text>
+          <Text style={styles.sectionSubtitle}>{t.workOrder?.labor || 'Labor'}</Text>
           {workOrder?.lineItems?.filter((item: any) => item.type === 'labor').map((item: any) => (
             <View key={item.id} style={styles.lineItemRow}>
               <View style={styles.lineItemInfo}>
                 <Text style={styles.lineItemDesc}>{item.description}</Text>
-                <Text style={styles.lineItemQty}>{t.common?.qty || 'Qtd'}: {item.quantity}</Text>
+                <Text style={styles.lineItemQty}>{t.common?.qty || 'Qty'}: {item.quantity}</Text>
               </View>
               <Text style={styles.lineItemPrice}>${(item.quantity * item.unitPrice).toFixed(2)}</Text>
             </View>
           ))}
           <View style={styles.subtotalRow}>
-            <Text style={styles.subtotalLabel}>{t.workOrder?.laborSubtotal || 'Subtotal Mão de Obra'}</Text>
+            <Text style={styles.subtotalLabel}>{t.workOrder?.laborSubtotal || 'Labor Subtotal'}</Text>
             <Text style={styles.subtotalValue}>${workOrder?.laborCost}</Text>
           </View>
 
           {/* Estimated Time */}
           <View style={styles.estimatedTimeRow}>
             <Ionicons name="time-outline" size={16} color="#6b7280" />
-            <Text style={styles.estimatedTimeText}>{t.workOrder?.estimatedTime || 'Tempo estimado'}: {workOrder?.estimatedTime}</Text>
+            <Text style={styles.estimatedTimeText}>{t.workOrder?.estimatedTime || 'Estimated time'}: {workOrder?.estimatedTime}</Text>
           </View>
 
           {/* Total */}
@@ -495,17 +719,17 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
         {/* Warranty Info */}
         {workOrder?.warranty && (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>{t.workOrder?.warranty || 'Garantia'}</Text>
+            <Text style={styles.cardTitle}>{t.workOrder?.warranty || 'Warranty'}</Text>
             <View style={styles.warrantyContainer}>
               <View style={styles.warrantyItem}>
                 <Ionicons name="cube-outline" size={20} color="#f59e0b" />
-                <Text style={styles.warrantyLabel}>{t.workOrder?.parts || 'Peças'}</Text>
-                <Text style={styles.warrantyValue}>{workOrder.warranty.partsWarrantyMonths} {t.common?.months || 'meses'}</Text>
+                <Text style={styles.warrantyLabel}>{t.workOrder?.parts || 'Parts'}</Text>
+                <Text style={styles.warrantyValue}>{workOrder.warranty.partsWarrantyMonths} {t.common?.months || 'months'}</Text>
               </View>
               <View style={styles.warrantyItem}>
                 <Ionicons name="construct-outline" size={20} color="#f59e0b" />
-                <Text style={styles.warrantyLabel}>{t.workOrder?.service || 'Serviço'}</Text>
-                <Text style={styles.warrantyValue}>{workOrder.warranty.serviceWarrantyDays} {t.common?.days || 'dias'}</Text>
+                <Text style={styles.warrantyLabel}>{t.workOrder?.service || 'Service'}</Text>
+                <Text style={styles.warrantyValue}>{workOrder.warranty.serviceWarrantyDays} {t.common?.days || 'days'}</Text>
               </View>
             </View>
             {workOrder.warranty.terms && (
@@ -516,13 +740,13 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
 
         {/* Timeline */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>{t.workOrder?.history || 'Histórico'}</Text>
+          <Text style={styles.cardTitle}>{t.workOrder?.history || 'History'}</Text>
           {workOrder?.timeline.map((item: any, idx: number) => (
             <View key={idx} style={styles.timelineItem}>
               <View style={styles.timelineDot} />
               <View style={styles.timelineContent}>
                 <Text style={styles.timelineLabel}>{item.label}</Text>
-                <Text style={styles.timelineDate}>{new Date(item.date).toLocaleDateString('pt-BR')}</Text>
+                <Text style={styles.timelineDate}>{new Date(item.date).toLocaleDateString('en-US')}</Text>
               </View>
             </View>
           ))}
@@ -584,7 +808,7 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
         {canCancel && (
           <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowCancelModal(true)}>
             <Ionicons name="close-circle" size={20} color="#dc2626" />
-            <Text style={styles.cancelBtnText}>{t.businessRules?.cancellation?.cancelService || 'Cancelar Serviço'}</Text>
+            <Text style={styles.cancelBtnText}>{t.businessRules?.cancellation?.cancelService || 'Cancel Service'}</Text>
           </TouchableOpacity>
         )}
 
@@ -593,11 +817,11 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
           <View style={styles.disputeContainer}>
             <TouchableOpacity style={styles.disputeBtn} onPress={() => setShowDisputeModal(true)}>
               <Ionicons name="alert-circle" size={20} color="#ea580c" />
-              <Text style={styles.disputeBtnText}>{t.businessRules?.dispute?.openDispute || 'Abrir Disputa'}</Text>
+              <Text style={styles.disputeBtnText}>{t.businessRules?.dispute?.openDispute || 'Open Dispute'}</Text>
             </TouchableOpacity>
             {disputeTimeRemaining && (
               <Text style={styles.disputeTimeText}>
-                {t.businessRules?.dispute?.timeRemaining?.replace('{hours}', String(disputeTimeRemaining)) || `${disputeTimeRemaining}h restantes`}
+                {t.businessRules?.dispute?.timeRemaining?.replace('{hours}', String(disputeTimeRemaining)) || `${disputeTimeRemaining}h remaining`}
               </Text>
             )}
           </View>
@@ -612,15 +836,15 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Ionicons name="warning" size={40} color="#f59e0b" />
-              <Text style={styles.modalTitle}>{t.businessRules?.cancellation?.confirmTitle || 'Confirmar Cancelamento'}</Text>
+              <Text style={styles.modalTitle}>{t.businessRules?.cancellation?.confirmTitle || 'Confirm Cancellation'}</Text>
             </View>
             
             <Text style={styles.modalDescription}>
-              {t.businessRules?.cancellation?.confirmMessage || 'Tem certeza que deseja cancelar este serviço?'}
+              {t.businessRules?.cancellation?.confirmMessage || 'Are you sure you want to cancel this service?'}
             </Text>
             
             <View style={styles.feeInfo}>
-              <Text style={styles.feeLabel}>{t.businessRules?.cancellation?.cancellationFee || 'Taxa de cancelamento'}:</Text>
+              <Text style={styles.feeLabel}>{t.businessRules?.cancellation?.cancellationFee || 'Cancellation fee'}:</Text>
               <Text style={styles.feeReason}>{cancellationInfo.reason}</Text>
               <View style={styles.feeRow}>
                 <Text style={styles.feePercent}>{cancellationInfo.feePercent}%</Text>
@@ -634,7 +858,7 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
                 onPress={() => setShowCancelModal(false)}
                 disabled={processingAction}
               >
-                <Text style={styles.modalCancelText}>{t.common?.back || 'Voltar'}</Text>
+                <Text style={styles.modalCancelText}>{t.common?.back || 'Back'}</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={[styles.modalConfirmBtn, processingAction && styles.btnDisabled]} 
@@ -644,7 +868,7 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
                 {processingAction ? (
                   <ActivityIndicator color="#fff" size="small" />
                 ) : (
-                  <Text style={styles.modalConfirmText}>{t.common?.confirm || 'Confirmar'}</Text>
+                  <Text style={styles.modalConfirmText}>{t.common?.confirm || 'Confirm'}</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -658,16 +882,16 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Ionicons name="document-text" size={40} color="#f97316" />
-              <Text style={styles.modalTitle}>{t.businessRules?.dispute?.title || 'Abrir Disputa'}</Text>
+              <Text style={styles.modalTitle}>{t.businessRules?.dispute?.title || 'Open Dispute'}</Text>
             </View>
             
             <Text style={styles.modalDescription}>
-              {t.businessRules?.dispute?.description || 'Descreva o problema com o serviço prestado. Nossa equipe irá analisar e responder em até 5 dias úteis.'}
+              {t.businessRules?.dispute?.description || 'Describe the problem with the service provided. Our team will analyze and respond within 5 business days.'}
             </Text>
             
             <TextInput
               style={styles.disputeInput}
-              placeholder={t.businessRules?.dispute?.reasonPlaceholder || 'Descreva o motivo da disputa...'}
+              placeholder={t.businessRules?.dispute?.reasonPlaceholder || 'Describe the reason for the dispute...'}
               value={disputeReason}
               onChangeText={setDisputeReason}
               multiline
@@ -679,7 +903,7 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
               <Ionicons name="information-circle" size={16} color="#6b7280" />
               <Text style={styles.disputeInfoText}>
                 {t.businessRules?.dispute?.providerResponseInfo?.replace('{hours}', String(DISPUTE_RULES.PROVIDER_RESPONSE_HOURS)) || 
-                  `O fornecedor terá ${DISPUTE_RULES.PROVIDER_RESPONSE_HOURS}h para responder`}
+                  `The provider will have ${DISPUTE_RULES.PROVIDER_RESPONSE_HOURS}h to respond`}
               </Text>
             </View>
 
@@ -689,7 +913,7 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
                 onPress={() => { setShowDisputeModal(false); setDisputeReason(''); }}
                 disabled={processingAction}
               >
-                <Text style={styles.modalCancelText}>{t.common?.cancel || 'Cancelar'}</Text>
+                <Text style={styles.modalCancelText}>{t.common?.cancel || 'Cancel'}</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={[styles.modalConfirmBtn, styles.disputeConfirmBtn, processingAction && styles.btnDisabled]} 
@@ -699,7 +923,7 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
                 {processingAction ? (
                   <ActivityIndicator color="#fff" size="small" />
                 ) : (
-                  <Text style={styles.modalConfirmText}>{t.businessRules?.dispute?.submit || 'Enviar Disputa'}</Text>
+                  <Text style={styles.modalConfirmText}>{t.businessRules?.dispute?.submit || 'Submit Dispute'}</Text>
                 )}
               </TouchableOpacity>
             </View>

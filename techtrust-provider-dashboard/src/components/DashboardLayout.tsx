@@ -4,6 +4,7 @@ import React, { useState, ReactNode } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useAuth } from '@/contexts/AuthContext'
+import { useI18n, languages, Language } from '@/i18n'
 import {
   LayoutDashboard,
   ClipboardList,
@@ -26,20 +27,22 @@ interface DashboardLayoutProps {
 }
 
 const menuItems = [
-  { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { href: '/pedidos', icon: ClipboardList, label: 'Pedidos' },
-  { href: '/orcamentos', icon: FileText, label: 'Orçamentos' },
-  { href: '/servicos', icon: Briefcase, label: 'Serviços' },
-  { href: '/configuracoes', icon: Settings, label: 'Configurações' },
+  { href: '/dashboard', icon: LayoutDashboard, key: 'provider.nav.dashboard' },
+  { href: '/pedidos', icon: ClipboardList, key: 'provider.nav.requests' },
+  { href: '/orcamentos', icon: FileText, key: 'provider.nav.quotes' },
+  { href: '/servicos', icon: Briefcase, key: 'provider.nav.services' },
+  { href: '/configuracoes', icon: Settings, key: 'provider.nav.settings' },
 ]
 
 export default function DashboardLayout({ children, title }: DashboardLayoutProps) {
   const { user, logout } = useAuth()
   const router = useRouter()
+  const { translate, language, setLanguage } = useI18n()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
 
   const isActive = (href: string) => router.pathname === href
+  const tr = translate
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -65,7 +68,7 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
             <div className="w-8 h-8 rounded-lg bg-primary-500 flex items-center justify-center">
               <Wrench className="w-5 h-5 text-white" />
             </div>
-            <span className="text-lg font-bold text-gray-900">TechTrust</span>
+            <span className="text-lg font-bold text-gray-900">{tr('brand.name')}</span>
           </Link>
           <button 
             onClick={() => setSidebarOpen(false)}
@@ -89,14 +92,14 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
                 <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
                 <span>{user?.providerProfile?.averageRating?.toFixed(1) || '0.0'}</span>
                 <span className="text-gray-300">•</span>
-                <span>{user?.providerProfile?.totalReviews || 0} avaliações</span>
+                <span>{user?.providerProfile?.totalReviews || 0} {tr('provider.layout.rating')}</span>
               </div>
             </div>
           </div>
           {user?.providerProfile?.isVerified && (
             <div className="mt-2 flex items-center gap-1 text-xs text-green-600">
               <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-              Fornecedor Verificado
+              {tr('provider.layout.verified')}
             </div>
           )}
         </div>
@@ -119,7 +122,7 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
                 `}
               >
                 <Icon className={`w-5 h-5 ${active ? 'text-primary-500' : 'text-gray-400'}`} />
-                {item.label}
+                {tr(item.key)}
                 {item.href === '/pedidos' && (
                   <span className="ml-auto px-2 py-0.5 text-xs font-semibold bg-primary-500 text-white rounded-full">
                     3
@@ -137,7 +140,7 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
             className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-all"
           >
             <LogOut className="w-5 h-5" />
-            Sair
+            {tr('provider.layout.logout')}
           </button>
         </div>
       </aside>
@@ -160,6 +163,21 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
             </div>
 
             <div className="flex items-center gap-3">
+              <div className="hidden sm:flex items-center gap-2 text-sm text-gray-600">
+                <label className="sr-only" htmlFor="lang-select">{tr('common.language')}</label>
+                <select
+                  id="lang-select"
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value as Language)}
+                  className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-200"
+                >
+                  {languages.map((lang) => (
+                    <option key={lang.code} value={lang.code}>
+                      {lang.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
               {/* Notifications */}
               <button className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors">
                 <Bell className="w-5 h-5 text-gray-600" />
@@ -191,7 +209,7 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
                         onClick={() => setUserMenuOpen(false)}
                       >
                         <Settings className="w-4 h-4" />
-                        Configurações
+                        {tr('provider.layout.settings')}
                       </Link>
                       <hr className="my-1" />
                       <button
@@ -202,7 +220,7 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
                         className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                       >
                         <LogOut className="w-4 h-4" />
-                        Sair
+                        {tr('provider.layout.logout')}
                       </button>
                     </div>
                   </>

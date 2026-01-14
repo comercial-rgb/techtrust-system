@@ -2,6 +2,7 @@ import { ReactNode, useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { useAuth } from '../contexts/AuthContext';
+import { useI18n, languages, Language } from '../i18n';
 import {
   LayoutDashboard,
   Users,
@@ -30,26 +31,29 @@ interface AdminLayoutProps {
 }
 
 const menuItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/usuarios', label: 'Usuários', icon: Users },
-  { href: '/fornecedores', label: 'Fornecedores', icon: Building2 },
-  { href: '/solicitacoes', label: 'Solicitações', icon: FileText },
-  { href: '/servicos', label: 'Serviços', icon: Wrench },
-  { href: '/pagamentos', label: 'Pagamentos', icon: CreditCard },
-  { href: '/avaliacoes', label: 'Avaliações', icon: Star },
-  { href: '/assinaturas', label: 'Assinaturas', icon: Tag },
-  { href: '/conteudo', label: 'Conteúdo', icon: Megaphone },
-  { href: '/relatorios', label: 'Relatórios', icon: BarChart3 },
-  { href: '/notificacoes', label: 'Notificações', icon: Bell },
-  { href: '/logs', label: 'Logs de Auditoria', icon: History },
-  { href: '/configuracoes', label: 'Configurações', icon: Settings },
+  { href: '/dashboard', key: 'admin.nav.dashboard', icon: LayoutDashboard },
+  { href: '/usuarios', key: 'admin.nav.users', icon: Users },
+  { href: '/fornecedores', key: 'admin.nav.providers', icon: Building2 },
+  { href: '/solicitacoes', key: 'admin.nav.requests', icon: FileText },
+  { href: '/servicos', key: 'admin.nav.services', icon: Wrench },
+  { href: '/pagamentos', key: 'admin.nav.payments', icon: CreditCard },
+  { href: '/avaliacoes', key: 'admin.nav.reviews', icon: Star },
+  { href: '/assinaturas', key: 'admin.nav.subscriptions', icon: Tag },
+  { href: '/conteudo', key: 'admin.nav.content', icon: Megaphone },
+  { href: '/relatorios', key: 'admin.nav.reports', icon: BarChart3 },
+  { href: '/notificacoes', key: 'admin.nav.notifications', icon: Bell },
+  { href: '/logs', key: 'admin.nav.logs', icon: History },
+  { href: '/configuracoes', key: 'admin.nav.settings', icon: Settings },
 ];
 
 export default function AdminLayout({ children, title }: AdminLayoutProps) {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const { translate, language, setLanguage } = useI18n();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+  const tr = translate;
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -74,7 +78,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
             </div>
             <span className="font-bold text-gray-900">TechTrust</span>
             <span className="text-xs bg-admin-100 text-admin-700 px-2 py-0.5 rounded-full font-medium">
-              Admin
+              {tr('brand.adminPortal')}
             </span>
           </div>
           <button
@@ -96,7 +100,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
                 className={`sidebar-link ${isActive ? 'active' : ''}`}
               >
                 <Icon className="w-5 h-5" />
-                {item.label}
+                {tr(item.key)}
               </Link>
             );
           })}
@@ -119,7 +123,22 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
 
           <div className="flex items-center gap-4">
             {/* Notifications */}
-            <button className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg">
+            <div className="hidden sm:flex items-center gap-2 text-sm text-gray-600">
+              <label className="sr-only" htmlFor="lang-select">{tr('common.language')}</label>
+              <select
+                id="lang-select"
+                value={language}
+                onChange={(e) => setLanguage(e.target.value as Language)}
+                className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-admin-200"
+              >
+                {languages.map((lang) => (
+                  <option key={lang.code} value={lang.code}>
+                    {lang.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg" aria-label={tr('common.notifications')}>
               <Bell className="w-5 h-5" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
             </button>
@@ -137,7 +156,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
                 </div>
                 <div className="hidden md:block text-left">
                   <p className="text-sm font-medium text-gray-900">{user?.fullName}</p>
-                  <p className="text-xs text-gray-500">Administrador</p>
+                  <p className="text-xs text-gray-500">{tr('admin.layout.role')}</p>
                 </div>
                 <ChevronDown className="w-4 h-4 text-gray-500" />
               </button>
@@ -154,14 +173,14 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
                       className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-50"
                     >
                       <Users className="w-4 h-4" />
-                      Meu Perfil
+                      {tr('admin.layout.profile')}
                     </Link>
                     <Link
                       href="/configuracoes"
                       className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-50"
                     >
                       <Settings className="w-4 h-4" />
-                      Configurações
+                      {tr('admin.layout.settings')}
                     </Link>
                     <hr className="my-2" />
                     <button
@@ -169,7 +188,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
                       className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 w-full"
                     >
                       <LogOut className="w-4 h-4" />
-                      Sair
+                      {tr('admin.layout.logout')}
                     </button>
                   </div>
                 </>

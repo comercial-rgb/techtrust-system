@@ -163,21 +163,21 @@ export default function CreateRequestScreen({ navigation }: any) {
   // Service types - In production, these would be filtered based on available providers in the area
   // The 'hasProviders' field indicates if there are active providers offering this service
   const serviceTypes = [
-    { id: 'oil', label: 'Oil Change', icon: 'water', hasProviders: true },
-    { id: 'brake', label: 'Brakes', icon: 'disc', hasProviders: true },
-    { id: 'tire', label: 'Tires', icon: 'ellipse', hasProviders: true },
-    { id: 'engine', label: 'Engine', icon: 'cog', hasProviders: true },
-    { id: 'electric', label: 'Electrical', icon: 'flash', hasProviders: true },
-    { id: 'ac', label: 'A/C', icon: 'snow', hasProviders: true },
-    { id: 'suspension', label: 'Suspension', icon: 'resize', hasProviders: true },
-    { id: 'transmission', label: 'Transmission', icon: 'cog', hasProviders: false }, // No providers currently
-    { id: 'inspection', label: 'Inspection', icon: 'clipboard', hasProviders: true },
-    { id: 'detailing', label: 'Detailing', icon: 'sparkles', hasProviders: false }, // No providers currently
-    { id: 'towing', label: 'Towing', icon: 'car', hasProviders: true },
-    { id: 'roadside', label: 'Roadside Assist', icon: 'warning', hasProviders: true },
-    { id: 'battery', label: 'Battery', icon: 'battery-charging', hasProviders: true },
-    { id: 'lockout', label: 'Lockout', icon: 'key', hasProviders: true },
-    { id: 'other', label: 'Other', icon: 'ellipsis-horizontal', hasProviders: true },
+    { id: 'oil', label: t.createRequest?.serviceOilChange || 'Oil Change', icon: 'water', hasProviders: true },
+    { id: 'brake', label: t.createRequest?.serviceBrakes || 'Brakes', icon: 'disc', hasProviders: true },
+    { id: 'tire', label: t.createRequest?.serviceTires || 'Tires', icon: 'ellipse', hasProviders: true },
+    { id: 'engine', label: t.createRequest?.serviceEngine || 'Engine', icon: 'cog', hasProviders: true },
+    { id: 'electric', label: t.createRequest?.serviceElectrical || 'Electrical', icon: 'flash', hasProviders: true },
+    { id: 'ac', label: t.createRequest?.serviceAC || 'A/C', icon: 'snow', hasProviders: true },
+    { id: 'suspension', label: t.createRequest?.serviceSuspension || 'Suspension', icon: 'resize', hasProviders: true },
+    { id: 'transmission', label: t.createRequest?.serviceTransmission || 'Transmission', icon: 'cog', hasProviders: false }, // No providers currently
+    { id: 'inspection', label: t.createRequest?.serviceInspection || 'Inspection', icon: 'clipboard', hasProviders: true },
+    { id: 'detailing', label: t.createRequest?.serviceDetailing || 'Detailing', icon: 'sparkles', hasProviders: false }, // No providers currently
+    { id: 'towing', label: t.createRequest?.serviceTowing || 'Towing', icon: 'car', hasProviders: true },
+    { id: 'roadside', label: t.serviceTypes?.roadsideAssistance || t.createRequest?.serviceRoadside || 'Roadside Assist', icon: 'warning', hasProviders: true },
+    { id: 'battery', label: t.createRequest?.serviceBattery || 'Battery', icon: 'battery-charging', hasProviders: true },
+    { id: 'lockout', label: t.createRequest?.serviceLockout || 'Lockout', icon: 'key', hasProviders: true },
+    { id: 'other', label: t.createRequest?.serviceOther || 'Other', icon: 'ellipsis-horizontal', hasProviders: true },
   ];
 
   // Filter only services that have active providers
@@ -186,7 +186,7 @@ export default function CreateRequestScreen({ navigation }: any) {
   const locationOptions = [
     { id: 'shop', label: t.createRequest?.takeToShop || 'At the Shop', icon: 'business', description: t.createRequest?.iWillGo || 'I\'ll bring my vehicle to the service provider' },
     { id: 'mobile', label: t.createRequest?.myLocation || 'Mobile Service', icon: 'home', description: t.createRequest?.currentLocation || 'Service provider comes to my location' },
-    { id: 'roadside', label: t.createRequest?.roadsideAssist || 'Roadside Assist', icon: 'car', description: t.createRequest?.shareLocation || 'Share your real-time location' },
+    { id: 'roadside', label: t.serviceTypes?.roadsideAssistance || t.createRequest?.serviceRoadside || 'Roadside Assist', icon: 'car', description: t.createRequest?.shareLocation || 'Share your real-time location' },
   ];
 
   async function handleGetLocation() {
@@ -457,9 +457,9 @@ export default function CreateRequestScreen({ navigation }: any) {
               <Text style={styles.appliedOfferBadgeText}>{appliedOffer.discount}</Text>
             </View>
             <View style={{ flex: 1, marginLeft: 12 }}>
-              <Text style={styles.appliedOfferLabel}>Special Offer Applied</Text>
+              <Text style={styles.appliedOfferLabel}>{t.createRequest?.specialOfferApplied || 'Special Offer Applied'}</Text>
               <Text style={styles.appliedOfferTitle}>{appliedOffer.title}</Text>
-              <Text style={styles.appliedOfferValidity}>Valid until {appliedOffer.validUntil}</Text>
+              <Text style={styles.appliedOfferValidity}>{t.createRequest?.validUntil || 'Valid until'} {appliedOffer.validUntil}</Text>
             </View>
             <TouchableOpacity 
               style={styles.removeOfferButton}

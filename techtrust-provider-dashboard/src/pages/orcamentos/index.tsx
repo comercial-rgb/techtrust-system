@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '@/contexts/AuthContext'
+import { useI18n } from '@/i18n'
 import DashboardLayout from '@/components/DashboardLayout'
 import api from '@/services/api'
 import {
@@ -49,6 +50,7 @@ interface Quote {
 
 export default function OrcamentosPage() {
   const { isAuthenticated, loading: authLoading } = useAuth()
+  const { translate: t } = useI18n()
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [quotes, setQuotes] = useState<Quote[]>([])
@@ -206,20 +208,20 @@ export default function OrcamentosPage() {
 
   const getStatusInfo = (status: string) => {
     const statuses: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-      PENDING: { label: 'Aguardando', color: 'bg-yellow-100 text-yellow-700', icon: <Clock className="w-4 h-4" /> },
-      ACCEPTED: { label: 'Aceito', color: 'bg-green-100 text-green-700', icon: <CheckCircle className="w-4 h-4" /> },
-      REJECTED: { label: 'Recusado', color: 'bg-red-100 text-red-700', icon: <XCircle className="w-4 h-4" /> },
-      EXPIRED: { label: 'Expirado', color: 'bg-gray-100 text-gray-700', icon: <Clock className="w-4 h-4" /> },
+      PENDING: { label: t('common.status.pending'), color: 'bg-yellow-100 text-yellow-700', icon: <Clock className="w-4 h-4" /> },
+      ACCEPTED: { label: t('common.status.accepted'), color: 'bg-green-100 text-green-700', icon: <CheckCircle className="w-4 h-4" /> },
+      REJECTED: { label: t('common.status.rejected'), color: 'bg-red-100 text-red-700', icon: <XCircle className="w-4 h-4" /> },
+      EXPIRED: { label: t('common.status.expired'), color: 'bg-gray-100 text-gray-700', icon: <Clock className="w-4 h-4" /> },
     }
     return statuses[status] || { label: status, color: 'bg-gray-100 text-gray-700', icon: <Clock className="w-4 h-4" /> }
   }
 
   const filterOptions = [
-    { value: 'all', label: 'Todos' },
-    { value: 'PENDING', label: 'Aguardando' },
-    { value: 'ACCEPTED', label: 'Aceitos' },
-    { value: 'REJECTED', label: 'Recusados' },
-    { value: 'EXPIRED', label: 'Expirados' },
+    { value: 'all', label: t('quotes.filters.all') },
+    { value: 'PENDING', label: t('common.status.pending') },
+    { value: 'ACCEPTED', label: t('quotes.filters.accepted') },
+    { value: 'REJECTED', label: t('quotes.filters.rejected') },
+    { value: 'EXPIRED', label: t('quotes.filters.expired') },
   ]
 
   const filteredQuotes = quotes.filter(quote => {
@@ -280,25 +282,25 @@ export default function OrcamentosPage() {
   }
 
   return (
-    <DashboardLayout title="Orçamentos">
+    <DashboardLayout title={t('quotes.title')}>
       <div className="space-y-6 animate-fade-in">
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <div className="bg-white rounded-xl p-4 shadow-soft">
             <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-            <p className="text-sm text-gray-500">Total</p>
+            <p className="text-sm text-gray-500">{t('quotes.stats.total')}</p>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-soft">
             <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
-            <p className="text-sm text-gray-500">Aguardando</p>
+            <p className="text-sm text-gray-500">{t('common.status.pending')}</p>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-soft">
             <p className="text-2xl font-bold text-green-600">{stats.accepted}</p>
-            <p className="text-sm text-gray-500">Aceitos</p>
+            <p className="text-sm text-gray-500">{t('quotes.filters.accepted')}</p>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-soft">
             <p className="text-2xl font-bold text-red-600">{stats.rejected}</p>
-            <p className="text-sm text-gray-500">Recusados</p>
+            <p className="text-sm text-gray-500">{t('quotes.filters.rejected')}</p>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-soft">
             <div className="flex items-center gap-2">
@@ -309,7 +311,7 @@ export default function OrcamentosPage() {
                 <TrendingDown className="w-5 h-5 text-red-500" />
               )}
             </div>
-            <p className="text-sm text-gray-500">Taxa de Conversão</p>
+            <p className="text-sm text-gray-500">{t('quotes.stats.conversion')}</p>
           </div>
         </div>
 
@@ -320,7 +322,7 @@ export default function OrcamentosPage() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Buscar por título, cliente, veículo..."
+              placeholder={t('quotes.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="input pl-12"
@@ -364,15 +366,15 @@ export default function OrcamentosPage() {
               <AlertCircle className="w-8 h-8 text-gray-400" />
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Nenhum orçamento encontrado
+              {t('quotes.empty.title')}
             </h3>
             <p className="text-gray-500 mb-6">
               {searchQuery
-                ? 'Tente buscar com outros termos'
-                : 'Seus orçamentos aparecerão aqui'}
+                ? t('quotes.empty.searchHint')
+                : t('quotes.empty.description')}
             </p>
             <Link href="/pedidos" className="btn btn-primary">
-              Ver Pedidos Disponíveis
+              {t('quotes.empty.viewRequests')}
             </Link>
           </div>
         ) : (

@@ -76,7 +76,7 @@ export default function ProviderWorkOrdersScreen({ navigation }: any) {
             location: 'Kissimmee, FL',
           },
           vehicle: { make: 'Toyota', model: 'Corolla', year: 2019 },
-          serviceRequest: { title: 'Revisão completa' },
+          serviceRequest: { title: 'Complete Checkup' },
         },
         {
           id: '2',
@@ -91,7 +91,7 @@ export default function ProviderWorkOrdersScreen({ navigation }: any) {
             location: 'Orlando, FL',
           },
           vehicle: { make: 'Honda', model: 'Civic', year: 2020 },
-          serviceRequest: { title: 'Troca de óleo e filtros' },
+          serviceRequest: { title: 'Oil and Filter Change' },
         },
         {
           id: '3',
@@ -105,7 +105,7 @@ export default function ProviderWorkOrdersScreen({ navigation }: any) {
             location: 'Orlando, FL',
           },
           vehicle: { make: 'Ford', model: 'Focus', year: 2021 },
-          serviceRequest: { title: 'Troca de pastilhas de freio' },
+          serviceRequest: { title: 'Brake Pad Replacement' },
         },
         {
           id: '4',
@@ -119,13 +119,13 @@ export default function ProviderWorkOrdersScreen({ navigation }: any) {
             location: 'Davenport, FL',
           },
           vehicle: { make: 'Chevrolet', model: 'Cruze', year: 2018 },
-          serviceRequest: { title: 'Alinhamento e balanceamento' },
+          serviceRequest: { title: 'Alignment and Balancing' },
         },
       ];
 
       setWorkOrders(mockWorkOrders);
     } catch (error) {
-      console.error('Erro ao carregar serviços:', error);
+      console.error('Error loading services:', error);
     } finally {
       setLoading(false);
     }
@@ -309,9 +309,9 @@ export default function ProviderWorkOrdersScreen({ navigation }: any) {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <MaterialCommunityIcons name="toolbox-outline" size={64} color="#d1d5db" />
-            <Text style={styles.emptyTitle}>Nenhum serviço encontrado</Text>
+            <Text style={styles.emptyTitle}>{t.workOrder?.noServicesFound || 'No services found'}</Text>
             <Text style={styles.emptySubtitle}>
-              Seus serviços aparecerão aqui quando orçamentos forem aceitos
+              {t.workOrder?.servicesWillAppear || 'Your services will appear here when quotes are accepted'}
             </Text>
           </View>
         }

@@ -61,8 +61,8 @@ export default function WorkOrdersScreen({ navigation }: any) {
       const response = await api.get('/work-orders');
       setWorkOrders(response.data.data?.orders || response.data.data || []);
     } catch (err) {
-      console.error('Erro ao carregar work orders:', err);
-      error(t.workOrder?.loadError || 'Erro ao carregar serviços');
+      console.error('Error loading work orders:', err);
+      error(t.workOrder?.loadError || 'Error loading services');
       setWorkOrders([]);
     } finally {
       setLoading(false);
@@ -83,11 +83,11 @@ export default function WorkOrdersScreen({ navigation }: any) {
 
   const getStatusText = (status: string) => {
     const texts: any = {
-      PENDING_START: t.workOrder?.awaitingStart || 'Aguardando Início',
-      IN_PROGRESS: t.workOrder?.inProgress || 'Em Andamento',
-      AWAITING_APPROVAL: t.workOrder?.awaitingApproval || 'Aguardando Aprovação',
-      COMPLETED: t.workOrder?.completed || 'Concluído',
-      DISPUTED: t.workOrder?.disputed || 'Em Disputa',
+      PENDING_START: t.workOrder?.awaitingStart || 'Awaiting Start',
+      IN_PROGRESS: t.workOrder?.inProgress || 'In Progress',
+      AWAITING_APPROVAL: t.workOrder?.awaitingApproval || 'Awaiting Approval',
+      COMPLETED: t.workOrder?.completed || 'Completed',
+      DISPUTED: t.workOrder?.disputed || 'Disputed',
     };
     return texts[status] || status;
   };
@@ -150,9 +150,9 @@ export default function WorkOrdersScreen({ navigation }: any) {
         {/* ✨ Header animado */}
         <FadeInView delay={0}>
           <View style={styles.header}>
-            <Text variant="titleLarge" style={styles.title}>{t.workOrder?.myServices || 'Meus Serviços'}</Text>
+            <Text variant="titleLarge" style={styles.title}>{t.workOrder?.myServices || 'My Services'}</Text>
             <Text variant="bodyMedium" style={styles.subtitle}>
-              {workOrders.length} {t.workOrder?.servicesCount || 'serviço(s)'}
+              {workOrders.length} {t.workOrder?.servicesCount || 'service(s)'}
             </Text>
           </View>
         </FadeInView>
@@ -170,28 +170,28 @@ export default function WorkOrdersScreen({ navigation }: any) {
                 <Text style={styles.miniStatusCount}>
                   {workOrders.filter(o => o.status === 'PENDING_START').length}
                 </Text>
-                <Text style={styles.miniStatusLabel}>{t.workOrder?.awaiting || 'Aguardando'}</Text>
+                <Text style={styles.miniStatusLabel}>{t.workOrder?.awaiting || 'Awaiting'}</Text>
               </View>
               <View style={[styles.miniStatusCard, { backgroundColor: '#fff3e0' }]}>
                 <Text style={styles.miniStatusEmoji}>🔧</Text>
                 <Text style={styles.miniStatusCount}>
                   {workOrders.filter(o => o.status === 'IN_PROGRESS').length}
                 </Text>
-                <Text style={styles.miniStatusLabel}>{t.workOrder?.inProgressShort || 'Em andamento'}</Text>
+                <Text style={styles.miniStatusLabel}>{t.workOrder?.inProgressShort || 'In Progress'}</Text>
               </View>
               <View style={[styles.miniStatusCard, { backgroundColor: '#e8f5e9' }]}>
                 <Text style={styles.miniStatusEmoji}>✅</Text>
                 <Text style={styles.miniStatusCount}>
                   {workOrders.filter(o => o.status === 'AWAITING_APPROVAL').length}
                 </Text>
-                <Text style={styles.miniStatusLabel}>{t.workOrder?.toApprove || 'Para aprovar'}</Text>
+                <Text style={styles.miniStatusLabel}>{t.workOrder?.toApprove || 'To Approve'}</Text>
               </View>
               <View style={[styles.miniStatusCard, { backgroundColor: '#f5f5f5' }]}>
                 <Text style={styles.miniStatusEmoji}>🎉</Text>
                 <Text style={styles.miniStatusCount}>
                   {workOrders.filter(o => o.status === 'COMPLETED').length}
                 </Text>
-                <Text style={styles.miniStatusLabel}>{t.workOrder?.completedPlural || 'Concluídos'}</Text>
+                <Text style={styles.miniStatusLabel}>{t.workOrder?.completedPlural || 'Completed'}</Text>
               </View>
             </View>
           </ScrollView>
@@ -222,7 +222,7 @@ export default function WorkOrdersScreen({ navigation }: any) {
                     <View style={styles.titleRow}>
                       <View style={[styles.statusDot, { backgroundColor: getStatusColor(order.status) }]} />
                       <Text variant="titleMedium" style={styles.cardTitle}>
-                        {order.serviceRequest?.title || 'Serviço'}
+                        {order.serviceRequest?.title || 'Service'}
                       </Text>
                     </View>
                     <Chip

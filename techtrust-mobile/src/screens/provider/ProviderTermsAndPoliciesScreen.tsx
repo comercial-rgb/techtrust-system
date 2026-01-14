@@ -95,25 +95,21 @@ export default function ProviderTermsAndPoliciesScreen({ navigation }: any) {
               {t.provider?.dataUsageDesc || 'Your data is used to:'}
             </Text>
             <View style={styles.bulletList}>
-              <Text style={styles.bulletItem}>• Conectar você aos clientes</Text>
-              <Text style={styles.bulletItem}>• Processar pagamentos</Text>
-              <Text style={styles.bulletItem}>• Melhorar nossos serviços</Text>
-              <Text style={styles.bulletItem}>• Comunicações sobre a plataforma</Text>
-              <Text style={styles.bulletItem}>• Cumprimento de obrigações legais</Text>
+              <Text style={styles.bulletItem}>• {t.provider?.dataConnectCustomers || 'Connect you to customers'}</Text>
+              <Text style={styles.bulletItem}>• {t.provider?.dataProcessPayments || 'Process payments'}</Text>
+              <Text style={styles.bulletItem}>• {t.provider?.dataImproveServices || 'Improve our services'}</Text>
+              <Text style={styles.bulletItem}>• {t.provider?.dataCommunications || 'Platform communications'}</Text>
+              <Text style={styles.bulletItem}>• {t.provider?.dataLegalObligations || 'Legal obligations compliance'}</Text>
             </View>
 
-            <Text style={styles.sectionHeading}>3. Proteção de Dados</Text>
+            <Text style={styles.sectionHeading}>3. {t.provider?.dataProtection || 'Data Protection'}</Text>
             <Text style={styles.paragraph}>
-              Utilizamos criptografia e medidas de segurança avançadas para 
-              proteger todas as informações. Seus dados bancários são 
-              armazenados com os mais altos padrões de segurança.
+              {t.provider?.dataProtectionDesc || 'We use encryption and advanced security measures to protect all information. Your banking data is stored with the highest security standards.'}
             </Text>
 
-            <Text style={styles.sectionHeading}>4. LGPD</Text>
+            <Text style={styles.sectionHeading}>4. {t.provider?.dataCompliance || 'Data Compliance'}</Text>
             <Text style={styles.paragraph}>
-              Estamos em conformidade com a Lei Geral de Proteção de Dados. 
-              Você pode solicitar acesso, correção ou exclusão dos seus dados 
-              a qualquer momento através do suporte.
+              {t.provider?.dataComplianceDesc || 'We comply with data protection regulations. You may request access, correction, or deletion of your data at any time through support.'}
             </Text>
           </View>
         );
@@ -121,42 +117,32 @@ export default function ProviderTermsAndPoliciesScreen({ navigation }: any) {
       case 'contract':
         return (
           <View style={styles.contentContainer}>
-            <Text style={styles.contentTitle}>Contrato de Parceria</Text>
-            <Text style={styles.lastUpdated}>Última atualização: Janeiro 2024</Text>
+            <Text style={styles.contentTitle}>{t.provider?.partnershipContract || 'Partnership Contract'}</Text>
+            <Text style={styles.lastUpdated}>{t.provider?.lastUpdated || 'Last updated'}: {t.common?.monthJanuary || 'January'} 2024</Text>
 
-            <Text style={styles.sectionHeading}>1. Objeto do Contrato</Text>
+            <Text style={styles.sectionHeading}>1. {t.provider?.contractObject || 'Contract Object'}</Text>
             <Text style={styles.paragraph}>
-              Este contrato estabelece os termos da parceria entre o prestador 
-              de serviços automotivos e a plataforma TechTrust para 
-              intermediação de serviços.
+              {t.provider?.contractObjectDesc || 'This contract establishes the terms of the partnership between the automotive service provider and the TechTrust platform for service intermediation.'}
             </Text>
 
-            <Text style={styles.sectionHeading}>2. Responsabilidades</Text>
+            <Text style={styles.sectionHeading}>2. {t.provider?.responsibilities || 'Responsibilities'}</Text>
             <Text style={styles.paragraph}>
-              A TechTrust atua como intermediadora, conectando prestadores a 
-              clientes. A execução do serviço é de responsabilidade exclusiva 
-              do prestador, incluindo garantias e suporte pós-serviço.
+              {t.provider?.responsibilitiesDesc || 'TechTrust acts as an intermediary, connecting providers to customers. Service execution is the sole responsibility of the provider, including warranties and post-service support.'}
             </Text>
 
-            <Text style={styles.sectionHeading}>3. Exclusividade</Text>
+            <Text style={styles.sectionHeading}>3. {t.provider?.exclusivity || 'Exclusivity'}</Text>
             <Text style={styles.paragraph}>
-              Não há cláusula de exclusividade. Você pode atuar em outras 
-              plataformas ou de forma independente. Porém, serviços iniciados 
-              pela TechTrust devem ser concluídos pela plataforma.
+              {t.provider?.exclusivityDesc || 'There is no exclusivity clause. You can work on other platforms or independently. However, services started through TechTrust must be completed through the platform.'}
             </Text>
 
-            <Text style={styles.sectionHeading}>4. Rescisão</Text>
+            <Text style={styles.sectionHeading}>4. {t.provider?.termination || 'Termination'}</Text>
             <Text style={styles.paragraph}>
-              Ambas as partes podem encerrar a parceria a qualquer momento. 
-              Pagamentos pendentes serão processados normalmente. A TechTrust 
-              pode suspender contas por violação dos termos.
+              {t.provider?.terminationDesc || 'Both parties can end the partnership at any time. Pending payments will be processed normally. TechTrust may suspend accounts for violation of terms.'}
             </Text>
 
-            <Text style={styles.sectionHeading}>5. Propriedade Intelectual</Text>
+            <Text style={styles.sectionHeading}>5. {t.provider?.intellectualProperty || 'Intellectual Property'}</Text>
             <Text style={styles.paragraph}>
-              O uso da marca TechTrust é permitido apenas para divulgação da 
-              parceria, conforme diretrizes fornecidas. Materiais de marketing 
-              devem ser aprovados previamente.
+              {t.provider?.intellectualPropertyDesc || 'Use of the TechTrust brand is only permitted for partnership disclosure, according to provided guidelines. Marketing materials must be pre-approved.'}
             </Text>
           </View>
         );
@@ -164,13 +150,13 @@ export default function ProviderTermsAndPoliciesScreen({ navigation }: any) {
       case 'fees':
         return (
           <View style={styles.contentContainer}>
-            <Text style={styles.contentTitle}>Política de Taxas</Text>
-            <Text style={styles.lastUpdated}>Última atualização: Janeiro 2024</Text>
+            <Text style={styles.contentTitle}>{t.provider?.feePolicy || 'Fee Policy'}</Text>
+            <Text style={styles.lastUpdated}>{t.provider?.lastUpdated || 'Last updated'}: {t.common?.monthJanuary || 'January'} 2024</Text>
 
             <View style={styles.feeCard}>
               <View style={styles.feeHeader}>
                 <MaterialCommunityIcons name="percent" size={24} color="#1976d2" />
-                <Text style={styles.feeTitle}>Taxa de Serviço</Text>
+                <Text style={styles.feeTitle}>{t.provider?.serviceFee || 'Service Fee'}</Text>
               </View>
               <Text style={styles.feeValue}>10%</Text>
               <Text style={styles.feeDescription}>
@@ -178,42 +164,38 @@ export default function ProviderTermsAndPoliciesScreen({ navigation }: any) {
               </Text>
             </View>
 
-            <Text style={styles.sectionHeading}>1. Como Funciona</Text>
+            <Text style={styles.sectionHeading}>1. {t.provider?.howItWorks || 'How It Works'}</Text>
             <Text style={styles.paragraph}>
-              A TechTrust cobra uma taxa de 10% sobre o valor total de cada 
-              serviço concluído. Esta taxa é descontada automaticamente no 
-              momento do repasse.
+              {t.provider?.howItWorksDesc || 'TechTrust charges a 10% fee on the total value of each completed service. This fee is automatically deducted at the time of payment transfer.'}
             </Text>
 
-            <Text style={styles.sectionHeading}>2. O Que Está Incluso</Text>
+            <Text style={styles.sectionHeading}>2. {t.provider?.whatsIncluded || "What's Included"}</Text>
             <View style={styles.bulletList}>
-              <Text style={styles.bulletItem}>• Acesso à plataforma e aplicativo</Text>
-              <Text style={styles.bulletItem}>• Sistema de pagamentos online</Text>
-              <Text style={styles.bulletItem}>• Suporte ao cliente 24/7</Text>
-              <Text style={styles.bulletItem}>• Marketing e captação de clientes</Text>
-              <Text style={styles.bulletItem}>• Sistema de avaliações</Text>
-              <Text style={styles.bulletItem}>• Proteção contra fraudes</Text>
+              <Text style={styles.bulletItem}>• {t.provider?.inclPlatformAccess || 'Platform and app access'}</Text>
+              <Text style={styles.bulletItem}>• {t.provider?.inclPaymentSystem || 'Online payment system'}</Text>
+              <Text style={styles.bulletItem}>• {t.provider?.inclSupport || '24/7 customer support'}</Text>
+              <Text style={styles.bulletItem}>• {t.provider?.inclMarketing || 'Marketing and customer acquisition'}</Text>
+              <Text style={styles.bulletItem}>• {t.provider?.inclRatings || 'Rating system'}</Text>
+              <Text style={styles.bulletItem}>• {t.provider?.inclFraudProtection || 'Fraud protection'}</Text>
             </View>
 
-            <Text style={styles.sectionHeading}>3. Pagamentos</Text>
+            <Text style={styles.sectionHeading}>3. {t.provider?.payments || 'Payments'}</Text>
             <Text style={styles.paragraph}>
-              Os repasses são realizados em até 2 dias úteis após a conclusão 
-              e confirmação do serviço pelo cliente. Em caso de parcelamento, 
-              o valor é repassado conforme as parcelas são confirmadas.
+              {t.provider?.paymentsDesc || 'Transfers are made within 2 business days after service completion and customer confirmation. In case of installments, the amount is transferred as payments are confirmed.'}
             </Text>
 
-            <Text style={styles.sectionHeading}>4. Descontos por Volume</Text>
+            <Text style={styles.sectionHeading}>4. {t.provider?.volumeDiscounts || 'Volume Discounts'}</Text>
             <View style={styles.tierCard}>
               <View style={styles.tierRow}>
-                <Text style={styles.tierLabel}>Até 10 serviços/mês</Text>
+                <Text style={styles.tierLabel}>{t.provider?.tier1 || 'Up to 10 services/month'}</Text>
                 <Text style={styles.tierValue}>10%</Text>
               </View>
               <View style={styles.tierRow}>
-                <Text style={styles.tierLabel}>11-30 serviços/mês</Text>
+                <Text style={styles.tierLabel}>{t.provider?.tier2 || '11-30 services/month'}</Text>
                 <Text style={styles.tierValue}>9%</Text>
               </View>
               <View style={styles.tierRow}>
-                <Text style={styles.tierLabel}>31+ serviços/mês</Text>
+                <Text style={styles.tierLabel}>{t.provider?.tier3 || '31+ services/month'}</Text>
                 <Text style={styles.tierValue}>8%</Text>
               </View>
             </View>

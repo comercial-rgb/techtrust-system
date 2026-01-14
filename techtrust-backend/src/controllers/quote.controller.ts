@@ -9,6 +9,7 @@ import { Request, Response } from 'express';
 import { prisma } from '../config/database';
 import { AppError } from '../middleware/error-handler';
 import { logger } from '../config/logger';
+import { calculateDistance } from '../utils/distance';
 
 /**
  * POST /api/v1/quotes
@@ -78,8 +79,41 @@ export const createQuote = async (req: Request, res: Response) => {
     throw new AppError('Você já enviou um orçamento para esta solicitação', 409, 'QUOTE_ALREADY_EXISTS');
   }
 
-  // Calcular total
-  const totalAmount = Number(partsCost) + Number(laborCost) + Number(additionalFees) + Number(taxAmount);
+  // Buscar perfil do provider para obter coordenadas
+  const providerProfile = await prisma.providerProfile.findUnique({
+    where: { userId: providerId },
+  });
+
+  // Calcular distância e taxa de deslocamento se houver coordenadas
+  let distanceKm: number | null = null;
+  let travelFee = 0;
+
+  if (
+    providerProfile?.baseLatitude &&
+    providerProfile?.baseLongitude &&
+    serviceRequest.serviceLatitude &&
+    serviceRequest.serviceLongitude
+  ) {
+    distanceKm = calculateDistance(
+      providerProfile.baseLatitude.toNumber(),
+      providerProfile.baseLongitude.toNumber(),
+      serviceRequest.serviceLatitude.toNumber(),
+      serviceRequest.serviceLongitude.toNumber()
+    );
+
+    // Calcular taxa de deslocamento
+    const freeKm = Number(providerProfile.freeKm);
+    const extraFeePerKm = Number(providerProfile.extraFeePerKm);
+    
+    if (distanceKm > freeKm) {
+      travelFee = (distanceKm - freeKm) * extraFeePerKm;
+    }
+
+    logger.info(`Distância calculada: ${distanceKm.toFixed(2)} km, Taxa: R$ ${travelFee.toFixed(2)}`);
+  }
+
+  // Calcular total (incluindo taxa de deslocamento)
+  const totalAmount = Number(partsCost) + Number(laborCost) + Number(additionalFees) + Number(taxAmount) + travelFee;
 
   // Gerar número do orçamento
   const quoteNumber = `QT-${Date.now()}-${Math.random().toString(36).substring(7).toUpperCase()}`;
@@ -99,6 +133,8 @@ export const createQuote = async (req: Request, res: Response) => {
       additionalFees,
       taxAmount,
       totalAmount,
+      distanceKm,
+      travelFee,
       partsList: partsList || [],
       laborDescription,
       estimatedHours: estimatedHours ? Number(estimatedHours) : null,

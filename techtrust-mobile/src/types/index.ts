@@ -26,6 +26,7 @@ export interface Vehicle {
   currentMileage?: number;
   isPrimary: boolean;
   createdAt: string;
+  photos?: string[]; // URLs or local URIs of vehicle photos
 }
 
 export interface ServiceRequest {

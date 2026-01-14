@@ -203,8 +203,11 @@ export default function CustomerNavigator() {
             <TabBarIcon name="grid" color={color} size={size} />
           ),
         }}
-        listeners={({ navigation }) => ({
+        listeners={({ navigation, route }) => ({
           tabPress: (e) => {
+            // Prevent default behavior
+            e.preventDefault();
+            // Always reset to DashboardMain when tab is pressed
             navigation.dispatch(
               CommonActions.reset({
                 index: 0,

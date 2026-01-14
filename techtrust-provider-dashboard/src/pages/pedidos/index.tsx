@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '@/contexts/AuthContext'
+import { useI18n } from '@/i18n'
 import DashboardLayout from '@/components/DashboardLayout'
 import api from '@/services/api'
 import {
@@ -47,6 +48,7 @@ interface ServiceRequest {
 
 export default function PedidosPage() {
   const { isAuthenticated, loading: authLoading } = useAuth()
+  const { translate: t } = useI18n()
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [requests, setRequests] = useState<ServiceRequest[]>([])
@@ -173,26 +175,26 @@ export default function PedidosPage() {
 
   const getServiceTypeInfo = (type: string) => {
     const types: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
-      SCHEDULED_MAINTENANCE: { label: 'Manutenção', icon: <Wrench className="w-4 h-4" />, color: 'bg-blue-100 text-blue-700' },
-      REPAIR: { label: 'Reparo', icon: <AlertCircle className="w-4 h-4" />, color: 'bg-orange-100 text-orange-700' },
-      ROADSIDE_SOS: { label: 'Socorro', icon: <Zap className="w-4 h-4" />, color: 'bg-red-100 text-red-700' },
-      INSPECTION: { label: 'Inspeção', icon: <Shield className="w-4 h-4" />, color: 'bg-purple-100 text-purple-700' },
-      DETAILING: { label: 'Estética', icon: <Sparkles className="w-4 h-4" />, color: 'bg-pink-100 text-pink-700' },
+      SCHEDULED_MAINTENANCE: { label: t('common.serviceTypes.maintenance'), icon: <Wrench className="w-4 h-4" />, color: 'bg-blue-100 text-blue-700' },
+      REPAIR: { label: t('common.serviceTypes.repair'), icon: <AlertCircle className="w-4 h-4" />, color: 'bg-orange-100 text-orange-700' },
+      ROADSIDE_SOS: { label: t('common.serviceTypes.roadside'), icon: <Zap className="w-4 h-4" />, color: 'bg-red-100 text-red-700' },
+      INSPECTION: { label: t('common.serviceTypes.inspection'), icon: <Shield className="w-4 h-4" />, color: 'bg-purple-100 text-purple-700' },
+      DETAILING: { label: t('common.serviceTypes.detailing'), icon: <Sparkles className="w-4 h-4" />, color: 'bg-pink-100 text-pink-700' },
     }
     return types[type] || { label: type, icon: <Wrench className="w-4 h-4" />, color: 'bg-gray-100 text-gray-700' }
   }
 
   const getTimeRemaining = (expiresAt: string) => {
     const diff = new Date(expiresAt).getTime() - Date.now()
-    if (diff <= 0) return { text: 'Expirado', urgent: true }
+    if (diff <= 0) return { text: t('common.time.expired'), urgent: true }
     
     const minutes = Math.floor(diff / 60000)
     const hours = Math.floor(minutes / 60)
     
     if (hours > 0) {
-      return { text: `${hours}h ${minutes % 60}min restantes`, urgent: hours < 1 }
+      return { text: `${hours}h ${minutes % 60}min ${t('common.time.remaining')}`, urgent: hours < 1 }
     }
-    return { text: `${minutes}min restantes`, urgent: minutes < 30 }
+    return { text: `${minutes}min ${t('common.time.remaining')}`, urgent: minutes < 30 }
   }
 
   const filteredRequests = requests.filter(request => {
@@ -218,7 +220,7 @@ export default function PedidosPage() {
   }
 
   return (
-    <DashboardLayout title="Pedidos">
+    <DashboardLayout title={t('requests.title')}>
       <div className="space-y-6 animate-fade-in">
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-4">
@@ -227,7 +229,7 @@ export default function PedidosPage() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Buscar por título, veículo ou número..."
+              placeholder={t('requests.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="input pl-12"
@@ -244,7 +246,7 @@ export default function PedidosPage() {
                   : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
               }`}
             >
-              Todos ({requests.length})
+              {t('requests.filters.all')} ({requests.length})
             </button>
             <button
               onClick={() => setFilter('urgent')}
@@ -254,7 +256,7 @@ export default function PedidosPage() {
                   : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
               }`}
             >
-              🚨 Urgentes ({requests.filter(r => r.isUrgent).length})
+              🚨 {t('requests.filters.urgent')} ({requests.filter(r => r.isUrgent).length})
             </button>
           </div>
         </div>
@@ -284,12 +286,12 @@ export default function PedidosPage() {
               <AlertCircle className="w-8 h-8 text-gray-400" />
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Nenhum pedido encontrado
+              {t('requests.empty.title')}
             </h3>
             <p className="text-gray-500">
               {searchQuery
-                ? 'Tente buscar com outros termos'
-                : 'Novos pedidos aparecerão aqui'}
+                ? t('requests.empty.searchHint')
+                : t('requests.empty.description')}
             </p>
           </div>
         ) : (

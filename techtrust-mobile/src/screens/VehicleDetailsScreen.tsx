@@ -20,6 +20,7 @@ import { useI18n } from '../i18n';
 
 interface MaintenanceRecord {
   id: string;
+  workOrderId?: string;
   type: string;
   description: string;
   date: string;
@@ -91,6 +92,7 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
         maintenanceHistory: [
           {
             id: '1',
+            workOrderId: 'WO-VH-2024-1015',
             type: 'Oil Change',
             description: 'Full synthetic oil change and filter replacement',
             date: '2024-10-15',
@@ -101,6 +103,7 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
           },
           {
             id: '2',
+            workOrderId: 'WO-VH-2024-0820',
             type: 'Tire Rotation',
             description: 'Tire rotation and balance',
             date: '2024-08-20',
@@ -111,6 +114,7 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
           },
           {
             id: '3',
+            workOrderId: 'WO-VH-2024-0510',
             type: 'Brake Service',
             description: 'Front brake pads and rotors replacement',
             date: '2024-05-10',
@@ -121,6 +125,7 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
           },
           {
             id: '4',
+            workOrderId: 'WO-VH-2024-0215',
             type: '30K Service',
             description: 'Full 30,000 mile service - spark plugs, filters, fluids',
             date: '2024-02-15',
@@ -131,6 +136,7 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
           },
           {
             id: '5',
+            workOrderId: 'WO-VH-2023-0720',
             type: 'A/C Service',
             description: 'A/C system recharge and inspection',
             date: '2023-07-20',
@@ -207,11 +213,11 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={24} color="#111827" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Vehicle Details</Text>
+          <Text style={styles.headerTitle}>{t.vehicle?.vehicleDetails || 'Vehicle Details'}</Text>
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.loadingContainer}>
-          <Text>Loading...</Text>
+          <Text>{t.common?.loading || 'Loading...'}</Text>
         </View>
       </SafeAreaView>
     );
@@ -393,7 +399,7 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
                       navigation.navigate('Services', {
                         screen: 'WorkOrderDetails',
                         params: { 
-                          workOrderId: record.id,
+                          workOrderId: record.workOrderId || record.id,
                           fromVehicleDetails: true,
                         },
                       });

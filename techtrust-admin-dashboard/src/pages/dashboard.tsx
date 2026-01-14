@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
 import AdminLayout from '../components/AdminLayout';
+import { useI18n } from '../i18n';
 import {
   Users,
   Building2,
@@ -46,6 +47,7 @@ interface DashboardStats {
 export default function DashboardPage() {
   const { isAuthenticated, loading: authLoading } = useAuth();
   const router = useRouter();
+  const { translate } = useI18n();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStats>({
     users: { total: 0, customers: 0, providers: 0, newThisMonth: 0 },
@@ -89,7 +91,7 @@ export default function DashboardPage() {
 
   if (authLoading || loading) {
     return (
-      <AdminLayout title="Dashboard">
+      <AdminLayout title={translate('admin.nav.dashboard')}>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="h-32 skeleton rounded-xl"></div>
@@ -100,7 +102,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <AdminLayout title="Dashboard">
+    <AdminLayout title={translate('admin.nav.dashboard')}>
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {/* Users */}
@@ -115,10 +117,10 @@ export default function DashboardPage() {
             </span>
           </div>
           <p className="text-2xl font-bold text-gray-900">{stats.users.total.toLocaleString()}</p>
-          <p className="text-sm text-gray-500">Usuários totais</p>
+          <p className="text-sm text-gray-500">{translate('admin.dashboard.totalUsers')}</p>
           <div className="mt-3 flex gap-4 text-xs text-gray-500">
-            <span>{stats.users.customers} clientes</span>
-            <span>{stats.users.providers} fornecedores</span>
+            <span>{stats.users.customers} {translate('admin.dashboard.customers')}</span>
+            <span>{stats.users.providers} {translate('admin.dashboard.providers')}</span>
           </div>
         </div>
 
@@ -134,9 +136,9 @@ export default function DashboardPage() {
             </span>
           </div>
           <p className="text-2xl font-bold text-gray-900">{stats.services.totalRequests.toLocaleString()}</p>
-          <p className="text-sm text-gray-500">Solicitações totais</p>
+          <p className="text-sm text-gray-500">{translate('admin.dashboard.totalRequests')}</p>
           <div className="mt-3 flex gap-4 text-xs text-gray-500">
-            <span>{stats.services.completedThisMonth} concluídos este mês</span>
+            <span>{stats.services.completedThisMonth} {translate('admin.dashboard.completedThisMonth')}</span>
           </div>
         </div>
 
@@ -154,9 +156,9 @@ export default function DashboardPage() {
           <p className="text-2xl font-bold text-gray-900">
             R$ {stats.revenue.totalThisMonth.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </p>
-          <p className="text-sm text-gray-500">Receita do mês</p>
+          <p className="text-sm text-gray-500">{translate('admin.dashboard.revenueThisMonth')}</p>
           <div className="mt-3 text-xs text-amber-600">
-            R$ {stats.revenue.pendingPayments.toLocaleString('pt-BR')} pendentes
+            R$ {stats.revenue.pendingPayments.toLocaleString('pt-BR')} {translate('admin.dashboard.pendingPayments')}
           </div>
         </div>
 
@@ -174,9 +176,9 @@ export default function DashboardPage() {
             )}
           </div>
           <p className="text-2xl font-bold text-gray-900">{stats.providers.total}</p>
-          <p className="text-sm text-gray-500">Fornecedores</p>
+          <p className="text-sm text-gray-500">{translate('admin.dashboard.suppliers')}</p>
           <div className="mt-3 flex gap-4 text-xs text-gray-500">
-            <span>{stats.providers.suspended} suspensos</span>
+            <span>{stats.providers.suspended} {translate('admin.dashboard.suspended')}</span>
           </div>
         </div>
       </div>
@@ -186,14 +188,14 @@ export default function DashboardPage() {
         {/* Quick Actions */}
         <div className="lg:col-span-1">
           <div className="card p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">Ações Rápidas</h2>
+            <h2 className="text-lg font-bold text-gray-900 mb-4">{translate('admin.dashboard.quickActions')}</h2>
             <div className="space-y-3">
               <button
                 onClick={() => router.push('/fornecedores?filter=pending')}
                 className="w-full flex items-center gap-3 p-3 bg-amber-50 text-amber-700 rounded-xl hover:bg-amber-100 transition-colors"
               >
                 <Building2 className="w-5 h-5" />
-                <span className="flex-1 text-left">Aprovar Fornecedores</span>
+                <span className="flex-1 text-left">{translate('admin.dashboard.approveSuppliers')}</span>
                 <span className="bg-amber-200 px-2 py-0.5 rounded-full text-xs font-medium">
                   {stats.providers.pendingApproval}
                 </span>
@@ -204,7 +206,7 @@ export default function DashboardPage() {
                 className="w-full flex items-center gap-3 p-3 bg-blue-50 text-blue-700 rounded-xl hover:bg-blue-100 transition-colors"
               >
                 <Users className="w-5 h-5" />
-                <span className="flex-1 text-left">Novo Usuário</span>
+                <span className="flex-1 text-left">{translate('admin.dashboard.newUser')}</span>
               </button>
               
               <button
@@ -212,7 +214,7 @@ export default function DashboardPage() {
                 className="w-full flex items-center gap-3 p-3 bg-purple-50 text-purple-700 rounded-xl hover:bg-purple-100 transition-colors"
               >
                 <FileText className="w-5 h-5" />
-                <span className="flex-1 text-left">Enviar Notificação</span>
+                <span className="flex-1 text-left">{translate('admin.dashboard.sendNotification')}</span>
               </button>
               
               <button
@@ -220,7 +222,7 @@ export default function DashboardPage() {
                 className="w-full flex items-center gap-3 p-3 bg-green-50 text-green-700 rounded-xl hover:bg-green-100 transition-colors"
               >
                 <TrendingUp className="w-5 h-5" />
-                <span className="flex-1 text-left">Ver Relatórios</span>
+                <span className="flex-1 text-left">{translate('admin.dashboard.openReports')}</span>
               </button>
             </div>
           </div>
@@ -231,15 +233,15 @@ export default function DashboardPage() {
               <div className="flex items-start gap-3">
                 <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-medium text-gray-900">Atenção necessária</p>
+                  <p className="font-medium text-gray-900">{translate('admin.dashboard.recentActivity')}</p>
                   <p className="text-sm text-gray-500 mt-1">
-                    {stats.providers.pendingApproval} fornecedor(es) aguardando aprovação de cadastro.
+                    {stats.providers.pendingApproval} {translate('admin.dashboard.approveSuppliers').toLowerCase()}.
                   </p>
                   <button
                     onClick={() => router.push('/fornecedores?filter=pending')}
                     className="text-sm text-admin-600 hover:text-admin-700 font-medium mt-2"
                   >
-                    Revisar agora →
+                    {translate('admin.dashboard.approveSuppliers')}
                   </button>
                 </div>
               </div>
@@ -251,12 +253,12 @@ export default function DashboardPage() {
         <div className="lg:col-span-2">
           <div className="card p-6">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-bold text-gray-900">Atividade Recente</h2>
+              <h2 className="text-lg font-bold text-gray-900">{translate('admin.dashboard.recentActivity')}</h2>
               <button
                 onClick={() => router.push('/logs')}
                 className="text-sm text-admin-600 hover:text-admin-700"
               >
-                Ver tudo
+                {translate('common.viewAll')}
               </button>
             </div>
             
@@ -288,11 +290,11 @@ export default function DashboardPage() {
           {/* Mini Charts */}
           <div className="grid grid-cols-2 gap-6 mt-6">
             <div className="card p-6">
-              <h3 className="text-sm font-medium text-gray-500 mb-2">Serviços por Status</h3>
+              <h3 className="text-sm font-medium text-gray-500 mb-2">{translate('admin.dashboard.totalRequests')}</h3>
               <div className="space-y-3">
                 <div>
                   <div className="flex justify-between text-sm mb-1">
-                    <span>Em andamento</span>
+                    <span>{translate('admin.dashboard.totalRequests')}</span>
                     <span className="font-medium">{stats.services.activeWorkOrders}</span>
                   </div>
                   <div className="h-2 bg-gray-100 rounded-full">
@@ -301,7 +303,7 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <div className="flex justify-between text-sm mb-1">
-                    <span>Concluídos</span>
+                    <span>{translate('admin.dashboard.completedThisMonth')}</span>
                     <span className="font-medium">{stats.services.completedThisMonth}</span>
                   </div>
                   <div className="h-2 bg-gray-100 rounded-full">
@@ -310,7 +312,7 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <div className="flex justify-between text-sm mb-1">
-                    <span>Pendentes</span>
+                    <span>{translate('admin.dashboard.pendingPayments')}</span>
                     <span className="font-medium">{stats.services.pendingApproval}</span>
                   </div>
                   <div className="h-2 bg-gray-100 rounded-full">
@@ -321,7 +323,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="card p-6">
-              <h3 className="text-sm font-medium text-gray-500 mb-2">Usuários por Tipo</h3>
+              <h3 className="text-sm font-medium text-gray-500 mb-2">{translate('admin.dashboard.totalUsers')}</h3>
               <div className="flex items-center justify-center h-32">
                 <div className="relative w-32 h-32">
                   <svg className="w-full h-full transform -rotate-90">
@@ -345,18 +347,18 @@ export default function DashboardPage() {
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
                     <span className="text-2xl font-bold">{Math.round((stats.users.customers / stats.users.total) * 100)}%</span>
-                    <span className="text-xs text-gray-500">Clientes</span>
+                    <span className="text-xs text-gray-500">{translate('admin.dashboard.customers')}</span>
                   </div>
                 </div>
               </div>
               <div className="flex justify-center gap-4 mt-2 text-xs">
                 <span className="flex items-center gap-1">
                   <span className="w-2 h-2 bg-blue-500 rounded-full" />
-                  Clientes
+                  {translate('admin.dashboard.customers')}
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="w-2 h-2 bg-gray-200 rounded-full" />
-                  Fornecedores
+                  {translate('admin.dashboard.providers')}
                 </span>
               </div>
             </div>

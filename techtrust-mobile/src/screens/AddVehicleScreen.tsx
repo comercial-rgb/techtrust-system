@@ -2,14 +2,24 @@
  * AddVehicleScreen - Add or Edit Vehicle
  * With additional fields for US market
  * Supports editing existing vehicles
+ * ✨ Now with photo upload functionality
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Image, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useI18n } from '../i18n';
 import { useRoute } from '@react-navigation/native';
+import * as ImagePicker from 'expo-image-picker';
+
+const { width } = Dimensions.get('window');
+const PHOTO_SIZE = (width - 48 - 16) / 3; // 3 photos per row with padding
+
+interface VehiclePhoto {
+  uri: string;
+  id: string;
+}
 
 export default function AddVehicleScreen({ navigation }: any) {
   const { t } = useI18n();
@@ -33,6 +43,114 @@ export default function AddVehicleScreen({ navigation }: any) {
   const [insuranceProvider, setInsuranceProvider] = useState(editVehicle?.insuranceProvider || '');
   const [insurancePolicy, setInsurancePolicy] = useState(editVehicle?.insurancePolicy || '');
   const [saving, setSaving] = useState(false);
+  
+  // 📸 Vehicle photos state - Converter fotos existentes para o formato VehiclePhoto
+  const [photos, setPhotos] = useState<VehiclePhoto[]>(() => {
+    if (editVehicle?.photos && Array.isArray(editVehicle.photos)) {
+      return editVehicle.photos.map((uri: string, index: number) => ({
+        uri,
+        id: `existing-${index}`,
+      }));
+    }
+    return [];
+  });
+
+  // Request camera/gallery permissions
+  const requestPermissions = async () => {
+    const cameraResult = await ImagePicker.requestCameraPermissionsAsync();
+    const mediaResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    
+    if (cameraResult.status !== 'granted' || mediaResult.status !== 'granted') {
+      Alert.alert(
+        t.common?.permissionRequired || 'Permission Required',
+        t.vehicle?.cameraPermissionMessage || 'We need camera and gallery permissions to add vehicle photos.',
+        [{ text: t.common?.ok || 'OK' }]
+      );
+      return false;
+    }
+    return true;
+  };
+
+  // Take photo with camera
+  const takePhoto = async () => {
+    const hasPermission = await requestPermissions();
+    if (!hasPermission) return;
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const newPhoto: VehiclePhoto = {
+        uri: result.assets[0].uri,
+        id: Date.now().toString(),
+      };
+      setPhotos(prev => [...prev, newPhoto]);
+    }
+  };
+
+  // Pick from gallery
+  const pickFromGallery = async () => {
+    const hasPermission = await requestPermissions();
+    if (!hasPermission) return;
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsMultipleSelection: true,
+      selectionLimit: 6 - photos.length,
+      aspect: [4, 3],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets.length > 0) {
+      const newPhotos: VehiclePhoto[] = result.assets.map((asset, index) => ({
+        uri: asset.uri,
+        id: `${Date.now()}-${index}`,
+      }));
+      setPhotos(prev => [...prev, ...newPhotos].slice(0, 6)); // Max 6 photos
+    }
+  };
+
+  // Remove photo
+  const removePhoto = (photoId: string) => {
+    Alert.alert(
+      t.common?.confirmDelete || 'Remove Photo',
+      t.vehicle?.removePhotoConfirmation || 'Are you sure you want to remove this photo?',
+      [
+        { text: t.common?.cancel || 'Cancel', style: 'cancel' },
+        { 
+          text: t.common?.delete || 'Remove', 
+          style: 'destructive',
+          onPress: () => setPhotos(prev => prev.filter(p => p.id !== photoId))
+        },
+      ]
+    );
+  };
+
+  // Show photo options
+  const showPhotoOptions = () => {
+    if (photos.length >= 6) {
+      Alert.alert(
+        t.vehicle?.maxPhotosReached || 'Maximum Photos',
+        t.vehicle?.maxPhotosMessage || 'You can add up to 6 photos per vehicle.',
+        [{ text: t.common?.ok || 'OK' }]
+      );
+      return;
+    }
+
+    Alert.alert(
+      t.vehicle?.addPhoto || 'Add Photo',
+      t.vehicle?.choosePhotoSource || 'Choose how to add a photo',
+      [
+        { text: t.common?.cancel || 'Cancel', style: 'cancel' },
+        { text: t.vehicle?.takePhoto || 'Take Photo', onPress: takePhoto },
+        { text: t.vehicle?.chooseFromGallery || 'Choose from Gallery', onPress: pickFromGallery },
+      ]
+    );
+  };
 
   async function handleSave() {
     if (!make || !model || !year || !plateNumber) {
@@ -40,16 +158,40 @@ export default function AddVehicleScreen({ navigation }: any) {
       return;
     }
     setSaving(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    // Preparar dados do veículo com fotos
+    const vehicleData = {
+      make,
+      model,
+      year: parseInt(year),
+      plateNumber,
+      color,
+      currentMileage: mileage ? parseInt(mileage) : undefined,
+      vin,
+      trim,
+      primaryDriver,
+      fuelType,
+      vehicleType,
+      insuranceProvider,
+      insurancePolicy,
+      photos: photos.map(p => p.uri), // Converter para array de URIs
+    };
+    
+    // TODO: Enviar para API quando backend estiver pronto
+    // await api.post('/vehicles', vehicleData);
+    
+    await new Promise(resolve => setTimeout(resolve, 1000));
     setSaving(false);
     
-    const successMsg = isEditing 
-      ? (t.vehicle?.vehicleUpdatedSuccess || 'Vehicle updated successfully.')
-      : (t.vehicle?.vehicleAddedSuccess || 'Vehicle added successfully.');
-    
-    Alert.alert(t.common?.success || 'Success!', successMsg, [
-      { text: t.common?.ok || 'OK', onPress: () => navigation.goBack() }
-    ]);
+    if (isEditing) {
+      // Se estiver editando, apenas voltar
+      Alert.alert(t.common?.success || 'Success!', t.vehicle?.vehicleUpdatedSuccess || 'Vehicle updated successfully.', [
+        { text: t.common?.ok || 'OK', onPress: () => navigation.goBack() }
+      ]);
+    } else {
+      // Se for novo, passar dados de volta para VehiclesScreen
+      navigation.navigate('Vehicles', { newVehicle: vehicleData });
+    }
   }
 
   const popularMakes = ['Honda', 'Toyota', 'Ford', 'Chevrolet', 'BMW', 'Mercedes', 'Nissan', 'Hyundai'];
@@ -74,6 +216,43 @@ export default function AddVehicleScreen({ navigation }: any) {
           <View style={styles.vehicleIcon}>
             <Ionicons name="car-sport" size={48} color="#1976d2" />
           </View>
+        </View>
+
+        {/* 📸 Vehicle Photos Section */}
+        <Text style={styles.sectionTitle}>{t.vehicle?.vehiclePhotos || 'Vehicle Photos'}</Text>
+        <Text style={styles.sectionDescription}>
+          {t.vehicle?.vehiclePhotosDescription || 'Add photos of your vehicle (up to 6 photos)'}
+        </Text>
+        
+        <View style={styles.photosContainer}>
+          {/* Display existing photos */}
+          {photos.map((photo) => (
+            <View key={photo.id} style={styles.photoWrapper}>
+              <Image source={{ uri: photo.uri }} style={styles.photoImage} />
+              <TouchableOpacity 
+                style={styles.removePhotoBtn} 
+                onPress={() => removePhoto(photo.id)}
+              >
+                <Ionicons name="close-circle" size={24} color="#ef4444" />
+              </TouchableOpacity>
+            </View>
+          ))}
+          
+          {/* Add photo button */}
+          {photos.length < 6 && (
+            <TouchableOpacity style={styles.addPhotoBtn} onPress={showPhotoOptions}>
+              <Ionicons name="camera-outline" size={32} color="#6b7280" />
+              <Text style={styles.addPhotoText}>{t.vehicle?.addPhoto || 'Add Photo'}</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Photo tips */}
+        <View style={styles.photoTipsContainer}>
+          <Ionicons name="information-circle-outline" size={16} color="#6b7280" />
+          <Text style={styles.photoTipsText}>
+            {t.vehicle?.photoTips || 'Tip: Add photos from different angles (front, back, sides, interior)'}
+          </Text>
         </View>
 
         {/* Basic Information Section */}
@@ -225,7 +404,8 @@ const styles = StyleSheet.create({
   content: { padding: 16 },
   iconContainer: { alignItems: 'center', marginBottom: 24 },
   vehicleIcon: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#dbeafe', justifyContent: 'center', alignItems: 'center' },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#111827', marginTop: 16, marginBottom: 16 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#111827', marginTop: 16, marginBottom: 8 },
+  sectionDescription: { fontSize: 14, color: '#6b7280', marginBottom: 16 },
   inputGroup: { marginBottom: 20 },
   inputLabel: { fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 8 },
   input: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 12, padding: 16, fontSize: 16 },
@@ -244,4 +424,60 @@ const styles = StyleSheet.create({
   saveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#1976d2', paddingVertical: 16, borderRadius: 12 },
   saveBtnDisabled: { backgroundColor: '#9ca3af' },
   saveText: { fontSize: 16, fontWeight: '600', color: '#fff' },
+  // 📸 Photo styles
+  photosContainer: { 
+    flexDirection: 'row', 
+    flexWrap: 'wrap', 
+    gap: 8,
+    marginBottom: 12,
+  },
+  photoWrapper: {
+    position: 'relative',
+    width: PHOTO_SIZE,
+    height: PHOTO_SIZE,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  photoImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 12,
+  },
+  removePhotoBtn: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+  },
+  addPhotoBtn: {
+    width: PHOTO_SIZE,
+    height: PHOTO_SIZE,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#e5e7eb',
+    borderStyle: 'dashed',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f9fafb',
+  },
+  addPhotoText: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginTop: 4,
+  },
+  photoTipsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#f0f9ff',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  photoTipsText: {
+    fontSize: 12,
+    color: '#6b7280',
+    flex: 1,
+  },
 });

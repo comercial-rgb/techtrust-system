@@ -26,6 +26,7 @@ import { useI18n, languages, Language } from '../i18n';
 import { useAuth } from '../contexts/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { logos } from '../constants/images';
+import { CommonActions } from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
 
@@ -94,22 +95,36 @@ const SPECIAL_OFFERS = [
   },
 ];
 
+// Service types used in Home search/provider cards
+const SERVICE_TYPE_IDS = [
+  'oilChange',
+  'brakes',
+  'tires',
+  'engine',
+  'transmission',
+  'ac',
+  'electrical',
+  'suspension',
+  'diagnostics',
+  'inspection',
+] as const;
+
 // Mock data para fornecedores (parcialmente ocultos para não autenticados)
 const MOCK_PROVIDERS = [
-  { id: '1', name: 'Auto C****r Express', city: 'Orlando', state: 'FL', services: ['Oil Change', 'Brakes', 'Tires'] },
-  { id: '2', name: 'Quick L**e Plus', city: 'Kissimmee', state: 'FL', services: ['Oil Change', 'Engine', 'A/C'] },
-  { id: '3', name: 'Pre***m Auto Shop', city: 'Tampa', state: 'FL', services: ['Transmission', 'Engine', 'Electrical'] },
-  { id: '4', name: 'Spe**y Mechanics', city: 'Miami', state: 'FL', services: ['Brakes', 'Suspension', 'Diagnostics'] },
-  { id: '5', name: 'Trus*** Auto Care', city: 'Jacksonville', state: 'FL', services: ['Oil Change', 'Inspection', 'Tires'] },
+  { id: '1', name: 'Auto C****r Express', city: 'Orlando', state: 'FL', services: ['oilChange', 'brakes', 'tires'], languages: ['en', 'es'] },
+  { id: '2', name: 'Quick L**e Plus', city: 'Kissimmee', state: 'FL', services: ['oilChange', 'engine', 'ac'], languages: ['en', 'pt'] },
+  { id: '3', name: 'Pre***m Auto Shop', city: 'Tampa', state: 'FL', services: ['transmission', 'engine', 'electrical'], languages: ['en'] },
+  { id: '4', name: 'Spe**y Mechanics', city: 'Miami', state: 'FL', services: ['brakes', 'suspension', 'diagnostics'], languages: ['en', 'es', 'pt'] },
+  { id: '5', name: 'Trus*** Auto Care', city: 'Jacksonville', state: 'FL', services: ['oilChange', 'inspection', 'tires'], languages: ['en', 'es'] },
 ];
 
 // Dados completos dos fornecedores (para usuários autenticados)
 const FULL_PROVIDERS = [
-  { id: '1', name: 'Auto Center Express', city: 'Orlando', state: 'FL', services: ['Oil Change', 'Brakes', 'Tires'], rating: 4.8, reviews: 124, phone: '(407) 555-0101', email: 'contact@autocenter.com', address: '123 Main St, Orlando, FL', specialOffers: ['1', '3'] },
-  { id: '2', name: 'Quick Lube Plus', city: 'Kissimmee', state: 'FL', services: ['Oil Change', 'Engine', 'A/C'], rating: 4.6, reviews: 89, phone: '(407) 555-0202', email: 'info@quicklube.com', address: '456 Oak Ave, Kissimmee, FL', specialOffers: ['1'] },
-  { id: '3', name: 'Premium Auto Shop', city: 'Tampa', state: 'FL', services: ['Transmission', 'Engine', 'Electrical'], rating: 4.9, reviews: 156, phone: '(813) 555-0303', email: 'service@premiumauto.com', address: '789 Palm Dr, Tampa, FL', specialOffers: ['2'] },
-  { id: '4', name: 'Speedy Mechanics', city: 'Miami', state: 'FL', services: ['Brakes', 'Suspension', 'Diagnostics'], rating: 4.7, reviews: 203, phone: '(305) 555-0404', email: 'help@speedymechanics.com', address: '321 Beach Blvd, Miami, FL', specialOffers: ['2', '3'] },
-  { id: '5', name: 'Trusted Auto Care', city: 'Jacksonville', state: 'FL', services: ['Oil Change', 'Inspection', 'Tires'], rating: 4.5, reviews: 78, phone: '(904) 555-0505', email: 'care@trustedauto.com', address: '654 River Rd, Jacksonville, FL', specialOffers: ['1', '2', '3'] },
+  { id: '1', name: 'Auto Center Express', city: 'Orlando', state: 'FL', services: ['oilChange', 'brakes', 'tires'], rating: 4.8, reviews: 124, phone: '(407) 555-0101', email: 'contact@autocenter.com', address: '123 Main St, Orlando, FL', specialOffers: ['1', '3'], languages: ['en', 'es'] },
+  { id: '2', name: 'Quick Lube Plus', city: 'Kissimmee', state: 'FL', services: ['oilChange', 'engine', 'ac'], rating: 4.6, reviews: 89, phone: '(407) 555-0202', email: 'info@quicklube.com', address: '456 Oak Ave, Kissimmee, FL', specialOffers: ['1'], languages: ['en', 'pt'] },
+  { id: '3', name: 'Premium Auto Shop', city: 'Tampa', state: 'FL', services: ['transmission', 'engine', 'electrical'], rating: 4.9, reviews: 156, phone: '(813) 555-0303', email: 'service@premiumauto.com', address: '789 Palm Dr, Tampa, FL', specialOffers: ['2'], languages: ['en'] },
+  { id: '4', name: 'Speedy Mechanics', city: 'Miami', state: 'FL', services: ['brakes', 'suspension', 'diagnostics'], rating: 4.7, reviews: 203, phone: '(305) 555-0404', email: 'help@speedymechanics.com', address: '321 Beach Blvd, Miami, FL', specialOffers: ['2', '3'], languages: ['en', 'es', 'pt'] },
+  { id: '5', name: 'Trusted Auto Care', city: 'Jacksonville', state: 'FL', services: ['oilChange', 'inspection', 'tires'], rating: 4.5, reviews: 78, phone: '(904) 555-0505', email: 'care@trustedauto.com', address: '654 River Rd, Jacksonville, FL', specialOffers: ['1', '2', '3'], languages: ['en', 'es'] },
 ];
 
 // Mock data para artigos
@@ -159,7 +174,7 @@ const CITIES: Record<string, string[]> = {
   'NC': ['Charlotte', 'Raleigh', 'Durham'],
   'SC': ['Charleston', 'Columbia', 'Greenville'],
 };
-const SERVICE_TYPES = ['Oil Change', 'Brakes', 'Tires', 'Engine', 'Transmission', 'A/C', 'Electrical', 'Suspension', 'Diagnostics', 'Inspection'];
+
 
 interface LandingScreenProps {
   navigation: any;
@@ -185,6 +200,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
   const [showServiceDropdown, setShowServiceDropdown] = useState(false);
   const [searchResults, setSearchResults] = useState<typeof FULL_PROVIDERS>([]);
   const [hasSearched, setHasSearched] = useState(false);
+  const [showAllResultsModal, setShowAllResultsModal] = useState(false);
   
   // Offer Detail Modal state
   const [showOfferModal, setShowOfferModal] = useState(false);
@@ -199,6 +215,43 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
   
   // Refresh state
   const [refreshing, setRefreshing] = useState(false);
+
+  const getServiceLabel = (serviceIdOrName: string): string => {
+    const normalized = (serviceIdOrName || '').trim();
+
+    const mapById: Record<string, string> = {
+      oilChange: t.createRequest?.serviceOilChange || t.serviceTypes?.oilChange || 'Oil Change',
+      brakes: t.createRequest?.serviceBrakes || t.serviceTypes?.brakes || 'Brakes',
+      tires: t.createRequest?.serviceTires || 'Tires',
+      engine: t.createRequest?.serviceEngine || t.serviceTypes?.engine || 'Engine',
+      transmission: t.createRequest?.serviceTransmission || t.serviceTypes?.transmission || 'Transmission',
+      ac: t.createRequest?.serviceAC || 'A/C',
+      electrical: t.createRequest?.serviceElectrical || 'Electrical',
+      suspension: t.createRequest?.serviceSuspension || t.serviceTypes?.suspension || 'Suspension',
+      diagnostics: t.serviceTypes?.diagnostics || 'Diagnostics',
+      inspection: t.createRequest?.serviceInspection || t.serviceTypes?.vehicleInspection || 'Inspection',
+    };
+
+    if (normalized in mapById) return mapById[normalized];
+
+    // Back-compat for older mock values
+    const mapByLegacyName: Record<string, string> = {
+      'Oil Change': mapById.oilChange,
+      Brakes: mapById.brakes,
+      Tires: mapById.tires,
+      Engine: mapById.engine,
+      Transmission: mapById.transmission,
+      'A/C': mapById.ac,
+      Electrical: mapById.electrical,
+      Suspension: mapById.suspension,
+      Diagnostics: mapById.diagnostics,
+      Inspection: mapById.inspection,
+    };
+
+    return mapByLegacyName[normalized] || normalized;
+  };
+
+  const serviceOptions = SERVICE_TYPE_IDS.map((id) => ({ id, label: getServiceLabel(id) }));
 
   // Auto-scroll banners
   useEffect(() => {
@@ -270,16 +323,22 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
 
   // Request service from a provider
   const handleRequestService = (provider: typeof FULL_PROVIDERS[0], offer?: typeof SPECIAL_OFFERS[0] | null) => {
+    // Check if user is authenticated before navigating
+    if (!isAuthenticated) {
+      // Redirect to login if not authenticated
+      navigation.navigate('Login');
+      return;
+    }
+    
     // Navigate to create request with provider pre-selected
-    navigation.navigate('CustomerMain', { 
-      screen: 'Home', 
+    // First go to Dashboard tab, then push CreateRequest
+    navigation.navigate('Dashboard', { 
+      screen: 'CreateRequest',
       params: { 
-        screen: 'CreateRequest',
-        params: { 
-          preSelectedProvider: provider,
-          specialOffer: offer || null
-        }
-      }
+        preSelectedProvider: provider,
+        specialOffer: offer || null
+      },
+      initial: false, // This ensures it's pushed on top of existing stack
     });
   };
 
@@ -289,9 +348,9 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
   };
 
   const menuItems = isAuthenticated ? [
-    { icon: 'home', label: t.nav?.home || 'Dashboard', action: () => navigation.navigate('CustomerMain') },
-    { icon: 'car', label: t.nav?.vehicles || 'My Vehicles', action: () => navigation.navigate('CustomerMain', { screen: 'Vehicles' }) },
-    { icon: 'person', label: t.nav?.profile || 'Profile', action: () => navigation.navigate('CustomerMain', { screen: 'Profile' }) },
+    { icon: 'home', label: t.nav?.home || 'Dashboard', action: () => navigation.navigate('Dashboard') },
+    { icon: 'car', label: t.nav?.vehicles || 'My Vehicles', action: () => navigation.navigate('Vehicles') },
+    { icon: 'person', label: t.nav?.profile || 'Profile', action: () => navigation.navigate('Profile') },
     { icon: 'log-out', label: t.auth?.logout || 'Log Out', action: handleLogout, isLogout: true },
   ] : [
     { icon: 'log-in', label: t.auth?.login || 'Login', action: () => navigation.navigate('Login') },
@@ -299,11 +358,18 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
     { icon: 'information-circle', label: t.common?.info || 'About Us', action: () => {} },
   ];
 
+  const providersToShow = isAuthenticated ? searchResults.slice(0, 10) : searchResults;
+  const filterSummary = [
+    selectedService && `${t.common?.serviceType || 'Service Type'}: ${getServiceLabel(selectedService)}`,
+    selectedCity && `${t.common?.city || 'City'}: ${selectedCity}`,
+    selectedState && `${t.common?.state || 'State'}: ${selectedState}`,
+  ].filter(Boolean).join(' • ') || 'All providers';
+
   // Handle navigation for various buttons
   const handleLogin = () => navigation.navigate('Login');
   const handleSignup = () => navigation.navigate('Signup');
-  const handleGoToDashboard = () => navigation.navigate('CustomerMain');
-  const handleCreateRequest = () => navigation.navigate('CustomerMain', { screen: 'Home', params: { screen: 'CreateRequest' } });
+  const handleGoToDashboard = () => navigation.navigate('Dashboard');
+  const handleCreateRequest = () => navigation.navigate('Dashboard', { screen: 'CreateRequest' });
 
   const renderBanner = ({ item }: { item: typeof BANNERS[0] }) => (
     <View style={styles.bannerSlide}>
@@ -312,8 +378,8 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
         colors={['transparent', 'rgba(0,0,0,0.7)']}
         style={styles.bannerGradient}
       >
-        <Text style={styles.bannerTitle}>{item.title}</Text>
-        <Text style={styles.bannerSubtitle}>{item.subtitle}</Text>
+        <Text style={styles.bannerTitle}>{t.landing?.banners?.[`title${item.id}` as keyof typeof t.landing.banners] || item.title}</Text>
+        <Text style={styles.bannerSubtitle}>{t.landing?.banners?.[`subtitle${item.id}` as keyof typeof t.landing.banners] || item.subtitle}</Text>
       </LinearGradient>
     </View>
   );
@@ -331,60 +397,75 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
           <Text style={styles.originalPrice}>{item.originalPrice}</Text>
           <Text style={styles.discountedPrice}>{item.discountedPrice}</Text>
         </View>
-        <Text style={styles.validUntil}>Valid until {item.validUntil}</Text>
+        <Text style={styles.validUntil}>{t.landing?.offers?.validUntil || 'Valid until'} {item.validUntil}</Text>
       </View>
       <View style={styles.offerTapHint}>
         <Ionicons name="finger-print" size={16} color="#6b7280" />
-        <Text style={styles.offerTapHintText}>Tap for details</Text>
+        <Text style={styles.offerTapHintText}>{t.landing?.offers?.tapForDetails || 'Tap for details'}</Text>
       </View>
     </TouchableOpacity>
   );
 
-  const renderProvider = ({ item, offer }: { item: typeof FULL_PROVIDERS[0], offer?: typeof SPECIAL_OFFERS[0] | null }) => (
-    <View style={styles.providerCard}>
-      <View style={styles.providerIcon}>
-        <MaterialCommunityIcons name="store" size={28} color="#1976d2" />
-      </View>
-      <View style={styles.providerInfo}>
-        <Text style={styles.providerName}>{item.name}</Text>
-        <View style={styles.providerLocation}>
-          <Ionicons name="location" size={14} color="#6b7280" />
-          <Text style={styles.providerLocationText}>{item.city}, {item.state}</Text>
+  const renderProvider = ({ item, offer, variant = 'default' }: { item: typeof FULL_PROVIDERS[0], offer?: typeof SPECIAL_OFFERS[0] | null, variant?: 'default' | 'horizontal' }) => (
+    <View style={[styles.providerCard, variant === 'horizontal' && styles.providerCardHorizontal]}>
+      <View style={styles.providerHeader}>
+        <View style={styles.providerIcon}>
+          <MaterialCommunityIcons name="store" size={24} color="#1976d2" />
         </View>
-        {isAuthenticated && item.rating > 0 && (
-          <View style={styles.providerRating}>
-            <Ionicons name="star" size={14} color="#f59e0b" />
-            <Text style={styles.providerRatingText}>{item.rating} ({item.reviews} reviews)</Text>
+        <View style={styles.providerMainInfo}>
+          <View style={styles.providerNameRow}>
+            <Text style={styles.providerName} numberOfLines={1}>{item.name}</Text>
+            {item.languages && item.languages.length > 0 && (
+              <View style={styles.languageFlags}>
+                {item.languages.map((lang: string) => (
+                  <Text key={lang} style={styles.languageFlagSmall}>
+                    {lang === 'en' ? '🇺🇸' : lang === 'pt' ? '🇧🇷' : lang === 'es' ? '🇪🇸' : ''}
+                  </Text>
+                ))}
+              </View>
+            )}
           </View>
-        )}
-        <View style={styles.providerServices}>
-          {item.services.slice(0, 3).map((service, idx) => (
-            <View key={idx} style={styles.serviceTag}>
-              <Text style={styles.serviceTagText}>{service}</Text>
+          <View style={styles.providerMeta}>
+            <View style={styles.providerLocation}>
+              <Ionicons name="location" size={12} color="#6b7280" />
+              <Text style={styles.providerLocationText}>{item.city}, {item.state}</Text>
             </View>
-          ))}
+            {isAuthenticated && item.rating > 0 && (
+              <View style={styles.providerRating}>
+                <Ionicons name="star" size={12} color="#f59e0b" />
+                <Text style={styles.providerRatingText}>{item.rating}</Text>
+              </View>
+            )}
+          </View>
         </View>
-        {isAuthenticated && item.address && (
-          <View style={styles.providerAddress}>
-            <Ionicons name="navigate" size={14} color="#6b7280" />
-            <Text style={styles.providerAddressText}>{item.address}</Text>
+      </View>
+      <View style={styles.providerServices}>
+        {item.services.slice(0, 3).map((service, idx) => (
+          <View key={idx} style={styles.serviceTag}>
+            <Text style={styles.serviceTagText}>{getServiceLabel(service)}</Text>
+          </View>
+        ))}
+      </View>
+      <View style={styles.providerFooter}>
+        <View style={styles.safeTransactionTip}>
+          <Ionicons name="shield-checkmark" size={12} color="#10b981" />
+          <Text style={styles.safeTransactionText}>{t.common?.safeTransactionTip || 'Always use the platform for secure transactions'}</Text>
+        </View>
+        {isAuthenticated ? (
+          <TouchableOpacity 
+            style={styles.requestServiceButton}
+            onPress={() => handleRequestService(item, offer)}
+          >
+            <Text style={styles.requestServiceButtonText}>Request</Text>
+            <Ionicons name="arrow-forward" size={14} color="#fff" />
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.providerLocked}>
+            <Ionicons name="lock-closed" size={16} color="#9ca3af" />
+            <Text style={styles.lockedText}>Register</Text>
           </View>
         )}
       </View>
-      {isAuthenticated ? (
-        <TouchableOpacity 
-          style={styles.requestServiceButton}
-          onPress={() => handleRequestService(item, offer)}
-        >
-          <Ionicons name="add-circle" size={18} color="#fff" />
-          <Text style={styles.requestServiceButtonText}>Request Service</Text>
-        </TouchableOpacity>
-      ) : (
-        <View style={styles.providerLocked}>
-          <Ionicons name="lock-closed" size={20} color="#9ca3af" />
-          <Text style={styles.lockedText}>Register to view</Text>
-        </View>
-      )}
     </View>
   );
 
@@ -511,8 +592,8 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
           <View style={styles.sectionHeaderLarge}>
             <Ionicons name="search" size={24} color="#1976d2" />
             <View>
-              <Text style={styles.sectionTitle}>Find Service Providers</Text>
-              <Text style={styles.sectionSubtitle}>Search our certified network</Text>
+              <Text style={styles.sectionTitle}>{t.landing?.search?.title || 'Find Service Providers'}</Text>
+              <Text style={styles.sectionSubtitle}>{t.landing?.search?.subtitle || 'Search our certified network'}</Text>
             </View>
           </View>
 
@@ -524,7 +605,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
             >
               <Ionicons name="map" size={18} color="#6b7280" />
               <Text style={[styles.filterText, !selectedState && styles.filterPlaceholder]}>
-                {selectedState || 'State'}
+                {selectedState || t.common?.state || 'State'}
               </Text>
               <Ionicons name="chevron-down" size={18} color="#6b7280" />
             </TouchableOpacity>
@@ -536,7 +617,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
             >
               <Ionicons name="business" size={18} color="#6b7280" />
               <Text style={[styles.filterText, !selectedCity && styles.filterPlaceholder]}>
-                {selectedCity || 'City'}
+                {selectedCity || t.common?.city || 'City'}
               </Text>
               <Ionicons name="chevron-down" size={18} color="#6b7280" />
             </TouchableOpacity>
@@ -548,7 +629,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
             >
               <Ionicons name="construct" size={18} color="#6b7280" />
               <Text style={[styles.filterText, !selectedService && styles.filterPlaceholder]}>
-                {selectedService || 'Service Type'}
+                {selectedService ? getServiceLabel(selectedService) : (t.common?.serviceType || 'Service Type')}
               </Text>
               <Ionicons name="chevron-down" size={18} color="#6b7280" />
             </TouchableOpacity>
@@ -557,11 +638,11 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
           <View style={styles.searchActions}>
             <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
               <Ionicons name="search" size={20} color="#fff" />
-              <Text style={styles.searchButtonText}>Search</Text>
+              <Text style={styles.searchButtonText}>{t.common?.search || 'Search'}</Text>
             </TouchableOpacity>
             {(selectedState || selectedCity || selectedService) && (
               <TouchableOpacity style={styles.clearButton} onPress={clearFilters}>
-                <Text style={styles.clearButtonText}>Clear</Text>
+                <Text style={styles.clearButtonText}>{t.common?.clear || 'Clear'}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -569,37 +650,78 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
           {/* Search Results */}
           {hasSearched && (
             <View style={styles.searchResults}>
-              <Text style={styles.resultsTitle}>
-                {searchResults.length} Provider{searchResults.length !== 1 ? 's' : ''} Found
-              </Text>
+              <View style={styles.resultsHeader}>
+                <Text style={styles.resultsTitle}>
+                  {searchResults.length} {searchResults.length !== 1 ? (t.common?.providersFound || 'Providers Found') : (t.common?.providerFound || 'Provider Found')}
+                </Text>
+                {isAuthenticated && searchResults.length > 1 && (
+                  <TouchableOpacity 
+                    style={styles.viewAllButton}
+                    onPress={() => setShowAllResultsModal(true)}
+                  >
+                    <Text style={styles.viewAllButtonText}>{t.common?.viewAll || 'View all'}</Text>
+                    <Ionicons name="arrow-forward" size={16} color="#1976d2" />
+                  </TouchableOpacity>
+                )}
+              </View>
+
               {searchResults.length > 0 ? (
-                searchResults.map(provider => (
-                  <View key={provider.id}>
-                    {renderProvider({ item: provider, offer: null })}
-                  </View>
-                ))
+                isAuthenticated ? (
+                  <FlatList
+                    data={providersToShow}
+                    keyExtractor={(item) => item.id}
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.horizontalResults}
+                    renderItem={({ item }) => (
+                      <View style={{ marginRight: 12 }}>
+                        {renderProvider({ item, offer: null, variant: 'horizontal' })}
+                      </View>
+                    )}
+                  />
+                ) : (
+                  searchResults.map(provider => (
+                    <View key={provider.id}>
+                      {renderProvider({ item: provider, offer: null })}
+                    </View>
+                  ))
+                )
               ) : (
                 <View style={styles.noResults}>
                   <Ionicons name="search-outline" size={48} color="#d1d5db" />
-                  <Text style={styles.noResultsText}>No providers found</Text>
-                  <Text style={styles.noResultsSubtext}>Try adjusting your filters</Text>
+                  <Text style={styles.noResultsText}>{t.common?.noResults || 'No results found'}</Text>
+                  <Text style={styles.noResultsSubtext}>{t.common?.tryAgain || 'Try adjusting your filters'}</Text>
                 </View>
               )}
               
               {/* CTA to Register */}
-              <View style={styles.registerCTA}>
-                <Text style={styles.registerCTATitle}>Want full access?</Text>
-                <Text style={styles.registerCTAText}>
-                  Register now to see complete provider details, contact information, and book services directly!
-                </Text>
-                <TouchableOpacity 
-                  style={styles.registerCTAButton}
-                  onPress={handleSignup}
-                >
-                  <Text style={styles.registerCTAButtonText}>Create Free Account</Text>
-                  <Ionicons name="arrow-forward" size={18} color="#fff" />
-                </TouchableOpacity>
-              </View>
+              {!isAuthenticated && (
+                <View style={styles.registerCTA}>
+                  <Text style={styles.registerCTATitle}>{t.landing?.cta?.wantFullAccess || 'Want full access?'}</Text>
+                  <Text style={styles.registerCTAText}>
+                    {t.landing?.cta?.registerDesc || 'Register now to see complete provider details, contact information, and book services directly!'}
+                  </Text>
+                  <View style={{ gap: 10 }}>
+                    <TouchableOpacity 
+                      style={styles.registerCTAButton}
+                      onPress={handleSignup}
+                    >
+                      <Text style={styles.registerCTAButtonText}>{t.landing?.cta?.createFreeAccount || 'Create Free Account'}</Text>
+                      <Ionicons name="arrow-forward" size={18} color="#fff" />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.registerCTAButton, { backgroundColor: 'transparent', borderWidth: 1, borderColor: '#1976d2' }]}
+                      onPress={() => navigation.navigate('Login')}
+                    >
+                      <Text style={[styles.registerCTAButtonText, { color: '#1976d2' }]}>
+                        {t.auth?.login || 'Login'}
+                      </Text>
+                      <Ionicons name="log-in-outline" size={18} color="#1976d2" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
             </View>
           )}
         </View>
@@ -609,8 +731,8 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
           <View style={styles.sectionHeaderLarge}>
             <MaterialCommunityIcons name="tag-multiple" size={24} color="#ef4444" />
             <View>
-              <Text style={styles.sectionTitle}>Special Offers</Text>
-              <Text style={styles.sectionSubtitle}>Limited time deals</Text>
+              <Text style={styles.sectionTitle}>{t.landing?.offers?.title || 'Special Offers'}</Text>
+              <Text style={styles.sectionSubtitle}>{t.landing?.offers?.subtitle || 'Limited time deals'}</Text>
             </View>
           </View>
           <FlatList
@@ -628,18 +750,23 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
           <View style={styles.sectionHeaderLarge}>
             <Ionicons name="ribbon" size={24} color="#10b981" />
             <View>
-              <Text style={styles.sectionTitle}>Why TechTrust?</Text>
-              <Text style={styles.sectionSubtitle}>Benefits of using our platform</Text>
+              <Text style={styles.sectionTitle}>{t.landing?.benefits?.title || 'Why TechTrust?'}</Text>
+              <Text style={styles.sectionSubtitle}>{t.landing?.benefits?.subtitle || 'Benefits of using our platform'}</Text>
             </View>
           </View>
           <View style={styles.benefitsGrid}>
-            {BENEFITS.map(benefit => (
+            {[
+              { id: '1', icon: 'shield-checkmark', titleKey: 'verified' as const, descKey: 'verifiedDesc' as const },
+              { id: '2', icon: 'cash', titleKey: 'pricing' as const, descKey: 'pricingDesc' as const },
+              { id: '3', icon: 'time', titleKey: 'time' as const, descKey: 'timeDesc' as const },
+              { id: '4', icon: 'star', titleKey: 'quality' as const, descKey: 'qualityDesc' as const },
+            ].map(benefit => (
               <View key={benefit.id} style={styles.benefitCard}>
                 <View style={styles.benefitIcon}>
                   <Ionicons name={benefit.icon as any} size={28} color="#1976d2" />
                 </View>
-                <Text style={styles.benefitTitle}>{benefit.title}</Text>
-                <Text style={styles.benefitDescription}>{benefit.description}</Text>
+                <Text style={styles.benefitTitle}>{(t.landing?.benefits as any)?.[benefit.titleKey] || BENEFITS.find(b => b.id === benefit.id)?.title}</Text>
+                <Text style={styles.benefitDescription}>{(t.landing?.benefits as any)?.[benefit.descKey] || BENEFITS.find(b => b.id === benefit.id)?.description}</Text>
               </View>
             ))}
           </View>
@@ -650,8 +777,8 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
           <View style={styles.sectionHeaderLarge}>
             <Ionicons name="newspaper" size={24} color="#8b5cf6" />
             <View>
-              <Text style={styles.sectionTitle}>Tips & Articles</Text>
-              <Text style={styles.sectionSubtitle}>Vehicle care guides</Text>
+              <Text style={styles.sectionTitle}>{t.landing?.articles?.title || 'Tips & Articles'}</Text>
+              <Text style={styles.sectionSubtitle}>{t.landing?.articles?.subtitle || 'Vehicle care guides'}</Text>
             </View>
           </View>
           <FlatList
@@ -669,8 +796,8 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
           <View style={styles.sectionHeaderLarge}>
             <Ionicons name="megaphone" size={24} color="#f59e0b" />
             <View>
-              <Text style={styles.sectionTitle}>Important Notices</Text>
-              <Text style={styles.sectionSubtitle}>Stay informed</Text>
+              <Text style={styles.sectionTitle}>{t.landing?.notices?.title || 'Important Notices'}</Text>
+              <Text style={styles.sectionSubtitle}>{t.landing?.notices?.subtitle || 'Stay informed'}</Text>
             </View>
           </View>
           <View style={styles.noticeCard}>
@@ -678,9 +805,9 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
               <Ionicons name="information-circle" size={24} color="#1976d2" />
             </View>
             <View style={styles.noticeContent}>
-              <Text style={styles.noticeTitle}>Holiday Hours</Text>
+              <Text style={styles.noticeTitle}>{t.landing?.notices?.holidayTitle || 'Holiday Hours'}</Text>
               <Text style={styles.noticeText}>
-                Some service providers may have modified hours during the holiday season. Please confirm availability when booking.
+                {t.landing?.notices?.holidayDesc || 'Some service providers may have modified hours during the holiday season. Please confirm availability when booking.'}
               </Text>
             </View>
           </View>
@@ -689,9 +816,9 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
               <Ionicons name="warning" size={24} color="#f59e0b" />
             </View>
             <View style={styles.noticeContent}>
-              <Text style={styles.noticeTitle}>Weather Advisory</Text>
+              <Text style={styles.noticeTitle}>{t.landing?.notices?.weatherTitle || 'Weather Advisory'}</Text>
               <Text style={styles.noticeText}>
-                Heavy rain expected this week. Consider scheduling preventive maintenance and tire checks.
+                {t.landing?.notices?.weatherDesc || 'Heavy rain expected this week. Consider scheduling preventive maintenance and tire checks.'}
               </Text>
             </View>
           </View>
@@ -700,9 +827,9 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
         {/* Footer CTA */}
         {!isAuthenticated && (
           <View style={styles.footerCTA}>
-            <Text style={styles.footerCTATitle}>Ready to Get Started?</Text>
+            <Text style={styles.footerCTATitle}>{t.landing?.cta?.title || 'Ready to Get Started?'}</Text>
             <Text style={styles.footerCTAText}>
-              Join thousands of satisfied customers who trust TechTrust for their auto service needs.
+              {t.landing?.cta?.desc || 'Join thousands of satisfied customers who trust TechTrust for their auto service needs.'}
             </Text>
             <View style={styles.footerCTAButtons}>
               <TouchableOpacity 
@@ -724,6 +851,35 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
         <View style={{ height: 30 }} />
       </ScrollView>
 
+      {/* All Providers Modal */}
+      <Modal visible={showAllResultsModal} animationType="slide">
+        <SafeAreaView style={styles.fullResultsContainer}>
+          <View style={styles.fullResultsHeader}>
+            <TouchableOpacity onPress={() => setShowAllResultsModal(false)}>
+              <Ionicons name="arrow-back" size={24} color="#374151" />
+            </TouchableOpacity>
+            <Text style={styles.fullResultsTitle}>{t.landing?.search?.results || 'Providers found'}</Text>
+            <View style={{ width: 24 }} />
+          </View>
+          <Text style={styles.fullResultsSubtitle}>{filterSummary}</Text>
+          <ScrollView contentContainerStyle={styles.fullResultsList}>
+            {searchResults.length > 0 ? (
+              searchResults.map(provider => (
+                <View key={provider.id} style={styles.fullResultCardWrapper}>
+                  {renderProvider({ item: provider, offer: null })}
+                </View>
+              ))
+            ) : (
+              <View style={styles.noResultsFullModal}>
+                <Ionicons name="search-outline" size={48} color="#d1d5db" />
+                <Text style={styles.noResultsText}>{t.common?.noResults || 'No results found'}</Text>
+                <Text style={styles.noResultsSubtext}>{t.common?.tryAgain || 'Try adjusting your filters'}</Text>
+              </View>
+            )}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
       {/* Dropdown Modals */}
       {/* State Dropdown */}
       <Modal visible={showStateDropdown} transparent animationType="fade">
@@ -732,7 +888,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
           onPress={() => setShowStateDropdown(false)}
         >
           <View style={styles.dropdownContent}>
-            <Text style={styles.dropdownTitle}>Select State</Text>
+            <Text style={styles.dropdownTitle}>{t.landing?.search?.selectState || 'Select State'}</Text>
             <ScrollView style={styles.dropdownScroll}>
               {STATES.map(state => (
                 <TouchableOpacity
@@ -762,7 +918,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
           onPress={() => setShowCityDropdown(false)}
         >
           <View style={styles.dropdownContent}>
-            <Text style={styles.dropdownTitle}>Select City</Text>
+            <Text style={styles.dropdownTitle}>{t.landing?.search?.selectCity || 'Select City'}</Text>
             <ScrollView style={styles.dropdownScroll}>
               {(CITIES[selectedState] || []).map(city => (
                 <TouchableOpacity
@@ -791,21 +947,21 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
           onPress={() => setShowServiceDropdown(false)}
         >
           <View style={styles.dropdownContent}>
-            <Text style={styles.dropdownTitle}>Select Service Type</Text>
+            <Text style={styles.dropdownTitle}>{t.landing?.search?.selectService || 'Select Service Type'}</Text>
             <ScrollView style={styles.dropdownScroll}>
-              {SERVICE_TYPES.map(service => (
+              {serviceOptions.map(({ id, label }) => (
                 <TouchableOpacity
-                  key={service}
-                  style={[styles.dropdownItem, selectedService === service && styles.dropdownItemSelected]}
+                  key={id}
+                  style={[styles.dropdownItem, selectedService === id && styles.dropdownItemSelected]}
                   onPress={() => {
-                    setSelectedService(service);
+                    setSelectedService(id);
                     setShowServiceDropdown(false);
                   }}
                 >
-                  <Text style={[styles.dropdownItemText, selectedService === service && styles.dropdownItemTextSelected]}>
-                    {service}
+                  <Text style={[styles.dropdownItemText, selectedService === id && styles.dropdownItemTextSelected]}>
+                    {label}
                   </Text>
-                  {selectedService === service && <Ionicons name="checkmark" size={20} color="#1976d2" />}
+                  {selectedService === id && <Ionicons name="checkmark" size={20} color="#1976d2" />}
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -999,12 +1155,12 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                         onPress={handleFindOfferProviders}
                       >
                         <Ionicons name="search" size={20} color="#fff" />
-                        <Text style={styles.offerModalFindButtonText}>Find a Provider</Text>
+                        <Text style={styles.offerModalFindButtonText}>{t.landing?.offers?.findProvider || 'Find a Provider'}</Text>
                       </TouchableOpacity>
                       <View style={styles.offerModalDisclaimer}>
                         <Ionicons name="information-circle" size={16} color="#f59e0b" />
                         <Text style={styles.offerModalDisclaimerText}>
-                          Special offers may not be available with all providers. Check participating providers below.
+                          {t.landing?.offers?.disclaimer || 'Special offers may not be available with all providers. Check participating providers below.'}
                         </Text>
                       </View>
                     </View>
@@ -1029,7 +1185,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
               >
                 <Ionicons name="arrow-back" size={24} color="#374151" />
               </TouchableOpacity>
-              <Text style={styles.offerProvidersModalTitle}>Find Participating Providers</Text>
+              <Text style={styles.offerProvidersModalTitle}>{t.landing?.findParticipatingProviders || 'Find Participating Providers'}</Text>
               <View style={{ width: 24 }} />
             </View>
             
@@ -1048,7 +1204,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
               >
                 <Ionicons name="map" size={18} color="#6b7280" />
                 <Text style={[styles.filterText, !offerProviderState && styles.filterPlaceholder]}>
-                  {offerProviderState || 'Select State'}
+                  {offerProviderState || t.landing?.search?.selectState || 'Select State'}
                 </Text>
                 <Ionicons name="chevron-down" size={18} color="#6b7280" />
               </TouchableOpacity>
@@ -1060,7 +1216,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
               >
                 <Ionicons name="business" size={18} color="#6b7280" />
                 <Text style={[styles.filterText, !offerProviderCity && styles.filterPlaceholder]}>
-                  {offerProviderCity || 'Select City'}
+                  {offerProviderCity || t.landing?.search?.selectCity || 'Select City'}
                 </Text>
                 <Ionicons name="chevron-down" size={18} color="#6b7280" />
               </TouchableOpacity>
@@ -1070,14 +1226,14 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                 onPress={handleSearchOfferProviders}
               >
                 <Ionicons name="search" size={20} color="#fff" />
-                <Text style={styles.offerProvidersSearchButtonText}>Search</Text>
+                <Text style={styles.offerProvidersSearchButtonText}>{t.common?.search || 'Search'}</Text>
               </TouchableOpacity>
             </View>
             
             <View style={styles.offerProvidersDisclaimer}>
               <Ionicons name="alert-circle" size={18} color="#f59e0b" />
               <Text style={styles.offerProvidersDisclaimerText}>
-                Special offers may not be available with all providers. Only participating providers are shown.
+                {t.landing?.offers?.disclaimer || 'Special offers may not be available with all providers. Only participating providers are shown.'}
               </Text>
             </View>
             
@@ -1086,7 +1242,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                 offerProviders.length > 0 ? (
                   <>
                     <Text style={styles.offerProvidersResultsTitle}>
-                      {offerProviders.length} Participating Provider{offerProviders.length !== 1 ? 's' : ''}
+                      {(t.landing?.participatingProviders || '{count} Participating Provider(s)').replace('{count}', offerProviders.length.toString())}
                     </Text>
                     {offerProviders.map(provider => (
                       <View key={provider.id}>
@@ -1097,14 +1253,14 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                 ) : (
                   <View style={styles.offerProvidersNoResults}>
                     <Ionicons name="search-outline" size={48} color="#d1d5db" />
-                    <Text style={styles.offerProvidersNoResultsText}>No providers found for this offer</Text>
-                    <Text style={styles.offerProvidersNoResultsSubtext}>Try selecting a different location</Text>
+                    <Text style={styles.offerProvidersNoResultsText}>{t.common?.noResults || 'No providers found'}</Text>
+                    <Text style={styles.offerProvidersNoResultsSubtext}>{t.landing?.tryDifferentLocation || 'Try selecting a different location'}</Text>
                   </View>
                 )
               ) : (
                 <View style={styles.offerProvidersEmptyState}>
                   <Ionicons name="storefront-outline" size={64} color="#d1d5db" />
-                  <Text style={styles.offerProvidersEmptyText}>Select a location to find participating providers</Text>
+                  <Text style={styles.offerProvidersEmptyText}>{t.landing?.selectLocationPrompt || 'Select a location to find participating providers'}</Text>
                 </View>
               )}
             </ScrollView>
@@ -1119,7 +1275,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
           onPress={() => setShowOfferStateDropdown(false)}
         >
           <View style={styles.dropdownContent}>
-            <Text style={styles.dropdownTitle}>Select State</Text>
+            <Text style={styles.dropdownTitle}>{t.landing?.search?.selectState || 'Select State'}</Text>
             <ScrollView style={styles.dropdownScroll}>
               {STATES.map(state => (
                 <TouchableOpacity
@@ -1149,7 +1305,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
           onPress={() => setShowOfferCityDropdown(false)}
         >
           <View style={styles.dropdownContent}>
-            <Text style={styles.dropdownTitle}>Select City</Text>
+            <Text style={styles.dropdownTitle}>{t.landing?.search?.selectCity || 'Select City'}</Text>
             <ScrollView style={styles.dropdownScroll}>
               {(CITIES[offerProviderState] || []).map(city => (
                 <TouchableOpacity
@@ -1426,11 +1582,31 @@ const styles = StyleSheet.create({
     marginTop: 20,
     paddingHorizontal: 16,
   },
+  resultsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
   resultsTitle: {
     fontSize: 15,
     fontWeight: '600',
     color: '#374151',
     marginBottom: 12,
+  },
+  viewAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  viewAllButtonText: {
+    color: '#1976d2',
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  horizontalResults: {
+    paddingVertical: 6,
+    paddingRight: 6,
   },
   noResults: {
     alignItems: 'center',
@@ -1451,47 +1627,76 @@ const styles = StyleSheet.create({
   },
   // Provider card styles
   providerCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
     backgroundColor: '#fff',
-    borderRadius: 16,
+    borderRadius: 14,
     padding: 16,
     marginBottom: 10,
     borderWidth: 1,
     borderColor: '#e5e7eb',
   },
+  providerCardHorizontal: {
+    width: width - 32,
+  },
+  providerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
   providerIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: '#dbeafe',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 14,
+    marginRight: 10,
+  },
+  providerMainInfo: {
+    flex: 1,
   },
   providerInfo: {
     flex: 1,
   },
+  providerNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   providerName: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
     color: '#111827',
+    flex: 1,
+  },
+  languageFlags: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    marginLeft: 8,
+  },
+  languageFlagSmall: {
+    fontSize: 12,
+  },
+  providerMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 3,
   },
   providerLocation: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 4,
+    gap: 3,
   },
   providerLocationText: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#6b7280',
   },
   providerServices: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
-    marginTop: 8,
+    marginBottom: 10,
   },
   serviceTag: {
     backgroundColor: '#f0fdf4',
@@ -1502,17 +1707,33 @@ const styles = StyleSheet.create({
   serviceTagText: {
     fontSize: 11,
     color: '#10b981',
-    fontWeight: '500',
+    fontWeight: '600',
+  },
+  providerFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  safeTransactionTip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    flex: 1,
+    marginRight: 8,
+  },
+  safeTransactionText: {
+    fontSize: 10,
+    color: '#10b981',
+    flex: 1,
   },
   providerLocked: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingLeft: 12,
+    gap: 4,
   },
   lockedText: {
-    fontSize: 10,
+    fontSize: 11,
     color: '#9ca3af',
-    marginTop: 4,
-    textAlign: 'center',
   },
   registerCTA: {
     backgroundColor: '#eff6ff',
@@ -1547,6 +1768,41 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#fff',
+  },
+  fullResultsContainer: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+  },
+  fullResultsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  fullResultsTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  fullResultsSubtitle: {
+    fontSize: 13,
+    color: '#6b7280',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  fullResultsList: {
+    paddingHorizontal: 16,
+    paddingBottom: 24,
+  },
+  fullResultCardWrapper: {
+    marginBottom: 12,
+  },
+  noResultsFullModal: {
+    alignItems: 'center',
+    padding: 40,
   },
   // Offer card styles
   offersContainer: {
@@ -2003,22 +2259,22 @@ const styles = StyleSheet.create({
   providerRating: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 4,
+    gap: 3,
   },
   providerRatingText: {
     fontSize: 12,
     color: '#f59e0b',
-    fontWeight: '500',
+    fontWeight: '600',
   },
   providerAddress: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    marginTop: 6,
+    flex: 1,
+    marginRight: 10,
   },
   providerAddressText: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#6b7280',
     flex: 1,
   },
@@ -2030,11 +2286,10 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
     gap: 4,
-    marginTop: 8,
   },
   requestServiceButtonText: {
     color: '#fff',
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
   },
   // Offer Tap Hint

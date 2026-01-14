@@ -111,10 +111,10 @@ export default function DashboardScreen({ navigation }: any) {
         <FadeInView delay={0}>
           <View style={styles.header}>
             <Text variant="headlineSmall" style={styles.greeting}>
-              {t.dashboard?.greeting || 'Hello'}, {user?.fullName?.split(' ')[0]}! 👋
+              {t.customerDashboard?.greeting || 'Hello'}, {user?.fullName?.split(' ')[0]}! 👋
             </Text>
             <Text variant="bodyMedium" style={styles.subtitle}>
-              {t.dashboard?.welcome || 'Welcome to TechTrust'}
+              {t.customerDashboard?.howCanWeHelp || 'How can we help you today?'}
             </Text>
           </View>
         </FadeInView>
@@ -126,7 +126,7 @@ export default function DashboardScreen({ navigation }: any) {
               <View style={[styles.statCardInner, { backgroundColor: '#e3f2fd' }]}>
                 <Text style={styles.statEmoji}>🔧</Text>
                 <Text style={styles.statNumber}>{requests.filter(r => r.status === 'IN_PROGRESS').length}</Text>
-                <Text style={styles.statLabel}>{t.dashboard?.inProgress || 'In progress'}</Text>
+                <Text style={styles.statLabel}>{t.customerDashboard?.activeServices || 'Active'}</Text>
               </View>
             </ScalePress>
             
@@ -134,11 +134,11 @@ export default function DashboardScreen({ navigation }: any) {
               <View style={[styles.statCardInner, { backgroundColor: '#e8f5e9' }]}>
                 <Text style={styles.statEmoji}>📋</Text>
                 <Text style={styles.statNumber}>{requests.filter(r => r.status === 'QUOTES_RECEIVED').length}</Text>
-                <Text style={styles.statLabel}>{t.dashboard?.quotes || 'Quotes'}</Text>
+                <Text style={styles.statLabel}>{t.customerDashboard?.pendingQuotes || 'Quotes'}</Text>
               </View>
             </ScalePress>
             
-            <ScalePress onPress={() => navigation.navigate('VehiclesTab')} style={styles.statCard}>
+            <ScalePress onPress={() => navigation.navigate('Vehicles')} style={styles.statCard}>
               <View style={[styles.statCardInner, { backgroundColor: '#fff3e0' }]}>
                 <Text style={styles.statEmoji}>🚗</Text>
                 <Text style={styles.statNumber}>-</Text>
@@ -152,16 +152,16 @@ export default function DashboardScreen({ navigation }: any) {
         <FadeInView delay={200}>
           <View style={styles.section}>
             <Text variant="titleLarge" style={styles.sectionTitle}>
-              {t.dashboard?.recentRequests || 'Recent Requests'}
+              {t.customerDashboard?.recentRequests || 'Recent Requests'}
             </Text>
 
             {/* ✨ Empty State melhorado */}
             {requests.length === 0 && (
               <EmptyState
                 icon="clipboard-text-outline"
-                title={t.dashboard?.noRequests || 'No requests'}
-                description={t.dashboard?.noRequestsDesc || 'Create your first service request!'}
-                actionLabel={t.dashboard?.newRequest || 'New Request'}
+                title={t.customerDashboard?.noRequests || 'No requests'}
+                description={t.customerDashboard?.createFirstRequest || 'Create your first service request!'}
+                actionLabel={t.customerDashboard?.newRequest || 'New Request'}
                 onAction={() => navigation.navigate('CreateRequest')}
               />
             )}
@@ -195,7 +195,7 @@ export default function DashboardScreen({ navigation }: any) {
                       {request.quotesCount > 0 && (
                         <View style={styles.quotesContainer}>
                           <Text variant="bodyMedium" style={styles.quotesCount}>
-                            📋 {request.quotesCount} {t.dashboard?.quotesReceived || 'quote(s) received'}
+                            📋 {request.quotesCount} {t.customerDashboard?.quotesAvailable || 'quote(s) available'}
                           </Text>
                         </View>
                       )}
@@ -213,7 +213,7 @@ export default function DashboardScreen({ navigation }: any) {
         icon="plus"
         style={[styles.fab, { backgroundColor: theme.colors.primary }]}
         onPress={() => navigation.navigate('CreateRequest')}
-        label={t.dashboard?.newRequest || 'New Request'}
+        label={t.customerDashboard?.newRequest || 'New Request'}
       />
 
       {/* ✨ Toast para notificações */}

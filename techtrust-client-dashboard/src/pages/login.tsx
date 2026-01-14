@@ -1,15 +1,19 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../contexts/AuthContext';
-import { Car, Mail, Lock, Eye, EyeOff, ArrowRight, Shield, Clock, Star } from 'lucide-react';
+import { Car, Mail, Lock, Eye, EyeOff, ArrowRight, Shield, Clock, Star, Globe2 } from 'lucide-react';
+import { useI18n, languages, Language } from '../i18n';
 
 export default function LoginPage() {
   const { login } = useAuth();
+  const { translate, language, setLanguage } = useI18n();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const tr = translate;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -19,7 +23,7 @@ export default function LoginPage() {
     try {
       await login(email, password);
     } catch (err: any) {
-      setError(err.message || 'Erro ao fazer login');
+      setError(err.message || tr('auth.loginError'));
     } finally {
       setLoading(false);
     }
@@ -31,23 +35,41 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center p-8 bg-white">
         <div className="w-full max-w-md">
           {/* Logo */}
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 bg-primary-600 rounded-xl flex items-center justify-center">
-              <Car className="w-7 h-7 text-white" />
+          <div className="flex items-center justify-between gap-3 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-primary-600 rounded-xl flex items-center justify-center">
+                <Car className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">{tr('brand.name')}</h1>
+                <p className="text-sm text-gray-500">{tr('client.subtitle')}</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">TechTrust</h1>
-              <p className="text-sm text-gray-500">Portal do Cliente</p>
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <Globe2 className="w-4 h-4" />
+              <label className="sr-only" htmlFor="lang-select">{tr('common.language')}</label>
+              <select
+                id="lang-select"
+                value={language}
+                onChange={(e) => setLanguage(e.target.value as Language)}
+                className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-200"
+              >
+                {languages.map((lang) => (
+                  <option key={lang.code} value={lang.code}>
+                    {lang.label}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
           {/* Welcome */}
           <div className="mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Bem-vindo de volta! 👋
+              {tr('auth.welcomeBack')}
             </h2>
             <p className="text-gray-600">
-              Acesse sua conta para gerenciar seus veículos e serviços
+              {tr('auth.clientIntro')}
             </p>
           </div>
 
@@ -65,7 +87,7 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email
+                {tr('auth.email')}
               </label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -82,7 +104,7 @@ export default function LoginPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Senha
+                {tr('auth.password')}
               </label>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -107,10 +129,10 @@ export default function LoginPage() {
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2">
                 <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-primary-600" />
-                <span className="text-sm text-gray-600">Lembrar de mim</span>
+                <span className="text-sm text-gray-600">{tr('auth.rememberMe')}</span>
               </label>
               <a href="#" className="text-sm text-primary-600 hover:text-primary-700 font-medium">
-                Esqueci a senha
+                {tr('auth.forgotPassword')}
               </a>
             </div>
 
@@ -122,11 +144,11 @@ export default function LoginPage() {
               {loading ? (
                 <span className="flex items-center gap-2">
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Entrando...
+                  {tr('auth.signingIn')}
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
-                  Entrar
+                  {tr('auth.signIn')}
                   <ArrowRight className="w-5 h-5" />
                 </span>
               )}
@@ -136,15 +158,15 @@ export default function LoginPage() {
           {/* Demo Hint */}
           <div className="mt-6 p-4 bg-blue-50 rounded-lg">
             <p className="text-sm text-blue-700 text-center">
-              <strong>Modo Demo:</strong> Use qualquer email e senha para testar
+              {tr('auth.demoMode')}
             </p>
           </div>
 
           {/* Sign Up Link */}
           <p className="mt-8 text-center text-gray-600">
-            Não tem uma conta?{' '}
+            {tr('client.signUpPrompt')}{' '}
             <Link href="/cadastro" className="text-primary-600 hover:text-primary-700 font-medium">
-              Cadastre-se
+              {tr('client.signUpCta')}
             </Link>
           </p>
         </div>
@@ -154,10 +176,10 @@ export default function LoginPage() {
       <div className="hidden lg:flex flex-1 bg-gradient-to-br from-primary-600 to-primary-800 p-12 items-center justify-center">
         <div className="max-w-md text-white">
           <h2 className="text-3xl font-bold mb-6">
-            Seus veículos sempre bem cuidados
+            {tr('client.heroTitle')}
           </h2>
           <p className="text-primary-100 mb-10 text-lg">
-            Encontre os melhores profissionais, compare orçamentos e acompanhe seus serviços em tempo real.
+            {tr('client.heroDescription')}
           </p>
 
           <div className="space-y-6">
@@ -166,9 +188,9 @@ export default function LoginPage() {
                 <Shield className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="font-semibold text-lg mb-1">Fornecedores Verificados</h3>
+                <h3 className="font-semibold text-lg mb-1">{tr('client.features.verified')}</h3>
                 <p className="text-primary-100">
-                  Todos os profissionais são verificados e avaliados
+                  {tr('client.features.verified')}
                 </p>
               </div>
             </div>
@@ -178,9 +200,9 @@ export default function LoginPage() {
                 <Clock className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="font-semibold text-lg mb-1">Orçamentos Rápidos</h3>
+                <h3 className="font-semibold text-lg mb-1">{tr('client.features.quotes')}</h3>
                 <p className="text-primary-100">
-                  Receba múltiplos orçamentos em até 48 horas
+                  {tr('client.features.quotes')}
                 </p>
               </div>
             </div>
@@ -190,9 +212,9 @@ export default function LoginPage() {
                 <Star className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="font-semibold text-lg mb-1">Qualidade Garantida</h3>
+                <h3 className="font-semibold text-lg mb-1">{tr('client.features.quality')}</h3>
                 <p className="text-primary-100">
-                  Satisfação garantida ou seu dinheiro de volta
+                  {tr('client.features.quality')}
                 </p>
               </div>
             </div>
@@ -202,15 +224,15 @@ export default function LoginPage() {
             <div className="flex items-center gap-8">
               <div>
                 <p className="text-3xl font-bold">50k+</p>
-                <p className="text-primary-200 text-sm">Clientes satisfeitos</p>
+                <p className="text-primary-200 text-sm">{tr('client.stats.customers')}</p>
               </div>
               <div>
                 <p className="text-3xl font-bold">500+</p>
-                <p className="text-primary-200 text-sm">Fornecedores</p>
+                <p className="text-primary-200 text-sm">{tr('client.stats.providers')}</p>
               </div>
               <div>
                 <p className="text-3xl font-bold">4.9</p>
-                <p className="text-primary-200 text-sm">Avaliação média</p>
+                <p className="text-primary-200 text-sm">{tr('client.stats.rating')}</p>
               </div>
             </div>
           </div>

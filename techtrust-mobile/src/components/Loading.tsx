@@ -30,7 +30,7 @@ interface LoadingOverlayProps {
 
 export function LoadingOverlay({
   visible,
-  message = 'Carregando...',
+  message = 'Loading...',
   transparent = false,
 }: LoadingOverlayProps) {
   const opacity = useRef(new Animated.Value(0)).current;
@@ -359,7 +359,7 @@ interface SuccessAnimationProps {
 
 export function SuccessAnimation({
   visible,
-  message = 'Sucesso!',
+  message = 'Success!',
   onComplete,
 }: SuccessAnimationProps) {
   const scale = useRef(new Animated.Value(0)).current;

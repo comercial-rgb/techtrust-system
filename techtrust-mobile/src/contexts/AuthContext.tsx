@@ -29,7 +29,9 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   loginAsProvider: (email: string, password: string) => Promise<void>;
-  signup: (data: SignupData) => Promise<void>;
+  signup: (data: SignupData) => Promise<{ userId: string }>;
+  signUp: (data: SignupData) => Promise<{ userId: string }>; // Alias for signup
+  verifyOTP: (userId: string, code: string) => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
 }
@@ -39,6 +41,7 @@ interface SignupData {
   email: string;
   phone: string;
   password: string;
+  language?: string;
 }
 
 // ============================================
@@ -137,7 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signup = async (data: SignupData) => {
+  const signup = async (data: SignupData): Promise<{ userId: string }> => {
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
 
@@ -149,12 +152,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role: 'CUSTOMER',
       };
 
-      await AsyncStorage.setItem('@TechTrust:user', JSON.stringify(newUser));
-      await AsyncStorage.setItem('@TechTrust:token', 'demo-token-new-user');
+      // Store temporarily until OTP verification
+      await AsyncStorage.setItem('@TechTrust:pendingUser', JSON.stringify(newUser));
 
-      setUser(newUser);
+      return { userId: newUser.id };
     } catch (error: any) {
-      throw new Error(error.message || 'Erro ao criar conta');
+      throw new Error(error.message || 'Error creating account');
+    }
+  };
+
+  const verifyOTP = async (userId: string, code: string): Promise<void> => {
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Demo mode - accept any 6-digit code or specific code
+      if (code.length !== 6) {
+        throw new Error('Invalid verification code');
+      }
+
+      // Get pending user and complete registration
+      const pendingUserStr = await AsyncStorage.getItem('@TechTrust:pendingUser');
+      if (!pendingUserStr) {
+        throw new Error('No pending registration found');
+      }
+
+      const pendingUser = JSON.parse(pendingUserStr);
+      
+      await AsyncStorage.setItem('@TechTrust:user', JSON.stringify(pendingUser));
+      await AsyncStorage.setItem('@TechTrust:token', 'demo-token-verified-user');
+      await AsyncStorage.removeItem('@TechTrust:pendingUser');
+
+      setUser(pendingUser);
+    } catch (error: any) {
+      throw new Error(error.message || 'Error verifying code');
     }
   };
 
@@ -176,6 +206,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         loginAsProvider,
         signup,
+        signUp: signup, // Alias for components using signUp
+        verifyOTP,
         logout,
         isAuthenticated: !!user,
       }}

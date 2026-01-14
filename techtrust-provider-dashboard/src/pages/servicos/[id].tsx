@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '@/contexts/AuthContext'
+import { useI18n } from '@/i18n'
 import DashboardLayout from '@/components/DashboardLayout'
 import api from '@/services/api'
 import {
@@ -71,6 +72,7 @@ interface WorkOrder {
 
 export default function ServicoDetalhesPage() {
   const { isAuthenticated, loading: authLoading } = useAuth()
+  const { translate: t } = useI18n()
   const router = useRouter()
   const { id } = router.query
 
@@ -230,11 +232,11 @@ export default function ServicoDetalhesPage() {
 
   const getStatusInfo = (status: string) => {
     const statuses: Record<string, { label: string; color: string; bgColor: string }> = {
-      PENDING_START: { label: 'Aguardando Início', color: 'text-yellow-700', bgColor: 'bg-yellow-100' },
-      IN_PROGRESS: { label: 'Em Andamento', color: 'text-blue-700', bgColor: 'bg-blue-100' },
-      AWAITING_APPROVAL: { label: 'Aguardando Aprovação', color: 'text-purple-700', bgColor: 'bg-purple-100' },
-      COMPLETED: { label: 'Concluído', color: 'text-green-700', bgColor: 'bg-green-100' },
-      DISPUTED: { label: 'Em Disputa', color: 'text-red-700', bgColor: 'bg-red-100' },
+      PENDING_START: { label: t('services.detail.pendingStart'), color: 'text-yellow-700', bgColor: 'bg-yellow-100' },
+      IN_PROGRESS: { label: t('common.status.inProgress'), color: 'text-blue-700', bgColor: 'bg-blue-100' },
+      AWAITING_APPROVAL: { label: t('common.status.awaitingApproval'), color: 'text-purple-700', bgColor: 'bg-purple-100' },
+      COMPLETED: { label: t('common.status.completed'), color: 'text-green-700', bgColor: 'bg-green-100' },
+      DISPUTED: { label: t('common.status.disputed'), color: 'text-red-700', bgColor: 'bg-red-100' },
     }
     return statuses[status] || { label: status, color: 'text-gray-700', bgColor: 'bg-gray-100' }
   }
@@ -288,10 +290,10 @@ export default function ServicoDetalhesPage() {
       <DashboardLayout>
         <div className="max-w-4xl mx-auto text-center py-12">
           <AlertCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Serviço não encontrado</h2>
-          <p className="text-gray-500 mb-6">O serviço que você está procurando não existe ou foi removido.</p>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">{t('services.detail.notFound')}</h2>
+          <p className="text-gray-500 mb-6">{t('services.detail.notFoundDesc')}</p>
           <Link href="/servicos" className="btn btn-primary">
-            Voltar para serviços
+            {t('services.detail.backToList')}
           </Link>
         </div>
       </DashboardLayout>
@@ -309,7 +311,7 @@ export default function ServicoDetalhesPage() {
           className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
-          Voltar para serviços
+          {t('services.detail.backToList')}
         </Link>
 
         {/* Header */}
@@ -326,7 +328,7 @@ export default function ServicoDetalhesPage() {
             </div>
             <div className="text-right">
               <p className="text-2xl font-bold text-primary-600">${workOrder.finalAmount.toFixed(2)}</p>
-              <p className="text-sm text-gray-500">Valor total</p>
+              <p className="text-sm text-gray-500">{t('services.detail.totalValue')}</p>
             </div>
           </div>
 
@@ -345,7 +347,7 @@ export default function ServicoDetalhesPage() {
                 ) : (
                   <Play className="w-5 h-5" />
                 )}
-                Iniciar Serviço
+                {t('services.detail.startService')}
               </button>
             )}
             
@@ -355,7 +357,7 @@ export default function ServicoDetalhesPage() {
                 className="btn btn-success flex items-center gap-2"
               >
                 <CheckCircle className="w-5 h-5" />
-                Concluir Serviço
+                {t('services.detail.completeService')}
               </button>
             )}
 
@@ -364,12 +366,12 @@ export default function ServicoDetalhesPage() {
               className="btn btn-secondary flex items-center gap-2"
             >
               <Phone className="w-5 h-5" />
-              Ligar para Cliente
+              {t('services.detail.callCustomer')}
             </a>
 
             <button className="btn btn-secondary flex items-center gap-2">
               <MessageSquare className="w-5 h-5" />
-              Enviar Mensagem
+              {t('services.detail.sendMessage')}
             </button>
           </div>
         </div>
@@ -377,7 +379,7 @@ export default function ServicoDetalhesPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           {/* Customer info */}
           <div className="bg-white rounded-2xl p-6 shadow-soft">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">👤 Cliente</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">👤 {t('services.detail.customer')}</h3>
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <User className="w-5 h-5 text-gray-400" />
@@ -398,7 +400,7 @@ export default function ServicoDetalhesPage() {
 
           {/* Vehicle info */}
           <div className="bg-white rounded-2xl p-6 shadow-soft">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">🚗 Veículo</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">🚗 {t('services.detail.vehicle')}</h3>
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <Car className="w-5 h-5 text-gray-400" />
@@ -408,18 +410,18 @@ export default function ServicoDetalhesPage() {
               </div>
               <div className="flex items-center gap-3">
                 <FileText className="w-5 h-5 text-gray-400" />
-                <span className="text-gray-700">Placa: {workOrder.vehicle.plateNumber}</span>
+                <span className="text-gray-700">{t('services.detail.plate')}: {workOrder.vehicle.plateNumber}</span>
               </div>
               {workOrder.vehicle.color && (
                 <div className="flex items-center gap-3">
                   <div className="w-5 h-5 rounded-full bg-gray-300" />
-                  <span className="text-gray-700">Cor: {workOrder.vehicle.color}</span>
+                  <span className="text-gray-700">{t('services.detail.color')}: {workOrder.vehicle.color}</span>
                 </div>
               )}
               {workOrder.vehicle.currentMileage && (
                 <div className="flex items-center gap-3">
                   <Clock className="w-5 h-5 text-gray-400" />
-                  <span className="text-gray-700">KM: {workOrder.vehicle.currentMileage.toLocaleString()}</span>
+                  <span className="text-gray-700">{t('services.detail.mileage')}: {workOrder.vehicle.currentMileage.toLocaleString()}</span>
                 </div>
               )}
             </div>
@@ -428,29 +430,29 @@ export default function ServicoDetalhesPage() {
 
         {/* Quote details */}
         <div className="bg-white rounded-2xl p-6 shadow-soft mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">💰 Detalhes do Orçamento</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">💰 {t('services.detail.quoteDetails')}</h3>
           
           <div className="space-y-4">
             <div className="bg-gray-50 rounded-xl p-4">
-              <p className="text-sm text-gray-500 mb-2">Descrição do Serviço</p>
+              <p className="text-sm text-gray-500 mb-2">{t('services.detail.serviceDescription')}</p>
               <p className="text-gray-700">{workOrder.quote.laborDescription}</p>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-gray-50 rounded-xl p-4">
-                <p className="text-sm text-gray-500 mb-1">Peças</p>
+                <p className="text-sm text-gray-500 mb-1">{t('services.detail.parts')}</p>
                 <p className="text-xl font-semibold text-gray-900">${workOrder.quote.partsCost.toFixed(2)}</p>
               </div>
               <div className="bg-gray-50 rounded-xl p-4">
-                <p className="text-sm text-gray-500 mb-1">Mão de Obra</p>
+                <p className="text-sm text-gray-500 mb-1">{t('services.detail.labor')}</p>
                 <p className="text-xl font-semibold text-gray-900">${workOrder.quote.laborCost.toFixed(2)}</p>
               </div>
               <div className="bg-gray-50 rounded-xl p-4">
-                <p className="text-sm text-gray-500 mb-1">Tempo Estimado</p>
+                <p className="text-sm text-gray-500 mb-1">{t('services.detail.estimatedTime')}</p>
                 <p className="text-xl font-semibold text-gray-900">{workOrder.quote.estimatedDuration}</p>
               </div>
               <div className="bg-primary-50 rounded-xl p-4">
-                <p className="text-sm text-primary-600 mb-1">Total</p>
+                <p className="text-sm text-primary-600 mb-1">{t('services.detail.total')}</p>
                 <p className="text-xl font-bold text-primary-700">${workOrder.finalAmount.toFixed(2)}</p>
               </div>
             </div>
@@ -458,7 +460,7 @@ export default function ServicoDetalhesPage() {
             {workOrder.quote.notes && (
               <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
                 <p className="text-sm text-yellow-800">
-                  <strong>Observação:</strong> {workOrder.quote.notes}
+                  <strong>{t('services.detail.observation')}:</strong> {workOrder.quote.notes}
                 </p>
               </div>
             )}
@@ -467,7 +469,7 @@ export default function ServicoDetalhesPage() {
 
         {/* Timeline */}
         <div className="bg-white rounded-2xl p-6 shadow-soft">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">📋 Timeline</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">📋 {t('services.timeline.title')}</h3>
           
           <div className="relative">
             {workOrder.timeline.map((event, index) => {
@@ -505,7 +507,7 @@ export default function ServicoDetalhesPage() {
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl p-6 w-full max-w-md animate-slide-up">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold text-gray-900">Concluir Serviço</h3>
+                <h3 className="text-xl font-semibold text-gray-900">{t('services.completeModal.title')}</h3>
                 <button
                   onClick={() => setShowCompleteModal(false)}
                   className="p-2 hover:bg-gray-100 rounded-lg"
@@ -517,7 +519,7 @@ export default function ServicoDetalhesPage() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Valor Final ($)
+                    {t('services.completeModal.finalAmount')}
                   </label>
                   <div className="relative">
                     <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -530,18 +532,18 @@ export default function ServicoDetalhesPage() {
                     />
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    Altere se o valor final for diferente do orçado
+                    {t('services.completeModal.amountHint')}
                   </p>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Observações da Conclusão (opcional)
+                    {t('services.completeModal.completionNotes')}
                   </label>
                   <textarea
                     value={completionNotes}
                     onChange={(e) => setCompletionNotes(e.target.value)}
-                    placeholder="Descreva o que foi feito, peças trocadas, etc."
+                    placeholder={t('services.completeModal.notesPlaceholder')}
                     rows={4}
                     className="input resize-none"
                   />
@@ -549,12 +551,12 @@ export default function ServicoDetalhesPage() {
 
                 <button className="btn btn-secondary w-full flex items-center justify-center gap-2">
                   <Camera className="w-5 h-5" />
-                  Adicionar Fotos (opcional)
+                  {t('services.completeModal.addPhotos')}
                 </button>
 
                 <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
                   <p className="text-sm text-blue-800">
-                    <strong>Próximos passos:</strong> Após concluir, o cliente será notificado para aprovar o serviço e efetuar o pagamento.
+                    <strong>{t('services.completeModal.nextStepsTitle')}</strong> {t('services.completeModal.nextStepsDesc')}
                   </p>
                 </div>
 
@@ -563,7 +565,7 @@ export default function ServicoDetalhesPage() {
                     onClick={() => setShowCompleteModal(false)}
                     className="btn btn-secondary flex-1"
                   >
-                    Cancelar
+                    {t('common.cancel')}
                   </button>
                   <button
                     onClick={handleCompleteService}
@@ -575,7 +577,7 @@ export default function ServicoDetalhesPage() {
                     ) : (
                       <CheckCircle className="w-5 h-5" />
                     )}
-                    Confirmar
+                    {t('common.confirm')}
                   </button>
                 </div>
               </div>

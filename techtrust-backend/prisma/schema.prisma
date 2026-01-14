@@ -192,6 +192,18 @@ model ProviderProfile {
   // Raio de atendimento (em km)
   serviceRadiusKm Int @default(25)
   
+  // Coordenadas GPS da oficina base
+  baseLatitude  Decimal? @db.Decimal(10, 8)
+  baseLongitude Decimal? @db.Decimal(11, 8)
+  
+  // Tipos de serviço oferecidos
+  mobileService      Boolean @default(false)  // Atendimento no local do cliente
+  roadsideAssistance Boolean @default(false)  // Assistência em rodovia (SOS)
+  
+  // Configuração de taxa de deslocamento
+  freeKm        Int     @default(0)           // Km grátis inclusos
+  extraFeePerKm Decimal @default(0) @db.Decimal(6, 2) // Taxa por km adicional
+  
   // Especialidades (JSON array)
   specialties Json @default("[]")
   
@@ -317,6 +329,11 @@ model ServiceRequest {
   serviceLocationType String
   customerAddress     String?
   
+  // Coordenadas GPS do local de serviço
+  serviceLatitude  Decimal? @db.Decimal(10, 8)
+  serviceLongitude Decimal? @db.Decimal(11, 8)
+  locationType     String?  // IN_SHOP, ON_SITE, ROADSIDE
+  
   // Preferências
   preferredDate     DateTime?
   preferredTime     DateTime?
@@ -378,6 +395,10 @@ model Quote {
   additionalFees Decimal @default(0) @db.Decimal(10, 2)
   taxAmount      Decimal @default(0) @db.Decimal(10, 2)
   totalAmount    Decimal @db.Decimal(10, 2)
+  
+  // Distância e taxa de deslocamento
+  distanceKm  Decimal? @db.Decimal(7, 2)  // Distância calculada em km
+  travelFee   Decimal @default(0) @db.Decimal(10, 2)  // Taxa de deslocamento
   
   // Detalhes (JSON)
   partsList         Json
@@ -886,4 +907,28 @@ model Notice {
   @@index([isActive])
   @@index([type])
   @@map("notices")
+}
+// Zonas de Cobertura (Coverage Zones)
+model CoverageZone {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relacionamento com o provider
+  providerId String
+  
+  // Informações da zona
+  name   String  // Ex: "Zona Sul", "Centro", "ABC Paulista"
+  region String? // Ex: "São Paulo", "Grande SP"
+  
+  // Status
+  active Boolean @default(true)
+  
+  // Coordenadas do polígono (JSON array de {lat, lng})
+  // Para fase 1, pode ser null - apenas tag de marketing
+  polygonCoordinates Json?
+  
+  @@index([providerId])
+  @@index([active])
+  @@map("coverage_zones")
 }

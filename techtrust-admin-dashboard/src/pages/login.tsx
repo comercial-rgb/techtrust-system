@@ -1,16 +1,20 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
-import { Shield, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Shield, Eye, EyeOff, AlertCircle, Globe2 } from 'lucide-react';
+import { useI18n, languages, Language } from '../i18n';
 
 export default function LoginPage() {
   const router = useRouter();
   const { login, isAuthenticated, loading: authLoading } = useAuth();
+  const { translate, language, setLanguage } = useI18n();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const tr = translate;
 
   // Redirect if already authenticated
   if (authLoading) {
@@ -36,7 +40,7 @@ export default function LoginPage() {
     if (result.success) {
       router.push('/dashboard');
     } else {
-      setError(result.error || 'Credenciais inválidas');
+      setError(result.error || tr('auth.loginError'));
     }
 
     setLoading(false);
@@ -47,12 +51,30 @@ export default function LoginPage() {
       {/* Left side - Form */}
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-admin-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <div className="text-center mb-6 flex flex-col items-center gap-3">
+            <div className="w-16 h-16 bg-admin-600 rounded-2xl flex items-center justify-center mx-auto">
               <Shield className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">Painel Administrativo</h1>
-            <p className="text-gray-500 mt-2">TechTrust AutoSolutions</p>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">{tr('brand.adminPortal')}</h1>
+              <p className="text-gray-500 mt-1">{tr('brand.subtitleAdmin')}</p>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <Globe2 className="w-4 h-4" />
+              <label className="sr-only" htmlFor="lang-select">{tr('common.language')}</label>
+              <select
+                id="lang-select"
+                value={language}
+                onChange={(e) => setLanguage(e.target.value as Language)}
+                className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-admin-200"
+              >
+                {languages.map((lang) => (
+                  <option key={lang.code} value={lang.code}>
+                    {lang.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -65,7 +87,7 @@ export default function LoginPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email
+                {tr('auth.email')}
               </label>
               <input
                 type="email"
@@ -79,7 +101,7 @@ export default function LoginPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Senha
+                {tr('auth.password')}
               </label>
               <div className="relative">
                 <input
@@ -108,26 +130,26 @@ export default function LoginPage() {
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Entrando...
+                  {tr('auth.signingIn')}
                 </span>
               ) : (
-                'Entrar'
+                tr('auth.signIn')
               )}
             </button>
           </form>
 
           <div className="mt-8 text-center">
             <p className="text-xs text-gray-400">
-              Acesso restrito a administradores do sistema
+              {tr('auth.restricted')}
             </p>
           </div>
 
           {/* Dev credentials hint */}
           <div className="mt-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
             <p className="text-xs text-gray-500 text-center">
-              <strong>Credenciais de desenvolvimento:</strong><br />
-              Email: admin@techtrust.com<br />
-              Senha: admin123
+              <strong>{tr('auth.devCredentials')}:</strong><br />
+              {tr('auth.devEmail')}: admin@techtrust.com<br />
+              {tr('auth.devPassword')}: admin123
             </p>
           </div>
         </div>
@@ -136,27 +158,26 @@ export default function LoginPage() {
       {/* Right side - Decorative */}
       <div className="hidden lg:flex flex-1 bg-gradient-to-br from-admin-600 to-admin-800 items-center justify-center p-12">
         <div className="max-w-lg text-center text-white">
-          <h2 className="text-3xl font-bold mb-4">Gerencie tudo em um só lugar</h2>
+          <h2 className="text-3xl font-bold mb-4">{tr('admin.heroTitle')}</h2>
           <p className="text-admin-200 text-lg">
-            Controle total sobre usuários, fornecedores, serviços, pagamentos e muito mais.
-            Monitore métricas em tempo real e tome decisões estratégicas.
+            {tr('admin.heroDescription')}
           </p>
           
           <div className="grid grid-cols-2 gap-4 mt-8">
             <div className="bg-white/10 rounded-xl p-4">
               <p className="text-3xl font-bold">100%</p>
-              <p className="text-sm text-admin-200">Controle Total</p>
+              <p className="text-sm text-admin-200">{tr('admin.stats.control')}</p>
             </div>
             <div className="bg-white/10 rounded-xl p-4">
               <p className="text-3xl font-bold">24/7</p>
-              <p className="text-sm text-admin-200">Monitoramento</p>
+              <p className="text-sm text-admin-200">{tr('admin.stats.monitoring')}</p>
             </div>
             <div className="bg-white/10 rounded-xl p-4">
               <p className="text-3xl font-bold">Real-time</p>
-              <p className="text-sm text-admin-200">Métricas</p>
+              <p className="text-sm text-admin-200">{tr('admin.stats.realtime')}</p>
             </div>
             <div className="bg-white/10 rounded-xl p-4">
-              <p className="text-3xl font-bold">Seguro</p>
+              <p className="text-3xl font-bold">{tr('admin.stats.secure')}</p>
               <p className="text-sm text-admin-200">Auditoria</p>
             </div>
           </div>

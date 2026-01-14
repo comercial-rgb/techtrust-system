@@ -35,6 +35,7 @@ import providerRoutes from './routes/provider.routes';
 import chatRoutes from './routes/chat.routes';
 import adminRoutes from './routes/admin.routes';
 import contentRoutes from './routes/content.routes';
+import geocodingRoutes from './routes/geocoding.routes';
 
 // Carregar variáveis de ambiente
 dotenv.config();
@@ -140,6 +141,7 @@ app.use(`/api/${API_VERSION}/providers`, providerRoutes);
 app.use(`/api/${API_VERSION}/chat`, chatRoutes);
 app.use(`/api/${API_VERSION}/admin`, adminRoutes);
 app.use(`/api/${API_VERSION}/content`, contentRoutes); // Rotas públicas de conteúdo
+app.use(`/api/${API_VERSION}/geocoding`, geocodingRoutes); // Rotas públicas de geocoding
 
 // ============================================
 // ERROR HANDLER (deve ser o último middleware)

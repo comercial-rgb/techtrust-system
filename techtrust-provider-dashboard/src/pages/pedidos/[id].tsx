@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '@/contexts/AuthContext'
+import { useI18n } from '@/i18n'
 import DashboardLayout from '@/components/DashboardLayout'
 import api from '@/services/api'
 import {
@@ -56,6 +57,7 @@ interface ServiceRequest {
 
 export default function PedidoDetalhesPage() {
   const { isAuthenticated, loading: authLoading } = useAuth()
+  const { translate: t } = useI18n()
   const router = useRouter()
   const { id } = router.query
 
@@ -151,26 +153,26 @@ export default function PedidoDetalhesPage() {
 
   const getServiceTypeInfo = (type: string) => {
     const types: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
-      SCHEDULED_MAINTENANCE: { label: 'Manutenção', icon: <Wrench className="w-5 h-5" />, color: 'bg-blue-100 text-blue-700' },
-      REPAIR: { label: 'Reparo', icon: <AlertCircle className="w-5 h-5" />, color: 'bg-orange-100 text-orange-700' },
-      ROADSIDE_SOS: { label: 'Socorro', icon: <Zap className="w-5 h-5" />, color: 'bg-red-100 text-red-700' },
-      INSPECTION: { label: 'Inspeção', icon: <Shield className="w-5 h-5" />, color: 'bg-purple-100 text-purple-700' },
-      DETAILING: { label: 'Estética', icon: <Sparkles className="w-5 h-5" />, color: 'bg-pink-100 text-pink-700' },
+      SCHEDULED_MAINTENANCE: { label: t('common.serviceTypes.maintenance'), icon: <Wrench className="w-5 h-5" />, color: 'bg-blue-100 text-blue-700' },
+      REPAIR: { label: t('common.serviceTypes.repair'), icon: <AlertCircle className="w-5 h-5" />, color: 'bg-orange-100 text-orange-700' },
+      ROADSIDE_SOS: { label: t('common.serviceTypes.roadside'), icon: <Zap className="w-5 h-5" />, color: 'bg-red-100 text-red-700' },
+      INSPECTION: { label: t('common.serviceTypes.inspection'), icon: <Shield className="w-5 h-5" />, color: 'bg-purple-100 text-purple-700' },
+      DETAILING: { label: t('common.serviceTypes.detailing'), icon: <Sparkles className="w-5 h-5" />, color: 'bg-pink-100 text-pink-700' },
     }
     return types[type] || { label: type, icon: <Wrench className="w-5 h-5" />, color: 'bg-gray-100 text-gray-700' }
   }
 
   const getTimeRemaining = (expiresAt: string) => {
     const diff = new Date(expiresAt).getTime() - Date.now()
-    if (diff <= 0) return { text: 'Expirado', urgent: true }
+    if (diff <= 0) return { text: t('common.time.expired'), urgent: true }
     
     const minutes = Math.floor(diff / 60000)
     const hours = Math.floor(minutes / 60)
     
     if (hours > 0) {
-      return { text: `${hours}h ${minutes % 60}min restantes`, urgent: hours < 1 }
+      return { text: `${hours}h ${minutes % 60}min ${t('common.time.remaining')}`, urgent: hours < 1 }
     }
-    return { text: `${minutes}min restantes`, urgent: minutes < 30 }
+    return { text: `${minutes}min ${t('common.time.remaining')}`, urgent: minutes < 30 }
   }
 
   const calculateTotal = () => {
@@ -211,10 +213,10 @@ export default function PedidoDetalhesPage() {
       <DashboardLayout>
         <div className="max-w-4xl mx-auto text-center py-12">
           <AlertCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Pedido não encontrado</h2>
-          <p className="text-gray-500 mb-6">O pedido que você está procurando não existe ou foi removido.</p>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">{t('requests.detail.notFound')}</h2>
+          <p className="text-gray-500 mb-6">{t('requests.detail.notFoundDesc')}</p>
           <Link href="/pedidos" className="btn btn-primary">
-            Voltar para pedidos
+            {t('requests.detail.backToList')}
           </Link>
         </div>
       </DashboardLayout>
@@ -233,7 +235,7 @@ export default function PedidoDetalhesPage() {
           className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
-          Voltar para pedidos
+          {t('requests.detail.backToList')}
         </Link>
 
         {/* Success message */}
@@ -241,8 +243,8 @@ export default function PedidoDetalhesPage() {
           <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3 animate-slide-up">
             <CheckCircle className="w-6 h-6 text-green-500" />
             <div>
-              <p className="font-medium text-green-800">Orçamento enviado com sucesso!</p>
-              <p className="text-sm text-green-600">O cliente será notificado e poderá aceitar seu orçamento.</p>
+              <p className="font-medium text-green-800">{t('requests.quoteModal.successTitle')}</p>
+              <p className="text-sm text-green-600">{t('requests.quoteModal.successDesc')}</p>
             </div>
           </div>
         )}
@@ -280,7 +282,7 @@ export default function PedidoDetalhesPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           {/* Customer info */}
           <div className="bg-white rounded-2xl p-6 shadow-soft">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">👤 Cliente</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">👤 {t('requests.detail.customer')}</h3>
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <User className="w-5 h-5 text-gray-400" />
@@ -299,7 +301,7 @@ export default function PedidoDetalhesPage() {
 
           {/* Vehicle info */}
           <div className="bg-white rounded-2xl p-6 shadow-soft">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">🚗 Veículo</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">🚗 {t('requests.detail.vehicle')}</h3>
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <Car className="w-5 h-5 text-gray-400" />
@@ -309,18 +311,18 @@ export default function PedidoDetalhesPage() {
               </div>
               <div className="flex items-center gap-3">
                 <FileText className="w-5 h-5 text-gray-400" />
-                <span className="text-gray-700">Placa: {request.vehicle.plateNumber}</span>
+                <span className="text-gray-700">{t('requests.detail.plate')}: {request.vehicle.plateNumber}</span>
               </div>
               {request.vehicle.color && (
                 <div className="flex items-center gap-3">
                   <div className="w-5 h-5 rounded-full bg-gray-200" />
-                  <span className="text-gray-700">Cor: {request.vehicle.color}</span>
+                  <span className="text-gray-700">{t('requests.detail.color')}: {request.vehicle.color}</span>
                 </div>
               )}
               {request.vehicle.currentMileage && (
                 <div className="flex items-center gap-3">
                   <Calendar className="w-5 h-5 text-gray-400" />
-                  <span className="text-gray-700">KM: {request.vehicle.currentMileage.toLocaleString()}</span>
+                  <span className="text-gray-700">{t('requests.detail.mileage')}: {request.vehicle.currentMileage.toLocaleString()}</span>
                 </div>
               )}
             </div>
@@ -335,21 +337,21 @@ export default function PedidoDetalhesPage() {
                 <div className="w-16 h-16 rounded-full bg-primary-100 flex items-center justify-center mx-auto mb-4">
                   <DollarSign className="w-8 h-8 text-primary-600" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">Envie seu orçamento</h3>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">{t('requests.quoteModal.title')}</h3>
                 <p className="text-gray-500 mb-6 max-w-md mx-auto">
-                  {request.quotesCount} fornecedor(es) já enviaram orçamento. Seja competitivo!
+                  {request.quotesCount} {t('requests.detail.quotesCount')}
                 </p>
                 <button
                   onClick={() => setShowQuoteForm(true)}
                   className="btn btn-primary px-8 py-3 text-lg"
                 >
-                  Criar Orçamento
+                  {t('requests.quoteModal.createQuote')}
                 </button>
               </div>
             ) : (
               <form onSubmit={handleSubmitQuote}>
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-semibold text-gray-900">Criar Orçamento</h3>
+                  <h3 className="text-xl font-semibold text-gray-900">{t('requests.quoteModal.createQuote')}</h3>
                   <button
                     type="button"
                     onClick={() => setShowQuoteForm(false)}
@@ -362,7 +364,7 @@ export default function PedidoDetalhesPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Custo das Peças ($) *
+                      {t('requests.quoteModal.partsCost')} *
                     </label>
                     <div className="relative">
                       <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -381,7 +383,7 @@ export default function PedidoDetalhesPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Mão de Obra ($) *
+                      {t('requests.quoteModal.laborCost')} *
                     </label>
                     <div className="relative">
                       <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -401,12 +403,12 @@ export default function PedidoDetalhesPage() {
 
                 <div className="mb-6">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Descrição do Serviço *
+                    {t('requests.quoteModal.description')} *
                   </label>
                   <textarea
                     value={laborDescription}
                     onChange={(e) => setLaborDescription(e.target.value)}
-                    placeholder="Descreva o que será feito, peças utilizadas, etc."
+                    placeholder={t('requests.quoteModal.descriptionPlaceholder')}
                     rows={4}
                     className="input resize-none"
                     required
@@ -416,7 +418,7 @@ export default function PedidoDetalhesPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Tempo Estimado *
+                      {t('requests.quoteModal.estimatedTime')} *
                     </label>
                     <select
                       value={estimatedDuration}
@@ -424,27 +426,27 @@ export default function PedidoDetalhesPage() {
                       className="input"
                       required
                     >
-                      <option value="">Selecione...</option>
-                      <option value="30min">30 minutos</option>
-                      <option value="1h">1 hora</option>
-                      <option value="2h">2 horas</option>
-                      <option value="3h">3 horas</option>
-                      <option value="4h">4 horas</option>
-                      <option value="1d">1 dia</option>
-                      <option value="2d">2 dias</option>
-                      <option value="3d+">3+ dias</option>
+                      <option value="">{t('requests.quoteModal.selectDuration')}</option>
+                      <option value="30min">{t('requests.quoteModal.duration30min')}</option>
+                      <option value="1h">{t('requests.quoteModal.duration1h')}</option>
+                      <option value="2h">{t('requests.quoteModal.duration2h')}</option>
+                      <option value="3h">{t('requests.quoteModal.duration3h')}</option>
+                      <option value="4h">{t('requests.quoteModal.duration4h')}</option>
+                      <option value="1d">{t('requests.quoteModal.duration1d')}</option>
+                      <option value="2d">{t('requests.quoteModal.duration2d')}</option>
+                      <option value="3d+">{t('requests.quoteModal.duration3dPlus')}</option>
                     </select>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Observações (opcional)
+                      {t('requests.quoteModal.notes')}
                     </label>
                     <input
                       type="text"
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
-                      placeholder="Informações adicionais..."
+                      placeholder={t('requests.quoteModal.notesPlaceholder')}
                       className="input"
                     />
                   </div>
@@ -453,13 +455,13 @@ export default function PedidoDetalhesPage() {
                 {/* Total */}
                 <div className="bg-gray-50 rounded-xl p-4 mb-6">
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Total do Orçamento</span>
+                    <span className="text-gray-600">{t('requests.quoteModal.quoteTotal')}</span>
                     <span className="text-2xl font-bold text-primary-600">
                       ${calculateTotal().toFixed(2)}
                     </span>
                   </div>
                   <p className="text-xs text-gray-400 mt-1">
-                    A comissão da plataforma (10%) será deduzida do valor final
+                    {t('requests.quoteModal.commissionNote')}
                   </p>
                 </div>
 
@@ -471,12 +473,12 @@ export default function PedidoDetalhesPage() {
                   {submitting ? (
                     <span className="flex items-center justify-center gap-2">
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      Enviando...
+                      {t('requests.quoteModal.sending')}
                     </span>
                   ) : (
                     <span className="flex items-center justify-center gap-2">
                       <Send className="w-5 h-5" />
-                      Enviar Orçamento
+                      {t('requests.quoteModal.submit')}
                     </span>
                   )}
                 </button>

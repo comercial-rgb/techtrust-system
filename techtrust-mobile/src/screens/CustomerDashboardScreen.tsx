@@ -244,13 +244,13 @@ export default function CustomerDashboardScreen({ navigation }: any) {
   const getStatusInfo = (status: string) => {
     switch (status) {
       case 'SEARCHING':
-        return { label: 'Searching', color: '#3b82f6', bgColor: '#dbeafe', icon: 'search' };
+        return { label: t.customerDashboard?.statusSearching || 'Searching', color: '#3b82f6', bgColor: '#dbeafe', icon: 'search' };
       case 'QUOTES_RECEIVED':
-        return { label: 'Quotes', color: '#f59e0b', bgColor: '#fef3c7', icon: 'pricetag' };
+        return { label: t.customerDashboard?.statusQuotes || 'Quotes', color: '#f59e0b', bgColor: '#fef3c7', icon: 'pricetag' };
       case 'IN_PROGRESS':
-        return { label: 'In Progress', color: '#8b5cf6', bgColor: '#ede9fe', icon: 'construct' };
+        return { label: t.customerDashboard?.statusInProgress || 'In Progress', color: '#8b5cf6', bgColor: '#ede9fe', icon: 'construct' };
       case 'COMPLETED':
-        return { label: 'Completed', color: '#10b981', bgColor: '#d1fae5', icon: 'checkmark-circle' };
+        return { label: t.customerDashboard?.statusCompleted || 'Completed', color: '#10b981', bgColor: '#d1fae5', icon: 'checkmark-circle' };
       default:
         return { label: status, color: '#6b7280', bgColor: '#f3f4f6', icon: 'ellipse' };
     }
@@ -259,10 +259,10 @@ export default function CustomerDashboardScreen({ navigation }: any) {
   const formatTimeAgo = (date: string) => {
     const diff = Date.now() - new Date(date).getTime();
     const hours = Math.floor(diff / (60 * 60 * 1000));
-    if (hours < 1) return 'Just now';
-    if (hours < 24) return `${hours}h ago`;
+    if (hours < 1) return t.customerDashboard?.justNow || 'Just now';
+    if (hours < 24) return `${hours}${t.customerDashboard?.hoursAgo || 'h ago'}`;
     const days = Math.floor(hours / 24);
-    return `${days}d ago`;
+    return `${days}${t.customerDashboard?.daysAgo || 'd ago'}`;
   };
 
   if (loading) {
@@ -552,7 +552,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                           <View style={styles.quotesAlert}>
                             <Ionicons name="pricetag" size={16} color="#f59e0b" />
                             <Text style={styles.quotesAlertText}>
-                              {request.quotesCount} quote{request.quotesCount > 1 ? 's' : ''} available
+                              {request.quotesCount} {t.customerDashboard?.quotesAvailable || 'quote(s) available'}
                             </Text>
                             <Ionicons name="chevron-forward" size={16} color="#f59e0b" />
                           </View>
@@ -572,8 +572,8 @@ export default function CustomerDashboardScreen({ navigation }: any) {
             <View style={styles.offersSectionHeader}>
               <Ionicons name="pricetags" size={24} color="#ef4444" />
               <View style={{ flex: 1 }}>
-                <Text style={styles.offersSectionTitle}>Special Offers</Text>
-                <Text style={styles.offersSectionSubtitle}>Limited time deals</Text>
+                <Text style={styles.offersSectionTitle}>{t.customerDashboard?.specialOffers || 'Special Offers'}</Text>
+                <Text style={styles.offersSectionSubtitle}>{t.customerDashboard?.limitedTimeDeals || 'Limited time deals'}</Text>
               </View>
             </View>
             <ScrollView 
@@ -599,11 +599,11 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                       <Text style={styles.offerOriginalPrice}>{offer.originalPrice}</Text>
                       <Text style={[styles.offerDiscountedPrice, { color: offer.accentColor }]}>{offer.discountedPrice}</Text>
                     </View>
-                    <Text style={styles.offerValidUntil}>Valid until {offer.validUntil}</Text>
+                    <Text style={styles.offerValidUntil}>{t.customerDashboard?.validUntil || 'Valid until'} {offer.validUntil}</Text>
                   </View>
                   <View style={styles.offerTapHint}>
                     <Ionicons name="finger-print" size={16} color="#6b7280" />
-                    <Text style={styles.offerTapHintText}>Tap for details</Text>
+                    <Text style={styles.offerTapHintText}>{t.customerDashboard?.tapForDetails || 'Tap for details'}</Text>
                   </View>
                 </TouchableOpacity>
               ))}
@@ -614,11 +614,11 @@ export default function CustomerDashboardScreen({ navigation }: any) {
         {/* Quick Tips */}
         <FadeInView delay={600}>
           <View style={styles.tipsSection}>
-            <Text style={styles.tipsTitle}>💡 Tips</Text>
+            <Text style={styles.tipsTitle}>💡 {t.customerDashboard?.tips || 'Tips'}</Text>
             <View style={styles.tipCard}>
               <Ionicons name="bulb-outline" size={20} color="#f59e0b" />
               <Text style={styles.tipText}>
-                Compare at least 3 quotes before accepting to ensure the best price
+                {t.customerDashboard?.tipCompareQuotes || 'Compare at least 3 quotes before accepting to ensure the best price'}
               </Text>
             </View>
           </View>
@@ -652,19 +652,19 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                   
                   <View style={styles.offerModalPricing}>
                     <View>
-                      <Text style={styles.offerModalPriceLabel}>Regular Price</Text>
+                      <Text style={styles.offerModalPriceLabel}>{t.customerDashboard?.regularPrice || 'Regular Price'}</Text>
                       <Text style={styles.offerModalOriginalPrice}>{selectedOffer.originalPrice}</Text>
                     </View>
                     <Ionicons name="arrow-forward" size={24} color="#10b981" />
                     <View>
-                      <Text style={styles.offerModalPriceLabel}>Special Price</Text>
+                      <Text style={styles.offerModalPriceLabel}>{t.customerDashboard?.specialPrice || 'Special Price'}</Text>
                       <Text style={styles.offerModalDiscountedPrice}>{selectedOffer.discountedPrice}</Text>
                     </View>
                   </View>
                   
                   <View style={styles.offerModalValidity}>
                     <Ionicons name="time" size={18} color="#f59e0b" />
-                    <Text style={styles.offerModalValidityText}>Valid until {selectedOffer.validUntil}</Text>
+                    <Text style={styles.offerModalValidityText}>{t.customerDashboard?.validUntil || 'Valid until'} {selectedOffer.validUntil}</Text>
                   </View>
                   
                   <View style={styles.offerModalActions}>
@@ -673,12 +673,12 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                       onPress={handleFindOfferProviders}
                     >
                       <Ionicons name="search" size={20} color="#fff" />
-                      <Text style={styles.offerModalFindButtonText}>Find a Provider</Text>
+                      <Text style={styles.offerModalFindButtonText}>{t.customerDashboard?.findProvider || 'Find a Provider'}</Text>
                     </TouchableOpacity>
                     <View style={styles.offerModalDisclaimer}>
                       <Ionicons name="information-circle" size={16} color="#f59e0b" />
                       <Text style={styles.offerModalDisclaimerText}>
-                        Special offers may not be available with all providers. Check participating providers below.
+                        {t.customerDashboard?.offerDisclaimer || 'Special offers may not be available with all providers. Check participating providers below.'}
                       </Text>
                     </View>
                   </View>
@@ -702,7 +702,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
               >
                 <Ionicons name="arrow-back" size={24} color="#374151" />
               </TouchableOpacity>
-              <Text style={styles.offerProvidersModalTitle}>Find Participating Providers</Text>
+              <Text style={styles.offerProvidersModalTitle}>{t.customerDashboard?.findParticipatingProviders || 'Find Participating Providers'}</Text>
               <View style={{ width: 24 }} />
             </View>
             
@@ -721,7 +721,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
               >
                 <Ionicons name="map" size={18} color="#6b7280" />
                 <Text style={[styles.filterText, !offerProviderState && styles.filterPlaceholder]}>
-                  {offerProviderState || 'Select State'}
+                  {offerProviderState || t.customerDashboard?.selectState || 'Select State'}
                 </Text>
                 <Ionicons name="chevron-down" size={18} color="#6b7280" />
               </TouchableOpacity>
@@ -733,7 +733,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
               >
                 <Ionicons name="business" size={18} color="#6b7280" />
                 <Text style={[styles.filterText, !offerProviderCity && styles.filterPlaceholder]}>
-                  {offerProviderCity || 'Select City'}
+                  {offerProviderCity || t.customerDashboard?.selectCity || 'Select City'}
                 </Text>
                 <Ionicons name="chevron-down" size={18} color="#6b7280" />
               </TouchableOpacity>
@@ -743,7 +743,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                 onPress={handleSearchOfferProviders}
               >
                 <Ionicons name="search" size={20} color="#fff" />
-                <Text style={styles.offerProvidersSearchButtonText}>Search</Text>
+                <Text style={styles.offerProvidersSearchButtonText}>{t.common?.search || 'Search'}</Text>
               </TouchableOpacity>
             </View>
             
@@ -752,7 +752,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                 offerProviders.length > 0 ? (
                   <>
                     <Text style={styles.offerProvidersResultsTitle}>
-                      {offerProviders.length} Participating Provider{offerProviders.length !== 1 ? 's' : ''}
+                      {offerProviders.length} {t.customerDashboard?.participatingProviders || 'Participating Provider(s)'}
                     </Text>
                     {offerProviders.map(provider => (
                       <View key={provider.id} style={styles.providerCard}>
@@ -774,7 +774,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                           style={styles.providerRequestButton}
                           onPress={() => handleRequestService(provider, selectedOffer)}
                         >
-                          <Text style={styles.providerRequestButtonText}>Request</Text>
+                          <Text style={styles.providerRequestButtonText}>{t.common?.request || 'Request'}</Text>
                         </TouchableOpacity>
                       </View>
                     ))}
@@ -782,14 +782,14 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                 ) : (
                   <View style={styles.offerProvidersNoResults}>
                     <Ionicons name="search-outline" size={48} color="#d1d5db" />
-                    <Text style={styles.offerProvidersNoResultsText}>No providers found</Text>
-                    <Text style={styles.offerProvidersNoResultsSubtext}>Try selecting a different location</Text>
+                    <Text style={styles.offerProvidersNoResultsText}>{t.customerDashboard?.noProvidersFound || 'No providers found'}</Text>
+                    <Text style={styles.offerProvidersNoResultsSubtext}>{t.customerDashboard?.tryDifferentLocation || 'Try selecting a different location'}</Text>
                   </View>
                 )
               ) : (
                 <View style={styles.offerProvidersEmptyState}>
                   <Ionicons name="storefront-outline" size={64} color="#d1d5db" />
-                  <Text style={styles.offerProvidersEmptyText}>Select a location to find participating providers</Text>
+                  <Text style={styles.offerProvidersEmptyText}>{t.customerDashboard?.selectLocation || 'Select a location to find participating providers'}</Text>
                 </View>
               )}
             </ScrollView>
@@ -804,7 +804,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
           onPress={() => setShowOfferStateDropdown(false)}
         >
           <View style={styles.dropdownContent}>
-            <Text style={styles.dropdownTitle}>Select State</Text>
+            <Text style={styles.dropdownTitle}>{t.customerDashboard?.selectState || 'Select State'}</Text>
             <ScrollView style={styles.dropdownScroll}>
               {STATES.map(state => (
                 <TouchableOpacity
@@ -834,7 +834,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
           onPress={() => setShowOfferCityDropdown(false)}
         >
           <View style={styles.dropdownContent}>
-            <Text style={styles.dropdownTitle}>Select City</Text>
+            <Text style={styles.dropdownTitle}>{t.customerDashboard?.selectCity || 'Select City'}</Text>
             <ScrollView style={styles.dropdownScroll}>
               {(CITIES[offerProviderState] || []).map(city => (
                 <TouchableOpacity

@@ -5,6 +5,7 @@ import { useRouter } from 'next/router'
 import { useAuth } from '@/contexts/AuthContext'
 import DashboardLayout from '@/components/DashboardLayout'
 import api from '@/services/api'
+import { useI18n } from '@/i18n'
 import {
   TrendingUp,
   TrendingDown,
@@ -40,6 +41,7 @@ interface RecentActivity {
 export default function DashboardPage() {
   const { user, loading: authLoading, isAuthenticated } = useAuth()
   const router = useRouter()
+  const { translate } = useI18n()
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([])
@@ -78,32 +80,32 @@ export default function DashboardPage() {
         {
           id: '1',
           type: 'new_request',
-          title: 'Nova solicitação de serviço',
-          description: 'Troca de óleo - Honda Civic 2020',
-          time: '5 min atrás',
+          title: translate('provider.dashboard.activity.newRequestTitle'),
+          description: translate('provider.dashboard.activity.newRequestDescription'),
+          time: translate('provider.dashboard.activity.timeMinutes').replace('{value}', '5'),
         },
         {
           id: '2',
           type: 'quote_accepted',
-          title: 'Orçamento aceito!',
-          description: 'Revisão completa - Toyota Corolla 2019',
-          time: '2 horas atrás',
+          title: translate('provider.dashboard.activity.quoteAcceptedTitle'),
+          description: translate('provider.dashboard.activity.quoteAcceptedDescription'),
+          time: translate('provider.dashboard.activity.timeHours').replace('{value}', '2'),
           amount: 450.00,
         },
         {
           id: '3',
           type: 'payment_received',
-          title: 'Pagamento recebido',
-          description: 'Alinhamento e balanceamento',
-          time: '1 dia atrás',
+          title: translate('provider.dashboard.activity.paymentReceivedTitle'),
+          description: translate('provider.dashboard.activity.paymentReceivedDescription'),
+          time: translate('provider.dashboard.activity.timeDays').replace('{value}', '1'),
           amount: 120.00,
         },
         {
           id: '4',
           type: 'service_completed',
-          title: 'Serviço concluído',
-          description: 'Troca de pastilhas de freio',
-          time: '2 dias atrás',
+          title: translate('provider.dashboard.activity.serviceCompletedTitle'),
+          description: translate('provider.dashboard.activity.serviceCompletedDescription'),
+          time: translate('provider.dashboard.activity.timeDays').replace('{value}', '2'),
         },
       ])
     } catch (error) {
@@ -122,18 +124,20 @@ export default function DashboardPage() {
   }
 
   return (
-    <DashboardLayout title="Dashboard">
+    <DashboardLayout title={translate('provider.nav.dashboard')}>
       <div className="space-y-8 animate-fade-in">
         {/* Welcome section */}
         <div className="bg-gradient-to-r from-primary-500 to-primary-600 rounded-2xl p-6 text-white">
           <h2 className="text-2xl font-bold mb-2">
-            Olá, {user?.providerProfile?.businessName || user?.fullName}! 👋
+            {translate('provider.dashboard.welcome').replace('{name}', user?.providerProfile?.businessName || user?.fullName || '')}
           </h2>
           <p className="text-primary-100">
             {stats?.pendingRequests ? (
-              <>Você tem <strong>{stats.pendingRequests} novas solicitações</strong> aguardando orçamento.</>
+              <>
+                {translate('provider.dashboard.pendingRequests')}: <strong>{stats.pendingRequests}</strong>
+              </>
             ) : (
-              'Tudo em dia por aqui!'
+              translate('provider.dashboard.allGood')
             )}
           </p>
           {stats?.pendingRequests && stats.pendingRequests > 0 && (
@@ -141,7 +145,7 @@ export default function DashboardPage() {
               href="/pedidos"
               className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-white text-primary-600 rounded-lg font-medium hover:bg-primary-50 transition-colors"
             >
-              Ver solicitações
+              {translate('provider.dashboard.seeRequests')}
               <ArrowRight className="w-4 h-4" />
             </Link>
           )}
@@ -164,35 +168,35 @@ export default function DashboardPage() {
               icon={<ClipboardList className="w-6 h-6" />}
               iconBg="bg-blue-100"
               iconColor="text-blue-600"
-              label="Pedidos Pendentes"
+              label={translate('provider.dashboard.pendingRequests')}
               value={stats?.pendingRequests || 0}
               trend={+2}
-              trendLabel="vs. ontem"
+              trendLabel={translate('provider.dashboard.vsYesterday')}
             />
             <StatCard
               icon={<Clock className="w-6 h-6" />}
               iconBg="bg-orange-100"
               iconColor="text-orange-600"
-              label="Serviços Ativos"
+              label={translate('provider.dashboard.activeServices')}
               value={stats?.activeWorkOrders || 0}
             />
             <StatCard
               icon={<CheckCircle className="w-6 h-6" />}
               iconBg="bg-green-100"
               iconColor="text-green-600"
-              label="Concluídos (mês)"
+              label={translate('provider.dashboard.completedMonth')}
               value={stats?.completedThisMonth || 0}
               trend={+15}
-              trendLabel="vs. mês passado"
+              trendLabel={translate('provider.dashboard.vsLastMonth')}
             />
             <StatCard
               icon={<DollarSign className="w-6 h-6" />}
               iconBg="bg-emerald-100"
               iconColor="text-emerald-600"
-              label="Ganhos (mês)"
+              label={translate('provider.dashboard.earningsMonth')}
               value={`$${stats?.earningsThisMonth?.toLocaleString() || 0}`}
               trend={+8}
-              trendLabel="vs. mês passado"
+              trendLabel={translate('provider.dashboard.vsLastMonth')}
             />
           </div>
         )}
@@ -202,9 +206,9 @@ export default function DashboardPage() {
           <div className="lg:col-span-2">
             <div className="bg-white rounded-2xl shadow-soft">
               <div className="flex items-center justify-between p-6 border-b border-gray-100">
-                <h3 className="text-lg font-semibold text-gray-900">Atividade Recente</h3>
+                <h3 className="text-lg font-semibold text-gray-900">{translate('provider.dashboard.recentActivity')}</h3>
                 <Link href="/pedidos" className="text-sm text-primary-600 hover:text-primary-700 font-medium">
-                  Ver tudo
+                  {translate('common.viewAll')}
                 </Link>
               </div>
               <div className="divide-y divide-gray-100">
@@ -231,7 +235,7 @@ export default function DashboardPage() {
           <div className="space-y-4">
             {/* Rating card */}
             <div className="bg-white rounded-2xl shadow-soft p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Sua Avaliação</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">{translate('provider.dashboard.ratingTitle')}</h3>
               <div className="flex items-center gap-4">
                 <div className="text-4xl font-bold text-gray-900">
                   {stats?.rating?.toFixed(1) || '0.0'}
@@ -250,7 +254,7 @@ export default function DashboardPage() {
                     ))}
                   </div>
                   <p className="text-sm text-gray-500">
-                    {stats?.totalReviews || 0} avaliações
+                    {stats?.totalReviews || 0} {translate('provider.layout.rating')}
                   </p>
                 </div>
               </div>
@@ -258,7 +262,7 @@ export default function DashboardPage() {
 
             {/* Quick actions */}
             <div className="bg-white rounded-2xl shadow-soft p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Ações Rápidas</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">{translate('provider.dashboard.quickActions')}</h3>
               <div className="space-y-2">
                 <Link
                   href="/pedidos"
@@ -268,7 +272,7 @@ export default function DashboardPage() {
                     <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
                       <ClipboardList className="w-5 h-5 text-blue-600" />
                     </div>
-                    <span className="font-medium text-gray-700">Ver Pedidos</span>
+                    <span className="font-medium text-gray-700">{translate('provider.dashboard.seeRequests')}</span>
                   </div>
                   <ArrowRight className="w-5 h-5 text-gray-400" />
                 </Link>
@@ -280,7 +284,7 @@ export default function DashboardPage() {
                     <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
                       <Clock className="w-5 h-5 text-orange-600" />
                     </div>
-                    <span className="font-medium text-gray-700">Serviços Ativos</span>
+                    <span className="font-medium text-gray-700">{translate('provider.dashboard.activeServices')}</span>
                   </div>
                   <ArrowRight className="w-5 h-5 text-gray-400" />
                 </Link>
@@ -292,7 +296,7 @@ export default function DashboardPage() {
                     <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
                       <AlertCircle className="w-5 h-5 text-gray-600" />
                     </div>
-                    <span className="font-medium text-gray-700">Configurações</span>
+                    <span className="font-medium text-gray-700">{translate('provider.layout.settings')}</span>
                   </div>
                   <ArrowRight className="w-5 h-5 text-gray-400" />
                 </Link>

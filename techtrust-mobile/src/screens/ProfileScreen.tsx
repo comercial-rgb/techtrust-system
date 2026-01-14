@@ -149,7 +149,7 @@ export default function ProfileScreen({ navigation }: any) {
       title: t.nav?.notifications || 'Notifications',
       description: t.profile?.notificationsDesc || 'Configure alerts',
       icon: 'bell',
-      onPress: () => Alert.alert(t.common?.comingSoon || 'Coming Soon', t.common?.featureInDevelopment || 'Feature in development'),featureInDevelopment || 'Feature in development'),
+      onPress: () => Alert.alert(t.common?.comingSoon || 'Coming Soon', t.common?.featureInDevelopment || 'Feature in development'),
     },
     {
       title: t.profile?.helpSupport || 'Help & Support',
@@ -223,7 +223,7 @@ export default function ProfileScreen({ navigation }: any) {
                   <Divider style={styles.divider} />
 
                   <View style={styles.subscriptionDetails}>
-                    <ScalePress onPress={() => navigation.navigate('VehiclesTab')}>
+                    <ScalePress onPress={() => navigation.navigate('Vehicles')}>
                       <View style={styles.statBox}>
                         <Text style={styles.statEmoji}>🚗</Text>
                         <Text style={styles.statValue}>
