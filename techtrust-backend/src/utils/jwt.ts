@@ -11,13 +11,12 @@ import jwt from 'jsonwebtoken';
 if (!process.env.JWT_SECRET) {
   throw new Error('JWT_SECRET environment variable must be set');
 }
-if (!process.env.JWT_REFRESH_SECRET) {
-  throw new Error('JWT_REFRESH_SECRET environment variable must be set');
-}
 
+// Permite fallback: se JWT_REFRESH_SECRET não estiver definido,
+// usa o mesmo valor de JWT_SECRET para não derrubar o servidor.
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || JWT_SECRET;
 const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
 
 export interface JWTPayload {
