@@ -45,6 +45,11 @@ const PORT = process.env.PORT || 3000;
 const API_VERSION = 'v1';
 const httpServer = createServer(app);
 
+// Render/Reverse proxy: trust X-Forwarded-* headers for correct client IP handling
+if (process.env.TRUST_PROXY === 'true' || process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
 // ============================================
 // SOCKET.IO SETUP (para chat em tempo real)
 // ============================================

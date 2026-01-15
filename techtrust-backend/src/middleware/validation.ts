@@ -14,29 +14,35 @@ import { AppError } from './error-handler';
  */
 export const validate = (validations: ValidationChain[]) => {
   return async (req: Request, _res: Response, next: NextFunction) => {
-    // Executar todas as validações
-    for (const validation of validations) {
-      await validation.run(req);
+    try {
+      // Executar todas as validações
+      for (const validation of validations) {
+        await validation.run(req);
+      }
+
+      // Verificar erros
+      const errors = validationResult(req);
+
+      if (errors.isEmpty()) {
+        return next();
+      }
+
+      // Formatar erros
+      const extractedErrors = errors.array().map((err: any) => ({
+        field: err.path || err.param,
+        message: err.msg,
+        value: err.value,
+      }));
+
+      return next(
+        new AppError(
+          extractedErrors[0].message,
+          400,
+          'VALIDATION_ERROR'
+        )
+      );
+    } catch (error) {
+      return next(error);
     }
-
-    // Verificar erros
-    const errors = validationResult(req);
-
-    if (errors.isEmpty()) {
-      return next();
-    }
-
-    // Formatar erros
-    const extractedErrors = errors.array().map((err: any) => ({
-      field: err.path || err.param,
-      message: err.msg,
-      value: err.value,
-    }));
-
-    throw new AppError(
-      extractedErrors[0].message,
-      400,
-      'VALIDATION_ERROR'
-    );
   };
 };
