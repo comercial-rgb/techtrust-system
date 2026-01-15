@@ -91,15 +91,28 @@ export default function SignupScreen({ navigation }: any) {
 
     setLoading(true);
     try {
+      const cleanedPhone = phone
+        .trim()
+        .replace(/[^\d+]/g, '')
+        .replace(/\+(?=\+)/g, '');
+
+      const normalizedPhone = cleanedPhone.startsWith('+')
+        ? `+${cleanedPhone.replace(/\D/g, '')}`
+        : `+${cleanedPhone.replace(/\D/g, '')}`;
+
+      if (!/^\+\d{10,15}$/.test(normalizedPhone)) {
+        throw new Error('Telefone inválido. Use formato E.164 (ex: +5511999999999)');
+      }
+
       const { userId } = await signUp({
         fullName,
         email,
-        phone,
+        phone: normalizedPhone,
         password,
         language: 'PT',
       });
 
-      navigation.navigate('OTP', { userId, phone });
+      navigation.navigate('OTP', { userId, phone: normalizedPhone });
     } catch (err: any) {
       error(err.message || t.auth?.errorCreatingAccount || 'Error creating account');
     } finally {
@@ -160,6 +173,7 @@ export default function SignupScreen({ navigation }: any) {
                   placeholder={t.auth?.fullNamePlaceholder || 'Your full name'}
                   style={styles.input}
                   outlineStyle={styles.inputOutline}
+                  textColor="#000"
                   error={hasError && !fullName}
                 />
               </View>
@@ -177,6 +191,7 @@ export default function SignupScreen({ navigation }: any) {
                   autoCapitalize="none"
                   style={styles.input}
                   outlineStyle={styles.inputOutline}
+                  textColor="#000"
                   error={hasError && !email}
                 />
               </View>
@@ -193,6 +208,7 @@ export default function SignupScreen({ navigation }: any) {
                   keyboardType="phone-pad"
                   style={styles.input}
                   outlineStyle={styles.inputOutline}
+                  textColor="#000"
                   error={hasError && !phone}
                 />
               </View>
@@ -207,6 +223,7 @@ export default function SignupScreen({ navigation }: any) {
                   mode="outlined"
                   placeholder={t.auth?.passwordPlaceholder || 'Minimum 8 characters'}
                   secureTextEntry={!showPassword}
+                  textColor="#000"
                   right={
                     <TextInput.Icon
                       icon={showPassword ? 'eye-off' : 'eye'}
@@ -253,6 +270,7 @@ export default function SignupScreen({ navigation }: any) {
                   mode="outlined"
                   placeholder={t.auth?.confirmPasswordPlaceholder || 'Enter password again'}
                   secureTextEntry={!showPassword}
+                  textColor="#000"
                   style={styles.input}
                   outlineStyle={styles.inputOutline}
                   error={hasError && confirmPassword !== password}

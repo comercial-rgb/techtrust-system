@@ -1,8 +1,8 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// For Expo, use EXPO_PUBLIC_API_URL to point to your dev machine (e.g. http://192.168.x.x:3010/api/v1)
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+// Production API URL (Render)
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://techtrust-api.onrender.com/api/v1';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -43,10 +43,10 @@ api.interceptors.response.use(
             refreshToken,
           });
 
-          const { accessToken } = response.data.data;
-          await AsyncStorage.setItem('@TechTrust:token', accessToken);
+          const { token } = response.data.data;
+          await AsyncStorage.setItem('@TechTrust:token', token);
 
-          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+          originalRequest.headers.Authorization = `Bearer ${token}`;
           return api(originalRequest);
         }
       } catch (refreshError) {

@@ -382,4 +382,138 @@ router.get('/landing', asyncHandler(async (req: Request, res: Response) => {
   res.json({ banners, offers, articles, notices });
 }));
 
+// ============================================
+// HOME DATA - Todos os dados da página inicial
+// ============================================
+
+// Obter todos os dados para a home (banners, ofertas, artigos, fornecedores em destaque)
+router.get('/home-data', asyncHandler(async (req: Request, res: Response) => {
+  const now = new Date();
+  
+  const [banners, offers, articles, notices, featuredProviders] = await Promise.all([
+    // Banners
+    prisma.banner.findMany({
+      where: {
+        isActive: true,
+        targetAudience: { in: ['all', 'guest'] },
+        OR: [
+          { startDate: null, endDate: null },
+          { startDate: { lte: now }, endDate: null },
+          { startDate: null, endDate: { gte: now } },
+          { startDate: { lte: now }, endDate: { gte: now } }
+        ]
+      },
+      orderBy: { position: 'asc' },
+      select: {
+        id: true,
+        title: true,
+        subtitle: true,
+        imageUrl: true,
+        linkUrl: true,
+        linkType: true
+      },
+      take: 5,
+    }),
+    // Ofertas especiais
+    prisma.specialOffer.findMany({
+      where: {
+        isActive: true,
+        OR: [
+          { startDate: null, endDate: null },
+          { startDate: { lte: now }, endDate: null },
+          { startDate: null, endDate: { gte: now } },
+          { startDate: { lte: now }, endDate: { gte: now } }
+        ]
+      },
+      orderBy: { position: 'asc' },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        discount: true,
+        imageUrl: true,
+        code: true
+      },
+      take: 5,
+    }),
+    // Artigos
+    prisma.article.findMany({
+      where: {
+        isPublished: true,
+        publishDate: { lte: now }
+      },
+      orderBy: { publishDate: 'desc' },
+      select: {
+        id: true,
+        title: true,
+        summary: true,
+        imageUrl: true,
+        slug: true,
+        publishDate: true
+      },
+      take: 3,
+    }),
+    // Avisos importantes
+    prisma.notice.findMany({
+      where: { isPinned: true },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        title: true,
+        message: true,
+        type: true,
+        icon: true,
+        actionLabel: true,
+        actionUrl: true
+      },
+      take: 2,
+    }),
+    // Fornecedores em destaque
+    prisma.user.findMany({
+      where: {
+        role: 'PROVIDER',
+        status: 'ACTIVE',
+        providerProfile: {
+          isFeatured: true,
+          isVerified: true,
+        }
+      },
+      include: {
+        providerProfile: {
+          select: {
+            businessName: true,
+            businessType: true,
+            city: true,
+            state: true,
+            averageRating: true,
+            totalReviews: true,
+            imageUrl: true,
+            services: {
+              select: { id: true, name: true }
+            }
+          }
+        }
+      },
+      take: 6,
+    })
+  ]);
+
+  res.json({
+    success: true,
+    data: {
+      banners,
+      offers,
+      articles,
+      notices,
+      featuredProviders: featuredProviders.map(p => ({
+        id: p.id,
+        fullName: p.fullName,
+        email: p.email,
+        phone: p.phone,
+        ...p.providerProfile,
+      }))
+    }
+  });
+}));
+
 export default router;

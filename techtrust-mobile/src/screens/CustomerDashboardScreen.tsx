@@ -14,6 +14,7 @@ import {
   Image,
   Dimensions,
   Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,11 +24,11 @@ import { FadeInView, ScalePress } from '../components/Animated';
 import { DashboardStatsSkeleton } from '../components/Skeleton';
 import { logos } from '../constants/images';
 import { useI18n } from '../i18n';
+import { getHomeData, SpecialOffer } from '../services/content.service';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = (SCREEN_WIDTH - 48) / 2; // 16 padding on each side + 16 gap
 
-// Mock data para ofertas especiais
 const SPECIAL_OFFERS = [
   {
     id: '1',
@@ -126,6 +127,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
   const [refreshing, setRefreshing] = useState(false);
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [offers, setOffers] = useState<SpecialOffer[]>([]);
   const [stats, setStats] = useState({
     activeServices: 0,
     pendingQuotes: 0,
@@ -135,7 +137,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
   
   // Offer modal states
   const [showOfferModal, setShowOfferModal] = useState(false);
-  const [selectedOffer, setSelectedOffer] = useState<typeof SPECIAL_OFFERS[0] | null>(null);
+  const [selectedOffer, setSelectedOffer] = useState<SpecialOffer | null>(null);
   const [showOfferProvidersModal, setShowOfferProvidersModal] = useState(false);
   const [offerProviderState, setOfferProviderState] = useState('');
   const [offerProviderCity, setOfferProviderCity] = useState('');
@@ -149,7 +151,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
   }, []);
   
   // Handle offer card click
-  const handleOfferPress = (offer: typeof SPECIAL_OFFERS[0]) => {
+  const handleOfferPress = (offer: SpecialOffer) => {
     setSelectedOffer(offer);
     setShowOfferModal(true);
   };
@@ -183,7 +185,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
   };
 
   // Request service from a provider
-  const handleRequestService = (provider: typeof FULL_PROVIDERS[0], offer?: typeof SPECIAL_OFFERS[0] | null) => {
+  const handleRequestService = (provider: typeof FULL_PROVIDERS[0], offer?: SpecialOffer | null) => {
     setShowOfferProvidersModal(false);
     navigation.navigate('CreateRequest', { 
       preSelectedProvider: provider,
@@ -193,9 +195,11 @@ export default function CustomerDashboardScreen({ navigation }: any) {
 
   async function loadDashboardData() {
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Buscar ofertas da API
+      const homeData = await getHomeData();
+      setOffers(homeData.offers || []);
       
-      // Mock data
+      // Mock data para stats
       setStats({
         activeServices: 2,
         pendingQuotes: 3,
@@ -581,33 +585,80 @@ export default function CustomerDashboardScreen({ navigation }: any) {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.offersListContainer}
             >
-              {SPECIAL_OFFERS.map((offer) => (
-                <TouchableOpacity 
-                  key={offer.id} 
-                  style={styles.offerCard}
-                  activeOpacity={0.9}
-                  onPress={() => handleOfferPress(offer)}
-                >
-                  <Image source={{ uri: offer.image }} style={styles.offerImage} />
-                  <View style={[styles.offerDiscountBadge, { backgroundColor: offer.accentColor }]}>
-                    <Text style={styles.offerDiscountText}>{offer.discount}</Text>
-                  </View>
-                  <View style={styles.offerContent}>
-                    <Text style={styles.offerTitle} numberOfLines={1}>{offer.title}</Text>
-                    <Text style={styles.offerDescription} numberOfLines={2}>{offer.description}</Text>
-                    <View style={styles.offerPricing}>
-                      <Text style={styles.offerOriginalPrice}>{offer.originalPrice}</Text>
-                      <Text style={[styles.offerDiscountedPrice, { color: offer.accentColor }]}>{offer.discountedPrice}</Text>
+              {offers.length === 0 ? (
+                <View style={styles.emptyOffersContainer}>
+                  <Text style={styles.emptyOffersText}>Nenhuma oferta disponível no momento</Text>
+                </View>
+              ) : (
+                offers.map((offer) => (
+                  <TouchableOpacity 
+                    key={offer.id} 
+                    style={styles.offerCard}
+                    activeOpacity={0.9}
+                    onPress={() => handleOfferPress(offer)}
+                  >
+                    <Image source={{ uri: offer.imageUrl }} style={styles.offerImage} />
+                    <View style={styles.offerDiscountBadge}>
+                      <Text style={styles.offerDiscountText}>{offer.discount ? `${offer.discount}% OFF` : 'PROMO'}</Text>
                     </View>
-                    <Text style={styles.offerValidUntil}>{t.customerDashboard?.validUntil || 'Valid until'} {offer.validUntil}</Text>
-                  </View>
-                  <View style={styles.offerTapHint}>
-                    <Ionicons name="finger-print" size={16} color="#6b7280" />
-                    <Text style={styles.offerTapHintText}>{t.customerDashboard?.tapForDetails || 'Tap for details'}</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
+                    <View style={styles.offerContent}>
+                      <Text style={styles.offerTitle}>{offer.title}</Text>
+                      <Text style={styles.offerDescription} numberOfLines={2}>
+                        {offer.description}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                ))
+              )}
             </ScrollView>
+          </View>
+        </FadeInView>
+
+        {/* Quick Actions */}
+        <FadeInView delay={200}>
+          <View style={styles.quickActionsContainer}>
+            <Text style={styles.sectionTitle}>Quick Actions</Text>
+            <View style={styles.quickActionsList}>
+              <TouchableOpacity
+                style={styles.quickActionItem}
+                onPress={() => navigation.navigate('CustomerVehicles')}
+              >
+                <View style={[styles.quickActionIcon, { backgroundColor: '#3b82f6' }]}>
+                  <Ionicons name="car-sport" size={24} color="#fff" />
+                </View>
+                <Text style={styles.quickActionLabel}>Add Vehicle</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.quickActionItem}
+                onPress={() => navigation.navigate('CreateRequest')}
+              >
+                <View style={[styles.quickActionIcon, { backgroundColor: '#10b981' }]}>
+                  <Ionicons name="add-circle" size={24} color="#fff" />
+                </View>
+                <Text style={styles.quickActionLabel}>Request Service</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.quickActionItem}
+                onPress={() => navigation.navigate('CustomerWorkOrders')}
+              >
+                <View style={[styles.quickActionIcon, { backgroundColor: '#f59e0b' }]}>
+                  <Ionicons name="list" size={24} color="#fff" />
+                </View>
+                <Text style={styles.quickActionLabel}>My Orders</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.quickActionItem}
+                onPress={() => navigation.navigate('ChatList')}
+              >
+                <View style={[styles.quickActionIcon, { backgroundColor: '#8b5cf6' }]}>
+                  <Ionicons name="chatbubbles" size={24} color="#fff" />
+                </View>
+                <Text style={styles.quickActionLabel}>Messages</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </FadeInView>
 

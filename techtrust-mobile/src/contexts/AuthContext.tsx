@@ -1,10 +1,11 @@
 /**
  * AuthContext - Contexto de Autenticação
- * Suporta CUSTOMER e PROVIDER com modo demo
+ * Suporta CUSTOMER e PROVIDER com API real
  */
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '../services/api';
 
 // ============================================
 // TYPES
@@ -13,7 +14,7 @@ interface User {
   id: string;
   email: string;
   fullName: string;
-  phone: string;
+  phone?: string;
   role: 'CUSTOMER' | 'PROVIDER';
   providerProfile?: {
     businessName: string;
@@ -45,32 +46,6 @@ interface SignupData {
 }
 
 // ============================================
-// DEMO DATA
-// ============================================
-const DEMO_CUSTOMER: User = {
-  id: 'demo-customer-001',
-  email: 'cliente@teste.com',
-  fullName: 'João Cliente',
-  phone: '+1 (407) 555-1234',
-  role: 'CUSTOMER',
-};
-
-const DEMO_PROVIDER: User = {
-  id: 'demo-provider-001',
-  email: 'fornecedor@teste.com',
-  fullName: 'Carlos Mecânico',
-  phone: '+1 (407) 555-5678',
-  role: 'PROVIDER',
-  providerProfile: {
-    businessName: 'Auto Center Express',
-    businessType: 'AUTO_REPAIR',
-    averageRating: 4.8,
-    totalReviews: 47,
-    isVerified: true,
-  },
-};
-
-// ============================================
 // CONTEXT
 // ============================================
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -99,92 +74,96 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Login como CLIENTE (padrão)
   const login = async (email: string, password: string) => {
     try {
-      // Simular delay de rede
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await api.post('/auth/login', { email, password });
 
-      if (!email || !password) {
-        throw new Error('Preencha email e senha');
+      const { token, refreshToken, user: apiUser } = response.data.data;
+      const normalizedUser: User = {
+        id: apiUser.id,
+        email: apiUser.email,
+        fullName: apiUser.fullName,
+        phone: apiUser.phone || '',
+        role: apiUser.role === 'CLIENT' ? 'CUSTOMER' : apiUser.role,
+      };
+
+      await AsyncStorage.setItem('@TechTrust:user', JSON.stringify(normalizedUser));
+      await AsyncStorage.setItem('@TechTrust:token', token);
+      if (refreshToken) {
+        await AsyncStorage.setItem('@TechTrust:refreshToken', refreshToken);
       }
 
-      // Modo demo - usar dados do cliente
-      const userData = { ...DEMO_CUSTOMER, email };
-      
-      await AsyncStorage.setItem('@TechTrust:user', JSON.stringify(userData));
-      await AsyncStorage.setItem('@TechTrust:token', 'demo-token-customer');
-      
-      setUser(userData);
+      setUser(normalizedUser);
     } catch (error: any) {
-      throw new Error(error.message || 'Erro ao fazer login');
+      throw new Error(error.response?.data?.message || 'Erro ao fazer login');
     }
   };
 
   // Login como FORNECEDOR
   const loginAsProvider = async (email: string, password: string) => {
     try {
-      // Simular delay de rede
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await api.post('/auth/login', { email, password });
 
-      if (!email || !password) {
-        throw new Error('Preencha email e senha');
+      const { token, refreshToken, user: apiUser } = response.data.data;
+
+      // Validar se é provider
+      if (apiUser.role !== 'PROVIDER') {
+        throw new Error('Esta conta não é de fornecedor');
       }
 
-      // Modo demo - usar dados do fornecedor
-      const userData = { ...DEMO_PROVIDER, email };
-      
-      await AsyncStorage.setItem('@TechTrust:user', JSON.stringify(userData));
-      await AsyncStorage.setItem('@TechTrust:token', 'demo-token-provider');
-      
-      setUser(userData);
+      const normalizedUser: User = {
+        id: apiUser.id,
+        email: apiUser.email,
+        fullName: apiUser.fullName,
+        phone: apiUser.phone || '',
+        role: 'PROVIDER',
+      };
+
+      await AsyncStorage.setItem('@TechTrust:user', JSON.stringify(normalizedUser));
+      await AsyncStorage.setItem('@TechTrust:token', token);
+      if (refreshToken) {
+        await AsyncStorage.setItem('@TechTrust:refreshToken', refreshToken);
+      }
+
+      setUser(normalizedUser);
     } catch (error: any) {
-      throw new Error(error.message || 'Erro ao fazer login');
+      throw new Error(error.response?.data?.message || 'Erro ao fazer login');
     }
   };
 
   const signup = async (data: SignupData): Promise<{ userId: string }> => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await api.post('/auth/signup', data);
+      
+      const { userId } = response.data.data;
 
-      const newUser: User = {
-        id: `user-${Date.now()}`,
-        email: data.email,
-        fullName: data.fullName,
-        phone: data.phone,
-        role: 'CUSTOMER',
-      };
-
-      // Store temporarily until OTP verification
-      await AsyncStorage.setItem('@TechTrust:pendingUser', JSON.stringify(newUser));
-
-      return { userId: newUser.id };
+      return { userId };
     } catch (error: any) {
-      throw new Error(error.message || 'Error creating account');
+      throw new Error(error.response?.data?.message || 'Erro ao criar conta');
     }
   };
 
   const verifyOTP = async (userId: string, code: string): Promise<void> => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await api.post('/auth/verify-otp', { userId, otpCode: code });
 
-      // Demo mode - accept any 6-digit code or specific code
-      if (code.length !== 6) {
-        throw new Error('Invalid verification code');
+      const { token, refreshToken, user: apiUser } = response.data.data;
+      const normalizedUser: User = {
+        id: apiUser.id,
+        email: apiUser.email,
+        fullName: apiUser.fullName,
+        phone: apiUser.phone || '',
+        role: apiUser.role === 'CLIENT' ? 'CUSTOMER' : apiUser.role,
+      };
+
+      await AsyncStorage.setItem('@TechTrust:user', JSON.stringify(normalizedUser));
+      await AsyncStorage.setItem('@TechTrust:token', token);
+      if (refreshToken) {
+        await AsyncStorage.setItem('@TechTrust:refreshToken', refreshToken);
       }
-
-      // Get pending user and complete registration
-      const pendingUserStr = await AsyncStorage.getItem('@TechTrust:pendingUser');
-      if (!pendingUserStr) {
-        throw new Error('No pending registration found');
-      }
-
-      const pendingUser = JSON.parse(pendingUserStr);
-      
-      await AsyncStorage.setItem('@TechTrust:user', JSON.stringify(pendingUser));
-      await AsyncStorage.setItem('@TechTrust:token', 'demo-token-verified-user');
       await AsyncStorage.removeItem('@TechTrust:pendingUser');
 
-      setUser(pendingUser);
+      setUser(normalizedUser);
     } catch (error: any) {
-      throw new Error(error.message || 'Error verifying code');
+      throw new Error(error.response?.data?.message || 'Erro ao verificar código');
     }
   };
 

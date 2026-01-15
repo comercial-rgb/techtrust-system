@@ -189,6 +189,7 @@ export default function LoginScreen({ navigation }: any) {
                 autoCapitalize="none"
                 value={email}
                 onChangeText={setEmail}
+                color="#000"
               />
             </View>
 
@@ -202,6 +203,7 @@ export default function LoginScreen({ navigation }: any) {
                 secureTextEntry={!showPassword}
                 value={password}
                 onChangeText={setPassword}
+                color="#000"
               />
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                 <MaterialCommunityIcons

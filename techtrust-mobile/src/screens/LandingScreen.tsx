@@ -19,6 +19,7 @@ import {
   Animated,
   StatusBar,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -27,6 +28,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { logos } from '../constants/images';
 import { CommonActions } from '@react-navigation/native';
+import { getHomeData, Banner, SpecialOffer } from '../services/content.service';
 
 const { width } = Dimensions.get('window');
 
@@ -191,6 +193,12 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   
+  // Content loading state
+  const [banners, setBanners] = useState<Banner[]>([]);
+  const [offers, setOffers] = useState<SpecialOffer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  
   // Search/Filter state
   const [selectedState, setSelectedState] = useState('');
   const [selectedCity, setSelectedCity] = useState('');
@@ -204,7 +212,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
   
   // Offer Detail Modal state
   const [showOfferModal, setShowOfferModal] = useState(false);
-  const [selectedOffer, setSelectedOffer] = useState<typeof SPECIAL_OFFERS[0] | null>(null);
+  const [selectedOffer, setSelectedOffer] = useState<SpecialOffer | null>(null);
   const [showOfferProvidersModal, setShowOfferProvidersModal] = useState(false);
   const [offerProviderState, setOfferProviderState] = useState('');
   const [offerProviderCity, setOfferProviderCity] = useState('');
@@ -212,9 +220,6 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
   const [showOfferCityDropdown, setShowOfferCityDropdown] = useState(false);
   const [offerProviders, setOfferProviders] = useState<typeof FULL_PROVIDERS>([]);
   const [hasSearchedOfferProviders, setHasSearchedOfferProviders] = useState(false);
-  
-  // Refresh state
-  const [refreshing, setRefreshing] = useState(false);
 
   const getServiceLabel = (serviceIdOrName: string): string => {
     const normalized = (serviceIdOrName || '').trim();
@@ -253,15 +258,45 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
 
   const serviceOptions = SERVICE_TYPE_IDS.map((id) => ({ id, label: getServiceLabel(id) }));
 
+  // Carrega dados da home (banners, ofertas, etc)
+  const loadHomeData = async () => {
+    try {
+      const data = await getHomeData();
+      setBanners(data.banners || BANNERS);
+      setOffers(data.offers || SPECIAL_OFFERS);
+    } catch (error) {
+      console.error('Erro ao carregar dados da home:', error);
+      // Usar dados mock como fallback
+      setBanners(BANNERS);
+      setOffers(SPECIAL_OFFERS);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  // Carrega dados ao montar o componente
+  useEffect(() => {
+    loadHomeData();
+  }, []);
+
   // Auto-scroll banners
   useEffect(() => {
+    if (banners.length === 0) return;
+    
     const interval = setInterval(() => {
-      const nextIndex = (currentBannerIndex + 1) % BANNERS.length;
+      const nextIndex = (currentBannerIndex + 1) % banners.length;
       bannerRef.current?.scrollToIndex({ index: nextIndex, animated: true });
       setCurrentBannerIndex(nextIndex);
     }, 4000);
     return () => clearInterval(interval);
-  }, [currentBannerIndex]);
+  }, [currentBannerIndex, banners.length]);
+
+  // Função para atualizar dados
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadHomeData();
+  };
 
   const handleSearch = () => {
     // Use dados completos se autenticado, senão usar masked
@@ -288,7 +323,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
   };
 
   // Handle offer card click
-  const handleOfferPress = (offer: typeof SPECIAL_OFFERS[0]) => {
+  const handleOfferPress = (offer: SpecialOffer) => {
     setSelectedOffer(offer);
     setShowOfferModal(true);
   };
@@ -322,7 +357,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
   };
 
   // Request service from a provider
-  const handleRequestService = (provider: typeof FULL_PROVIDERS[0], offer?: typeof SPECIAL_OFFERS[0] | null) => {
+  const handleRequestService = (provider: typeof FULL_PROVIDERS[0], offer?: SpecialOffer | null) => {
     // Check if user is authenticated before navigating
     if (!isAuthenticated) {
       // Redirect to login if not authenticated
@@ -371,20 +406,20 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
   const handleGoToDashboard = () => navigation.navigate('Dashboard');
   const handleCreateRequest = () => navigation.navigate('Dashboard', { screen: 'CreateRequest' });
 
-  const renderBanner = ({ item }: { item: typeof BANNERS[0] }) => (
+  const renderBanner = ({ item }: { item: Banner }) => (
     <View style={styles.bannerSlide}>
-      <Image source={{ uri: item.image }} style={styles.bannerImage} />
+      <Image source={{ uri: item.imageUrl }} style={styles.bannerImage} />
       <LinearGradient
         colors={['transparent', 'rgba(0,0,0,0.7)']}
         style={styles.bannerGradient}
       >
-        <Text style={styles.bannerTitle}>{t.landing?.banners?.[`title${item.id}` as keyof typeof t.landing.banners] || item.title}</Text>
-        <Text style={styles.bannerSubtitle}>{t.landing?.banners?.[`subtitle${item.id}` as keyof typeof t.landing.banners] || item.subtitle}</Text>
+        <Text style={styles.bannerTitle}>{item.title}</Text>
+        <Text style={styles.bannerSubtitle}>{item.subtitle}</Text>
       </LinearGradient>
     </View>
   );
 
-  const renderOffer = ({ item }: { item: typeof SPECIAL_OFFERS[0] }) => (
+  const renderOffer = ({ item }: { item: SpecialOffer }) => (
     <TouchableOpacity style={styles.offerCard} activeOpacity={0.9} onPress={() => handleOfferPress(item)}>
       <Image source={{ uri: item.image }} style={styles.offerImage} />
       <View style={styles.discountBadge}>
@@ -406,7 +441,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
     </TouchableOpacity>
   );
 
-  const renderProvider = ({ item, offer, variant = 'default' }: { item: typeof FULL_PROVIDERS[0], offer?: typeof SPECIAL_OFFERS[0] | null, variant?: 'default' | 'horizontal' }) => (
+  const renderProvider = ({ item, offer, variant = 'default' }: { item: typeof FULL_PROVIDERS[0], offer?: SpecialOffer | null, variant?: 'default' | 'horizontal' }) => (
     <View style={[styles.providerCard, variant === 'horizontal' && styles.providerCardHorizontal]}>
       <View style={styles.providerHeader}>
         <View style={styles.providerIcon}>
@@ -487,6 +522,15 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
       
+      {loading && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#007AFF" />
+          <Text style={styles.loadingText}>{t.common?.loading || 'Loading...'}</Text>
+        </View>
+      )}
+
+      {!loading && (
+      <>
       {/* Logged In Banner */}
       {isAuthenticated && user && (
         <View style={styles.loggedInBanner}>
@@ -558,7 +602,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
           </View>
           <FlatList
             ref={bannerRef}
-            data={BANNERS}
+            data={banners}
             renderItem={renderBanner}
             keyExtractor={item => item.id}
             horizontal
@@ -736,7 +780,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
             </View>
           </View>
           <FlatList
-            data={SPECIAL_OFFERS}
+            data={offers}
             renderItem={renderOffer}
             keyExtractor={item => item.id}
             horizontal
@@ -850,6 +894,9 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
 
         <View style={{ height: 30 }} />
       </ScrollView>
+
+      </>
+      )}
 
       {/* All Providers Modal */}
       <Modal visible={showAllResultsModal} animationType="slide">
@@ -1334,6 +1381,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8fafc',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#666',
   },
   // Logged In Banner
   loggedInBanner: {
