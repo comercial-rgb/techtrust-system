@@ -51,3 +51,6 @@ uploads/
 # Temp
 tmp/
 temp/
+
+# Sensitive service account keys (never commit)
+techtrust-mobile/service-account.json
