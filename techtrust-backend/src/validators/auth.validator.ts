@@ -25,7 +25,7 @@ export const signupValidation = [
   body('phone')
     .trim()
     .notEmpty().withMessage('Telefone é obrigatório')
-    .matches(/^\+1\d{10}$/).withMessage('Telefone deve estar no formato +1XXXXXXXXXX'),
+    .matches(/^\+\d{10,15}$/).withMessage('Telefone deve estar no formato E.164 (ex: +5511999999999)'),
 
   body('password')
     .notEmpty().withMessage('Senha é obrigatória')

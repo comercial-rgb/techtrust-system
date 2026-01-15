@@ -83,7 +83,11 @@ export const signup = async (req: Request, res: Response) => {
 
     // Enviar SMS com OTP
     try {
-      await sendOTP(phone, otpCode);
+      // Não bloquear o cadastro aguardando o provedor de SMS.
+      // Se o envio falhar (ou travar), o usuário ainda consegue solicitar reenvio.
+      sendOTP(phone, otpCode).catch((err) => {
+        logger.error('Erro ao enviar OTP:', err);
+      });
     } catch (error) {
       logger.error('Erro ao enviar OTP:', error);
       // Não falha o cadastro, mas avisa

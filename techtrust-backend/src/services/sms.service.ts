@@ -10,6 +10,24 @@ import { logger } from '../config/logger';
 
 const MOCK_MODE = process.env.MOCK_TWILIO === 'true';
 
+const DEFAULT_SMS_TIMEOUT_MS = parseInt(
+  process.env.SMS_TIMEOUT_MS || '8000',
+  10
+);
+
+const withTimeout = async <T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  label: string
+): Promise<T> => {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timeout after ${timeoutMs}ms`)), timeoutMs)
+    ),
+  ]);
+};
+
 /**
  * Envia SMS (real ou mock)
  */
@@ -29,17 +47,25 @@ export const sendSMS = async (
 
   // MODO REAL (Twilio)
   try {
+    if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN || !process.env.TWILIO_PHONE_NUMBER) {
+      throw new Error('Twilio env vars ausentes (TWILIO_ACCOUNT_SID/TWILIO_AUTH_TOKEN/TWILIO_PHONE_NUMBER)');
+    }
+
     const twilio = require('twilio');
     const client = twilio(
       process.env.TWILIO_ACCOUNT_SID,
       process.env.TWILIO_AUTH_TOKEN
     );
 
-    const result = await client.messages.create({
+    const result = await withTimeout(
+      client.messages.create({
       body: message,
       from: process.env.TWILIO_PHONE_NUMBER,
       to: to,
-    });
+      }),
+      DEFAULT_SMS_TIMEOUT_MS,
+      'Twilio sendSMS'
+    );
 
     logger.info(`SMS enviado com sucesso para ${to}. SID: ${result.sid}`);
 
