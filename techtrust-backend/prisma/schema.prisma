@@ -10,6 +10,11 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  // Optional direct connection for Prisma migrations when available.
+  // On providers like Supabase, the direct host can be IPv6-only.
+  // Keep DATABASE_URL pointing to a Session Pooler for IPv4 environments (e.g., Render),
+  // and set DIRECT_URL only in environments that can reach the direct DB endpoint.
+  directUrl = env("DIRECT_URL")
 }
 
 // ============================================
