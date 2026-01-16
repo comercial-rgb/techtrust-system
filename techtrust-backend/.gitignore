@@ -35,7 +35,8 @@ coverage/
 .nyc_output/
 
 # Prisma
-prisma/migrations/
+# IMPORTANT: do not ignore migrations in production builds (Render runs `prisma migrate deploy`).
+# Keep migrations tracked so schema changes are reproducible.
 
 # Uploads
 uploads/
