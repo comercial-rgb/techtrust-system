@@ -33,6 +33,7 @@ interface AuthContextType {
   signup: (data: SignupData) => Promise<{ userId: string }>;
   signUp: (data: SignupData) => Promise<{ userId: string }>; // Alias for signup
   verifyOTP: (userId: string, code: string) => Promise<void>;
+  resendOTP: (userId: string) => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
 }
@@ -135,9 +136,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       const { userId } = response.data.data;
 
+      await AsyncStorage.setItem(
+        '@TechTrust:pendingUser',
+        JSON.stringify({ userId, email: data.email, phone: data.phone })
+      );
+
       return { userId };
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Erro ao criar conta');
+    }
+  };
+
+  const resendOTP = async (userId: string): Promise<void> => {
+    try {
+      await api.post('/auth/resend-otp', { userId });
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Erro ao reenviar código');
     }
   };
 
@@ -187,6 +201,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signup,
         signUp: signup, // Alias for components using signUp
         verifyOTP,
+        resendOTP,
         logout,
         isAuthenticated: !!user,
       }}

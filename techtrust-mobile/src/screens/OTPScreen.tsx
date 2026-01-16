@@ -5,6 +5,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { View, StyleSheet, TextInput as RNTextInput } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Text, useTheme } from 'react-native-paper';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
@@ -25,8 +26,13 @@ import {
 export default function OTPScreen({ route, navigation }: any) {
   const theme = useTheme();
   const { t } = useI18n();
-  const { verifyOTP } = useAuth();
-  const { userId, phone } = route.params;
+  const { verifyOTP, resendOTP } = useAuth();
+
+  const routeUserId = route?.params?.userId as string | undefined;
+  const routePhone = route?.params?.phone as string | undefined;
+
+  const [userId, setUserId] = useState<string | null>(routeUserId ?? null);
+  const [phone, setPhone] = useState<string | null>(routePhone ?? null);
 
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
@@ -48,6 +54,24 @@ export default function OTPScreen({ route, navigation }: any) {
       setCanResend(true);
     }
   }, [resendTimer]);
+
+  // Recupera pending user caso o app seja fechado/retomado durante o fluxo
+  useEffect(() => {
+    if (userId) return;
+
+    (async () => {
+      try {
+        const pendingRaw = await AsyncStorage.getItem('@TechTrust:pendingUser');
+        if (!pendingRaw) return;
+
+        const pending = JSON.parse(pendingRaw);
+        if (pending?.userId) setUserId(pending.userId);
+        if (pending?.phone) setPhone(pending.phone);
+      } catch {
+        // ignore
+      }
+    })();
+  }, [userId]);
 
   const handleOtpChange = (value: string, index: number) => {
     if (value.length > 1) {
@@ -82,6 +106,13 @@ export default function OTPScreen({ route, navigation }: any) {
 
   async function handleVerify() {
     const otpCode = otp.join('');
+
+    if (!userId) {
+      setHasError(true);
+      error(t.auth?.errorCreatingAccount || 'Missing signup data. Please sign up again.');
+      setTimeout(() => setHasError(false), 500);
+      return;
+    }
     
     if (otpCode.length !== 6) {
       setHasError(true);
@@ -107,13 +138,27 @@ export default function OTPScreen({ route, navigation }: any) {
 
   const handleResend = () => {
     if (!canResend) return;
-    
-    // Simular reenvio
-    success(t.auth?.codeSent || 'Code sent!');
-    setResendTimer(60);
-    setCanResend(false);
-    setOtp(['', '', '', '', '', '']);
-    inputRefs.current[0]?.focus();
+
+    if (!userId) {
+      error(t.auth?.errorCreatingAccount || 'Missing signup data. Please sign up again.');
+      return;
+    }
+
+    setLoading(true);
+    resendOTP(userId)
+      .then(() => {
+        success(t.auth?.codeSent || 'Code sent!');
+        setResendTimer(60);
+        setCanResend(false);
+        setOtp(['', '', '', '', '', '']);
+        inputRefs.current[0]?.focus();
+      })
+      .catch((err: any) => {
+        error(err.message || 'Erro ao reenviar código');
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   };
 
   const isComplete = otp.every(digit => digit !== '');
@@ -167,13 +212,15 @@ export default function OTPScreen({ route, navigation }: any) {
           </ShakeView>
         </SlideInView>
 
-        {/* ✨ Hint para desenvolvimento */}
-        <FadeInView delay={150}>
-          <View style={styles.hintContainer}>
-            <Text style={styles.hintIcon}>💡</Text>
-            <Text style={styles.hintText}>{t.auth?.devModeHint || 'Dev mode: Use 123456'}</Text>
-          </View>
-        </FadeInView>
+        {/* Hint de desenvolvimento: não mostrar em produção (evita confusão com SMS real) */}
+        {__DEV__ && (
+          <FadeInView delay={150}>
+            <View style={styles.hintContainer}>
+              <Text style={styles.hintIcon}>💡</Text>
+              <Text style={styles.hintText}>{t.auth?.devModeHint || 'Dev mode: Use 123456'}</Text>
+            </View>
+          </FadeInView>
+        )}
 
         {/* ✨ Botão de verificar */}
         <FadeInView delay={200}>
