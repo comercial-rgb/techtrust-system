@@ -94,7 +94,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setUser(normalizedUser);
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Erro ao fazer login');
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Erro ao fazer login';
+      throw new Error(message);
     }
   };
 
@@ -126,7 +130,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setUser(normalizedUser);
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Erro ao fazer login');
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Erro ao fazer login';
+      throw new Error(message);
     }
   };
 
@@ -143,7 +151,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       return { userId };
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Erro ao criar conta');
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Erro ao criar conta';
+      throw new Error(message);
     }
   };
 
@@ -151,7 +163,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await api.post('/auth/resend-otp', { userId });
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Erro ao reenviar código');
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Erro ao reenviar código';
+      throw new Error(message);
     }
   };
 
@@ -177,7 +193,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setUser(normalizedUser);
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Erro ao verificar código');
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Erro ao verificar código';
+      throw new Error(message);
     }
   };
 

@@ -6,7 +6,8 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://techtrust-api.onrend
 
 const api = axios.create({
   baseURL: API_URL,
-  timeout: 30000,
+  // Render can cold-start; keep a slightly higher timeout to avoid false negatives.
+  timeout: 60000,
   headers: {
     'Content-Type': 'application/json',
   },
