@@ -14,18 +14,20 @@ import { logger } from '../config/logger';
  * GET /api/v1/content/banners
  * Retorna banners/promoções ativas
  */
-export const getBanners = async (req: Request, res: Response) => {
+export const getBanners = async (_req: Request, res: Response) => {
   try {
+    const now = new Date();
     const banners = await prisma.banner.findMany({
       where: {
         isActive: true,
-        startDate: { lte: new Date() },
         OR: [
-          { endDate: null },
-          { endDate: { gte: new Date() } }
-        ]
+          { startDate: null, endDate: null },
+          { startDate: { lte: now }, endDate: null },
+          { startDate: null, endDate: { gte: now } },
+          { startDate: { lte: now }, endDate: { gte: now } },
+        ],
       },
-      orderBy: { order: 'asc' },
+      orderBy: { position: 'asc' },
       take: 10,
     });
 
@@ -43,18 +45,20 @@ export const getBanners = async (req: Request, res: Response) => {
  * GET /api/v1/content/offers
  * Retorna ofertas especiais ativas
  */
-export const getOffers = async (req: Request, res: Response) => {
+export const getOffers = async (_req: Request, res: Response) => {
   try {
+    const now = new Date();
     const offers = await prisma.specialOffer.findMany({
       where: {
         isActive: true,
-        startDate: { lte: new Date() },
         OR: [
-          { endDate: null },
-          { endDate: { gte: new Date() } }
-        ]
+          { validFrom: null, validUntil: null },
+          { validFrom: { lte: now }, validUntil: null },
+          { validFrom: null, validUntil: { gte: now } },
+          { validFrom: { lte: now }, validUntil: { gte: now } },
+        ],
       },
-      orderBy: { order: 'asc' },
+      orderBy: [{ isFeatured: 'desc' }, { position: 'asc' }],
       take: 10,
     });
 
@@ -72,21 +76,26 @@ export const getOffers = async (req: Request, res: Response) => {
  * GET /api/v1/content/featured-providers
  * Retorna fornecedores em destaque
  */
-export const getFeaturedProviders = async (req: Request, res: Response) => {
+export const getFeaturedProviders = async (_req: Request, res: Response) => {
   try {
     const featuredProviders = await prisma.user.findMany({
       where: {
         role: 'PROVIDER',
         providerProfile: {
-          isFeatured: true,
           isVerified: true,
         }
       },
       include: {
         providerProfile: {
-          include: {
-            services: true,
-          }
+          select: {
+            businessName: true,
+            businessType: true,
+            city: true,
+            state: true,
+            averageRating: true,
+            totalReviews: true,
+            isVerified: true,
+          },
         }
       },
       take: 10,
@@ -106,14 +115,15 @@ export const getFeaturedProviders = async (req: Request, res: Response) => {
  * GET /api/v1/content/articles
  * Retorna artigos/blog posts
  */
-export const getArticles = async (req: Request, res: Response) => {
+export const getArticles = async (_req: Request, res: Response) => {
   try {
+    const now = new Date();
     const articles = await prisma.article.findMany({
       where: {
         isPublished: true,
-        publishDate: { lte: new Date() },
+        OR: [{ publishedAt: null }, { publishedAt: { lte: now } }],
       },
-      orderBy: { publishDate: 'desc' },
+      orderBy: [{ isFeatured: 'desc' }, { publishedAt: 'desc' }],
       take: 10,
     });
 
@@ -131,38 +141,54 @@ export const getArticles = async (req: Request, res: Response) => {
  * GET /api/v1/content/home-data
  * Retorna todos os dados da home em uma única chamada
  */
-export const getHomeData = async (req: Request, res: Response) => {
+export const getHomeData = async (_req: Request, res: Response) => {
   try {
+    const now = new Date();
     const [banners, offers, featuredProviders, articles] = await Promise.all([
       prisma.banner.findMany({
         where: {
           isActive: true,
-          startDate: { lte: new Date() },
-          OR: [{ endDate: null }, { endDate: { gte: new Date() } }]
+          OR: [
+            { startDate: null, endDate: null },
+            { startDate: { lte: now }, endDate: null },
+            { startDate: null, endDate: { gte: now } },
+            { startDate: { lte: now }, endDate: { gte: now } },
+          ],
         },
-        orderBy: { order: 'asc' },
+        orderBy: { position: 'asc' },
         take: 5,
       }),
       prisma.specialOffer.findMany({
         where: {
           isActive: true,
-          startDate: { lte: new Date() },
-          OR: [{ endDate: null }, { endDate: { gte: new Date() } }]
+          OR: [
+            { validFrom: null, validUntil: null },
+            { validFrom: { lte: now }, validUntil: null },
+            { validFrom: null, validUntil: { gte: now } },
+            { validFrom: { lte: now }, validUntil: { gte: now } },
+          ],
         },
-        orderBy: { order: 'asc' },
+        orderBy: [{ isFeatured: 'desc' }, { position: 'asc' }],
         take: 5,
       }),
       prisma.user.findMany({
         where: {
           role: 'PROVIDER',
           providerProfile: {
-            isFeatured: true,
             isVerified: true,
           }
         },
         include: {
           providerProfile: {
-            include: { services: true }
+            select: {
+              businessName: true,
+              businessType: true,
+              city: true,
+              state: true,
+              averageRating: true,
+              totalReviews: true,
+              isVerified: true,
+            },
           }
         },
         take: 6,
@@ -170,9 +196,9 @@ export const getHomeData = async (req: Request, res: Response) => {
       prisma.article.findMany({
         where: {
           isPublished: true,
-          publishDate: { lte: new Date() },
+          OR: [{ publishedAt: null }, { publishedAt: { lte: now } }],
         },
-        orderBy: { publishDate: 'desc' },
+        orderBy: [{ isFeatured: 'desc' }, { publishedAt: 'desc' }],
         take: 3,
       }),
     ]);

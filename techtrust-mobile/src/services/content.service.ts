@@ -69,7 +69,7 @@ export const getHomeData = async (): Promise<HomeData> => {
 export const getBanners = async (): Promise<Banner[]> => {
   try {
     const response = await api.get('/content/banners');
-    return response.data.data;
+    return response.data?.data ?? response.data;
   } catch (error: any) {
     console.error('Erro ao buscar banners:', error);
     throw error;
@@ -82,7 +82,7 @@ export const getBanners = async (): Promise<Banner[]> => {
 export const getOffers = async (): Promise<SpecialOffer[]> => {
   try {
     const response = await api.get('/content/offers');
-    return response.data.data;
+    return response.data?.data ?? response.data;
   } catch (error: any) {
     console.error('Erro ao buscar ofertas:', error);
     throw error;
@@ -108,7 +108,9 @@ export const getFeaturedProviders = async (): Promise<FeaturedProvider[]> => {
 export const getArticles = async (): Promise<Article[]> => {
   try {
     const response = await api.get('/content/articles');
-    return response.data.data;
+    if (response.data?.data) return response.data.data;
+    if (Array.isArray(response.data?.articles)) return response.data.articles;
+    return response.data;
   } catch (error: any) {
     console.error('Erro ao buscar artigos:', error);
     throw error;

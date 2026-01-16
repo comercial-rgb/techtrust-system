@@ -57,7 +57,7 @@ export const sendSMS = async (
       process.env.TWILIO_AUTH_TOKEN
     );
 
-    const result = await withTimeout(
+    const result: any = await withTimeout<any>(
       client.messages.create({
       body: message,
       from: process.env.TWILIO_PHONE_NUMBER,

@@ -387,7 +387,7 @@ router.get('/landing', asyncHandler(async (req: Request, res: Response) => {
 // ============================================
 
 // Obter todos os dados para a home (banners, ofertas, artigos, fornecedores em destaque)
-router.get('/home-data', asyncHandler(async (req: Request, res: Response) => {
+router.get('/home-data', asyncHandler(async (_req: Request, res: Response) => {
   const now = new Date();
   
   const [banners, offers, articles, notices, featuredProviders] = await Promise.all([
@@ -419,10 +419,10 @@ router.get('/home-data', asyncHandler(async (req: Request, res: Response) => {
       where: {
         isActive: true,
         OR: [
-          { startDate: null, endDate: null },
-          { startDate: { lte: now }, endDate: null },
-          { startDate: null, endDate: { gte: now } },
-          { startDate: { lte: now }, endDate: { gte: now } }
+          { validFrom: null, validUntil: null },
+          { validFrom: { lte: now }, validUntil: null },
+          { validFrom: null, validUntil: { gte: now } },
+          { validFrom: { lte: now }, validUntil: { gte: now } }
         ]
       },
       orderBy: { position: 'asc' },
@@ -430,9 +430,11 @@ router.get('/home-data', asyncHandler(async (req: Request, res: Response) => {
         id: true,
         title: true,
         description: true,
-        discount: true,
         imageUrl: true,
-        code: true
+        discountType: true,
+        discountValue: true,
+        discountLabel: true,
+        promoCode: true
       },
       take: 5,
     }),
@@ -440,16 +442,16 @@ router.get('/home-data', asyncHandler(async (req: Request, res: Response) => {
     prisma.article.findMany({
       where: {
         isPublished: true,
-        publishDate: { lte: now }
+        OR: [{ publishedAt: null }, { publishedAt: { lte: now } }]
       },
-      orderBy: { publishDate: 'desc' },
+      orderBy: { publishedAt: 'desc' },
       select: {
         id: true,
         title: true,
-        summary: true,
+        excerpt: true,
         imageUrl: true,
         slug: true,
-        publishDate: true
+        publishedAt: true
       },
       take: 3,
     }),
@@ -474,7 +476,6 @@ router.get('/home-data', asyncHandler(async (req: Request, res: Response) => {
         role: 'PROVIDER',
         status: 'ACTIVE',
         providerProfile: {
-          isFeatured: true,
           isVerified: true,
         }
       },
@@ -487,10 +488,6 @@ router.get('/home-data', asyncHandler(async (req: Request, res: Response) => {
             state: true,
             averageRating: true,
             totalReviews: true,
-            imageUrl: true,
-            services: {
-              select: { id: true, name: true }
-            }
           }
         }
       },
@@ -502,8 +499,23 @@ router.get('/home-data', asyncHandler(async (req: Request, res: Response) => {
     success: true,
     data: {
       banners,
-      offers,
-      articles,
+      offers: offers.map((o) => ({
+        id: o.id,
+        title: o.title,
+        description: o.description,
+        imageUrl: o.imageUrl,
+        discount: o.discountValue,
+        code: o.promoCode,
+        discountLabel: o.discountLabel,
+      })),
+      articles: articles.map((a) => ({
+        id: a.id,
+        title: a.title,
+        summary: a.excerpt,
+        imageUrl: a.imageUrl,
+        slug: a.slug,
+        publishDate: a.publishedAt,
+      })),
       notices,
       featuredProviders: featuredProviders.map(p => ({
         id: p.id,
