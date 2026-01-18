@@ -12,7 +12,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "seed": "ts-node prisma/seed.ts",
-    "clean-db": "ts-node prisma/clean-database.ts"
+    "clean-db": "ts-node prisma/clean-database.ts",
+    "clean-production": "ts-node scripts/clean-production-db.ts"
   },
   "keywords": [
     "automotive",
