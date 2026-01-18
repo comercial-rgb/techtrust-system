@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminLayout from '../../components/AdminLayout';
-import api from '../../services/api';
+import { adminApi } from '../../services/api';
 import {
   Search,
   Plus,
@@ -60,7 +60,7 @@ export default function UsuariosPage() {
 
   async function loadUsers() {
     try {
-      const response = await api.get('/admin/users');
+      const response = await adminApi.getUsers();
       setUsers(response.data.data || []);
     } catch (error) {
       console.error('Erro ao carregar usuários:', error);

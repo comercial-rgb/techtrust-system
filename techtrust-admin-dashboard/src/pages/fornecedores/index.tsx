@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminLayout from '../../components/AdminLayout';
-import api from '../../services/api';
+import { adminApi } from '../../services/api';
 import {
   Search,
   Filter,
@@ -72,8 +72,8 @@ export default function FornecedoresPage() {
 
   async function loadProviders() {
     try {
-      const response = await api.get('/admin/providers');
-      setProviders(response.data.data || []);
+      const response = await adminApi.getProviders();
+      setProviders(response.data || []);
     } catch (error) {
       console.error('Erro ao carregar fornecedores:', error);
       setProviders([]);
