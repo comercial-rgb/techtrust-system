@@ -46,8 +46,10 @@ export const verifyOTPValidation = [
     .isUUID().withMessage('ID do usuário inválido'),
 
   body('otpCode')
+    .exists().withMessage('Código OTP é obrigatório')
+    .isString().withMessage('Código OTP deve ser uma string')
     .trim()
-    .notEmpty().withMessage('Código OTP é obrigatório')
+    .notEmpty().withMessage('Código OTP não pode estar vazio')
     .isLength({ min: 6, max: 6 }).withMessage('Código OTP deve ter 6 dígitos')
     .isNumeric().withMessage('Código OTP deve conter apenas números'),
 ];
