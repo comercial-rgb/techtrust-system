@@ -155,16 +155,8 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Demo Hint */}
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-            <p className="text-sm text-blue-700 text-center">
-              {tr('auth.demoMode')}
-            </p>
-          </div>
-
           {/* Sign Up Link */}
-          <p className="mt-8 text-center text-gray-600">
-            {tr('client.signUpPrompt')}{' '}
+          <p className="mt-8 text-center text-gray-600">{tr('client.signUpPrompt')}{' '}
             <Link href="/cadastro" className="text-primary-600 hover:text-primary-700 font-medium">
               {tr('client.signUpCta')}
             </Link>

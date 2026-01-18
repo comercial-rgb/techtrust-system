@@ -8,9 +8,6 @@ import Cookies from 'js-cookie';
 import { useRouter } from 'next/router';
 import { api } from '../services/api';
 
-// Modo de desenvolvimento - aceita login demo
-const DEV_MODE = process.env.NODE_ENV === 'development';
-
 interface User {
   id: string;
   email: string;
@@ -38,16 +35,6 @@ interface RegisterData {
   password: string;
 }
 
-// Usuário demo para desenvolvimento
-const DEMO_USER: User = {
-  id: 'demo-customer-001',
-  email: 'cliente@teste.com',
-  fullName: 'João Cliente',
-  phone: '+55 11 99999-9999',
-  role: 'CUSTOMER',
-  memberSince: '2023',
-};
-
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -65,33 +52,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const savedUser = Cookies.get('tt_client_user');
 
       if (token && savedUser) {
-        // Carrega usuário salvo primeiro (fast)
         const parsed = JSON.parse(savedUser);
         setUser(parsed);
 
-        // Em background, valida o token com o backend (slow)
-        if (!DEV_MODE || token !== 'demo-token-client') {
-          try {
-            const response = await api.getProfile();
-            if (response.data) {
-              const updatedUser: User = {
-                id: response.data.id,
-                email: response.data.email,
-                fullName: response.data.fullName,
-                phone: response.data.phone,
-                role: response.data.role,
-                avatarUrl: response.data.avatarUrl,
-              };
-              setUser(updatedUser);
-              Cookies.set('tt_client_user', JSON.stringify(updatedUser), { expires: 7 });
-            }
-          } catch (e) {
-            // Token inválido - limpar sessão
-            console.log('Token inválido, limpando sessão');
-            Cookies.remove('tt_client_token');
-            Cookies.remove('tt_client_user');
-            setUser(null);
+        try {
+          const response = await api.getProfile();
+          if (response.data) {
+            const updatedUser: User = {
+              id: response.data.id,
+              email: response.data.email,
+              fullName: response.data.fullName,
+              phone: response.data.phone,
+              role: response.data.role,
+              avatarUrl: response.data.avatarUrl,
+            };
+            setUser(updatedUser);
+            Cookies.set('tt_client_user', JSON.stringify(updatedUser), { expires: 7 });
           }
+        } catch (e) {
+          console.log('Token inválido, limpando sessão');
+          Cookies.remove('tt_client_token');
+          Cookies.remove('tt_client_user');
+          setUser(null);
         }
       }
     } catch (error) {
@@ -106,18 +88,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error('Preencha email e senha');
     }
 
-    // Modo demo para desenvolvimento rápido
-    if (DEV_MODE && (email === 'demo@teste.com' || email.includes('demo'))) {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      const demoUser = { ...DEMO_USER, email };
-      Cookies.set('tt_client_token', 'demo-token-client', { expires: 7 });
-      Cookies.set('tt_client_user', JSON.stringify(demoUser), { expires: 7 });
-      setUser(demoUser);
-      router.push('/dashboard');
-      return;
-    }
-
-    // Login real via API
     const response = await api.login(email, password);
     
     if (response.error) {

@@ -5,9 +5,6 @@ import { useRouter } from 'next/router'
 import Cookies from 'js-cookie'
 import api from '@/services/api'
 
-// Modo DEMO desabilitado - usar apenas API real
-const DEMO_MODE = false
-
 interface User {
   id: string
   email: string
@@ -20,22 +17,6 @@ interface User {
     averageRating: number
     totalReviews: number
     isVerified: boolean
-  }
-}
-
-// Usuário demo para testes
-const DEMO_USER: User = {
-  id: 'demo-provider-001',
-  email: 'fornecedor@teste.com',
-  fullName: 'João Mecânico',
-  phone: '+1 (407) 555-1234',
-  role: 'PROVIDER',
-  providerProfile: {
-    businessName: 'Auto Center Express',
-    businessType: 'AUTO_REPAIR',
-    averageRating: 4.8,
-    totalReviews: 47,
-    isVerified: true,
   }
 }
 
@@ -66,18 +47,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    // MODO DEMO
-    if (DEMO_MODE) {
-      setUser(DEMO_USER)
-      setLoading(false)
-      return
-    }
-
     try {
       const response = await api.get('/users/me')
       const userData = response.data.data
       
-      // Verificar se é um fornecedor
       if (userData.role !== 'PROVIDER') {
         throw new Error('Acesso negado. Apenas fornecedores.')
       }
@@ -93,37 +66,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function login(email: string, password: string) {
-    // MODO DEMO - aceita qualquer email/senha
-    if (DEMO_MODE) {
-      // Simular delay de rede
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Validação básica
-      if (!email || !password) {
-        throw new Error('Preencha email e senha')
-      }
-      
-      // Salvar token fake
-      Cookies.set('token', 'demo-token-12345', { expires: 7 })
-      Cookies.set('refreshToken', 'demo-refresh-token', { expires: 30 })
-      
-      // Usar email do usuário no perfil demo
-      const demoUserWithEmail = {
-        ...DEMO_USER,
-        email: email,
-      }
-      
-      setUser(demoUserWithEmail)
-      router.push('/dashboard')
-      return
+    if (!email || !password) {
+      throw new Error('Preencha email e senha')
     }
 
-    // Modo produção - conecta ao backend real
     try {
       const response = await api.post('/auth/login', { email, password })
       const { accessToken, refreshToken, user: userData } = response.data.data
       
-      // Verificar se é um fornecedor
       if (userData.role !== 'PROVIDER') {
         throw new Error('Acesso negado. Este portal é apenas para fornecedores.')
       }
