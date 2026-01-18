@@ -34,6 +34,7 @@ export const signup = async (req: Request, res: Response) => {
     });
 
     if (existingEmail) {
+      logger.warn(`Tentativa de cadastro com email duplicado: ${email}`);
       throw new AppError('Este email já está cadastrado', 409, 'EMAIL_ALREADY_EXISTS');
     }
 
@@ -43,6 +44,7 @@ export const signup = async (req: Request, res: Response) => {
     });
 
     if (existingPhone) {
+      logger.warn(`Tentativa de cadastro com telefone duplicado: ${phone}`);
       throw new AppError('Este telefone já está cadastrado', 409, 'PHONE_ALREADY_EXISTS');
     }
 
