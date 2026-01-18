@@ -119,9 +119,19 @@ export const signup = async (req: Request, res: Response) => {
 export const verifyOTP = async (req: Request, res: Response) => {
   try {
     const { userId, otpCode } = req.body;
+    
+    console.log('📥 Recebido verify-otp:', { 
+      userId, 
+      otpCode, 
+      otpType: typeof otpCode,
+      otpLength: otpCode?.length,
+      body: req.body 
+    });
 
     // Trim para garantir que não há espaços
-    const cleanOtpCode = otpCode.trim();
+    const cleanOtpCode = otpCode?.trim();
+    
+    console.log('🧹 Após trim:', { cleanOtpCode, length: cleanOtpCode?.length });
 
     // Validar formato do OTP
     if (!validateOTPFormat(cleanOtpCode)) {

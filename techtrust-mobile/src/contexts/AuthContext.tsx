@@ -173,6 +173,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const verifyOTP = async (userId: string, code: string): Promise<void> => {
     try {
+      console.log('🔐 Verificando OTP:', { userId, code, codeLength: code?.length });
       const response = await api.post('/auth/verify-otp', { userId, otpCode: code });
 
       const { token, refreshToken, user: apiUser } = response.data.data;

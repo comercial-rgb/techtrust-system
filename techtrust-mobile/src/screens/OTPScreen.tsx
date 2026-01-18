@@ -105,8 +105,12 @@ export default function OTPScreen({ route, navigation }: any) {
   };
 
   async function handleVerify() {
-    // Trim para remover espaços e garantir validação correta
-    const otpCode = otp.join('').trim();
+    // Limpa e valida o código
+    const otpCode = otp.join('').replace(/\s/g, ''); // Remove todos os espaços
+    
+    console.log('🔍 OTP Array:', otp);
+    console.log('🔍 OTP Code:', otpCode);
+    console.log('🔍 User ID:', userId);
 
     if (!userId) {
       setHasError(true);
@@ -115,13 +119,22 @@ export default function OTPScreen({ route, navigation }: any) {
       return;
     }
     
-    if (otpCode.length !== 6) {
+    if (!otpCode || otpCode.length !== 6) {
       setHasError(true);
-      error(t.auth?.enterOtpCode || 'Enter the 6-digit code');
+      error(t.auth?.enterOtpCode || 'Digite o código de 6 dígitos');
       setTimeout(() => setHasError(false), 500);
       return;
     }
 
+    // Valida se são apenas números
+    if (!/^\d{6}$/.test(otpCode)) {
+      setHasError(true);
+      error('Código deve conter apenas números');
+      setTimeout(() => setHasError(false), 500);
+      return;
+    }
+
+    console.log('✅ Validação passou, enviando para backend...');
     setLoading(true);
     try {
       await verifyOTP(userId, otpCode);

@@ -13,7 +13,8 @@
     "prisma:studio": "prisma studio",
     "seed": "ts-node prisma/seed.ts",
     "clean-db": "ts-node prisma/clean-database.ts",
-    "clean-production": "ts-node scripts/clean-production-db.ts"
+    "clean-production": "ts-node scripts/clean-production-db.ts",
+    "clean-production-direct": "ts-node scripts/clean-production-direct.ts"
   },
   "keywords": [
     "automotive",
@@ -22,6 +23,9 @@
   ],
   "author": "TechTrust",
   "license": "MIT",
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
+  },
   "dependencies": {
     "@prisma/client": "^5.7.0",
     "@types/bcrypt": "^5.0.2",
