@@ -58,17 +58,15 @@ export default function UsuariosPage() {
   }, [isAuthenticated]);
 
   async function loadUsers() {
-    // Simulated data
-    const mockUsers: UserData[] = [
-      { id: '1', fullName: 'João Silva', email: 'joao@email.com', phone: '11999998888', role: 'CUSTOMER', isActive: true, createdAt: '2024-11-01T10:00:00Z', lastLogin: '2024-12-01T15:30:00Z' },
-      { id: '2', fullName: 'Maria Santos', email: 'maria@email.com', phone: '11988887777', role: 'CUSTOMER', isActive: true, createdAt: '2024-11-05T14:00:00Z', lastLogin: '2024-12-01T09:15:00Z' },
-      { id: '3', fullName: 'Auto Center Express', email: 'contato@autocenter.com', phone: '1133334444', role: 'PROVIDER', isActive: true, createdAt: '2024-10-15T08:00:00Z', lastLogin: '2024-12-01T18:00:00Z' },
-      { id: '4', fullName: 'Pedro Oliveira', email: 'pedro@email.com', phone: '11977776666', role: 'CUSTOMER', isActive: false, createdAt: '2024-09-20T11:00:00Z', lastLogin: '2024-10-15T12:00:00Z' },
-      { id: '5', fullName: 'Mecânica do Zé', email: 'ze@mecanica.com', phone: '1122223333', role: 'PROVIDER', isActive: true, createdAt: '2024-10-01T09:00:00Z', lastLogin: '2024-11-30T16:45:00Z' },
-      { id: '6', fullName: 'Admin Master', email: 'admin@techtrust.com', phone: '11911112222', role: 'ADMIN', isActive: true, createdAt: '2024-01-01T00:00:00Z', lastLogin: '2024-12-02T08:00:00Z' },
-    ];
-    setUsers(mockUsers);
-    setLoading(false);
+    try {
+      const response = await api.get('/admin/users');
+      setUsers(response.data.data || []);
+    } catch (error) {
+      console.error('Erro ao carregar usuários:', error);
+      setUsers([]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   const getRoleBadge = (role: string) => {

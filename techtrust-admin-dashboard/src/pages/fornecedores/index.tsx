@@ -70,17 +70,15 @@ export default function FornecedoresPage() {
   }, [filter]);
 
   async function loadProviders() {
-    // Simulated data
-    const mockProviders: Provider[] = [
-      { id: '1', companyName: 'Auto Center Express', cnpj: '12.345.678/0001-90', email: 'contato@autocenter.com', phone: '1133334444', address: 'Av. Paulista, 1000 - São Paulo, SP', rating: 4.8, totalReviews: 156, totalServices: 234, status: 'APPROVED', isVerified: true, createdAt: '2024-06-01T10:00:00Z' },
-      { id: '2', companyName: 'Mecânica do Zé', cnpj: '98.765.432/0001-10', email: 'ze@mecanica.com', phone: '1122223333', address: 'Rua das Flores, 500 - São Paulo, SP', rating: 4.5, totalReviews: 89, totalServices: 145, status: 'APPROVED', isVerified: true, createdAt: '2024-07-15T14:00:00Z' },
-      { id: '3', companyName: 'Oficina Premium', cnpj: '11.222.333/0001-44', email: 'premium@oficina.com', phone: '1144445555', address: 'Rua Augusta, 2000 - São Paulo, SP', rating: 0, totalReviews: 0, totalServices: 0, status: 'PENDING', isVerified: false, createdAt: '2024-12-01T09:00:00Z' },
-      { id: '4', companyName: 'Fast Car Service', cnpj: '55.666.777/0001-88', email: 'fast@carservice.com', phone: '1155556666', address: 'Av. Brasil, 3000 - São Paulo, SP', rating: 0, totalReviews: 0, totalServices: 0, status: 'PENDING', isVerified: false, createdAt: '2024-11-30T16:00:00Z' },
-      { id: '5', companyName: 'Auto Repair Shop', cnpj: '22.333.444/0001-55', email: 'contato@autorepair.com', phone: '1166667777', address: 'Rua da Consolação, 1500 - São Paulo, SP', rating: 3.2, totalReviews: 45, totalServices: 67, status: 'SUSPENDED', isVerified: true, createdAt: '2024-05-01T08:00:00Z' },
-      { id: '6', companyName: 'Garage Masters', cnpj: '77.888.999/0001-22', email: 'info@garagemasters.com', phone: '1177778888', address: 'Rua Oscar Freire, 800 - São Paulo, SP', rating: 0, totalReviews: 0, totalServices: 0, status: 'REJECTED', isVerified: false, createdAt: '2024-11-20T11:00:00Z' },
-    ];
-    setProviders(mockProviders);
-    setLoading(false);
+    try {
+      const response = await api.get('/admin/providers');
+      setProviders(response.data.data || []);
+    } catch (error) {
+      console.error('Erro ao carregar fornecedores:', error);
+      setProviders([]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   const getStatusBadge = (status: string) => {

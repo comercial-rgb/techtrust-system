@@ -66,19 +66,7 @@ export default function SolicitacoesPage() {
           vehicle: r.vehicle || { make: 'N/A', model: 'N/A', year: 0 },
         })));
       } else {
-        // Fallback mock data
-        setRequests([
-          {
-            id: '1',
-            requestNumber: 'SR-2024-001',
-            title: 'Troca de óleo e filtros',
-            description: 'Troca de óleo sintético e filtros de ar e combustível',
-            status: 'QUOTES_RECEIVED',
-            quotesCount: 4,
-            createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-            vehicle: { make: 'Honda', model: 'Civic', year: 2020 },
-          },
-        ]);
+        setRequests([]);
       }
     } catch (error) {
       console.error('Erro ao carregar solicitações:', error);

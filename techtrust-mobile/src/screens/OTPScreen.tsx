@@ -105,7 +105,8 @@ export default function OTPScreen({ route, navigation }: any) {
   };
 
   async function handleVerify() {
-    const otpCode = otp.join('');
+    // Trim para remover espaços e garantir validação correta
+    const otpCode = otp.join('').trim();
 
     if (!userId) {
       setHasError(true);
@@ -212,15 +213,7 @@ export default function OTPScreen({ route, navigation }: any) {
           </ShakeView>
         </SlideInView>
 
-        {/* Hint de desenvolvimento: não mostrar em produção (evita confusão com SMS real) */}
-        {__DEV__ && (
-          <FadeInView delay={150}>
-            <View style={styles.hintContainer}>
-              <Text style={styles.hintIcon}>💡</Text>
-              <Text style={styles.hintText}>{t.auth?.devModeHint || 'Dev mode: Use 123456'}</Text>
-            </View>
-          </FadeInView>
-        )}
+        {/* Hint removido para produção */}
 
         {/* ✨ Botão de verificar */}
         <FadeInView delay={200}>

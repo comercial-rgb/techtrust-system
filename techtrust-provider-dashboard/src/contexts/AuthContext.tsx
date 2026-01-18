@@ -5,8 +5,8 @@ import { useRouter } from 'next/router'
 import Cookies from 'js-cookie'
 import api from '@/services/api'
 
-// Modo DEMO - permite testar sem backend
-const DEMO_MODE = true
+// Modo DEMO desabilitado - usar apenas API real
+const DEMO_MODE = false
 
 interface User {
   id: string

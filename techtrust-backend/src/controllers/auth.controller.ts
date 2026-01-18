@@ -118,8 +118,11 @@ export const verifyOTP = async (req: Request, res: Response) => {
   try {
     const { userId, otpCode } = req.body;
 
+    // Trim para garantir que não há espaços
+    const cleanOtpCode = otpCode.trim();
+
     // Validar formato do OTP
-    if (!validateOTPFormat(otpCode)) {
+    if (!validateOTPFormat(cleanOtpCode)) {
       throw new AppError('Código OTP inválido', 400, 'INVALID_OTP_FORMAT');
     }
 
@@ -142,8 +145,8 @@ export const verifyOTP = async (req: Request, res: Response) => {
       throw new AppError('Código expirado. Solicite um novo.', 400, 'OTP_EXPIRED');
     }
 
-    // Verificar código
-    if (user.otpCode !== otpCode) {
+    // Verificar código (comparando ambos com trim para segurança)
+    if (user.otpCode?.trim() !== cleanOtpCode) {
       throw new AppError('Código incorreto', 400, 'INVALID_OTP');
     }
 

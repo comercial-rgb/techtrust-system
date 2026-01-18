@@ -63,21 +63,7 @@ export default function VeiculosPage() {
           isDefault: v.isDefault || false,
         })));
       } else {
-        // Fallback mock data
-        setVehicles([
-          {
-            id: '1',
-            make: 'Honda',
-            model: 'Civic',
-            year: 2020,
-            plateNumber: 'ABC1234',
-            color: 'Prata',
-            currentMileage: 45000,
-            lastService: '2024-01-15',
-            nextServiceDue: '2024-07-15',
-            isDefault: true,
-          },
-        ]);
+        setVehicles([]);
       }
     } catch (error) {
       console.error('Erro ao carregar veículos:', error);

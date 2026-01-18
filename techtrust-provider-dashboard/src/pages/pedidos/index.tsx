@@ -70,13 +70,8 @@ export default function PedidosPage() {
   async function loadRequests() {
     setLoading(true)
     try {
-      // Em produção, buscar dados reais da API
-      // const response = await api.get('/provider/service-requests')
-      
-      // Dados mockados para demonstração
-      await new Promise(resolve => setTimeout(resolve, 800))
-      
-      setRequests([
+      const response = await api.get('/provider/service-requests')
+      setRequests(response.data.data || [])
         {
           id: '1',
           requestNumber: 'SR-2024-001',

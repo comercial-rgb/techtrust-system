@@ -114,18 +114,14 @@ export default function DashboardPage() {
       });
     } catch (error) {
       console.error('Erro ao carregar dashboard:', error);
-      // Fallback para dados mock se API falhar
       setStats({
-        activeServices: 2,
-        pendingQuotes: 3,
-        completedServices: 12,
-        totalSpent: 2450,
+        activeServices: 0,
+        pendingQuotes: 0,
+        completedServices: 0,
+        totalSpent: 0,
       });
-      setVehicles([
-        { id: '1', make: 'Honda', model: 'Civic', year: 2020, plateNumber: 'ABC1234' },
-        { id: '2', make: 'Toyota', model: 'Corolla', year: 2019, plateNumber: 'XYZ5678' },
-      ]);
-      setRequests([
+      setVehicles([]);
+      setRequests([])
         {
           id: '1',
           requestNumber: 'SR-2024-001',

@@ -98,67 +98,11 @@ export default function ServicoDetalhesPage() {
   async function loadWorkOrder() {
     setLoading(true)
     try {
-      // Em produção, buscar dados reais da API
-      // const response = await api.get(`/work-orders/${id}`)
+      const response = await api.get(`/work-orders/${id}`)
+      const workOrderData = response.data.data
       
-      await new Promise(resolve => setTimeout(resolve, 800))
-      
-      const mockWO: WorkOrder = {
-        id: id as string,
-        orderNumber: 'WO-2024-001',
-        status: 'IN_PROGRESS',
-        originalAmount: 450.00,
-        finalAmount: 450.00,
-        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-        scheduledDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
-        startedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-        customer: {
-          fullName: 'Maria Santos',
-          phone: '+1 (407) 555-5678',
-          email: 'maria.santos@email.com',
-          location: 'Kissimmee, FL - 3.5 km',
-        },
-        vehicle: {
-          make: 'Toyota',
-          model: 'Corolla',
-          year: 2019,
-          plateNumber: 'XYZ5678',
-          color: 'Prata',
-          currentMileage: 58000,
-        },
-        serviceRequest: {
-          title: 'Revisão completa',
-          description: 'Revisão dos 30.000 km com verificação completa de freios, suspensão, fluidos e filtros. Cliente solicitou atenção especial aos freios que estavam fazendo ruído.',
-          serviceType: 'INSPECTION',
-        },
-        quote: {
-          partsCost: 200.00,
-          laborCost: 250.00,
-          laborDescription: 'Revisão completa incluindo: troca de óleo e filtro, verificação de freios (pastilhas e discos), verificação de suspensão, checagem de fluidos (freio, direção, arrefecimento), verificação de correias e mangueiras.',
-          estimatedDuration: '3h',
-          notes: 'Verificar ruído nos freios reportado pela cliente.',
-        },
-        timeline: [
-          {
-            status: 'CREATED',
-            timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-            description: 'Orçamento aceito pelo cliente',
-          },
-          {
-            status: 'SCHEDULED',
-            timestamp: new Date(Date.now() - 1.5 * 24 * 60 * 60 * 1000).toISOString(),
-            description: 'Serviço agendado para 28/11/2024',
-          },
-          {
-            status: 'IN_PROGRESS',
-            timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-            description: 'Serviço iniciado',
-          },
-        ],
-      }
-      
-      setWorkOrder(mockWO)
-      setFinalAmount(mockWO.finalAmount.toString())
+      setWorkOrder(workOrderData)
+      setFinalAmount(workOrderData.finalAmount?.toString() || '0')
     } catch (error) {
       console.error('Erro ao carregar serviço:', error)
     } finally {

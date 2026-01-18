@@ -74,19 +74,7 @@ export default function ServicosPage() {
           vehicle: w.quote?.serviceRequest?.vehicle || w.vehicle || { make: 'N/A', model: 'N/A', year: 0 },
         })));
       } else {
-        // Fallback mock data
-        setWorkOrders([
-          {
-            id: '1',
-            orderNumber: 'WO-2024-001',
-            status: 'IN_PROGRESS',
-            title: 'Revisão completa 30k',
-            finalAmount: 450.0,
-            createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-            provider: { businessName: 'Auto Center Express', rating: 4.8 },
-            vehicle: { make: 'Toyota', model: 'Corolla', year: 2019 },
-          },
-        ]);
+        setWorkOrders([]);
       }
     } catch (error) {
       console.error('Erro ao carregar serviços:', error);

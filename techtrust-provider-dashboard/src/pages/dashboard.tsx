@@ -61,53 +61,18 @@ export default function DashboardPage() {
   async function loadDashboardData() {
     setLoading(true)
     try {
-      // Em produção, buscar dados reais da API
-      // const response = await api.get('/provider/dashboard')
+      const response = await api.get('/provider/dashboard')
       
-      // Dados mockados para demonstração
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      setStats({
-        pendingRequests: 3,
-        activeWorkOrders: 2,
-        completedThisMonth: 12,
-        earningsThisMonth: 4850.00,
-        rating: 4.8,
-        totalReviews: 47,
+      setStats(response.data.stats || {
+        pendingRequests: 0,
+        activeWorkOrders: 0,
+        completedThisMonth: 0,
+        earningsThisMonth: 0,
+        rating: 0,
+        totalReviews: 0,
       })
 
-      setRecentActivity([
-        {
-          id: '1',
-          type: 'new_request',
-          title: translate('provider.dashboard.activity.newRequestTitle'),
-          description: translate('provider.dashboard.activity.newRequestDescription'),
-          time: translate('provider.dashboard.activity.timeMinutes').replace('{value}', '5'),
-        },
-        {
-          id: '2',
-          type: 'quote_accepted',
-          title: translate('provider.dashboard.activity.quoteAcceptedTitle'),
-          description: translate('provider.dashboard.activity.quoteAcceptedDescription'),
-          time: translate('provider.dashboard.activity.timeHours').replace('{value}', '2'),
-          amount: 450.00,
-        },
-        {
-          id: '3',
-          type: 'payment_received',
-          title: translate('provider.dashboard.activity.paymentReceivedTitle'),
-          description: translate('provider.dashboard.activity.paymentReceivedDescription'),
-          time: translate('provider.dashboard.activity.timeDays').replace('{value}', '1'),
-          amount: 120.00,
-        },
-        {
-          id: '4',
-          type: 'service_completed',
-          title: translate('provider.dashboard.activity.serviceCompletedTitle'),
-          description: translate('provider.dashboard.activity.serviceCompletedDescription'),
-          time: translate('provider.dashboard.activity.timeDays').replace('{value}', '2'),
-        },
-      ])
+      setRecentActivity(response.data.recentActivity || [])
     } catch (error) {
       console.error('Erro ao carregar dashboard:', error)
     } finally {
