@@ -3,6 +3,7 @@ import * as authController from '../controllers/auth.controller';
 import { validate } from '../middleware/validation';
 import { authRateLimiter } from '../middleware/rate-limiter';
 import { asyncHandler } from '../utils/async-handler';
+import { debugLogger } from '../middleware/debug';
 import {
   signupValidation,
   verifyOTPValidation,
@@ -30,6 +31,7 @@ router.post(
  */
 router.post(
   '/verify-otp',
+  debugLogger, // Adiciona debug antes da validação
   validate(verifyOTPValidation),
   asyncHandler(authController.verifyOTP)
 );
