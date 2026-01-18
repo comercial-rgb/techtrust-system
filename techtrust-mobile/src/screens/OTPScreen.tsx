@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { View, StyleSheet, TextInput as RNTextInput } from 'react-native';
+import { View, StyleSheet, TextInput as RNTextInput, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Text, useTheme } from 'react-native-paper';
 import { useAuth } from '../contexts/AuthContext';
@@ -111,6 +111,13 @@ export default function OTPScreen({ route, navigation }: any) {
     console.log('🔍 OTP Array:', otp);
     console.log('🔍 OTP Code:', otpCode);
     console.log('🔍 User ID:', userId);
+    
+    // DEBUG: Mostra alert para o usuário ver os valores
+    Alert.alert(
+      'DEBUG - Dados OTP',
+      `Array: [${otp.join(',')}]\nCódigo: "${otpCode}"\nTamanho: ${otpCode.length}\nUserId: ${userId?.substring(0, 8)}...`,
+      [{ text: 'OK' }]
+    );
 
     if (!userId) {
       setHasError(true);
