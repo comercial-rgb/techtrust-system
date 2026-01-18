@@ -14,7 +14,8 @@
     "seed": "ts-node prisma/seed.ts",
     "clean-db": "ts-node prisma/clean-database.ts",
     "clean-production": "ts-node scripts/clean-production-db.ts",
-    "clean-production-direct": "ts-node scripts/clean-production-direct.ts"
+    "clean-production-direct": "ts-node scripts/clean-production-direct.ts",
+    "check-otp": "ts-node scripts/check-otp.ts"
   },
   "keywords": [
     "automotive",

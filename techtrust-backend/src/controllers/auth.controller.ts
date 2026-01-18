@@ -157,10 +157,20 @@ export const verifyOTP = async (req: Request, res: Response) => {
       throw new AppError('Código expirado. Solicite um novo.', 400, 'OTP_EXPIRED');
     }
 
+    console.log('🔍 Comparando OTPs:', {
+      userOtpCode: user.otpCode,
+      userOtpTrimmed: user.otpCode?.trim(),
+      receivedOtp: cleanOtpCode,
+      areEqual: user.otpCode?.trim() === cleanOtpCode
+    });
+
     // Verificar código (comparando ambos com trim para segurança)
     if (user.otpCode?.trim() !== cleanOtpCode) {
+      console.log('❌ OTP não coincide!');
       throw new AppError('Código incorreto', 400, 'INVALID_OTP');
     }
+    
+    console.log('✅ OTP correto! Atualizando usuário...');
 
     // Atualizar usuário
     const updatedUser = await prisma.user.update({
