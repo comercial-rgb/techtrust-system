@@ -3,8 +3,8 @@
  */
 
 import { Router } from 'express';
-import { authenticate, requireRole } from '../middleware/auth';
-import { asyncHandler } from '../middleware/async-handler';
+import { authenticate, authorize } from '../middleware/auth';
+import { asyncHandler } from '../utils/async-handler';
 import * as databaseController from '../controllers/database.controller';
 
 const router = Router();
@@ -17,7 +17,7 @@ const router = Router();
 router.post(
   '/clean',
   authenticate,
-  requireRole('ADMIN'),
+  authorize('ADMIN'),
   asyncHandler(databaseController.cleanDatabase)
 );
 
