@@ -502,9 +502,6 @@ export default function AddVehicleScreen({ navigation }: any) {
           <Text style={styles.inputHint}>{t.vehicle?.plateHint || 'Optional'}</Text>
         </View>
 
-          <Text style={styles.inputHint}>{t.vehicle?.plateHint || 'Optional'}</Text>
-        </View>
-
         {/* Plate State (for US plates) */}
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>{t.vehicle?.plateState || 'Plate State (for US)'}</Text>
