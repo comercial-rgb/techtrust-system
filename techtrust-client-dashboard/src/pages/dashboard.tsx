@@ -121,17 +121,7 @@ export default function DashboardPage() {
         totalSpent: 0,
       });
       setVehicles([]);
-      setRequests([])
-        {
-          id: '1',
-          requestNumber: 'SR-2024-001',
-          title: 'Troca de óleo e filtros',
-          status: 'QUOTES_RECEIVED',
-          quotesCount: 4,
-          createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          vehicle: { make: 'Honda', model: 'Civic' },
-        },
-      ]);
+      setRequests([]);
     } finally {
       setLoading(false);
     }
