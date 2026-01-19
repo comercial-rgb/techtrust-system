@@ -72,97 +72,9 @@ export default function PedidosPage() {
     try {
       const response = await api.get('/provider/service-requests')
       setRequests(response.data.data || [])
-        {
-          id: '1',
-          requestNumber: 'SR-2024-001',
-          title: 'Troca de óleo e filtros',
-          description: 'Preciso trocar o óleo e filtros do meu carro. Último serviço foi há 10.000 km.',
-          serviceType: 'SCHEDULED_MAINTENANCE',
-          status: 'SEARCHING_PROVIDERS',
-          isUrgent: false,
-          createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-          expiresAt: new Date(Date.now() + 90 * 60 * 1000).toISOString(),
-          customer: {
-            fullName: 'João Silva',
-            location: 'Orlando, FL',
-          },
-          vehicle: {
-            make: 'Honda',
-            model: 'Civic',
-            year: 2020,
-            plateNumber: 'ABC1234',
-          },
-          quotesCount: 2,
-        },
-        {
-          id: '2',
-          requestNumber: 'SR-2024-002',
-          title: 'Revisão completa',
-          description: 'Revisão dos 30.000 km. Incluir verificação de freios, suspensão e fluidos.',
-          serviceType: 'INSPECTION',
-          status: 'SEARCHING_PROVIDERS',
-          isUrgent: false,
-          createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-          customer: {
-            fullName: 'Maria Santos',
-            location: 'Kissimmee, FL',
-          },
-          vehicle: {
-            make: 'Toyota',
-            model: 'Corolla',
-            year: 2019,
-            plateNumber: 'XYZ5678',
-          },
-          quotesCount: 4,
-        },
-        {
-          id: '3',
-          requestNumber: 'SR-2024-003',
-          title: 'Freio fazendo barulho',
-          description: 'Os freios estão fazendo um barulho estranho ao frear. Preciso de diagnóstico urgente.',
-          serviceType: 'REPAIR',
-          status: 'SEARCHING_PROVIDERS',
-          isUrgent: true,
-          createdAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
-          expiresAt: new Date(Date.now() + 105 * 60 * 1000).toISOString(),
-          customer: {
-            fullName: 'Pedro Costa',
-            location: 'Orlando, FL',
-          },
-          vehicle: {
-            make: 'Ford',
-            model: 'Focus',
-            year: 2021,
-            plateNumber: 'DEF9012',
-          },
-          quotesCount: 1,
-        },
-        {
-          id: '4',
-          requestNumber: 'SR-2024-004',
-          title: 'Polimento e cristalização',
-          description: 'Gostaria de fazer polimento completo e cristalização de pintura.',
-          serviceType: 'DETAILING',
-          status: 'SEARCHING_PROVIDERS',
-          isUrgent: false,
-          createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-          expiresAt: new Date(Date.now() + 20 * 60 * 1000).toISOString(),
-          customer: {
-            fullName: 'Ana Oliveira',
-            location: 'Davenport, FL',
-          },
-          vehicle: {
-            make: 'BMW',
-            model: 'X3',
-            year: 2022,
-            plateNumber: 'GHI3456',
-          },
-          quotesCount: 0,
-        },
-      ])
     } catch (error) {
       console.error('Erro ao carregar pedidos:', error)
+      setRequests([])
     } finally {
       setLoading(false)
     }
