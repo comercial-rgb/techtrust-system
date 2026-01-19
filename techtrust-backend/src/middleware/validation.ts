@@ -15,6 +15,14 @@ import { AppError } from './error-handler';
 export const validate = (validations: ValidationChain[]) => {
   return async (req: Request, _res: Response, next: NextFunction) => {
     try {
+      // DEBUG: Log do body recebido
+      if (req.url.includes('verify-otp')) {
+        console.log('🔍 VALIDATION - verify-otp body:', JSON.stringify(req.body));
+        console.log('🔍 VALIDATION - otpCode presente?', 'otpCode' in req.body);
+        console.log('🔍 VALIDATION - otpCode valor:', req.body?.otpCode);
+        console.log('🔍 VALIDATION - Content-Type:', req.headers['content-type']);
+      }
+      
       // Executar todas as validações
       for (const validation of validations) {
         await validation.run(req);
