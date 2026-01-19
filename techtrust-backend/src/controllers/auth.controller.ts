@@ -273,6 +273,8 @@ export const resendOTP = async (req: Request, res: Response) => {
 export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
+    
+    console.log('🔐 Tentativa de login:', { email });
 
     // Buscar usuário
     const user = await prisma.user.findUnique({
@@ -280,15 +282,21 @@ export const login = async (req: Request, res: Response) => {
     });
 
     if (!user) {
+      console.log('❌ Usuário não encontrado:', email);
       throw new AppError('Email ou senha incorretos', 401, 'INVALID_CREDENTIALS');
     }
+    
+    console.log('👤 Usuário encontrado:', { id: user.id, status: user.status, phoneVerified: user.phoneVerified });
 
     // Verificar senha
     const isPasswordValid = await comparePassword(password, user.passwordHash);
 
     if (!isPasswordValid) {
+      console.log('❌ Senha inválida para:', email);
       throw new AppError('Email ou senha incorretos', 401, 'INVALID_CREDENTIALS');
     }
+    
+    console.log('✅ Senha válida para:', email);
 
     // Verificar status da conta
     if (user.status === 'SUSPENDED') {
