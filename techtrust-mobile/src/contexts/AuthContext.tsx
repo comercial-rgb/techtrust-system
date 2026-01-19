@@ -62,13 +62,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const checkAuth = async () => {
     try {
       const storedUser = await AsyncStorage.getItem('@TechTrust:user');
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
+      const token = await AsyncStorage.getItem('@TechTrust:token');
+      
+      // Se não tem usuário ou token, limpar dados antigos e retornar
+      if (!storedUser || !token) {
+        console.log('🔍 Sem dados de autenticação salvos');
+        await clearAuthData();
+        return;
+      }
+      
+      // Tentar validar o token com a API
+      try {
+        const response = await api.get('/users/me');
+        if (response.data?.data) {
+          // Token válido, atualizar dados do usuário
+          const apiUser = response.data.data;
+          const normalizedUser: User = {
+            id: apiUser.id,
+            email: apiUser.email,
+            fullName: apiUser.fullName,
+            phone: apiUser.phone || '',
+            role: apiUser.role === 'CLIENT' ? 'CUSTOMER' : apiUser.role,
+          };
+          setUser(normalizedUser);
+          await AsyncStorage.setItem('@TechTrust:user', JSON.stringify(normalizedUser));
+          console.log('✅ Sessão restaurada:', normalizedUser.email);
+        }
+      } catch (apiError: any) {
+        // Token inválido ou expirado - limpar dados
+        console.log('⚠️ Token inválido, limpando dados antigos');
+        await clearAuthData();
       }
     } catch (error) {
       console.error('Erro ao verificar auth:', error);
+      await clearAuthData();
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Função para limpar todos os dados de autenticação
+  const clearAuthData = async () => {
+    try {
+      await AsyncStorage.multiRemove([
+        '@TechTrust:user',
+        '@TechTrust:token',
+        '@TechTrust:refreshToken',
+        '@TechTrust:pendingUser',
+      ]);
+      setUser(null);
+    } catch (error) {
+      console.error('Erro ao limpar dados:', error);
     }
   };
 
@@ -94,11 +138,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setUser(normalizedUser);
     } catch (error: any) {
+      console.log('❌ Erro no login:', error?.response?.data);
+      
+      // Verificar se é erro de telefone não verificado
+      const errorCode = error?.response?.data?.code;
       const message =
         error?.response?.data?.message ||
         error?.message ||
         'Erro ao fazer login';
-      throw new Error(message);
+      
+      // Criar erro com código para tratamento específico
+      const loginError = new Error(message) as any;
+      loginError.code = errorCode;
+      throw loginError;
     }
   };
 
@@ -130,11 +182,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setUser(normalizedUser);
     } catch (error: any) {
+      console.log('❌ Erro no login provider:', error?.response?.data);
+      
+      // Verificar se é erro de telefone não verificado
+      const errorCode = error?.response?.data?.code;
       const message =
         error?.response?.data?.message ||
         error?.message ||
         'Erro ao fazer login';
-      throw new Error(message);
+      
+      // Criar erro com código para tratamento específico
+      const loginError = new Error(message) as any;
+      loginError.code = errorCode;
+      throw loginError;
     }
   };
 
@@ -204,9 +264,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
-      await AsyncStorage.removeItem('@TechTrust:user');
-      await AsyncStorage.removeItem('@TechTrust:token');
+      // Limpar TODOS os dados do AsyncStorage relacionados à autenticação
+      await AsyncStorage.multiRemove([
+        '@TechTrust:user',
+        '@TechTrust:token',
+        '@TechTrust:refreshToken',
+        '@TechTrust:pendingUser',
+      ]);
       setUser(null);
+      console.log('✅ Logout realizado com sucesso');
     } catch (error) {
       console.error('Erro ao fazer logout:', error);
     }

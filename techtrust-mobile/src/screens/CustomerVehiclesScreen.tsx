@@ -44,33 +44,22 @@ export default function CustomerVehiclesScreen({ navigation }: any) {
 
   async function loadVehicles() {
     try {
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // Buscar veículos reais da API
+      const { getVehicles } = await import('../services/dashboard.service');
+      const vehiclesData = await getVehicles();
       
-      setVehicles([
-        {
-          id: '1',
-          make: 'Honda',
-          model: 'Civic',
-          year: 2020,
-          plateNumber: 'ABC-1234',
-          color: 'Silver',
-          currentMileage: 28000,
-          lastService: '2024-01-15',
-          nextServiceDue: '2024-07-15',
-          isDefault: true,
-        },
-        {
-          id: '2',
-          make: 'Toyota',
-          model: 'Corolla',
-          year: 2019,
-          plateNumber: 'XYZ-5678',
-          color: 'White',
-          currentMileage: 38500,
-          lastService: '2024-02-20',
-          isDefault: false,
-        },
-      ]);
+      setVehicles(vehiclesData.map(v => ({
+        id: v.id,
+        make: v.make,
+        model: v.model,
+        year: v.year,
+        plateNumber: v.plateNumber,
+        color: v.color,
+        currentMileage: v.currentMileage,
+        lastService: v.lastService,
+        nextServiceDue: v.nextServiceDue,
+        isDefault: v.isDefault,
+      })));
     } catch (error) {
       console.error('Error loading vehicles:', error);
     } finally {

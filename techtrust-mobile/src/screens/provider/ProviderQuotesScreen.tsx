@@ -63,96 +63,39 @@ export default function ProviderQuotesScreen({ navigation }: any) {
   const loadQuotes = async () => {
     setLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // Buscar orçamentos reais da API
+      const response = await import('../../services/api').then(m => m.default.get('/quotes'));
+      const apiQuotes = response.data.data || [];
+      
+      // Mapear para o formato esperado pela UI
+      const mappedQuotes: Quote[] = apiQuotes.map((quote: any) => ({
+        id: quote.id,
+        status: quote.status,
+        totalAmount: quote.totalAmount || 0,
+        partsCost: quote.partsCost || 0,
+        laborCost: quote.laborCost || 0,
+        estimatedDuration: quote.estimatedDuration || '',
+        createdAt: quote.createdAt,
+        expiresIn: quote.expiresIn || '',
+        serviceRequest: {
+          id: quote.serviceRequest?.id || quote.serviceRequestId,
+          requestNumber: quote.serviceRequest?.requestNumber || '',
+          title: quote.serviceRequest?.title || quote.serviceRequest?.description?.substring(0, 50) || 'Serviço',
+        },
+        vehicle: {
+          make: quote.serviceRequest?.vehicle?.make || 'N/A',
+          model: quote.serviceRequest?.vehicle?.model || 'N/A',
+          year: quote.serviceRequest?.vehicle?.year || 0,
+        },
+        customer: {
+          name: quote.serviceRequest?.user?.fullName || 'Cliente',
+        },
+      }));
 
-      const mockQuotes: Quote[] = [
-        {
-          id: '1',
-          status: 'PENDING',
-          totalAmount: 450.0,
-          partsCost: 200.0,
-          laborCost: 250.0,
-          estimatedDuration: '3h',
-          createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-          expiresIn: '42h',
-          serviceRequest: {
-            id: 'sr1',
-            requestNumber: 'SR-2024-001',
-            title: 'Troca de óleo e filtros',
-          },
-          vehicle: { make: 'Honda', model: 'Civic', year: 2020 },
-          customer: { name: 'João S.' },
-        },
-        {
-          id: '2',
-          status: 'ACCEPTED',
-          totalAmount: 320.0,
-          partsCost: 180.0,
-          laborCost: 140.0,
-          estimatedDuration: '2h',
-          createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-          serviceRequest: {
-            id: 'sr2',
-            requestNumber: 'SR-2024-002',
-            title: 'Troca de pastilhas de freio',
-          },
-          vehicle: { make: 'Ford', model: 'Focus', year: 2021 },
-          customer: { name: 'Pedro C.' },
-        },
-        {
-          id: '3',
-          status: 'PENDING',
-          totalAmount: 250.0,
-          partsCost: 100.0,
-          laborCost: 150.0,
-          estimatedDuration: '2h',
-          createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-          expiresIn: '47h',
-          serviceRequest: {
-            id: 'sr5',
-            requestNumber: 'SR-2024-005',
-            title: 'Troca de correia dentada',
-          },
-          vehicle: { make: 'Volkswagen', model: 'Golf', year: 2019 },
-          customer: { name: 'Fernanda S.' },
-        },
-        {
-          id: '4',
-          status: 'REJECTED',
-          totalAmount: 580.0,
-          partsCost: 350.0,
-          laborCost: 230.0,
-          estimatedDuration: '4h',
-          createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-          serviceRequest: {
-            id: 'sr3',
-            requestNumber: 'SR-2024-003',
-            title: 'Revisão completa',
-          },
-          vehicle: { make: 'BMW', model: 'X3', year: 2022 },
-          customer: { name: 'Ana O.' },
-        },
-        {
-          id: '5',
-          status: 'EXPIRED',
-          totalAmount: 180.0,
-          partsCost: 80.0,
-          laborCost: 100.0,
-          estimatedDuration: '1h',
-          createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-          serviceRequest: {
-            id: 'sr4',
-            requestNumber: 'SR-2024-004',
-            title: 'Alinhamento e balanceamento',
-          },
-          vehicle: { make: 'Chevrolet', model: 'Cruze', year: 2018 },
-          customer: { name: 'Carlos L.' },
-        },
-      ];
-
-      setQuotes(mockQuotes);
+      setQuotes(mappedQuotes);
     } catch (error) {
       console.error('Erro ao carregar orçamentos:', error);
+      setQuotes([]);
     } finally {
       setLoading(false);
     }

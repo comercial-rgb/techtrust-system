@@ -63,98 +63,37 @@ export default function ProviderRequestsScreen({ navigation }: any) {
   const loadRequests = async () => {
     setLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // Buscar solicitações reais da API
+      const response = await import('../../services/api').then(m => m.default.get('/providers/available-requests'));
+      const apiRequests = response.data.data || [];
+      
+      // Mapear para o formato esperado pela UI
+      const mappedRequests: ServiceRequest[] = apiRequests.map((req: any) => ({
+        id: req.id,
+        requestNumber: req.requestNumber,
+        title: req.title || req.description?.substring(0, 50) || 'Solicitação de Serviço',
+        description: req.description || '',
+        serviceType: req.serviceType || 'REPAIR',
+        isUrgent: req.isUrgent || false,
+        createdAt: req.createdAt,
+        expiresIn: req.expiresIn || '',
+        customer: {
+          name: req.customer?.name || req.user?.fullName || 'Cliente',
+          location: req.customer?.location || `${req.user?.city || ''}, ${req.user?.state || ''}`,
+          distance: req.distance || '',
+        },
+        vehicle: {
+          make: req.vehicle?.make || 'N/A',
+          model: req.vehicle?.model || 'N/A',
+          year: req.vehicle?.year || 0,
+        },
+        quotesCount: req._count?.quotes || req.quotesCount || 0,
+      }));
 
-      const mockRequests: ServiceRequest[] = [
-        {
-          id: '1',
-          requestNumber: 'SR-2024-001',
-          title: 'Troca de óleo e filtros',
-          description: 'Preciso trocar o óleo e filtros. Último serviço há 10.000 km.',
-          serviceType: 'SCHEDULED_MAINTENANCE',
-          isUrgent: false,
-          createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-          expiresIn: '1h 30min',
-          customer: {
-            name: 'João S.',
-            location: 'Orlando, FL',
-            distance: '3.2 km',
-          },
-          vehicle: {
-            make: 'Honda',
-            model: 'Civic',
-            year: 2020,
-          },
-          quotesCount: 2,
-        },
-        {
-          id: '2',
-          requestNumber: 'SR-2024-002',
-          title: 'Freio fazendo barulho',
-          description: 'Barulho estranho ao frear. Preciso de diagnóstico urgente.',
-          serviceType: 'REPAIR',
-          isUrgent: true,
-          createdAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
-          expiresIn: '1h 45min',
-          customer: {
-            name: 'Pedro C.',
-            location: 'Orlando, FL',
-            distance: '5.1 km',
-          },
-          vehicle: {
-            make: 'Ford',
-            model: 'Focus',
-            year: 2021,
-          },
-          quotesCount: 1,
-        },
-        {
-          id: '3',
-          requestNumber: 'SR-2024-003',
-          title: 'Revisão completa',
-          description: 'Revisão dos 30.000 km. Verificar freios e suspensão.',
-          serviceType: 'INSPECTION',
-          isUrgent: false,
-          createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          expiresIn: '45min',
-          customer: {
-            name: 'Maria S.',
-            location: 'Kissimmee, FL',
-            distance: '8.4 km',
-          },
-          vehicle: {
-            make: 'Toyota',
-            model: 'Corolla',
-            year: 2019,
-          },
-          quotesCount: 4,
-        },
-        {
-          id: '4',
-          requestNumber: 'SR-2024-004',
-          title: 'Polimento e cristalização',
-          description: 'Polimento completo e cristalização de pintura.',
-          serviceType: 'DETAILING',
-          isUrgent: false,
-          createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-          expiresIn: '20min',
-          customer: {
-            name: 'Ana O.',
-            location: 'Davenport, FL',
-            distance: '12.1 km',
-          },
-          vehicle: {
-            make: 'BMW',
-            model: 'X3',
-            year: 2022,
-          },
-          quotesCount: 0,
-        },
-      ];
-
-      setRequests(mockRequests);
+      setRequests(mappedRequests);
     } catch (error) {
       console.error('Erro ao carregar pedidos:', error);
+      setRequests([]);
     } finally {
       setLoading(false);
     }

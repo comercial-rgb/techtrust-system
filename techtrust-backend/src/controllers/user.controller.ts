@@ -226,3 +226,140 @@ export const deleteMe = async (req: Request, res: Response) => {
     message: 'Conta deletada com sucesso',
   });
 };
+
+/**
+ * GET /api/v1/users/dashboard-stats
+ * Estatísticas do dashboard do cliente
+ */
+export const getDashboardStats = async (req: Request, res: Response) => {
+  const userId = req.user!.id;
+
+  const [activeServices, pendingQuotes, completedServices, totalSpent] = await Promise.all([
+    // Serviços ativos
+    prisma.workOrder.count({
+      where: {
+        customerId: userId,
+        status: {
+          in: ['PENDING_START', 'IN_PROGRESS', 'AWAITING_APPROVAL'],
+        },
+      },
+    }),
+    // Orçamentos pendentes
+    prisma.serviceRequest.count({
+      where: {
+        userId: userId,
+        status: {
+          in: ['SEARCHING_PROVIDERS', 'QUOTES_RECEIVED'],
+        },
+      },
+    }),
+    // Serviços completos
+    prisma.workOrder.count({
+      where: {
+        customerId: userId,
+        status: 'COMPLETED',
+      },
+    }),
+    // Total gasto
+    prisma.payment.aggregate({
+      where: {
+        customerId: userId,
+        status: 'CAPTURED',
+      },
+      _sum: {
+        totalAmount: true,
+      },
+    }),
+  ]);
+
+  res.json({
+    success: true,
+    data: {
+      activeServices,
+      pendingQuotes,
+      completedServices,
+      totalSpent: totalSpent._sum?.totalAmount || 0,
+    },
+  });
+};
+
+/**
+ * GET /api/v1/users/reports
+ * Relatórios de gastos do cliente
+ */
+export const getReports = async (req: Request, res: Response) => {
+  const userId = req.user!.id;
+  const { period = '6M' } = req.query;
+
+  // Calcular data inicial baseada no período
+  let startDate = new Date();
+  switch (period) {
+    case '1M':
+      startDate.setMonth(startDate.getMonth() - 1);
+      break;
+    case '3M':
+      startDate.setMonth(startDate.getMonth() - 3);
+      break;
+    case '6M':
+      startDate.setMonth(startDate.getMonth() - 6);
+      break;
+    case '1Y':
+      startDate.setFullYear(startDate.getFullYear() - 1);
+      break;
+    default:
+      startDate = new Date(0); // Todos
+  }
+
+  // Buscar estatísticas
+  const [completedServices, totalSpent, vehicles] = await Promise.all([
+    prisma.workOrder.count({
+      where: {
+        customerId: userId,
+        status: 'COMPLETED',
+        completedAt: {
+          gte: startDate,
+        },
+      },
+    }),
+    prisma.payment.aggregate({
+      where: {
+        customerId: userId,
+        status: 'CAPTURED',
+        capturedAt: {
+          gte: startDate,
+        },
+      },
+      _sum: {
+        totalAmount: true,
+      },
+    }),
+    prisma.vehicle.findMany({
+      where: { userId },
+      select: { id: true, make: true, model: true, year: true },
+    }),
+  ]);
+
+  const total = totalSpent._sum?.totalAmount || 0;
+  const avgCost = completedServices > 0 ? Number(total) / completedServices : 0;
+
+  res.json({
+    success: true,
+    data: {
+      stats: {
+        totalSpent: total,
+        servicesCompleted: completedServices,
+        vehiclesServiced: vehicles.length,
+        avgServiceCost: avgCost,
+        savings: 0, // TODO: calcular baseado em ofertas
+      },
+      monthlySpending: [], // TODO: agrupar por mês
+      serviceCategories: [], // TODO: agrupar por categoria
+      vehicleSpending: vehicles.map(v => ({
+        id: v.id,
+        name: `${v.year} ${v.make} ${v.model}`,
+        totalSpent: 0, // TODO: calcular por veículo
+        servicesCount: 0,
+      })),
+    },
+  });
+};

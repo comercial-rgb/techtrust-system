@@ -199,39 +199,22 @@ export default function CustomerDashboardScreen({ navigation }: any) {
       const homeData = await getHomeData();
       setOffers(homeData.offers || []);
       
-      // Mock data para stats
-      setStats({
-        activeServices: 2,
-        pendingQuotes: 3,
-        completedServices: 8,
-        totalSpent: 2450,
-      });
-
-      setVehicles([
-        { id: '1', make: 'Honda', model: 'Civic', year: 2020, plateNumber: 'ABC1234' },
-        { id: '2', make: 'Toyota', model: 'Corolla', year: 2019, plateNumber: 'XYZ5678' },
+      // Buscar dados reais da API
+      const [statsData, vehiclesData, requestsData] = await Promise.all([
+        import('../services/dashboard.service').then(m => m.getCustomerDashboardStats()),
+        import('../services/dashboard.service').then(m => m.getVehicles()),
+        import('../services/dashboard.service').then(m => m.getServiceRequests()),
       ]);
-
-      setRequests([
-        {
-          id: '1',
-          requestNumber: 'SR-2024-001',
-          title: 'Oil Change and Filters',
-          status: 'QUOTES_RECEIVED',
-          quotesCount: 4,
-          createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          vehicle: { make: 'Honda', model: 'Civic', year: 2020 },
-        },
-        {
-          id: '2',
-          requestNumber: 'SR-2024-002',
-          title: '30K Mile Service',
-          status: 'IN_PROGRESS',
-          quotesCount: 1,
-          createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          vehicle: { make: 'Toyota', model: 'Corolla', year: 2019 },
-        },
-      ]);
+      
+      setStats(statsData);
+      setVehicles(vehiclesData.map(v => ({
+        id: v.id,
+        make: v.make,
+        model: v.model,
+        year: v.year,
+        plateNumber: v.plateNumber,
+      })));
+      setRequests(requestsData);
     } catch (error) {
       console.error('Error loading dashboard:', error);
     } finally {

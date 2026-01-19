@@ -63,39 +63,21 @@ export default function CustomerReportsScreen({ navigation }: any) {
   async function loadReports() {
     setLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 800));
-
-      // Mock data
-      setStats({
-        totalSpent: 2450.00,
-        servicesCompleted: 12,
-        vehiclesServiced: 2,
-        avgServiceCost: 204.17,
-        savings: 385.00,
-      });
-
-      setMonthlySpending([
-        { month: 'Jun', amount: 150 },
-        { month: 'Jul', amount: 320 },
-        { month: 'Aug', amount: 180 },
-        { month: 'Sep', amount: 450 },
-        { month: 'Oct', amount: 280 },
-        { month: 'Nov', amount: 1070 },
-      ]);
-
-      setServiceCategories([
-        { name: 'Maintenance', count: 6, amount: 980, color: '#3b82f6' },
-        { name: 'Repairs', count: 3, amount: 850, color: '#ef4444' },
-        { name: 'Tires', count: 2, amount: 420, color: '#10b981' },
-        { name: 'Other', count: 1, amount: 200, color: '#8b5cf6' },
-      ]);
-
-      setVehicleSpending([
-        { id: '1', name: '2020 Honda Civic', totalSpent: 1850, servicesCount: 8 },
-        { id: '2', name: '2019 Toyota Corolla', totalSpent: 600, servicesCount: 4 },
-      ]);
+      // Buscar relatórios reais da API
+      const { getCustomerReports } = await import('../../services/dashboard.service');
+      const reportsData = await getCustomerReports(selectedPeriod);
+      
+      setStats(reportsData.stats);
+      setMonthlySpending(reportsData.monthlySpending);
+      setServiceCategories(reportsData.serviceCategories);
+      setVehicleSpending(reportsData.vehicleSpending);
     } catch (error) {
       console.error('Error loading reports:', error);
+      // Dados vazios em caso de erro
+      setStats({ totalSpent: 0, servicesCompleted: 0, vehiclesServiced: 0, avgServiceCost: 0, savings: 0 });
+      setMonthlySpending([]);
+      setServiceCategories([]);
+      setVehicleSpending([]);
     } finally {
       setLoading(false);
     }

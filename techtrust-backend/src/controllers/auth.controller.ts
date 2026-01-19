@@ -307,6 +307,12 @@ export const login = async (req: Request, res: Response) => {
       throw new AppError('Conta inativa', 403, 'ACCOUNT_INACTIVE');
     }
 
+    // Verificar se telefone foi verificado (usuário precisa completar cadastro)
+    if (user.status === 'PENDING_VERIFICATION' || !user.phoneVerified) {
+      console.log('⚠️ Telefone não verificado para:', email);
+      throw new AppError('Verifique seu telefone para continuar', 403, 'PHONE_NOT_VERIFIED');
+    }
+
     // Atualizar último login
     await prisma.user.update({
       where: { id: user.id },
@@ -332,6 +338,7 @@ export const login = async (req: Request, res: Response) => {
           id: user.id,
           fullName: user.fullName,
           email: user.email,
+          phone: user.phone,
           role: user.role,
           language: user.language,
           phoneVerified: user.phoneVerified,

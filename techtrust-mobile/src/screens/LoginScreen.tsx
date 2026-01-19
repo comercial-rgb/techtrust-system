@@ -51,7 +51,27 @@ export default function LoginScreen({ navigation }: any) {
         await login(email, password);
       }
     } catch (error: any) {
-      Alert.alert(t.common.error, error.message || t.auth.loginFailed);
+      console.log('🔴 Login error:', error.code, error.message);
+      
+      // Verificar se é erro de telefone não verificado
+      if (error.code === 'PHONE_NOT_VERIFIED') {
+        Alert.alert(
+          t.auth.verificationRequired || 'Verificação necessária',
+          t.auth.phoneNotVerifiedMessage || 'Seu telefone ainda não foi verificado. Deseja reenviar o código?',
+          [
+            { text: t.common.cancel || 'Cancelar', style: 'cancel' },
+            { 
+              text: t.auth.resendCode || 'Reenviar código', 
+              onPress: () => {
+                // Navegar para tela de signup para reenviar OTP
+                navigation.navigate('Signup', { email });
+              }
+            }
+          ]
+        );
+      } else {
+        Alert.alert(t.common.error, error.message || t.auth.loginFailed);
+      }
     } finally {
       setLoading(false);
     }

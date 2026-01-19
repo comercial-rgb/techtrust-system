@@ -61,71 +61,37 @@ export default function ProviderWorkOrdersScreen({ navigation }: any) {
   const loadWorkOrders = async () => {
     setLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // Buscar ordens de serviço reais da API
+      const response = await import('../../services/api').then(m => m.default.get('/work-orders'));
+      const apiWorkOrders = response.data.data || [];
+      
+      // Mapear para o formato esperado pela UI
+      const mappedWorkOrders: WorkOrder[] = apiWorkOrders.map((wo: any) => ({
+        id: wo.id,
+        orderNumber: wo.orderNumber,
+        status: wo.status,
+        finalAmount: wo.finalAmount || wo.quote?.totalAmount || 0,
+        createdAt: wo.createdAt,
+        scheduledDate: wo.scheduledDate,
+        customer: {
+          name: wo.customer?.name || wo.quote?.serviceRequest?.user?.fullName || 'Cliente',
+          phone: wo.customer?.phone || wo.quote?.serviceRequest?.user?.phone || '',
+          location: wo.customer?.location || '',
+        },
+        vehicle: {
+          make: wo.vehicle?.make || wo.quote?.serviceRequest?.vehicle?.make || 'N/A',
+          model: wo.vehicle?.model || wo.quote?.serviceRequest?.vehicle?.model || 'N/A',
+          year: wo.vehicle?.year || wo.quote?.serviceRequest?.vehicle?.year || 0,
+        },
+        serviceRequest: {
+          title: wo.serviceRequest?.title || wo.quote?.serviceRequest?.title || 'Serviço',
+        },
+      }));
 
-      const mockWorkOrders: WorkOrder[] = [
-        {
-          id: '1',
-          orderNumber: 'WO-2024-001',
-          status: 'IN_PROGRESS',
-          finalAmount: 450.0,
-          createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-          customer: {
-            name: 'Maria Santos',
-            phone: '+1 (407) 555-5678',
-            location: 'Kissimmee, FL',
-          },
-          vehicle: { make: 'Toyota', model: 'Corolla', year: 2019 },
-          serviceRequest: { title: 'Complete Checkup' },
-        },
-        {
-          id: '2',
-          orderNumber: 'WO-2024-002',
-          status: 'PENDING_START',
-          finalAmount: 180.0,
-          createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-          scheduledDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
-          customer: {
-            name: 'João Silva',
-            phone: '+1 (407) 555-1234',
-            location: 'Orlando, FL',
-          },
-          vehicle: { make: 'Honda', model: 'Civic', year: 2020 },
-          serviceRequest: { title: 'Oil and Filter Change' },
-        },
-        {
-          id: '3',
-          orderNumber: 'WO-2024-003',
-          status: 'AWAITING_APPROVAL',
-          finalAmount: 320.0,
-          createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-          customer: {
-            name: 'Pedro Costa',
-            phone: '+1 (407) 555-9012',
-            location: 'Orlando, FL',
-          },
-          vehicle: { make: 'Ford', model: 'Focus', year: 2021 },
-          serviceRequest: { title: 'Brake Pad Replacement' },
-        },
-        {
-          id: '4',
-          orderNumber: 'WO-2024-004',
-          status: 'COMPLETED',
-          finalAmount: 120.0,
-          createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-          customer: {
-            name: 'Ana Oliveira',
-            phone: '+1 (407) 555-3456',
-            location: 'Davenport, FL',
-          },
-          vehicle: { make: 'Chevrolet', model: 'Cruze', year: 2018 },
-          serviceRequest: { title: 'Alignment and Balancing' },
-        },
-      ];
-
-      setWorkOrders(mockWorkOrders);
+      setWorkOrders(mappedWorkOrders);
     } catch (error) {
       console.error('Error loading services:', error);
+      setWorkOrders([]);
     } finally {
       setLoading(false);
     }

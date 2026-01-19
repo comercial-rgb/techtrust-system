@@ -1,0 +1,297 @@
+/**
+ * Dashboard Service - Busca dados reais do backend
+ * Substitui todos os dados mock por chamadas à API
+ */
+
+import api from './api';
+
+// ============================================
+// TIPOS
+// ============================================
+
+export interface DashboardStats {
+  activeServices: number;
+  pendingQuotes: number;
+  completedServices: number;
+  totalSpent: number;
+}
+
+export interface Vehicle {
+  id: string;
+  make: string;
+  model: string;
+  year: number;
+  plateNumber: string;
+  color?: string;
+  currentMileage?: number;
+  lastService?: string;
+  nextServiceDue?: string;
+  isDefault: boolean;
+}
+
+export interface ServiceRequest {
+  id: string;
+  requestNumber: string;
+  title: string;
+  status: 'SEARCHING' | 'QUOTES_RECEIVED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+  quotesCount: number;
+  createdAt: string;
+  vehicle: {
+    make: string;
+    model: string;
+    year: number;
+  };
+}
+
+export interface ProviderStats {
+  pendingRequests: number;
+  activeWorkOrders: number;
+  completedThisMonth: number;
+  earningsThisMonth: number;
+  rating: number;
+  totalReviews: number;
+}
+
+export interface RecentActivity {
+  id: string;
+  type: 'new_request' | 'quote_accepted' | 'payment_received' | 'work_completed';
+  title: string;
+  description: string;
+  time: string;
+  amount?: number;
+}
+
+export interface PendingRequest {
+  id: string;
+  title: string;
+  vehicle: string;
+  location: string;
+  timeAgo: string;
+  isUrgent: boolean;
+}
+
+// ============================================
+// FUNÇÕES - CLIENTE
+// ============================================
+
+/**
+ * Buscar estatísticas do dashboard do cliente
+ */
+export async function getCustomerDashboardStats(): Promise<DashboardStats> {
+  try {
+    const response = await api.get('/users/dashboard-stats');
+    return response.data.data || {
+      activeServices: 0,
+      pendingQuotes: 0,
+      completedServices: 0,
+      totalSpent: 0,
+    };
+  } catch (error) {
+    console.error('Erro ao buscar stats do dashboard:', error);
+    // Retornar dados vazios em caso de erro
+    return {
+      activeServices: 0,
+      pendingQuotes: 0,
+      completedServices: 0,
+      totalSpent: 0,
+    };
+  }
+}
+
+/**
+ * Buscar veículos do cliente
+ */
+export async function getVehicles(): Promise<Vehicle[]> {
+  try {
+    const response = await api.get('/vehicles');
+    return response.data.data || [];
+  } catch (error) {
+    console.error('Erro ao buscar veículos:', error);
+    return [];
+  }
+}
+
+/**
+ * Buscar solicitações de serviço do cliente
+ */
+export async function getServiceRequests(): Promise<ServiceRequest[]> {
+  try {
+    const response = await api.get('/service-requests');
+    const requests = response.data.data || [];
+    
+    // Mapear para formato esperado pela UI
+    return requests.map((req: any) => ({
+      id: req.id,
+      requestNumber: req.requestNumber,
+      title: req.title || req.description?.substring(0, 50) || 'Solicitação de Serviço',
+      status: req.status,
+      quotesCount: req._count?.quotes || req.quotesCount || 0,
+      createdAt: req.createdAt,
+      vehicle: req.vehicle ? {
+        make: req.vehicle.make,
+        model: req.vehicle.model,
+        year: req.vehicle.year,
+      } : { make: 'N/A', model: 'N/A', year: 0 },
+    }));
+  } catch (error) {
+    console.error('Erro ao buscar solicitações:', error);
+    return [];
+  }
+}
+
+// ============================================
+// FUNÇÕES - FORNECEDOR
+// ============================================
+
+/**
+ * Buscar estatísticas do dashboard do fornecedor
+ */
+export async function getProviderDashboardStats(): Promise<ProviderStats> {
+  try {
+    const response = await api.get('/providers/dashboard-stats');
+    return response.data.data || {
+      pendingRequests: 0,
+      activeWorkOrders: 0,
+      completedThisMonth: 0,
+      earningsThisMonth: 0,
+      rating: 0,
+      totalReviews: 0,
+    };
+  } catch (error) {
+    console.error('Erro ao buscar stats do fornecedor:', error);
+    return {
+      pendingRequests: 0,
+      activeWorkOrders: 0,
+      completedThisMonth: 0,
+      earningsThisMonth: 0,
+      rating: 0,
+      totalReviews: 0,
+    };
+  }
+}
+
+/**
+ * Buscar atividade recente do fornecedor
+ */
+export async function getProviderRecentActivity(): Promise<RecentActivity[]> {
+  try {
+    const response = await api.get('/providers/recent-activity');
+    return response.data.data || [];
+  } catch (error) {
+    console.error('Erro ao buscar atividade recente:', error);
+    return [];
+  }
+}
+
+/**
+ * Buscar solicitações pendentes para o fornecedor
+ */
+export async function getProviderPendingRequests(): Promise<PendingRequest[]> {
+  try {
+    const response = await api.get('/providers/pending-requests');
+    return response.data.data || [];
+  } catch (error) {
+    console.error('Erro ao buscar solicitações pendentes:', error);
+    return [];
+  }
+}
+
+/**
+ * Buscar orçamentos do fornecedor
+ */
+export async function getProviderQuotes(status?: string): Promise<any[]> {
+  try {
+    const params = status ? { status } : {};
+    const response = await api.get('/quotes', { params });
+    return response.data.data || [];
+  } catch (error) {
+    console.error('Erro ao buscar orçamentos:', error);
+    return [];
+  }
+}
+
+/**
+ * Buscar ordens de serviço do fornecedor
+ */
+export async function getProviderWorkOrders(status?: string): Promise<any[]> {
+  try {
+    const params = status ? { status } : {};
+    const response = await api.get('/work-orders', { params });
+    return response.data.data || [];
+  } catch (error) {
+    console.error('Erro ao buscar ordens de serviço:', error);
+    return [];
+  }
+}
+
+/**
+ * Buscar avaliações do fornecedor
+ */
+export async function getProviderReviews(): Promise<any[]> {
+  try {
+    const response = await api.get('/providers/reviews');
+    return response.data.data || [];
+  } catch (error) {
+    console.error('Erro ao buscar avaliações:', error);
+    return [];
+  }
+}
+
+// ============================================
+// FUNÇÕES - RELATÓRIOS
+// ============================================
+
+export interface ReportStats {
+  totalSpent: number;
+  servicesCompleted: number;
+  vehiclesServiced: number;
+  avgServiceCost: number;
+  savings: number;
+}
+
+export interface MonthlySpending {
+  month: string;
+  amount: number;
+}
+
+export interface ServiceCategory {
+  name: string;
+  count: number;
+  amount: number;
+  color: string;
+}
+
+export interface VehicleSpending {
+  id: string;
+  name: string;
+  totalSpent: number;
+  servicesCount: number;
+}
+
+/**
+ * Buscar relatórios do cliente
+ */
+export async function getCustomerReports(period: string): Promise<{
+  stats: ReportStats;
+  monthlySpending: MonthlySpending[];
+  serviceCategories: ServiceCategory[];
+  vehicleSpending: VehicleSpending[];
+}> {
+  try {
+    const response = await api.get('/users/reports', { params: { period } });
+    return response.data.data || {
+      stats: { totalSpent: 0, servicesCompleted: 0, vehiclesServiced: 0, avgServiceCost: 0, savings: 0 },
+      monthlySpending: [],
+      serviceCategories: [],
+      vehicleSpending: [],
+    };
+  } catch (error) {
+    console.error('Erro ao buscar relatórios:', error);
+    return {
+      stats: { totalSpent: 0, servicesCompleted: 0, vehiclesServiced: 0, avgServiceCost: 0, savings: 0 },
+      monthlySpending: [],
+      serviceCategories: [],
+      vehicleSpending: [],
+    };
+  }
+}

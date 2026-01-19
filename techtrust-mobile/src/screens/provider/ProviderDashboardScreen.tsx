@@ -66,72 +66,29 @@ export default function ProviderDashboardScreen({ navigation }: any) {
   const loadDashboardData = async () => {
     setLoading(true);
     try {
-      // Simular chamada API
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      setStats({
-        pendingRequests: 3,
-        activeWorkOrders: 2,
-        completedThisMonth: 12,
-        earningsThisMonth: 4850.0,
-        rating: 4.8,
-        totalReviews: 47,
-      });
-
-      setRecentActivity([
-        {
-          id: '1',
-          type: 'new_request',
-          title: 'New request',
-          description: 'Oil change - Honda Civic 2020',
-          time: '5 min',
-        },
-        {
-          id: '2',
-          type: 'quote_accepted',
-          title: 'Quote accepted!',
-          description: 'Full service - Toyota Corolla',
-          time: '2h',
-          amount: 450.0,
-        },
-        {
-          id: '3',
-          type: 'payment_received',
-          title: 'Payment received',
-          description: 'Alignment and balancing',
-          time: '1 day',
-          amount: 120.0,
-        },
+      // Buscar dados reais da API
+      const [statsData, activityData, requestsData] = await Promise.all([
+        import('../../services/dashboard.service').then(m => m.getProviderDashboardStats()),
+        import('../../services/dashboard.service').then(m => m.getProviderRecentActivity()),
+        import('../../services/dashboard.service').then(m => m.getProviderPendingRequests()),
       ]);
 
-      setPendingRequests([
-        {
-          id: '1',
-          title: 'Oil change and filters',
-          vehicle: 'Honda Civic 2020',
-          location: 'Orlando, FL - 3.2 km',
-          timeAgo: '5 min',
-          isUrgent: false,
-        },
-        {
-          id: '2',
-          title: 'Brake making noise',
-          vehicle: 'Ford Focus 2021',
-          location: 'Orlando, FL - 5.1 km',
-          timeAgo: '15 min',
-          isUrgent: true,
-        },
-        {
-          id: '3',
-          title: 'Full service',
-          vehicle: 'Toyota Corolla 2019',
-          location: 'Kissimmee, FL - 8.4 km',
-          timeAgo: '30 min',
-          isUrgent: false,
-        },
-      ]);
+      setStats(statsData);
+      setRecentActivity(activityData);
+      setPendingRequests(requestsData);
     } catch (error) {
       console.error('Erro ao carregar dashboard:', error);
+      // Dados vazios em caso de erro
+      setStats({
+        pendingRequests: 0,
+        activeWorkOrders: 0,
+        completedThisMonth: 0,
+        earningsThisMonth: 0,
+        rating: 0,
+        totalReviews: 0,
+      });
+      setRecentActivity([]);
+      setPendingRequests([]);
     } finally {
       setLoading(false);
     }

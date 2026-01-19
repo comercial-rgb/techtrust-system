@@ -22,6 +22,18 @@ router.use(authenticate);
 router.get('/me', asyncHandler(userController.getMe));
 
 /**
+ * GET /api/v1/users/dashboard-stats
+ * Estatísticas do dashboard do cliente
+ */
+router.get('/dashboard-stats', asyncHandler(userController.getDashboardStats));
+
+/**
+ * GET /api/v1/users/reports
+ * Relatórios de gastos do cliente
+ */
+router.get('/reports', asyncHandler(userController.getReports));
+
+/**
  * PATCH /api/v1/users/me
  * Atualizar perfil
  */

@@ -66,97 +66,35 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
 
   async function loadVehicleDetails() {
     try {
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // Buscar detalhes do veículo da API
+      const api = (await import('../services/api')).default;
+      const response = await api.get(`/vehicles/${vehicleId}`);
+      const vehicleData = response.data.data;
       
-      // Mock vehicle data
-      setVehicle({
-        id: vehicleId || '1',
-        make: 'Honda',
-        model: 'Civic',
-        year: 2020,
-        vin: '1HGBH41JXMN109186',
-        plateNumber: 'ABC-1234',
-        trim: 'EX-L',
-        color: 'Silver',
-        currentMileage: 28000,
-        fuelType: 'Gasoline',
-        vehicleType: 'Car',
-        primaryDriver: 'John Doe',
-        insuranceProvider: 'State Farm',
-        insurancePolicy: 'POL-12345678',
-        insuranceExpiry: '2025-06-15',
-        lastService: '2024-10-15',
-        nextServiceDue: '2025-04-15',
-        isDefault: true,
-        totalMaintenanceSpent: 1850.00,
-        maintenanceHistory: [
-          {
-            id: '1',
-            workOrderId: 'WO-VH-2024-1015',
-            type: 'Oil Change',
-            description: 'Full synthetic oil change and filter replacement',
-            date: '2024-10-15',
-            mileage: 25000,
-            cost: 75.00,
-            provider: 'Quick Lube Express',
-            status: 'completed',
-          },
-          {
-            id: '2',
-            workOrderId: 'WO-VH-2024-0820',
-            type: 'Tire Rotation',
-            description: 'Tire rotation and balance',
-            date: '2024-08-20',
-            mileage: 22000,
-            cost: 45.00,
-            provider: 'Discount Tire',
-            status: 'completed',
-          },
-          {
-            id: '3',
-            workOrderId: 'WO-VH-2024-0510',
-            type: 'Brake Service',
-            description: 'Front brake pads and rotors replacement',
-            date: '2024-05-10',
-            mileage: 18000,
-            cost: 450.00,
-            provider: 'AutoCare Plus',
-            status: 'completed',
-          },
-          {
-            id: '4',
-            workOrderId: 'WO-VH-2024-0215',
-            type: '30K Service',
-            description: 'Full 30,000 mile service - spark plugs, filters, fluids',
-            date: '2024-02-15',
-            mileage: 15000,
-            cost: 680.00,
-            provider: 'Honda Dealership',
-            status: 'completed',
-          },
-          {
-            id: '5',
-            workOrderId: 'WO-VH-2023-0720',
-            type: 'A/C Service',
-            description: 'A/C system recharge and inspection',
-            date: '2023-07-20',
-            mileage: 10000,
-            cost: 150.00,
-            provider: 'Cool Air Auto',
-            status: 'completed',
-          },
-          {
-            id: '6',
-            type: 'Scheduled Service',
-            description: 'Next oil change scheduled',
-            date: '2025-04-15',
-            mileage: 31000,
-            cost: 0,
-            provider: 'TBD',
-            status: 'scheduled',
-          },
-        ],
-      });
+      if (vehicleData) {
+        setVehicle({
+          id: vehicleData.id,
+          make: vehicleData.make,
+          model: vehicleData.model,
+          year: vehicleData.year,
+          vin: vehicleData.vin || '',
+          plateNumber: vehicleData.plateNumber || '',
+          trim: vehicleData.trim || '',
+          color: vehicleData.color || '',
+          currentMileage: vehicleData.currentMileage || 0,
+          fuelType: vehicleData.fuelType || '',
+          vehicleType: vehicleData.vehicleType || 'Car',
+          primaryDriver: vehicleData.primaryDriver || '',
+          insuranceProvider: vehicleData.insuranceProvider || '',
+          insurancePolicy: vehicleData.insurancePolicy || '',
+          insuranceExpiry: vehicleData.insuranceExpiry || '',
+          lastService: vehicleData.lastService || '',
+          nextServiceDue: vehicleData.nextServiceDue || '',
+          isDefault: vehicleData.isDefault || false,
+          totalMaintenanceSpent: vehicleData.totalMaintenanceSpent || 0,
+          maintenanceHistory: vehicleData.maintenanceHistory || [],
+        });
+      }
     } catch (error) {
       console.error('Error loading vehicle:', error);
     } finally {
