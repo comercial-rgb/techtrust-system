@@ -47,7 +47,7 @@ export const verifyOTPValidation = [
     .isUUID().withMessage('ID do usuário inválido'),
 
   // Validação customizada: aceita otpCode OU code
-  body().custom((value, { req }) => {
+  body().custom((_value, { req }) => {
     const otpCode = req.body?.otpCode || req.body?.code;
     if (!otpCode) {
       throw new Error('Código OTP é obrigatório (envie como otpCode ou code)');
