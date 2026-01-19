@@ -38,6 +38,7 @@ export const signupValidation = [
 
 /**
  * Validação para verify-otp
+ * Aceita tanto 'otpCode' quanto 'code' para compatibilidade com versões antigas do app
  */
 export const verifyOTPValidation = [
   body('userId')
@@ -45,13 +46,21 @@ export const verifyOTPValidation = [
     .notEmpty().withMessage('ID do usuário é obrigatório')
     .isUUID().withMessage('ID do usuário inválido'),
 
-  body('otpCode')
-    .exists().withMessage('Código OTP é obrigatório')
-    .isString().withMessage('Código OTP deve ser uma string')
-    .trim()
-    .notEmpty().withMessage('Código OTP não pode estar vazio')
-    .isLength({ min: 6, max: 6 }).withMessage('Código OTP deve ter 6 dígitos')
-    .isNumeric().withMessage('Código OTP deve conter apenas números'),
+  // Validação customizada: aceita otpCode OU code
+  body().custom((value, { req }) => {
+    const otpCode = req.body?.otpCode || req.body?.code;
+    if (!otpCode) {
+      throw new Error('Código OTP é obrigatório (envie como otpCode ou code)');
+    }
+    const trimmed = String(otpCode).trim();
+    if (trimmed.length !== 6) {
+      throw new Error('Código OTP deve ter 6 dígitos');
+    }
+    if (!/^\d{6}$/.test(trimmed)) {
+      throw new Error('Código OTP deve conter apenas números');
+    }
+    return true;
+  }),
 ];
 
 /**
