@@ -241,6 +241,84 @@ export async function getProviderReviews(): Promise<any[]> {
 // FUNÇÕES - RELATÓRIOS
 // ============================================
 
+export interface WorkOrder {
+  id: string;
+  orderNumber: string;
+  title: string;
+  status: string;
+  finalAmount: number;
+  scheduledDate?: string;
+  completedAt?: string;
+  provider: {
+    businessName: string;
+  };
+  vehicle: {
+    make: string;
+    model: string;
+    year: number;
+  };
+}
+
+export interface PaymentMethod {
+  id: string;
+  type: 'credit' | 'debit' | 'pix';
+  brand?: string;
+  lastFour?: string;
+  isDefault: boolean;
+}
+
+/**
+ * Buscar ordens de serviço do cliente
+ */
+export async function getWorkOrders(): Promise<WorkOrder[]> {
+  try {
+    const response = await api.get('/work-orders');
+    return response.data.data || [];
+  } catch (error) {
+    console.error('Erro ao buscar ordens de serviço:', error);
+    return [];
+  }
+}
+
+/**
+ * Buscar detalhes de uma ordem de serviço
+ */
+export async function getWorkOrderDetails(workOrderId: string): Promise<any | null> {
+  try {
+    const response = await api.get(`/work-orders/${workOrderId}`);
+    return response.data.data || null;
+  } catch (error) {
+    console.error('Erro ao buscar detalhes da OS:', error);
+    return null;
+  }
+}
+
+/**
+ * Buscar métodos de pagamento do cliente
+ */
+export async function getPaymentMethods(): Promise<PaymentMethod[]> {
+  try {
+    const response = await api.get('/payment-methods');
+    return response.data.data || [];
+  } catch (error) {
+    console.error('Erro ao buscar métodos de pagamento:', error);
+    return [];
+  }
+}
+
+/**
+ * Buscar detalhes de um orçamento
+ */
+export async function getQuoteDetails(quoteId: string): Promise<any | null> {
+  try {
+    const response = await api.get(`/quotes/${quoteId}`);
+    return response.data.data || null;
+  } catch (error) {
+    console.error('Erro ao buscar detalhes do orçamento:', error);
+    return null;
+  }
+}
+
 export interface ReportStats {
   totalSpent: number;
   servicesCompleted: number;

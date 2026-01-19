@@ -77,178 +77,18 @@ export default function ProviderQuoteDetailsScreen({ route, navigation }: any) {
   const loadQuoteDetails = async () => {
     setLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 600));
-
-      // Mock data based on quoteId to show different quotes
-      const mockQuotes: Record<string, QuoteDetails> = {
-        '1': {
-          id: '1',
-          status: 'PENDING',
-          totalAmount: 450.0,
-          partsCost: 200.0,
-          laborCost: 250.0,
-          lineItems: [
-            { id: '1', type: 'part', description: 'Oil Filter - Mann W719/45', quantity: 1, unitPrice: 35.0 },
-            { id: '2', type: 'part', description: 'Air Filter - K&N 33-2393', quantity: 1, unitPrice: 65.0 },
-            { id: '3', type: 'part', description: 'Motor Oil 5W-30 Synthetic', quantity: 5, unitPrice: 20.0 },
-            { id: '4', type: 'labor', description: 'Labor - Complete Oil Change', quantity: 1, unitPrice: 150.0 },
-            { id: '5', type: 'labor', description: 'Multi-point Inspection', quantity: 1, unitPrice: 100.0 },
-          ],
-          estimatedDuration: '3h',
-          notes: 'We also recommend checking the brake fluid on the next visit.',
-          warranty: {
-            partsWarrantyMonths: 6,
-            serviceWarrantyDays: 90,
-            terms: 'Warranty valid upon presentation of service receipt.',
-          },
-          scheduledDate: '2024-12-20',
-          scheduledTime: '09:00',
-          createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-          expiresAt: new Date(Date.now() + 42 * 60 * 60 * 1000).toISOString(),
-          serviceRequest: {
-            id: 'sr1',
-            requestNumber: 'SR-2024-001',
-            title: 'Oil and filter change',
-            description: 'Motor oil and filter change (air and oil). Vehicle at 45,000 miles.',
-            urgency: 'normal',
-          },
-          vehicle: { make: 'Honda', model: 'Civic', year: 2020, licensePlate: 'ABC-1234' },
-          customer: { name: 'John S.', phone: '+1 (555) 123-4567' },
-        },
-        '2': {
-          id: '2',
-          status: 'ACCEPTED',
-          workOrderId: 'wo-2', // Work order created when quote was accepted
-          totalAmount: 320.0,
-          partsCost: 180.0,
-          laborCost: 140.0,
-          lineItems: [
-            { id: '1', type: 'part', description: 'Front Brake Pads - Brembo', quantity: 1, unitPrice: 89.0 },
-            { id: '2', type: 'part', description: 'Rear Brake Pads - Brembo', quantity: 1, unitPrice: 91.0 },
-            { id: '3', type: 'labor', description: 'Brake Pad Replacement (Front & Rear)', quantity: 1, unitPrice: 140.0 },
-          ],
-          estimatedDuration: '2h',
-          notes: 'Brake rotors are in good condition, no replacement needed.',
-          warranty: {
-            partsWarrantyMonths: 12,
-            serviceWarrantyDays: 90,
-            terms: 'Warranty valid upon presentation of service receipt.',
-          },
-          scheduledDate: '2024-12-15',
-          scheduledTime: '14:00',
-          createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-          serviceRequest: {
-            id: 'sr2',
-            requestNumber: 'SR-2024-002',
-            title: 'Brake pad replacement',
-            description: 'Replace front and rear brake pads. Squeaking noise when braking.',
-            urgency: 'normal',
-          },
-          vehicle: { make: 'Ford', model: 'Focus', year: 2021, licensePlate: 'XYZ-5678' },
-          customer: { name: 'Peter C.', phone: '+1 (555) 987-6543' },
-        },
-        '3': {
-          id: '3',
-          status: 'PENDING',
-          totalAmount: 250.0,
-          partsCost: 100.0,
-          laborCost: 150.0,
-          lineItems: [
-            { id: '1', type: 'part', description: 'Timing Belt Kit', quantity: 1, unitPrice: 100.0 },
-            { id: '2', type: 'labor', description: 'Timing Belt Replacement', quantity: 1, unitPrice: 150.0 },
-          ],
-          estimatedDuration: '2h',
-          notes: 'Recommended to replace water pump at the same time for best value.',
-          warranty: {
-            partsWarrantyMonths: 12,
-            serviceWarrantyDays: 90,
-            terms: 'Warranty valid upon presentation of service receipt.',
-          },
-          scheduledDate: '2024-12-22',
-          scheduledTime: '10:00',
-          createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-          expiresAt: new Date(Date.now() + 47 * 60 * 60 * 1000).toISOString(),
-          serviceRequest: {
-            id: 'sr5',
-            requestNumber: 'SR-2024-005',
-            title: 'Timing belt replacement',
-            description: 'Replace timing belt. Vehicle at 90,000 miles.',
-            urgency: 'high',
-          },
-          vehicle: { make: 'Volkswagen', model: 'Golf', year: 2019, licensePlate: 'DEF-9012' },
-          customer: { name: 'Fernanda S.', phone: '+1 (555) 456-7890' },
-        },
-        '4': {
-          id: '4',
-          status: 'REJECTED',
-          totalAmount: 580.0,
-          partsCost: 350.0,
-          laborCost: 230.0,
-          lineItems: [
-            { id: '1', type: 'part', description: 'Full Synthetic Oil 5W-40', quantity: 8, unitPrice: 15.0 },
-            { id: '2', type: 'part', description: 'Oil Filter - OEM', quantity: 1, unitPrice: 45.0 },
-            { id: '3', type: 'part', description: 'Air Filter - OEM', quantity: 1, unitPrice: 65.0 },
-            { id: '4', type: 'part', description: 'Cabin Air Filter', quantity: 1, unitPrice: 40.0 },
-            { id: '5', type: 'part', description: 'Spark Plugs (6)', quantity: 1, unitPrice: 80.0 },
-            { id: '6', type: 'labor', description: 'Complete Service - 60k miles', quantity: 1, unitPrice: 230.0 },
-          ],
-          estimatedDuration: '4h',
-          notes: 'Full inspection included.',
-          warranty: {
-            partsWarrantyMonths: 6,
-            serviceWarrantyDays: 90,
-            terms: 'Warranty valid upon presentation of service receipt.',
-          },
-          scheduledDate: '2024-12-18',
-          scheduledTime: '08:00',
-          createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-          serviceRequest: {
-            id: 'sr3',
-            requestNumber: 'SR-2024-003',
-            title: 'Complete revision',
-            description: '60,000 mile full service. Include all fluids check.',
-            urgency: 'normal',
-          },
-          vehicle: { make: 'BMW', model: 'X3', year: 2022, licensePlate: 'GHI-3456' },
-          customer: { name: 'Ana O.', phone: '+1 (555) 321-0987' },
-          rejectionReason: 'Found a better price elsewhere.',
-        },
-        '5': {
-          id: '5',
-          status: 'EXPIRED',
-          totalAmount: 180.0,
-          partsCost: 80.0,
-          laborCost: 100.0,
-          lineItems: [
-            { id: '1', type: 'part', description: 'Wheel Weights', quantity: 1, unitPrice: 30.0 },
-            { id: '2', type: 'part', description: 'Valve Stems', quantity: 4, unitPrice: 12.5 },
-            { id: '3', type: 'labor', description: 'Alignment & Balancing Service', quantity: 1, unitPrice: 100.0 },
-          ],
-          estimatedDuration: '1h',
-          notes: 'Tires are in good condition.',
-          warranty: {
-            partsWarrantyMonths: 3,
-            serviceWarrantyDays: 30,
-            terms: 'Warranty valid upon presentation of service receipt.',
-          },
-          createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-          serviceRequest: {
-            id: 'sr4',
-            requestNumber: 'SR-2024-004',
-            title: 'Alignment and balancing',
-            description: 'Wheel alignment and balancing. Steering pulling to the right.',
-            urgency: 'low',
-          },
-          vehicle: { make: 'Chevrolet', model: 'Cruze', year: 2018, licensePlate: 'JKL-7890' },
-          customer: { name: 'Carlos L.', phone: '+1 (555) 654-3210' },
-        },
-      };
-
-      // Get quote data based on ID, fallback to first one
-      const quoteData = mockQuotes[quoteId] || mockQuotes['1'];
-      setQuote(quoteData);
+      // Fetch quote details from API
+      const { getQuoteDetails } = await import('../../services/dashboard.service');
+      const data = await getQuoteDetails(quoteId);
+      
+      if (data) {
+        setQuote(data);
+      } else {
+        setQuote(null);
+      }
     } catch (error) {
       console.error('Error loading quote:', error);
+      setQuote(null);
     } finally {
       setLoading(false);
     }

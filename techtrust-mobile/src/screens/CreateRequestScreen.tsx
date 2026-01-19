@@ -104,50 +104,68 @@ export default function CreateRequestScreen({ navigation }: any) {
   // Special Offer tracking
   const [appliedOffer, setAppliedOffer] = useState<SpecialOffer | null>(specialOfferFromLanding);
   
-  // Mock favorite providers - In production, fetch from API
-  const [favoriteProviders] = useState<FavoriteProvider[]>([
-    { id: 'p1', businessName: 'Auto Center Express', rating: 4.8, totalServices: 12, specialty: 'Oil Change, Brakes' },
-    { id: 'p2', businessName: 'Quick Lube Plus', rating: 4.5, totalServices: 8, specialty: 'Oil Change, Tires' },
-    { id: 'p3', businessName: 'Premium Auto Shop', rating: 4.9, totalServices: 5, specialty: 'Engine, Transmission' },
-  ]);
+  // Favorite providers - fetched from API
+  const [favoriteProviders, setFavoriteProviders] = useState<FavoriteProvider[]>([]);
   
   // Check for payment method and active services on focus
   useFocusEffect(
     useCallback(() => {
       checkRequirements();
+      loadFavoriteProviders();
     }, [])
   );
+  
+  async function loadFavoriteProviders() {
+    try {
+      // TODO: Implement API call to fetch favorite providers
+      // const response = await api.get('/users/favorite-providers');
+      // setFavoriteProviders(response.data);
+      setFavoriteProviders([]); // Empty until API is integrated
+    } catch (error) {
+      console.error('Error loading favorite providers:', error);
+    }
+  }
   
   async function checkRequirements() {
     setCheckingPayment(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Check for active work orders (not completed)
-      // Mock check - In production, fetch from API
-      const mockActiveWorkOrders = [
-        // Uncomment to test blocking:
-        // { orderNumber: 'WO-2024-001', title: 'Oil Change', status: 'IN_PROGRESS' },
-      ];
-      
-      if (mockActiveWorkOrders.length > 0) {
-        setHasActiveService(true);
-        setActiveServiceInfo(mockActiveWorkOrders[0]);
-      } else {
+      // Check for active work orders from API
+      try {
+        const { getWorkOrders } = await import('../services/dashboard.service');
+        const workOrders = await getWorkOrders();
+        const activeOrders = workOrders.filter(wo => 
+          wo.status === 'IN_PROGRESS' || wo.status === 'SCHEDULED' || wo.status === 'AWAITING_PAYMENT'
+        );
+        
+        if (activeOrders.length > 0) {
+          setHasActiveService(true);
+          setActiveServiceInfo(activeOrders[0]);
+        } else {
+          setHasActiveService(false);
+          setActiveServiceInfo(null);
+        }
+      } catch (error) {
+        console.error('Error checking active work orders:', error);
         setHasActiveService(false);
         setActiveServiceInfo(null);
       }
       
-      // Check payment methods
-      const mockPaymentMethods: PaymentMethod[] = [
-        { id: '1', type: 'credit', brand: 'Visa', lastFour: '4242', isDefault: true },
-      ];
-      
-      if (mockPaymentMethods.length > 0) {
+      // Check payment methods from API
+      try {
+        const { getPaymentMethods } = await import('../services/dashboard.service');
+        const paymentMethods = await getPaymentMethods();
+        
+        if (paymentMethods.length > 0) {
+          setHasPaymentMethod(true);
+          setDefaultPaymentMethod(paymentMethods.find(p => p.isDefault) || paymentMethods[0]);
+        } else {
+          setHasPaymentMethod(false);
+          setDefaultPaymentMethod(null);
+        }
+      } catch (error) {
+        console.error('Error checking payment methods:', error);
+        // Default to allowing creation if we can't check
         setHasPaymentMethod(true);
-        setDefaultPaymentMethod(mockPaymentMethods.find(p => p.isDefault) || mockPaymentMethods[0]);
-      } else {
-        setHasPaymentMethod(false);
         setDefaultPaymentMethod(null);
       }
     } finally {
@@ -155,10 +173,31 @@ export default function CreateRequestScreen({ navigation }: any) {
     }
   }
 
-  const vehicles = [
-    { id: '1', name: 'Honda Civic 2020', plate: 'ABC-1234' },
-    { id: '2', name: 'Toyota Corolla 2019', plate: 'XYZ-5678' },
-  ];
+  // Vehicles - loaded from API
+  const [vehicles, setVehicles] = useState<{id: string; name: string; plate: string}[]>([]);
+  
+  // Load vehicles from API
+  useEffect(() => {
+    loadVehicles();
+  }, []);
+  
+  async function loadVehicles() {
+    try {
+      const { getVehicles } = await import('../services/dashboard.service');
+      const vehicleData = await getVehicles();
+      setVehicles(vehicleData.map(v => ({
+        id: v.id,
+        name: `${v.make} ${v.model} ${v.year}`,
+        plate: v.plateNumber
+      })));
+      if (vehicleData.length > 0) {
+        setSelectedVehicle(vehicleData[0].id);
+      }
+    } catch (error) {
+      console.error('Error loading vehicles:', error);
+      setVehicles([]);
+    }
+  }
 
   // Service types - In production, these would be filtered based on available providers in the area
   // The 'hasProviders' field indicates if there are active providers offering this service

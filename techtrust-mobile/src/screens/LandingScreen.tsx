@@ -111,23 +111,21 @@ const SERVICE_TYPE_IDS = [
   'inspection',
 ] as const;
 
-// Mock data para fornecedores (parcialmente ocultos para não autenticados)
-const MOCK_PROVIDERS = [
-  { id: '1', name: 'Auto C****r Express', city: 'Orlando', state: 'FL', services: ['oilChange', 'brakes', 'tires'], languages: ['en', 'es'] },
-  { id: '2', name: 'Quick L**e Plus', city: 'Kissimmee', state: 'FL', services: ['oilChange', 'engine', 'ac'], languages: ['en', 'pt'] },
-  { id: '3', name: 'Pre***m Auto Shop', city: 'Tampa', state: 'FL', services: ['transmission', 'engine', 'electrical'], languages: ['en'] },
-  { id: '4', name: 'Spe**y Mechanics', city: 'Miami', state: 'FL', services: ['brakes', 'suspension', 'diagnostics'], languages: ['en', 'es', 'pt'] },
-  { id: '5', name: 'Trus*** Auto Care', city: 'Jacksonville', state: 'FL', services: ['oilChange', 'inspection', 'tires'], languages: ['en', 'es'] },
-];
-
-// Dados completos dos fornecedores (para usuários autenticados)
-const FULL_PROVIDERS = [
-  { id: '1', name: 'Auto Center Express', city: 'Orlando', state: 'FL', services: ['oilChange', 'brakes', 'tires'], rating: 4.8, reviews: 124, phone: '(407) 555-0101', email: 'contact@autocenter.com', address: '123 Main St, Orlando, FL', specialOffers: ['1', '3'], languages: ['en', 'es'] },
-  { id: '2', name: 'Quick Lube Plus', city: 'Kissimmee', state: 'FL', services: ['oilChange', 'engine', 'ac'], rating: 4.6, reviews: 89, phone: '(407) 555-0202', email: 'info@quicklube.com', address: '456 Oak Ave, Kissimmee, FL', specialOffers: ['1'], languages: ['en', 'pt'] },
-  { id: '3', name: 'Premium Auto Shop', city: 'Tampa', state: 'FL', services: ['transmission', 'engine', 'electrical'], rating: 4.9, reviews: 156, phone: '(813) 555-0303', email: 'service@premiumauto.com', address: '789 Palm Dr, Tampa, FL', specialOffers: ['2'], languages: ['en'] },
-  { id: '4', name: 'Speedy Mechanics', city: 'Miami', state: 'FL', services: ['brakes', 'suspension', 'diagnostics'], rating: 4.7, reviews: 203, phone: '(305) 555-0404', email: 'help@speedymechanics.com', address: '321 Beach Blvd, Miami, FL', specialOffers: ['2', '3'], languages: ['en', 'es', 'pt'] },
-  { id: '5', name: 'Trusted Auto Care', city: 'Jacksonville', state: 'FL', services: ['oilChange', 'inspection', 'tires'], rating: 4.5, reviews: 78, phone: '(904) 555-0505', email: 'care@trustedauto.com', address: '654 River Rd, Jacksonville, FL', specialOffers: ['1', '2', '3'], languages: ['en', 'es'] },
-];
+// Provider type for search results - data from API only
+interface ProviderResult {
+  id: string;
+  name: string;
+  city: string;
+  state: string;
+  services: string[];
+  rating: number;
+  reviews: number;
+  phone?: string;
+  email?: string;
+  address?: string;
+  specialOffers: string[];
+  languages?: string[];
+}
 
 // Mock data para artigos
 const ARTICLES = [
@@ -206,7 +204,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
   const [showStateDropdown, setShowStateDropdown] = useState(false);
   const [showCityDropdown, setShowCityDropdown] = useState(false);
   const [showServiceDropdown, setShowServiceDropdown] = useState(false);
-  const [searchResults, setSearchResults] = useState<typeof FULL_PROVIDERS>([]);
+  const [searchResults, setSearchResults] = useState<ProviderResult[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
   const [showAllResultsModal, setShowAllResultsModal] = useState(false);
   
@@ -218,7 +216,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
   const [offerProviderCity, setOfferProviderCity] = useState('');
   const [showOfferStateDropdown, setShowOfferStateDropdown] = useState(false);
   const [showOfferCityDropdown, setShowOfferCityDropdown] = useState(false);
-  const [offerProviders, setOfferProviders] = useState<typeof FULL_PROVIDERS>([]);
+  const [offerProviders, setOfferProviders] = useState<ProviderResult[]>([]);
   const [hasSearchedOfferProviders, setHasSearchedOfferProviders] = useState(false);
 
   const getServiceLabel = (serviceIdOrName: string): string => {
@@ -298,19 +296,11 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
     await loadHomeData();
   };
 
-  const handleSearch = () => {
-    // Use dados completos se autenticado, senão usar masked
-    let results = isAuthenticated ? FULL_PROVIDERS : MOCK_PROVIDERS.map(p => ({ ...p, rating: 0, reviews: 0, phone: '', email: '', address: '', specialOffers: [] }));
-    if (selectedState) {
-      results = results.filter(p => p.state === selectedState);
-    }
-    if (selectedCity) {
-      results = results.filter(p => p.city === selectedCity);
-    }
-    if (selectedService) {
-      results = results.filter(p => p.services.includes(selectedService));
-    }
-    setSearchResults(results);
+  const handleSearch = async () => {
+    // TODO: Integrate with real providers search API
+    // In production, call: api.get('/providers/search', { params: { state: selectedState, city: selectedCity, service: selectedService } })
+    // For now, show empty results until providers search endpoint is available
+    setSearchResults([]);
     setHasSearched(true);
   };
 
@@ -334,17 +324,12 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
     setShowOfferProvidersModal(true);
   };
 
-  // Search providers for offer
-  const handleSearchOfferProviders = () => {
+  // Search providers for offer - TODO: Integrate with real API when providers search endpoint is available
+  const handleSearchOfferProviders = async () => {
     if (!selectedOffer) return;
-    let results = FULL_PROVIDERS.filter(p => p.specialOffers.includes(selectedOffer.id));
-    if (offerProviderState) {
-      results = results.filter(p => p.state === offerProviderState);
-    }
-    if (offerProviderCity) {
-      results = results.filter(p => p.city === offerProviderCity);
-    }
-    setOfferProviders(results);
+    // For now, show empty results until providers API is integrated
+    // In production, call: api.get('/providers/search', { params: { offerId: selectedOffer.id, state: offerProviderState, city: offerProviderCity } })
+    setOfferProviders([]);
     setHasSearchedOfferProviders(true);
   };
 
@@ -357,7 +342,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
   };
 
   // Request service from a provider
-  const handleRequestService = (provider: typeof FULL_PROVIDERS[0], offer?: SpecialOffer | null) => {
+  const handleRequestService = (provider: ProviderResult, offer?: SpecialOffer | null) => {
     // Check if user is authenticated before navigating
     if (!isAuthenticated) {
       // Redirect to login if not authenticated
@@ -441,7 +426,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
     </TouchableOpacity>
   );
 
-  const renderProvider = ({ item, offer, variant = 'default' }: { item: typeof FULL_PROVIDERS[0], offer?: SpecialOffer | null, variant?: 'default' | 'horizontal' }) => (
+  const renderProvider = ({ item, offer, variant = 'default' }: { item: ProviderResult, offer?: SpecialOffer | null, variant?: 'default' | 'horizontal' }) => (
     <View style={[styles.providerCard, variant === 'horizontal' && styles.providerCardHorizontal]}>
       <View style={styles.providerHeader}>
         <View style={styles.providerIcon}>

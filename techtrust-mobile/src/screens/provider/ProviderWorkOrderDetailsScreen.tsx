@@ -103,71 +103,19 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
   const loadWorkOrder = async () => {
     setLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 800));
-
-      const mockWO: WorkOrder = {
-        id: workOrderId,
-        orderNumber: 'WO-2024-001',
-        status: 'IN_PROGRESS',
-        finalAmount: 450.0,
-        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-        startedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-        customer: {
-          name: 'Maria Santos',
-          phone: '+1 (407) 555-5678',
-          email: 'maria.santos@email.com',
-          location: 'Kissimmee, FL',
-        },
-        vehicle: {
-          make: 'Toyota',
-          model: 'Corolla',
-          year: 2019,
-          plateNumber: 'XYZ5678',
-          color: 'Silver',
-          mileage: 58000,
-        },
-        serviceRequest: {
-          title: 'Full Inspection',
-          description:
-            '30,000 mile inspection with complete brake, suspension, fluids and filter check. Customer requested special attention to brakes.',
-        },
-        quote: {
-          lineItems: [
-            { id: '1', type: 'part', description: 'Engine Oil 5W-30 Synthetic', brand: 'Mobil 1', partCode: 'MOB-5W30-5QT', quantity: 5, unitPrice: 12.99 },
-            { id: '2', type: 'part', description: 'Oil Filter', brand: 'Toyota OEM', partCode: 'TOY-90915-YZZD1', quantity: 1, unitPrice: 8.50 },
-            { id: '3', type: 'part', description: 'Air Filter', brand: 'K&N', partCode: 'KN-33-2360', quantity: 1, unitPrice: 35.00 },
-            { id: '4', type: 'part', description: 'Cabin Air Filter', brand: 'Denso', partCode: 'DEN-453-6019', quantity: 1, unitPrice: 18.00 },
-            { id: '5', type: 'part', description: 'Brake Pads Front', brand: 'Wagner', partCode: 'WAG-QC1211', quantity: 1, unitPrice: 55.00 },
-            { id: '6', type: 'service', description: 'Oil Change Service', quantity: 1, unitPrice: 45.00 },
-            { id: '7', type: 'service', description: 'Brake Inspection & Pad Replacement', quantity: 1, unitPrice: 85.00 },
-            { id: '8', type: 'service', description: 'Multi-Point Inspection', quantity: 1, unitPrice: 65.00 },
-            { id: '9', type: 'service', description: 'Fluid Top-Off', quantity: 1, unitPrice: 25.00 },
-          ],
-          partsCost: 194.45,
-          laborCost: 220.00,
-          laborDescription:
-            'Full inspection including: oil and filter change, brake inspection, suspension check, fluid check.',
-          estimatedDuration: '3h',
-          notes: 'Check brake noise as reported by customer.',
-        },
-        timeline: [
-          {
-            status: 'CREATED',
-            timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-            description: 'Quote accepted by customer',
-          },
-          {
-            status: 'IN_PROGRESS',
-            timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-            description: 'Service started',
-          },
-        ],
-      };
-
-      setWorkOrder(mockWO);
-      setFinalAmount(mockWO.finalAmount.toString());
+      // Fetch work order details from API
+      const { getWorkOrderDetails } = await import('../../services/dashboard.service');
+      const data = await getWorkOrderDetails(workOrderId);
+      
+      if (data) {
+        setWorkOrder(data);
+        setFinalAmount(data.finalAmount?.toString() || '0');
+      } else {
+        setWorkOrder(null);
+      }
     } catch (error) {
-      console.error('Erro ao carregar serviço:', error);
+      console.error('Error loading work order:', error);
+      setWorkOrder(null);
     } finally {
       setLoading(false);
     }
@@ -186,6 +134,8 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
           onPress: async () => {
             setActionLoading(true);
             try {
+              // TODO: Call API to start service
+              // await api.post(`/work-orders/${workOrderId}/start`);
               await new Promise(resolve => setTimeout(resolve, 1000));
               setWorkOrder({
                 ...workOrder,
@@ -217,6 +167,8 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
 
     setActionLoading(true);
     try {
+      // TODO: Call API to complete service
+      // await api.post(`/work-orders/${workOrderId}/complete`, { finalAmount: parseFloat(finalAmount), notes: completionNotes });
       await new Promise(resolve => setTimeout(resolve, 1500));
       setWorkOrder({
         ...workOrder,

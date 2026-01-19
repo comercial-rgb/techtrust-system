@@ -89,14 +89,17 @@ const CITIES: Record<string, string[]> = {
   'SC': ['Charleston', 'Columbia', 'Greenville'],
 };
 
-// Mock providers
-const FULL_PROVIDERS = [
-  { id: '1', name: 'Auto Center Express', city: 'Orlando', state: 'FL', services: ['Oil Change', 'Brakes', 'Tires'], rating: 4.8, reviews: 124, specialOffers: ['1', '3'] },
-  { id: '2', name: 'Quick Lube Plus', city: 'Kissimmee', state: 'FL', services: ['Oil Change', 'Engine', 'A/C'], rating: 4.6, reviews: 89, specialOffers: ['1'] },
-  { id: '3', name: 'Premium Auto Shop', city: 'Tampa', state: 'FL', services: ['Transmission', 'Engine', 'Electrical'], rating: 4.9, reviews: 156, specialOffers: ['2'] },
-  { id: '4', name: 'Speedy Mechanics', city: 'Miami', state: 'FL', services: ['Brakes', 'Suspension', 'Diagnostics'], rating: 4.7, reviews: 203, specialOffers: ['2', '3'] },
-  { id: '5', name: 'Trusted Auto Care', city: 'Jacksonville', state: 'FL', services: ['Oil Change', 'Inspection', 'Tires'], rating: 4.5, reviews: 78, specialOffers: ['1', '2', '3'] },
-];
+// Provider type for search results - data from API only
+interface ProviderResult {
+  id: string;
+  name: string;
+  city: string;
+  state: string;
+  services: string[];
+  rating: number;
+  reviews: number;
+  specialOffers: string[];
+}
 
 interface ServiceRequest {
   id: string;
@@ -143,7 +146,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
   const [offerProviderCity, setOfferProviderCity] = useState('');
   const [showOfferStateDropdown, setShowOfferStateDropdown] = useState(false);
   const [showOfferCityDropdown, setShowOfferCityDropdown] = useState(false);
-  const [offerProviders, setOfferProviders] = useState<typeof FULL_PROVIDERS>([]);
+  const [offerProviders, setOfferProviders] = useState<ProviderResult[]>([]);
   const [hasSearchedOfferProviders, setHasSearchedOfferProviders] = useState(false);
 
   useEffect(() => {
@@ -162,17 +165,12 @@ export default function CustomerDashboardScreen({ navigation }: any) {
     setShowOfferProvidersModal(true);
   };
 
-  // Search providers for offer
-  const handleSearchOfferProviders = () => {
+  // Search providers for offer - TODO: Integrate with real API when providers search endpoint is available
+  const handleSearchOfferProviders = async () => {
     if (!selectedOffer) return;
-    let results = FULL_PROVIDERS.filter(p => p.specialOffers.includes(selectedOffer.id));
-    if (offerProviderState) {
-      results = results.filter(p => p.state === offerProviderState);
-    }
-    if (offerProviderCity) {
-      results = results.filter(p => p.city === offerProviderCity);
-    }
-    setOfferProviders(results);
+    // For now, show empty results until providers API is integrated
+    // In production, call: api.get('/providers/search', { params: { offerId: selectedOffer.id, state: offerProviderState, city: offerProviderCity } })
+    setOfferProviders([]);
     setHasSearchedOfferProviders(true);
   };
 
@@ -185,7 +183,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
   };
 
   // Request service from a provider
-  const handleRequestService = (provider: typeof FULL_PROVIDERS[0], offer?: SpecialOffer | null) => {
+  const handleRequestService = (provider: ProviderResult, offer?: SpecialOffer | null) => {
     setShowOfferProvidersModal(false);
     navigation.navigate('CreateRequest', { 
       preSelectedProvider: provider,
