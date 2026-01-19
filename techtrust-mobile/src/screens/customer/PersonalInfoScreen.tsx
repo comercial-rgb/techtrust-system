@@ -30,12 +30,12 @@ export default function PersonalInfoScreen({ navigation }: any) {
   const [profileImage, setProfileImage] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
-    fullName: user?.fullName || 'John Doe',
-    email: user?.email || 'john.doe@email.com',
-    phone: '+1 (407) 555-1234',
-    cpf: '***.***.***-12',
-    birthDate: '1985-06-15',
-    gender: 'Male',
+    fullName: user?.fullName || '',
+    email: user?.email || '',
+    phone: user?.phone || '',
+    cpf: '',
+    birthDate: '',
+    gender: '',
   });
 
   const handleChangePhoto = () => {

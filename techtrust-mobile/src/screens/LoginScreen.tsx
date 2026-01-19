@@ -414,9 +414,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   tagline: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginTop: 4,
+    fontSize: 16,
+    color: '#1976d2',
+    fontWeight: '600',
+    marginTop: 8,
+    textAlign: 'center',
+    letterSpacing: 0.5,
   },
   tabsContainer: {
     flexDirection: 'row',

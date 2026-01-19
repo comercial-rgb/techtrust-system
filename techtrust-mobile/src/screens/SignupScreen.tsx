@@ -1,6 +1,7 @@
 /**
  * Tela de Cadastro
  * ✨ Atualizada com animações e UI melhorada
+ * 📱 Com seletor de código de país para SMS
  */
 
 import React, { useState } from 'react';
@@ -10,10 +11,14 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  TouchableOpacity,
+  Modal,
+  FlatList,
 } from 'react-native';
 import { TextInput, Text, useTheme } from 'react-native-paper';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
+import { Ionicons } from '@expo/vector-icons';
 
 // ✨ Importando componentes de UI
 import {
@@ -28,6 +33,30 @@ import {
   AnimatedProgressBar,
 } from '../components';
 
+// 🌍 Lista de países com códigos
+const COUNTRIES = [
+  { code: 'BR', name: 'Brasil', dialCode: '+55', flag: '🇧🇷' },
+  { code: 'US', name: 'United States', dialCode: '+1', flag: '🇺🇸' },
+  { code: 'PT', name: 'Portugal', dialCode: '+351', flag: '🇵🇹' },
+  { code: 'ES', name: 'España', dialCode: '+34', flag: '🇪🇸' },
+  { code: 'MX', name: 'México', dialCode: '+52', flag: '🇲🇽' },
+  { code: 'AR', name: 'Argentina', dialCode: '+54', flag: '🇦🇷' },
+  { code: 'CO', name: 'Colombia', dialCode: '+57', flag: '🇨🇴' },
+  { code: 'CL', name: 'Chile', dialCode: '+56', flag: '🇨🇱' },
+  { code: 'PE', name: 'Perú', dialCode: '+51', flag: '🇵🇪' },
+  { code: 'VE', name: 'Venezuela', dialCode: '+58', flag: '🇻🇪' },
+  { code: 'UY', name: 'Uruguay', dialCode: '+598', flag: '🇺🇾' },
+  { code: 'EC', name: 'Ecuador', dialCode: '+593', flag: '🇪🇨' },
+  { code: 'BO', name: 'Bolivia', dialCode: '+591', flag: '🇧🇴' },
+  { code: 'PY', name: 'Paraguay', dialCode: '+595', flag: '🇵🇾' },
+  { code: 'GB', name: 'United Kingdom', dialCode: '+44', flag: '🇬🇧' },
+  { code: 'FR', name: 'France', dialCode: '+33', flag: '🇫🇷' },
+  { code: 'DE', name: 'Germany', dialCode: '+49', flag: '🇩🇪' },
+  { code: 'IT', name: 'Italy', dialCode: '+39', flag: '🇮🇹' },
+  { code: 'CA', name: 'Canada', dialCode: '+1', flag: '🇨🇦' },
+  { code: 'AU', name: 'Australia', dialCode: '+61', flag: '🇦🇺' },
+];
+
 export default function SignupScreen({ navigation }: any) {
   const theme = useTheme();
   const { t } = useI18n();
@@ -36,6 +65,8 @@ export default function SignupScreen({ navigation }: any) {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0]); // Brasil por padrão
+  const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -91,17 +122,12 @@ export default function SignupScreen({ navigation }: any) {
 
     setLoading(true);
     try {
-      const cleanedPhone = phone
-        .trim()
-        .replace(/[^\d+]/g, '')
-        .replace(/\+(?=\+)/g, '');
-
-      const normalizedPhone = cleanedPhone.startsWith('+')
-        ? `+${cleanedPhone.replace(/\D/g, '')}`
-        : `+${cleanedPhone.replace(/\D/g, '')}`;
+      // Limpar telefone e adicionar código do país
+      const cleanedPhone = phone.trim().replace(/[^\d]/g, '');
+      const normalizedPhone = `${selectedCountry.dialCode}${cleanedPhone}`;
 
       if (!/^\+\d{10,15}$/.test(normalizedPhone)) {
-        throw new Error('Telefone inválido. Use formato E.164 (ex: +5511999999999)');
+        throw new Error(t.auth?.invalidPhone || 'Telefone inválido. Verifique o número e tente novamente.');
       }
 
       const { userId } = await signUp({
@@ -200,17 +226,29 @@ export default function SignupScreen({ navigation }: any) {
             <SlideInView direction="left" delay={200}>
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>📱 {t.auth?.phone || 'Phone'}</Text>
-                <TextInput
-                  value={phone}
-                  onChangeText={setPhone}
-                  mode="outlined"
-                  placeholder="+55 11 99999-9999"
-                  keyboardType="phone-pad"
-                  style={styles.input}
-                  outlineStyle={styles.inputOutline}
-                  textColor="#000"
-                  error={hasError && !phone}
-                />
+                <View style={styles.phoneContainer}>
+                  {/* Seletor de País */}
+                  <TouchableOpacity 
+                    style={styles.countrySelector}
+                    onPress={() => setShowCountryPicker(true)}
+                  >
+                    <Text style={styles.countryFlag}>{selectedCountry.flag}</Text>
+                    <Text style={styles.countryCode}>{selectedCountry.dialCode}</Text>
+                    <Ionicons name="chevron-down" size={16} color="#6b7280" />
+                  </TouchableOpacity>
+                  {/* Campo de Telefone */}
+                  <TextInput
+                    value={phone}
+                    onChangeText={setPhone}
+                    mode="outlined"
+                    placeholder="99999-9999"
+                    keyboardType="phone-pad"
+                    style={[styles.input, styles.phoneInput]}
+                    outlineStyle={styles.inputOutline}
+                    textColor="#000"
+                    error={hasError && !phone}
+                  />
+                </View>
               </View>
             </SlideInView>
 
@@ -337,6 +375,48 @@ export default function SignupScreen({ navigation }: any) {
         type={toast.type}
         onDismiss={hideToast}
       />
+
+      {/* 🌍 Modal de Seleção de País */}
+      <Modal
+        visible={showCountryPicker}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowCountryPicker(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t.auth?.selectCountry || 'Select Country'}</Text>
+              <TouchableOpacity onPress={() => setShowCountryPicker(false)}>
+                <Ionicons name="close" size={24} color="#111827" />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={COUNTRIES}
+              keyExtractor={(item) => item.code}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.countryItem,
+                    selectedCountry.code === item.code && styles.countryItemSelected,
+                  ]}
+                  onPress={() => {
+                    setSelectedCountry(item);
+                    setShowCountryPicker(false);
+                  }}
+                >
+                  <Text style={styles.countryItemFlag}>{item.flag}</Text>
+                  <Text style={styles.countryItemName}>{item.name}</Text>
+                  <Text style={styles.countryItemCode}>{item.dialCode}</Text>
+                  {selectedCountry.code === item.code && (
+                    <Ionicons name="checkmark" size={20} color="#1976d2" />
+                  )}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -455,5 +535,84 @@ const styles = StyleSheet.create({
     color: '#9e9e9e',
     marginTop: 24,
     lineHeight: 18,
+  },
+  // 📱 Estilos do seletor de país
+  phoneContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  countrySelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f3f4f6',
+    paddingHorizontal: 12,
+    paddingVertical: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    gap: 6,
+  },
+  countryFlag: {
+    fontSize: 20,
+  },
+  countryCode: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  phoneInput: {
+    flex: 1,
+  },
+  // 🌍 Estilos do modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '70%',
+    paddingBottom: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  countryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  countryItemSelected: {
+    backgroundColor: '#eff6ff',
+  },
+  countryItemFlag: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  countryItemName: {
+    flex: 1,
+    fontSize: 16,
+    color: '#374151',
+  },
+  countryItemCode: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginRight: 8,
   },
 });

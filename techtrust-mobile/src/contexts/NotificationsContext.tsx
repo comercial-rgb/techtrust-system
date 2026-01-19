@@ -71,9 +71,9 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       ]);
 
       setState({
-        unreadMessagesCount: messages ? parseInt(messages, 10) : 2, // Mock initial value
-        pendingRequestsCount: requests ? parseInt(requests, 10) : 3, // Mock initial value
-        unreadNotificationsCount: notifications ? parseInt(notifications, 10) : 1, // Mock initial value
+        unreadMessagesCount: messages ? parseInt(messages, 10) : 0,
+        pendingRequestsCount: requests ? parseInt(requests, 10) : 0,
+        unreadNotificationsCount: notifications ? parseInt(notifications, 10) : 0,
       });
       
       if (viewed) {

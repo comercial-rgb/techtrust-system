@@ -84,44 +84,14 @@ export default function InsuranceScreen({ navigation, route }: any) {
 
   async function loadPolicies() {
     try {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // Mock policies data
-      setPolicies([
-        {
-          id: '1',
-          vehicleId: '1',
-          vehicleName: '2020 Honda Civic',
-          provider: 'State Farm',
-          policyNumber: 'SF-12345678',
-          coverageType: 'Full Coverage',
-          premium: 145.00,
-          premiumFrequency: 'monthly',
-          startDate: '2024-06-15',
-          expiryDate: '2025-06-15',
-          deductible: 500,
-          coverageAmount: 100000,
-          agentName: 'John Smith',
-          agentPhone: '(555) 123-4567',
-          notes: 'Includes roadside assistance',
-        },
-        {
-          id: '2',
-          vehicleId: '2',
-          vehicleName: '2019 Toyota Corolla',
-          provider: 'Geico',
-          policyNumber: 'GK-87654321',
-          coverageType: 'Liability Only',
-          premium: 85.00,
-          premiumFrequency: 'monthly',
-          startDate: '2024-03-01',
-          expiryDate: '2024-12-01',
-          deductible: 1000,
-          coverageAmount: 50000,
-        },
-      ]);
+      // Carregar apólices reais do backend quando API estiver disponível
+      // TODO: Implementar chamada à API quando endpoint estiver pronto
+      // const response = await api.get('/insurance-policies');
+      // setPolicies(response.data.data || []);
+      setPolicies([]);
     } catch (error) {
       console.error('Error loading policies:', error);
+      setPolicies([]);
     } finally {
       setLoading(false);
     }

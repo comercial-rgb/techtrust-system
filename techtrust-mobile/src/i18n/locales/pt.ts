@@ -254,7 +254,9 @@ export default {
     welcomeBack: 'Bem-vindo de volta!',
     demoMode: 'Modo demo: use qualquer email/senha',
     orContinueWith: 'ou continue com',
-    tagline: 'Bem-vindo ao seu hub de confiança automotiva',
+    tagline: 'Seu hub automotivo de confiança',
+    selectCountry: 'Selecionar País',
+    invalidPhone: 'Telefone inválido. Verifique o número e tente novamente.',
   },
 
   // Service Request

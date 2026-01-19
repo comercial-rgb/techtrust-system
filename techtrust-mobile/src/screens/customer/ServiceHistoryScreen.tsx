@@ -50,80 +50,14 @@ export default function ServiceHistoryScreen({ navigation }: any) {
 
   const loadServices = async () => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      setServices([
-        {
-          id: '1',
-          orderNumber: 'WO-2024-012',
-          title: 'Full Synthetic Oil Change',
-          description: 'Oil change with Mobil 1 synthetic, oil filter replacement',
-          status: 'completed',
-          date: '2024-11-15',
-          amount: 85.00,
-          provider: { name: 'Quick Lube Express', rating: 4.8 },
-          vehicle: { make: 'Honda', model: 'Civic', year: 2020 },
-          rating: 5,
-        },
-        {
-          id: '2',
-          orderNumber: 'WO-2024-010',
-          title: 'Brake Pad Replacement',
-          description: 'Front brake pads and rotors replaced, brake fluid flush',
-          status: 'completed',
-          date: '2024-10-28',
-          amount: 450.00,
-          provider: { name: 'AutoCare Plus', rating: 4.9 },
-          vehicle: { make: 'Honda', model: 'Civic', year: 2020 },
-          rating: 5,
-        },
-        {
-          id: '3',
-          orderNumber: 'WO-2024-008',
-          title: 'Tire Rotation & Balance',
-          description: 'All 4 tires rotated and balanced',
-          status: 'completed',
-          date: '2024-10-10',
-          amount: 65.00,
-          provider: { name: 'Discount Tire', rating: 4.7 },
-          vehicle: { make: 'Toyota', model: 'Corolla', year: 2019 },
-          rating: 4,
-        },
-        {
-          id: '4',
-          orderNumber: 'WO-2024-006',
-          title: 'A/C System Repair',
-          description: 'Compressor replacement and refrigerant recharge',
-          status: 'completed',
-          date: '2024-09-05',
-          amount: 680.00,
-          provider: { name: 'Cool Air Auto', rating: 4.6 },
-          vehicle: { make: 'Honda', model: 'Civic', year: 2020 },
-          rating: 4,
-        },
-        {
-          id: '5',
-          orderNumber: 'WO-2024-004',
-          title: '30K Mile Service',
-          description: 'Full inspection, fluid changes, spark plugs',
-          status: 'completed',
-          date: '2024-08-12',
-          amount: 520.00,
-          provider: { name: 'Honda Dealership', rating: 4.5 },
-          vehicle: { make: 'Honda', model: 'Civic', year: 2020 },
-          rating: 5,
-        },
-        {
-          id: '6',
-          orderNumber: 'WO-2024-002',
-          title: 'Engine Diagnostic',
-          description: 'Check engine light diagnosis - customer cancelled',
-          status: 'cancelled',
-          date: '2024-07-20',
-          amount: 0,
-          provider: { name: 'AutoCare Plus', rating: 4.9 },
-          vehicle: { make: 'Toyota', model: 'Corolla', year: 2019 },
-        },
-      ]);
+      // Carregar histórico real do backend quando API estiver disponível
+      // TODO: Implementar chamada à API quando endpoint estiver pronto
+      // const response = await api.get('/work-orders?status=COMPLETED,CANCELLED');
+      // setServices(response.data.data || []);
+      setServices([]);
+    } catch (error) {
+      console.error('Error loading service history:', error);
+      setServices([]);
     } finally {
       setLoading(false);
     }

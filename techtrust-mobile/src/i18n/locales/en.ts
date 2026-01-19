@@ -255,7 +255,9 @@ export default {
     welcomeBack: 'Welcome back!',
     demoMode: 'Demo mode: use any email/password',
     orContinueWith: 'or continue with',
-    tagline: 'Welcome, to your most trusted car hub',
+    tagline: 'Your most trusted automotive hub',
+    selectCountry: 'Select Country',
+    invalidPhone: 'Invalid phone number. Please check and try again.',
   },
 
   // Service Request

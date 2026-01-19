@@ -49,51 +49,14 @@ export default function ChatListScreen({ navigation }: any) {
   async function loadChats() {
     try {
       setLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // Mock chats
-      setChats([
-        {
-          id: '1',
-          participantId: 'p1',
-          participantName: 'AutoCare Plus',
-          participantRole: 'provider',
-          lastMessage: 'Perfect! I\'ll schedule you for 2 PM tomorrow.',
-          lastMessageTime: '2024-11-30T10:10:00Z',
-          unreadCount: 0,
-          isOnline: true,
-          relatedRequest: {
-            id: 'SR-2024-001',
-            title: 'Brake Inspection',
-          },
-        },
-        {
-          id: '2',
-          participantId: 'p2',
-          participantName: 'Quick Lube Express',
-          participantRole: 'provider',
-          lastMessage: 'Your oil change is complete. The car is ready for pickup.',
-          lastMessageTime: '2024-11-29T15:30:00Z',
-          unreadCount: 2,
-          isOnline: false,
-          relatedRequest: {
-            id: 'SR-2024-002',
-            title: 'Oil Change',
-          },
-        },
-        {
-          id: '3',
-          participantId: 'p3',
-          participantName: 'Discount Tire',
-          participantRole: 'provider',
-          lastMessage: 'We have the tires in stock. Would you like to schedule the installation?',
-          lastMessageTime: '2024-11-28T09:15:00Z',
-          unreadCount: 1,
-          isOnline: true,
-        },
-      ]);
+      // Carregar chats reais do backend quando API estiver disponível
+      // TODO: Implementar chamada à API quando endpoint de chat list estiver pronto
+      // const response = await api.get('/chats');
+      // setChats(response.data.data || []);
+      setChats([]);
     } catch (error) {
       console.error('Error loading chats:', error);
+      setChats([]);
     } finally {
       setLoading(false);
     }

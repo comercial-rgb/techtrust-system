@@ -20,6 +20,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { FadeInView, ScalePress } from '../components/Animated';
 import { WorkOrderSkeleton } from '../components/Skeleton';
 import { useI18n } from '../i18n';
+import { getServiceRequests, getWorkOrders } from '../services/dashboard.service';
 
 // Solicitações abertas (recebendo orçamentos)
 interface ServiceRequest {
@@ -74,86 +75,39 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
 
   async function loadData() {
     try {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // Open service requests (awaiting/receiving quotes)
-      setServiceRequests([
-        {
-          id: '1',
-          requestNumber: 'SR-2024-005',
-          title: 'Oil change and filters',
-          status: 'QUOTES_RECEIVED',
-          quotesCount: 4,
-          createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          vehicle: { make: 'Honda', model: 'Civic', year: 2020 },
-        },
-        {
-          id: '2',
-          requestNumber: 'SR-2024-006',
-          title: 'Noise from front brake',
-          status: 'SEARCHING',
-          quotesCount: 0,
-          createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-          vehicle: { make: 'Toyota', model: 'Corolla', year: 2019 },
-        },
-        {
-          id: '3',
-          requestNumber: 'SR-2024-007',
-          title: '50k mile service',
-          status: 'QUOTES_RECEIVED',
-          quotesCount: 2,
-          createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-          vehicle: { make: 'Honda', model: 'Civic', year: 2020 },
-        },
+      // Buscar dados reais do backend
+      const [serviceRequestsData, workOrdersData] = await Promise.all([
+        getServiceRequests(),
+        getWorkOrders(),
       ]);
       
-      // Work Orders (in progress/completed services)
-      setWorkOrders([
-        {
-          id: '1',
-          orderNumber: 'WO-2024-001',
-          status: 'IN_PROGRESS',
-          title: '30k mile service',
-          finalAmount: 450.00,
-          createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-          provider: { businessName: 'Auto Center Express', rating: 4.8 },
-          vehicle: { make: 'Toyota', model: 'Corolla', year: 2019 },
-        },
-        {
-          id: '2',
-          orderNumber: 'WO-2024-002',
-          status: 'AWAITING_PAYMENT',
-          title: 'Oil change and filters',
-          finalAmount: 180.00,
-          createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-          provider: { businessName: "John's Auto Repair", rating: 4.5 },
-          vehicle: { make: 'Honda', model: 'Civic', year: 2020 },
-        },
-        {
-          id: '3',
-          orderNumber: 'WO-2024-003',
-          status: 'COMPLETED',
-          title: 'Alignment and balancing',
-          finalAmount: 120.00,
-          createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-          completedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-          provider: { businessName: 'Auto Center Express', rating: 4.8 },
-          vehicle: { make: 'Honda', model: 'Civic', year: 2020 },
-        },
-        {
-          id: '4',
-          orderNumber: 'WO-2024-004',
-          status: 'COMPLETED',
-          title: 'Brake pad replacement',
-          finalAmount: 320.00,
-          createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-          completedAt: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
-          provider: { businessName: 'Premium Auto Shop', rating: 4.9 },
-          vehicle: { make: 'Toyota', model: 'Corolla', year: 2019 },
-        },
-      ]);
+      // Mapear service requests para formato esperado
+      setServiceRequests(serviceRequestsData.map(req => ({
+        id: req.id,
+        requestNumber: req.requestNumber || `SR-${req.id.substring(0, 4)}`,
+        title: req.title,
+        status: req.status as 'SEARCHING' | 'QUOTES_RECEIVED',
+        quotesCount: req.quotesCount || 0,
+        createdAt: req.createdAt,
+        vehicle: req.vehicle,
+      })));
+      
+      // Mapear work orders para formato esperado
+      setWorkOrders(workOrdersData.map((wo: any) => ({
+        id: wo.id,
+        orderNumber: wo.orderNumber || `WO-${wo.id.substring(0, 4)}`,
+        status: wo.status as 'PENDING_START' | 'IN_PROGRESS' | 'AWAITING_PAYMENT' | 'COMPLETED',
+        title: wo.title || wo.description || 'Service',
+        finalAmount: wo.finalAmount || wo.amount || 0,
+        createdAt: wo.createdAt,
+        completedAt: wo.completedAt,
+        provider: wo.provider || { businessName: 'Provider', rating: 0 },
+        vehicle: wo.vehicle || { make: 'N/A', model: 'N/A', year: 0 },
+      })));
     } catch (error) {
       console.error('Error loading services:', error);
+      setServiceRequests([]);
+      setWorkOrders([]);
     } finally {
       setLoading(false);
     }

@@ -77,53 +77,47 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
   }, []);
 
   const loadQuoteDetails = async () => {
-    await new Promise(resolve => setTimeout(resolve, 600));
-    
-    // Mock data
-    setQuote({
-      id: route.params?.quoteId || '1',
-      quoteNumber: 'QT-2024-001',
-      status: 'PENDING',
-      provider: {
-        name: "John's Auto Repair",
-        phone: '(555) 123-4567',
-        email: 'johnsauto@email.com',
-        address: '123 Main St, Miami, FL 33101',
-        rating: 4.8,
-      },
-      request: {
-        title: 'Oil Change and Filter',
-        description: 'Complete synthetic oil change with filter replacement',
-      },
-      vehicle: {
-        make: 'Honda',
-        model: 'Civic',
-        year: 2020,
-        plate: 'ABC-1234',
-      },
-      items: [
-        { id: '1', type: 'PART', description: 'Synthetic Motor Oil 5W-30', partCode: 'MOB-5W30-5QT', quantity: 5, unitPrice: 12.99 },
-        { id: '2', type: 'PART', description: 'Oil Filter - Premium', partCode: 'FLT-HON-2020', quantity: 1, unitPrice: 18.99 },
-        { id: '3', type: 'PART', description: 'Drain Plug Washer', partCode: 'WSH-DRN-001', quantity: 1, unitPrice: 2.50 },
-        { id: '4', type: 'LABOR', description: 'Oil Change Labor', quantity: 1, unitPrice: 35.00 },
-        { id: '5', type: 'LABOR', description: 'Multi-Point Inspection', quantity: 1, unitPrice: 15.00 },
-      ],
-      partsTotal: 86.44,
-      laborTotal: 50.00,
-      discount: 10.00,
-      tax: 10.11,
-      grandTotal: 136.55,
-      warranty: {
-        partsMonths: 12,
-        serviceDays: 90,
-        terms: 'Parts warranty covers manufacturing defects. Service warranty covers workmanship.',
-      },
-      estimatedDays: 1,
-      validUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-      notes: 'Please arrive 10 minutes before your appointment. We recommend this service every 5,000 miles.',
-      createdAt: new Date().toISOString(),
-    });
-    setLoading(false);
+    try {
+      const quoteId = route.params?.quoteId;
+      if (!quoteId) {
+        setQuote(null);
+        setLoading(false);
+        return;
+      }
+      
+      // Carregar detalhes do orçamento do backend
+      const { getQuoteDetails } = await import('../../services/dashboard.service');
+      const quoteData = await getQuoteDetails(quoteId);
+      
+      if (quoteData) {
+        setQuote({
+          id: quoteData.id,
+          quoteNumber: quoteData.quoteNumber || `QT-${quoteData.id.substring(0, 4)}`,
+          status: quoteData.status,
+          provider: quoteData.provider || { name: 'Provider', phone: '', email: '', address: '', rating: 0 },
+          request: quoteData.serviceRequest || { title: 'Service', description: '' },
+          vehicle: quoteData.vehicle || { make: 'N/A', model: 'N/A', year: 0, plate: '' },
+          items: quoteData.items || [],
+          partsTotal: quoteData.partsTotal || 0,
+          laborTotal: quoteData.laborTotal || 0,
+          discount: quoteData.discount || 0,
+          tax: quoteData.tax || 0,
+          grandTotal: quoteData.grandTotal || quoteData.totalAmount || 0,
+          warranty: quoteData.warranty || { partsMonths: 0, serviceDays: 0, terms: '' },
+          estimatedDays: quoteData.estimatedDays || 1,
+          validUntil: quoteData.validUntil || new Date().toISOString(),
+          notes: quoteData.notes || '',
+          createdAt: quoteData.createdAt,
+        });
+      } else {
+        setQuote(null);
+      }
+    } catch (error) {
+      console.error('Error loading quote details:', error);
+      setQuote(null);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getStatusInfo = (status: string) => {

@@ -43,48 +43,14 @@ export default function FavoriteProvidersScreen({ navigation }: any) {
 
   const loadProviders = async () => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      setProviders([
-        {
-          id: '1',
-          name: 'AutoCare Plus',
-          businessType: 'Full Service Auto Repair',
-          rating: 4.9,
-          totalReviews: 156,
-          distance: '2.3 mi',
-          address: '456 Auto Lane, Orlando, FL',
-          isVerified: true,
-          servicesCompleted: 12,
-          responseTime: '< 1 hour',
-          specialties: ['Oil Change', 'Brakes', 'Engine'],
-        },
-        {
-          id: '2',
-          name: 'Quick Lube Express',
-          businessType: 'Oil Change & Maintenance',
-          rating: 4.7,
-          totalReviews: 89,
-          distance: '1.5 mi',
-          address: '123 Quick St, Orlando, FL',
-          isVerified: true,
-          servicesCompleted: 8,
-          responseTime: '< 30 min',
-          specialties: ['Oil Change', 'Filters', 'Fluids'],
-        },
-        {
-          id: '3',
-          name: 'Discount Tire',
-          businessType: 'Tire & Wheel Specialists',
-          rating: 4.6,
-          totalReviews: 234,
-          distance: '3.8 mi',
-          address: '789 Tire Blvd, Orlando, FL',
-          isVerified: true,
-          servicesCompleted: 5,
-          responseTime: '< 2 hours',
-          specialties: ['Tires', 'Alignment', 'Rotation'],
-        },
-      ]);
+      // Carregar favoritos reais do backend quando API estiver disponível
+      // TODO: Implementar chamada à API quando endpoint estiver pronto
+      // const response = await api.get('/users/favorite-providers');
+      // setProviders(response.data.data || []);
+      setProviders([]);
+    } catch (error) {
+      console.error('Error loading favorite providers:', error);
+      setProviders([]);
     } finally {
       setLoading(false);
     }

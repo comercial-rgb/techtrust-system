@@ -50,26 +50,26 @@ export default function ChatScreen({ navigation, route }: any) {
   const flatListRef = useRef<FlatList>(null);
   
   const [chatParticipant] = useState<ChatParticipant>({
-    id: participant?.id || '1',
-    name: participant?.name || 'AutoCare Plus',
-    role: 'provider',
-    isOnline: true,
+    id: participant?.id || '',
+    name: participant?.name || t.chat?.participant || 'Participant',
+    role: participant?.role || 'provider',
+    isOnline: participant?.isOnline ?? false,
   });
   
   const [showUserModal, setShowUserModal] = useState(false);
 
-  // User profile data (would come from API in production)
+  // User profile data from route params
   const [userProfile] = useState({
-    id: participant?.id || '1',
-    name: participant?.name || 'AutoCare Plus',
-    role: 'provider',
-    phone: '+1 (407) 555-1234',
-    email: 'contact@autocare.com',
-    address: '123 Auto Lane, Orlando, FL',
-    rating: 4.8,
-    totalServices: 156,
-    memberSince: '2022',
-    verified: true,
+    id: participant?.id || '',
+    name: participant?.name || t.chat?.participant || 'Participant',
+    role: participant?.role || 'provider',
+    phone: participant?.phone || '',
+    email: participant?.email || '',
+    address: participant?.address || '',
+    rating: participant?.rating || 0,
+    totalServices: participant?.totalServices || 0,
+    memberSince: participant?.memberSince || '',
+    verified: participant?.verified || false,
   });
 
   useEffect(() => {
@@ -154,58 +154,15 @@ export default function ChatScreen({ navigation, route }: any) {
 
   async function loadMessages() {
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Mock messages
-      setMessages([
-        {
-          id: '1',
-          text: 'Hi! I saw your service request for brake inspection. I can help you with that.',
-          senderId: '1',
-          senderName: 'AutoCare Plus',
-          timestamp: '2024-11-30T10:00:00Z',
-          isOwn: false,
-          status: 'read',
-        },
-        {
-          id: '2',
-          text: 'Great! When would be a good time to bring in the car?',
-          senderId: 'me',
-          senderName: 'You',
-          timestamp: '2024-11-30T10:02:00Z',
-          isOwn: true,
-          status: 'read',
-        },
-        {
-          id: '3',
-          text: 'We have availability tomorrow morning at 9 AM or afternoon at 2 PM. Which works better for you?',
-          senderId: '1',
-          senderName: 'AutoCare Plus',
-          timestamp: '2024-11-30T10:05:00Z',
-          isOwn: false,
-          status: 'read',
-        },
-        {
-          id: '4',
-          text: '2 PM works perfectly for me.',
-          senderId: 'me',
-          senderName: 'You',
-          timestamp: '2024-11-30T10:08:00Z',
-          isOwn: true,
-          status: 'read',
-        },
-        {
-          id: '5',
-          text: 'Perfect! I\'ll schedule you for 2 PM tomorrow. Please bring your vehicle to our location at 123 Main Street. See you then!',
-          senderId: '1',
-          senderName: 'AutoCare Plus',
-          timestamp: '2024-11-30T10:10:00Z',
-          isOwn: false,
-          status: 'read',
-        },
-      ]);
+      // Carregar mensagens reais do backend quando API estiver disponível
+      // Por enquanto, iniciar com lista vazia
+      // TODO: Implementar chamada à API quando endpoint de chat estiver pronto
+      // const response = await api.get(`/chats/${chatId}/messages`);
+      // setMessages(response.data.data || []);
+      setMessages([]);
     } catch (error) {
       console.error('Error loading messages:', error);
+      setMessages([]);
     } finally {
       setLoading(false);
     }
