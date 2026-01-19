@@ -15,6 +15,12 @@ const router = Router();
 router.use(authenticate);
 
 /**
+ * POST /api/v1/vehicles/decode-vin
+ * Decodificar VIN usando API NHTSA
+ */
+router.post('/decode-vin', asyncHandler(vehicleController.decodeVehicleVIN));
+
+/**
  * GET /api/v1/vehicles
  * Listar todos os veículos do usuário
  */

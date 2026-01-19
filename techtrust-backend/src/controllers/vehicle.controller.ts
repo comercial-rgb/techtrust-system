@@ -9,6 +9,7 @@ import { Request, Response } from 'express';
 import { prisma } from '../config/database';
 import { AppError } from '../middleware/error-handler';
 import { logger } from '../config/logger';
+import { decodeVIN, isValidVINFormat } from '../services/nhtsa.service';
 
 /**
  * GET /api/v1/vehicles
@@ -53,7 +54,21 @@ export const getVehicles = async (req: Request, res: Response) => {
  */
 export const createVehicle = async (req: Request, res: Response) => {
   const userId = req.user!.id;
-  const { plateNumber, vin, make, model, year, color, currentMileage } = req.body;
+  const { 
+    plateNumber, 
+    plateState,
+    vin, 
+    make, 
+    model, 
+    year, 
+    color, 
+    currentMileage,
+    engineType,
+    fuelType,
+    bodyType,
+    trim,
+    vinDecoded = false
+  } = req.body;
 
   // Verificar assinatura e limite de veículos
   const subscription = await prisma.subscription.findFirst({
@@ -87,17 +102,19 @@ export const createVehicle = async (req: Request, res: Response) => {
     );
   }
 
-  // Verificar se placa já existe para este usuário
-  const existingVehicle = await prisma.vehicle.findFirst({
-    where: {
-      userId: userId,
-      plateNumber: plateNumber.toUpperCase(),
-      isActive: true,
-    },
-  });
+  // Verificar se placa já existe para este usuário (se placa foi fornecida)
+  if (plateNumber) {
+    const existingVehicle = await prisma.vehicle.findFirst({
+      where: {
+        userId: userId,
+        plateNumber: plateNumber.toUpperCase(),
+        isActive: true,
+      },
+    });
 
-  if (existingVehicle) {
-    throw new AppError('Você já cadastrou um veículo com esta placa', 409, 'PLATE_ALREADY_EXISTS');
+    if (existingVehicle) {
+      throw new AppError('Você já cadastrou um veículo com esta placa', 409, 'PLATE_ALREADY_EXISTS');
+    }
   }
 
   // Se for o primeiro veículo, definir como primary
@@ -107,19 +124,26 @@ export const createVehicle = async (req: Request, res: Response) => {
   const vehicle = await prisma.vehicle.create({
     data: {
       userId,
-      plateNumber: plateNumber.toUpperCase(),
-      vin: vin?.toUpperCase(),
+      plateNumber: plateNumber?.toUpperCase() || null,
+      plateState: plateState?.toUpperCase() || null,
+      vin: vin?.toUpperCase() || null,
       make,
       model,
       year: parseInt(year),
       color,
       currentMileage: currentMileage ? parseInt(currentMileage) : null,
+      engineType,
+      fuelType,
+      bodyType,
+      trim,
+      vinDecoded: vinDecoded,
+      vinDecodedAt: vinDecoded ? new Date() : null,
       isPrimary,
       isActive: true,
     },
   });
 
-  logger.info(`Veículo adicionado: ${vehicle.plateNumber} por ${userId}`);
+  logger.info(`Veículo adicionado: ${vehicle.plateNumber || vehicle.vin || vehicle.id} por ${userId}`);
 
   res.status(201).json({
     success: true,
@@ -364,5 +388,40 @@ export const deleteVehicle = async (req: Request, res: Response) => {
   res.json({
     success: true,
     message: 'Veículo removido com sucesso',
+  });
+};
+
+/**
+ * POST /api/v1/vehicles/decode-vin
+ * Decodificar VIN usando API NHTSA vPIC
+ */
+export const decodeVehicleVIN = async (req: Request, res: Response) => {
+  const { vin } = req.body;
+
+  if (!vin) {
+    throw new AppError('VIN é obrigatório', 400, 'VIN_REQUIRED');
+  }
+
+  // Validar formato do VIN
+  if (!isValidVINFormat(vin)) {
+    throw new AppError(
+      'VIN inválido. Deve conter 17 caracteres alfanuméricos (sem I, O, Q)',
+      400,
+      'INVALID_VIN_FORMAT'
+    );
+  }
+
+  // Decodificar VIN via NHTSA
+  const result = await decodeVIN(vin);
+
+  if (!result.success) {
+    throw new AppError(result.error || 'Erro ao decodificar VIN', 400, 'VIN_DECODE_FAILED');
+  }
+
+  logger.info(`VIN decodificado com sucesso: ${vin}`);
+
+  res.json({
+    success: true,
+    data: result.data,
   });
 };

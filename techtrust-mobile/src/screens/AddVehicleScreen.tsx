@@ -1,17 +1,18 @@
 /**
  * AddVehicleScreen - Add or Edit Vehicle
- * With additional fields for US market
- * Supports editing existing vehicles
- * ✨ Now with photo upload functionality
+ * ✨ Integração com NHTSA vPIC API para auto-preenchimento via VIN
+ * Com suporte para entrada manual quando VIN não for fornecido
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Image, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Image, Dimensions, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useI18n } from '../i18n';
 import { useRoute } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
+import { decodeVIN, isValidVINFormat } from '../services/nhtsa.service';
+import api from '../services/api';
 
 const { width } = Dimensions.get('window');
 const PHOTO_SIZE = (width - 48 - 16) / 3; // 3 photos per row with padding
@@ -29,22 +30,28 @@ export default function AddVehicleScreen({ navigation }: any) {
   const editVehicle = route.params?.vehicle || null;
   const isEditing = !!editVehicle;
   
+  // Estados básicos
+  const [vin, setVin] = useState(editVehicle?.vin || '');
+  const [plateNumber, setPlateNumber] = useState(editVehicle?.plateNumber || '');
+  const [plateState, setPlateState] = useState(editVehicle?.plateState || '');
+  const [color, setColor] = useState(editVehicle?.color || '');
+  
+  // Estados auto-preenchidos via VIN ou manuais
   const [make, setMake] = useState(editVehicle?.make || '');
   const [model, setModel] = useState(editVehicle?.model || '');
   const [year, setYear] = useState(editVehicle?.year?.toString() || '');
-  const [plateNumber, setPlateNumber] = useState(editVehicle?.plateNumber || '');
-  const [color, setColor] = useState(editVehicle?.color || '');
-  const [mileage, setMileage] = useState(editVehicle?.currentMileage?.toString() || '');
-  const [vin, setVin] = useState(editVehicle?.vin || '');
-  const [trim, setTrim] = useState(editVehicle?.trim || '');
-  const [primaryDriver, setPrimaryDriver] = useState(editVehicle?.primaryDriver || '');
+  const [engineType, setEngineType] = useState(editVehicle?.engineType || '');
   const [fuelType, setFuelType] = useState(editVehicle?.fuelType || '');
-  const [vehicleType, setVehicleType] = useState(editVehicle?.vehicleType || '');
-  const [insuranceProvider, setInsuranceProvider] = useState(editVehicle?.insuranceProvider || '');
-  const [insurancePolicy, setInsurancePolicy] = useState(editVehicle?.insurancePolicy || '');
-  const [saving, setSaving] = useState(false);
+  const [bodyType, setBodyType] = useState(editVehicle?.bodyType || '');
+  const [trim, setTrim] = useState(editVehicle?.trim || '');
   
-  // 📸 Vehicle photos state - Converter fotos existentes para o formato VehiclePhoto
+  const [mileage, setMileage] = useState(editVehicle?.currentMileage?.toString() || '');
+  const [saving, setSaving] = useState(false);
+  const [decodingVIN, setDecodingVIN] = useState(false);
+  const [vinDecoded, setVinDecoded] = useState(false);
+  const [manualEntry, setManualEntry] = useState(!editVehicle?.vin); // Se não tem VIN, é entrada manual
+  
+  // 📸 Vehicle photos state
   const [photos, setPhotos] = useState<VehiclePhoto[]>(() => {
     if (editVehicle?.photos && Array.isArray(editVehicle.photos)) {
       return editVehicle.photos.map((uri: string, index: number) => ({
@@ -54,6 +61,73 @@ export default function AddVehicleScreen({ navigation }: any) {
     }
     return [];
   });
+
+  // Função para decodificar VIN
+  const handleDecodeVIN = async () => {
+    if (!vin || vin.trim().length !== 17) {
+      Alert.alert(
+        t.vehicle?.invalidVIN || 'VIN Inválido',
+        t.vehicle?.vinMustBe17 || 'VIN deve ter exatamente 17 caracteres'
+      );
+      return;
+    }
+
+    if (!isValidVINFormat(vin)) {
+      Alert.alert(
+        t.vehicle?.invalidVIN || 'VIN Inválido',
+        t.vehicle?.vinInvalidFormat || 'VIN contém caracteres inválidos (não use I, O, Q)'
+      );
+      return;
+    }
+
+    setDecodingVIN(true);
+    
+    try {
+      const result = await decodeVIN(vin);
+      
+      if (result.success && result.data) {
+        // Auto-preencher campos
+        setMake(result.data.make);
+        setModel(result.data.model);
+        setYear(result.data.year.toString());
+        setEngineType(result.data.engineType || '');
+        setFuelType(result.data.fuelType || '');
+        setBodyType(result.data.bodyType || '');
+        setTrim(result.data.trim || '');
+        setVinDecoded(true);
+        setManualEntry(false);
+        
+        Alert.alert(
+          t.vehicle?.vinDecodedSuccess || 'VIN Decodificado!',
+          t.vehicle?.vinDecodedMessage || 'Dados do veículo preenchidos automaticamente'
+        );
+      } else {
+        Alert.alert(
+          t.vehicle?.vinDecodeError || 'Erro ao Decodificar VIN',
+          result.error || t.vehicle?.vinDecodeErrorMessage || 'Não foi possível decodificar o VIN. Você pode preencher os dados manualmente.'
+        );
+        setManualEntry(true);
+      }
+    } catch (error) {
+      console.error('Erro ao decodificar VIN:', error);
+      Alert.alert(
+        t.vehicle?.error || 'Erro',
+        t.vehicle?.vinDecodeErrorGeneric || 'Erro ao conectar com o serviço de decodificação'
+      );
+      setManualEntry(true);
+    } finally {
+      setDecodingVIN(false);
+    }
+  };
+
+  // Habilitar entrada manual
+  const enableManualEntry = () => {
+    setManualEntry(true);
+    Alert.alert(
+      t.vehicle?.manualEntryEnabled || 'Entrada Manual Ativada',
+      t.vehicle?.manualEntryMessage || 'Você pode agora preencher todos os campos manualmente'
+    );
+  };
 
   // Request camera/gallery permissions
   const requestPermissions = async () => {
@@ -153,44 +227,61 @@ export default function AddVehicleScreen({ navigation }: any) {
   };
 
   async function handleSave() {
-    if (!make || !model || !year || !plateNumber) {
-      Alert.alert(t.common?.error || 'Error', t.vehicle?.fillRequiredFields || 'Please fill in all required fields');
+    // Validar campos obrigatórios
+    if (!make || !model || !year) {
+      Alert.alert(
+        t.common?.error || 'Error', 
+        t.vehicle?.fillRequiredFields || 'Por favor, preencha Marca, Modelo e Ano'
+      );
       return;
     }
+    
     setSaving(true);
     
-    // Preparar dados do veículo com fotos
-    const vehicleData = {
-      make,
-      model,
-      year: parseInt(year),
-      plateNumber,
-      color,
-      currentMileage: mileage ? parseInt(mileage) : undefined,
-      vin,
-      trim,
-      primaryDriver,
-      fuelType,
-      vehicleType,
-      insuranceProvider,
-      insurancePolicy,
-      photos: photos.map(p => p.uri), // Converter para array de URIs
-    };
-    
-    // TODO: Enviar para API quando backend estiver pronto
-    // await api.post('/vehicles', vehicleData);
-    
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setSaving(false);
-    
-    if (isEditing) {
-      // Se estiver editando, apenas voltar
-      Alert.alert(t.common?.success || 'Success!', t.vehicle?.vehicleUpdatedSuccess || 'Vehicle updated successfully.', [
-        { text: t.common?.ok || 'OK', onPress: () => navigation.goBack() }
-      ]);
-    } else {
-      // Se for novo, passar dados de volta para VehiclesScreen
-      navigation.navigate('Vehicles', { newVehicle: vehicleData });
+    try {
+      // Preparar dados do veículo
+      const vehicleData = {
+        make,
+        model,
+        year: parseInt(year),
+        plateNumber: plateNumber || undefined,
+        plateState: plateState || undefined,
+        vin: vin || undefined,
+        color,
+        currentMileage: mileage ? parseInt(mileage) : undefined,
+        engineType,
+        fuelType,
+        bodyType,
+        trim,
+        vinDecoded,
+        photos: photos.map(p => p.uri),
+      };
+      
+      if (isEditing) {
+        // Atualizar veículo existente
+        await api.patch(`/vehicles/${editVehicle.id}`, vehicleData);
+        Alert.alert(
+          t.common?.success || 'Success!', 
+          t.vehicle?.vehicleUpdatedSuccess || 'Veículo atualizado com sucesso',
+          [{ text: t.common?.ok || 'OK', onPress: () => navigation.goBack() }]
+        );
+      } else {
+        // Criar novo veículo
+        await api.post('/vehicles', vehicleData);
+        Alert.alert(
+          t.common?.success || 'Success!', 
+          t.vehicle?.vehicleAddedSuccess || 'Veículo adicionado com sucesso',
+          [{ text: t.common?.ok || 'OK', onPress: () => navigation.goBack() }]
+        );
+      }
+    } catch (error: any) {
+      console.error('Erro ao salvar veículo:', error);
+      Alert.alert(
+        t.common?.error || 'Error', 
+        error.response?.data?.message || t.vehicle?.errorSaving || 'Erro ao salvar veículo'
+      );
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -258,58 +349,177 @@ export default function AddVehicleScreen({ navigation }: any) {
         {/* Basic Information Section */}
         <Text style={styles.sectionTitle}>{t.vehicle?.basicInformation || 'Basic Information'}</Text>
 
-        {/* Make */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>{t.vehicle?.make || 'Make'} *</Text>
-          <TextInput style={styles.input} placeholder="e.g., Honda, Toyota" value={make} onChangeText={setMake} />
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quickOptions}>
-            {popularMakes.map(m => (
-              <TouchableOpacity key={m} style={[styles.quickOption, make === m && styles.quickOptionSelected]} onPress={() => setMake(m)}>
-                <Text style={[styles.quickOptionText, make === m && styles.quickOptionTextSelected]}>{m}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-
-        {/* Model */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>{t.vehicle?.model || 'Model'} *</Text>
-          <TextInput style={styles.input} placeholder="e.g., Civic, Corolla" value={model} onChangeText={setModel} />
-        </View>
-
-        {/* Trim / Submodel */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>{t.vehicle?.trim || 'Trim / Submodel'}</Text>
-          <TextInput style={styles.input} placeholder="e.g., EX-L, Sport, Limited" value={trim} onChangeText={setTrim} />
-        </View>
-
-        {/* Year */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>{t.vehicle?.year || 'Year'} *</Text>
-          <TextInput style={styles.input} placeholder="e.g., 2020" value={year} onChangeText={setYear} keyboardType="numeric" maxLength={4} />
-        </View>
-
-        {/* VIN */}
+        {/* VIN Section with Decoder */}
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>{t.vehicle?.vin || 'VIN (Vehicle Identification Number)'}</Text>
+          <View style={styles.vinInputContainer}>
+            <TextInput 
+              style={[styles.input, styles.vinInput]} 
+              placeholder="e.g., 1HGBH41JXMN109186" 
+              value={vin} 
+              onChangeText={setVin} 
+              autoCapitalize="characters" 
+              maxLength={17}
+              editable={!decodingVIN && !vinDecoded}
+            />
+            {!vinDecoded && (
+              <TouchableOpacity 
+                style={[styles.decodeBtn, decodingVIN && styles.decodeBtnDisabled]} 
+                onPress={handleDecodeVIN}
+                disabled={decodingVIN || vin.length < 17}
+              >
+                {decodingVIN ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <>
+                    <Ionicons name="search" size={16} color="#fff" />
+                    <Text style={styles.decodeBtnText}>{t.vehicle?.decode || 'Decode'}</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
+          {vinDecoded && (
+            <View style={styles.vinDecodedBadge}>
+              <Ionicons name="checkmark-circle" size={16} color="#10b981" />
+              <Text style={styles.vinDecodedText}>{t.vehicle?.vinDecoded || 'VIN decoded - fields auto-filled'}</Text>
+            </View>
+          )}
+          <Text style={styles.inputHint}>
+            {t.vehicle?.vinHint || 'Optional - Enter VIN to auto-fill vehicle details'}
+          </Text>
+        </View>
+
+        {/* Manual Entry Toggle */}
+        {!vinDecoded && !manualEntry && (
+          <TouchableOpacity style={styles.manualEntryBtn} onPress={enableManualEntry}>
+            <Ionicons name="create-outline" size={20} color="#1976d2" />
+            <Text style={styles.manualEntryText}>
+              {t.vehicle?.manualEntry || 'Enter details manually (without VIN)'}
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Show fields only if VIN decoded or manual entry enabled */}
+        {(vinDecoded || manualEntry) && (
+          <>
+            {/* Make */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>{t.vehicle?.make || 'Make'} *</Text>
+              <TextInput 
+                style={[styles.input, vinDecoded && styles.inputReadOnly]} 
+                placeholder="e.g., Honda, Toyota" 
+                value={make} 
+                onChangeText={setMake}
+                editable={!vinDecoded}
+              />
+              {!vinDecoded && (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quickOptions}>
+                  {popularMakes.map(m => (
+                    <TouchableOpacity key={m} style={[styles.quickOption, make === m && styles.quickOptionSelected]} onPress={() => setMake(m)}>
+                      <Text style={[styles.quickOptionText, make === m && styles.quickOptionTextSelected]}>{m}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              )}
+            </View>
+
+            {/* Model */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>{t.vehicle?.model || 'Model'} *</Text>
+              <TextInput 
+                style={[styles.input, vinDecoded && styles.inputReadOnly]} 
+                placeholder="e.g., Civic, Corolla" 
+                value={model} 
+                onChangeText={setModel}
+                editable={!vinDecoded}
+              />
+            </View>
+
+            {/* Year */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>{t.vehicle?.year || 'Year'} *</Text>
+              <TextInput 
+                style={[styles.input, vinDecoded && styles.inputReadOnly]} 
+                placeholder="e.g., 2020" 
+                value={year} 
+                onChangeText={setYear} 
+                keyboardType="numeric" 
+                maxLength={4}
+                editable={!vinDecoded}
+              />
+            </View>
+
+            {/* Trim / Submodel */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>{t.vehicle?.trim || 'Trim / Submodel'}</Text>
+              <TextInput 
+                style={[styles.input, vinDecoded && styles.inputReadOnly]} 
+                placeholder="e.g., EX-L, Sport, Limited" 
+                value={trim} 
+                onChangeText={setTrim}
+                editable={!vinDecoded}
+              />
+            </View>
+
+            {/* Engine Type */}
+            {engineType && (
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>{t.vehicle?.engine || 'Engine'}</Text>
+                <TextInput 
+                  style={[styles.input, styles.inputReadOnly]} 
+                  value={engineType}
+                  editable={false}
+                />
+              </View>
+            )}
+
+            {/* Body Type */}
+            {bodyType && (
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>{t.vehicle?.bodyType || 'Body Type'}</Text>
+                <TextInput 
+                  style={[styles.input, styles.inputReadOnly]} 
+                  value={bodyType}
+                  editable={false}
+                />
+              </View>
+            )}
+          </>
+        )}
+
+        {/* License Plate - Always visible */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>{t.vehicle?.licensePlate || 'License Plate'}</Text>
           <TextInput 
             style={styles.input} 
-            placeholder="e.g., 1HGBH41JXMN109186" 
-            value={vin} 
-            onChangeText={setVin} 
+            placeholder="e.g., ABC-1234" 
+            value={plateNumber} 
+            onChangeText={setPlateNumber} 
             autoCapitalize="characters" 
-            maxLength={17} 
+            maxLength={10} 
           />
-          <Text style={styles.inputHint}>{t.vehicle?.vinHint || '17-character unique identifier'}</Text>
+          <Text style={styles.inputHint}>{t.vehicle?.plateHint || 'Optional'}</Text>
         </View>
 
-        {/* License Plate */}
+          <Text style={styles.inputHint}>{t.vehicle?.plateHint || 'Optional'}</Text>
+        </View>
+
+        {/* Plate State (for US plates) */}
         <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>{t.vehicle?.licensePlate || 'License Plate'} *</Text>
-          <TextInput style={styles.input} placeholder="e.g., ABC-1234" value={plateNumber} onChangeText={setPlateNumber} autoCapitalize="characters" maxLength={10} />
+          <Text style={styles.inputLabel}>{t.vehicle?.plateState || 'Plate State (for US)'}</Text>
+          <TextInput 
+            style={styles.input} 
+            placeholder="e.g., CA, NY, TX" 
+            value={plateState} 
+            onChangeText={setPlateState} 
+            autoCapitalize="characters" 
+            maxLength={2} 
+          />
+          <Text style={styles.inputHint}>{t.vehicle?.plateStateHint || 'Optional - 2 letter state code'}</Text>
         </View>
 
-        {/* Color */}
+        {/* Color - Always manual */}
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>{t.vehicle?.color || 'Color'}</Text>
           <TextInput style={styles.input} placeholder="e.g., Silver, Black" value={color} onChangeText={setColor} />
@@ -479,5 +689,69 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6b7280',
     flex: 1,
+  },
+  vinInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  vinInput: {
+    flex: 1,
+    marginBottom: 0,
+  },
+  decodeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#1976d2',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    minWidth: 100,
+    justifyContent: 'center',
+  },
+  decodeBtnDisabled: {
+    backgroundColor: '#9ca3af',
+  },
+  decodeBtnText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  vinDecodedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#d1fae5',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    marginTop: 8,
+  },
+  vinDecodedText: {
+    color: '#065f46',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  manualEntryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#f0f9ff',
+    padding: 14,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+  },
+  manualEntryText: {
+    color: '#1976d2',
+    fontSize: 14,
+    fontWeight: '500',
+    flex: 1,
+  },
+  inputReadOnly: {
+    backgroundColor: '#f3f4f6',
+    color: '#6b7280',
   },
 });

@@ -247,9 +247,10 @@ model Vehicle {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   
-  // Identificação
-  plateNumber String
-  vin         String?
+  // Identificação (agora opcionais)
+  plateNumber String?
+  plateState  String? // Estado da placa (EUA)
+  vin         String? // VIN (Vehicle Identification Number)
   
   // Dados do veículo
   make  String
@@ -257,12 +258,22 @@ model Vehicle {
   year  Int
   color String?
   
+  // Dados adicionais (auto-preenchidos via NHTSA vPIC ou manual)
+  engineType String? // Tipo de motor
+  fuelType   String? // Tipo de combustível
+  bodyType   String? // Tipo de carroceria
+  trim       String? // Versão/acabamento
+  
   // Hodômetro
   currentMileage       Int?
   lastMileageUpdate    DateTime?
   
   // Foto
   photoUrl String?
+  
+  // Metadata NHTSA
+  vinDecoded     Boolean @default(false) // Se VIN foi decodificado
+  vinDecodedAt   DateTime? // Quando foi decodificado
   
   // Status
   isPrimary Boolean @default(false)
@@ -273,8 +284,8 @@ model Vehicle {
   workOrders      WorkOrder[]
   maintenanceSchedule VehicleMaintenanceSchedule[]
 
-  @@unique([userId, plateNumber])
   @@index([userId])
+  @@index([vin])
   @@map("vehicles")
 }
 
