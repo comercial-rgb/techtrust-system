@@ -70,23 +70,40 @@ export default function DashboardPage() {
   }, [isAuthenticated]);
 
   async function loadDashboardData() {
-    // Simulated data - replace with API call
-    setStats({
-      users: { total: 1247, customers: 1089, providers: 158, newThisMonth: 87 },
-      services: { totalRequests: 3456, activeWorkOrders: 234, completedThisMonth: 456, pendingApproval: 12 },
-      revenue: { totalThisMonth: 125890.5, percentChange: 15.3, pendingPayments: 23450.0 },
-      providers: { total: 158, pendingApproval: 8, suspended: 3 },
-    });
+    setLoading(true);
+    try {
+      // Carregar estatísticas da API
+      const response = await fetch('/api/admin/dashboard/stats', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      
+      if (!response.ok) throw new Error('Erro ao carregar dados');
+      
+      const data = await response.json();
+      
+      setStats(data.stats || {
+        users: { total: 0, customers: 0, providers: 0, newThisMonth: 0 },
+        services: { totalRequests: 0, activeWorkOrders: 0, completedThisMonth: 0, pendingApproval: 0 },
+        revenue: { totalThisMonth: 0, percentChange: 0, pendingPayments: 0 },
+        providers: { total: 0, pendingApproval: 0, suspended: 0 },
+      });
 
-    setRecentActivities([
-      { id: 1, type: 'user', message: 'Novo usuário cadastrado: João Silva', time: '5 min atrás' },
-      { id: 2, type: 'provider', message: 'Fornecedor "Auto Center Express" aguardando aprovação', time: '15 min atrás' },
-      { id: 3, type: 'payment', message: 'Pagamento de R$ 450,00 confirmado', time: '1 hora atrás' },
-      { id: 4, type: 'service', message: 'Serviço #WO-2024-789 concluído', time: '2 horas atrás' },
-      { id: 5, type: 'alert', message: 'Avaliação negativa recebida - verificar', time: '3 horas atrás' },
-    ]);
-
-    setLoading(false);
+      setRecentActivities(data.recentActivities || []);
+    } catch (error) {
+      console.error('Erro ao carregar dashboard:', error);
+      // Mantém valores zerados em caso de erro
+      setStats({
+        users: { total: 0, customers: 0, providers: 0, newThisMonth: 0 },
+        services: { totalRequests: 0, activeWorkOrders: 0, completedThisMonth: 0, pendingApproval: 0 },
+        revenue: { totalThisMonth: 0, percentChange: 0, pendingPayments: 0 },
+        providers: { total: 0, pendingApproval: 0, suspended: 0 },
+      });
+      setRecentActivities([]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   if (authLoading || loading) {
