@@ -137,27 +137,6 @@ export default function AddVehicleScreen({ navigation }: any) {
       setDecodingVIN(false);
     }
   };
-          t.vehicle?.vinDecodedSuccess || 'VIN Decodificado!',
-          t.vehicle?.vinDecodedMessage || 'Dados do veículo preenchidos automaticamente'
-        );
-      } else {
-        Alert.alert(
-          t.vehicle?.vinDecodeError || 'Erro ao Decodificar VIN',
-          result.error || t.vehicle?.vinDecodeErrorMessage || 'Não foi possível decodificar o VIN. Você pode preencher os dados manualmente.'
-        );
-        setManualEntry(true);
-      }
-    } catch (error) {
-      console.error('Erro ao decodificar VIN:', error);
-      Alert.alert(
-        t.vehicle?.error || 'Erro',
-        t.vehicle?.vinDecodeErrorGeneric || 'Erro ao conectar com o serviço de decodificação'
-      );
-      setManualEntry(true);
-    } finally {
-      setDecodingVIN(false);
-    }
-  };
 
   // Habilitar entrada manual
   const enableManualEntry = () => {
