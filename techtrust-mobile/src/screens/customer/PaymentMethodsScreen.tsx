@@ -109,38 +109,6 @@ export default function PaymentMethodsScreen({ navigation }: any) {
       setLoading(false);
     }
   };
-        {
-          id: '1',
-          type: 'credit',
-          brand: 'Visa',
-          lastFour: '4242',
-          holderName: 'JOHN DOE',
-          expiryDate: '12/26',
-          isDefault: true,
-        },
-        {
-          id: '2',
-          type: 'credit',
-          brand: 'Mastercard',
-          lastFour: '8888',
-          holderName: 'JOHN DOE',
-          expiryDate: '06/25',
-          isDefault: false,
-        },
-        {
-          id: '3',
-          type: 'debit',
-          brand: 'Visa',
-          lastFour: '1234',
-          holderName: 'JOHN DOE',
-          expiryDate: '09/27',
-          isDefault: false,
-        },
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleOpenModal = () => {
     setFormData({
