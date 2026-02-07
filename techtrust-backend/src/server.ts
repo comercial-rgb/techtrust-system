@@ -98,9 +98,26 @@ io.on('connection', (socket) => {
 // Segurança
 app.use(helmet());
 
-// CORS
+// CORS - Dynamic origin handling
+const allowedOrigins = process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000'];
 app.use(cors({
-  origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000'],
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    // Check if origin is in allowed list
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    // Allow any Vercel deployment
+    if (origin.endsWith('.vercel.app')) {
+      return callback(null, true);
+    }
+    
+    // Block others
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true
 }));
 
