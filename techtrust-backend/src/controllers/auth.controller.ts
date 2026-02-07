@@ -457,7 +457,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Se o email existir, você receberá um link de recuperação.',
     });
