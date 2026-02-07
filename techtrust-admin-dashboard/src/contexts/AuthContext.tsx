@@ -23,7 +23,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Modo desenvolvimento - permite login sem backend
-const DEV_MODE = true;
+const DEV_MODE = false;
 const DEV_ADMIN = {
   id: 'admin-1',
   fullName: 'Administrador TechTrust',
