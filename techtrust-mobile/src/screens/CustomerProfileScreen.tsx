@@ -3,7 +3,7 @@
  * Modern design with cards and statistics
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { FadeInView, ScalePress } from '../components/Animated';
 import { useI18n, languages, Language } from '../i18n';
+import api from '../services/api';
 
 export default function CustomerProfileScreen({ navigation }: any) {
   const { user, logout } = useAuth();
@@ -28,6 +29,45 @@ export default function CustomerProfileScreen({ navigation }: any) {
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [showSpokenLanguagesModal, setShowSpokenLanguagesModal] = useState(false);
   const [spokenLanguages, setSpokenLanguages] = useState<string[]>(['en']); // Languages the customer speaks
+  const [stats, setStats] = useState({
+    totalServices: 0,
+    totalSpent: 0,
+    vehiclesCount: 0,
+    memberSince: new Date().getFullYear().toString(),
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
+
+  useEffect(() => {
+    loadUserStats();
+  }, []);
+
+  const loadUserStats = async () => {
+    try {
+      setLoadingStats(true);
+      // Load real user stats from API
+      const [vehiclesRes, servicesRes] = await Promise.all([
+        api.get('/vehicles'),
+        api.get('/service-requests'),
+      ]);
+      
+      const vehicles = vehiclesRes.data?.vehicles || [];
+      const services = servicesRes.data?.requests || [];
+      const completedServices = services.filter((s: any) => s.status === 'completed');
+      const totalSpent = completedServices.reduce((sum: number, s: any) => sum + (s.totalPrice || 0), 0);
+      
+      setStats({
+        totalServices: completedServices.length,
+        totalSpent,
+        vehiclesCount: vehicles.length,
+        memberSince: user?.createdAt ? new Date(user.createdAt).getFullYear().toString() : new Date().getFullYear().toString(),
+      });
+    } catch (error) {
+      console.error('Error loading user stats:', error);
+      // Keep default zero stats on error
+    } finally {
+      setLoadingStats(false);
+    }
+  };
 
   const currentLanguage = languages.find(l => l.code === language) || languages[0];
 
@@ -62,13 +102,6 @@ export default function CustomerProfileScreen({ navigation }: any) {
         { text: 'Log Out', style: 'destructive', onPress: logout },
       ]
     );
-  };
-
-  const stats = {
-    totalServices: 12,
-    totalSpent: 2450,
-    vehiclesCount: 2,
-    memberSince: '2023',
   };
 
   const menuItems = [

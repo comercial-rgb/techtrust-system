@@ -46,6 +46,10 @@ export default function AddVehicleScreen({ navigation }: any) {
   const [trim, setTrim] = useState(editVehicle?.trim || '');
   
   const [mileage, setMileage] = useState(editVehicle?.currentMileage?.toString() || '');
+  const [vehicleType, setVehicleType] = useState(editVehicle?.vehicleType || '');
+  const [primaryDriver, setPrimaryDriver] = useState(editVehicle?.primaryDriver || '');
+  const [insuranceProvider, setInsuranceProvider] = useState(editVehicle?.insuranceProvider || '');
+  const [insurancePolicy, setInsurancePolicy] = useState(editVehicle?.insurancePolicy || '');
   const [saving, setSaving] = useState(false);
   const [decodingVIN, setDecodingVIN] = useState(false);
   const [vinDecoded, setVinDecoded] = useState(false);
@@ -151,19 +155,33 @@ export default function AddVehicleScreen({ navigation }: any) {
   const requestPermissions = async () => {
     try {
       const cameraResult = await ImagePicker.requestCameraPermissionsAsync();
-      const mediaResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
-      if (cameraResult.status !== 'granted' || mediaResult.status !== 'granted') {
+      if (cameraResult.status !== 'granted') {
         Alert.alert(
-          t.common?.permissionRequired || 'Permission Required',
-          t.vehicle?.cameraPermissionMessage || 'We need camera and gallery permissions to add vehicle photos.',
+          t.common?.permissionRequired || 'Permissão Necessária',
+          t.vehicle?.cameraPermissionMessage || 'Precisamos de permissão para câmera e galeria para adicionar fotos do veículo.',
           [{ text: t.common?.ok || 'OK' }]
         );
         return false;
       }
+      
+      const mediaResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (mediaResult.status !== 'granted') {
+        Alert.alert(
+          t.common?.permissionRequired || 'Permissão Necessária',
+          t.vehicle?.cameraPermissionMessage || 'Precisamos de permissão para câmera e galeria para adicionar fotos do veículo.',
+          [{ text: t.common?.ok || 'OK' }]
+        );
+        return false;
+      }
+      
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error requesting permissions:', error);
+      Alert.alert(
+        t.common?.error || 'Erro',
+        error?.message || 'Não foi possível solicitar permissões. Tente novamente.',
+        [{ text: t.common?.ok || 'OK' }]
+      );
       return false;
     }
   };
@@ -181,18 +199,18 @@ export default function AddVehicleScreen({ navigation }: any) {
         quality: 0.8,
       });
 
-      if (!result.canceled && result.assets[0]) {
+      if (!result.canceled && result.assets && result.assets[0]) {
         const newPhoto: VehiclePhoto = {
           uri: result.assets[0].uri,
           id: Date.now().toString(),
         };
         setPhotos(prev => [...prev, newPhoto]);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error taking photo:', error);
       Alert.alert(
-        t.common?.error || 'Error',
-        t.vehicle?.photoError || 'Failed to take photo. Please try again.',
+        t.common?.error || 'Erro',
+        error?.message || t.vehicle?.photoError || 'Falha ao tirar foto. Por favor, tente novamente.',
         [{ text: t.common?.ok || 'OK' }]
       );
     }
@@ -212,18 +230,18 @@ export default function AddVehicleScreen({ navigation }: any) {
         quality: 0.8,
       });
 
-      if (!result.canceled && result.assets.length > 0) {
+      if (!result.canceled && result.assets && result.assets.length > 0) {
         const newPhotos: VehiclePhoto[] = result.assets.map((asset, index) => ({
           uri: asset.uri,
           id: `${Date.now()}-${index}`,
         }));
         setPhotos(prev => [...prev, ...newPhotos].slice(0, 6)); // Max 6 photos
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error picking from gallery:', error);
       Alert.alert(
-        t.common?.error || 'Error',
-        t.vehicle?.photoError || 'Failed to pick photos. Please try again.',
+        t.common?.error || 'Erro',
+        error?.message || t.vehicle?.photoError || 'Falha ao selecionar fotos. Por favor, tente novamente.',
         [{ text: t.common?.ok || 'OK' }]
       );
     }

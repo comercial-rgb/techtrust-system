@@ -512,12 +512,8 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
       {/* Logged In Banner */}
       {isAuthenticated && user && (
         <View style={styles.loggedInBanner}>
-          <View style={styles.loggedInAvatar}>
-            <Ionicons name="person" size={16} color="#fff" />
-          </View>
-          <Text style={styles.loggedInText}>
-            You now are connected to your most trusted car hub
-          </Text>
+          <View style={styles.onlineIndicator} />
+          <Text style={styles.loggedInText}>Online</Text>
         </View>
       )}
       
@@ -1375,28 +1371,25 @@ const styles = StyleSheet.create({
   loggedInBanner: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#eff6ff',
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#dbeafe',
+    gap: 8,
   },
-  loggedInAvatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#1976d2',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
+  onlineIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#10b981',
   },
   loggedInText: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#1e293b',
-    letterSpacing: -0.3,
-    lineHeight: 20,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#10b981',
+    letterSpacing: 0.5,
   },
   loggedInName: {
     fontWeight: '600',

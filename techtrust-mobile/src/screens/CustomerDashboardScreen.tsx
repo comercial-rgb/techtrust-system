@@ -1120,6 +1120,40 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#374151',
   },
+  // Quick Actions
+  quickActionsContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 24,
+  },
+  quickActionsList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginTop: 12,
+  },
+  quickActionItem: {
+    width: (SCREEN_WIDTH - 64) / 4,
+    alignItems: 'center',
+  },
+  quickActionIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  quickActionLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#374151',
+    textAlign: 'center',
+  },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',

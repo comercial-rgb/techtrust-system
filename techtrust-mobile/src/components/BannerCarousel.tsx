@@ -87,9 +87,13 @@ export default function BannerCarousel({ banners, autoPlay = true }: BannerCarou
     const hasError = imageErrors[item.id];
     
     // Ensure imageUrl is absolute (add API base URL if it's relative)
-    const imageUrl = item.imageUrl?.startsWith('http') 
-      ? item.imageUrl 
-      : `${process.env.EXPO_PUBLIC_API_URL || 'https://techtrust-api.onrender.com'}${item.imageUrl}`;
+    let imageUrl = item.imageUrl || '';
+    if (imageUrl && !imageUrl.startsWith('http')) {
+      const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'https://techtrust-api.onrender.com';
+      imageUrl = `${baseUrl}${imageUrl.startsWith('/') ? imageUrl : '/' + imageUrl}`;
+    }
+    
+    console.log('BannerCarousel rendering banner:', item.id, 'URL:', imageUrl);
     
     return (
       <TouchableOpacity
@@ -97,12 +101,19 @@ export default function BannerCarousel({ banners, autoPlay = true }: BannerCarou
         activeOpacity={item.linkUrl ? 0.8 : 1}
         onPress={() => handleBannerPress(item)}
       >
-        {!hasError ? (
+        {!hasError && imageUrl ? (
           <Image
-            source={{ uri: imageUrl }}
+            source={{ 
+              uri: imageUrl,
+              cache: 'force-cache',
+            }}
             style={styles.bannerImage}
             resizeMode="cover"
-            onError={() => handleImageError(item.id)}
+            onError={() => {
+              console.log('BannerCarousel image error for:', imageUrl);
+              handleImageError(item.id);
+            }}
+            onLoad={() => console.log('BannerCarousel image loaded:', imageUrl)}
           />
         ) : (
           <View style={[styles.bannerImage, styles.errorPlaceholder]}>
