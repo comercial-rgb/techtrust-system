@@ -85,16 +85,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { success: false, error: response.error };
       }
 
-      console.log('Login response:', response);
-      console.log('User data:', response.data);
-      console.log('User role:', response.data?.user?.role);
+      // API retorna response.data.data devido à estrutura da api.ts
+      const loginData = response.data?.data || response.data;
 
-      if (response.data?.user?.role !== 'ADMIN') {
+      if (loginData?.user?.role !== 'ADMIN') {
         return { success: false, error: 'Acesso restrito a administradores' };
       }
 
-      Cookies.set('tt_admin_token', response.data.token, { expires: 7 });
-      setUser(response.data.user);
+      Cookies.set('tt_admin_token', loginData.token, { expires: 7 });
+      setUser(loginData.user);
       return { success: true };
     } catch (error: any) {
       return { success: false, error: error.message || 'Erro ao fazer login' };
