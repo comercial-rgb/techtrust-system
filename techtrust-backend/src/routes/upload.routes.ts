@@ -1,16 +1,28 @@
 import { Router, Request, Response } from 'express';
-import multer, { FileFilterCallback } from 'multer';
+import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { authenticate } from '../middleware/auth';
 
 const router = Router();
 
+// Define file interface locally
+interface UploadedFile {
+  fieldname: string;
+  originalname: string;
+  encoding: string;
+  mimetype: string;
+  size: number;
+  destination: string;
+  filename: string;
+  path: string;
+}
+
 // Extend Express Request type to include file
 declare global {
   namespace Express {
     interface Request {
-      file?: Multer.File;
+      file?: UploadedFile;
     }
   }
 }
@@ -37,7 +49,7 @@ const storage = multer.diskStorage({
 });
 
 // File filter - accept only images
-const fileFilter = (_req: any, file: any, cb: FileFilterCallback) => {
+const fileFilter = (_req: any, file: any, cb: any) => {
   const allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
   
   if (allowedMimes.includes(file.mimetype)) {
