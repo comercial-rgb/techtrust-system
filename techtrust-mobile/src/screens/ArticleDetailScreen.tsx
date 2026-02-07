@@ -95,7 +95,11 @@ export default function ArticleDetailScreen({ route, navigation }: any) {
         {/* Featured Image */}
         {article.imageUrl && !imageError ? (
           <Image
-            source={{ uri: article.imageUrl }}
+            source={{ 
+              uri: article.imageUrl.startsWith('http') 
+                ? article.imageUrl 
+                : `${process.env.EXPO_PUBLIC_API_URL || 'https://techtrust-api.onrender.com'}${article.imageUrl}` 
+            }}
             style={styles.featuredImage}
             resizeMode="cover"
             onError={() => setImageError(true)}

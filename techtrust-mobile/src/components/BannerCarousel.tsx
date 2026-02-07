@@ -86,6 +86,11 @@ export default function BannerCarousel({ banners, autoPlay = true }: BannerCarou
   const renderBanner = ({ item }: { item: Banner }) => {
     const hasError = imageErrors[item.id];
     
+    // Ensure imageUrl is absolute (add API base URL if it's relative)
+    const imageUrl = item.imageUrl?.startsWith('http') 
+      ? item.imageUrl 
+      : `${process.env.EXPO_PUBLIC_API_URL || 'https://techtrust-api.onrender.com'}${item.imageUrl}`;
+    
     return (
       <TouchableOpacity
         style={styles.bannerContainer}
@@ -94,7 +99,7 @@ export default function BannerCarousel({ banners, autoPlay = true }: BannerCarou
       >
         {!hasError ? (
           <Image
-            source={{ uri: item.imageUrl }}
+            source={{ uri: imageUrl }}
             style={styles.bannerImage}
             resizeMode="cover"
             onError={() => handleImageError(item.id)}

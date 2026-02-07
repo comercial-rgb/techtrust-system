@@ -63,6 +63,11 @@ export default function SpecialOffersSection({
     const hasError = imageErrors[item.id];
     const colors = getOfferColors(index);
     
+    // Ensure imageUrl is absolute
+    const imageUrl = item.imageUrl?.startsWith('http') 
+      ? item.imageUrl 
+      : `${process.env.EXPO_PUBLIC_API_URL || 'https://techtrust-api.onrender.com'}${item.imageUrl}`;
+    
     return (
       <TouchableOpacity 
         style={[styles.offerCard, compact && styles.offerCardCompact]}
@@ -71,7 +76,7 @@ export default function SpecialOffersSection({
       >
         {item.imageUrl && !hasError ? (
           <Image 
-            source={{ uri: item.imageUrl }} 
+            source={{ uri: imageUrl }} 
             style={[styles.offerImage, compact && styles.offerImageCompact]} 
             onError={() => handleImageError(item.id)}
           />

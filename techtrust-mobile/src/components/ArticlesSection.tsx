@@ -63,6 +63,11 @@ export default function ArticlesSection({
 
   const renderArticle = ({ item }: { item: Article }) => {
     const hasError = imageErrors[item.id];
+    
+    // Ensure imageUrl is absolute
+    const imageUrl = item.imageUrl?.startsWith('http') 
+      ? item.imageUrl 
+      : `${process.env.EXPO_PUBLIC_API_URL || 'https://techtrust-api.onrender.com'}${item.imageUrl}`;
 
     return (
       <TouchableOpacity
@@ -72,7 +77,7 @@ export default function ArticlesSection({
       >
         {item.imageUrl && !hasError ? (
           <Image
-            source={{ uri: item.imageUrl }}
+            source={{ uri: imageUrl }}
             style={styles.articleImage}
             resizeMode="cover"
             onError={() => handleImageError(item.id)}
