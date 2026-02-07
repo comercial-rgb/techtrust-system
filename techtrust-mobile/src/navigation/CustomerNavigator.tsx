@@ -24,6 +24,7 @@ import RequestDetailsScreen from '../screens/RequestDetailsScreen';
 import WorkOrderDetailsScreen from '../screens/WorkOrderDetailsScreen';
 import PaymentScreen from '../screens/PaymentScreen';
 import RatingScreen from '../screens/RatingScreen';
+import ArticleDetailScreen from '../screens/ArticleDetailScreen';
 
 // Chat Screens
 import ChatListScreen from '../screens/ChatListScreen';
@@ -92,6 +93,7 @@ function DashboardStack() {
       <Stack.Screen name="RequestDetails" component={RequestDetailsScreen} />
       <Stack.Screen name="QuoteDetails" component={CustomerQuoteDetailsScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
+      <Stack.Screen name="ArticleDetail" component={ArticleDetailScreen} />
     </Stack.Navigator>
   );
 }

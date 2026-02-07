@@ -75,8 +75,13 @@ router.post('/', authenticate, upload.single('image'), (req: Request, res: Respo
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    // Return the URL path to access the image
-    const imageUrl = `/uploads/${req.file.filename}`;
+    // Get the base URL from the request
+    const protocol = req.protocol;
+    const host = req.get('host');
+    const baseUrl = `${protocol}://${host}`;
+    
+    // Return the full URL to access the image
+    const imageUrl = `${baseUrl}/uploads/${req.file.filename}`;
     
     return res.json({
       success: true,

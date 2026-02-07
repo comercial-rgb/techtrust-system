@@ -24,7 +24,10 @@ import { FadeInView, ScalePress } from '../components/Animated';
 import { DashboardStatsSkeleton } from '../components/Skeleton';
 import { logos } from '../constants/images';
 import { useI18n } from '../i18n';
-import { getHomeData, SpecialOffer } from '../services/content.service';
+import { getHomeData, Banner, Article } from '../services/content.service';
+import BannerCarousel from '../components/BannerCarousel';
+import SpecialOffersSection, { SpecialOffer } from '../components/SpecialOffersSection';
+import ArticlesSection from '../components/ArticlesSection';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = (SCREEN_WIDTH - 48) / 2; // 16 padding on each side + 16 gap
@@ -130,7 +133,9 @@ export default function CustomerDashboardScreen({ navigation }: any) {
   const [refreshing, setRefreshing] = useState(false);
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [banners, setBanners] = useState<Banner[]>([]);
   const [offers, setOffers] = useState<SpecialOffer[]>([]);
+  const [articles, setArticles] = useState<Article[]>([]);
   const [stats, setStats] = useState({
     activeServices: 0,
     pendingQuotes: 0,
@@ -193,9 +198,11 @@ export default function CustomerDashboardScreen({ navigation }: any) {
 
   async function loadDashboardData() {
     try {
-      // Buscar ofertas da API
+      // Buscar conteúdo da API
       const homeData = await getHomeData();
+      setBanners(homeData.banners || []);
       setOffers(homeData.offers || []);
+      setArticles(homeData.articles || []);
       
       // Buscar dados reais da API
       const [statsData, vehiclesData, requestsData] = await Promise.all([
@@ -295,6 +302,13 @@ export default function CustomerDashboardScreen({ navigation }: any) {
             </View>
           </View>
         </FadeInView>
+
+        {/* Banner Carousel */}
+        {banners.length > 0 && (
+          <FadeInView delay={100}>
+            <BannerCarousel banners={banners} autoPlay={true} />
+          </FadeInView>
+        )}
 
         {/* Quick Action Banner */}
         <FadeInView delay={100}>
@@ -423,6 +437,28 @@ export default function CustomerDashboardScreen({ navigation }: any) {
             </TouchableOpacity>
           </View>
         </FadeInView>
+
+        {/* Special Offers */}
+        {offers.length > 0 && (
+          <FadeInView delay={280}>
+            <SpecialOffersSection 
+              offers={offers}
+              onOfferPress={handleOfferPress}
+              showHeader={true}
+            />
+          </FadeInView>
+        )}
+
+        {/* Articles */}
+        {articles.length > 0 && (
+          <FadeInView delay={290}>
+            <ArticlesSection 
+              articles={articles}
+              onArticlePress={(article) => navigation.navigate('ArticleDetail', { article })}
+              showHeader={true}
+            />
+          </FadeInView>
+        )}
 
         {/* My Vehicles */}
         <FadeInView delay={300}>
