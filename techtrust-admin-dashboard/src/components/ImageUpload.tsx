@@ -33,14 +33,26 @@ export default function ImageUpload({ value, onChange, label = 'Imagem', require
       const formData = new FormData();
       formData.append('image', file);
 
-      // Upload to backend
-      const response = await api.post('/upload', formData, {
+      // Upload to backend - using fetch directly for FormData
+      const token = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('tt_admin_token='))
+        ?.split('=')[1];
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upload`, {
+        method: 'POST',
         headers: {
-          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}`,
         },
+        body: formData,
       });
 
-      const imageUrl = response.data.imageUrl;
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const data = await response.json();
+      const imageUrl = data.imageUrl;
       
       // Update preview and notify parent
       setPreview(imageUrl);

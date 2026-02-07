@@ -1,14 +1,23 @@
 import { Router, Request, Response } from 'express';
-import multer from 'multer';
+import multer, { FileFilterCallback } from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { authenticate } from '../middleware/auth';
 
 const router = Router();
 
+// Extend Express Request type to include file
+declare global {
+  namespace Express {
+    interface Request {
+      file?: Multer.File;
+    }
+  }
+}
+
 // Configure storage
 const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
+  destination: (_req: any, _file: any, cb: any) => {
     const uploadDir = path.join(__dirname, '../../uploads');
     
     // Create uploads directory if it doesn't exist
@@ -18,7 +27,7 @@ const storage = multer.diskStorage({
     
     cb(null, uploadDir);
   },
-  filename: (_req, file, cb) => {
+  filename: (_req: any, file: any, cb: any) => {
     // Generate unique filename: timestamp-randomstring-originalname
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
     const ext = path.extname(file.originalname);
@@ -28,7 +37,7 @@ const storage = multer.diskStorage({
 });
 
 // File filter - accept only images
-const fileFilter = (_req: Express.Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+const fileFilter = (_req: any, file: any, cb: FileFilterCallback) => {
   const allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
   
   if (allowedMimes.includes(file.mimetype)) {
