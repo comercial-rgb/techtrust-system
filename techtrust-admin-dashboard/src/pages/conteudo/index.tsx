@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminLayout from '../../components/AdminLayout';
+import ImageUpload from '../../components/ImageUpload';
 import { 
   Image as ImageIcon, 
   Tag, 
@@ -794,17 +795,12 @@ export default function ConteudoPage() {
                     className="input"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">URL da Imagem *</label>
-                  <input
-                    type="url"
-                    value={bannerForm.imageUrl}
-                    onChange={(e) => setBannerForm({ ...bannerForm, imageUrl: e.target.value })}
-                    className="input"
-                    placeholder="https://..."
-                    required
-                  />
-                </div>
+                <ImageUpload
+                  value={bannerForm.imageUrl}
+                  onChange={(url) => setBannerForm({ ...bannerForm, imageUrl: url })}
+                  label="Imagem do Banner"
+                  required
+                />
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">URL do Link</label>
@@ -978,27 +974,20 @@ export default function ConteudoPage() {
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">URL da Imagem</label>
-                    <input
-                      type="url"
-                      value={offerForm.imageUrl}
-                      onChange={(e) => setOfferForm({ ...offerForm, imageUrl: e.target.value })}
-                      className="input"
-                      placeholder="https://..."
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Código Promocional</label>
-                    <input
-                      type="text"
-                      value={offerForm.promoCode}
-                      onChange={(e) => setOfferForm({ ...offerForm, promoCode: e.target.value })}
-                      className="input"
-                      placeholder="Ex: PROMO2025"
-                    />
-                  </div>
+                <ImageUpload
+                  value={offerForm.imageUrl}
+                  onChange={(url) => setOfferForm({ ...offerForm, imageUrl: url })}
+                  label="Imagem da Oferta (Opcional)"
+                />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Código Promocional</label>
+                  <input
+                    type="text"
+                    value={offerForm.promoCode}
+                    onChange={(e) => setOfferForm({ ...offerForm, promoCode: e.target.value })}
+                    className="input"
+                    placeholder="Ex: PROMO2025"
+                  />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -1198,16 +1187,11 @@ export default function ConteudoPage() {
                     required
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">URL da Imagem</label>
-                  <input
-                    type="url"
-                    value={articleForm.imageUrl}
-                    onChange={(e) => setArticleForm({ ...articleForm, imageUrl: e.target.value })}
-                    className="input"
-                    placeholder="https://..."
-                  />
-                </div>
+                <ImageUpload
+                  value={articleForm.imageUrl}
+                  onChange={(url) => setArticleForm({ ...articleForm, imageUrl: url })}
+                  label="Imagem de Capa (Opcional)"
+                />
                 <div className="grid grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Categoria *</label>

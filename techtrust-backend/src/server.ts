@@ -37,6 +37,7 @@ import adminRoutes from './routes/admin.routes';
 import contentRoutes from './routes/content.routes';
 import geocodingRoutes from './routes/geocoding.routes';
 import databaseRoutes from './routes/database.routes';
+import uploadRoutes from './routes/upload.routes';
 
 // Carregar variáveis de ambiente
 dotenv.config();
@@ -107,6 +108,9 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Serve static files from uploads directory
+app.use('/uploads', express.static('uploads'));
+
 // Compressão
 app.use(compression());
 
@@ -149,6 +153,7 @@ app.use(`/api/${API_VERSION}/admin`, adminRoutes);
 app.use(`/api/${API_VERSION}/content`, contentRoutes); // Rotas públicas de conteúdo
 app.use(`/api/${API_VERSION}/geocoding`, geocodingRoutes); // Rotas públicas de geocoding
 app.use(`/api/${API_VERSION}/admin/database`, databaseRoutes); // Rotas admin de database
+app.use(`/api/${API_VERSION}/upload`, uploadRoutes); // Rotas de upload de imagens
 
 // ============================================
 // ERROR HANDLER (deve ser o último middleware)
