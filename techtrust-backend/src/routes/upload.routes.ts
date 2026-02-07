@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -8,7 +8,7 @@ const router = Router();
 
 // Configure storage
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
+  destination: (_req, _file, cb) => {
     const uploadDir = path.join(__dirname, '../../uploads');
     
     // Create uploads directory if it doesn't exist
@@ -18,7 +18,7 @@ const storage = multer.diskStorage({
     
     cb(null, uploadDir);
   },
-  filename: (req, file, cb) => {
+  filename: (_req, file, cb) => {
     // Generate unique filename: timestamp-randomstring-originalname
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
     const ext = path.extname(file.originalname);
@@ -28,7 +28,7 @@ const storage = multer.diskStorage({
 });
 
 // File filter - accept only images
-const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+const fileFilter = (_req: Express.Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
   const allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
   
   if (allowedMimes.includes(file.mimetype)) {
@@ -48,7 +48,7 @@ const upload = multer({
 });
 
 // POST /api/upload - Upload single image
-router.post('/', authenticate, upload.single('image'), (req, res) => {
+router.post('/', authenticate, upload.single('image'), (req: Request, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
@@ -57,7 +57,7 @@ router.post('/', authenticate, upload.single('image'), (req, res) => {
     // Return the URL path to access the image
     const imageUrl = `/uploads/${req.file.filename}`;
     
-    res.json({
+    return res.json({
       success: true,
       imageUrl,
       filename: req.file.filename,
@@ -67,12 +67,12 @@ router.post('/', authenticate, upload.single('image'), (req, res) => {
     });
   } catch (error: any) {
     console.error('Upload error:', error);
-    res.status(500).json({ error: error.message || 'Error uploading file' });
+    return res.status(500).json({ error: error.message || 'Error uploading file' });
   }
 });
 
 // DELETE /api/upload/:filename - Delete uploaded image
-router.delete('/:filename', authenticate, (req, res) => {
+router.delete('/:filename', authenticate, (req: Request, res: Response) => {
   try {
     const { filename } = req.params;
     const filePath = path.join(__dirname, '../../uploads', filename);
@@ -85,10 +85,10 @@ router.delete('/:filename', authenticate, (req, res) => {
     // Delete file
     fs.unlinkSync(filePath);
     
-    res.json({ success: true, message: 'File deleted successfully' });
+    return res.json({ success: true, message: 'File deleted successfully' });
   } catch (error: any) {
     console.error('Delete error:', error);
-    res.status(500).json({ error: error.message || 'Error deleting file' });
+    return res.status(500).json({ error: error.message || 'Error deleting file' });
   }
 });
 
