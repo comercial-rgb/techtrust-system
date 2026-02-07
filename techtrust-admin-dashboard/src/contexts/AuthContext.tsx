@@ -86,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // API retorna response.data.data devido à estrutura da api.ts
-      const loginData = response.data?.data || response.data;
+      const loginData = (response.data as any)?.data || response.data;
 
       if (loginData?.user?.role !== 'ADMIN') {
         return { success: false, error: 'Acesso restrito a administradores' };
