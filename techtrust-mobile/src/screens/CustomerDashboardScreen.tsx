@@ -80,16 +80,34 @@ const SPECIAL_OFFERS = [
   },
 ];
 
-// Estados e cidades para filtro
-const STATES = ['FL', 'GA', 'TX', 'CA', 'NY', 'NC', 'SC'];
+// Estados e cidades para filtro - Apenas Florida por enquanto
+const STATES = ['FL'];
 const CITIES: Record<string, string[]> = {
-  'FL': ['Orlando', 'Miami', 'Tampa', 'Jacksonville', 'Kissimmee'],
-  'GA': ['Atlanta', 'Savannah', 'Augusta'],
-  'TX': ['Houston', 'Dallas', 'Austin', 'San Antonio'],
-  'CA': ['Los Angeles', 'San Francisco', 'San Diego'],
-  'NY': ['New York', 'Buffalo', 'Albany'],
-  'NC': ['Charlotte', 'Raleigh', 'Durham'],
-  'SC': ['Charleston', 'Columbia', 'Greenville'],
+  'FL': [
+    'Alachua', 'Altamonte Springs', 'Apopka', 'Aventura', 'Bartow', 'Belle Glade',
+    'Belleview', 'Boca Raton', 'Bonita Springs', 'Boynton Beach', 'Bradenton', 'Brandon',
+    'Cape Coral', 'Casselberry', 'Clearwater', 'Clermont', 'Cocoa', 'Cocoa Beach',
+    'Coconut Creek', 'Cooper City', 'Coral Gables', 'Coral Springs', 'Cutler Bay',
+    'Dania Beach', 'Davie', 'Daytona Beach', 'Deerfield Beach', 'DeLand', 'Delray Beach',
+    'Deltona', 'Doral', 'Dunedin', 'Edgewater', 'Eustis', 'Fort Lauderdale', 'Fort Myers',
+    'Fort Pierce', 'Fort Walton Beach', 'Gainesville', 'Greenacres', 'Haines City',
+    'Hallandale Beach', 'Hialeah', 'Hollywood', 'Homestead', 'Jacksonville', 'Jacksonville Beach',
+    'Jupiter', 'Key West', 'Kissimmee', 'Lady Lake', 'Lake City', 'Lake Mary', 'Lake Wales',
+    'Lake Worth', 'Lakeland', 'Largo', 'Lauderdale Lakes', 'Lauderhill', 'Leesburg',
+    'Lehigh Acres', 'Margate', 'Melbourne', 'Miami', 'Miami Beach', 'Miami Gardens',
+    'Miramar', 'Mount Dora', 'Naples', 'New Port Richey', 'New Smyrna Beach', 'North Fort Myers',
+    'North Lauderdale', 'North Miami', 'North Miami Beach', 'North Port', 'Oakland Park',
+    'Ocala', 'Ocoee', 'Orlando', 'Ormond Beach', 'Oviedo', 'Palatka', 'Palm Bay',
+    'Palm Beach Gardens', 'Palm City', 'Palm Coast', 'Palm Harbor', 'Palm Springs',
+    'Palmetto Bay', 'Panama City', 'Pembroke Pines', 'Pensacola', 'Pinellas Park',
+    'Plant City', 'Plantation', 'Pompano Beach', 'Port Charlotte', 'Port Orange',
+    'Port St. Lucie', 'Riviera Beach', 'Rockledge', 'Royal Palm Beach', 'Sanford',
+    'Sarasota', 'Sebastian', 'South Daytona', 'Spring Hill', 'St. Augustine', 'St. Cloud',
+    'St. Petersburg', 'Stuart', 'Sunny Isles Beach', 'Sunrise', 'Tallahassee', 'Tamarac',
+    'Tampa', 'Tarpon Springs', 'The Villages', 'Titusville', 'Venice', 'Vero Beach',
+    'Wellington', 'West Palm Beach', 'Weston', 'Winter Garden', 'Winter Haven',
+    'Winter Park', 'Winter Springs'
+  ].sort(),
 };
 
 // Provider type for search results - data from API only

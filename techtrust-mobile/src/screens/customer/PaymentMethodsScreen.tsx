@@ -96,37 +96,19 @@ export default function PaymentMethodsScreen({ navigation }: any) {
 
   const loadPaymentMethods = async () => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 800));
+      setLoading(true);
       
-      // Load wallet balance
-      setWalletBalance(125.50);
+      // Limpar dados mockados - Load real data from API when implemented
+      setWalletBalance(0);
+      setRecentTransactions([]);
+      setPaymentMethods([]);
       
-      // Load recent transactions
-      setRecentTransactions([
-        {
-          id: '1',
-          type: 'credit',
-          amount: 100.00,
-          description: t.customer?.balanceAddedViaCard || 'Balance added via card',
-          date: '2024-11-28',
-        },
-        {
-          id: '2',
-          type: 'debit',
-          amount: 45.00,
-          description: t.customer?.paymentForService || 'Payment for service - Oil Change',
-          date: '2024-11-27',
-        },
-        {
-          id: '3',
-          type: 'credit',
-          amount: 70.50,
-          description: t.customer?.balanceAddedViaPix || 'Balance added via PIX',
-          date: '2024-11-25',
-        },
-      ]);
-      
-      setPaymentMethods([
+    } catch (error) {
+      console.error('Error loading payment methods:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
         {
           id: '1',
           type: 'credit',

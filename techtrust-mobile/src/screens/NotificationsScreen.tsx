@@ -35,56 +35,8 @@ interface NotificationsScreenProps {
 export default function NotificationsScreen({ navigation, userType = 'customer' }: NotificationsScreenProps) {
   const { t } = useI18n();
   const [refreshing, setRefreshing] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: '1',
-      type: 'quote',
-      title: t.notifications.quoteReceived || 'New Quote Received',
-      message: t.notifications.quoteReceivedMessage || 'Auto Mechanic Silva sent a quote for your Oil Change request.',
-      time: '5 min',
-      read: false,
-    },
-    {
-      id: '2',
-      type: 'message',
-      title: t.notifications.newMessage,
-      message: t.notifications.newMessageFrom?.replace('{name}', 'Carlos Santos') || 'You received a new message from Carlos Santos.',
-      time: '30 min',
-      read: false,
-    },
-    {
-      id: '3',
-      type: 'payment',
-      title: t.notifications.paymentConfirmed || 'Payment Confirmed',
-      message: t.notifications.paymentConfirmedMessage || 'Your payment of $350.00 was confirmed successfully.',
-      time: '2 ' + (t.common?.hours || 'hours'),
-      read: true,
-    },
-    {
-      id: '4',
-      type: 'request',
-      title: t.notifications.serviceScheduled || 'Service Scheduled',
-      message: t.notifications.serviceScheduledMessage || 'Your service has been scheduled for tomorrow at 09:00.',
-      time: '5 ' + (t.common?.hours || 'hours'),
-      read: true,
-    },
-    {
-      id: '5',
-      type: 'review',
-      title: t.notifications.rateService || 'Rate your Service',
-      message: t.notifications.rateServiceMessage || 'How was your experience with Auto Mechanic Silva? Leave your review.',
-      time: '1 ' + (t.common?.day || 'day'),
-      read: true,
-    },
-    {
-      id: '6',
-      type: 'system',
-      title: t.notifications.appUpdate || 'App Update',
-      message: t.notifications.appUpdateMessage || 'A new version of TechTrust is available. Update now!',
-      time: '2 ' + (t.common?.days || 'days'),
-      read: true,
-    },
-  ]);
+  // Limpar dados mockados - Load real notifications from API when implemented
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
   const getNotificationIcon = (type: Notification['type']) => {
     const icons: Record<string, { name: string; color: string; bg: string }> = {

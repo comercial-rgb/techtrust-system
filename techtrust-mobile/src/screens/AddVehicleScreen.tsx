@@ -98,6 +98,45 @@ export default function AddVehicleScreen({ navigation }: any) {
         setManualEntry(false);
         
         Alert.alert(
+          t.vehicle?.success || 'Sucesso!',
+          t.vehicle?.vinDecoded || 'Dados do veículo preenchidos automaticamente'
+        );
+      } else {
+        Alert.alert(
+          t.vehicle?.vinNotFound || 'VIN Não Encontrado',
+          result.error || t.vehicle?.couldNotDecodeVIN || 'Não foi possível decodificar este VIN. Você pode preencher manualmente.',
+          [
+            {
+              text: t.vehicle?.manualEntry || 'Preencher Manualmente',
+              onPress: () => {
+                setManualEntry(true);
+                setVinDecoded(false);
+              }
+            },
+            { text: t.common?.cancel || 'Cancelar', style: 'cancel' }
+          ]
+        );
+      }
+    } catch (error: any) {
+      console.error('Error decoding VIN:', error);
+      Alert.alert(
+        t.common?.error || 'Erro',
+        error?.message || t.vehicle?.vinDecodeError || 'Erro ao decodificar VIN. Verifique sua conexão e tente novamente.',
+        [
+          {
+            text: t.vehicle?.manualEntry || 'Preencher Manualmente',
+            onPress: () => {
+              setManualEntry(true);
+              setVinDecoded(false);
+            }
+          },
+          { text: t.common?.cancel || 'Cancelar', style: 'cancel' }
+        ]
+      );
+    } finally {
+      setDecodingVIN(false);
+    }
+  };
           t.vehicle?.vinDecodedSuccess || 'VIN Decodificado!',
           t.vehicle?.vinDecodedMessage || 'Dados do veículo preenchidos automaticamente'
         );
@@ -131,60 +170,83 @@ export default function AddVehicleScreen({ navigation }: any) {
 
   // Request camera/gallery permissions
   const requestPermissions = async () => {
-    const cameraResult = await ImagePicker.requestCameraPermissionsAsync();
-    const mediaResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    
-    if (cameraResult.status !== 'granted' || mediaResult.status !== 'granted') {
-      Alert.alert(
-        t.common?.permissionRequired || 'Permission Required',
-        t.vehicle?.cameraPermissionMessage || 'We need camera and gallery permissions to add vehicle photos.',
-        [{ text: t.common?.ok || 'OK' }]
-      );
+    try {
+      const cameraResult = await ImagePicker.requestCameraPermissionsAsync();
+      const mediaResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (cameraResult.status !== 'granted' || mediaResult.status !== 'granted') {
+        Alert.alert(
+          t.common?.permissionRequired || 'Permission Required',
+          t.vehicle?.cameraPermissionMessage || 'We need camera and gallery permissions to add vehicle photos.',
+          [{ text: t.common?.ok || 'OK' }]
+        );
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error('Error requesting permissions:', error);
       return false;
     }
-    return true;
   };
 
   // Take photo with camera
   const takePhoto = async () => {
-    const hasPermission = await requestPermissions();
-    if (!hasPermission) return;
+    try {
+      const hasPermission = await requestPermissions();
+      if (!hasPermission) return;
 
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.8,
-    });
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
 
-    if (!result.canceled && result.assets[0]) {
-      const newPhoto: VehiclePhoto = {
-        uri: result.assets[0].uri,
-        id: Date.now().toString(),
-      };
-      setPhotos(prev => [...prev, newPhoto]);
+      if (!result.canceled && result.assets[0]) {
+        const newPhoto: VehiclePhoto = {
+          uri: result.assets[0].uri,
+          id: Date.now().toString(),
+        };
+        setPhotos(prev => [...prev, newPhoto]);
+      }
+    } catch (error) {
+      console.error('Error taking photo:', error);
+      Alert.alert(
+        t.common?.error || 'Error',
+        t.vehicle?.photoError || 'Failed to take photo. Please try again.',
+        [{ text: t.common?.ok || 'OK' }]
+      );
     }
   };
 
   // Pick from gallery
   const pickFromGallery = async () => {
-    const hasPermission = await requestPermissions();
-    if (!hasPermission) return;
+    try {
+      const hasPermission = await requestPermissions();
+      if (!hasPermission) return;
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsMultipleSelection: true,
-      selectionLimit: 6 - photos.length,
-      aspect: [4, 3],
-      quality: 0.8,
-    });
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsMultipleSelection: true,
+        selectionLimit: 6 - photos.length,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
 
-    if (!result.canceled && result.assets.length > 0) {
-      const newPhotos: VehiclePhoto[] = result.assets.map((asset, index) => ({
-        uri: asset.uri,
-        id: `${Date.now()}-${index}`,
-      }));
-      setPhotos(prev => [...prev, ...newPhotos].slice(0, 6)); // Max 6 photos
+      if (!result.canceled && result.assets.length > 0) {
+        const newPhotos: VehiclePhoto[] = result.assets.map((asset, index) => ({
+          uri: asset.uri,
+          id: `${Date.now()}-${index}`,
+        }));
+        setPhotos(prev => [...prev, ...newPhotos].slice(0, 6)); // Max 6 photos
+      }
+    } catch (error) {
+      console.error('Error picking from gallery:', error);
+      Alert.alert(
+        t.common?.error || 'Error',
+        t.vehicle?.photoError || 'Failed to pick photos. Please try again.',
+        [{ text: t.common?.ok || 'OK' }]
+      );
     }
   };
 
