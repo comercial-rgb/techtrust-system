@@ -403,3 +403,126 @@ export const logout = async (_req: Request, res: Response) => {
     message: 'Logout realizado com sucesso',
   });
 };
+
+/**
+ * POST /api/v1/auth/forgot-password
+ * Envia link de recuperação de senha por email
+ */
+export const forgotPassword = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      throw new AppError('Email é obrigatório', 400, 'MISSING_EMAIL');
+    }
+
+    // Buscar usuário
+    const user = await prisma.user.findUnique({
+      where: { email: email.toLowerCase() },
+    });
+
+    // Por segurança, sempre retornar sucesso mesmo se usuário não existir
+    // Isso previne enumeração de emails
+    if (!user) {
+      logger.info(`Tentativa de recuperação para email não cadastrado: ${email}`);
+      return res.json({
+        success: true,
+        message: 'Se o email existir, você receberá um link de recuperação.',
+      });
+    }
+
+    // Gerar token de recuperação (usando mesma função do OTP, mas com validade maior)
+    const resetToken = generateOTP();
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
+
+    // Salvar token no banco
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        otpCode: resetToken,
+        otpExpiresAt: expiresAt,
+      },
+    });
+
+    // TODO: Enviar email com link de recuperação
+    // Por enquanto, vamos apenas logar o token (em produção, enviar por email)
+    logger.info(`Token de recuperação para ${email}: ${resetToken}`);
+    
+    // Em desenvolvimento, retornar o token na resposta (REMOVER EM PRODUÇÃO)
+    if (process.env.NODE_ENV === 'development') {
+      return res.json({
+        success: true,
+        message: 'Link de recuperação enviado!',
+        resetToken, // REMOVER EM PRODUÇÃO
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Se o email existir, você receberá um link de recuperação.',
+    });
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
+ * POST /api/v1/auth/reset-password
+ * Redefine a senha usando o token recebido
+ */
+export const resetPassword = async (req: Request, res: Response) => {
+  try {
+    const { email, token, newPassword } = req.body;
+
+    if (!email || !token || !newPassword) {
+      throw new AppError('Email, token e nova senha são obrigatórios', 400, 'MISSING_FIELDS');
+    }
+
+    // Validar força da senha
+    const passwordValidation = validatePasswordStrength(newPassword);
+    if (!passwordValidation.valid) {
+      throw new AppError(passwordValidation.message!, 400, 'WEAK_PASSWORD');
+    }
+
+    // Buscar usuário
+    const user = await prisma.user.findUnique({
+      where: { email: email.toLowerCase() },
+    });
+
+    if (!user) {
+      throw new AppError('Token inválido ou expirado', 400, 'INVALID_TOKEN');
+    }
+
+    // Verificar token
+    if (user.otpCode !== token) {
+      throw new AppError('Token inválido', 400, 'INVALID_TOKEN');
+    }
+
+    // Verificar expiração
+    if (!user.otpExpiresAt || isOTPExpired(user.otpExpiresAt)) {
+      throw new AppError('Token expirado. Solicite um novo link de recuperação.', 400, 'EXPIRED_TOKEN');
+    }
+
+    // Criptografar nova senha
+    const hashedPassword = await hashPassword(newPassword);
+
+    // Atualizar senha e limpar token
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash: hashedPassword,
+        otpCode: null,
+        otpExpiresAt: null,
+      },
+    });
+
+    logger.info(`Senha redefinida com sucesso para usuário: ${user.email}`);
+
+    res.json({
+      success: true,
+      message: 'Senha redefinida com sucesso! Faça login com sua nova senha.',
+    });
+  } catch (error) {
+    throw error;
+  }
+};

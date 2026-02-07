@@ -9,6 +9,7 @@ import LandingScreen from '../screens/LandingScreen';
 import LoginScreen from '../screens/LoginScreen';
 import SignupScreen from '../screens/SignupScreen';
 import OTPScreen from '../screens/OTPScreen';
+import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 
 // Navigators
 import CustomerNavigator from './CustomerNavigator';
@@ -24,6 +25,7 @@ function AuthStack() {
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Signup" component={SignupScreen} />
       <Stack.Screen name="OTP" component={OTPScreen} />
+      <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
     </Stack.Navigator>
   );
 }

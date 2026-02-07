@@ -73,4 +73,24 @@ router.post(
  */
 router.post('/logout', asyncHandler(authController.logout));
 
+/**
+ * POST /api/v1/auth/forgot-password
+ * Solicitar recuperação de senha
+ */
+router.post(
+  '/forgot-password',
+  authRateLimiter,
+  asyncHandler(authController.forgotPassword)
+);
+
+/**
+ * POST /api/v1/auth/reset-password
+ * Redefinir senha com token
+ */
+router.post(
+  '/reset-password',
+  authRateLimiter,
+  asyncHandler(authController.resetPassword)
+);
+
 export default router;

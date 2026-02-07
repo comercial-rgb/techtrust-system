@@ -235,7 +235,10 @@ export default function LoginScreen({ navigation }: any) {
             </View>
 
             {/* Forgot Password */}
-            <TouchableOpacity style={styles.forgotButton}>
+            <TouchableOpacity 
+              style={styles.forgotButton}
+              onPress={() => navigation.navigate('ForgotPassword')}
+            >
               <Text style={styles.forgotText}>{t.auth.forgotPassword}</Text>
             </TouchableOpacity>
 
@@ -284,14 +287,6 @@ export default function LoginScreen({ navigation }: any) {
                 <Text style={styles.signupLink}>{t.auth.signup}</Text>
               </TouchableOpacity>
             </View>
-          </View>
-
-          {/* Demo Hint */}
-          <View style={styles.demoHint}>
-            <MaterialCommunityIcons name="information" size={16} color="#6b7280" />
-            <Text style={styles.demoHintText}>
-              {t.auth.demoMode}
-            </Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -548,19 +543,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#1976d2',
     fontWeight: '600',
-  },
-  demoHint: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    marginTop: 20,
-    paddingVertical: 10,
-    backgroundColor: '#f3f4f6',
-    borderRadius: 8,
-  },
-  demoHintText: {
-    fontSize: 12,
-    color: '#6b7280',
   },
 });
