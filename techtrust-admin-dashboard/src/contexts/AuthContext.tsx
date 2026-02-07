@@ -85,6 +85,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { success: false, error: response.error };
       }
 
+      console.log('Login response:', response);
+      console.log('User data:', response.data);
+      console.log('User role:', response.data?.user?.role);
+
       if (response.data?.user?.role !== 'ADMIN') {
         return { success: false, error: 'Acesso restrito a administradores' };
       }
