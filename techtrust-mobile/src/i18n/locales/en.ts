@@ -1311,4 +1311,27 @@ export default {
     emailNotifications: 'Email Notifications',
     smsNotifications: 'SMS Notifications',
   },
+
+  // Biometric Authentication
+  biometric: {
+    enableTitle: 'Enable Quick Login',
+    enableDescription: 'Use biometrics to log in faster and more securely next time.',
+    confirmToEnable: 'Confirm your identity to enable biometric login',
+    loginPrompt: 'Log in to TechTrust',
+    loginWith: 'Log in with',
+    benefitFast: 'Faster login',
+    benefitSecure: 'More secure',
+    benefitConvenient: 'No typing needed',
+    enableButton: 'Enable',
+    skipForNow: 'Skip for now',
+    authenticating: 'Authenticating...',
+    faceRecognition: 'Face Recognition',
+    fingerprint: 'Fingerprint',
+    iris: 'Iris',
+    biometrics: 'Biometrics',
+    enabled: 'Biometric login enabled',
+    disabled: 'Biometric login disabled',
+    notAvailable: 'Biometric authentication not available on this device',
+    notEnrolled: 'No biometric data enrolled. Please set up Face ID or Fingerprint in your device settings.',
+  },
 };

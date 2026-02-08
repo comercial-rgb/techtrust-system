@@ -3,7 +3,7 @@
  * Edição de informações pessoais
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -18,11 +18,21 @@ import {
   ActionSheetIOS,
   Modal,
   FlatList,
+  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { useI18n } from '../../i18n';
+import {
+  getBiometricInfo,
+  isBiometricLoginEnabled,
+  setBiometricLoginEnabled,
+  authenticateWithBiometric,
+  storeCredentials,
+  disableBiometricLogin,
+  BiometricInfo,
+} from '../../services/authService';
 
 // Generate arrays for date picker
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -40,6 +50,11 @@ export default function PersonalInfoScreen({ navigation }: any) {
   const [selectedMonth, setSelectedMonth] = useState('0');
   const [selectedDay, setSelectedDay] = useState('1');
   
+  // Biometric states
+  const [biometricInfo, setBiometricInfoState] = useState<BiometricInfo | null>(null);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [biometricLoading, setBiometricLoading] = useState(false);
+  
   const [formData, setFormData] = useState({
     fullName: user?.fullName || '',
     email: user?.email || '',
@@ -48,6 +63,89 @@ export default function PersonalInfoScreen({ navigation }: any) {
     birthDate: '',
     gender: '',
   });
+
+  useEffect(() => {
+    checkBiometricStatus();
+  }, []);
+
+  const checkBiometricStatus = async () => {
+    const info = await getBiometricInfo();
+    setBiometricInfoState(info);
+    
+    const enabled = await isBiometricLoginEnabled();
+    setBiometricEnabled(enabled);
+  };
+
+  const handleBiometricToggle = async (value: boolean) => {
+    setBiometricLoading(true);
+    
+    try {
+      if (value) {
+        // Enable biometric - need to authenticate first
+        if (!biometricInfo?.isAvailable || !biometricInfo?.isEnrolled) {
+          Alert.alert(
+            t.common?.error || 'Error',
+            t.biometric?.notEnrolled || 'No biometric data enrolled. Please set up Face ID or Fingerprint in your device settings.'
+          );
+          setBiometricLoading(false);
+          return;
+        }
+
+        const authenticated = await authenticateWithBiometric(
+          t.biometric?.confirmToEnable || 'Confirm your identity to enable biometric login'
+        );
+
+        if (authenticated) {
+          // We need to ask for password to store credentials
+          Alert.prompt(
+            t.biometric?.enableTitle || 'Enable Biometric Login',
+            t.auth?.enterPassword || 'Enter your password to enable biometric login',
+            [
+              { text: t.common?.cancel || 'Cancel', style: 'cancel' },
+              {
+                text: t.common?.confirm || 'Confirm',
+                onPress: async (password) => {
+                  if (password && user?.email) {
+                    await storeCredentials(user.email, password);
+                    await setBiometricLoginEnabled(true);
+                    setBiometricEnabled(true);
+                    Alert.alert(t.common?.success || 'Success', t.biometric?.enabled || 'Biometric login enabled');
+                  }
+                  setBiometricLoading(false);
+                },
+              },
+            ],
+            'secure-text'
+          );
+          return;
+        } else {
+          setBiometricLoading(false);
+        }
+      } else {
+        // Disable biometric
+        await disableBiometricLogin();
+        setBiometricEnabled(false);
+        Alert.alert(t.common?.success || 'Success', t.biometric?.disabled || 'Biometric login disabled');
+      }
+    } catch (error) {
+      console.error('Error toggling biometric:', error);
+      Alert.alert(t.common?.error || 'Error', t.common?.tryAgain || 'Please try again');
+    } finally {
+      setBiometricLoading(false);
+    }
+  };
+
+  const getBiometricLabel = () => {
+    if (!biometricInfo) return 'Biometrics';
+    switch (biometricInfo.biometricType) {
+      case 'facial':
+        return Platform.OS === 'ios' ? 'Face ID' : t.biometric?.faceRecognition || 'Face Recognition';
+      case 'fingerprint':
+        return Platform.OS === 'ios' ? 'Touch ID' : t.biometric?.fingerprint || 'Fingerprint';
+      default:
+        return t.biometric?.biometrics || 'Biometrics';
+    }
+  };
 
   const handleChangePhoto = () => {
     const options = [t.profile?.takePhoto || 'Take Photo', t.profile?.chooseFromLibrary || 'Choose from Library', t.profile?.removePhoto || 'Remove Photo', t.common?.cancel || 'Cancel'];
@@ -326,21 +424,38 @@ export default function PersonalInfoScreen({ navigation }: any) {
 
             <TouchableOpacity 
               style={styles.securityItem}
-              onPress={() => Alert.alert(
-                t.common?.comingSoon || 'Coming Soon',
-                t.auth?.biometricLoginComingSoon || 'Biometric login will be available soon!'
-              )}
+              onPress={() => {
+                if (biometricInfo?.isAvailable && biometricInfo?.isEnrolled) {
+                  handleBiometricToggle(!biometricEnabled);
+                } else {
+                  Alert.alert(
+                    t.common?.error || 'Error',
+                    t.biometric?.notAvailable || 'Biometric authentication not available on this device'
+                  );
+                }
+              }}
+              disabled={biometricLoading}
             >
               <View style={styles.securityItemLeft}>
                 <View style={[styles.securityIcon, { backgroundColor: '#d1fae5' }]}>
                   <Ionicons name="finger-print" size={20} color="#10b981" />
                 </View>
                 <View>
-                  <Text style={styles.securityItemTitle}>{t.profile?.biometricLogin || 'Biometric Login'}</Text>
-                  <Text style={styles.securityItemSubtitle}>{t.profile?.faceIdFingerprint || 'Face ID / Fingerprint'}</Text>
+                  <Text style={styles.securityItemTitle}>{getBiometricLabel()}</Text>
+                  <Text style={styles.securityItemSubtitle}>
+                    {biometricEnabled 
+                      ? (t.common?.enabled || 'Enabled')
+                      : (t.common?.disabled || 'Disabled')}
+                  </Text>
                 </View>
               </View>
-              <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+              <Switch
+                value={biometricEnabled}
+                onValueChange={handleBiometricToggle}
+                trackColor={{ false: '#e5e7eb', true: '#86efac' }}
+                thumbColor={biometricEnabled ? '#10b981' : '#f4f4f5'}
+                disabled={biometricLoading || !biometricInfo?.isAvailable}
+              />
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.securityItem}>

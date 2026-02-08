@@ -1,9 +1,10 @@
 /**
  * LoginScreen - Tela de Login
  * Com opção de entrar como Cliente ou Fornecedor
+ * Suporte a Social Login (Google/Apple) e Login Biométrico
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -24,6 +25,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n, languages, Language } from '../i18n';
 import { logos } from '../constants/images';
+import { BiometricPromptCard } from '../components';
+import {
+  signInWithGoogle,
+  signInWithApple,
+  isAppleSignInAvailable,
+  getBiometricInfo,
+  isBiometricLoginEnabled,
+  hasBiometricPromptBeenShown,
+  attemptBiometricLogin,
+  BiometricInfo,
+} from '../services/authService';
 
 export default function LoginScreen({ navigation }: any) {
   const { login, loginAsProvider } = useAuth();
@@ -32,22 +44,142 @@ export default function LoginScreen({ navigation }: any) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [socialLoading, setSocialLoading] = useState<'google' | 'apple' | null>(null);
   const [loginType, setLoginType] = useState<'customer' | 'provider'>('customer');
   const [showLanguageModal, setShowLanguageModal] = useState(false);
+  
+  // Biometric states
+  const [showBiometricPrompt, setShowBiometricPrompt] = useState(false);
+  const [pendingCredentials, setPendingCredentials] = useState<{ email: string; password: string } | null>(null);
+  const [biometricInfo, setBiometricInfo] = useState<BiometricInfo | null>(null);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [appleAvailable, setAppleAvailable] = useState(false);
 
   const currentLanguage = languages.find(l => l.code === language) || languages[0];
 
+  // Check biometric availability on mount
+  useEffect(() => {
+    checkBiometricStatus();
+    checkAppleAvailability();
+  }, []);
+
+  const checkBiometricStatus = async () => {
+    const info = await getBiometricInfo();
+    setBiometricInfo(info);
+    
+    const enabled = await isBiometricLoginEnabled();
+    setBiometricEnabled(enabled);
+  };
+
+  const checkAppleAvailability = async () => {
+    const available = await isAppleSignInAvailable();
+    setAppleAvailable(available);
+  };
+
+  // Handle biometric quick login
+  const handleBiometricLogin = async () => {
+    setLoading(true);
+    try {
+      const credentials = await attemptBiometricLogin(
+        t.biometric?.loginPrompt || 'Log in to TechTrust'
+      );
+      
+      if (credentials) {
+        if (loginType === 'provider') {
+          await loginAsProvider(credentials.email, credentials.password);
+        } else {
+          await login(credentials.email, credentials.password);
+        }
+      }
+    } catch (error: any) {
+      Alert.alert(t.common.error, error.message || t.auth.loginFailed);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle Google Sign-In
+  const handleGoogleLogin = async () => {
+    setSocialLoading('google');
+    try {
+      const googleUser = await signInWithGoogle();
+      
+      if (googleUser) {
+        // TODO: Send to backend for authentication/registration
+        // For now, show success message
+        Alert.alert(
+          t.common.success || 'Success',
+          `${t.auth.welcome || 'Welcome'}, ${googleUser.name}!`,
+          [{ text: t.common.ok || 'OK' }]
+        );
+        
+        // Here you would typically:
+        // 1. Send googleUser.id and googleUser.email to your backend
+        // 2. Backend creates/finds user and returns JWT token
+        // 3. Store token and navigate to dashboard
+      }
+    } catch (error: any) {
+      if (error.message !== 'Google Sign-In not configured') {
+        Alert.alert(t.common.error, t.auth.loginFailed);
+      } else {
+        Alert.alert(
+          t.common?.comingSoon || 'Coming Soon',
+          `Google ${t.auth?.socialLoginComingSoon || 'login will be available soon!'}`,
+          [{ text: t.common?.ok || 'OK' }]
+        );
+      }
+    } finally {
+      setSocialLoading(null);
+    }
+  };
+
+  // Handle Apple Sign-In
+  const handleAppleLogin = async () => {
+    if (!appleAvailable) {
+      Alert.alert(
+        t.common.error,
+        t.auth?.appleNotAvailable || 'Apple Sign-In is not available on this device'
+      );
+      return;
+    }
+
+    setSocialLoading('apple');
+    try {
+      const appleUser = await signInWithApple();
+      
+      if (appleUser) {
+        // TODO: Send to backend for authentication/registration
+        Alert.alert(
+          t.common.success || 'Success',
+          `${t.auth.welcome || 'Welcome'}${appleUser.fullName ? `, ${appleUser.fullName}` : ''}!`,
+          [{ text: t.common.ok || 'OK' }]
+        );
+        
+        // Here you would typically:
+        // 1. Send appleUser.id, identityToken to your backend
+        // 2. Backend verifies with Apple and creates/finds user
+        // 3. Store token and navigate to dashboard
+      }
+    } catch (error: any) {
+      Alert.alert(t.common.error, t.auth.loginFailed);
+    } finally {
+      setSocialLoading(null);
+    }
+  };
+
   const handleSocialLogin = (provider: 'google' | 'apple' | 'facebook') => {
-    const providerNames = {
-      google: 'Google',
-      apple: 'Apple',
-      facebook: 'Facebook',
-    };
-    Alert.alert(
-      t.common?.comingSoon || 'Coming Soon',
-      `${providerNames[provider]} ${t.auth?.socialLoginComingSoon || 'login will be available soon!'}`,
-      [{ text: t.common?.ok || 'OK' }]
-    );
+    if (provider === 'google') {
+      handleGoogleLogin();
+    } else if (provider === 'apple') {
+      handleAppleLogin();
+    } else {
+      // Facebook - coming soon
+      Alert.alert(
+        t.common?.comingSoon || 'Coming Soon',
+        `Facebook ${t.auth?.socialLoginComingSoon || 'login will be available soon!'}`,
+        [{ text: t.common?.ok || 'OK' }]
+      );
+    }
   };
 
   const handleLogin = async () => {
@@ -62,6 +194,16 @@ export default function LoginScreen({ navigation }: any) {
         await loginAsProvider(email, password);
       } else {
         await login(email, password);
+      }
+      
+      // Check if we should show biometric prompt
+      const promptShown = await hasBiometricPromptBeenShown();
+      const info = await getBiometricInfo();
+      
+      if (!promptShown && info.isAvailable && info.isEnrolled) {
+        // Store credentials temporarily for biometric setup
+        setPendingCredentials({ email, password });
+        setShowBiometricPrompt(true);
       }
     } catch (error: any) {
       console.log('🔴 Login error:', error.code, error.message);
@@ -90,9 +232,39 @@ export default function LoginScreen({ navigation }: any) {
     }
   };
 
+  const handleBiometricPromptComplete = (enabled: boolean) => {
+    setShowBiometricPrompt(false);
+    setPendingCredentials(null);
+    setBiometricEnabled(enabled);
+  };
+
   const handleLanguageSelect = async (langCode: Language) => {
     await setLanguage(langCode);
     setShowLanguageModal(false);
+  };
+
+  const getBiometricIcon = () => {
+    if (!biometricInfo) return 'fingerprint';
+    switch (biometricInfo.biometricType) {
+      case 'facial':
+        return Platform.OS === 'ios' ? 'face-recognition' : 'face-recognition';
+      case 'fingerprint':
+        return 'fingerprint';
+      default:
+        return 'fingerprint';
+    }
+  };
+
+  const getBiometricLabel = () => {
+    if (!biometricInfo) return 'Biometrics';
+    switch (biometricInfo.biometricType) {
+      case 'facial':
+        return Platform.OS === 'ios' ? 'Face ID' : 'Face';
+      case 'fingerprint':
+        return Platform.OS === 'ios' ? 'Touch ID' : 'Fingerprint';
+      default:
+        return 'Biometrics';
+    }
   };
 
   return (
@@ -280,16 +452,49 @@ export default function LoginScreen({ navigation }: any) {
 
             {/* Social Login */}
             <View style={styles.socialContainer}>
-              <TouchableOpacity style={styles.socialButton} onPress={() => handleSocialLogin('google')}>
-                <MaterialCommunityIcons name="google" size={24} color="#ea4335" />
+              <TouchableOpacity 
+                style={[styles.socialButton, socialLoading === 'google' && styles.socialButtonLoading]} 
+                onPress={() => handleSocialLogin('google')}
+                disabled={socialLoading !== null}
+              >
+                {socialLoading === 'google' ? (
+                  <ActivityIndicator size="small" color="#ea4335" />
+                ) : (
+                  <MaterialCommunityIcons name="google" size={24} color="#ea4335" />
+                )}
               </TouchableOpacity>
-              <TouchableOpacity style={styles.socialButton} onPress={() => handleSocialLogin('apple')}>
-                <MaterialCommunityIcons name="apple" size={24} color="#000" />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.socialButton} onPress={() => handleSocialLogin('facebook')}>
-                <MaterialCommunityIcons name="facebook" size={24} color="#1877f2" />
-              </TouchableOpacity>
+              {Platform.OS === 'ios' && (
+                <TouchableOpacity 
+                  style={[styles.socialButton, socialLoading === 'apple' && styles.socialButtonLoading]} 
+                  onPress={() => handleSocialLogin('apple')}
+                  disabled={socialLoading !== null}
+                >
+                  {socialLoading === 'apple' ? (
+                    <ActivityIndicator size="small" color="#000" />
+                  ) : (
+                    <MaterialCommunityIcons name="apple" size={24} color="#000" />
+                  )}
+                </TouchableOpacity>
+              )}
             </View>
+
+            {/* Biometric Login Button */}
+            {biometricEnabled && biometricInfo?.isAvailable && biometricInfo?.isEnrolled && (
+              <TouchableOpacity
+                style={styles.biometricButton}
+                onPress={handleBiometricLogin}
+                disabled={loading}
+              >
+                <MaterialCommunityIcons
+                  name={getBiometricIcon() as any}
+                  size={24}
+                  color="#1976d2"
+                />
+                <Text style={styles.biometricButtonText}>
+                  {t.biometric?.loginWith || 'Log in with'} {getBiometricLabel()}
+                </Text>
+              </TouchableOpacity>
+            )}
 
             {/* Signup Link */}
             <View style={styles.signupContainer}>
@@ -303,6 +508,17 @@ export default function LoginScreen({ navigation }: any) {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Biometric Prompt Card */}
+      {pendingCredentials && (
+        <BiometricPromptCard
+          visible={showBiometricPrompt}
+          email={pendingCredentials.email}
+          password={pendingCredentials.password}
+          onComplete={handleBiometricPromptComplete}
+          onDismiss={() => setShowBiometricPrompt(false)}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -543,6 +759,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#e5e7eb',
+  },
+  socialButtonLoading: {
+    opacity: 0.7,
+  },
+  biometricButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    backgroundColor: '#eff6ff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    marginBottom: 24,
+    gap: 10,
+  },
+  biometricButtonText: {
+    color: '#1976d2',
+    fontSize: 15,
+    fontWeight: '600',
   },
   signupContainer: {
     flexDirection: 'row',

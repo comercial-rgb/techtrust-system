@@ -44,3 +44,6 @@ export {
   EmptyState,
   SuccessAnimation,
 } from './Loading';
+
+// Biometric
+export { default as BiometricPromptCard } from './BiometricPromptCard';

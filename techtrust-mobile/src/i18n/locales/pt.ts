@@ -1296,4 +1296,27 @@ export default {
     emailNotifications: 'Notificações por E-mail',
     smsNotifications: 'Notificações por SMS',
   },
+
+  // Biometric Authentication
+  biometric: {
+    enableTitle: 'Ativar Login Rápido',
+    enableDescription: 'Use biometria para fazer login de forma mais rápida e segura na próxima vez.',
+    confirmToEnable: 'Confirme sua identidade para ativar o login biométrico',
+    loginPrompt: 'Entrar no TechTrust',
+    loginWith: 'Entrar com',
+    benefitFast: 'Login mais rápido',
+    benefitSecure: 'Mais seguro',
+    benefitConvenient: 'Sem precisar digitar',
+    enableButton: 'Ativar',
+    skipForNow: 'Pular por agora',
+    authenticating: 'Autenticando...',
+    faceRecognition: 'Reconhecimento Facial',
+    fingerprint: 'Impressão Digital',
+    iris: 'Íris',
+    biometrics: 'Biometria',
+    enabled: 'Login biométrico ativado',
+    disabled: 'Login biométrico desativado',
+    notAvailable: 'Autenticação biométrica não disponível neste dispositivo',
+    notEnrolled: 'Nenhum dado biométrico cadastrado. Configure o Face ID ou Impressão Digital nas configurações do dispositivo.',
+  },
 };
