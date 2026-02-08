@@ -7,15 +7,6 @@ import { authenticate } from '../middleware/auth';
 
 const router = Router();
 
-// Extend Express Request to include multer file
-declare global {
-  namespace Express {
-    interface Request {
-      file?: Express.Multer.File;
-    }
-  }
-}
-
 // Configure Cloudinary if credentials are available
 const useCloudinary = !!(
   process.env.CLOUDINARY_CLOUD_NAME &&
@@ -106,7 +97,7 @@ const uploadToCloudinary = (buffer: Buffer, originalname: string): Promise<any> 
 };
 
 // POST /api/upload - Upload single image
-router.post('/', authenticate, upload.single('image'), async (req: Request, res: Response) => {
+router.post('/', authenticate, upload.single('image'), async (req: any, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
