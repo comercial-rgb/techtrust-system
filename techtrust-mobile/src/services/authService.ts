@@ -19,14 +19,11 @@ const STORED_EMAIL_KEY = 'stored_email';
 const STORED_PASSWORD_KEY = 'stored_password';
 const BIOMETRIC_PROMPT_SHOWN_KEY = 'biometric_prompt_shown';
 
-// Google OAuth Configuration - Set via EAS secrets or app.config.js
-// To configure: 
-// 1. Go to Google Cloud Console → APIs & Services → Credentials
-// 2. Create OAuth 2.0 Client IDs for Web, iOS, and Android
-// 3. Set as EAS secrets: eas secret:create GOOGLE_CLIENT_ID_WEB <value>
-const GOOGLE_CLIENT_ID_WEB = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB || '';
-const GOOGLE_CLIENT_ID_IOS = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS || GOOGLE_CLIENT_ID_WEB;
-const GOOGLE_CLIENT_ID_ANDROID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_ANDROID || GOOGLE_CLIENT_ID_WEB;
+// Google OAuth Configuration
+// Client IDs from Google Cloud Console - Project: AppTechTrust
+const GOOGLE_CLIENT_ID_WEB = '26543985887-850q6ofe2akjrsjfrm76ln7dng48peaa.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID_IOS = '26543985887-3jtoj1tdsah1lvl2n4vq58osrbtoi9fb.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID_ANDROID = '26543985887-ni5m1hcelbsa775csrmrhplmvrad1s06.apps.googleusercontent.com';
 
 // Discovery document for Google OAuth
 const googleDiscovery = {
