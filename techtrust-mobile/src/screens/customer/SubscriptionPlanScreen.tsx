@@ -35,6 +35,7 @@ export default function SubscriptionPlanScreen({ navigation }: any) {
   const [currentPlan, setCurrentPlan] = useState<string>('free');
   const [currentSubscription, setCurrentSubscription] = useState<any>(null);
   const [plans, setPlans] = useState<Plan[]>([]);
+  const [backendPlansData, setBackendPlansData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -58,6 +59,9 @@ export default function SubscriptionPlanScreen({ navigation }: any) {
       // Process plans from backend
       const backendPlans = plansResponse.data || [];
       if (backendPlans.length > 0) {
+        // Store backend data for interval switching
+        setBackendPlansData(backendPlans);
+        
         const formattedPlans: Plan[] = backendPlans.map((p: any) => ({
           id: p.planKey || p.id,
           name: p.name,
@@ -69,10 +73,12 @@ export default function SubscriptionPlanScreen({ navigation }: any) {
         setPlans(formattedPlans);
       } else {
         // Fallback to default plans
+        setBackendPlansData([]);
         setPlans(getDefaultPlans());
       }
     } catch (error) {
       console.error('Error loading data:', error);
+      setBackendPlansData([]);
       setPlans(getDefaultPlans());
     } finally {
       setLoading(false);
@@ -81,14 +87,20 @@ export default function SubscriptionPlanScreen({ navigation }: any) {
 
   // Update prices when billing interval changes
   useEffect(() => {
-    if (plans.length > 0) {
-      setPlans(prevPlans => prevPlans.map(p => ({
-        ...p,
-        price: billingInterval === 'month' 
-          ? (p.id === 'free' ? 0 : p.id === 'basic' ? 9.99 : p.id === 'premium' ? 19.99 : 49.99)
-          : (p.id === 'free' ? 0 : p.id === 'basic' ? 99.99 : p.id === 'premium' ? 199.99 : 499.99),
+    if (backendPlansData.length > 0) {
+      // Update from backend data
+      const formattedPlans: Plan[] = backendPlansData.map((p: any) => ({
+        id: p.planKey || p.id,
+        name: p.name,
+        price: billingInterval === 'month' ? Number(p.monthlyPrice) : Number(p.yearlyPrice),
         interval: billingInterval,
-      })));
+        features: Array.isArray(p.features) ? p.features : [],
+        popular: p.isFeatured,
+      }));
+      setPlans(formattedPlans);
+    } else if (plans.length > 0) {
+      // Update from default plans
+      setPlans(getDefaultPlans());
     }
   }, [billingInterval]);
 
