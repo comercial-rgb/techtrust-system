@@ -53,15 +53,20 @@ router.get('/banners', asyncHandler(async (req: Request, res: Response) => {
 // Obter ofertas ativas
 router.get('/offers', asyncHandler(async (req: Request, res: Response) => {
   const { featured } = req.query;
+  
+  // Use start of today (midnight) for date comparison to avoid timezone issues
   const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  // End of today for validUntil comparison
+  const endOfToday = new Date(today.getTime() + 24 * 60 * 60 * 1000 - 1);
   
   const where: any = {
     isActive: true,
     OR: [
       { validFrom: null, validUntil: null },
-      { validFrom: { lte: now }, validUntil: null },
-      { validFrom: null, validUntil: { gte: now } },
-      { validFrom: { lte: now }, validUntil: { gte: now } }
+      { validFrom: { lte: endOfToday }, validUntil: null },
+      { validFrom: null, validUntil: { gte: today } },
+      { validFrom: { lte: endOfToday }, validUntil: { gte: today } }
     ]
   };
   
