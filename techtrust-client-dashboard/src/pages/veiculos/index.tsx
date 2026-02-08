@@ -12,6 +12,8 @@ import {
   Star,
   Wrench,
   AlertTriangle,
+  Crown,
+  ArrowUpCircle,
 } from 'lucide-react';
 
 interface Vehicle {
@@ -27,11 +29,18 @@ interface Vehicle {
   isDefault: boolean;
 }
 
+interface SubscriptionInfo {
+  plan: string;
+  vehicleLimit: number;
+}
+
 export default function VeiculosPage() {
-  const { isAuthenticated, loading: authLoading } = useAuth();
+  const { isAuthenticated, loading: authLoading, user } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [subscription, setSubscription] = useState<SubscriptionInfo>({ plan: 'Freemium', vehicleLimit: 1 });
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -42,6 +51,7 @@ export default function VeiculosPage() {
   useEffect(() => {
     if (isAuthenticated) {
       loadVehicles();
+      loadSubscription();
     }
   }, [isAuthenticated]);
 
@@ -69,6 +79,30 @@ export default function VeiculosPage() {
       console.error('Erro ao carregar veículos:', error);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadSubscription() {
+    try {
+      const response = await api.getProfile();
+      if (response.data?.subscription) {
+        const sub = response.data.subscription;
+        setSubscription({
+          plan: sub.plan?.name || 'Freemium',
+          vehicleLimit: sub.plan?.vehicleLimit || 1,
+        });
+      }
+    } catch (error) {
+      // Use default freemium
+      setSubscription({ plan: 'Freemium', vehicleLimit: 1 });
+    }
+  }
+
+  function handleAddVehicle() {
+    if (vehicles.length >= subscription.vehicleLimit) {
+      setShowUpgradeModal(true);
+    } else {
+      router.push('/veiculos/novo');
     }
   }
 
@@ -104,7 +138,9 @@ export default function VeiculosPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-8">
             <div>
-              <p className="text-3xl font-bold text-gray-900">{vehicles.length}</p>
+              <p className="text-3xl font-bold text-gray-900">
+                {vehicles.length}<span className="text-lg text-gray-400">/{subscription.vehicleLimit}</span>
+              </p>
               <p className="text-sm text-gray-500">Veículos cadastrados</p>
             </div>
             <div className="h-12 w-px bg-gray-200"></div>
@@ -114,14 +150,33 @@ export default function VeiculosPage() {
               </p>
               <p className="text-sm text-gray-500">KM Total</p>
             </div>
+            <div className="h-12 w-px bg-gray-200"></div>
+            <div className="flex items-center gap-2">
+              <Crown className={`w-5 h-5 ${subscription.plan === 'Premium' ? 'text-yellow-500' : subscription.plan === 'Basic' ? 'text-blue-500' : 'text-gray-400'}`} />
+              <div>
+                <p className="font-semibold text-gray-900">{subscription.plan}</p>
+                <p className="text-xs text-gray-500">Seu plano</p>
+              </div>
+            </div>
           </div>
-          <button
-            onClick={() => router.push('/veiculos/novo')}
-            className="btn btn-primary"
-          >
-            <Plus className="w-5 h-5" />
-            Adicionar Veículo
-          </button>
+          <div className="flex items-center gap-3">
+            {vehicles.length >= subscription.vehicleLimit && (
+              <button
+                onClick={() => setShowUpgradeModal(true)}
+                className="btn btn-secondary border-yellow-400 text-yellow-600 hover:bg-yellow-50"
+              >
+                <ArrowUpCircle className="w-5 h-5" />
+                Fazer Upgrade
+              </button>
+            )}
+            <button
+              onClick={handleAddVehicle}
+              className={`btn ${vehicles.length >= subscription.vehicleLimit ? 'btn-secondary opacity-60' : 'btn-primary'}`}
+            >
+              <Plus className="w-5 h-5" />
+              Adicionar Veículo
+            </button>
+          </div>
         </div>
       </div>
 
@@ -228,17 +283,92 @@ export default function VeiculosPage() {
 
         {/* Add Vehicle Card */}
         <div
-          onClick={() => router.push('/veiculos/novo')}
-          className="bg-white rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center min-h-[300px] cursor-pointer hover:border-primary-300 hover:bg-primary-50/30 transition-colors"
+          onClick={handleAddVehicle}
+          className={`bg-white rounded-xl border-2 border-dashed flex items-center justify-center min-h-[300px] cursor-pointer transition-colors ${
+            vehicles.length >= subscription.vehicleLimit 
+              ? 'border-gray-200 bg-gray-50 opacity-60' 
+              : 'border-gray-200 hover:border-primary-300 hover:bg-primary-50/30'
+          }`}
         >
           <div className="text-center">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Plus className="w-8 h-8 text-gray-400" />
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
+              vehicles.length >= subscription.vehicleLimit ? 'bg-gray-100' : 'bg-gray-100'
+            }`}>
+              {vehicles.length >= subscription.vehicleLimit ? (
+                <ArrowUpCircle className="w-8 h-8 text-yellow-500" />
+              ) : (
+                <Plus className="w-8 h-8 text-gray-400" />
+              )}
             </div>
-            <p className="text-gray-600 font-medium">Adicionar novo veículo</p>
+            <p className="text-gray-600 font-medium">
+              {vehicles.length >= subscription.vehicleLimit 
+                ? 'Limite atingido - Faça upgrade' 
+                : 'Adicionar novo veículo'}
+            </p>
+            {vehicles.length >= subscription.vehicleLimit && (
+              <p className="text-sm text-gray-400 mt-1">
+                Seu plano {subscription.plan} permite {subscription.vehicleLimit} veículo(s)
+              </p>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Upgrade Modal */}
+      {showUpgradeModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Crown className="w-8 h-8 text-yellow-500" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">Limite de Veículos Atingido</h2>
+              <p className="text-gray-600">
+                Seu plano <span className="font-semibold">{subscription.plan}</span> permite apenas {subscription.vehicleLimit} veículo(s).
+                Faça upgrade para adicionar mais veículos.
+              </p>
+            </div>
+            
+            <div className="space-y-3 mb-6">
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                <div>
+                  <p className="font-semibold text-gray-900">Basic</p>
+                  <p className="text-sm text-gray-500">Até 5 veículos</p>
+                </div>
+                <p className="font-bold text-primary-600">R$ 9,99/mês</p>
+              </div>
+              <div className="flex items-center justify-between p-4 bg-yellow-50 rounded-xl border-2 border-yellow-400">
+                <div className="flex items-center gap-2">
+                  <Crown className="w-5 h-5 text-yellow-500" />
+                  <div>
+                    <p className="font-semibold text-gray-900">Premium</p>
+                    <p className="text-sm text-gray-500">Até 10 veículos</p>
+                  </div>
+                </div>
+                <p className="font-bold text-primary-600">R$ 19,99/mês</p>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setShowUpgradeModal(false)} 
+                className="flex-1 btn btn-secondary py-3"
+              >
+                Voltar
+              </button>
+              <button 
+                onClick={() => {
+                  setShowUpgradeModal(false);
+                  router.push('/perfil?tab=subscription');
+                }}
+                className="flex-1 btn btn-primary py-3"
+              >
+                Ver Planos
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }
