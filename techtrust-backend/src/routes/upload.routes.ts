@@ -7,6 +7,15 @@ import { authenticate } from '../middleware/auth';
 
 const router = Router();
 
+// Extend Express Request to include multer file
+declare global {
+  namespace Express {
+    interface Request {
+      file?: Express.Multer.File;
+    }
+  }
+}
+
 // Configure Cloudinary if credentials are available
 const useCloudinary = !!(
   process.env.CLOUDINARY_CLOUD_NAME &&
