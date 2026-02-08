@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
 import AdminLayout from '../components/AdminLayout';
 import { useI18n } from '../i18n';
+import api from '../services/api';
 import {
   Users,
   Building2,
@@ -72,16 +73,12 @@ export default function DashboardPage() {
   async function loadDashboardData() {
     setLoading(true);
     try {
-      // Carregar estatísticas da API
-      const response = await fetch('/api/admin/dashboard/stats', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
+      // Carregar estatísticas da API usando serviço
+      const response = await api.getDashboardStats();
       
-      if (!response.ok) throw new Error('Erro ao carregar dados');
+      if (response.error) throw new Error(response.error);
       
-      const data = await response.json();
+      const data = response.data;
       
       setStats(data.stats || {
         users: { total: 0, customers: 0, providers: 0, newThisMonth: 0 },

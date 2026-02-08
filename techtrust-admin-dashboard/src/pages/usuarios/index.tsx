@@ -61,7 +61,9 @@ export default function UsuariosPage() {
   async function loadUsers() {
     try {
       const response = await adminApi.getUsers();
-      setUsers(response.data.data || []);
+      // Garantir que sempre seja um array
+      const usersList = response.data?.users || response.data?.data || response.data || [];
+      setUsers(Array.isArray(usersList) ? usersList : []);
     } catch (error) {
       console.error('Erro ao carregar usuários:', error);
       setUsers([]);

@@ -95,7 +95,7 @@ class AdminApiService {
   // ============================================
 
   async getDashboardStats() {
-    return this.request<any>('/admin/dashboard');
+    return this.request<any>('/admin/dashboard/stats');
   }
 
   async getRevenueStats(period?: string) {
@@ -307,6 +307,113 @@ class AdminApiService {
   }
 
   // ============================================
+  // CONTENT MANAGEMENT
+  // ============================================
+
+  async getBanners() {
+    return this.request<any>('/admin/content/banners');
+  }
+
+  async createBanner(data: FormData) {
+    const token = Cookies.get('tt_admin_token');
+    const url = `${API_BASE_URL}/admin/content/banners`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: data,
+    });
+    return response.json();
+  }
+
+  async updateBanner(id: string, data: any) {
+    return this.request(`/admin/content/banners/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteBanner(id: string) {
+    return this.request(`/admin/content/banners/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getArticles() {
+    return this.request<any>('/admin/content/articles');
+  }
+
+  async createArticle(data: any) {
+    return this.request('/admin/content/articles', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateArticle(id: string, data: any) {
+    return this.request(`/admin/content/articles/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteArticle(id: string) {
+    return this.request(`/admin/content/articles/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getOffers() {
+    return this.request<any>('/admin/content/offers');
+  }
+
+  async createOffer(data: any) {
+    return this.request('/admin/content/offers', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateOffer(id: string, data: any) {
+    return this.request(`/admin/content/offers/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteOffer(id: string) {
+    return this.request(`/admin/content/offers/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getNotices() {
+    return this.request<any>('/admin/content/notices');
+  }
+
+  async uploadFile(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const token = Cookies.get('tt_admin_token');
+    const url = `${API_BASE_URL}/upload`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+    
+    if (!response.ok) {
+      throw new Error('Upload failed');
+    }
+    
+    return response.json();
+  }
+
+  // ============================================
   // REPORTS
   // ============================================
 
@@ -371,3 +478,4 @@ class AdminApiService {
 }
 
 export const adminApi = new AdminApiService();
+export default adminApi;

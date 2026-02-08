@@ -73,7 +73,9 @@ export default function FornecedoresPage() {
   async function loadProviders() {
     try {
       const response = await adminApi.getProviders();
-      setProviders(response.data || []);
+      // Garantir que sempre seja um array
+      const providersList = response.data?.providers || response.data || [];
+      setProviders(Array.isArray(providersList) ? providersList : []);
     } catch (error) {
       console.error('Erro ao carregar fornecedores:', error);
       setProviders([]);
