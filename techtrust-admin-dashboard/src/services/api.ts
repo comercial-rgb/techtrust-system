@@ -39,6 +39,13 @@ class AdminApiService {
       const data = await response.json();
 
       if (!response.ok) {
+        // Se for 401, limpar token e redirecionar
+        if (response.status === 401) {
+          Cookies.remove('tt_admin_token');
+          if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+            window.location.href = '/login';
+          }
+        }
         return { error: data.error || data.message || 'Erro na requisição' };
       }
 
