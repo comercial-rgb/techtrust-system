@@ -144,10 +144,21 @@ if (process.env.NODE_ENV === 'development') {
 // HEALTH CHECK
 // ============================================
 app.get('/health', (_req, res) => {
+  const cloudinaryConfigured = !!(
+    process.env.CLOUDINARY_CLOUD_NAME &&
+    process.env.CLOUDINARY_API_KEY &&
+    process.env.CLOUDINARY_API_SECRET &&
+    process.env.CLOUDINARY_CLOUD_NAME !== 'sua_cloud_name'
+  );
+  
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
+    cloudinary: {
+      configured: cloudinaryConfigured,
+      cloudName: process.env.CLOUDINARY_CLOUD_NAME || 'not set',
+    },
     environment: process.env.NODE_ENV || 'development'
   });
 });
