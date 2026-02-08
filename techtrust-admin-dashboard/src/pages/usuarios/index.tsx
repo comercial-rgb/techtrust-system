@@ -26,9 +26,9 @@ interface UserData {
   email: string;
   phone: string;
   role: 'ADMIN' | 'CUSTOMER' | 'PROVIDER';
-  isActive: boolean;
+  status: 'PENDING_VERIFICATION' | 'ACTIVE' | 'SUSPENDED' | 'INACTIVE';
   createdAt: string;
-  lastLogin?: string;
+  lastLoginAt?: string;
 }
 
 export default function UsuariosPage() {
@@ -94,10 +94,20 @@ export default function UsuariosPage() {
     }
   };
 
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'ACTIVE': return { color: 'badge-success', label: 'Ativo' };
+      case 'PENDING_VERIFICATION': return { color: 'badge-warning', label: 'Pendente' };
+      case 'SUSPENDED': return { color: 'badge-danger', label: 'Suspenso' };
+      case 'INACTIVE': return { color: 'badge-danger', label: 'Inativo' };
+      default: return { color: 'badge-secondary', label: status };
+    }
+  };
+
   const filteredUsers = users.filter((user) => {
     if (roleFilter !== 'all' && user.role !== roleFilter) return false;
-    if (statusFilter === 'active' && !user.isActive) return false;
-    if (statusFilter === 'inactive' && user.isActive) return false;
+    if (statusFilter === 'active' && user.status !== 'ACTIVE') return false;
+    if (statusFilter === 'inactive' && user.status === 'ACTIVE') return false;
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       return (
@@ -116,10 +126,15 @@ export default function UsuariosPage() {
   );
 
   async function handleToggleStatus(user: UserData) {
-    // API call here
-    setUsers(users.map(u => 
-      u.id === user.id ? { ...u, isActive: !u.isActive } : u
-    ));
+    const newStatus = user.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+    try {
+      await adminApi.toggleUserStatus(user.id, newStatus === 'ACTIVE');
+      setUsers(users.map(u => 
+        u.id === user.id ? { ...u, status: newStatus } : u
+      ));
+    } catch (error) {
+      console.error('Erro ao alterar status:', error);
+    }
   }
 
   async function handleDeleteUser() {
@@ -159,8 +174,8 @@ export default function UsuariosPage() {
           <p className="text-sm text-gray-500">Fornecedores</p>
         </div>
         <div className="card p-4 text-center">
-          <p className="text-2xl font-bold text-red-600">{users.filter(u => !u.isActive).length}</p>
-          <p className="text-sm text-gray-500">Inativos</p>
+          <p className="text-2xl font-bold text-red-600">{users.filter(u => u.status !== 'ACTIVE').length}</p>
+          <p className="text-sm text-gray-500">Inativos/Pendentes</p>
         </div>
       </div>
 
@@ -253,15 +268,15 @@ export default function UsuariosPage() {
                     </span>
                   </td>
                   <td className="table-cell">
-                    <span className={`badge ${user.isActive ? 'badge-success' : 'badge-danger'}`}>
-                      {user.isActive ? 'Ativo' : 'Inativo'}
+                    <span className={`badge ${getStatusBadge(user.status).color}`}>
+                      {getStatusBadge(user.status).label}
                     </span>
                   </td>
                   <td className="table-cell text-sm text-gray-500">
                     {new Date(user.createdAt).toLocaleDateString('pt-BR')}
                   </td>
                   <td className="table-cell text-sm text-gray-500">
-                    {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString('pt-BR') : '-'}
+                    {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString('pt-BR') : '-'}
                   </td>
                   <td className="table-cell text-right">
                     <div className="flex items-center justify-end gap-2">
@@ -274,10 +289,10 @@ export default function UsuariosPage() {
                       </button>
                       <button
                         onClick={() => handleToggleStatus(user)}
-                        className={`p-2 rounded-lg ${user.isActive ? 'text-red-500 hover:text-red-700 hover:bg-red-50' : 'text-green-500 hover:text-green-700 hover:bg-green-50'}`}
-                        title={user.isActive ? 'Desativar' : 'Ativar'}
+                        className={`p-2 rounded-lg ${user.status === 'ACTIVE' ? 'text-red-500 hover:text-red-700 hover:bg-red-50' : 'text-green-500 hover:text-green-700 hover:bg-green-50'}`}
+                        title={user.status === 'ACTIVE' ? 'Desativar' : 'Ativar'}
                       >
-                        {user.isActive ? <Ban className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
+                        {user.status === 'ACTIVE' ? <Ban className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
                       </button>
                       <button
                         onClick={() => { setUserToDelete(user); setShowDeleteModal(true); }}
