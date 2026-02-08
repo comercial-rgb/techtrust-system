@@ -304,7 +304,7 @@ export default function CustomerVehiclesScreen({ navigation }: any) {
                 <View style={styles.cardActions}>
                   <ScalePress 
                     style={styles.actionButton}
-                    onPress={() => navigation.navigate('Home', { screen: 'CreateRequest', params: { vehicleId: vehicle.id } })}
+                    onPress={() => navigation.navigate('Dashboard', { screen: 'CreateRequest', params: { vehicleId: vehicle.id } })}
                   >
                     <Ionicons name="add-circle-outline" size={18} color="#1976d2" />
                     <Text style={styles.actionButtonText}>{t.customer?.requestService || 'Request Service'}</Text>
