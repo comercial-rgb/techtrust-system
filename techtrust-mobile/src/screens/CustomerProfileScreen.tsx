@@ -3,7 +3,7 @@
  * Modern design with cards and statistics
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { FadeInView, ScalePress } from '../components/Animated';
 import { useI18n, languages, Language } from '../i18n';
@@ -37,9 +38,12 @@ export default function CustomerProfileScreen({ navigation }: any) {
   });
   const [loadingStats, setLoadingStats] = useState(true);
 
-  useEffect(() => {
-    loadUserStats();
-  }, []);
+  // Recarregar stats sempre que a tela ganhar foco
+  useFocusEffect(
+    useCallback(() => {
+      loadUserStats();
+    }, [])
+  );
 
   const loadUserStats = async () => {
     try {

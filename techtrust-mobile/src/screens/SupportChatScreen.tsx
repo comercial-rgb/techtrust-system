@@ -214,8 +214,9 @@ export default function SupportChatScreen({ navigation }: any) {
 
       {/* Input Area */}
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 25}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        style={styles.keyboardAvoid}
       >
         <View style={styles.inputContainer}>
           <TouchableOpacity style={styles.attachBtn}>
@@ -251,6 +252,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8fafc',
+  },
+  keyboardAvoid: {
+    backgroundColor: '#fff',
   },
   header: {
     flexDirection: 'row',

@@ -65,6 +65,31 @@ export default function AddVehicleScreen({ navigation }: any) {
     }
     return [];
   });
+  
+  // Vehicle limit check for freemium plans
+  const [vehicleCount, setVehicleCount] = useState(0);
+  const [vehicleLimit, setVehicleLimit] = useState(1); // Default freemium: 1 vehicle
+  
+  useEffect(() => {
+    if (!isEditing) {
+      checkVehicleLimit();
+    }
+  }, [isEditing]);
+  
+  const checkVehicleLimit = async () => {
+    try {
+      const response = await api.get('/vehicles');
+      const vehicles = response.data?.vehicles || response.data?.data || [];
+      setVehicleCount(vehicles.length);
+      
+      // TODO: Get vehicle limit from user's subscription plan
+      // For now, using default limits:
+      // Freemium: 1 vehicle, Basic: 5 vehicles, Premium: 10 vehicles
+      // This should come from the user's subscription data
+    } catch (error) {
+      console.error('Error checking vehicle limit:', error);
+    }
+  };
 
   // Função para decodificar VIN
   const handleDecodeVIN = async () => {
@@ -286,6 +311,25 @@ export default function AddVehicleScreen({ navigation }: any) {
   };
 
   async function handleSave() {
+    // Check vehicle limit for new vehicles (not when editing)
+    if (!isEditing && vehicleCount >= vehicleLimit) {
+      Alert.alert(
+        t.vehicle?.vehicleLimitReached || 'Vehicle Limit Reached',
+        t.vehicle?.upgradePlanForMoreVehicles || `You have reached your limit of ${vehicleLimit} vehicle(s). Upgrade your plan to add more vehicles.`,
+        [
+          { text: t.common?.cancel || 'Cancel', style: 'cancel' },
+          { 
+            text: t.vehicle?.upgradePlan || 'Upgrade Plan', 
+            onPress: () => {
+              navigation.goBack();
+              navigation.navigate('Profile', { screen: 'SubscriptionPlan' });
+            }
+          },
+        ]
+      );
+      return;
+    }
+    
     // Validar campos obrigatórios
     if (!make || !model || !year) {
       Alert.alert(

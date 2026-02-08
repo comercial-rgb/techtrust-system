@@ -222,8 +222,8 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
             <Text style={styles.sectionTitle}>{t.vehicle?.vehicleInformation || 'Vehicle Information'}</Text>
             <View style={styles.infoCard}>
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>{t.vehicle?.vin || 'VIN'}</Text>
-                <Text style={styles.infoValue}>{vehicle.vin}</Text>
+                <Text style={styles.infoLabel}>{t.vehicle?.vin || 'VIN (Vehicle Identification Number)'}</Text>
+                <Text style={styles.infoValue} selectable numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{vehicle.vin || '-'}</Text>
               </View>
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>{t.vehicle?.licensePlate || 'License Plate'}</Text>
@@ -603,7 +603,7 @@ const styles = StyleSheet.create({
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#f3f4f6',
@@ -611,11 +611,15 @@ const styles = StyleSheet.create({
   infoLabel: {
     fontSize: 14,
     color: '#6b7280',
+    flexShrink: 0,
+    marginRight: 12,
   },
   infoValue: {
     fontSize: 14,
     fontWeight: '600',
     color: '#111827',
+    flex: 1,
+    textAlign: 'right',
   },
   expiryContainer: {
     flexDirection: 'row',

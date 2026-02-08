@@ -13,11 +13,19 @@ import {
   Modal,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useI18n } from '../../i18n';
 import { useRoute, CommonActions } from '@react-navigation/native';
+
+// Storage keys
+const PAYMENT_METHODS_KEY = '@TechTrust:paymentMethods';
+const WALLET_BALANCE_KEY = '@TechTrust:walletBalance';
+const TRANSACTIONS_KEY = '@TechTrust:walletTransactions';
 
 interface PaymentMethod {
   id: string;
@@ -98,13 +106,36 @@ export default function PaymentMethodsScreen({ navigation }: any) {
     try {
       setLoading(true);
       
-      // Limpar dados mockados - Load real data from API when implemented
-      setWalletBalance(0);
-      setRecentTransactions([]);
-      setPaymentMethods([]);
+      // Load saved data from AsyncStorage
+      const [savedMethods, savedBalance, savedTransactions] = await Promise.all([
+        AsyncStorage.getItem(PAYMENT_METHODS_KEY),
+        AsyncStorage.getItem(WALLET_BALANCE_KEY),
+        AsyncStorage.getItem(TRANSACTIONS_KEY),
+      ]);
+      
+      if (savedMethods) {
+        setPaymentMethods(JSON.parse(savedMethods));
+      } else {
+        setPaymentMethods([]);
+      }
+      
+      if (savedBalance) {
+        setWalletBalance(parseFloat(savedBalance));
+      } else {
+        setWalletBalance(0);
+      }
+      
+      if (savedTransactions) {
+        setRecentTransactions(JSON.parse(savedTransactions));
+      } else {
+        setRecentTransactions([]);
+      }
       
     } catch (error) {
       console.error('Error loading payment methods:', error);
+      setPaymentMethods([]);
+      setWalletBalance(0);
+      setRecentTransactions([]);
     } finally {
       setLoading(false);
     }
@@ -144,7 +175,9 @@ export default function PaymentMethodsScreen({ navigation }: any) {
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       // Add to balance
-      setWalletBalance(prev => prev + amount);
+      const newBalance = walletBalance + amount;
+      setWalletBalance(newBalance);
+      await AsyncStorage.setItem(WALLET_BALANCE_KEY, newBalance.toString());
       
       // Add transaction record
       const methodName = addBalanceMethod === 'card' 
@@ -153,13 +186,17 @@ export default function PaymentMethodsScreen({ navigation }: any) {
         ? (t.customer?.balanceAddedViaPix || 'Balance added via PIX')
         : (t.customer?.balanceAddedViaTransfer || 'Balance added via transfer');
       
-      setRecentTransactions(prev => [{
+      const newTransaction = {
         id: Date.now().toString(),
-        type: 'credit',
+        type: 'credit' as const,
         amount: amount,
         description: methodName,
         date: new Date().toISOString().split('T')[0],
-      }, ...prev]);
+      };
+      
+      const updatedTransactions = [newTransaction, ...recentTransactions];
+      setRecentTransactions(updatedTransactions);
+      await AsyncStorage.setItem(TRANSACTIONS_KEY, JSON.stringify(updatedTransactions));
       
       setShowAddBalanceModal(false);
       Alert.alert(
@@ -205,7 +242,10 @@ export default function PaymentMethodsScreen({ navigation }: any) {
             isDefault: paymentMethods.length === 0,
           };
 
-      setPaymentMethods(prev => [...prev, newMethod]);
+      const updatedMethods = [...paymentMethods, newMethod];
+      setPaymentMethods(updatedMethods);
+      await AsyncStorage.setItem(PAYMENT_METHODS_KEY, JSON.stringify(updatedMethods));
+      
       setShowModal(false);
       Alert.alert(t.common?.success || 'Success', t.customer?.paymentMethodAdded || 'Payment method added successfully.');
     } finally {
@@ -213,11 +253,13 @@ export default function PaymentMethodsScreen({ navigation }: any) {
     }
   };
 
-  const handleSetDefault = (methodId: string) => {
-    setPaymentMethods(prev => prev.map(m => ({
+  const handleSetDefault = async (methodId: string) => {
+    const updatedMethods = paymentMethods.map(m => ({
       ...m,
       isDefault: m.id === methodId,
-    })));
+    }));
+    setPaymentMethods(updatedMethods);
+    await AsyncStorage.setItem(PAYMENT_METHODS_KEY, JSON.stringify(updatedMethods));
   };
 
   const handleDelete = (methodId: string) => {
@@ -229,8 +271,10 @@ export default function PaymentMethodsScreen({ navigation }: any) {
         {
           text: t.common?.remove || 'Remove',
           style: 'destructive',
-          onPress: () => {
-            setPaymentMethods(prev => prev.filter(m => m.id !== methodId));
+          onPress: async () => {
+            const updatedMethods = paymentMethods.filter(m => m.id !== methodId);
+            setPaymentMethods(updatedMethods);
+            await AsyncStorage.setItem(PAYMENT_METHODS_KEY, JSON.stringify(updatedMethods));
           },
         },
       ]
@@ -462,8 +506,12 @@ export default function PaymentMethodsScreen({ navigation }: any) {
         transparent={true}
         onRequestClose={() => setShowModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t.customer?.addPaymentMethod || 'Add Payment Method'}</Text>
               <TouchableOpacity onPress={() => setShowModal(false)}>
@@ -580,6 +628,7 @@ export default function PaymentMethodsScreen({ navigation }: any) {
             </ScrollView>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Add Balance Modal */}

@@ -3,7 +3,7 @@
  * Modern design with visual cards
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { FadeInView, ScalePress } from '../components/Animated';
 import { VehicleSkeleton } from '../components/Skeleton';
 import { useI18n } from '../i18n';
@@ -38,9 +39,12 @@ export default function CustomerVehiclesScreen({ navigation }: any) {
   const [refreshing, setRefreshing] = useState(false);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
 
-  useEffect(() => {
-    loadVehicles();
-  }, []);
+  // Recarregar veículos sempre que a tela ganhar foco
+  useFocusEffect(
+    useCallback(() => {
+      loadVehicles();
+    }, [])
+  );
 
   async function loadVehicles() {
     try {
@@ -118,9 +122,7 @@ export default function CustomerVehiclesScreen({ navigation }: any) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#111827" />
-          </TouchableOpacity>
+          <View style={{ width: 40 }} />
           <Text style={styles.headerTitle}>{t.vehicles?.myVehicles || 'My Vehicles'}</Text>
           <View style={{ width: 40 }} />
         </View>
@@ -134,9 +136,7 @@ export default function CustomerVehiclesScreen({ navigation }: any) {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#111827" />
-        </TouchableOpacity>
+        <View style={{ width: 40 }} />
         <Text style={styles.headerTitle}>{t.vehicles?.myVehicles || 'My Vehicles'}</Text>
         <TouchableOpacity 
           style={styles.addButton}

@@ -19,6 +19,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { CommonActions } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
 import { FadeInView, ScalePress } from '../components/Animated';
 import { DashboardStatsSkeleton } from '../components/Skeleton';
@@ -29,56 +30,11 @@ import BannerCarousel from '../components/BannerCarousel';
 import SpecialOffersSection, { SpecialOffer } from '../components/SpecialOffersSection';
 import ArticlesSection from '../components/ArticlesSection';
 
+// Storage key for wallet balance
+const WALLET_BALANCE_KEY = '@TechTrust:walletBalance';
+
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = (SCREEN_WIDTH - 48) / 2; // 16 padding on each side + 16 gap
-
-const SPECIAL_OFFERS = [
-  {
-    id: '1',
-    image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400',
-    title: 'Oil Change Special',
-    discount: '15% OFF',
-    description: 'Full synthetic oil change with filter',
-    validUntil: 'Dec 31, 2025',
-    originalPrice: '$89.99',
-    discountedPrice: '$76.49',
-    serviceType: 'oil',
-    vehicleTypes: ['Car', 'SUV', 'Pickup', 'Van'],
-    fuelTypes: ['Gasoline', 'Diesel', 'Hybrid'],
-    bgColor: '#fee2e2',
-    accentColor: '#ef4444',
-  },
-  {
-    id: '2',
-    image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400',
-    title: 'Brake Service',
-    discount: '20% OFF',
-    description: 'Front or rear brake pad replacement',
-    validUntil: 'Dec 25, 2025',
-    originalPrice: '$199.99',
-    discountedPrice: '$159.99',
-    serviceType: 'brake',
-    vehicleTypes: ['Car', 'SUV', 'Pickup', 'Van', 'Light Truck'],
-    fuelTypes: ['Gasoline', 'Diesel', 'Hybrid', 'Electric'],
-    bgColor: '#fef3c7',
-    accentColor: '#f59e0b',
-  },
-  {
-    id: '3',
-    image: 'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=400',
-    title: 'A/C Check',
-    discount: 'FREE',
-    description: 'Complete A/C system inspection',
-    validUntil: 'Dec 20, 2025',
-    originalPrice: '$49.99',
-    discountedPrice: 'FREE',
-    serviceType: 'ac',
-    vehicleTypes: ['Car', 'SUV', 'Van'],
-    fuelTypes: ['Gasoline', 'Diesel', 'Hybrid', 'Electric'],
-    bgColor: '#d1fae5',
-    accentColor: '#10b981',
-  },
-];
 
 // Estados e cidades para filtro - Apenas Florida por enquanto
 const STATES = ['FL'];
@@ -154,6 +110,8 @@ export default function CustomerDashboardScreen({ navigation }: any) {
   const [banners, setBanners] = useState<Banner[]>([]);
   const [offers, setOffers] = useState<SpecialOffer[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
   const [stats, setStats] = useState({
     activeServices: 0,
     pendingQuotes: 0,
@@ -216,6 +174,18 @@ export default function CustomerDashboardScreen({ navigation }: any) {
 
   async function loadDashboardData() {
     try {
+      // Load wallet balance from AsyncStorage
+      const savedBalance = await AsyncStorage.getItem(WALLET_BALANCE_KEY);
+      if (savedBalance) {
+        setWalletBalance(parseFloat(savedBalance));
+      } else {
+        setWalletBalance(0);
+      }
+      
+      // TODO: Load unread notifications count from API when implemented
+      // For now, notifications dot is hidden (no mock data)
+      setHasUnreadNotifications(false);
+      
       // Buscar conteúdo da API
       const homeData = await getHomeData();
       setBanners(homeData.banners || []);
@@ -308,14 +278,14 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                 onPress={() => navigation.navigate('Profile', { screen: 'PaymentMethods' })}
               >
                 <Ionicons name="wallet-outline" size={18} color="#10b981" />
-                <Text style={styles.balanceText}>$127.50</Text>
+                <Text style={styles.balanceText}>${walletBalance.toFixed(2)}</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={styles.notificationButton}
                 onPress={() => navigation.navigate('Notifications')}
               >
                 <Ionicons name="notifications-outline" size={24} color="#374151" />
-                <View style={styles.notificationDot} />
+                {hasUnreadNotifications && <View style={styles.notificationDot} />}
               </TouchableOpacity>
             </View>
           </View>
@@ -605,50 +575,6 @@ export default function CustomerDashboardScreen({ navigation }: any) {
           )}
         </FadeInView>
 
-        {/* Special Offers */}
-        <FadeInView delay={500}>
-          <View style={styles.offersSection}>
-            <View style={styles.offersSectionHeader}>
-              <Ionicons name="pricetags" size={24} color="#ef4444" />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.offersSectionTitle}>{t.customerDashboard?.specialOffers || 'Special Offers'}</Text>
-                <Text style={styles.offersSectionSubtitle}>{t.customerDashboard?.limitedTimeDeals || 'Limited time deals'}</Text>
-              </View>
-            </View>
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.offersListContainer}
-            >
-              {offers.length === 0 ? (
-                <View style={styles.emptyOffersContainer}>
-                  <Text style={styles.emptyOffersText}>Nenhuma oferta disponível no momento</Text>
-                </View>
-              ) : (
-                offers.map((offer) => (
-                  <TouchableOpacity 
-                    key={offer.id} 
-                    style={styles.offerCard}
-                    activeOpacity={0.9}
-                    onPress={() => handleOfferPress(offer)}
-                  >
-                    <Image source={{ uri: offer.imageUrl }} style={styles.offerImage} />
-                    <View style={styles.offerDiscountBadge}>
-                      <Text style={styles.offerDiscountText}>{offer.discount ? `${offer.discount}% OFF` : 'PROMO'}</Text>
-                    </View>
-                    <View style={styles.offerContent}>
-                      <Text style={styles.offerTitle}>{offer.title}</Text>
-                      <Text style={styles.offerDescription} numberOfLines={2}>
-                        {offer.description}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                ))
-              )}
-            </ScrollView>
-          </View>
-        </FadeInView>
-
         {/* Quick Actions */}
         <FadeInView delay={200}>
           <View style={styles.quickActionsContainer}>
@@ -726,32 +652,48 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                   <Ionicons name="close-circle" size={32} color="#6b7280" />
                 </TouchableOpacity>
                 
-                <Image source={{ uri: selectedOffer.image }} style={styles.offerModalImage} />
+                {selectedOffer.imageUrl ? (
+                  <Image 
+                    source={{ 
+                      uri: selectedOffer.imageUrl.startsWith('http') 
+                        ? selectedOffer.imageUrl 
+                        : `https://techtrust-api.onrender.com${selectedOffer.imageUrl}` 
+                    }} 
+                    style={styles.offerModalImage} 
+                  />
+                ) : (
+                  <View style={[styles.offerModalImage, { backgroundColor: '#fee2e2', justifyContent: 'center', alignItems: 'center' }]}>
+                    <Ionicons name="pricetag" size={60} color="#ef4444" />
+                  </View>
+                )}
                 
-                <View style={[styles.offerModalBadge, { backgroundColor: selectedOffer.accentColor }]}>
-                  <Text style={styles.offerModalBadgeText}>{selectedOffer.discount}</Text>
+                <View style={[styles.offerModalBadge, { backgroundColor: '#ef4444' }]}>
+                  <Text style={styles.offerModalBadgeText}>{selectedOffer.discount ? `${selectedOffer.discount}% OFF` : 'PROMO'}</Text>
                 </View>
                 
                 <View style={styles.offerModalBody}>
                   <Text style={styles.offerModalTitle}>{selectedOffer.title}</Text>
-                  <Text style={styles.offerModalDescription}>{selectedOffer.description}</Text>
+                  <Text style={styles.offerModalDescription}>{selectedOffer.description || ''}</Text>
                   
-                  <View style={styles.offerModalPricing}>
-                    <View>
-                      <Text style={styles.offerModalPriceLabel}>{t.customerDashboard?.regularPrice || 'Regular Price'}</Text>
-                      <Text style={styles.offerModalOriginalPrice}>{selectedOffer.originalPrice}</Text>
+                  {selectedOffer.discount && (
+                    <View style={styles.offerModalPricing}>
+                      <View>
+                        <Text style={styles.offerModalPriceLabel}>{t.customerDashboard?.regularPrice || 'Regular Price'}</Text>
+                      </View>
+                      <Ionicons name="arrow-forward" size={24} color="#10b981" />
+                      <View>
+                        <Text style={styles.offerModalPriceLabel}>{t.customerDashboard?.specialPrice || 'Special Price'}</Text>
+                        <Text style={styles.offerModalDiscountedPrice}>{selectedOffer.discount}% OFF</Text>
+                      </View>
                     </View>
-                    <Ionicons name="arrow-forward" size={24} color="#10b981" />
-                    <View>
-                      <Text style={styles.offerModalPriceLabel}>{t.customerDashboard?.specialPrice || 'Special Price'}</Text>
-                      <Text style={styles.offerModalDiscountedPrice}>{selectedOffer.discountedPrice}</Text>
-                    </View>
-                  </View>
+                  )}
                   
-                  <View style={styles.offerModalValidity}>
-                    <Ionicons name="time" size={18} color="#f59e0b" />
-                    <Text style={styles.offerModalValidityText}>{t.customerDashboard?.validUntil || 'Valid until'} {selectedOffer.validUntil}</Text>
-                  </View>
+                  {selectedOffer.code && (
+                    <View style={styles.offerModalValidity}>
+                      <Ionicons name="pricetag" size={18} color="#10b981" />
+                      <Text style={styles.offerModalValidityText}>{t.customerDashboard?.useCode || 'Use code'}: {selectedOffer.code}</Text>
+                    </View>
+                  )}
                   
                   <View style={styles.offerModalActions}>
                     <TouchableOpacity 

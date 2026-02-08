@@ -50,6 +50,8 @@ export default {
     newItems: 'New items will appear here',
     urgent: 'Urgent',
     searchPlaceholder: 'Search by title, vehicle...',
+    comingSoon: 'Coming Soon',
+    featureComingSoon: 'This feature will be available soon!',
     // Business types
     autoRepair: 'Auto Repair Shop',
     tireShop: 'Tire Shop',
@@ -261,6 +263,8 @@ export default {
     tagline: 'Your most trusted automotive hub',
     selectCountry: 'Select Country',
     invalidPhone: 'Invalid phone number. Please check and try again.',
+    socialLoginComingSoon: 'login will be available soon!',
+    biometricLoginComingSoon: 'Biometric login will be available soon!',
   },
 
   // Service Request
@@ -981,6 +985,14 @@ export default {
     maxPhotosMessage: 'You can add up to 6 photos per vehicle.',
     cameraPermissionMessage: 'We need camera and gallery permissions to add vehicle photos.',
     photoTips: 'Tip: Add photos from different angles (front, back, sides, interior)',
+    // Success messages
+    vehicleAddedSuccess: 'Vehicle added successfully!',
+    vehicleUpdatedSuccess: 'Vehicle updated successfully!',
+    errorSaving: 'Error saving vehicle. Please try again.',
+    // Freemium limits
+    vehicleLimitReached: 'Vehicle Limit Reached',
+    upgradePlanForMoreVehicles: 'You have reached your vehicle limit. Upgrade your plan to add more vehicles.',
+    upgradePlan: 'Upgrade Plan',
   },
 
   // Chat

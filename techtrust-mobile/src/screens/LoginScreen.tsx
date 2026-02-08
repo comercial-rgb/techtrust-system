@@ -37,6 +37,19 @@ export default function LoginScreen({ navigation }: any) {
 
   const currentLanguage = languages.find(l => l.code === language) || languages[0];
 
+  const handleSocialLogin = (provider: 'google' | 'apple' | 'facebook') => {
+    const providerNames = {
+      google: 'Google',
+      apple: 'Apple',
+      facebook: 'Facebook',
+    };
+    Alert.alert(
+      t.common?.comingSoon || 'Coming Soon',
+      `${providerNames[provider]} ${t.auth?.socialLoginComingSoon || 'login will be available soon!'}`,
+      [{ text: t.common?.ok || 'OK' }]
+    );
+  };
+
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert(t.common.error, t.auth.fillEmailPassword);
@@ -267,13 +280,13 @@ export default function LoginScreen({ navigation }: any) {
 
             {/* Social Login */}
             <View style={styles.socialContainer}>
-              <TouchableOpacity style={styles.socialButton}>
+              <TouchableOpacity style={styles.socialButton} onPress={() => handleSocialLogin('google')}>
                 <MaterialCommunityIcons name="google" size={24} color="#ea4335" />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.socialButton}>
+              <TouchableOpacity style={styles.socialButton} onPress={() => handleSocialLogin('apple')}>
                 <MaterialCommunityIcons name="apple" size={24} color="#000" />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.socialButton}>
+              <TouchableOpacity style={styles.socialButton} onPress={() => handleSocialLogin('facebook')}>
                 <MaterialCommunityIcons name="facebook" size={24} color="#1877f2" />
               </TouchableOpacity>
             </View>

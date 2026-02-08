@@ -16,7 +16,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useI18n } from '../../i18n';
+
+// Storage key for addresses
+const ADDRESSES_KEY = '@TechTrust:addresses';
 
 interface Address {
   id: string;
@@ -56,33 +60,16 @@ export default function AddressesScreen({ navigation }: any) {
 
   const loadAddresses = async () => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      setAddresses([
-        {
-          id: '1',
-          label: 'Home',
-          street: '123 Main Street',
-          number: '456',
-          complement: 'Apt 7B',
-          neighborhood: 'Downtown',
-          city: 'Orlando',
-          state: 'FL',
-          zipCode: '32801',
-          isDefault: true,
-        },
-        {
-          id: '2',
-          label: 'Work',
-          street: '789 Business Ave',
-          number: '100',
-          complement: 'Suite 200',
-          neighborhood: 'Business District',
-          city: 'Orlando',
-          state: 'FL',
-          zipCode: '32802',
-          isDefault: false,
-        },
-      ]);
+      // Load saved addresses from AsyncStorage
+      const savedAddresses = await AsyncStorage.getItem(ADDRESSES_KEY);
+      if (savedAddresses) {
+        setAddresses(JSON.parse(savedAddresses));
+      } else {
+        setAddresses([]);
+      }
+    } catch (error) {
+      console.error('Error loading addresses:', error);
+      setAddresses([]);
     } finally {
       setLoading(false);
     }
@@ -125,22 +112,27 @@ export default function AddressesScreen({ navigation }: any) {
 
     setSaving(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      let updatedAddresses: Address[];
       
       if (editingAddress) {
-        setAddresses(prev => prev.map(a => 
+        updatedAddresses = addresses.map(a => 
           a.id === editingAddress.id 
             ? { ...a, ...formData }
             : a
-        ));
+        );
       } else {
         const newAddress: Address = {
           id: Date.now().toString(),
           ...formData,
           isDefault: addresses.length === 0,
         };
-        setAddresses(prev => [...prev, newAddress]);
+        updatedAddresses = [...addresses, newAddress];
       }
+      
+      setAddresses(updatedAddresses);
+      await AsyncStorage.setItem(ADDRESSES_KEY, JSON.stringify(updatedAddresses));
       
       setShowModal(false);
       Alert.alert(t.common?.success || 'Success', t.customer?.addressSaved || 'Address saved successfully.');
@@ -149,11 +141,13 @@ export default function AddressesScreen({ navigation }: any) {
     }
   };
 
-  const handleSetDefault = (addressId: string) => {
-    setAddresses(prev => prev.map(a => ({
+  const handleSetDefault = async (addressId: string) => {
+    const updatedAddresses = addresses.map(a => ({
       ...a,
       isDefault: a.id === addressId,
-    })));
+    }));
+    setAddresses(updatedAddresses);
+    await AsyncStorage.setItem(ADDRESSES_KEY, JSON.stringify(updatedAddresses));
   };
 
   const handleDelete = (addressId: string) => {
@@ -165,8 +159,10 @@ export default function AddressesScreen({ navigation }: any) {
         {
           text: t.common?.delete || 'Delete',
           style: 'destructive',
-          onPress: () => {
-            setAddresses(prev => prev.filter(a => a.id !== addressId));
+          onPress: async () => {
+            const updatedAddresses = addresses.filter(a => a.id !== addressId);
+            setAddresses(updatedAddresses);
+            await AsyncStorage.setItem(ADDRESSES_KEY, JSON.stringify(updatedAddresses));
           },
         },
       ]

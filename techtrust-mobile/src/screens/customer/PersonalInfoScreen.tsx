@@ -16,11 +16,18 @@ import {
   Platform,
   Image,
   ActionSheetIOS,
+  Modal,
+  FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { useI18n } from '../../i18n';
+
+// Generate arrays for date picker
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const YEARS = Array.from({ length: 100 }, (_, i) => (new Date().getFullYear() - i).toString());
+const DAYS = Array.from({ length: 31 }, (_, i) => (i + 1).toString());
 
 export default function PersonalInfoScreen({ navigation }: any) {
   const { t } = useI18n();
@@ -28,6 +35,10 @@ export default function PersonalInfoScreen({ navigation }: any) {
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedYear, setSelectedYear] = useState('1990');
+  const [selectedMonth, setSelectedMonth] = useState('0');
+  const [selectedDay, setSelectedDay] = useState('1');
   
   const [formData, setFormData] = useState({
     fullName: user?.fullName || '',
@@ -88,6 +99,25 @@ export default function PersonalInfoScreen({ navigation }: any) {
         setProfileImage(null);
         break;
     }
+  };
+
+  const handleOpenDatePicker = () => {
+    // Parse existing date if available
+    if (formData.birthDate) {
+      const date = new Date(formData.birthDate);
+      if (!isNaN(date.getTime())) {
+        setSelectedYear(date.getFullYear().toString());
+        setSelectedMonth(date.getMonth().toString());
+        setSelectedDay(date.getDate().toString());
+      }
+    }
+    setShowDatePicker(true);
+  };
+
+  const handleConfirmDate = () => {
+    const date = new Date(parseInt(selectedYear), parseInt(selectedMonth), parseInt(selectedDay));
+    setFormData({ ...formData, birthDate: date.toISOString() });
+    setShowDatePicker(false);
   };
 
   const handleSave = async () => {
@@ -217,19 +247,35 @@ export default function PersonalInfoScreen({ navigation }: any) {
 
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>{t.profile?.cpfSsn || 'CPF/SSN'}</Text>
-              <Text style={styles.inputValue}>{formData.cpf}</Text>
-              <Text style={styles.inputHint}>{t.profile?.securityHint || 'For security, only the last 2 digits are shown'}</Text>
+              {isEditing ? (
+                <TextInput
+                  style={styles.input}
+                  value={formData.cpf}
+                  onChangeText={(text) => setFormData({ ...formData, cpf: text })}
+                  placeholder={t.profile?.enterCpfSsn || 'Enter your CPF/SSN'}
+                  keyboardType="numeric"
+                />
+              ) : (
+                <>
+                  <Text style={styles.inputValue}>{formData.cpf ? `***-**-${formData.cpf.slice(-2)}` : t.profile?.notProvided || 'Not provided'}</Text>
+                  <Text style={styles.inputHint}>{t.profile?.securityHint || 'For security, only the last 2 digits are shown'}</Text>
+                </>
+              )}
             </View>
 
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>{t.profile?.birthDate || 'Birth Date'}</Text>
               {isEditing ? (
-                <TouchableOpacity style={styles.dateInput}>
-                  <Text style={styles.dateInputText}>{formatDate(formData.birthDate)}</Text>
+                <TouchableOpacity style={styles.dateInput} onPress={handleOpenDatePicker}>
+                  <Text style={styles.dateInputText}>
+                    {formData.birthDate ? formatDate(formData.birthDate) : t.profile?.selectBirthDate || 'Select birth date'}
+                  </Text>
                   <Ionicons name="calendar-outline" size={20} color="#6b7280" />
                 </TouchableOpacity>
               ) : (
-                <Text style={styles.inputValue}>{formatDate(formData.birthDate)}</Text>
+                <Text style={styles.inputValue}>
+                  {formData.birthDate ? formatDate(formData.birthDate) : t.profile?.notProvided || 'Not provided'}
+                </Text>
               )}
             </View>
 
@@ -278,7 +324,13 @@ export default function PersonalInfoScreen({ navigation }: any) {
               <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.securityItem}>
+            <TouchableOpacity 
+              style={styles.securityItem}
+              onPress={() => Alert.alert(
+                t.common?.comingSoon || 'Coming Soon',
+                t.auth?.biometricLoginComingSoon || 'Biometric login will be available soon!'
+              )}
+            >
               <View style={styles.securityItemLeft}>
                 <View style={[styles.securityIcon, { backgroundColor: '#d1fae5' }]}>
                   <Ionicons name="finger-print" size={20} color="#10b981" />
@@ -329,6 +381,102 @@ export default function PersonalInfoScreen({ navigation }: any) {
           </View>
         )}
       </KeyboardAvoidingView>
+
+      {/* Date Picker Modal */}
+      <Modal
+        visible={showDatePicker}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowDatePicker(false)}
+      >
+        <View style={styles.datePickerOverlay}>
+          <View style={styles.datePickerContainer}>
+            <View style={styles.datePickerHeader}>
+              <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                <Text style={styles.datePickerCancel}>{t.common?.cancel || 'Cancel'}</Text>
+              </TouchableOpacity>
+              <Text style={styles.datePickerTitle}>{t.profile?.selectBirthDate || 'Select Birth Date'}</Text>
+              <TouchableOpacity onPress={handleConfirmDate}>
+                <Text style={styles.datePickerDone}>{t.common?.done || 'Done'}</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.datePickerContent}>
+              {/* Month */}
+              <View style={styles.datePickerColumn}>
+                <Text style={styles.datePickerLabel}>{t.profile?.month || 'Month'}</Text>
+                <ScrollView style={styles.datePickerScroll} showsVerticalScrollIndicator={false}>
+                  {MONTHS.map((month, index) => (
+                    <TouchableOpacity
+                      key={month}
+                      style={[
+                        styles.datePickerItem,
+                        selectedMonth === index.toString() && styles.datePickerItemActive,
+                      ]}
+                      onPress={() => setSelectedMonth(index.toString())}
+                    >
+                      <Text style={[
+                        styles.datePickerItemText,
+                        selectedMonth === index.toString() && styles.datePickerItemTextActive,
+                      ]}>
+                        {month}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+
+              {/* Day */}
+              <View style={styles.datePickerColumn}>
+                <Text style={styles.datePickerLabel}>{t.profile?.day || 'Day'}</Text>
+                <ScrollView style={styles.datePickerScroll} showsVerticalScrollIndicator={false}>
+                  {DAYS.map((day) => (
+                    <TouchableOpacity
+                      key={day}
+                      style={[
+                        styles.datePickerItem,
+                        selectedDay === day && styles.datePickerItemActive,
+                      ]}
+                      onPress={() => setSelectedDay(day)}
+                    >
+                      <Text style={[
+                        styles.datePickerItemText,
+                        selectedDay === day && styles.datePickerItemTextActive,
+                      ]}>
+                        {day}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+
+              {/* Year */}
+              <View style={styles.datePickerColumn}>
+                <Text style={styles.datePickerLabel}>{t.profile?.year || 'Year'}</Text>
+                <ScrollView style={styles.datePickerScroll} showsVerticalScrollIndicator={false}>
+                  {YEARS.map((year) => (
+                    <TouchableOpacity
+                      key={year}
+                      style={[
+                        styles.datePickerItem,
+                        selectedYear === year && styles.datePickerItemActive,
+                      ]}
+                      onPress={() => setSelectedYear(year)}
+                    >
+                      <Text style={[
+                        styles.datePickerItemText,
+                        selectedYear === year && styles.datePickerItemTextActive,
+                      ]}>
+                        {year}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -581,4 +729,74 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#fff',
   },
-});
+  // Date Picker Modal Styles
+  datePickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  datePickerContainer: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 34,
+  },
+  datePickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  datePickerCancel: {
+    fontSize: 16,
+    color: '#6b7280',
+  },
+  datePickerTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  datePickerDone: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1976d2',
+  },
+  datePickerContent: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingTop: 16,
+  },
+  datePickerColumn: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  datePickerLabel: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+  },
+  datePickerScroll: {
+    maxHeight: 200,
+  },
+  datePickerItem: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginVertical: 2,
+  },
+  datePickerItemActive: {
+    backgroundColor: '#e0f2fe',
+  },
+  datePickerItemText: {
+    fontSize: 16,
+    color: '#374151',
+    textAlign: 'center',
+  },
+  datePickerItemTextActive: {
+    color: '#1976d2',
+    fontWeight: '600',
+  },

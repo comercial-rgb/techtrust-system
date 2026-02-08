@@ -49,6 +49,8 @@ export default {
     newItems: 'Novos itens aparecerão aqui',
     urgent: 'Urgente',
     searchPlaceholder: 'Buscar por título, veículo...',
+    comingSoon: 'Em Breve',
+    featureComingSoon: 'Esta funcionalidade estará disponível em breve!',
     // Business types
     autoRepair: 'Oficina Mecânica',
     tireShop: 'Borracharia',
@@ -260,6 +262,8 @@ export default {
     tagline: 'Seu hub automotivo de confiança',
     selectCountry: 'Selecionar País',
     invalidPhone: 'Telefone inválido. Verifique o número e tente novamente.',
+    socialLoginComingSoon: 'login estará disponível em breve!',
+    biometricLoginComingSoon: 'Login biométrico estará disponível em breve!',
   },
 
   // Service Request
@@ -966,6 +970,14 @@ export default {
     maxPhotosMessage: 'Você pode adicionar até 6 fotos por veículo.',
     cameraPermissionMessage: 'Precisamos de permissão para câmera e galeria para adicionar fotos do veículo.',
     photoTips: 'Dica: Adicione fotos de diferentes ângulos (frente, traseira, laterais, interior)',
+    // Mensagens de sucesso
+    vehicleAddedSuccess: 'Veículo adicionado com sucesso!',
+    vehicleUpdatedSuccess: 'Veículo atualizado com sucesso!',
+    errorSaving: 'Erro ao salvar veículo. Tente novamente.',
+    // Limites freemium
+    vehicleLimitReached: 'Limite de Veículos Atingido',
+    upgradePlanForMoreVehicles: 'Você atingiu seu limite de veículos. Faça upgrade do seu plano para adicionar mais veículos.',
+    upgradePlan: 'Fazer Upgrade',
   },
 
   // Chat

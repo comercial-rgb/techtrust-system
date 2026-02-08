@@ -260,6 +260,8 @@ export default {
     tagline: 'Tu centro automotriz de confianza',
     selectCountry: 'Seleccionar País',
     invalidPhone: 'Teléfono inválido. Verifica el número e inténtalo de nuevo.',
+    socialLoginComingSoon: '¡login estará disponible pronto!',
+    biometricLoginComingSoon: '¡El inicio de sesión biométrico estará disponible pronto!',
   },
 
   // Service Request
@@ -950,6 +952,14 @@ export default {
     maxPhotosMessage: 'Puede agregar hasta 6 fotos por vehículo.',
     cameraPermissionMessage: 'Necesitamos permisos de cámara y galería para agregar fotos del vehículo.',
     photoTips: 'Consejo: Agregue fotos desde diferentes ángulos (frente, atrás, lados, interior)',
+    // Mensajes de éxito
+    vehicleAddedSuccess: '¡Vehículo agregado exitosamente!',
+    vehicleUpdatedSuccess: '¡Vehículo actualizado exitosamente!',
+    errorSaving: 'Error al guardar vehículo. Inténtelo de nuevo.',
+    // Límites freemium
+    vehicleLimitReached: 'Límite de Vehículos Alcanzado',
+    upgradePlanForMoreVehicles: 'Ha alcanzado su límite de vehículos. Actualice su plan para agregar más vehículos.',
+    upgradePlan: 'Actualizar Plan',
   },
 
   // Chat
