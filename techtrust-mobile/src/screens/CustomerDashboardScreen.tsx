@@ -575,54 +575,6 @@ export default function CustomerDashboardScreen({ navigation }: any) {
           )}
         </FadeInView>
 
-        {/* Quick Actions */}
-        <FadeInView delay={200}>
-          <View style={styles.quickActionsContainer}>
-            <Text style={styles.sectionTitle}>Quick Actions</Text>
-            <View style={styles.quickActionsList}>
-              <TouchableOpacity
-                style={styles.quickActionItem}
-                onPress={() => navigation.navigate('CustomerVehicles')}
-              >
-                <View style={[styles.quickActionIcon, { backgroundColor: '#3b82f6' }]}>
-                  <Ionicons name="car-sport" size={24} color="#fff" />
-                </View>
-                <Text style={styles.quickActionLabel}>Add Vehicle</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.quickActionItem}
-                onPress={() => navigation.navigate('CreateRequest')}
-              >
-                <View style={[styles.quickActionIcon, { backgroundColor: '#10b981' }]}>
-                  <Ionicons name="add-circle" size={24} color="#fff" />
-                </View>
-                <Text style={styles.quickActionLabel}>Request Service</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.quickActionItem}
-                onPress={() => navigation.navigate('CustomerWorkOrders')}
-              >
-                <View style={[styles.quickActionIcon, { backgroundColor: '#f59e0b' }]}>
-                  <Ionicons name="list" size={24} color="#fff" />
-                </View>
-                <Text style={styles.quickActionLabel}>My Orders</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.quickActionItem}
-                onPress={() => navigation.navigate('ChatList')}
-              >
-                <View style={[styles.quickActionIcon, { backgroundColor: '#8b5cf6' }]}>
-                  <Ionicons name="chatbubbles" size={24} color="#fff" />
-                </View>
-                <Text style={styles.quickActionLabel}>Messages</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </FadeInView>
-
         {/* Quick Tips */}
         <FadeInView delay={600}>
           <View style={styles.tipsSection}>

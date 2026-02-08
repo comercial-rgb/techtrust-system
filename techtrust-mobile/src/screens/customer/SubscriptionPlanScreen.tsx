@@ -44,11 +44,14 @@ export default function SubscriptionPlanScreen({ navigation }: any) {
 
   const loadData = async () => {
     try {
+      console.log('🔄 Loading subscription plans from API...');
       // Load subscription and plans in parallel
       const [userResponse, plansResponse] = await Promise.all([
         api.get('/users/me'),
         api.get('/content/subscription-plans'),
       ]);
+      
+      console.log('✅ API Response:', plansResponse.data);
       
       const userData = userResponse.data?.data || userResponse.data;
       if (userData?.subscription) {
@@ -58,9 +61,11 @@ export default function SubscriptionPlanScreen({ navigation }: any) {
       
       // Process plans from backend
       const backendPlans = plansResponse.data || [];
+      console.log('📦 Backend plans count:', backendPlans.length);
       if (backendPlans.length > 0) {
         // Store backend data for interval switching
         setBackendPlansData(backendPlans);
+        console.log('💾 Stored backend plans:', backendPlans.map((p: any) => ({ name: p.name, monthly: p.monthlyPrice, yearly: p.yearlyPrice })));
         
         const formattedPlans: Plan[] = backendPlans.map((p: any) => ({
           id: p.planKey || p.id,

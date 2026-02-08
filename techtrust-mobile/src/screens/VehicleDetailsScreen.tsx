@@ -417,9 +417,12 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
         <FadeInView delay={500}>
           <View style={styles.actionsSection}>
             <ScalePress 
-              onPress={() => navigation.navigate('Dashboard', { 
-                screen: 'CreateRequest', 
-                params: { vehicleId: vehicle.id }
+              onPress={() => navigation.navigate('Home', { 
+                screen: 'Dashboard',
+                params: { 
+                  screen: 'CreateRequest',
+                  params: { vehicleId: vehicle.id }
+                }
               })}
               style={styles.primaryButton}
             >
