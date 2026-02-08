@@ -44,13 +44,15 @@ export default function SolicitacoesPage() {
   }, [isAuthenticated]);
 
   async function loadData() {
-    setRequests([
-      { id: '1', requestNumber: 'SR-2024-001', title: 'Troca de óleo', status: 'SEARCHING', urgency: 'MEDIUM', customer: { fullName: 'João Silva' }, vehicle: { make: 'Honda', model: 'Civic', year: 2020 }, quotesCount: 0, createdAt: '2024-12-01T10:00:00Z' },
-      { id: '2', requestNumber: 'SR-2024-002', title: 'Revisão completa', status: 'QUOTES_RECEIVED', urgency: 'HIGH', customer: { fullName: 'Maria Santos' }, vehicle: { make: 'Toyota', model: 'Corolla', year: 2019 }, quotesCount: 4, createdAt: '2024-11-30T14:00:00Z' },
-      { id: '3', requestNumber: 'SR-2024-003', title: 'Troca de freios', status: 'IN_PROGRESS', urgency: 'HIGH', customer: { fullName: 'Pedro Oliveira' }, vehicle: { make: 'VW', model: 'Golf', year: 2021 }, quotesCount: 3, createdAt: '2024-11-28T09:00:00Z' },
-      { id: '4', requestNumber: 'SR-2024-004', title: 'Ar condicionado', status: 'COMPLETED', urgency: 'LOW', customer: { fullName: 'Ana Costa' }, vehicle: { make: 'Ford', model: 'Focus', year: 2018 }, quotesCount: 2, createdAt: '2024-11-25T11:00:00Z' },
-    ]);
-    setLoading(false);
+    try {
+      // Carregar dados reais da API quando implementado
+      setRequests([]);
+    } catch (error) {
+      console.error('Erro ao carregar solicitações:', error);
+      setRequests([]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   const getStatusBadge = (status: string) => {

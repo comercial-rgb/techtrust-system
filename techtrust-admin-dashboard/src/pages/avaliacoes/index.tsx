@@ -27,13 +27,15 @@ export default function AvaliacoesPage() {
   useEffect(() => { if (isAuthenticated) loadData(); }, [isAuthenticated]);
 
   async function loadData() {
-    setReviews([
-      { id: '1', rating: 5, comment: 'Excelente serviço! Muito profissional e pontual.', customer: { fullName: 'João Silva' }, provider: { companyName: 'Auto Center Express' }, workOrder: { orderNumber: 'WO-2024-001', title: 'Revisão 30k' }, createdAt: '2024-12-01T15:00:00Z', isReported: false },
-      { id: '2', rating: 4, comment: 'Bom atendimento, preço justo.', customer: { fullName: 'Maria Santos' }, provider: { companyName: 'Mecânica do Zé' }, workOrder: { orderNumber: 'WO-2024-002', title: 'Troca de freios' }, createdAt: '2024-11-30T10:00:00Z', isReported: false },
-      { id: '3', rating: 2, comment: 'Demorou muito para entregar o carro.', customer: { fullName: 'Pedro Oliveira' }, provider: { companyName: 'Fast Car' }, workOrder: { orderNumber: 'WO-2024-003', title: 'Alinhamento' }, createdAt: '2024-11-28T14:00:00Z', isReported: true },
-      { id: '4', rating: 5, comment: 'Perfeito! Recomendo a todos.', customer: { fullName: 'Ana Costa' }, provider: { companyName: 'Auto Center Express' }, workOrder: { orderNumber: 'WO-2024-004', title: 'Troca de óleo' }, createdAt: '2024-11-25T11:00:00Z', isReported: false },
-    ]);
-    setLoading(false);
+    try {
+      // Carregar dados reais da API quando implementado
+      setReviews([]);
+    } catch (error) {
+      console.error('Erro ao carregar avaliações:', error);
+      setReviews([]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   const avgRating = reviews.length > 0 ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0;

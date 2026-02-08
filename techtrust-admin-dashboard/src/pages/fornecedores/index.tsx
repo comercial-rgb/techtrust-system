@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminLayout from '../../components/AdminLayout';
-import { adminApi } from '../../services/api';
+import api from '../../services/api';
 import {
   Search,
   Filter,
@@ -72,7 +72,7 @@ export default function FornecedoresPage() {
 
   async function loadProviders() {
     try {
-      const response = await adminApi.getProviders();
+      const response = await api.getProviders();
       // Garantir que sempre seja um array
       const providersList = response.data?.providers || response.data || [];
       setProviders(Array.isArray(providersList) ? providersList : []);

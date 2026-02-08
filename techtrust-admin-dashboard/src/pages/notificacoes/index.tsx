@@ -26,12 +26,15 @@ export default function NotificacoesPage() {
   useEffect(() => { if (isAuthenticated) loadData(); }, [isAuthenticated]);
 
   async function loadData() {
-    setNotifications([
-      { id: '1', title: 'Manutenção Programada', message: 'O sistema ficará indisponível no dia 10/12 das 02h às 04h para manutenção.', targetRole: 'ALL', sentAt: '2024-12-01T10:00:00Z', readCount: 856, totalRecipients: 1247 },
-      { id: '2', title: 'Novos Recursos Disponíveis', message: 'Confira os novos recursos do app: agendamento rápido e chat melhorado!', targetRole: 'CUSTOMERS', sentAt: '2024-11-28T14:00:00Z', readCount: 723, totalRecipients: 1089 },
-      { id: '3', title: 'Atualização de Comissões', message: 'A partir de janeiro, as taxas de comissão serão ajustadas. Consulte os novos valores.', targetRole: 'PROVIDERS', sentAt: '2024-11-25T09:00:00Z', readCount: 142, totalRecipients: 158 },
-    ]);
-    setLoading(false);
+    try {
+      // Carregar dados reais da API quando implementado
+      setNotifications([]);
+    } catch (error) {
+      console.error('Erro ao carregar notificações:', error);
+      setNotifications([]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleSendNotification(e: React.FormEvent) {

@@ -29,12 +29,15 @@ export default function ServicosPage() {
   useEffect(() => { if (isAuthenticated) loadData(); }, [isAuthenticated]);
 
   async function loadData() {
-    setWorkOrders([
-      { id: '1', orderNumber: 'WO-2024-001', title: 'Revisão 30k', status: 'IN_PROGRESS', isPaid: false, totalCost: 450, customer: { fullName: 'João Silva' }, provider: { companyName: 'Auto Center Express' }, vehicle: { make: 'Honda', model: 'Civic' }, createdAt: '2024-12-01T10:00:00Z' },
-      { id: '2', orderNumber: 'WO-2024-002', title: 'Troca de freios', status: 'COMPLETED', isPaid: true, totalCost: 680, customer: { fullName: 'Maria Santos' }, provider: { companyName: 'Mecânica do Zé' }, vehicle: { make: 'Toyota', model: 'Corolla' }, createdAt: '2024-11-28T14:00:00Z' },
-      { id: '3', orderNumber: 'WO-2024-003', title: 'Alinhamento', status: 'SCHEDULED', isPaid: false, totalCost: 120, customer: { fullName: 'Pedro Oliveira' }, provider: { companyName: 'Auto Center Express' }, vehicle: { make: 'VW', model: 'Golf' }, createdAt: '2024-12-02T09:00:00Z' },
-    ]);
-    setLoading(false);
+    try {
+      // Carregar dados reais da API quando implementado
+      setWorkOrders([]);
+    } catch (error) {
+      console.error('Erro ao carregar serviços:', error);
+      setWorkOrders([]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   const getStatusBadge = (status: string) => {

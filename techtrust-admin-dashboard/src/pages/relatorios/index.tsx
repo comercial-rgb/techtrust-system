@@ -48,9 +48,9 @@ export default function RelatoriosPage() {
               <DollarSign className="w-6 h-6 text-green-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">R$ 125.890</p>
+              <p className="text-2xl font-bold text-gray-900">R$ 0</p>
               <p className="text-sm text-gray-500">Receita Total</p>
-              <p className="text-xs text-green-600">+15.3% vs período anterior</p>
+              <p className="text-xs text-gray-400">Sem dados</p>
             </div>
           </div>
         </div>
@@ -60,9 +60,9 @@ export default function RelatoriosPage() {
               <Users className="w-6 h-6 text-blue-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">87</p>
+              <p className="text-2xl font-bold text-gray-900">0</p>
               <p className="text-sm text-gray-500">Novos Usuários</p>
-              <p className="text-xs text-green-600">+23% vs período anterior</p>
+              <p className="text-xs text-gray-400">Sem dados</p>
             </div>
           </div>
         </div>
@@ -72,9 +72,9 @@ export default function RelatoriosPage() {
               <Wrench className="w-6 h-6 text-purple-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">456</p>
+              <p className="text-2xl font-bold text-gray-900">0</p>
               <p className="text-sm text-gray-500">Serviços Realizados</p>
-              <p className="text-xs text-green-600">+8% vs período anterior</p>
+              <p className="text-xs text-gray-400">Sem dados</p>
             </div>
           </div>
         </div>
@@ -84,9 +84,9 @@ export default function RelatoriosPage() {
               <TrendingUp className="w-6 h-6 text-amber-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">4.7</p>
+              <p className="text-2xl font-bold text-gray-900">0</p>
               <p className="text-sm text-gray-500">Média de Avaliação</p>
-              <p className="text-xs text-green-600">+0.2 vs período anterior</p>
+              <p className="text-xs text-gray-400">Sem dados</p>
             </div>
           </div>
         </div>

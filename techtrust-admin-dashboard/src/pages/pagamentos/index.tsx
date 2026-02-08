@@ -28,13 +28,15 @@ export default function PagamentosPage() {
   useEffect(() => { if (isAuthenticated) loadData(); }, [isAuthenticated]);
 
   async function loadData() {
-    setPayments([
-      { id: '1', transactionId: 'TXN-001', amount: 450, status: 'COMPLETED', paymentMethod: 'PIX', customer: { fullName: 'João Silva' }, provider: { companyName: 'Auto Center Express' }, workOrder: { orderNumber: 'WO-2024-001' }, createdAt: '2024-12-01T15:00:00Z' },
-      { id: '2', transactionId: 'TXN-002', amount: 680, status: 'COMPLETED', paymentMethod: 'Cartão de Crédito', customer: { fullName: 'Maria Santos' }, provider: { companyName: 'Mecânica do Zé' }, workOrder: { orderNumber: 'WO-2024-002' }, createdAt: '2024-11-30T10:00:00Z' },
-      { id: '3', transactionId: 'TXN-003', amount: 320, status: 'PENDING', paymentMethod: 'PIX', customer: { fullName: 'Pedro Oliveira' }, provider: { companyName: 'Auto Center Express' }, workOrder: { orderNumber: 'WO-2024-003' }, createdAt: '2024-12-02T09:00:00Z' },
-      { id: '4', transactionId: 'TXN-004', amount: 150, status: 'REFUNDED', paymentMethod: 'Cartão de Crédito', customer: { fullName: 'Ana Costa' }, provider: { companyName: 'Fast Car' }, workOrder: { orderNumber: 'WO-2024-004' }, createdAt: '2024-11-28T14:00:00Z' },
-    ]);
-    setLoading(false);
+    try {
+      // Carregar dados reais da API quando implementado
+      setPayments([]);
+    } catch (error) {
+      console.error('Erro ao carregar pagamentos:', error);
+      setPayments([]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   const getStatusBadge = (status: string) => {

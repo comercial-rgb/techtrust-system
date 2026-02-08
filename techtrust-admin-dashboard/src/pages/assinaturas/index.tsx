@@ -27,13 +27,15 @@ export default function AssinaturasPage() {
   useEffect(() => { if (isAuthenticated) loadData(); }, [isAuthenticated]);
 
   async function loadData() {
-    setPlans([
-      { id: '1', name: 'Básico', description: 'Para pequenas oficinas', price: 49.90, duration: 30, features: ['Até 10 orçamentos/mês', 'Suporte por email', 'Relatórios básicos'], isActive: true, subscribersCount: 45 },
-      { id: '2', name: 'Profissional', description: 'Para oficinas em crescimento', price: 99.90, duration: 30, features: ['Orçamentos ilimitados', 'Suporte prioritário', 'Relatórios avançados', 'Dashboard personalizado'], isActive: true, subscribersCount: 78 },
-      { id: '3', name: 'Enterprise', description: 'Para grandes redes', price: 249.90, duration: 30, features: ['Tudo do Profissional', 'API de integração', 'Gerente de conta dedicado', 'SLA garantido'], isActive: true, subscribersCount: 12 },
-      { id: '4', name: 'Promoção Lançamento', description: 'Oferta especial de lançamento', price: 29.90, duration: 30, features: ['Recursos do Básico', 'Por tempo limitado'], isActive: false, subscribersCount: 0 },
-    ]);
-    setLoading(false);
+    try {
+      // Carregar dados reais da API quando implementado
+      setPlans([]);
+    } catch (error) {
+      console.error('Erro ao carregar planos:', error);
+      setPlans([]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   const totalRevenue = plans.reduce((sum, p) => sum + (p.price * p.subscribersCount), 0);
