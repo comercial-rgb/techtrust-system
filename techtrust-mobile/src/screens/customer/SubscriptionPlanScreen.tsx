@@ -34,45 +34,72 @@ export default function SubscriptionPlanScreen({ navigation }: any) {
   const [billingInterval, setBillingInterval] = useState<'month' | 'year'>('month');
   const [currentPlan, setCurrentPlan] = useState<string>('free');
   const [currentSubscription, setCurrentSubscription] = useState<any>(null);
+  const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadSubscription();
+    loadData();
   }, []);
 
-  const loadSubscription = async () => {
+  const loadData = async () => {
     try {
-      const response = await api.get('/users/me');
-      const data = response.data?.data || response.data;
-      if (data?.subscription) {
-        setCurrentSubscription(data.subscription);
-        setCurrentPlan(data.subscription.plan?.toLowerCase() || 'free');
+      // Load subscription and plans in parallel
+      const [userResponse, plansResponse] = await Promise.all([
+        api.get('/users/me'),
+        api.get('/content/subscription-plans'),
+      ]);
+      
+      const userData = userResponse.data?.data || userResponse.data;
+      if (userData?.subscription) {
+        setCurrentSubscription(userData.subscription);
+        setCurrentPlan(userData.subscription.plan?.toLowerCase() || 'free');
+      }
+      
+      // Process plans from backend
+      const backendPlans = plansResponse.data || [];
+      if (backendPlans.length > 0) {
+        const formattedPlans: Plan[] = backendPlans.map((p: any) => ({
+          id: p.planKey || p.id,
+          name: p.name,
+          price: billingInterval === 'month' ? Number(p.monthlyPrice) : Number(p.yearlyPrice),
+          interval: billingInterval,
+          features: Array.isArray(p.features) ? p.features : [],
+          popular: p.isFeatured,
+        }));
+        setPlans(formattedPlans);
+      } else {
+        // Fallback to default plans
+        setPlans(getDefaultPlans());
       }
     } catch (error) {
-      console.error('Error loading subscription:', error);
+      console.error('Error loading data:', error);
+      setPlans(getDefaultPlans());
     } finally {
       setLoading(false);
     }
   };
 
-  const handleBack = () => {
-    if (fromDashboard) {
-      navigation.navigate('Home', { screen: 'Dashboard' });
-    } else {
-      navigation.goBack();
+  // Update prices when billing interval changes
+  useEffect(() => {
+    if (plans.length > 0) {
+      setPlans(prevPlans => prevPlans.map(p => ({
+        ...p,
+        price: billingInterval === 'month' 
+          ? (p.id === 'free' ? 0 : p.id === 'basic' ? 9.99 : p.id === 'premium' ? 19.99 : 49.99)
+          : (p.id === 'free' ? 0 : p.id === 'basic' ? 99.99 : p.id === 'premium' ? 199.99 : 499.99),
+        interval: billingInterval,
+      })));
     }
-  };
+  }, [billingInterval]);
 
-  const plans: Plan[] = [
+  const getDefaultPlans = (): Plan[] => [
     {
       id: 'free',
       name: 'Free',
       price: 0,
       interval: billingInterval,
       features: [
-        currentSubscription?.plan === 'FREE' 
-          ? `${currentSubscription.maxVehicles || 1} vehicle${(currentSubscription.maxVehicles || 1) > 1 ? 's' : ''} allowed`
-          : 'Up to 1 vehicle',
+        'Up to 1 vehicle',
         'Basic service requests',
         'Standard support',
         'View service history',
@@ -81,12 +108,10 @@ export default function SubscriptionPlanScreen({ navigation }: any) {
     {
       id: 'basic',
       name: 'Basic',
-      price: currentSubscription?.plan === 'BASIC' ? Number(currentSubscription.price) : (billingInterval === 'month' ? 9.99 : 99.99),
+      price: billingInterval === 'month' ? 9.99 : 99.99,
       interval: billingInterval,
       features: [
-        currentSubscription?.plan === 'BASIC'
-          ? `${currentSubscription.maxVehicles || 3} vehicles allowed`
-          : 'Up to 3 vehicles',
+        'Up to 3 vehicles',
         'Priority service requests',
         'Email support',
         'Service history & reports',
@@ -96,13 +121,11 @@ export default function SubscriptionPlanScreen({ navigation }: any) {
     {
       id: 'premium',
       name: 'Premium',
-      price: currentSubscription?.plan === 'PREMIUM' ? Number(currentSubscription.price) : (billingInterval === 'month' ? 19.99 : 199.99),
+      price: billingInterval === 'month' ? 19.99 : 199.99,
       interval: billingInterval,
       popular: true,
       features: [
-        currentSubscription?.plan === 'PREMIUM'
-          ? `${currentSubscription.maxVehicles || 10} vehicles allowed`
-          : 'Unlimited vehicles',
+        'Up to 10 vehicles',
         'Priority service requests',
         'Priority support 24/7',
         'Detailed service reports',
@@ -114,7 +137,7 @@ export default function SubscriptionPlanScreen({ navigation }: any) {
     {
       id: 'enterprise',
       name: 'Enterprise',
-      price: currentSubscription?.plan === 'ENTERPRISE' ? Number(currentSubscription.price) : (billingInterval === 'month' ? 49.99 : 499.99),
+      price: billingInterval === 'month' ? 49.99 : 499.99,
       interval: billingInterval,
       features: [
         'Everything in Premium',
@@ -128,6 +151,14 @@ export default function SubscriptionPlanScreen({ navigation }: any) {
       ],
     },
   ];
+
+  const handleBack = () => {
+    if (fromDashboard) {
+      navigation.navigate('Home', { screen: 'Dashboard' });
+    } else {
+      navigation.goBack();
+    }
+  };
 
   const handleChangePlan = (plan: Plan) => {
     if (plan.id === currentPlan) return;

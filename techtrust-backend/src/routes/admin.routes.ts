@@ -1151,6 +1151,116 @@ router.patch('/subscriptions/:id/plan', asyncHandler(async (req: Request, res: R
 }));
 
 // ============================================
+// SUBSCRIPTION PLAN TEMPLATES - Templates de Planos
+// ============================================
+
+// Listar todos os templates de planos
+router.get('/subscription-plans', asyncHandler(async (req: Request, res: Response) => {
+  const plans = await prisma.subscriptionPlanTemplate.findMany({
+    orderBy: { position: 'asc' },
+  });
+  
+  // Format for response
+  const formattedPlans = plans.map(plan => ({
+    id: plan.id,
+    planKey: plan.planKey,
+    name: plan.name,
+    description: plan.description,
+    price: Number(plan.monthlyPrice),
+    monthlyPrice: Number(plan.monthlyPrice),
+    yearlyPrice: Number(plan.yearlyPrice),
+    vehicleLimit: plan.vehicleLimit,
+    duration: 30, // For compatibility with admin
+    features: typeof plan.features === 'string' ? JSON.parse(plan.features) : plan.features,
+    isActive: plan.isActive,
+    isFeatured: plan.isFeatured,
+    subscribersCount: 0, // TODO: count actual subscribers
+  }));
+  
+  res.json({ plans: formattedPlans });
+}));
+
+// Criar template de plano
+router.post('/subscription-plans', asyncHandler(async (req: Request, res: Response) => {
+  const { name, description, price, vehicleLimit, features, isActive, isFeatured } = req.body;
+  
+  // Generate planKey from name
+  const planKey = name.toLowerCase().replace(/\s+/g, '_');
+  
+  // Get max position
+  const maxPos = await prisma.subscriptionPlanTemplate.aggregate({ _max: { position: true } });
+  const position = (maxPos._max.position || 0) + 1;
+  
+  const plan = await prisma.subscriptionPlanTemplate.create({
+    data: {
+      planKey,
+      name,
+      description,
+      monthlyPrice: price || 0,
+      yearlyPrice: (price || 0) * 10, // 2 months free for yearly
+      vehicleLimit: vehicleLimit || 1,
+      features: features || [],
+      isActive: isActive ?? true,
+      isFeatured: isFeatured ?? false,
+      position,
+    }
+  });
+  
+  res.status(201).json({ 
+    message: 'Plano criado', 
+    plan: {
+      ...plan,
+      price: Number(plan.monthlyPrice),
+      features: plan.features,
+    }
+  });
+}));
+
+// Atualizar template de plano
+router.put('/subscription-plans/:id', asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { name, description, price, vehicleLimit, features, isActive, isFeatured } = req.body;
+  
+  const updateData: any = {};
+  if (name !== undefined) {
+    updateData.name = name;
+    updateData.planKey = name.toLowerCase().replace(/\s+/g, '_');
+  }
+  if (description !== undefined) updateData.description = description;
+  if (price !== undefined) {
+    updateData.monthlyPrice = price;
+    updateData.yearlyPrice = price * 10;
+  }
+  if (vehicleLimit !== undefined) updateData.vehicleLimit = vehicleLimit;
+  if (features !== undefined) updateData.features = features;
+  if (isActive !== undefined) updateData.isActive = isActive;
+  if (isFeatured !== undefined) updateData.isFeatured = isFeatured;
+  
+  const plan = await prisma.subscriptionPlanTemplate.update({
+    where: { id },
+    data: updateData,
+  });
+  
+  res.json({ 
+    message: 'Plano atualizado', 
+    plan: {
+      ...plan,
+      price: Number(plan.monthlyPrice),
+      features: plan.features,
+    }
+  });
+}));
+
+// Deletar template de plano
+router.delete('/subscription-plans/:id', asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  
+  await prisma.subscriptionPlanTemplate.delete({ where: { id } });
+  
+  res.json({ message: 'Plano removido' });
+}));
+
+// ============================================
 // RELATÓRIOS
 // ============================================
 

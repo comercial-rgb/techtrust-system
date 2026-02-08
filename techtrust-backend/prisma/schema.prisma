@@ -930,6 +930,41 @@ model Notice {
   @@index([type])
   @@map("notices")
 }
+
+// Templates de Planos de Assinatura
+model SubscriptionPlanTemplate {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Identificador único do plano (free, basic, premium, enterprise)
+  planKey String @unique
+  
+  // Informações do plano
+  name        String  // Nome do plano
+  description String? // Descrição
+  
+  // Preços
+  monthlyPrice Decimal @default(0) @db.Decimal(10, 2)
+  yearlyPrice  Decimal @default(0) @db.Decimal(10, 2)
+  
+  // Limites
+  vehicleLimit              Int @default(1)
+  serviceRequestsPerMonth   Int? // null = unlimited
+  
+  // Features (JSON array de strings)
+  features Json @default("[]")
+  
+  // Status
+  isActive   Boolean @default(true)
+  isFeatured Boolean @default(false)
+  position   Int     @default(0)
+  
+  @@index([isActive])
+  @@index([position])
+  @@map("subscription_plan_templates")
+}
+
 // Zonas de Cobertura (Coverage Zones)
 model CoverageZone {
   id        String   @id @default(uuid())

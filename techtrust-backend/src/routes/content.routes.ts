@@ -553,4 +553,122 @@ router.get('/home-data', asyncHandler(async (_req: Request, res: Response) => {
   });
 }));
 
+// ============================================
+// SUBSCRIPTION PLANS - Planos de Assinatura
+// ============================================
+
+// Obter planos ativos para o mobile
+router.get('/subscription-plans', asyncHandler(async (req: Request, res: Response) => {
+  // Try to get from database
+  const dbPlans = await prisma.subscriptionPlanTemplate.findMany({
+    where: { isActive: true },
+    orderBy: { position: 'asc' },
+    select: {
+      id: true,
+      planKey: true,
+      name: true,
+      description: true,
+      monthlyPrice: true,
+      yearlyPrice: true,
+      vehicleLimit: true,
+      serviceRequestsPerMonth: true,
+      features: true,
+      isFeatured: true,
+    }
+  });
+  
+  // If no plans in DB, return default plans
+  if (dbPlans.length === 0) {
+    const defaultPlans = [
+      {
+        id: 'free',
+        planKey: 'free',
+        name: 'Free',
+        description: 'Perfect for getting started',
+        monthlyPrice: 0,
+        yearlyPrice: 0,
+        vehicleLimit: 1,
+        serviceRequestsPerMonth: null,
+        features: [
+          'Up to 1 vehicle',
+          'Basic service requests',
+          'Standard support',
+          'View service history',
+        ],
+        isFeatured: false,
+      },
+      {
+        id: 'basic',
+        planKey: 'basic',
+        name: 'Basic',
+        description: 'For individuals with multiple vehicles',
+        monthlyPrice: 9.99,
+        yearlyPrice: 99.99,
+        vehicleLimit: 3,
+        serviceRequestsPerMonth: 10,
+        features: [
+          'Up to 3 vehicles',
+          'Priority service requests',
+          'Email support',
+          'Service history & reports',
+          'Service reminders',
+        ],
+        isFeatured: false,
+      },
+      {
+        id: 'premium',
+        planKey: 'premium',
+        name: 'Premium',
+        description: 'Best for families and small businesses',
+        monthlyPrice: 19.99,
+        yearlyPrice: 199.99,
+        vehicleLimit: 10,
+        serviceRequestsPerMonth: null,
+        features: [
+          'Up to 10 vehicles',
+          'Priority service requests',
+          'Priority support 24/7',
+          'Detailed service reports',
+          'Exclusive discounts (up to 15%)',
+          'Free roadside assistance',
+          'Service reminders',
+        ],
+        isFeatured: true,
+      },
+      {
+        id: 'enterprise',
+        planKey: 'enterprise',
+        name: 'Enterprise',
+        description: 'For large fleets and businesses',
+        monthlyPrice: 49.99,
+        yearlyPrice: 499.99,
+        vehicleLimit: 999,
+        serviceRequestsPerMonth: null,
+        features: [
+          'Everything in Premium',
+          'Fleet management',
+          'Multiple drivers',
+          'Dedicated account manager',
+          'Custom invoicing',
+          'API access',
+          'Analytics dashboard',
+          'Volume discounts (up to 25%)',
+        ],
+        isFeatured: false,
+      },
+    ];
+    return res.json(defaultPlans);
+  }
+  
+  // Format DB plans for response
+  const plans = dbPlans.map(plan => ({
+    ...plan,
+    monthlyPrice: Number(plan.monthlyPrice),
+    yearlyPrice: Number(plan.yearlyPrice),
+    features: typeof plan.features === 'string' ? JSON.parse(plan.features) : plan.features,
+  }));
+  
+  res.json(plans);
+}));
+
 export default router;
