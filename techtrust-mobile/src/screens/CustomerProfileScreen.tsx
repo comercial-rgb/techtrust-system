@@ -67,24 +67,37 @@ export default function CustomerProfileScreen({ navigation }: any) {
   const loadUserStats = async () => {
     try {
       setLoadingStats(true);
-      // Load real user stats from API
-      const [vehiclesRes, servicesRes, userRes] = await Promise.all([
+      // Load real user stats from API - use Promise.allSettled to handle partial failures
+      const [vehiclesResult, servicesResult, userResult] = await Promise.allSettled([
         api.get('/vehicles'),
         api.get('/service-requests'),
         api.get('/users/me'),
       ]);
       
-      // API returns { success: true, data: [...] } for vehicles
-      // and { success: true, requests: [...] } for service-requests
-      const vehicles = vehiclesRes.data?.data || vehiclesRes.data?.vehicles || [];
-      const services = servicesRes.data?.requests || servicesRes.data?.data || [];
-      const completedServices = services.filter((s: any) => s.status?.toLowerCase() === 'completed');
-      const totalSpent = completedServices.reduce((sum: number, s: any) => sum + (s.totalPrice || 0), 0);
+      // Extract vehicles - handle multiple response formats
+      let vehicles: any[] = [];
+      if (vehiclesResult.status === 'fulfilled') {
+        const vData = vehiclesResult.value?.data;
+        vehicles = vData?.data || vData?.vehicles || (Array.isArray(vData) ? vData : []);
+      }
+      
+      // Extract services
+      let services: any[] = [];
+      if (servicesResult.status === 'fulfilled') {
+        const sData = servicesResult.value?.data;
+        services = sData?.requests || sData?.data || (Array.isArray(sData) ? sData : []);
+      }
+      const completedServices = services.filter((s: any) => 
+        s.status?.toLowerCase() === 'completed' || s.status === 'COMPLETED'
+      );
+      const totalSpent = completedServices.reduce((sum: number, s: any) => sum + (Number(s.totalPrice) || 0), 0);
       
       // Load subscription from /users/me response
-      const meData = userRes.data?.data || userRes.data;
-      if (meData?.subscription) {
-        setSubscription(meData.subscription);
+      if (userResult.status === 'fulfilled') {
+        const meData = userResult.value?.data?.data || userResult.value?.data;
+        if (meData?.subscription) {
+          setSubscription(meData.subscription);
+        }
       }
       
       setStats({

@@ -124,7 +124,18 @@ export default function CustomerVehiclesScreen({ navigation }: any) {
         <View style={styles.header}>
           <TouchableOpacity 
             style={styles.backButton}
-            onPress={() => navigation.goBack()}
+            onPress={() => {
+              // Check if we can go back in current stack
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+              } else {
+                // We're at the root of Vehicles tab - stay here or go to Profile
+                const parent = navigation.getParent();
+                if (parent) {
+                  parent.navigate('Profile');
+                }
+              }
+            }}
           >
             <Ionicons name="arrow-back" size={24} color="#111827" />
           </TouchableOpacity>
