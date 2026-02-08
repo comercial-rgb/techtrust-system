@@ -36,19 +36,19 @@ const { width } = Dimensions.get('window');
 const BANNERS = [
   {
     id: '1',
-    image: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=800',
+    imageUrl: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=800',
     title: 'TechTrust AutoSolutions',
     subtitle: 'Your Trusted Auto Service Partner',
   },
   {
     id: '2',
-    image: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800',
+    imageUrl: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800',
     title: 'Quality Service Guaranteed',
     subtitle: 'Certified Mechanics Near You',
   },
   {
     id: '3',
-    image: 'https://images.unsplash.com/photo-1489824904134-891ab64532f1?w=800',
+    imageUrl: 'https://images.unsplash.com/photo-1489824904134-891ab64532f1?w=800',
     title: 'Fast & Reliable',
     subtitle: '24/7 Roadside Assistance',
   },
@@ -384,27 +384,68 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
   const handleGoToDashboard = () => navigation.navigate('Dashboard');
   const handleCreateRequest = () => navigation.navigate('Dashboard', { screen: 'CreateRequest' });
 
-  const renderBanner = ({ item }: { item: Banner }) => (
-    <View style={styles.bannerSlide}>
-      <Image source={{ uri: item.imageUrl }} style={styles.bannerImage} />
-      <LinearGradient
-        colors={['transparent', 'rgba(0,0,0,0.7)']}
-        style={styles.bannerGradient}
-      >
-        <Text style={styles.bannerTitle}>{item.title}</Text>
-        <Text style={styles.bannerSubtitle}>{item.subtitle}</Text>
-      </LinearGradient>
-    </View>
-  );
+  const renderBanner = ({ item }: { item: Banner }) => {
+    // Support both 'imageUrl' (API/interface) and 'image' (legacy mock) fields
+    const bannerUrl = item.imageUrl || (item as any).image || '';
+    const fullUrl = bannerUrl.startsWith('http') 
+      ? bannerUrl 
+      : bannerUrl 
+        ? `${process.env.EXPO_PUBLIC_API_URL || 'https://techtrust-api.onrender.com'}${bannerUrl.startsWith('/') ? bannerUrl : '/' + bannerUrl}`
+        : '';
+    return (
+      <View style={styles.bannerSlide}>
+        {fullUrl ? (
+          <Image source={{ uri: fullUrl }} style={styles.bannerImage} resizeMode="cover" />
+        ) : (
+          <View style={[styles.bannerImage, { backgroundColor: '#1e3a5f', justifyContent: 'center', alignItems: 'center' }]} />
+        )}
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.7)']}
+          style={styles.bannerGradient}
+        >
+          <Text style={styles.bannerTitle}>{item.title}</Text>
+          <Text style={styles.bannerSubtitle}>{item.subtitle}</Text>
+        </LinearGradient>
+      </View>
+    );
+  };
 
   const renderOffer = ({ item }: { item: SpecialOffer }) => {
-    // Support both image and imageUrl fields
+    // Support both image and imageUrl fields (mock vs API)
     const rawImageUrl = item.imageUrl || item.image;
-    const imageUrl = rawImageUrl?.startsWith('http') 
-      ? rawImageUrl 
-      : rawImageUrl 
-        ? `${process.env.EXPO_PUBLIC_API_URL || 'https://techtrust-api.onrender.com'}${rawImageUrl.startsWith('/') ? rawImageUrl : '/' + rawImageUrl}`
-        : null;
+    let imageUrl: string | null = null;
+    if (rawImageUrl) {
+      const urlStr = String(rawImageUrl).trim();
+      imageUrl = urlStr.startsWith('http') 
+        ? urlStr 
+        : `${process.env.EXPO_PUBLIC_API_URL || 'https://techtrust-api.onrender.com'}${urlStr.startsWith('/') ? urlStr : '/' + urlStr}`;
+    }
+
+    // Support both API field (discountLabel) and mock field (discount)
+    const discountDisplay = (item as any).discountLabel || item.discount || '';
+
+    // Format prices - API returns Decimal (number), mock returns string like "$89.99"
+    const formatPrice = (val: any): string => {
+      if (!val) return '';
+      if (typeof val === 'string' && (val.startsWith('$') || val === 'FREE')) return val;
+      const num = Number(val);
+      if (isNaN(num)) return String(val);
+      return num === 0 ? 'FREE' : `$${num.toFixed(2)}`;
+    };
+    const originalPrice = formatPrice(item.originalPrice);
+    const discountedPrice = formatPrice(item.discountedPrice);
+
+    // Format validUntil - API returns ISO DateTime, mock returns formatted string
+    let validUntilStr = '';
+    if (item.validUntil) {
+      const raw = String(item.validUntil);
+      if (raw.includes('T') || (raw.includes('-') && raw.length > 10)) {
+        const d = new Date(raw);
+        validUntilStr = !isNaN(d.getTime()) ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : raw;
+      } else {
+        validUntilStr = raw;
+      }
+    }
     
     return (
       <TouchableOpacity style={styles.offerCard} activeOpacity={0.9} onPress={() => handleOfferPress(item)}>
@@ -416,16 +457,16 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
           </View>
         )}
         <View style={styles.discountBadge}>
-          <Text style={styles.discountText}>{item.discount}</Text>
+          <Text style={styles.discountText}>{discountDisplay}</Text>
         </View>
         <View style={styles.offerContent}>
           <Text style={styles.offerTitle}>{item.title}</Text>
           <Text style={styles.offerDescription}>{item.description}</Text>
           <View style={styles.offerPricing}>
-            <Text style={styles.originalPrice}>{item.originalPrice}</Text>
-            <Text style={styles.discountedPrice}>{item.discountedPrice}</Text>
+            <Text style={styles.originalPrice}>{originalPrice}</Text>
+            <Text style={styles.discountedPrice}>{discountedPrice}</Text>
           </View>
-          <Text style={styles.validUntil}>{t.landing?.offers?.validUntil || 'Valid until'} {item.validUntil}</Text>
+          <Text style={styles.validUntil}>{t.landing?.offers?.validUntil || 'Valid until'} {validUntilStr}</Text>
         </View>
         <View style={styles.offerTapHint}>
           <Ionicons name="finger-print" size={16} color="#6b7280" />
@@ -1123,7 +1164,32 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
       <Modal visible={showOfferModal} transparent animationType="slide">
         <View style={styles.offerModalOverlay}>
           <View style={styles.offerModalContent}>
-            {selectedOffer && (
+            {selectedOffer && (() => {
+                // Compute formatted values for modal
+                const rawImgUrl = selectedOffer.imageUrl || selectedOffer.image;
+                const imgStr = rawImgUrl ? String(rawImgUrl).trim() : null;
+                const modalImgUrl = imgStr
+                  ? (imgStr.startsWith('http') ? imgStr : `${process.env.EXPO_PUBLIC_API_URL || 'https://techtrust-api.onrender.com'}${imgStr.startsWith('/') ? imgStr : '/' + imgStr}`)
+                  : null;
+                const modalDiscount = (selectedOffer as any).discountLabel || selectedOffer.discount || '';
+                const fmtPr = (val: any): string => {
+                  if (!val) return '';
+                  if (typeof val === 'string' && (val.startsWith('$') || val === 'FREE')) return val;
+                  const n = Number(val);
+                  if (isNaN(n)) return String(val);
+                  return n === 0 ? 'FREE' : `$${n.toFixed(2)}`;
+                };
+                const mOriginal = fmtPr(selectedOffer.originalPrice);
+                const mDiscounted = fmtPr(selectedOffer.discountedPrice);
+                let mValidUntil = '';
+                if (selectedOffer.validUntil) {
+                  const raw = String(selectedOffer.validUntil);
+                  if (raw.includes('T') || (raw.includes('-') && raw.length > 10)) {
+                    const d = new Date(raw);
+                    mValidUntil = !isNaN(d.getTime()) ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : raw;
+                  } else { mValidUntil = raw; }
+                }
+                return (
               <>
                 <TouchableOpacity 
                   style={styles.offerModalClose}
@@ -1132,25 +1198,16 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                   <Ionicons name="close-circle" size={32} color="#6b7280" />
                 </TouchableOpacity>
                 
-                {(() => {
-                  const rawImageUrl = selectedOffer.imageUrl || selectedOffer.image;
-                  const imageUrl = rawImageUrl?.startsWith('http') 
-                    ? rawImageUrl 
-                    : rawImageUrl 
-                      ? `${process.env.EXPO_PUBLIC_API_URL || 'https://techtrust-api.onrender.com'}${rawImageUrl.startsWith('/') ? rawImageUrl : '/' + rawImageUrl}`
-                      : null;
-                  
-                  return imageUrl ? (
-                    <Image source={{ uri: imageUrl }} style={styles.offerModalImage} />
-                  ) : (
-                    <View style={[styles.offerModalImage, { backgroundColor: '#fee2e2', justifyContent: 'center', alignItems: 'center' }]}>
-                      <MaterialCommunityIcons name="tag-outline" size={60} color="#ef4444" />
-                    </View>
-                  );
-                })()}
+                {modalImgUrl ? (
+                  <Image source={{ uri: modalImgUrl }} style={styles.offerModalImage} />
+                ) : (
+                  <View style={[styles.offerModalImage, { backgroundColor: '#fee2e2', justifyContent: 'center', alignItems: 'center' }]}>
+                    <MaterialCommunityIcons name="tag-outline" size={60} color="#ef4444" />
+                  </View>
+                )}
                 
                 <View style={styles.offerModalBadge}>
-                  <Text style={styles.offerModalBadgeText}>{selectedOffer.discount}</Text>
+                  <Text style={styles.offerModalBadgeText}>{modalDiscount}</Text>
                 </View>
                 
                 <View style={styles.offerModalBody}>
@@ -1160,18 +1217,18 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                   <View style={styles.offerModalPricing}>
                     <View>
                       <Text style={styles.offerModalPriceLabel}>Regular Price</Text>
-                      <Text style={styles.offerModalOriginalPrice}>{selectedOffer.originalPrice}</Text>
+                      <Text style={styles.offerModalOriginalPrice}>{mOriginal}</Text>
                     </View>
                     <Ionicons name="arrow-forward" size={24} color="#10b981" />
                     <View>
                       <Text style={styles.offerModalPriceLabel}>Special Price</Text>
-                      <Text style={styles.offerModalDiscountedPrice}>{selectedOffer.discountedPrice}</Text>
+                      <Text style={styles.offerModalDiscountedPrice}>{mDiscounted}</Text>
                     </View>
                   </View>
                   
                   <View style={styles.offerModalValidity}>
                     <Ionicons name="time" size={18} color="#f59e0b" />
-                    <Text style={styles.offerModalValidityText}>Valid until {selectedOffer.validUntil}</Text>
+                    <Text style={styles.offerModalValidityText}>Valid until {mValidUntil}</Text>
                   </View>
                   
                   {!isAuthenticated ? (
@@ -1219,7 +1276,8 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                   )}
                 </View>
               </>
-            )}
+                );
+              })()}
           </View>
         </View>
       </Modal>
@@ -1244,7 +1302,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
             {selectedOffer && (
               <View style={styles.offerProvidersOfferBadge}>
                 <Text style={styles.offerProvidersOfferTitle}>{selectedOffer.title}</Text>
-                <Text style={styles.offerProvidersOfferDiscount}>{selectedOffer.discount}</Text>
+                <Text style={styles.offerProvidersOfferDiscount}>{(selectedOffer as any).discountLabel || selectedOffer.discount}</Text>
               </View>
             )}
             

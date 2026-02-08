@@ -21,6 +21,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useI18n } from '../../i18n';
 import { useRoute, CommonActions } from '@react-navigation/native';
+import api from '../../services/api';
 
 // Storage keys
 const PAYMENT_METHODS_KEY = '@TechTrust:paymentMethods';
@@ -31,9 +32,13 @@ interface PaymentMethod {
   id: string;
   type: 'credit' | 'debit' | 'pix';
   brand?: string;
+  cardBrand?: string;
   lastFour?: string;
+  cardLast4?: string;
   holderName?: string;
   expiryDate?: string;
+  cardExpMonth?: number;
+  cardExpYear?: number;
   pixKey?: string;
   isDefault: boolean;
 }
@@ -62,6 +67,54 @@ export default function PaymentMethodsScreen({ navigation }: any) {
   const [recentTransactions, setRecentTransactions] = useState<WalletTransaction[]>([]);
   const [addBalanceAmount, setAddBalanceAmount] = useState('');
   const [addBalanceMethod, setAddBalanceMethod] = useState<'card' | 'pix' | 'transfer'>('card');
+
+  // Card validation using Luhn algorithm
+  const validateCardNumber = (cardNumber: string): boolean => {
+    const cleaned = cardNumber.replace(/\D/g, '');
+    if (cleaned.length < 13 || cleaned.length > 19) return false;
+    
+    let sum = 0;
+    let isEven = false;
+    
+    for (let i = cleaned.length - 1; i >= 0; i--) {
+      let digit = parseInt(cleaned.charAt(i));
+      
+      if (isEven) {
+        digit *= 2;
+        if (digit > 9) {
+          digit -= 9;
+        }
+      }
+      
+      sum += digit;
+      isEven = !isEven;
+    }
+    
+    return sum % 10 === 0;
+  };
+
+  const validateExpiryDate = (expiryDate: string): boolean => {
+    if (!expiryDate || expiryDate.length !== 5) return false;
+    
+    const [month, year] = expiryDate.split('/');
+    const monthNum = parseInt(month);
+    const yearNum = parseInt('20' + year);
+    
+    if (monthNum < 1 || monthNum > 12) return false;
+    
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    
+    if (yearNum < currentYear) return false;
+    if (yearNum === currentYear && monthNum < currentMonth) return false;
+    
+    return true;
+  };
+
+  const validateCVV = (cvv: string): boolean => {
+    return /^\d{3,4}$/.test(cvv);
+  };
 
   const handleBack = () => {
     // If we came from CreateRequest, navigate back to it
@@ -106,18 +159,46 @@ export default function PaymentMethodsScreen({ navigation }: any) {
     try {
       setLoading(true);
       
-      // Load saved data from AsyncStorage
-      const [savedMethods, savedBalance, savedTransactions] = await Promise.all([
-        AsyncStorage.getItem(PAYMENT_METHODS_KEY),
+      // Try loading from API first (cross-device sync)
+      try {
+        const response = await api.get('/payment-methods');
+        const apiMethods = response.data?.data || [];
+        // Map API fields to component fields
+        const methods: PaymentMethod[] = apiMethods.map((m: any) => ({
+          id: m.id,
+          type: m.type || 'credit',
+          brand: m.cardBrand || m.brand,
+          cardBrand: m.cardBrand,
+          lastFour: m.cardLast4 || m.lastFour,
+          cardLast4: m.cardLast4,
+          holderName: m.holderName,
+          expiryDate: m.cardExpMonth && m.cardExpYear 
+            ? `${String(m.cardExpMonth).padStart(2, '0')}/${String(m.cardExpYear).slice(-2)}`
+            : m.expiryDate,
+          cardExpMonth: m.cardExpMonth,
+          cardExpYear: m.cardExpYear,
+          pixKey: m.pixKey,
+          isDefault: m.isDefault,
+        }));
+        setPaymentMethods(methods);
+        // Cache to AsyncStorage for offline use
+        await AsyncStorage.setItem(PAYMENT_METHODS_KEY, JSON.stringify(methods));
+      } catch (apiError) {
+        console.log('API unavailable, loading from cache:', apiError);
+        // Fallback to AsyncStorage
+        const savedMethods = await AsyncStorage.getItem(PAYMENT_METHODS_KEY);
+        if (savedMethods) {
+          setPaymentMethods(JSON.parse(savedMethods));
+        } else {
+          setPaymentMethods([]);
+        }
+      }
+      
+      // Load wallet data (still local only)
+      const [savedBalance, savedTransactions] = await Promise.all([
         AsyncStorage.getItem(WALLET_BALANCE_KEY),
         AsyncStorage.getItem(TRANSACTIONS_KEY),
       ]);
-      
-      if (savedMethods) {
-        setPaymentMethods(JSON.parse(savedMethods));
-      } else {
-        setPaymentMethods([]);
-      }
       
       if (savedBalance) {
         setWalletBalance(parseFloat(savedBalance));
@@ -214,6 +295,42 @@ export default function PaymentMethodsScreen({ navigation }: any) {
         Alert.alert(t.common?.error || 'Error', t.common?.fillRequiredFields || 'Please fill in all required fields.');
         return;
       }
+      
+      // Validate card number
+      if (!validateCardNumber(formData.cardNumber)) {
+        Alert.alert(
+          t.common?.error || 'Error', 
+          t.customer?.invalidCardNumber || 'Invalid card number. Please check and try again.'
+        );
+        return;
+      }
+      
+      // Validate expiry date
+      if (!validateExpiryDate(formData.expiryDate)) {
+        Alert.alert(
+          t.common?.error || 'Error', 
+          t.customer?.invalidExpiryDate || 'Invalid or expired date. Please check the expiry date.'
+        );
+        return;
+      }
+      
+      // Validate CVV
+      if (!validateCVV(formData.cvv)) {
+        Alert.alert(
+          t.common?.error || 'Error', 
+          t.customer?.invalidCVV || 'CVV must be 3 or 4 digits.'
+        );
+        return;
+      }
+      
+      // Validate cardholder name
+      if (formData.holderName.trim().length < 3) {
+        Alert.alert(
+          t.common?.error || 'Error', 
+          t.customer?.invalidHolderName || 'Please enter a valid cardholder name.'
+        );
+        return;
+      }
     } else {
       if (!formData.pixKey) {
         Alert.alert(t.common?.error || 'Error', t.customer?.enterPixKey || 'Please enter your PIX key.');
@@ -223,28 +340,73 @@ export default function PaymentMethodsScreen({ navigation }: any) {
 
     setSaving(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const newMethod: PaymentMethod = formData.type === 'pix'
-        ? {
-            id: Date.now().toString(),
-            type: 'pix',
-            pixKey: formData.pixKey,
-            isDefault: paymentMethods.length === 0,
-          }
-        : {
-            id: Date.now().toString(),
-            type: formData.type,
-            brand: formData.cardNumber.startsWith('4') ? 'Visa' : 'Mastercard',
-            lastFour: formData.cardNumber.slice(-4),
-            holderName: formData.holderName.toUpperCase(),
-            expiryDate: formData.expiryDate,
-            isDefault: paymentMethods.length === 0,
+      // Parse expiry date for API
+      const [expMonth, expYear] = formData.type !== 'pix' && formData.expiryDate 
+        ? formData.expiryDate.split('/').map(Number) 
+        : [0, 0];
+
+      // Save to API for cross-device sync
+      try {
+        const apiPayload = formData.type === 'pix'
+          ? { type: 'pix', pixKey: formData.pixKey }
+          : {
+              type: formData.type,
+              cardBrand: formData.cardNumber.startsWith('4') ? 'Visa' : 'Mastercard',
+              cardLast4: formData.cardNumber.replace(/\s/g, '').slice(-4),
+              cardExpMonth: expMonth,
+              cardExpYear: expYear > 100 ? expYear : 2000 + expYear,
+              holderName: formData.holderName.toUpperCase(),
+            };
+
+        const response = await api.post('/payment-methods', apiPayload);
+        const savedMethod = response.data?.data;
+
+        if (savedMethod) {
+          const newMethod: PaymentMethod = {
+            id: savedMethod.id,
+            type: savedMethod.type || formData.type,
+            brand: savedMethod.cardBrand,
+            cardBrand: savedMethod.cardBrand,
+            lastFour: savedMethod.cardLast4,
+            cardLast4: savedMethod.cardLast4,
+            holderName: savedMethod.holderName,
+            expiryDate: savedMethod.cardExpMonth && savedMethod.cardExpYear
+              ? `${String(savedMethod.cardExpMonth).padStart(2, '0')}/${String(savedMethod.cardExpYear).slice(-2)}`
+              : formData.expiryDate,
+            cardExpMonth: savedMethod.cardExpMonth,
+            cardExpYear: savedMethod.cardExpYear,
+            pixKey: savedMethod.pixKey,
+            isDefault: savedMethod.isDefault,
           };
 
-      const updatedMethods = [...paymentMethods, newMethod];
-      setPaymentMethods(updatedMethods);
-      await AsyncStorage.setItem(PAYMENT_METHODS_KEY, JSON.stringify(updatedMethods));
+          const updatedMethods = [...paymentMethods, newMethod];
+          setPaymentMethods(updatedMethods);
+          // Cache locally
+          await AsyncStorage.setItem(PAYMENT_METHODS_KEY, JSON.stringify(updatedMethods));
+        }
+      } catch (apiError) {
+        console.log('API save failed, saving locally:', apiError);
+        // Fallback: save locally only
+        const newMethod: PaymentMethod = formData.type === 'pix'
+          ? {
+              id: Date.now().toString(),
+              type: 'pix',
+              pixKey: formData.pixKey,
+              isDefault: paymentMethods.length === 0,
+            }
+          : {
+              id: Date.now().toString(),
+              type: formData.type,
+              brand: formData.cardNumber.startsWith('4') ? 'Visa' : 'Mastercard',
+              lastFour: formData.cardNumber.replace(/\s/g, '').slice(-4),
+              holderName: formData.holderName.toUpperCase(),
+              expiryDate: formData.expiryDate,
+              isDefault: paymentMethods.length === 0,
+            };
+        const updatedMethods = [...paymentMethods, newMethod];
+        setPaymentMethods(updatedMethods);
+        await AsyncStorage.setItem(PAYMENT_METHODS_KEY, JSON.stringify(updatedMethods));
+      }
       
       setShowModal(false);
       Alert.alert(t.common?.success || 'Success', t.customer?.paymentMethodAdded || 'Payment method added successfully.');
@@ -260,6 +422,12 @@ export default function PaymentMethodsScreen({ navigation }: any) {
     }));
     setPaymentMethods(updatedMethods);
     await AsyncStorage.setItem(PAYMENT_METHODS_KEY, JSON.stringify(updatedMethods));
+    // Sync to API
+    try {
+      await api.patch(`/payment-methods/${methodId}/default`);
+    } catch (error) {
+      console.log('API set-default failed (local change kept):', error);
+    }
   };
 
   const handleDelete = (methodId: string) => {
@@ -275,6 +443,12 @@ export default function PaymentMethodsScreen({ navigation }: any) {
             const updatedMethods = paymentMethods.filter(m => m.id !== methodId);
             setPaymentMethods(updatedMethods);
             await AsyncStorage.setItem(PAYMENT_METHODS_KEY, JSON.stringify(updatedMethods));
+            // Sync to API
+            try {
+              await api.delete(`/payment-methods/${methodId}`);
+            } catch (error) {
+              console.log('API delete failed (local change kept):', error);
+            }
           },
         },
       ]
@@ -440,14 +614,14 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                   <View style={styles.methodHeader}>
                     <View style={[styles.methodIcon, { backgroundColor: '#dbeafe' }]}>
                       <Ionicons 
-                        name={getCardIcon(method.brand) as any} 
+                        name={getCardIcon(method.brand || method.cardBrand) as any} 
                         size={24} 
-                        color={getCardColor(method.brand)} 
+                        color={getCardColor(method.brand || method.cardBrand)} 
                       />
                     </View>
                     <View style={styles.methodInfo}>
                       <View style={styles.methodTitleRow}>
-                        <Text style={styles.methodTitle}>{method.brand}</Text>
+                        <Text style={styles.methodTitle}>{method.brand || method.cardBrand}</Text>
                         <View style={[
                           styles.typeBadge,
                           { backgroundColor: method.type === 'credit' ? '#dbeafe' : '#fef3c7' }
@@ -461,9 +635,11 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                         </View>
                       </View>
                       <Text style={styles.methodSubtitle}>
-                        •••• •••• •••• {method.lastFour}
+                        •••• •••• •••• {method.lastFour || method.cardLast4}
                       </Text>
-                      <Text style={styles.methodExpiry}>{t.customer?.expires || 'Expires'} {method.expiryDate}</Text>
+                      <Text style={styles.methodExpiry}>
+                        {t.customer?.expires || 'Expires'} {method.expiryDate || (method.cardExpMonth && method.cardExpYear ? `${String(method.cardExpMonth).padStart(2, '0')}/${String(method.cardExpYear).slice(-2)}` : '')}
+                      </Text>
                     </View>
                     {method.isDefault && (
                       <View style={styles.defaultBadge}>
@@ -507,11 +683,15 @@ export default function PaymentMethodsScreen({ navigation }: any) {
         onRequestClose={() => setShowModal(false)}
       >
         <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalOverlay}
         >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
+          <TouchableOpacity 
+            style={styles.modalBackdrop}
+            activeOpacity={1}
+            onPress={() => setShowModal(false)}
+          />
+          <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t.customer?.addPaymentMethod || 'Add Payment Method'}</Text>
               <TouchableOpacity onPress={() => setShowModal(false)}>
@@ -631,7 +811,6 @@ export default function PaymentMethodsScreen({ navigation }: any) {
               </TouchableOpacity>
             </ScrollView>
           </View>
-        </View>
         </KeyboardAvoidingView>
       </Modal>
 
@@ -948,6 +1127,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
+  },
+  modalBackdrop: {
+    flex: 1,
   },
   modalContent: {
     backgroundColor: '#fff',

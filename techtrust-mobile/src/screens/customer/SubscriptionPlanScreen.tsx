@@ -2,7 +2,7 @@
  * SubscriptionPlanScreen - Meu Plano / Assinatura
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,11 +10,13 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useI18n } from '../../i18n';
 import { useRoute } from '@react-navigation/native';
+import api from '../../services/api';
 
 interface Plan {
   id: string;
@@ -30,7 +32,28 @@ export default function SubscriptionPlanScreen({ navigation }: any) {
   const route = useRoute<any>();
   const fromDashboard = route.params?.fromDashboard;
   const [billingInterval, setBillingInterval] = useState<'month' | 'year'>('month');
-  const [currentPlan] = useState('premium'); // Simulating current plan
+  const [currentPlan, setCurrentPlan] = useState<string>('free');
+  const [currentSubscription, setCurrentSubscription] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadSubscription();
+  }, []);
+
+  const loadSubscription = async () => {
+    try {
+      const response = await api.get('/users/me');
+      const data = response.data?.data || response.data;
+      if (data?.subscription) {
+        setCurrentSubscription(data.subscription);
+        setCurrentPlan(data.subscription.plan?.toLowerCase() || 'free');
+      }
+    } catch (error) {
+      console.error('Error loading subscription:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleBack = () => {
     if (fromDashboard) {
@@ -47,20 +70,39 @@ export default function SubscriptionPlanScreen({ navigation }: any) {
       price: 0,
       interval: billingInterval,
       features: [
-        'Up to 2 vehicles',
+        currentSubscription?.plan === 'FREE' 
+          ? `${currentSubscription.maxVehicles || 1} vehicle${(currentSubscription.maxVehicles || 1) > 1 ? 's' : ''} allowed`
+          : 'Up to 1 vehicle',
         'Basic service requests',
         'Standard support',
         'View service history',
       ],
     },
     {
+      id: 'basic',
+      name: 'Basic',
+      price: currentSubscription?.plan === 'BASIC' ? Number(currentSubscription.price) : (billingInterval === 'month' ? 9.99 : 99.99),
+      interval: billingInterval,
+      features: [
+        currentSubscription?.plan === 'BASIC'
+          ? `${currentSubscription.maxVehicles || 3} vehicles allowed`
+          : 'Up to 3 vehicles',
+        'Priority service requests',
+        'Email support',
+        'Service history & reports',
+        'Service reminders',
+      ],
+    },
+    {
       id: 'premium',
       name: 'Premium',
-      price: billingInterval === 'month' ? 19.99 : 199.99,
+      price: currentSubscription?.plan === 'PREMIUM' ? Number(currentSubscription.price) : (billingInterval === 'month' ? 19.99 : 199.99),
       interval: billingInterval,
       popular: true,
       features: [
-        'Unlimited vehicles',
+        currentSubscription?.plan === 'PREMIUM'
+          ? `${currentSubscription.maxVehicles || 10} vehicles allowed`
+          : 'Unlimited vehicles',
         'Priority service requests',
         'Priority support 24/7',
         'Detailed service reports',
@@ -70,9 +112,9 @@ export default function SubscriptionPlanScreen({ navigation }: any) {
       ],
     },
     {
-      id: 'business',
-      name: 'Business',
-      price: billingInterval === 'month' ? 49.99 : 499.99,
+      id: 'enterprise',
+      name: 'Enterprise',
+      price: currentSubscription?.plan === 'ENTERPRISE' ? Number(currentSubscription.price) : (billingInterval === 'month' ? 49.99 : 499.99),
       interval: billingInterval,
       features: [
         'Everything in Premium',
@@ -131,28 +173,47 @@ export default function SubscriptionPlanScreen({ navigation }: any) {
 
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Current Plan Banner */}
+        {loading ? (
+          <View style={[styles.currentPlanBanner, { justifyContent: 'center', alignItems: 'center', paddingVertical: 30 }]}>
+            <ActivityIndicator size="small" color="#93c5fd" />
+          </View>
+        ) : (
         <View style={styles.currentPlanBanner}>
           <View style={styles.currentPlanInfo}>
             <View style={styles.currentPlanBadge}>
               <Ionicons name="diamond" size={16} color="#fff" />
               <Text style={styles.currentPlanBadgeText}>{t.customer?.currentPlan || 'Current Plan'}</Text>
             </View>
-            <Text style={styles.currentPlanName}>Premium</Text>
+            <Text style={styles.currentPlanName}>
+              {currentSubscription ? `${currentSubscription.plan?.charAt(0)}${currentSubscription.plan?.slice(1).toLowerCase()}` : 'Free'}
+            </Text>
             <Text style={styles.currentPlanPrice}>
-              $19.99<Text style={styles.currentPlanInterval}>/month</Text>
+              {currentSubscription && Number(currentSubscription.price) > 0 
+                ? `$${Number(currentSubscription.price).toFixed(2)}` 
+                : '$0.00'}
+              <Text style={styles.currentPlanInterval}>/month</Text>
             </Text>
           </View>
           <View style={styles.currentPlanDetails}>
             <View style={styles.detailRow}>
               <Ionicons name="calendar" size={16} color="#93c5fd" />
-              <Text style={styles.detailText}>{t.customer?.renews || 'Renews'}: Feb 15, 2024</Text>
+              <Text style={styles.detailText}>
+                {currentSubscription?.currentPeriodEnd 
+                  ? `${t.customer?.renews || 'Renews'}: ${new Date(currentSubscription.currentPeriodEnd).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+                  : (t.customer?.noActiveSubscription || 'No active subscription')}
+              </Text>
             </View>
+            {currentSubscription?.maxVehicles && (
             <View style={styles.detailRow}>
-              <Ionicons name="card" size={16} color="#93c5fd" />
-              <Text style={styles.detailText}>Visa •••• 4242</Text>
+              <Ionicons name="car" size={16} color="#93c5fd" />
+              <Text style={styles.detailText}>
+                {currentSubscription.maxVehicles} {t.customer?.vehiclesAllowed || 'vehicles allowed'}
+              </Text>
             </View>
+            )}
           </View>
         </View>
+        )}
 
         {/* Billing Toggle */}
         <View style={styles.billingToggle}>

@@ -222,8 +222,8 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
             <Text style={styles.sectionTitle}>{t.vehicle?.vehicleInformation || 'Vehicle Information'}</Text>
             <View style={styles.infoCard}>
               <View style={styles.infoRowColumn}>
-                <Text style={styles.infoLabel}>{t.vehicle?.vin || 'VIN (Vehicle Identification Number)'}</Text>
-                <Text style={styles.infoValueFull} selectable>{vehicle.vin || '-'}</Text>
+                <Text style={styles.infoLabel} numberOfLines={2}>{t.vehicle?.vin || 'VIN (Vehicle Identification Number)'}</Text>
+                <Text style={styles.infoValueFullVIN} selectable>{vehicle.vin || '-'}</Text>
               </View>
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>{t.vehicle?.licensePlate || 'License Plate'}</Text>
@@ -269,7 +269,7 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
               </View>
               <View style={styles.infoRowColumn}>
                 <Text style={styles.infoLabel}>{t.vehicle?.expiration || 'Expiration'}</Text>
-                <View style={styles.expiryContainerWrap}>
+                <View style={styles.expiryContainerColumn}>
                   <Text style={[
                     styles.infoValueFull,
                     isExpired(vehicle.insuranceExpiry) && styles.expiredText,
@@ -417,7 +417,7 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
         <FadeInView delay={500}>
           <View style={styles.actionsSection}>
             <ScalePress 
-              onPress={() => navigation.navigate('Home', { 
+              onPress={() => navigation.navigate('Dashboard', { 
                 screen: 'CreateRequest', 
                 params: { vehicleId: vehicle.id }
               })}
@@ -633,6 +633,13 @@ const styles = StyleSheet.create({
     color: '#111827',
     marginTop: 6,
   },
+  infoValueFullVIN: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#111827',
+    marginTop: 8,
+    letterSpacing: 0.5,
+  },
   expiryContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -642,6 +649,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
+    marginTop: 6,
+    gap: 8,
+  },
+  expiryContainerColumn: {
+    flexDirection: 'column',
     marginTop: 6,
     gap: 8,
   },

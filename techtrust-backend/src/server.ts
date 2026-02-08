@@ -38,6 +38,7 @@ import contentRoutes from './routes/content.routes';
 import geocodingRoutes from './routes/geocoding.routes';
 import databaseRoutes from './routes/database.routes';
 import uploadRoutes from './routes/upload.routes';
+import paymentMethodsRoutes from './routes/payment-methods.routes';
 
 // Carregar variáveis de ambiente
 dotenv.config();
@@ -171,6 +172,7 @@ app.use(`/api/${API_VERSION}/content`, contentRoutes); // Rotas públicas de con
 app.use(`/api/${API_VERSION}/geocoding`, geocodingRoutes); // Rotas públicas de geocoding
 app.use(`/api/${API_VERSION}/admin/database`, databaseRoutes); // Rotas admin de database
 app.use(`/api/${API_VERSION}/upload`, uploadRoutes); // Rotas de upload de imagens
+app.use(`/api/${API_VERSION}/payment-methods`, paymentMethodsRoutes); // Métodos de pagamento do usuário
 
 // ============================================
 // ERROR HANDLER (deve ser o último middleware)

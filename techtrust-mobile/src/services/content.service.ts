@@ -13,12 +13,18 @@ export interface SpecialOffer {
   id: string;
   title: string;
   description?: string;
+  // API fields
+  discountLabel?: string;
+  discountValue?: number;
+  discountType?: string;
+  promoCode?: string;
+  // Legacy/mock fields
   discount?: number | string;
   imageUrl?: string;
   image?: string; // Legacy support for mock data
   code?: string;
-  originalPrice?: string;
-  discountedPrice?: string;
+  originalPrice?: string | number;
+  discountedPrice?: string | number;
   regularPrice?: number;
   specialPrice?: number;
   validUntil?: string;

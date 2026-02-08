@@ -150,22 +150,41 @@ export default function CreateRequestScreen({ navigation }: any) {
         setActiveServiceInfo(null);
       }
       
-      // Check payment methods from API
+      // Check payment methods - try API first (cross-device), fallback to AsyncStorage
       try {
-        const { getPaymentMethods } = await import('../services/dashboard.service');
-        const paymentMethods = await getPaymentMethods();
+        let methods: any[] = [];
         
-        if (paymentMethods.length > 0) {
+        // Try API first
+        try {
+          const apiDefault = (await import('../services/api')).default;
+          const response = await apiDefault.get('/payment-methods');
+          methods = response.data?.data || [];
+        } catch (apiErr) {
+          // Fallback to AsyncStorage
+          const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+          const PAYMENT_METHODS_KEY = '@TechTrust:paymentMethods';
+          const savedMethods = await AsyncStorage.getItem(PAYMENT_METHODS_KEY);
+          if (savedMethods) {
+            methods = JSON.parse(savedMethods);
+          }
+        }
+        
+        if (methods.length > 0) {
           setHasPaymentMethod(true);
-          setDefaultPaymentMethod(paymentMethods.find(p => p.isDefault) || paymentMethods[0]);
+          const defaultMethod = methods.find((p: any) => p.isDefault) || methods[0];
+          setDefaultPaymentMethod({
+            ...defaultMethod,
+            brand: defaultMethod.cardBrand || defaultMethod.brand,
+            lastFour: defaultMethod.cardLast4 || defaultMethod.lastFour,
+          });
         } else {
           setHasPaymentMethod(false);
           setDefaultPaymentMethod(null);
         }
       } catch (error) {
         console.error('Error checking payment methods:', error);
-        // Default to allowing creation if we can't check
-        setHasPaymentMethod(true);
+        // If we can't check, allow creation but with warning
+        setHasPaymentMethod(false);
         setDefaultPaymentMethod(null);
       }
     } finally {

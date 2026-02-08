@@ -699,14 +699,21 @@ model PaymentMethod {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   
-  // Stripe
-  stripePaymentMethodId String @unique
+  // Tipo de pagamento
+  type         String  @default("credit") // credit, debit, pix
+  
+  // Stripe (opcional - para integração futura)
+  stripePaymentMethodId String? @unique
   
   // Dados do cartão
   cardBrand    String?
   cardLast4    String?
   cardExpMonth Int?
   cardExpYear  Int?
+  holderName   String?
+  
+  // PIX
+  pixKey       String?
   
   // Billing
   billingName String?

@@ -105,7 +105,6 @@ export default function BannerCarousel({ banners, autoPlay = true }: BannerCarou
           <Image
             source={{ 
               uri: imageUrl,
-              cache: 'force-cache',
             }}
             style={styles.bannerImage}
             resizeMode="cover"

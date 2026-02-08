@@ -72,21 +72,65 @@ export default function SpecialOffersSection({
     // Support both imageUrl and image fields
     const rawImageUrl = item.imageUrl || item.image;
     
-    // Ensure imageUrl is absolute
-    const imageUrl = rawImageUrl?.startsWith('http') 
-      ? rawImageUrl 
-      : rawImageUrl 
-        ? `${process.env.EXPO_PUBLIC_API_URL || 'https://techtrust-api.onrender.com'}${rawImageUrl.startsWith('/') ? rawImageUrl : '/' + rawImageUrl}`
-        : null;
+    // Ensure imageUrl is absolute and properly formatted for both iOS and Android
+    let imageUrl = null;
+    if (rawImageUrl) {
+      const urlStr = String(rawImageUrl).trim();
+      if (urlStr.startsWith('http://') || urlStr.startsWith('https://')) {
+        imageUrl = urlStr;
+      } else {
+        const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'https://techtrust-api.onrender.com';
+        const cleanPath = urlStr.startsWith('/') ? urlStr : '/' + urlStr;
+        imageUrl = `${apiUrl}${cleanPath}`;
+      }
+    }
     
-    // Format discount display
-    const discountDisplay = typeof item.discount === 'number' 
-      ? `${item.discount}% OFF` 
-      : item.discount;
+    // Format discount display - support both API field (discountLabel) and legacy (discount)
+    const rawDiscount = (item as any).discountLabel || item.discount;
+    const discountDisplay = rawDiscount
+      ? (typeof rawDiscount === 'number' ? `${rawDiscount}% OFF` : String(rawDiscount))
+      : null;
     
-    // Get prices
-    const regularPrice = item.originalPrice || (item.regularPrice ? `$${item.regularPrice.toFixed(2)}` : null);
-    const specialPrice = item.discountedPrice || (item.specialPrice ? `$${item.specialPrice.toFixed(2)}` : null);
+    // Get prices - support API Decimal fields and string fields
+    // API returns originalPrice/discountedPrice as Decimal (number), mock data as string
+    const rawOriginal = item.originalPrice || (item as any).regularPrice || item.regularPrice;
+    const rawDiscounted = item.discountedPrice || (item as any).specialPrice || item.specialPrice;
+    
+    const formatPrice = (val: any): string | null => {
+      if (!val) return null;
+      if (typeof val === 'string' && (val.startsWith('$') || val === 'FREE')) return val;
+      const num = Number(val);
+      if (isNaN(num) || num === 0) return null;
+      return `$${num.toFixed(2)}`;
+    };
+    
+    const regularPrice = formatPrice(rawOriginal);
+    const specialPrice = formatPrice(rawDiscounted);
+    
+    // Format valid until date - API returns ISO DateTime, mock returns formatted string
+    const rawValidUntil = item.validUntil;
+    let validUntil: string | null = null;
+    if (rawValidUntil) {
+      const dateStr = String(rawValidUntil);
+      if (dateStr.includes('T') || (dateStr.includes('-') && dateStr.length > 10)) {
+        // ISO DateTime from API
+        const d = new Date(dateStr);
+        if (!isNaN(d.getTime())) {
+          validUntil = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+      } else if (dateStr.includes('-')) {
+        // Date-only string
+        const d = new Date(dateStr + 'T00:00:00');
+        if (!isNaN(d.getTime())) {
+          validUntil = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+      } else {
+        validUntil = dateStr; // Already formatted
+      }
+    }
+    
+    // Get promo code - API uses promoCode, component interface uses code
+    const promoCode = item.code || (item as any).promoCode;
     
     return (
       <TouchableOpacity 
@@ -96,9 +140,16 @@ export default function SpecialOffersSection({
       >
         {imageUrl && !hasError ? (
           <Image 
-            source={{ uri: imageUrl }} 
+            source={{ 
+              uri: imageUrl,
+              cache: 'force-cache'
+            }} 
             style={[styles.offerImage, compact && styles.offerImageCompact]} 
-            onError={() => handleImageError(item.id)}
+            onError={(e) => {
+              console.log('Image load error:', imageUrl, e.nativeEvent.error);
+              handleImageError(item.id);
+            }}
+            resizeMode="cover"
           />
         ) : (
           <View style={[styles.offerImage, compact && styles.offerImageCompact, { backgroundColor: colors.bgColor }]}>
@@ -113,12 +164,13 @@ export default function SpecialOffersSection({
         )}
         
         <View style={styles.offerContent}>
-          <Text style={styles.offerTitle} numberOfLines={1}>{item.title}</Text>
+          <Text style={styles.offerTitle} numberOfLines={2}>{item.title}</Text>
           {item.description && (
-            <Text style={styles.offerDescription} numberOfLines={compact ? 1 : 2}>
+            <Text style={styles.offerDescription} numberOfLines={compact ? 2 : 3}>
               {item.description}
             </Text>
           )}
+          
           {/* Price display */}
           {(regularPrice || specialPrice) && (
             <View style={styles.priceContainer}>
@@ -130,14 +182,16 @@ export default function SpecialOffersSection({
               )}
             </View>
           )}
+          
           {/* Valid Until */}
-          {item.validUntil && (
-            <Text style={styles.validUntil}>Valid until {item.validUntil}</Text>
+          {validUntil && (
+            <Text style={styles.validUntil}>Valid until {validUntil}</Text>
           )}
-          {item.code && (
+          
+          {promoCode && (
             <View style={[styles.codeContainer, { backgroundColor: colors.bgColor }]}>
               <Text style={[styles.codeText, { color: colors.accentColor }]}>
-                Code: {item.code}
+                Code: {promoCode}
               </Text>
             </View>
           )}

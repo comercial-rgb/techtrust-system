@@ -147,6 +147,11 @@ function ProfileStack() {
       <Stack.Screen name="TermsAndPolicies" component={TermsAndPoliciesScreen} />
       <Stack.Screen name="SubscriptionPlan" component={SubscriptionPlanScreen} />
       <Stack.Screen name="SupportChat" component={SupportChatScreen} />
+      <Stack.Screen name="MyVehicles" component={CustomerVehiclesScreen} />
+      <Stack.Screen name="AddVehicle" component={AddVehicleScreen} />
+      <Stack.Screen name="VehicleDetails" component={VehicleDetailsScreen} />
+      <Stack.Screen name="VehicleTransfer" component={VehicleTransferScreen} />
+      <Stack.Screen name="Insurance" component={InsuranceScreen} />
     </Stack.Navigator>
   );
 }

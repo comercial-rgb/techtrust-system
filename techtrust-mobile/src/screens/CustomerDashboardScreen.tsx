@@ -643,7 +643,26 @@ export default function CustomerDashboardScreen({ navigation }: any) {
       <Modal visible={showOfferModal} transparent animationType="slide">
         <View style={styles.offerModalOverlay}>
           <View style={styles.offerModalContent}>
-            {selectedOffer && (
+            {selectedOffer && (() => {
+                // Support both API fields and legacy fields
+                const imgUrl = selectedOffer.imageUrl || (selectedOffer as any).image;
+                const imgSrc = imgUrl ? (String(imgUrl).startsWith('http') ? String(imgUrl) : `https://techtrust-api.onrender.com${imgUrl}`) : null;
+                const discountDisp = (selectedOffer as any).discountLabel || (selectedOffer.discount ? `${selectedOffer.discount}% OFF` : 'PROMO');
+                const fmtP = (v: any): string => {
+                  if (!v) return '';
+                  if (typeof v === 'string' && (v.startsWith('$') || v === 'FREE')) return v;
+                  const n = Number(v); return isNaN(n) ? String(v) : n === 0 ? 'FREE' : `$${n.toFixed(2)}`;
+                };
+                const origPrice = fmtP((selectedOffer as any).originalPrice);
+                const discPrice = fmtP((selectedOffer as any).discountedPrice);
+                const promoCode = (selectedOffer as any).promoCode || selectedOffer.code;
+                let validUntilD = '';
+                if ((selectedOffer as any).validUntil) {
+                  const raw = String((selectedOffer as any).validUntil);
+                  if (raw.includes('T')) { const d = new Date(raw); validUntilD = !isNaN(d.getTime()) ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : raw; }
+                  else validUntilD = raw;
+                }
+                return (
               <>
                 <TouchableOpacity 
                   style={styles.offerModalClose}
@@ -652,15 +671,8 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                   <Ionicons name="close-circle" size={32} color="#6b7280" />
                 </TouchableOpacity>
                 
-                {selectedOffer.imageUrl ? (
-                  <Image 
-                    source={{ 
-                      uri: selectedOffer.imageUrl.startsWith('http') 
-                        ? selectedOffer.imageUrl 
-                        : `https://techtrust-api.onrender.com${selectedOffer.imageUrl}` 
-                    }} 
-                    style={styles.offerModalImage} 
-                  />
+                {imgSrc ? (
+                  <Image source={{ uri: imgSrc }} style={styles.offerModalImage} />
                 ) : (
                   <View style={[styles.offerModalImage, { backgroundColor: '#fee2e2', justifyContent: 'center', alignItems: 'center' }]}>
                     <Ionicons name="pricetag" size={60} color="#ef4444" />
@@ -668,32 +680,40 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                 )}
                 
                 <View style={[styles.offerModalBadge, { backgroundColor: '#ef4444' }]}>
-                  <Text style={styles.offerModalBadgeText}>{selectedOffer.discount ? `${selectedOffer.discount}% OFF` : 'PROMO'}</Text>
+                  <Text style={styles.offerModalBadgeText}>{discountDisp}</Text>
                 </View>
                 
                 <View style={styles.offerModalBody}>
                   <Text style={styles.offerModalTitle}>{selectedOffer.title}</Text>
                   <Text style={styles.offerModalDescription}>{selectedOffer.description || ''}</Text>
                   
-                  {selectedOffer.discount && (
+                  {(origPrice || discPrice) && (
                     <View style={styles.offerModalPricing}>
                       <View>
                         <Text style={styles.offerModalPriceLabel}>{t.customerDashboard?.regularPrice || 'Regular Price'}</Text>
+                        {origPrice ? <Text style={{ textDecorationLine: 'line-through', color: '#9ca3af' }}>{origPrice}</Text> : null}
                       </View>
                       <Ionicons name="arrow-forward" size={24} color="#10b981" />
                       <View>
                         <Text style={styles.offerModalPriceLabel}>{t.customerDashboard?.specialPrice || 'Special Price'}</Text>
-                        <Text style={styles.offerModalDiscountedPrice}>{selectedOffer.discount}% OFF</Text>
+                        <Text style={styles.offerModalDiscountedPrice}>{discPrice || discountDisp}</Text>
                       </View>
                     </View>
                   )}
                   
-                  {selectedOffer.code && (
+                  {promoCode && (
                     <View style={styles.offerModalValidity}>
                       <Ionicons name="pricetag" size={18} color="#10b981" />
-                      <Text style={styles.offerModalValidityText}>{t.customerDashboard?.useCode || 'Use code'}: {selectedOffer.code}</Text>
+                      <Text style={styles.offerModalValidityText}>{t.customerDashboard?.useCode || 'Use code'}: {promoCode}</Text>
                     </View>
                   )}
+
+                  {validUntilD ? (
+                    <View style={[styles.offerModalValidity, { marginTop: 4 }]}>
+                      <Ionicons name="time" size={18} color="#f59e0b" />
+                      <Text style={styles.offerModalValidityText}>Valid until {validUntilD}</Text>
+                    </View>
+                  ) : null}
                   
                   <View style={styles.offerModalActions}>
                     <TouchableOpacity 
@@ -712,7 +732,8 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                   </View>
                 </View>
               </>
-            )}
+                );
+              })()}
           </View>
         </View>
       </Modal>
@@ -737,7 +758,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
             {selectedOffer && (
               <View style={styles.offerProvidersOfferBadge}>
                 <Text style={styles.offerProvidersOfferTitle}>{selectedOffer.title}</Text>
-                <Text style={styles.offerProvidersOfferDiscount}>{selectedOffer.discount}</Text>
+                <Text style={styles.offerProvidersOfferDiscount}>{(selectedOffer as any).discountLabel || selectedOffer.discount}</Text>
               </View>
             )}
             
@@ -832,9 +853,13 @@ export default function CustomerDashboardScreen({ navigation }: any) {
           activeOpacity={1}
           onPress={() => setShowOfferStateDropdown(false)}
         >
-          <TouchableOpacity activeOpacity={1} style={styles.dropdownContent}>
+          <View style={styles.dropdownContent} onStartShouldSetResponder={() => true}>
             <Text style={styles.dropdownTitle}>{t.customerDashboard?.selectState || 'Select State'}</Text>
-            <ScrollView style={styles.dropdownScroll} nestedScrollEnabled>
+            <ScrollView 
+              style={styles.dropdownScroll} 
+              nestedScrollEnabled
+              keyboardShouldPersistTaps="handled"
+            >
               {STATES.map(state => (
                 <TouchableOpacity
                   key={state}
@@ -844,6 +869,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                     setOfferProviderCity('');
                     setShowOfferStateDropdown(false);
                   }}
+                  activeOpacity={0.7}
                 >
                   <Text style={[styles.dropdownItemText, offerProviderState === state && styles.dropdownItemTextSelected]}>
                     {state}
@@ -852,7 +878,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-          </TouchableOpacity>
+          </View>
         </TouchableOpacity>
       </Modal>
 
@@ -863,9 +889,13 @@ export default function CustomerDashboardScreen({ navigation }: any) {
           activeOpacity={1}
           onPress={() => setShowOfferCityDropdown(false)}
         >
-          <TouchableOpacity activeOpacity={1} style={styles.dropdownContent}>
+          <View style={styles.dropdownContent} onStartShouldSetResponder={() => true}>
             <Text style={styles.dropdownTitle}>{t.customerDashboard?.selectCity || 'Select City'}</Text>
-            <ScrollView style={styles.dropdownScroll} nestedScrollEnabled>
+            <ScrollView 
+              style={styles.dropdownScroll} 
+              nestedScrollEnabled
+              keyboardShouldPersistTaps="handled"
+            >
               {(CITIES[offerProviderState] || []).map(city => (
                 <TouchableOpacity
                   key={city}
@@ -874,6 +904,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                     setOfferProviderCity(city);
                     setShowOfferCityDropdown(false);
                   }}
+                  activeOpacity={0.7}
                 >
                   <Text style={[styles.dropdownItemText, offerProviderCity === city && styles.dropdownItemTextSelected]}>
                     {city}
@@ -882,7 +913,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-          </TouchableOpacity>
+          </View>
         </TouchableOpacity>
       </Modal>
 

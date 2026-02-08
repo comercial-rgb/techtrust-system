@@ -75,7 +75,10 @@ export default function PersonalInfoScreen({ navigation }: any) {
     try {
       const api = (await import('../../services/api')).default;
       const response = await api.get('/users/me');
-      const userData = response.data?.data || response.data;
+      // API returns { success: true, data: { user: {...}, subscription: {...} } }
+      const responseData = response.data?.data || response.data;
+      // user data may be nested under 'user' key or directly on responseData
+      const userData = responseData?.user || responseData;
       
       if (userData) {
         setFormData(prev => ({
@@ -85,10 +88,22 @@ export default function PersonalInfoScreen({ navigation }: any) {
           phone: userData.phone || prev.phone,
           address: userData.address || '',
           dateOfBirth: userData.dateOfBirth || '',
+          cpf: userData.cpf || '',
+          birthDate: userData.dateOfBirth || userData.birthDate || '',
+          gender: userData.gender || '',
         }));
       }
     } catch (error) {
       console.error('Error loading user profile:', error);
+      // Fallback to user context data
+      if (user) {
+        setFormData(prev => ({
+          ...prev,
+          fullName: user.fullName || prev.fullName,
+          email: user.email || prev.email,
+          phone: (user as any).phone || prev.phone,
+        }));
+      }
     }
   };
 
@@ -128,7 +143,7 @@ export default function PersonalInfoScreen({ navigation }: any) {
               { text: t.common?.cancel || 'Cancel', style: 'cancel' },
               {
                 text: t.common?.confirm || 'Confirm',
-                onPress: async (password) => {
+                onPress: async (password?: string) => {
                   if (password && user?.email) {
                     await storeCredentials(user.email, password);
                     await setBiometricLoginEnabled(true);
@@ -248,19 +263,36 @@ export default function PersonalInfoScreen({ navigation }: any) {
       // Import API
       const api = (await import('../../services/api')).default;
       
-      // Update user profile via API
-      await api.put('/users/profile', {
-        fullName: formData.fullName,
-        phone: formData.phone,
-        address: formData.address,
-        dateOfBirth: formData.dateOfBirth,
-      });
+      // Prepare update data - only fields the backend accepts:
+      // fullName, language, address, city, state, zipCode, pushEnabled, emailNotifications, smsNotifications
+      const updateData: any = {
+        fullName: formData.fullName.trim(),
+      };
       
-      Alert.alert(t.common?.success || 'Success', t.profile?.infoUpdated || 'Your information has been updated.');
+      // Only include optional fields if they have values
+      if (formData.address?.trim()) {
+        updateData.address = formData.address.trim();
+      }
+      
+      // Update user profile via API - PATCH /users/me
+      await api.patch('/users/me', updateData);
+      
+      Alert.alert(
+        t.common?.success || 'Success', 
+        t.profile?.infoUpdated || 'Your information has been updated.'
+      );
+      
       setIsEditing(false);
-    } catch (error) {
+      
+      // Reload data to confirm it was saved
+      await loadUserProfile();
+    } catch (error: any) {
       console.error('Error saving profile:', error);
-      Alert.alert(t.common?.error || 'Error', t.profile?.updateFailed || 'Failed to update information. Please try again.');
+      const errorMsg = error.response?.data?.message || error.message || 'Failed to update information';
+      Alert.alert(
+        t.common?.error || 'Error', 
+        t.profile?.updateFailed || errorMsg
+      );
     } finally {
       setSaving(false);
     }

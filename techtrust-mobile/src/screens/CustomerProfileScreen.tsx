@@ -17,10 +17,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
 import { FadeInView, ScalePress } from '../components/Animated';
 import { useI18n, languages, Language } from '../i18n';
 import api from '../services/api';
+
+const SPOKEN_LANGUAGES_KEY = '@techtrust_spoken_languages';
 
 export default function CustomerProfileScreen({ navigation }: any) {
   const { user, logout } = useAuth();
@@ -37,29 +40,52 @@ export default function CustomerProfileScreen({ navigation }: any) {
     memberSince: new Date().getFullYear().toString(),
   });
   const [loadingStats, setLoadingStats] = useState(true);
+  const [subscription, setSubscription] = useState<any>(null);
 
-  // Recarregar stats sempre que a tela ganhar foco
+  // Load spoken languages from AsyncStorage on mount
   useFocusEffect(
     useCallback(() => {
       loadUserStats();
+      loadSpokenLanguages();
     }, [])
   );
+
+  const loadSpokenLanguages = async () => {
+    try {
+      const saved = await AsyncStorage.getItem(SPOKEN_LANGUAGES_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setSpokenLanguages(parsed);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading spoken languages:', error);
+    }
+  };
 
   const loadUserStats = async () => {
     try {
       setLoadingStats(true);
       // Load real user stats from API
-      const [vehiclesRes, servicesRes] = await Promise.all([
+      const [vehiclesRes, servicesRes, userRes] = await Promise.all([
         api.get('/vehicles'),
         api.get('/service-requests'),
+        api.get('/users/me'),
       ]);
       
       // API returns { success: true, data: [...] } for vehicles
       // and { success: true, requests: [...] } for service-requests
       const vehicles = vehiclesRes.data?.data || vehiclesRes.data?.vehicles || [];
       const services = servicesRes.data?.requests || servicesRes.data?.data || [];
-      const completedServices = services.filter((s: any) => s.status === 'completed');
+      const completedServices = services.filter((s: any) => s.status?.toLowerCase() === 'completed');
       const totalSpent = completedServices.reduce((sum: number, s: any) => sum + (s.totalPrice || 0), 0);
+      
+      // Load subscription from /users/me response
+      const meData = userRes.data?.data || userRes.data;
+      if (meData?.subscription) {
+        setSubscription(meData.subscription);
+      }
       
       setStats({
         totalServices: completedServices.length,
@@ -84,12 +110,19 @@ export default function CustomerProfileScreen({ navigation }: any) {
 
   const toggleSpokenLanguage = (langCode: string) => {
     setSpokenLanguages(prev => {
+      let newLangs: string[];
       if (prev.includes(langCode)) {
         // Don't allow removing all languages
         if (prev.length === 1) return prev;
-        return prev.filter(l => l !== langCode);
+        newLangs = prev.filter(l => l !== langCode);
+      } else {
+        newLangs = [...prev, langCode];
       }
-      return [...prev, langCode];
+      // Persist to AsyncStorage
+      AsyncStorage.setItem(SPOKEN_LANGUAGES_KEY, JSON.stringify(newLangs)).catch(err => 
+        console.error('Error saving spoken languages:', err)
+      );
+      return newLangs;
     });
   };
 
@@ -122,10 +155,10 @@ export default function CustomerProfileScreen({ navigation }: any) {
     {
       id: 'vehicles',
       title: t.profile?.myVehicles || 'My Vehicles',
-      subtitle: `${stats.vehiclesCount} ${t.profile?.vehiclesRegistered || 'vehicle(s) registered'}`,
+      subtitle: stats.vehiclesCount > 0 ? `${stats.vehiclesCount} ${stats.vehiclesCount === 1 ? (t.profile?.vehicleRegistered || 'vehicle registered') : (t.profile?.vehiclesRegistered || 'vehicles registered')}` : (t.profile?.noVehicles || 'No vehicles registered'),
       icon: 'car',
       color: '#f59e0b',
-      onPress: () => navigation.navigate('Vehicles'),
+      onPress: () => navigation.navigate('MyVehicles'),
     },
     {
       id: 'addresses',
@@ -293,7 +326,7 @@ export default function CustomerProfileScreen({ navigation }: any) {
         {/* Subscription Plan Section */}
         <FadeInView delay={350}>
           <View style={styles.menuContainer}>
-            <Text style={styles.menuTitle}>My Plan</Text>
+            <Text style={styles.menuTitle}>{t.profile?.myPlan || 'My Plan'}</Text>
             <ScalePress onPress={() => navigation.navigate('SubscriptionPlan')}>
               <View style={styles.subscriptionCard}>
                 <View style={styles.subscriptionHeader}>
@@ -301,24 +334,49 @@ export default function CustomerProfileScreen({ navigation }: any) {
                     <Ionicons name="diamond" size={24} color="#fff" />
                   </View>
                   <View style={styles.subscriptionInfo}>
-                    <Text style={styles.subscriptionName}>Premium Plan</Text>
-                    <Text style={styles.subscriptionPrice}>$19.99/month</Text>
+                    <Text style={styles.subscriptionName}>
+                      {subscription ? `${subscription.plan?.charAt(0)}${subscription.plan?.slice(1).toLowerCase()} Plan` : (t.profile?.freePlan || 'Free Plan')}
+                    </Text>
+                    <Text style={styles.subscriptionPrice}>
+                      {subscription && Number(subscription.price) > 0 
+                        ? `$${Number(subscription.price).toFixed(2)}/month` 
+                        : '$0.00/month'}
+                    </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color="#93c5fd" />
                 </View>
                 <View style={styles.subscriptionFeatures}>
-                  <View style={styles.subscriptionFeature}>
-                    <Ionicons name="checkmark-circle" size={14} color="#10b981" />
-                    <Text style={styles.subscriptionFeatureText}>Priority Support</Text>
-                  </View>
-                  <View style={styles.subscriptionFeature}>
-                    <Ionicons name="checkmark-circle" size={14} color="#10b981" />
-                    <Text style={styles.subscriptionFeatureText}>15% Discount</Text>
-                  </View>
-                  <View style={styles.subscriptionFeature}>
-                    <Ionicons name="checkmark-circle" size={14} color="#10b981" />
-                    <Text style={styles.subscriptionFeatureText}>Roadside Assist</Text>
-                  </View>
+                  {subscription?.plan === 'PREMIUM' || subscription?.plan === 'ENTERPRISE' ? (
+                    <>
+                      <View style={styles.subscriptionFeature}>
+                        <Ionicons name="checkmark-circle" size={14} color="#10b981" />
+                        <Text style={styles.subscriptionFeatureText}>{t.profile?.prioritySupport || 'Priority Support'}</Text>
+                      </View>
+                      <View style={styles.subscriptionFeature}>
+                        <Ionicons name="checkmark-circle" size={14} color="#10b981" />
+                        <Text style={styles.subscriptionFeatureText}>
+                          {subscription.maxVehicles ? `${subscription.maxVehicles} ${t.profile?.vehiclesAllowed || 'vehicles'}` : (t.profile?.unlimitedVehicles || 'Unlimited vehicles')}
+                        </Text>
+                      </View>
+                      <View style={styles.subscriptionFeature}>
+                        <Ionicons name="checkmark-circle" size={14} color="#10b981" />
+                        <Text style={styles.subscriptionFeatureText}>{t.profile?.exclusiveDiscounts || 'Exclusive Discounts'}</Text>
+                      </View>
+                    </>
+                  ) : (
+                    <>
+                      <View style={styles.subscriptionFeature}>
+                        <Ionicons name="checkmark-circle" size={14} color="#10b981" />
+                        <Text style={styles.subscriptionFeatureText}>
+                          {subscription?.maxVehicles ? `${subscription.maxVehicles} ${subscription.maxVehicles === 1 ? 'vehicle' : 'vehicles'}` : (t.profile?.basicFeatures || 'Basic features')}
+                        </Text>
+                      </View>
+                      <View style={styles.subscriptionFeature}>
+                        <Ionicons name="information-circle" size={14} color="#f59e0b" />
+                        <Text style={styles.subscriptionFeatureText}>{t.profile?.upgradForMore || 'Upgrade for more features'}</Text>
+                      </View>
+                    </>
+                  )}
                 </View>
               </View>
             </ScalePress>
