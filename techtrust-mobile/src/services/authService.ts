@@ -19,10 +19,14 @@ const STORED_EMAIL_KEY = 'stored_email';
 const STORED_PASSWORD_KEY = 'stored_password';
 const BIOMETRIC_PROMPT_SHOWN_KEY = 'biometric_prompt_shown';
 
-// Google OAuth Configuration
-const GOOGLE_CLIENT_ID_IOS = ''; // Will be set from environment
-const GOOGLE_CLIENT_ID_ANDROID = ''; // Will be set from environment
-const GOOGLE_CLIENT_ID_WEB = ''; // Web client ID for Expo Go
+// Google OAuth Configuration - Set via EAS secrets or app.config.js
+// To configure: 
+// 1. Go to Google Cloud Console → APIs & Services → Credentials
+// 2. Create OAuth 2.0 Client IDs for Web, iOS, and Android
+// 3. Set as EAS secrets: eas secret:create GOOGLE_CLIENT_ID_WEB <value>
+const GOOGLE_CLIENT_ID_WEB = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB || '';
+const GOOGLE_CLIENT_ID_IOS = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS || GOOGLE_CLIENT_ID_WEB;
+const GOOGLE_CLIENT_ID_ANDROID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_ANDROID || GOOGLE_CLIENT_ID_WEB;
 
 // Discovery document for Google OAuth
 const googleDiscovery = {
