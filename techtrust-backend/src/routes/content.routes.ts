@@ -558,7 +558,7 @@ router.get('/home-data', asyncHandler(async (_req: Request, res: Response) => {
 // ============================================
 
 // Obter planos ativos para o mobile
-router.get('/subscription-plans', asyncHandler(async (req: Request, res: Response) => {
+router.get('/subscription-plans', asyncHandler(async (_req: Request, res: Response) => {
   // Try to get from database
   const dbPlans = await prisma.subscriptionPlanTemplate.findMany({
     where: { isActive: true },
@@ -668,7 +668,7 @@ router.get('/subscription-plans', asyncHandler(async (req: Request, res: Respons
     features: typeof plan.features === 'string' ? JSON.parse(plan.features) : plan.features,
   }));
   
-  res.json(plans);
+  return res.json(plans);
 }));
 
 export default router;

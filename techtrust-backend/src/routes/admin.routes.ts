@@ -1155,7 +1155,7 @@ router.patch('/subscriptions/:id/plan', asyncHandler(async (req: Request, res: R
 // ============================================
 
 // Listar todos os templates de planos
-router.get('/subscription-plans', asyncHandler(async (req: Request, res: Response) => {
+router.get('/subscription-plans', asyncHandler(async (_req: Request, res: Response) => {
   const plans = await prisma.subscriptionPlanTemplate.findMany({
     orderBy: { position: 'asc' },
   });
