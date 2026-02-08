@@ -915,3 +915,4 @@ const styles = StyleSheet.create({
     color: '#1976d2',
     fontWeight: '600',
   },
+});
