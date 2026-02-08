@@ -142,7 +142,6 @@ export default function SpecialOffersSection({
           <Image 
             source={{ 
               uri: imageUrl,
-              cache: 'force-cache'
             }} 
             style={[styles.offerImage, compact && styles.offerImageCompact]} 
             onError={(e) => {

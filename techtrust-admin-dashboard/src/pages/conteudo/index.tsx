@@ -956,33 +956,33 @@ export default function ConteudoPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Preço Original</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Preço Original (USD)</label>
                     <input
-                      type="text"
-                      inputMode="decimal"
+                      type="number"
+                      step="0.01"
+                      min="0"
                       value={offerForm.originalPrice || ''}
                       onChange={(e) => {
-                        const value = e.target.value.replace(',', '.');
-                        const num = parseFloat(value);
+                        const num = parseFloat(e.target.value);
                         setOfferForm({ ...offerForm, originalPrice: isNaN(num) ? 0 : num });
                       }}
                       className="input"
-                      placeholder="0.00"
+                      placeholder="89.99"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Preço com Desconto</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Preço com Desconto (USD)</label>
                     <input
-                      type="text"
-                      inputMode="decimal"
+                      type="number"
+                      step="0.01"
+                      min="0"
                       value={offerForm.discountedPrice || ''}
                       onChange={(e) => {
-                        const value = e.target.value.replace(',', '.');
-                        const num = parseFloat(value);
+                        const num = parseFloat(e.target.value);
                         setOfferForm({ ...offerForm, discountedPrice: isNaN(num) ? 0 : num });
                       }}
                       className="input"
-                      placeholder="0.00"
+                      placeholder="76.49"
                     />
                   </div>
                 </div>
