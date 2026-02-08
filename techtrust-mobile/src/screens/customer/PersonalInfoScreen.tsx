@@ -62,11 +62,35 @@ export default function PersonalInfoScreen({ navigation }: any) {
     cpf: '',
     birthDate: '',
     gender: '',
+    address: '',
+    dateOfBirth: '',
   });
 
   useEffect(() => {
     checkBiometricStatus();
+    loadUserProfile();
   }, []);
+
+  const loadUserProfile = async () => {
+    try {
+      const api = (await import('../../services/api')).default;
+      const response = await api.get('/users/me');
+      const userData = response.data?.data || response.data;
+      
+      if (userData) {
+        setFormData(prev => ({
+          ...prev,
+          fullName: userData.fullName || prev.fullName,
+          email: userData.email || prev.email,
+          phone: userData.phone || prev.phone,
+          address: userData.address || '',
+          dateOfBirth: userData.dateOfBirth || '',
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading user profile:', error);
+    }
+  };
 
   const checkBiometricStatus = async () => {
     const info = await getBiometricInfo();
@@ -221,10 +245,21 @@ export default function PersonalInfoScreen({ navigation }: any) {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Import API
+      const api = (await import('../../services/api')).default;
+      
+      // Update user profile via API
+      await api.put('/users/profile', {
+        fullName: formData.fullName,
+        phone: formData.phone,
+        address: formData.address,
+        dateOfBirth: formData.dateOfBirth,
+      });
+      
       Alert.alert(t.common?.success || 'Success', t.profile?.infoUpdated || 'Your information has been updated.');
       setIsEditing(false);
     } catch (error) {
+      console.error('Error saving profile:', error);
       Alert.alert(t.common?.error || 'Error', t.profile?.updateFailed || 'Failed to update information. Please try again.');
     } finally {
       setSaving(false);

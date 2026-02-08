@@ -22,9 +22,15 @@ export interface SpecialOffer {
   id: string;
   title: string;
   description?: string;
-  discount?: number;
+  discount?: number | string;
   imageUrl?: string;
+  image?: string; // Legacy support
   code?: string;
+  originalPrice?: string;
+  discountedPrice?: string;
+  regularPrice?: number;
+  specialPrice?: number;
+  validUntil?: string;
 }
 
 interface SpecialOffersSectionProps {
@@ -63,10 +69,24 @@ export default function SpecialOffersSection({
     const hasError = imageErrors[item.id];
     const colors = getOfferColors(index);
     
+    // Support both imageUrl and image fields
+    const rawImageUrl = item.imageUrl || item.image;
+    
     // Ensure imageUrl is absolute
-    const imageUrl = item.imageUrl?.startsWith('http') 
-      ? item.imageUrl 
-      : `${process.env.EXPO_PUBLIC_API_URL || 'https://techtrust-api.onrender.com'}${item.imageUrl}`;
+    const imageUrl = rawImageUrl?.startsWith('http') 
+      ? rawImageUrl 
+      : rawImageUrl 
+        ? `${process.env.EXPO_PUBLIC_API_URL || 'https://techtrust-api.onrender.com'}${rawImageUrl.startsWith('/') ? rawImageUrl : '/' + rawImageUrl}`
+        : null;
+    
+    // Format discount display
+    const discountDisplay = typeof item.discount === 'number' 
+      ? `${item.discount}% OFF` 
+      : item.discount;
+    
+    // Get prices
+    const regularPrice = item.originalPrice || (item.regularPrice ? `$${item.regularPrice.toFixed(2)}` : null);
+    const specialPrice = item.discountedPrice || (item.specialPrice ? `$${item.specialPrice.toFixed(2)}` : null);
     
     return (
       <TouchableOpacity 
@@ -74,7 +94,7 @@ export default function SpecialOffersSection({
         activeOpacity={0.9}
         onPress={() => onOfferPress?.(item)}
       >
-        {item.imageUrl && !hasError ? (
+        {imageUrl && !hasError ? (
           <Image 
             source={{ uri: imageUrl }} 
             style={[styles.offerImage, compact && styles.offerImageCompact]} 
@@ -86,9 +106,9 @@ export default function SpecialOffersSection({
           </View>
         )}
         
-        {item.discount && (
+        {discountDisplay && (
           <View style={[styles.discountBadge, { backgroundColor: colors.accentColor }]}>
-            <Text style={styles.discountText}>{item.discount}% OFF</Text>
+            <Text style={styles.discountText}>{discountDisplay}</Text>
           </View>
         )}
         
@@ -98,6 +118,21 @@ export default function SpecialOffersSection({
             <Text style={styles.offerDescription} numberOfLines={compact ? 1 : 2}>
               {item.description}
             </Text>
+          )}
+          {/* Price display */}
+          {(regularPrice || specialPrice) && (
+            <View style={styles.priceContainer}>
+              {regularPrice && (
+                <Text style={styles.regularPrice}>{regularPrice}</Text>
+              )}
+              {specialPrice && (
+                <Text style={[styles.specialPrice, { color: colors.accentColor }]}>{specialPrice}</Text>
+              )}
+            </View>
+          )}
+          {/* Valid Until */}
+          {item.validUntil && (
+            <Text style={styles.validUntil}>Valid until {item.validUntil}</Text>
           )}
           {item.code && (
             <View style={[styles.codeContainer, { backgroundColor: colors.bgColor }]}>
@@ -258,6 +293,26 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     marginTop: 4,
     lineHeight: 18,
+  },
+  priceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 8,
+  },
+  regularPrice: {
+    fontSize: 13,
+    color: '#9ca3af',
+    textDecorationLine: 'line-through',
+  },
+  specialPrice: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  validUntil: {
+    fontSize: 11,
+    color: '#9ca3af',
+    marginTop: 6,
   },
   codeContainer: {
     marginTop: 10,

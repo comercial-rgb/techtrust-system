@@ -54,8 +54,10 @@ export default function CustomerProfileScreen({ navigation }: any) {
         api.get('/service-requests'),
       ]);
       
-      const vehicles = vehiclesRes.data?.vehicles || [];
-      const services = servicesRes.data?.requests || [];
+      // API returns { success: true, data: [...] } for vehicles
+      // and { success: true, requests: [...] } for service-requests
+      const vehicles = vehiclesRes.data?.data || vehiclesRes.data?.vehicles || [];
+      const services = servicesRes.data?.requests || servicesRes.data?.data || [];
       const completedServices = services.filter((s: any) => s.status === 'completed');
       const totalSpent = completedServices.reduce((sum: number, s: any) => sum + (s.totalPrice || 0), 0);
       

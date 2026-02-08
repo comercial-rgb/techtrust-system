@@ -519,7 +519,11 @@ export default function PaymentMethodsScreen({ navigation }: any) {
               </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView 
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 50 }}
+              keyboardShouldPersistTaps="handled"
+            >
               {/* Type Selection */}
               <Text style={styles.inputLabel}>Type</Text>
               <View style={styles.typeOptions}>

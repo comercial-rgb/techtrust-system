@@ -341,12 +341,15 @@ export default function AssinaturasPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Preço (R$)</label>
                   <input 
-                    type="number" 
-                    step="0.01" 
-                    min="0"
+                    type="text" 
+                    inputMode="decimal"
                     className="input" 
-                    value={formData.price} 
-                    onChange={(e) => setFormData({...formData, price: parseFloat(e.target.value) || 0})}
+                    value={formData.price || ''} 
+                    onChange={(e) => {
+                      const value = e.target.value.replace(',', '.');
+                      const num = parseFloat(value);
+                      setFormData({...formData, price: isNaN(num) ? 0 : num});
+                    }}
                     placeholder="0.00" 
                   />
                 </div>

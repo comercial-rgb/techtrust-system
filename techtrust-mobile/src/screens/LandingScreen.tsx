@@ -397,27 +397,43 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
     </View>
   );
 
-  const renderOffer = ({ item }: { item: SpecialOffer }) => (
-    <TouchableOpacity style={styles.offerCard} activeOpacity={0.9} onPress={() => handleOfferPress(item)}>
-      <Image source={{ uri: item.image }} style={styles.offerImage} />
-      <View style={styles.discountBadge}>
-        <Text style={styles.discountText}>{item.discount}</Text>
-      </View>
-      <View style={styles.offerContent}>
-        <Text style={styles.offerTitle}>{item.title}</Text>
-        <Text style={styles.offerDescription}>{item.description}</Text>
-        <View style={styles.offerPricing}>
-          <Text style={styles.originalPrice}>{item.originalPrice}</Text>
-          <Text style={styles.discountedPrice}>{item.discountedPrice}</Text>
+  const renderOffer = ({ item }: { item: SpecialOffer }) => {
+    // Support both image and imageUrl fields
+    const rawImageUrl = item.imageUrl || item.image;
+    const imageUrl = rawImageUrl?.startsWith('http') 
+      ? rawImageUrl 
+      : rawImageUrl 
+        ? `${process.env.EXPO_PUBLIC_API_URL || 'https://techtrust-api.onrender.com'}${rawImageUrl.startsWith('/') ? rawImageUrl : '/' + rawImageUrl}`
+        : null;
+    
+    return (
+      <TouchableOpacity style={styles.offerCard} activeOpacity={0.9} onPress={() => handleOfferPress(item)}>
+        {imageUrl ? (
+          <Image source={{ uri: imageUrl }} style={styles.offerImage} />
+        ) : (
+          <View style={[styles.offerImage, { backgroundColor: '#fee2e2', justifyContent: 'center', alignItems: 'center' }]}>
+            <MaterialCommunityIcons name="tag-outline" size={40} color="#ef4444" />
+          </View>
+        )}
+        <View style={styles.discountBadge}>
+          <Text style={styles.discountText}>{item.discount}</Text>
         </View>
-        <Text style={styles.validUntil}>{t.landing?.offers?.validUntil || 'Valid until'} {item.validUntil}</Text>
-      </View>
-      <View style={styles.offerTapHint}>
-        <Ionicons name="finger-print" size={16} color="#6b7280" />
-        <Text style={styles.offerTapHintText}>{t.landing?.offers?.tapForDetails || 'Tap for details'}</Text>
-      </View>
-    </TouchableOpacity>
-  );
+        <View style={styles.offerContent}>
+          <Text style={styles.offerTitle}>{item.title}</Text>
+          <Text style={styles.offerDescription}>{item.description}</Text>
+          <View style={styles.offerPricing}>
+            <Text style={styles.originalPrice}>{item.originalPrice}</Text>
+            <Text style={styles.discountedPrice}>{item.discountedPrice}</Text>
+          </View>
+          <Text style={styles.validUntil}>{t.landing?.offers?.validUntil || 'Valid until'} {item.validUntil}</Text>
+        </View>
+        <View style={styles.offerTapHint}>
+          <Ionicons name="finger-print" size={16} color="#6b7280" />
+          <Text style={styles.offerTapHintText}>{t.landing?.offers?.tapForDetails || 'Tap for details'}</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   const renderProvider = ({ item, offer, variant = 'default' }: { item: ProviderResult, offer?: SpecialOffer | null, variant?: 'default' | 'horizontal' }) => (
     <View style={[styles.providerCard, variant === 'horizontal' && styles.providerCardHorizontal]}>
@@ -1116,7 +1132,22 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                   <Ionicons name="close-circle" size={32} color="#6b7280" />
                 </TouchableOpacity>
                 
-                <Image source={{ uri: selectedOffer.image }} style={styles.offerModalImage} />
+                {(() => {
+                  const rawImageUrl = selectedOffer.imageUrl || selectedOffer.image;
+                  const imageUrl = rawImageUrl?.startsWith('http') 
+                    ? rawImageUrl 
+                    : rawImageUrl 
+                      ? `${process.env.EXPO_PUBLIC_API_URL || 'https://techtrust-api.onrender.com'}${rawImageUrl.startsWith('/') ? rawImageUrl : '/' + rawImageUrl}`
+                      : null;
+                  
+                  return imageUrl ? (
+                    <Image source={{ uri: imageUrl }} style={styles.offerModalImage} />
+                  ) : (
+                    <View style={[styles.offerModalImage, { backgroundColor: '#fee2e2', justifyContent: 'center', alignItems: 'center' }]}>
+                      <MaterialCommunityIcons name="tag-outline" size={60} color="#ef4444" />
+                    </View>
+                  );
+                })()}
                 
                 <View style={styles.offerModalBadge}>
                   <Text style={styles.offerModalBadgeText}>{selectedOffer.discount}</Text>

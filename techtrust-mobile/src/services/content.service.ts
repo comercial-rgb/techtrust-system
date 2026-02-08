@@ -13,9 +13,18 @@ export interface SpecialOffer {
   id: string;
   title: string;
   description?: string;
-  discount?: number;
+  discount?: number | string;
   imageUrl?: string;
+  image?: string; // Legacy support for mock data
   code?: string;
+  originalPrice?: string;
+  discountedPrice?: string;
+  regularPrice?: number;
+  specialPrice?: number;
+  validUntil?: string;
+  serviceType?: string;
+  vehicleTypes?: string[];
+  fuelTypes?: string[];
 }
 
 export interface Article {

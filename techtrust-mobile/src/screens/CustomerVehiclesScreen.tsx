@@ -122,7 +122,12 @@ export default function CustomerVehiclesScreen({ navigation }: any) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <View style={{ width: 40 }} />
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="arrow-back" size={24} color="#111827" />
+          </TouchableOpacity>
           <Text style={styles.headerTitle}>{t.vehicles?.myVehicles || 'My Vehicles'}</Text>
           <View style={{ width: 40 }} />
         </View>
@@ -136,7 +141,12 @@ export default function CustomerVehiclesScreen({ navigation }: any) {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color="#111827" />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>{t.vehicles?.myVehicles || 'My Vehicles'}</Text>
         <TouchableOpacity 
           style={styles.addButton}

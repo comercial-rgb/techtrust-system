@@ -295,13 +295,57 @@ export async function getWorkOrderDetails(workOrderId: string): Promise<any | nu
 
 /**
  * Buscar métodos de pagamento do cliente
+ * First tries API, then falls back to AsyncStorage (local storage)
  */
 export async function getPaymentMethods(): Promise<PaymentMethod[]> {
   try {
+    // First try to get from API
     const response = await api.get('/payment-methods');
-    return response.data.data || [];
+    const apiMethods = response.data.data || [];
+    if (apiMethods.length > 0) {
+      return apiMethods;
+    }
+    
+    // Fall back to AsyncStorage (local saved cards)
+    const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+    const localMethods = await AsyncStorage.getItem('@TechTrust:paymentMethods');
+    if (localMethods) {
+      const parsed = JSON.parse(localMethods);
+      return parsed.map((m: any) => ({
+        id: m.id,
+        type: m.type,
+        brand: m.brand,
+        lastFour: m.lastFour,
+        holderName: m.holderName,
+        expiryDate: m.expiryDate,
+        isDefault: m.isDefault,
+      }));
+    }
+    
+    return [];
   } catch (error) {
-    console.error('Erro ao buscar métodos de pagamento:', error);
+    console.error('Erro ao buscar métodos de pagamento da API:', error);
+    
+    // Fall back to AsyncStorage on API error
+    try {
+      const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+      const localMethods = await AsyncStorage.getItem('@TechTrust:paymentMethods');
+      if (localMethods) {
+        const parsed = JSON.parse(localMethods);
+        return parsed.map((m: any) => ({
+          id: m.id,
+          type: m.type,
+          brand: m.brand,
+          lastFour: m.lastFour,
+          holderName: m.holderName,
+          expiryDate: m.expiryDate,
+          isDefault: m.isDefault,
+        }));
+      }
+    } catch (localError) {
+      console.error('Erro ao buscar métodos de pagamento do AsyncStorage:', localError);
+    }
+    
     return [];
   }
 }

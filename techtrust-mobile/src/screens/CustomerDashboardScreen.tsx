@@ -829,11 +829,12 @@ export default function CustomerDashboardScreen({ navigation }: any) {
       <Modal visible={showOfferStateDropdown} transparent animationType="fade">
         <TouchableOpacity 
           style={styles.dropdownOverlay} 
+          activeOpacity={1}
           onPress={() => setShowOfferStateDropdown(false)}
         >
-          <View style={styles.dropdownContent}>
+          <TouchableOpacity activeOpacity={1} style={styles.dropdownContent}>
             <Text style={styles.dropdownTitle}>{t.customerDashboard?.selectState || 'Select State'}</Text>
-            <ScrollView style={styles.dropdownScroll}>
+            <ScrollView style={styles.dropdownScroll} nestedScrollEnabled>
               {STATES.map(state => (
                 <TouchableOpacity
                   key={state}
@@ -851,7 +852,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-          </View>
+          </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
 
@@ -859,11 +860,12 @@ export default function CustomerDashboardScreen({ navigation }: any) {
       <Modal visible={showOfferCityDropdown} transparent animationType="fade">
         <TouchableOpacity 
           style={styles.dropdownOverlay} 
+          activeOpacity={1}
           onPress={() => setShowOfferCityDropdown(false)}
         >
-          <View style={styles.dropdownContent}>
+          <TouchableOpacity activeOpacity={1} style={styles.dropdownContent}>
             <Text style={styles.dropdownTitle}>{t.customerDashboard?.selectCity || 'Select City'}</Text>
-            <ScrollView style={styles.dropdownScroll}>
+            <ScrollView style={styles.dropdownScroll} nestedScrollEnabled>
               {(CITIES[offerProviderState] || []).map(city => (
                 <TouchableOpacity
                   key={city}
@@ -880,7 +882,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-          </View>
+          </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
 

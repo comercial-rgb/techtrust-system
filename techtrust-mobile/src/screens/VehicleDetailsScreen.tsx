@@ -221,9 +221,9 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{t.vehicle?.vehicleInformation || 'Vehicle Information'}</Text>
             <View style={styles.infoCard}>
-              <View style={styles.infoRow}>
+              <View style={styles.infoRowColumn}>
                 <Text style={styles.infoLabel}>{t.vehicle?.vin || 'VIN (Vehicle Identification Number)'}</Text>
-                <Text style={styles.infoValue} selectable numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{vehicle.vin || '-'}</Text>
+                <Text style={styles.infoValueFull} selectable>{vehicle.vin || '-'}</Text>
               </View>
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>{t.vehicle?.licensePlate || 'License Plate'}</Text>
@@ -267,11 +267,11 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
                 <Text style={styles.infoLabel}>{t.vehicle?.policyNumber || 'Policy Number'}</Text>
                 <Text style={styles.infoValue}>{vehicle.insurancePolicy}</Text>
               </View>
-              <View style={styles.infoRow}>
+              <View style={styles.infoRowColumn}>
                 <Text style={styles.infoLabel}>{t.vehicle?.expiration || 'Expiration'}</Text>
-                <View style={styles.expiryContainer}>
+                <View style={styles.expiryContainerWrap}>
                   <Text style={[
-                    styles.infoValue,
+                    styles.infoValueFull,
                     isExpired(vehicle.insuranceExpiry) && styles.expiredText,
                     isExpiringSoon(vehicle.insuranceExpiry) && styles.expiringSoonText,
                   ]}>
@@ -608,6 +608,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#f3f4f6',
   },
+  infoRowColumn: {
+    flexDirection: 'column',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
   infoLabel: {
     fontSize: 14,
     color: '#6b7280',
@@ -621,9 +627,22 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'right',
   },
+  infoValueFull: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+    marginTop: 6,
+  },
   expiryContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
+  },
+  expiryContainerWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginTop: 6,
     gap: 8,
   },
   expiredText: {

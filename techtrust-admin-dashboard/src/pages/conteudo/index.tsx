@@ -930,12 +930,16 @@ export default function ConteudoPage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Valor do Desconto</label>
                     <input
-                      type="number"
-                      value={offerForm.discountValue}
-                      onChange={(e) => setOfferForm({ ...offerForm, discountValue: parseFloat(e.target.value) })}
+                      type="text"
+                      inputMode="decimal"
+                      value={offerForm.discountValue || ''}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(',', '.');
+                        const num = parseFloat(value);
+                        setOfferForm({ ...offerForm, discountValue: isNaN(num) ? 0 : num });
+                      }}
                       className="input"
-                      min="0"
-                      step="0.01"
+                      placeholder="0.00"
                     />
                   </div>
                   <div>
@@ -954,23 +958,31 @@ export default function ConteudoPage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Preço Original</label>
                     <input
-                      type="number"
-                      value={offerForm.originalPrice}
-                      onChange={(e) => setOfferForm({ ...offerForm, originalPrice: parseFloat(e.target.value) })}
+                      type="text"
+                      inputMode="decimal"
+                      value={offerForm.originalPrice || ''}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(',', '.');
+                        const num = parseFloat(value);
+                        setOfferForm({ ...offerForm, originalPrice: isNaN(num) ? 0 : num });
+                      }}
                       className="input"
-                      min="0"
-                      step="0.01"
+                      placeholder="0.00"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Preço com Desconto</label>
                     <input
-                      type="number"
-                      value={offerForm.discountedPrice}
-                      onChange={(e) => setOfferForm({ ...offerForm, discountedPrice: parseFloat(e.target.value) })}
+                      type="text"
+                      inputMode="decimal"
+                      value={offerForm.discountedPrice || ''}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(',', '.');
+                        const num = parseFloat(value);
+                        setOfferForm({ ...offerForm, discountedPrice: isNaN(num) ? 0 : num });
+                      }}
                       className="input"
-                      min="0"
-                      step="0.01"
+                      placeholder="0.00"
                     />
                   </div>
                 </div>
