@@ -1188,7 +1188,7 @@ router.get('/subscription-plans', asyncHandler(async (_req: Request, res: Respon
     features: typeof plan.features === 'string' ? JSON.parse(plan.features) : plan.features,
     isActive: plan.isActive,
     isFeatured: plan.isFeatured,
-    subscribersCount: countMap.get(plan.planKey.toUpperCase()) || 0,
+    subscribersCount: countMap.get(plan.planKey.toUpperCase() as any) || 0,
   }));
   
   res.json({ plans: formattedPlans });
