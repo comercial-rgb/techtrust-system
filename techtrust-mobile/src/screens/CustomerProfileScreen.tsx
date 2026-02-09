@@ -124,9 +124,10 @@ export default function CustomerProfileScreen({ navigation }: any) {
       if (error instanceof Error) {
         console.error('❌ Error message:', error.message);
         console.error('❌ Error stack:', error.stack);
+        Alert.alert('ERROR', 'Error loading stats: ' + error.message);
+      } else {
+        Alert.alert('ERROR', 'Unknown error loading stats');
       }
-      // Keep default zero stats on error but log it prominently
-      alert('ERROR loading stats: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setLoadingStats(false);
     }
