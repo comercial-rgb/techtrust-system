@@ -72,13 +72,11 @@ export default function CustomerProfileScreen({ navigation }: any) {
       let vehicles: any[] = [];
       if (vehiclesResult.status === 'fulfilled') {
         const vData = vehiclesResult.value?.data;
-        console.log('🔍 DEBUG - Raw vehicles response:', JSON.stringify(vData, null, 2));
+        console.log('🔍 DEBUG - Vehicles response received');
         vehicles = vData?.data || vData?.vehicles || (Array.isArray(vData) ? vData : []);
         console.log('🚗 Vehicles loaded:', vehicles.length);
-        console.log('🚗 Vehicles array:', JSON.stringify(vehicles, null, 2));
       } else {
         console.error('❌ Vehicles error:', vehiclesResult.reason);
-        console.error('❌ Full error:', JSON.stringify(vehiclesResult.reason, null, 2));
       }
       
       // Extract services
@@ -87,9 +85,11 @@ export default function CustomerProfileScreen({ navigation }: any) {
         const sData = servicesResult.value?.data;
         services = sData?.requests || sData?.data || (Array.isArray(sData) ? sData : []);
       }
-      const completedServices = services.filter((s: any) => 
-        s.status?.toLowerCase() === 'completed' || s.status === 'COMPLETED'
-      );
+      const completedServices = services.filter((s: any) => {
+        const status = s?.status;
+        if (!status) return false;
+        return status.toLowerCase() === 'completed' || status === 'COMPLETED';
+      });
       const totalSpent = completedServices.reduce((sum: number, s: any) => sum + (Number(s.totalPrice) || 0), 0);
       
       // Load subscription from /users/me response
@@ -112,14 +112,9 @@ export default function CustomerProfileScreen({ navigation }: any) {
       setStats({...newStats}); // Force new object reference
     } catch (error) {
       console.error('❌ ERROR in loadUserStats:', error);
-      console.error('❌ Error details:', JSON.stringify(error, null, 2));
-      if (error instanceof Error) {
-        console.error('❌ Error message:', error.message);
-        console.error('❌ Error stack:', error.stack);
-        Alert.alert('ERROR', 'Error loading stats: ' + error.message);
-      } else {
-        Alert.alert('ERROR', 'Unknown error loading stats');
-      }
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error('❌ Error message:', errorMsg);
+      Alert.alert('ERROR', 'Error loading stats: ' + errorMsg);
     } finally {
       setLoadingStats(false);
     }
