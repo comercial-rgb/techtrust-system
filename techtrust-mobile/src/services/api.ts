@@ -41,7 +41,16 @@ api.interceptors.request.use(
 
 // Response interceptor - handle token refresh
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Debug: Log das respostas
+    console.log('📥 API Response:', {
+      method: response.config.method?.toUpperCase(),
+      url: response.config.url,
+      status: response.status,
+      data: response.data
+    });
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config;
 
