@@ -42,14 +42,6 @@ export default function CustomerProfileScreen({ navigation }: any) {
   const [loadingStats, setLoadingStats] = useState(true);
   const [subscription, setSubscription] = useState<any>(null);
 
-  // Load spoken languages from AsyncStorage on mount
-  useFocusEffect(
-    useCallback(() => {
-      loadUserStats();
-      loadSpokenLanguages();
-    }, [])
-  );
-
   const loadSpokenLanguages = async () => {
     try {
       const saved = await AsyncStorage.getItem(SPOKEN_LANGUAGES_KEY);
@@ -63,6 +55,83 @@ export default function CustomerProfileScreen({ navigation }: any) {
       console.error('Error loading spoken languages:', error);
     }
   };
+
+  const loadUserStats = async () => {
+    try {
+      setLoadingStats(true);
+      console.log('📊 Loading user stats...');
+      
+      // Load real user stats from API - use Promise.allSettled to handle partial failures
+      const [vehiclesResult, servicesResult, userResult] = await Promise.allSettled([
+        api.get('/vehicles'),
+        api.get('/service-requests'),
+        api.get('/users/me'),
+      ]);
+      
+      // Extract vehicles - handle multiple response formats
+      let vehicles: any[] = [];
+      if (vehiclesResult.status === 'fulfilled') {
+        const vData = vehiclesResult.value?.data;
+        console.log('🔍 DEBUG - Raw vehicles response:', JSON.stringify(vData, null, 2));
+        vehicles = vData?.data || vData?.vehicles || (Array.isArray(vData) ? vData : []);
+        console.log('🚗 Vehicles loaded:', vehicles.length);
+        console.log('🚗 Vehicles array:', JSON.stringify(vehicles, null, 2));
+      } else {
+        console.error('❌ Vehicles error:', vehiclesResult.reason);
+        console.error('❌ Full error:', JSON.stringify(vehiclesResult.reason, null, 2));
+      }
+      
+      // Extract services
+      let services: any[] = [];
+      if (servicesResult.status === 'fulfilled') {
+        const sData = servicesResult.value?.data;
+        services = sData?.requests || sData?.data || (Array.isArray(sData) ? sData : []);
+      }
+      const completedServices = services.filter((s: any) => 
+        s.status?.toLowerCase() === 'completed' || s.status === 'COMPLETED'
+      );
+      const totalSpent = completedServices.reduce((sum: number, s: any) => sum + (Number(s.totalPrice) || 0), 0);
+      
+      // Load subscription from /users/me response
+      if (userResult.status === 'fulfilled') {
+        const meData = userResult.value?.data?.data || userResult.value?.data;
+        if (meData?.subscription) {
+          setSubscription(meData.subscription);
+        }
+      }
+      
+      const newStats = {
+        totalServices: completedServices.length,
+        totalSpent,
+        vehiclesCount: vehicles.length,
+        memberSince: user?.createdAt ? new Date(user.createdAt).getFullYear().toString() : new Date().getFullYear().toString(),
+      };
+      
+      console.log('✅ Stats updated:', newStats);
+      console.log('✅ Setting stats state with vehiclesCount:', newStats.vehiclesCount);
+      setStats({...newStats}); // Force new object reference
+    } catch (error) {
+      console.error('❌ ERROR in loadUserStats:', error);
+      console.error('❌ Error details:', JSON.stringify(error, null, 2));
+      if (error instanceof Error) {
+        console.error('❌ Error message:', error.message);
+        console.error('❌ Error stack:', error.stack);
+        Alert.alert('ERROR', 'Error loading stats: ' + error.message);
+      } else {
+        Alert.alert('ERROR', 'Unknown error loading stats');
+      }
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+
+  // Load spoken languages from AsyncStorage on mount
+  useFocusEffect(
+    useCallback(() => {
+      loadUserStats();
+      loadSpokenLanguages();
+    }, [])
+  );
 
   const loadUserStats = async () => {
     try {
