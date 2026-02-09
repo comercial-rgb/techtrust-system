@@ -119,8 +119,14 @@ export default function CustomerProfileScreen({ navigation }: any) {
       console.log('✅ Setting stats state with vehiclesCount:', newStats.vehiclesCount);
       setStats({...newStats}); // Force new object reference
     } catch (error) {
-      console.error('Error loading user stats:', error);
-      // Keep default zero stats on error
+      console.error('❌ ERROR in loadUserStats:', error);
+      console.error('❌ Error details:', JSON.stringify(error, null, 2));
+      if (error instanceof Error) {
+        console.error('❌ Error message:', error.message);
+        console.error('❌ Error stack:', error.stack);
+      }
+      // Keep default zero stats on error but log it prominently
+      alert('ERROR loading stats: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setLoadingStats(false);
     }
@@ -237,6 +243,18 @@ export default function CustomerProfileScreen({ navigation }: any) {
             </View>
             <Text style={styles.userName}>{user?.fullName || 'User'}</Text>
             <Text style={styles.userEmail}>{user?.email}</Text>
+            
+            {/* DEBUG BUTTON - TEMPORARY */}
+            <TouchableOpacity 
+              style={{backgroundColor: '#ff0000', padding: 10, marginTop: 10, borderRadius: 5}}
+              onPress={() => {
+                console.log('🔴 DEBUG: Manual reload triggered');
+                console.log('🔴 Current stats:', stats);
+                loadUserStats();
+              }}
+            >
+              <Text style={{color: '#fff', fontWeight: 'bold'}}>🔴 DEBUG: Reload Stats</Text>
+            </TouchableOpacity>
             
             <View style={styles.memberBadge}>
               <Ionicons name="shield-checkmark" size={14} color="#1976d2" />
