@@ -151,22 +151,6 @@ export default function SubscriptionPlanScreen({ navigation }: any) {
         'Service reminders',
       ],
     },
-    {
-      id: 'enterprise',
-      name: 'Enterprise',
-      price: billingInterval === 'month' ? 49.99 : 499.99,
-      interval: billingInterval,
-      features: [
-        'Everything in Premium',
-        'Fleet management',
-        'Multiple drivers',
-        'Dedicated account manager',
-        'Custom invoicing',
-        'API access',
-        'Analytics dashboard',
-        'Volume discounts (up to 25%)',
-      ],
-    },
   ];
 
   const handleBack = () => {

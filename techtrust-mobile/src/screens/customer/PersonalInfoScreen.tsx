@@ -263,8 +263,7 @@ export default function PersonalInfoScreen({ navigation }: any) {
       // Import API
       const api = (await import('../../services/api')).default;
       
-      // Prepare update data - only fields the backend accepts:
-      // fullName, language, address, city, state, zipCode, pushEnabled, emailNotifications, smsNotifications
+      // Prepare update data - including new fields
       const updateData: any = {
         fullName: formData.fullName.trim(),
       };
@@ -272,6 +271,18 @@ export default function PersonalInfoScreen({ navigation }: any) {
       // Only include optional fields if they have values
       if (formData.address?.trim()) {
         updateData.address = formData.address.trim();
+      }
+      
+      if (formData.cpf?.trim()) {
+        updateData.cpf = formData.cpf.trim();
+      }
+      
+      if (formData.birthDate) {
+        updateData.dateOfBirth = formData.birthDate;
+      }
+      
+      if (formData.gender) {
+        updateData.gender = formData.gender;
       }
       
       // Update user profile via API - PATCH /users/me
