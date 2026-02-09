@@ -67,6 +67,8 @@ export default function CustomerProfileScreen({ navigation }: any) {
   const loadUserStats = async () => {
     try {
       setLoadingStats(true);
+      console.log('📊 Loading user stats...');
+      
       // Load real user stats from API - use Promise.allSettled to handle partial failures
       const [vehiclesResult, servicesResult, userResult] = await Promise.allSettled([
         api.get('/vehicles'),
@@ -79,6 +81,9 @@ export default function CustomerProfileScreen({ navigation }: any) {
       if (vehiclesResult.status === 'fulfilled') {
         const vData = vehiclesResult.value?.data;
         vehicles = vData?.data || vData?.vehicles || (Array.isArray(vData) ? vData : []);
+        console.log('🚗 Vehicles loaded:', vehicles.length);
+      } else {
+        console.error('❌ Vehicles error:', vehiclesResult.reason);
       }
       
       // Extract services
@@ -100,12 +105,15 @@ export default function CustomerProfileScreen({ navigation }: any) {
         }
       }
       
-      setStats({
+      const newStats = {
         totalServices: completedServices.length,
         totalSpent,
         vehiclesCount: vehicles.length,
         memberSince: user?.createdAt ? new Date(user.createdAt).getFullYear().toString() : new Date().getFullYear().toString(),
-      });
+      };
+      
+      console.log('✅ Stats updated:', newStats);
+      setStats(newStats);
     } catch (error) {
       console.error('Error loading user stats:', error);
       // Keep default zero stats on error

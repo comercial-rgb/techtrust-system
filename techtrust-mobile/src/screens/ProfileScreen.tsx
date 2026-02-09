@@ -44,10 +44,15 @@ export default function ProfileScreen({ navigation }: any) {
         api.get('/vehicles'),
       ]);
       
-      const sub = profileResponse.data.data.subscription;
-      const vehicleCount = vehiclesResponse.data.data?.length || 0;
+      const userData = profileResponse.data.data || profileResponse.data;
+      const vehiclesData = vehiclesResponse.data.data || vehiclesResponse.data || [];
+      const vehicleCount = Array.isArray(vehiclesData) ? vehiclesData.length : 0;
       
+      console.log('📊 Profile loaded - vehicles:', vehicleCount);
+      
+      const sub = userData.subscription;
       if (sub) {
+        // Set the actual vehicle count
         sub.vehiclesRegistered = vehicleCount;
       }
       
