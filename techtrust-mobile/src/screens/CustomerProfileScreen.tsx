@@ -80,10 +80,13 @@ export default function CustomerProfileScreen({ navigation }: any) {
       let vehicles: any[] = [];
       if (vehiclesResult.status === 'fulfilled') {
         const vData = vehiclesResult.value?.data;
+        console.log('🔍 DEBUG - Raw vehicles response:', JSON.stringify(vData, null, 2));
         vehicles = vData?.data || vData?.vehicles || (Array.isArray(vData) ? vData : []);
         console.log('🚗 Vehicles loaded:', vehicles.length);
+        console.log('🚗 Vehicles array:', JSON.stringify(vehicles, null, 2));
       } else {
         console.error('❌ Vehicles error:', vehiclesResult.reason);
+        console.error('❌ Full error:', JSON.stringify(vehiclesResult.reason, null, 2));
       }
       
       // Extract services

@@ -48,7 +48,9 @@ export default function ProfileScreen({ navigation }: any) {
       const vehiclesData = vehiclesResponse.data.data || vehiclesResponse.data || [];
       const vehicleCount = Array.isArray(vehiclesData) ? vehiclesData.length : 0;
       
+      console.log('� DEBUG - Raw vehicles response:', JSON.stringify(vehiclesResponse.data, null, 2));
       console.log('📊 Profile loaded - vehicles:', vehicleCount);
+      console.log('📊 Vehicles array:', JSON.stringify(vehiclesData, null, 2));
       
       const sub = userData.subscription;
       if (sub) {
