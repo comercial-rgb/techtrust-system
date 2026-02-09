@@ -1160,6 +1160,20 @@ router.get('/subscription-plans', asyncHandler(async (_req: Request, res: Respon
     orderBy: { position: 'asc' },
   });
   
+  // Count subscribers for each plan
+  const subscriptionCounts = await prisma.subscription.groupBy({
+    by: ['plan'],
+    where: {
+      status: 'ACTIVE',
+    },
+    _count: {
+      id: true,
+    },
+  });
+  
+  // Create a map of plan counts
+  const countMap = new Map(subscriptionCounts.map(s => [s.plan, s._count.id]));
+  
   // Format for response
   const formattedPlans = plans.map(plan => ({
     id: plan.id,
@@ -1174,7 +1188,7 @@ router.get('/subscription-plans', asyncHandler(async (_req: Request, res: Respon
     features: typeof plan.features === 'string' ? JSON.parse(plan.features) : plan.features,
     isActive: plan.isActive,
     isFeatured: plan.isFeatured,
-    subscribersCount: 0, // TODO: count actual subscribers
+    subscribersCount: countMap.get(plan.planKey.toUpperCase()) || 0,
   }));
   
   res.json({ plans: formattedPlans });

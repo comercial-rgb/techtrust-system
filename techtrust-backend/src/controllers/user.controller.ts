@@ -83,6 +83,9 @@ export const updateMe = async (req: Request, res: Response) => {
     pushEnabled,
     emailNotifications,
     smsNotifications,
+    cpf,
+    dateOfBirth,
+    gender,
   } = req.body;
 
   const user = await prisma.user.update({
@@ -97,6 +100,9 @@ export const updateMe = async (req: Request, res: Response) => {
       ...(pushEnabled !== undefined && { pushEnabled }),
       ...(emailNotifications !== undefined && { emailNotifications }),
       ...(smsNotifications !== undefined && { smsNotifications }),
+      ...(cpf !== undefined && { cpf }),
+      ...(dateOfBirth !== undefined && { dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null }),
+      ...(gender !== undefined && { gender }),
     },
     select: {
       id: true,
@@ -112,6 +118,9 @@ export const updateMe = async (req: Request, res: Response) => {
       pushEnabled: true,
       emailNotifications: true,
       smsNotifications: true,
+      cpf: true,
+      dateOfBirth: true,
+      gender: true,
     },
   });
 
