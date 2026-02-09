@@ -128,9 +128,7 @@ export default function CustomerProfileScreen({ navigation }: any) {
       setStats({...newStats}); // Force new object reference
     } catch (error) {
       console.error('❌ ERROR in loadUserStats:', error);
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      console.error('❌ Error message:', errorMsg);
-      Alert.alert('ERROR', 'Error loading stats: ' + errorMsg);
+      // Silently fail - don't show error to user
     } finally {
       setLoadingStats(false);
     }
@@ -255,18 +253,6 @@ export default function CustomerProfileScreen({ navigation }: any) {
             </View>
             <Text style={styles.userName}>{user?.fullName || 'User'}</Text>
             <Text style={styles.userEmail}>{user?.email}</Text>
-            
-            {/* DEBUG BUTTON - TEMPORARY */}
-            <TouchableOpacity 
-              style={{backgroundColor: '#ff0000', padding: 10, marginTop: 10, borderRadius: 5}}
-              onPress={() => {
-                console.log('🔴 DEBUG: Manual reload triggered');
-                console.log('🔴 Current stats:', stats);
-                loadUserStats();
-              }}
-            >
-              <Text style={{color: '#fff', fontWeight: 'bold'}}>🔴 DEBUG: Reload Stats</Text>
-            </TouchableOpacity>
             
             <View style={styles.memberBadge}>
               <Ionicons name="shield-checkmark" size={14} color="#1976d2" />

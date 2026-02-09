@@ -20,18 +20,6 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
-    // Debug: Log das requisições
-    console.log('📤 API Request:', {
-      method: config.method?.toUpperCase(),
-      url: config.url,
-      data: config.data,
-      headers: {
-        'Content-Type': config.headers['Content-Type'],
-        'Authorization': config.headers.Authorization ? 'Bearer ***' : 'none'
-      }
-    });
-    
     return config;
   },
   (error) => {
@@ -42,13 +30,6 @@ api.interceptors.request.use(
 // Response interceptor - handle token refresh
 api.interceptors.response.use(
   (response) => {
-    // Debug: Log das respostas
-    console.log('📥 API Response:', {
-      method: response.config.method?.toUpperCase(),
-      url: response.config.url,
-      status: response.status,
-      data: response.data
-    });
     return response;
   },
   async (error) => {
