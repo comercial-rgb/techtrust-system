@@ -28,7 +28,9 @@ export default function App() {
           if (update.isAvailable) {
             console.log('📦 Update available! Downloading...');
             await Updates.fetchUpdateAsync();
-            console.log('✅ Update downloaded! Will apply on next restart.');
+            console.log('✅ Update downloaded! Reloading app now...');
+            // 🚀 IMPORTANT: Reload immediately to apply the update
+            await Updates.reloadAsync();
           } else {
             console.log('✅ App is up to date');
           }
