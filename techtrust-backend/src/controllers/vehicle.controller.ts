@@ -17,6 +17,8 @@ import { decodeVIN, isValidVINFormat } from '../services/nhtsa.service';
  */
 export const getVehicles = async (req: Request, res: Response) => {
   const userId = req.user!.id;
+  
+  logger.info('🚗 GET /vehicles - userId:', userId);
 
   const vehicles = await prisma.vehicle.findMany({
     where: {
@@ -41,6 +43,9 @@ export const getVehicles = async (req: Request, res: Response) => {
       createdAt: true,
     },
   });
+  
+  logger.info(`🚗 Found ${vehicles.length} vehicles for user ${userId}`);
+  logger.info('🚗 Vehicles:', JSON.stringify(vehicles, null, 2));
 
   res.json({
     success: true,
