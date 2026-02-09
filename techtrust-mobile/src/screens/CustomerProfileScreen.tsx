@@ -62,14 +62,16 @@ export default function CustomerProfileScreen({ navigation }: any) {
       console.log('📊 Loading user stats...');
       
       // Load real user stats from API - use Promise.allSettled to handle partial failures
-      const [vehiclesResult, servicesResult, userResult] = await Promise.allSettled([
+      const results = await Promise.allSettled([
         api.get('/vehicles'),
         api.get('/service-requests'),
         api.get('/users/me'),
       ]);
       
+      const [vehiclesResult, servicesResult, userResult] = results;
+      
       // Extract vehicles - handle multiple response formats
-      let vehicles: any[] = [];
+      let vehicles = [];
       if (vehiclesResult.status === 'fulfilled') {
         const vData = vehiclesResult.value?.data;
         console.log('🔍 DEBUG - Vehicles response received');
@@ -80,17 +82,31 @@ export default function CustomerProfileScreen({ navigation }: any) {
       }
       
       // Extract services
-      let services: any[] = [];
+      let services = [];
       if (servicesResult.status === 'fulfilled') {
         const sData = servicesResult.value?.data;
         services = sData?.requests || sData?.data || (Array.isArray(sData) ? sData : []);
       }
-      const completedServices = services.filter((s: any) => {
-        const status = s?.status;
-        if (!status) return false;
-        return status.toLowerCase() === 'completed' || status === 'COMPLETED';
+      
+      // Filter completed services safely
+      const completedServices = services.filter((s) => {
+        try {
+          const status = s?.status;
+          if (!status || typeof status !== 'string') return false;
+          const statusLower = status.toLowerCase();
+          return statusLower === 'completed' || status === 'COMPLETED';
+        } catch (e) {
+          return false;
+        }
       });
-      const totalSpent = completedServices.reduce((sum: number, s: any) => sum + (Number(s.totalPrice) || 0), 0);
+      
+      const totalSpent = completedServices.reduce((sum, s) => {
+        try {
+          return sum + (Number(s.totalPrice) || 0);
+        } catch (e) {
+          return sum;
+        }
+      }, 0);
       
       // Load subscription from /users/me response
       if (userResult.status === 'fulfilled') {
