@@ -33,12 +33,12 @@ export default function CustomerProfileScreen({ navigation }: any) {
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [showSpokenLanguagesModal, setShowSpokenLanguagesModal] = useState(false);
   const [spokenLanguages, setSpokenLanguages] = useState<string[]>(['en']); // Languages the customer speaks
-  const [stats, setStats] = useState({
-    totalServices: 0,
-    totalSpent: 0,
-    vehiclesCount: 0,
-    memberSince: new Date().getFullYear().toString(),
-  });
+  const [stats, setStats] = useState<{
+    totalServices: number;
+    totalSpent: number;
+    vehiclesCount: number;
+    memberSince: string;
+  } | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
   const [subscription, setSubscription] = useState<any>(null);
 
@@ -116,7 +116,8 @@ export default function CustomerProfileScreen({ navigation }: any) {
       };
       
       console.log('✅ Stats updated:', newStats);
-      setStats(newStats);
+      console.log('✅ Setting stats state with vehiclesCount:', newStats.vehiclesCount);
+      setStats({...newStats}); // Force new object reference
     } catch (error) {
       console.error('Error loading user stats:', error);
       // Keep default zero stats on error
@@ -179,7 +180,7 @@ export default function CustomerProfileScreen({ navigation }: any) {
     {
       id: 'vehicles',
       title: t.profile?.myVehicles || 'My Vehicles',
-      subtitle: stats.vehiclesCount > 0 ? `${stats.vehiclesCount} ${stats.vehiclesCount === 1 ? (t.profile?.vehicleRegistered || 'vehicle registered') : (t.profile?.vehiclesRegistered || 'vehicles registered')}` : (t.profile?.noVehicles || 'No vehicles registered'),
+      subtitle: (stats?.vehiclesCount || 0) > 0 ? `${stats.vehiclesCount} ${stats.vehiclesCount === 1 ? (t.profile?.vehicleRegistered || 'vehicle registered') : (t.profile?.vehiclesRegistered || 'vehicles registered')}` : (t.profile?.noVehicles || 'No vehicles registered'),
       icon: 'car',
       color: '#f59e0b',
       onPress: () => navigation.navigate('MyVehicles'),
@@ -203,7 +204,7 @@ export default function CustomerProfileScreen({ navigation }: any) {
     {
       id: 'history',
       title: t.profile?.serviceHistory || 'Service History',
-      subtitle: `${stats.totalServices} ${t.profile?.servicesCompleted || 'services completed'}`,
+      subtitle: `${stats?.totalServices || 0} ${t.profile?.servicesCompleted || 'services completed'}`,
       icon: 'time',
       color: '#ec4899',
       onPress: () => navigation.navigate('ServiceHistory'),
@@ -239,7 +240,7 @@ export default function CustomerProfileScreen({ navigation }: any) {
             
             <View style={styles.memberBadge}>
               <Ionicons name="shield-checkmark" size={14} color="#1976d2" />
-              <Text style={styles.memberBadgeText}>Member since {stats.memberSince}</Text>
+              <Text style={styles.memberBadgeText}>Member since {stats?.memberSince || new Date().getFullYear()}</Text>
             </View>
           </View>
         </FadeInView>
@@ -248,17 +249,17 @@ export default function CustomerProfileScreen({ navigation }: any) {
         <FadeInView delay={100}>
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>{stats.totalServices}</Text>
+              <Text style={styles.statValue}>{stats?.totalServices || 0}</Text>
               <Text style={styles.statLabel}>Services</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>${stats.totalSpent}</Text>
+              <Text style={styles.statValue}>${stats?.totalSpent || 0}</Text>
               <Text style={styles.statLabel}>Spent</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>{stats.vehiclesCount}</Text>
+              <Text style={styles.statValue}>{stats?.vehiclesCount || 0}</Text>
               <Text style={styles.statLabel}>Vehicles</Text>
             </View>
           </View>
