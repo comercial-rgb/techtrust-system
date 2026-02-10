@@ -90,13 +90,13 @@ export default function LoginPage() {
                 {tr('auth.email')}
               </label>
               <div className="relative">
-                {!email && <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />}
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="seu@email.com"
-                  className={`input ${!email ? 'pl-12' : 'pl-4'}`}
+                  className="input pl-12"
                   required
                 />
               </div>
@@ -107,13 +107,13 @@ export default function LoginPage() {
                 {tr('auth.password')}
               </label>
               <div className="relative">
-                {!password && <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />}
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className={`input ${!password ? 'pl-12' : 'pl-4'} pr-12`}
+                  className="input pl-12 pr-12"
                   required
                 />
                 <button
