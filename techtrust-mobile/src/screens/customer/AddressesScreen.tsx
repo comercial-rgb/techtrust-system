@@ -17,9 +17,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '../../services/api';
 import { useI18n } from '../../i18n';
 
-// Storage key for addresses
+// Local fallback key (will migrate to API)
 const ADDRESSES_KEY = '@TechTrust:addresses';
 
 interface Address {
@@ -60,16 +61,44 @@ export default function AddressesScreen({ navigation }: any) {
 
   const loadAddresses = async () => {
     try {
-      // Load saved addresses from AsyncStorage
-      const savedAddresses = await AsyncStorage.getItem(ADDRESSES_KEY);
-      if (savedAddresses) {
-        setAddresses(JSON.parse(savedAddresses));
+      // Try to load from API (cross-device sync)
+      const response = await api.get('/users/me');
+      const responseData = response.data?.data || response.data;
+      const userData = responseData?.user || responseData;
+      
+      if (userData?.addressesJson && Array.isArray(userData.addressesJson) && userData.addressesJson.length > 0) {
+        setAddresses(userData.addressesJson);
+        // Also save locally as cache
+        await AsyncStorage.setItem(ADDRESSES_KEY, JSON.stringify(userData.addressesJson));
       } else {
-        setAddresses([]);
+        // Check if there's local data to migrate to API
+        const savedAddresses = await AsyncStorage.getItem(ADDRESSES_KEY);
+        if (savedAddresses) {
+          const parsed = JSON.parse(savedAddresses);
+          setAddresses(parsed);
+          // Migrate local data to API
+          try {
+            await api.patch('/users/me', { addressesJson: parsed });
+          } catch (e) {
+            console.log('Could not sync local addresses to API');
+          }
+        } else {
+          setAddresses([]);
+        }
       }
     } catch (error) {
-      console.error('Error loading addresses:', error);
-      setAddresses([]);
+      console.error('Error loading addresses from API:', error);
+      // Fallback to local storage
+      try {
+        const savedAddresses = await AsyncStorage.getItem(ADDRESSES_KEY);
+        if (savedAddresses) {
+          setAddresses(JSON.parse(savedAddresses));
+        } else {
+          setAddresses([]);
+        }
+      } catch (e) {
+        setAddresses([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -112,8 +141,6 @@ export default function AddressesScreen({ navigation }: any) {
 
     setSaving(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
       let updatedAddresses: Address[];
       
       if (editingAddress) {
@@ -132,6 +159,14 @@ export default function AddressesScreen({ navigation }: any) {
       }
       
       setAddresses(updatedAddresses);
+      
+      // Save to API for cross-device sync
+      try {
+        await api.patch('/users/me', { addressesJson: updatedAddresses });
+      } catch (e) {
+        console.log('Could not sync addresses to API, saving locally');
+      }
+      // Also save locally as cache
       await AsyncStorage.setItem(ADDRESSES_KEY, JSON.stringify(updatedAddresses));
       
       setShowModal(false);
@@ -148,6 +183,7 @@ export default function AddressesScreen({ navigation }: any) {
     }));
     setAddresses(updatedAddresses);
     await AsyncStorage.setItem(ADDRESSES_KEY, JSON.stringify(updatedAddresses));
+    try { await api.patch('/users/me', { addressesJson: updatedAddresses }); } catch (e) { /* silent */ }
   };
 
   const handleDelete = (addressId: string) => {
@@ -163,6 +199,7 @@ export default function AddressesScreen({ navigation }: any) {
             const updatedAddresses = addresses.filter(a => a.id !== addressId);
             setAddresses(updatedAddresses);
             await AsyncStorage.setItem(ADDRESSES_KEY, JSON.stringify(updatedAddresses));
+            try { await api.patch('/users/me', { addressesJson: updatedAddresses }); } catch (e) { /* silent */ }
           },
         },
       ]

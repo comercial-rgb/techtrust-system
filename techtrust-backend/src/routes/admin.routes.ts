@@ -1171,25 +1171,50 @@ router.get('/subscription-plans', asyncHandler(async (_req: Request, res: Respon
     },
   });
   
+  // Count total CLIENT users
+  const totalClients = await prisma.user.count({
+    where: { role: 'CLIENT' },
+  });
+  
+  // Count users WITH active subscriptions
+  const usersWithSubscription = await prisma.subscription.findMany({
+    where: { status: 'ACTIVE' },
+    select: { userId: true },
+    distinct: ['userId'],
+  });
+  
+  // Freemium = total clients - users with active subscriptions
+  const freemiumCount = totalClients - usersWithSubscription.length;
+  
   // Create a map of plan counts
   const countMap = new Map(subscriptionCounts.map(s => [s.plan, s._count.id]));
   
   // Format for response
-  const formattedPlans = plans.map(plan => ({
-    id: plan.id,
-    planKey: plan.planKey,
-    name: plan.name,
-    description: plan.description,
-    price: Number(plan.monthlyPrice),
-    monthlyPrice: Number(plan.monthlyPrice),
-    yearlyPrice: Number(plan.yearlyPrice),
-    vehicleLimit: plan.vehicleLimit,
-    duration: 30, // For compatibility with admin
-    features: typeof plan.features === 'string' ? JSON.parse(plan.features) : plan.features,
-    isActive: plan.isActive,
-    isFeatured: plan.isFeatured,
-    subscribersCount: countMap.get(plan.planKey.toUpperCase() as any) || 0,
-  }));
+  const formattedPlans = plans.map(plan => {
+    const planKeyUpper = plan.planKey.toUpperCase() as any;
+    let subscribers = countMap.get(planKeyUpper) || 0;
+    
+    // Add freemium users to the FREE plan count
+    if (planKeyUpper === 'FREE' || planKeyUpper === 'FREEMIUM') {
+      subscribers += freemiumCount;
+    }
+    
+    return {
+      id: plan.id,
+      planKey: plan.planKey,
+      name: plan.name,
+      description: plan.description,
+      price: Number(plan.monthlyPrice),
+      monthlyPrice: Number(plan.monthlyPrice),
+      yearlyPrice: Number(plan.yearlyPrice),
+      vehicleLimit: plan.vehicleLimit,
+      duration: 30,
+      features: typeof plan.features === 'string' ? JSON.parse(plan.features) : plan.features,
+      isActive: plan.isActive,
+      isFeatured: plan.isFeatured,
+      subscribersCount: subscribers,
+    };
+  });
   
   res.json({ plans: formattedPlans });
 }));

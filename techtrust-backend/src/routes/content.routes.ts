@@ -635,27 +635,6 @@ router.get('/subscription-plans', asyncHandler(async (_req: Request, res: Respon
         ],
         isFeatured: true,
       },
-      {
-        id: 'enterprise',
-        planKey: 'enterprise',
-        name: 'Enterprise',
-        description: 'For large fleets and businesses',
-        monthlyPrice: 49.99,
-        yearlyPrice: 499.99,
-        vehicleLimit: 999,
-        serviceRequestsPerMonth: null,
-        features: [
-          'Everything in Premium',
-          'Fleet management',
-          'Multiple drivers',
-          'Dedicated account manager',
-          'Custom invoicing',
-          'API access',
-          'Analytics dashboard',
-          'Volume discounts (up to 25%)',
-        ],
-        isFeatured: false,
-      },
     ];
     return res.json(defaultPlans);
   }

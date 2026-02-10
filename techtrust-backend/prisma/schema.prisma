@@ -143,6 +143,7 @@ model User {
   city    String?
   state   String?
   zipCode String?
+  addressesJson Json? // JSON array of user addresses for cross-device sync
   
   // Metadata
   lastLoginAt DateTime?
