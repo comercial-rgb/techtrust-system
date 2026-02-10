@@ -58,13 +58,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const response = await api.getProfile();
           if (response.data) {
+            // Backend returns { success, data: { user, subscription } }
+            const responseData = response.data.data || response.data;
+            const userData = responseData.user || responseData;
             const updatedUser: User = {
-              id: response.data.id,
-              email: response.data.email,
-              fullName: response.data.fullName,
-              phone: response.data.phone,
-              role: response.data.role,
-              avatarUrl: response.data.avatarUrl,
+              id: userData.id,
+              email: userData.email,
+              fullName: userData.fullName,
+              phone: userData.phone,
+              role: userData.role,
+              avatarUrl: userData.avatarUrl,
             };
             setUser(updatedUser);
             Cookies.set('tt_client_user', JSON.stringify(updatedUser), { expires: 7 });
@@ -95,7 +98,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     if (response.data) {
-      const { token, user: userData } = response.data;
+      // Backend returns { success, data: { token, user } }
+      const responseData = response.data.data || response.data;
+      const token = responseData.token || response.data.token;
+      const userData = responseData.user || response.data.user;
+      
+      if (!token || !userData) {
+        throw new Error('Invalid response from server');
+      }
       
       const loggedUser: User = {
         id: userData.id,

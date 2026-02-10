@@ -80,7 +80,7 @@ class ApiService {
   }
 
   async getProfile() {
-    return this.request<any>('/users/profile');
+    return this.request<any>('/users/me');
   }
 
   async updateProfile(data: Partial<{
@@ -88,8 +88,8 @@ class ApiService {
     email: string;
     phone: string;
   }>) {
-    return this.request('/users/profile', {
-      method: 'PUT',
+    return this.request('/users/me', {
+      method: 'PATCH',
       body: JSON.stringify(data),
     });
   }
