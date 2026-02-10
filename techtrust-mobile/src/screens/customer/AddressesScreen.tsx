@@ -26,10 +26,9 @@ const ADDRESSES_KEY = '@TechTrust:addresses';
 interface Address {
   id: string;
   label: string;
-  street: string;
   number: string;
+  street: string;
   complement?: string;
-  neighborhood: string;
   city: string;
   state: string;
   zipCode: string;
@@ -46,10 +45,9 @@ export default function AddressesScreen({ navigation }: any) {
 
   const [formData, setFormData] = useState({
     label: '',
-    street: '',
     number: '',
+    street: '',
     complement: '',
-    neighborhood: '',
     city: '',
     state: '',
     zipCode: '',
@@ -109,10 +107,9 @@ export default function AddressesScreen({ navigation }: any) {
       setEditingAddress(address);
       setFormData({
         label: address.label,
-        street: address.street,
         number: address.number,
+        street: address.street,
         complement: address.complement || '',
-        neighborhood: address.neighborhood,
         city: address.city,
         state: address.state,
         zipCode: address.zipCode,
@@ -121,10 +118,9 @@ export default function AddressesScreen({ navigation }: any) {
       setEditingAddress(null);
       setFormData({
         label: '',
-        street: '',
         number: '',
+        street: '',
         complement: '',
-        neighborhood: '',
         city: '',
         state: '',
         zipCode: '',
@@ -286,11 +282,8 @@ export default function AddressesScreen({ navigation }: any) {
                 </View>
 
                 <Text style={styles.addressText}>
-                  {address.street}, {address.number}
+                  {address.number} {address.street}
                   {address.complement ? `, ${address.complement}` : ''}
-                </Text>
-                <Text style={styles.addressText}>
-                  {address.neighborhood}
                 </Text>
                 <Text style={styles.addressText}>
                   {address.city}, {address.state} {address.zipCode}
@@ -367,42 +360,33 @@ export default function AddressesScreen({ navigation }: any) {
                 ))}
               </View>
 
-              <Text style={styles.inputLabel}>Street *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Street name"
-                value={formData.street}
-                onChangeText={(text) => setFormData({ ...formData, street: text })}
-              />
-
               <View style={styles.inputRow}>
-                <View style={styles.inputHalf}>
+                <View style={[styles.inputHalf, { flex: 1 }]}>
                   <Text style={styles.inputLabel}>Number *</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="123"
                     value={formData.number}
                     onChangeText={(text) => setFormData({ ...formData, number: text })}
-                    keyboardType="numeric"
                   />
                 </View>
-                <View style={styles.inputHalf}>
-                  <Text style={styles.inputLabel}>Complement</Text>
+                <View style={[styles.inputHalf, { flex: 2 }]}>
+                  <Text style={styles.inputLabel}>Street *</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="Apt, Suite, etc."
-                    value={formData.complement}
-                    onChangeText={(text) => setFormData({ ...formData, complement: text })}
+                    placeholder="Main St"
+                    value={formData.street}
+                    onChangeText={(text) => setFormData({ ...formData, street: text })}
                   />
                 </View>
               </View>
 
-              <Text style={styles.inputLabel}>Neighborhood</Text>
+              <Text style={styles.inputLabel}>Complement</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Neighborhood"
-                value={formData.neighborhood}
-                onChangeText={(text) => setFormData({ ...formData, neighborhood: text })}
+                placeholder="Apt, Suite, Unit, etc."
+                value={formData.complement}
+                onChangeText={(text) => setFormData({ ...formData, complement: text })}
               />
 
               <View style={styles.inputRow}>
