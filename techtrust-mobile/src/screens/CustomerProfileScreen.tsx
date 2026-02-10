@@ -22,6 +22,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { FadeInView, ScalePress } from '../components/Animated';
 import { useI18n, languages, Language } from '../i18n';
 import api from '../services/api';
+import { getVehicles } from '../services/dashboard.service';
 
 const SPOKEN_LANGUAGES_KEY = '@techtrust_spoken_languages';
 
@@ -59,76 +60,52 @@ export default function CustomerProfileScreen({ navigation }: any) {
   const loadUserStats = async () => {
     try {
       setLoadingStats(true);
-      console.log('📊 Loading user stats...');
       
-      // Load real user stats from API - use Promise.allSettled to handle partial failures
-      const results = await Promise.allSettled([
-        api.get('/vehicles'),
-        api.get('/service-requests'),
-        api.get('/users/me'),
-      ]);
-      
-      const [vehiclesResult, servicesResult, userResult] = results;
-      
-      // Extract vehicles - handle multiple response formats
-      let vehicles = [];
-      if (vehiclesResult.status === 'fulfilled') {
-        const vData = vehiclesResult.value?.data;
-        console.log('🔍 DEBUG - Vehicles response received');
-        vehicles = vData?.data || vData?.vehicles || (Array.isArray(vData) ? vData : []);
-        console.log('🚗 Vehicles loaded:', vehicles.length);
-      } else {
-        console.error('❌ Vehicles error:', vehiclesResult.reason);
+      // Load vehicles using the proven dashboard service
+      let vehiclesCount = 0;
+      try {
+        const vehiclesList = await getVehicles();
+        vehiclesCount = vehiclesList.length;
+      } catch (e) {
+        console.error('Error loading vehicles:', e);
       }
-      
-      // Extract services
-      let services = [];
-      if (servicesResult.status === 'fulfilled') {
-        const sData = servicesResult.value?.data;
-        services = sData?.requests || sData?.data || (Array.isArray(sData) ? sData : []);
+
+      // Load services
+      let totalServices = 0;
+      let totalSpent = 0;
+      try {
+        const servicesResponse = await api.get('/service-requests');
+        const sData = servicesResponse?.data;
+        const services = sData?.requests || sData?.data || (Array.isArray(sData) ? sData : []);
+        const completed = services.filter((s: any) => {
+          const st = s?.status;
+          return st && typeof st === 'string' && (st.toLowerCase() === 'completed');
+        });
+        totalServices = completed.length;
+        totalSpent = completed.reduce((sum: number, s: any) => sum + (Number(s.totalPrice) || 0), 0);
+      } catch (e) {
+        console.error('Error loading services:', e);
       }
-      
-      // Filter completed services safely
-      const completedServices = services.filter((s) => {
-        try {
-          const status = s?.status;
-          if (!status || typeof status !== 'string') return false;
-          const statusLower = status.toLowerCase();
-          return statusLower === 'completed' || status === 'COMPLETED';
-        } catch (e) {
-          return false;
-        }
-      });
-      
-      const totalSpent = completedServices.reduce((sum, s) => {
-        try {
-          return sum + (Number(s.totalPrice) || 0);
-        } catch (e) {
-          return sum;
-        }
-      }, 0);
-      
-      // Load subscription from /users/me response
-      if (userResult.status === 'fulfilled') {
-        const meData = userResult.value?.data?.data || userResult.value?.data;
+
+      // Load subscription
+      try {
+        const meResponse = await api.get('/users/me');
+        const meData = meResponse?.data?.data || meResponse?.data;
         if (meData?.subscription) {
           setSubscription(meData.subscription);
         }
+      } catch (e) {
+        console.error('Error loading user data:', e);
       }
-      
-      const newStats = {
-        totalServices: completedServices.length,
+
+      setStats({
+        totalServices,
         totalSpent,
-        vehiclesCount: vehicles.length,
+        vehiclesCount,
         memberSince: user?.createdAt ? new Date(user.createdAt).getFullYear().toString() : new Date().getFullYear().toString(),
-      };
-      
-      console.log('✅ Stats updated:', newStats);
-      console.log('✅ Setting stats state with vehiclesCount:', newStats.vehiclesCount);
-      setStats({...newStats}); // Force new object reference
+      });
     } catch (error) {
-      console.error('❌ ERROR in loadUserStats:', error);
-      // Silently fail - don't show error to user
+      console.error('ERROR in loadUserStats:', error);
     } finally {
       setLoadingStats(false);
     }
