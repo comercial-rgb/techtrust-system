@@ -55,7 +55,7 @@ class ApiService {
   // ============================================
 
   async login(email: string, password: string) {
-    return this.request<{ token: string; user: any }>("/auth/login", {
+    return this.request<any>("/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     });
