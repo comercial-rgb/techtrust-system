@@ -15,7 +15,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.techtrustautosolutions.mobile",
-      "buildNumber": "17",
+      "buildNumber": "18",
       "usesAppleSignIn": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -30,7 +30,7 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.techtrustautosolutions.mobile",
-      "versionCode": 17,
+      "versionCode": 18,
       "softwareKeyboardLayoutMode": "pan"
     },
     "web": {
@@ -41,9 +41,7 @@
         "projectId": "8aadadd9-dd3c-4b9a-8f3e-2a4278e4043a"
       }
     },
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.0.0",
     "updates": {
       "url": "https://u.expo.dev/8aadadd9-dd3c-4b9a-8f3e-2a4278e4043a"
     },
