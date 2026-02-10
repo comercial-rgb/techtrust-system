@@ -3,17 +3,23 @@
  * Autenticação integrada com Backend TechTrust
  */
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import Cookies from 'js-cookie';
-import { useRouter } from 'next/router';
-import { api } from '../services/api';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import Cookies from "js-cookie";
+import { useRouter } from "next/router";
+import { api } from "../services/api";
 
 interface User {
   id: string;
   email: string;
   fullName: string;
   phone: string;
-  role: 'CUSTOMER';
+  role: "CUSTOMER";
   memberSince?: string;
   avatarUrl?: string;
 }
@@ -48,8 +54,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function checkAuth() {
     try {
-      const token = Cookies.get('tt_client_token');
-      const savedUser = Cookies.get('tt_client_user');
+      const token = Cookies.get("tt_client_token");
+      const savedUser = Cookies.get("tt_client_user");
 
       if (token && savedUser) {
         const parsed = JSON.parse(savedUser);
@@ -70,17 +76,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               avatarUrl: userData.avatarUrl,
             };
             setUser(updatedUser);
-            Cookies.set('tt_client_user', JSON.stringify(updatedUser), { expires: 7 });
+            Cookies.set("tt_client_user", JSON.stringify(updatedUser), {
+              expires: 7,
+            });
           }
         } catch (e) {
-          console.log('Token inválido, limpando sessão');
-          Cookies.remove('tt_client_token');
-          Cookies.remove('tt_client_user');
+          console.log("Token inválido, limpando sessão");
+          Cookies.remove("tt_client_token");
+          Cookies.remove("tt_client_user");
           setUser(null);
         }
       }
     } catch (error) {
-      console.error('Erro ao verificar auth:', error);
+      console.error("Erro ao verificar auth:", error);
     } finally {
       setLoading(false);
     }
@@ -88,11 +96,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function login(email: string, password: string) {
     if (!email || !password) {
-      throw new Error('Preencha email e senha');
+      throw new Error("Preencha email e senha");
     }
 
     const response = await api.login(email, password);
-    
+
     if (response.error) {
       throw new Error(response.error);
     }
@@ -102,11 +110,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const responseData = response.data.data || response.data;
       const token = responseData.token || response.data.token;
       const userData = responseData.user || response.data.user;
-      
+
       if (!token || !userData) {
-        throw new Error('Invalid response from server');
+        throw new Error("Invalid response from server");
       }
-      
+
       const loggedUser: User = {
         id: userData.id,
         email: userData.email,
@@ -116,17 +124,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         avatarUrl: userData.avatarUrl,
       };
 
-      Cookies.set('tt_client_token', token, { expires: 7 });
-      Cookies.set('tt_client_user', JSON.stringify(loggedUser), { expires: 7 });
-      
+      Cookies.set("tt_client_token", token, { expires: 7 });
+      Cookies.set("tt_client_user", JSON.stringify(loggedUser), { expires: 7 });
+
       setUser(loggedUser);
-      router.push('/dashboard');
+      router.push("/dashboard");
     }
   }
 
   async function register(data: RegisterData) {
     const response = await api.register(data);
-    
+
     if (response.error) {
       throw new Error(response.error);
     }
@@ -136,17 +144,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   function logout() {
-    Cookies.remove('tt_client_token');
-    Cookies.remove('tt_client_user');
+    Cookies.remove("tt_client_token");
+    Cookies.remove("tt_client_user");
     setUser(null);
-    router.push('/login');
+    router.push("/login");
   }
 
   function updateUser(data: Partial<User>) {
     if (user) {
       const updatedUser = { ...user, ...data };
       setUser(updatedUser);
-      Cookies.set('tt_client_user', JSON.stringify(updatedUser), { expires: 7 });
+      Cookies.set("tt_client_user", JSON.stringify(updatedUser), {
+        expires: 7,
+      });
     }
   }
 
@@ -170,7 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }

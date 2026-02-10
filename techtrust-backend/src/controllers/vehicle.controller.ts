@@ -5,11 +5,11 @@
  * CRUD de veículos do usuário
  */
 
-import { Request, Response } from 'express';
-import { prisma } from '../config/database';
-import { AppError } from '../middleware/error-handler';
-import { logger } from '../config/logger';
-import { decodeVIN, isValidVINFormat } from '../services/nhtsa.service';
+import { Request, Response } from "express";
+import { prisma } from "../config/database";
+import { AppError } from "../middleware/error-handler";
+import { logger } from "../config/logger";
+import { decodeVIN, isValidVINFormat } from "../services/nhtsa.service";
 
 /**
  * GET /api/v1/vehicles
@@ -17,18 +17,15 @@ import { decodeVIN, isValidVINFormat } from '../services/nhtsa.service';
  */
 export const getVehicles = async (req: Request, res: Response) => {
   const userId = req.user!.id;
-  
-  logger.info('🚗 GET /vehicles - userId:', userId);
+
+  logger.info("🚗 GET /vehicles - userId:", userId);
 
   const vehicles = await prisma.vehicle.findMany({
     where: {
       userId: userId,
       isActive: true,
     },
-    orderBy: [
-      { isPrimary: 'desc' },
-      { createdAt: 'desc' },
-    ],
+    orderBy: [{ isPrimary: "desc" }, { createdAt: "desc" }],
     select: {
       id: true,
       plateNumber: true,
@@ -43,9 +40,9 @@ export const getVehicles = async (req: Request, res: Response) => {
       createdAt: true,
     },
   });
-  
+
   logger.info(`🚗 Found ${vehicles.length} vehicles for user ${userId}`);
-  logger.info('🚗 Vehicles:', JSON.stringify(vehicles, null, 2));
+  logger.info("🚗 Vehicles:", JSON.stringify(vehicles, null, 2));
 
   res.json({
     success: true,
@@ -59,35 +56,39 @@ export const getVehicles = async (req: Request, res: Response) => {
  */
 export const createVehicle = async (req: Request, res: Response) => {
   const userId = req.user!.id;
-  const { 
-    plateNumber, 
+  const {
+    plateNumber,
     plateState,
-    vin, 
-    make, 
-    model, 
-    year, 
-    color, 
+    vin,
+    make,
+    model,
+    year,
+    color,
     currentMileage,
     engineType,
     fuelType,
     bodyType,
     trim,
-    vinDecoded = false
+    vinDecoded = false,
   } = req.body;
 
   // Verificar assinatura e limite de veículos
   const subscription = await prisma.subscription.findFirst({
     where: {
       userId: userId,
-      status: 'ACTIVE',
+      status: "ACTIVE",
     },
     orderBy: {
-      createdAt: 'desc',
+      createdAt: "desc",
     },
   });
 
   if (!subscription) {
-    throw new AppError('Assinatura não encontrada', 404, 'SUBSCRIPTION_NOT_FOUND');
+    throw new AppError(
+      "Assinatura não encontrada",
+      404,
+      "SUBSCRIPTION_NOT_FOUND",
+    );
   }
 
   // Contar veículos ativos
@@ -103,7 +104,7 @@ export const createVehicle = async (req: Request, res: Response) => {
     throw new AppError(
       `Você atingiu o limite de ${subscription.maxVehicles} veículo(s) do seu plano ${subscription.plan}. Faça upgrade para adicionar mais.`,
       403,
-      'VEHICLE_LIMIT_REACHED'
+      "VEHICLE_LIMIT_REACHED",
     );
   }
 
@@ -118,7 +119,11 @@ export const createVehicle = async (req: Request, res: Response) => {
     });
 
     if (existingVehicle) {
-      throw new AppError('Você já cadastrou um veículo com esta placa', 409, 'PLATE_ALREADY_EXISTS');
+      throw new AppError(
+        "Você já cadastrou um veículo com esta placa",
+        409,
+        "PLATE_ALREADY_EXISTS",
+      );
     }
   }
 
@@ -148,11 +153,13 @@ export const createVehicle = async (req: Request, res: Response) => {
     },
   });
 
-  logger.info(`Veículo adicionado: ${vehicle.plateNumber || vehicle.vin || vehicle.id} por ${userId}`);
+  logger.info(
+    `Veículo adicionado: ${vehicle.plateNumber || vehicle.vin || vehicle.id} por ${userId}`,
+  );
 
   res.status(201).json({
     success: true,
-    message: 'Veículo adicionado com sucesso',
+    message: "Veículo adicionado com sucesso",
     data: vehicle,
   });
 };
@@ -174,13 +181,13 @@ export const getVehicle = async (req: Request, res: Response) => {
     include: {
       maintenanceSchedule: {
         orderBy: {
-          nextServiceDueDate: 'asc',
+          nextServiceDueDate: "asc",
         },
       },
       serviceRequests: {
         take: 5,
         orderBy: {
-          createdAt: 'desc',
+          createdAt: "desc",
         },
         select: {
           id: true,
@@ -195,7 +202,7 @@ export const getVehicle = async (req: Request, res: Response) => {
   });
 
   if (!vehicle) {
-    throw new AppError('Veículo não encontrado', 404, 'VEHICLE_NOT_FOUND');
+    throw new AppError("Veículo não encontrado", 404, "VEHICLE_NOT_FOUND");
   }
 
   res.json({
@@ -211,7 +218,8 @@ export const getVehicle = async (req: Request, res: Response) => {
 export const updateVehicle = async (req: Request, res: Response) => {
   const userId = req.user!.id;
   const { vehicleId } = req.params;
-  const { plateNumber, vin, make, model, year, color, currentMileage } = req.body;
+  const { plateNumber, vin, make, model, year, color, currentMileage } =
+    req.body;
 
   // Verificar se veículo pertence ao usuário
   const existingVehicle = await prisma.vehicle.findFirst({
@@ -223,7 +231,7 @@ export const updateVehicle = async (req: Request, res: Response) => {
   });
 
   if (!existingVehicle) {
-    throw new AppError('Veículo não encontrado', 404, 'VEHICLE_NOT_FOUND');
+    throw new AppError("Veículo não encontrado", 404, "VEHICLE_NOT_FOUND");
   }
 
   // Se está alterando a placa, verificar duplicidade
@@ -240,7 +248,11 @@ export const updateVehicle = async (req: Request, res: Response) => {
     });
 
     if (duplicate) {
-      throw new AppError('Você já tem outro veículo com esta placa', 409, 'PLATE_ALREADY_EXISTS');
+      throw new AppError(
+        "Você já tem outro veículo com esta placa",
+        409,
+        "PLATE_ALREADY_EXISTS",
+      );
     }
   }
 
@@ -265,7 +277,7 @@ export const updateVehicle = async (req: Request, res: Response) => {
 
   res.json({
     success: true,
-    message: 'Veículo atualizado com sucesso',
+    message: "Veículo atualizado com sucesso",
     data: vehicle,
   });
 };
@@ -288,7 +300,7 @@ export const setPrimaryVehicle = async (req: Request, res: Response) => {
   });
 
   if (!vehicle) {
-    throw new AppError('Veículo não encontrado', 404, 'VEHICLE_NOT_FOUND');
+    throw new AppError("Veículo não encontrado", 404, "VEHICLE_NOT_FOUND");
   }
 
   // Usar transaction para garantir consistência
@@ -316,7 +328,7 @@ export const setPrimaryVehicle = async (req: Request, res: Response) => {
 
   res.json({
     success: true,
-    message: 'Veículo principal atualizado',
+    message: "Veículo principal atualizado",
   });
 };
 
@@ -338,7 +350,7 @@ export const deleteVehicle = async (req: Request, res: Response) => {
   });
 
   if (!vehicle) {
-    throw new AppError('Veículo não encontrado', 404, 'VEHICLE_NOT_FOUND');
+    throw new AppError("Veículo não encontrado", 404, "VEHICLE_NOT_FOUND");
   }
 
   // Verificar se há service requests ativos
@@ -346,16 +358,21 @@ export const deleteVehicle = async (req: Request, res: Response) => {
     where: {
       vehicleId: vehicleId,
       status: {
-        in: ['SEARCHING_PROVIDERS', 'QUOTES_RECEIVED', 'SCHEDULED', 'IN_PROGRESS'],
+        in: [
+          "SEARCHING_PROVIDERS",
+          "QUOTES_RECEIVED",
+          "SCHEDULED",
+          "IN_PROGRESS",
+        ],
       },
     },
   });
 
   if (activeRequests > 0) {
     throw new AppError(
-      'Não é possível deletar veículo com solicitações de serviço ativas',
+      "Não é possível deletar veículo com solicitações de serviço ativas",
       400,
-      'VEHICLE_HAS_ACTIVE_REQUESTS'
+      "VEHICLE_HAS_ACTIVE_REQUESTS",
     );
   }
 
@@ -376,7 +393,7 @@ export const deleteVehicle = async (req: Request, res: Response) => {
         isActive: true,
       },
       orderBy: {
-        createdAt: 'asc',
+        createdAt: "asc",
       },
     });
 
@@ -392,7 +409,7 @@ export const deleteVehicle = async (req: Request, res: Response) => {
 
   res.json({
     success: true,
-    message: 'Veículo removido com sucesso',
+    message: "Veículo removido com sucesso",
   });
 };
 
@@ -404,15 +421,15 @@ export const decodeVehicleVIN = async (req: Request, res: Response) => {
   const { vin } = req.body;
 
   if (!vin) {
-    throw new AppError('VIN é obrigatório', 400, 'VIN_REQUIRED');
+    throw new AppError("VIN é obrigatório", 400, "VIN_REQUIRED");
   }
 
   // Validar formato do VIN
   if (!isValidVINFormat(vin)) {
     throw new AppError(
-      'VIN inválido. Deve conter 17 caracteres alfanuméricos (sem I, O, Q)',
+      "VIN inválido. Deve conter 17 caracteres alfanuméricos (sem I, O, Q)",
       400,
-      'INVALID_VIN_FORMAT'
+      "INVALID_VIN_FORMAT",
     );
   }
 
@@ -420,7 +437,11 @@ export const decodeVehicleVIN = async (req: Request, res: Response) => {
   const result = await decodeVIN(vin);
 
   if (!result.success) {
-    throw new AppError(result.error || 'Erro ao decodificar VIN', 400, 'VIN_DECODE_FAILED');
+    throw new AppError(
+      result.error || "Erro ao decodificar VIN",
+      400,
+      "VIN_DECODE_FAILED",
+    );
   }
 
   logger.info(`VIN decodificado com sucesso: ${vin}`);

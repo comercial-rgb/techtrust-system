@@ -5,11 +5,11 @@
  * Gerenciamento de perfil do usuário
  */
 
-import { Request, Response } from 'express';
-import { prisma } from '../config/database';
-import { AppError } from '../middleware/error-handler';
-import { hashPassword, comparePassword } from '../utils/password';
-import { logger } from '../config/logger';
+import { Request, Response } from "express";
+import { prisma } from "../config/database";
+import { AppError } from "../middleware/error-handler";
+import { hashPassword, comparePassword } from "../utils/password";
+import { logger } from "../config/logger";
 
 /**
  * GET /api/v1/users/me
@@ -48,17 +48,17 @@ export const getMe = async (req: Request, res: Response) => {
   });
 
   if (!user) {
-    throw new AppError('Usuário não encontrado', 404, 'USER_NOT_FOUND');
+    throw new AppError("Usuário não encontrado", 404, "USER_NOT_FOUND");
   }
 
   // Buscar assinatura atual
   const subscription = await prisma.subscription.findFirst({
     where: {
       userId: userId,
-      status: 'ACTIVE',
+      status: "ACTIVE",
     },
     orderBy: {
-      createdAt: 'desc',
+      createdAt: "desc",
     },
   });
 
@@ -106,7 +106,9 @@ export const updateMe = async (req: Request, res: Response) => {
       ...(emailNotifications !== undefined && { emailNotifications }),
       ...(smsNotifications !== undefined && { smsNotifications }),
       ...(cpf !== undefined && { cpf }),
-      ...(dateOfBirth !== undefined && { dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null }),
+      ...(dateOfBirth !== undefined && {
+        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+      }),
       ...(gender !== undefined && { gender }),
       ...(addressesJson !== undefined && { addressesJson }),
     },
@@ -135,7 +137,7 @@ export const updateMe = async (req: Request, res: Response) => {
 
   res.json({
     success: true,
-    message: 'Perfil atualizado com sucesso',
+    message: "Perfil atualizado com sucesso",
     data: user,
   });
 };
@@ -154,14 +156,21 @@ export const changePassword = async (req: Request, res: Response) => {
   });
 
   if (!user) {
-    throw new AppError('Usuário não encontrado', 404, 'USER_NOT_FOUND');
+    throw new AppError("Usuário não encontrado", 404, "USER_NOT_FOUND");
   }
 
   // Verificar senha atual
-  const isPasswordValid = await comparePassword(currentPassword, user.passwordHash);
+  const isPasswordValid = await comparePassword(
+    currentPassword,
+    user.passwordHash,
+  );
 
   if (!isPasswordValid) {
-    throw new AppError('Senha atual incorreta', 400, 'INVALID_CURRENT_PASSWORD');
+    throw new AppError(
+      "Senha atual incorreta",
+      400,
+      "INVALID_CURRENT_PASSWORD",
+    );
   }
 
   // Hash da nova senha
@@ -177,7 +186,7 @@ export const changePassword = async (req: Request, res: Response) => {
 
   res.json({
     success: true,
-    message: 'Senha alterada com sucesso',
+    message: "Senha alterada com sucesso",
   });
 };
 
@@ -198,7 +207,7 @@ export const updateFCMToken = async (req: Request, res: Response) => {
 
   res.json({
     success: true,
-    message: 'Token de notificação atualizado',
+    message: "Token de notificação atualizado",
   });
 };
 
@@ -216,21 +225,21 @@ export const deleteMe = async (req: Request, res: Response) => {
   });
 
   if (!user) {
-    throw new AppError('Usuário não encontrado', 404, 'USER_NOT_FOUND');
+    throw new AppError("Usuário não encontrado", 404, "USER_NOT_FOUND");
   }
 
   // Verificar senha para confirmar exclusão
   const isPasswordValid = await comparePassword(password, user.passwordHash);
 
   if (!isPasswordValid) {
-    throw new AppError('Senha incorreta', 400, 'INVALID_PASSWORD');
+    throw new AppError("Senha incorreta", 400, "INVALID_PASSWORD");
   }
 
   // Soft delete
   await prisma.user.update({
     where: { id: userId },
     data: {
-      status: 'INACTIVE',
+      status: "INACTIVE",
       deletedAt: new Date(),
     },
   });
@@ -239,7 +248,7 @@ export const deleteMe = async (req: Request, res: Response) => {
 
   res.json({
     success: true,
-    message: 'Conta deletada com sucesso',
+    message: "Conta deletada com sucesso",
   });
 };
 
@@ -250,43 +259,44 @@ export const deleteMe = async (req: Request, res: Response) => {
 export const getDashboardStats = async (req: Request, res: Response) => {
   const userId = req.user!.id;
 
-  const [activeServices, pendingQuotes, completedServices, totalSpent] = await Promise.all([
-    // Serviços ativos
-    prisma.workOrder.count({
-      where: {
-        customerId: userId,
-        status: {
-          in: ['PENDING_START', 'IN_PROGRESS', 'AWAITING_APPROVAL'],
+  const [activeServices, pendingQuotes, completedServices, totalSpent] =
+    await Promise.all([
+      // Serviços ativos
+      prisma.workOrder.count({
+        where: {
+          customerId: userId,
+          status: {
+            in: ["PENDING_START", "IN_PROGRESS", "AWAITING_APPROVAL"],
+          },
         },
-      },
-    }),
-    // Orçamentos pendentes
-    prisma.serviceRequest.count({
-      where: {
-        userId: userId,
-        status: {
-          in: ['SEARCHING_PROVIDERS', 'QUOTES_RECEIVED'],
+      }),
+      // Orçamentos pendentes
+      prisma.serviceRequest.count({
+        where: {
+          userId: userId,
+          status: {
+            in: ["SEARCHING_PROVIDERS", "QUOTES_RECEIVED"],
+          },
         },
-      },
-    }),
-    // Serviços completos
-    prisma.workOrder.count({
-      where: {
-        customerId: userId,
-        status: 'COMPLETED',
-      },
-    }),
-    // Total gasto
-    prisma.payment.aggregate({
-      where: {
-        customerId: userId,
-        status: 'CAPTURED',
-      },
-      _sum: {
-        totalAmount: true,
-      },
-    }),
-  ]);
+      }),
+      // Serviços completos
+      prisma.workOrder.count({
+        where: {
+          customerId: userId,
+          status: "COMPLETED",
+        },
+      }),
+      // Total gasto
+      prisma.payment.aggregate({
+        where: {
+          customerId: userId,
+          status: "CAPTURED",
+        },
+        _sum: {
+          totalAmount: true,
+        },
+      }),
+    ]);
 
   res.json({
     success: true,
@@ -305,21 +315,21 @@ export const getDashboardStats = async (req: Request, res: Response) => {
  */
 export const getReports = async (req: Request, res: Response) => {
   const userId = req.user!.id;
-  const { period = '6M' } = req.query;
+  const { period = "6M" } = req.query;
 
   // Calcular data inicial baseada no período
   let startDate = new Date();
   switch (period) {
-    case '1M':
+    case "1M":
       startDate.setMonth(startDate.getMonth() - 1);
       break;
-    case '3M':
+    case "3M":
       startDate.setMonth(startDate.getMonth() - 3);
       break;
-    case '6M':
+    case "6M":
       startDate.setMonth(startDate.getMonth() - 6);
       break;
-    case '1Y':
+    case "1Y":
       startDate.setFullYear(startDate.getFullYear() - 1);
       break;
     default:
@@ -331,7 +341,7 @@ export const getReports = async (req: Request, res: Response) => {
     prisma.workOrder.count({
       where: {
         customerId: userId,
-        status: 'COMPLETED',
+        status: "COMPLETED",
         completedAt: {
           gte: startDate,
         },
@@ -340,7 +350,7 @@ export const getReports = async (req: Request, res: Response) => {
     prisma.payment.aggregate({
       where: {
         customerId: userId,
-        status: 'CAPTURED',
+        status: "CAPTURED",
         capturedAt: {
           gte: startDate,
         },
@@ -370,7 +380,7 @@ export const getReports = async (req: Request, res: Response) => {
       },
       monthlySpending: [], // TODO: agrupar por mês
       serviceCategories: [], // TODO: agrupar por categoria
-      vehicleSpending: vehicles.map(v => ({
+      vehicleSpending: vehicles.map((v) => ({
         id: v.id,
         name: `${v.year} ${v.make} ${v.model}`,
         totalSpent: 0, // TODO: calcular por veículo

@@ -3,9 +3,10 @@
  * Integração com Backend TechTrust
  */
 
-import Cookies from 'js-cookie';
+import Cookies from "js-cookie";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api/v1";
 
 interface ApiResponse<T = any> {
   data?: T;
@@ -15,16 +16,16 @@ interface ApiResponse<T = any> {
 
 class ApiService {
   private getHeaders(): HeadersInit {
-    const token = Cookies.get('tt_client_token');
+    const token = Cookies.get("tt_client_token");
     return {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
   }
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
   ): Promise<ApiResponse<T>> {
     try {
       const url = `${API_BASE_URL}${endpoint}`;
@@ -39,23 +40,23 @@ class ApiService {
       const data = await response.json();
 
       if (!response.ok) {
-        return { error: data.error || data.message || 'Erro na requisição' };
+        return { error: data.error || data.message || "Erro na requisição" };
       }
 
       return { data };
     } catch (error: any) {
-      console.error('API Error:', error);
-      return { error: error.message || 'Erro de conexão com o servidor' };
+      console.error("API Error:", error);
+      return { error: error.message || "Erro de conexão com o servidor" };
     }
   }
 
   // ============================================
   // AUTH
   // ============================================
-  
+
   async login(email: string, password: string) {
-    return this.request<{ token: string; user: any }>('/auth/login', {
-      method: 'POST',
+    return this.request<{ token: string; user: any }>("/auth/login", {
+      method: "POST",
       body: JSON.stringify({ email, password }),
     });
   }
@@ -66,30 +67,32 @@ class ApiService {
     phone: string;
     password: string;
   }) {
-    return this.request('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({ ...data, role: 'CUSTOMER' }),
+    return this.request("/auth/register", {
+      method: "POST",
+      body: JSON.stringify({ ...data, role: "CUSTOMER" }),
     });
   }
 
   async verifyOTP(phone: string, otp: string) {
-    return this.request<{ token: string; user: any }>('/auth/verify-otp', {
-      method: 'POST',
+    return this.request<{ token: string; user: any }>("/auth/verify-otp", {
+      method: "POST",
       body: JSON.stringify({ phone, otp }),
     });
   }
 
   async getProfile() {
-    return this.request<any>('/users/me');
+    return this.request<any>("/users/me");
   }
 
-  async updateProfile(data: Partial<{
-    fullName: string;
-    email: string;
-    phone: string;
-  }>) {
-    return this.request('/users/me', {
-      method: 'PATCH',
+  async updateProfile(
+    data: Partial<{
+      fullName: string;
+      email: string;
+      phone: string;
+    }>,
+  ) {
+    return this.request("/users/me", {
+      method: "PATCH",
       body: JSON.stringify(data),
     });
   }
@@ -99,7 +102,7 @@ class ApiService {
   // ============================================
 
   async getVehicles() {
-    return this.request<any[]>('/vehicles');
+    return this.request<any[]>("/vehicles");
   }
 
   async getVehicle(id: string) {
@@ -115,25 +118,28 @@ class ApiService {
     color?: string;
     mileage?: number;
   }) {
-    return this.request('/vehicles', {
-      method: 'POST',
+    return this.request("/vehicles", {
+      method: "POST",
       body: JSON.stringify(data),
     });
   }
 
-  async updateVehicle(id: string, data: Partial<{
-    mileage: number;
-    color: string;
-  }>) {
+  async updateVehicle(
+    id: string,
+    data: Partial<{
+      mileage: number;
+      color: string;
+    }>,
+  ) {
     return this.request(`/vehicles/${id}`, {
-      method: 'PUT',
+      method: "PUT",
       body: JSON.stringify(data),
     });
   }
 
   async deleteVehicle(id: string) {
     return this.request(`/vehicles/${id}`, {
-      method: 'DELETE',
+      method: "DELETE",
     });
   }
 
@@ -142,7 +148,7 @@ class ApiService {
   // ============================================
 
   async getServiceRequests(status?: string) {
-    const query = status ? `?status=${status}` : '';
+    const query = status ? `?status=${status}` : "";
     return this.request<any[]>(`/service-requests${query}`);
   }
 
@@ -159,7 +165,7 @@ class ApiService {
     title: string;
     description: string;
     serviceType: string;
-    urgency: 'LOW' | 'MEDIUM' | 'HIGH' | 'EMERGENCY';
+    urgency: "LOW" | "MEDIUM" | "HIGH" | "EMERGENCY";
     preferredDate?: string;
     location?: {
       latitude: number;
@@ -167,15 +173,15 @@ class ApiService {
       address: string;
     };
   }) {
-    return this.request('/service-requests', {
-      method: 'POST',
+    return this.request("/service-requests", {
+      method: "POST",
       body: JSON.stringify(data),
     });
   }
 
   async cancelServiceRequest(id: string, reason?: string) {
     return this.request(`/service-requests/${id}/cancel`, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify({ reason }),
     });
   }
@@ -194,13 +200,13 @@ class ApiService {
 
   async acceptQuote(id: string) {
     return this.request(`/quotes/${id}/accept`, {
-      method: 'POST',
+      method: "POST",
     });
   }
 
   async rejectQuote(id: string, reason?: string) {
     return this.request(`/quotes/${id}/reject`, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify({ reason }),
     });
   }
@@ -210,7 +216,7 @@ class ApiService {
   // ============================================
 
   async getWorkOrders(status?: string) {
-    const query = status ? `?status=${status}` : '';
+    const query = status ? `?status=${status}` : "";
     return this.request<any[]>(`/work-orders${query}`);
   }
 
@@ -227,34 +233,37 @@ class ApiService {
   // ============================================
 
   async getPaymentMethods() {
-    return this.request<any[]>('/payments/methods');
+    return this.request<any[]>("/payments/methods");
   }
 
   async addPaymentMethod(data: {
-    type: 'CREDIT_CARD' | 'DEBIT_CARD' | 'PIX';
+    type: "CREDIT_CARD" | "DEBIT_CARD" | "PIX";
     cardNumber?: string;
     cardHolder?: string;
     expiryDate?: string;
     cvv?: string;
   }) {
-    return this.request('/payments/methods', {
-      method: 'POST',
+    return this.request("/payments/methods", {
+      method: "POST",
       body: JSON.stringify(data),
     });
   }
 
-  async processPayment(workOrderId: string, data: {
-    paymentMethodId: string;
-    amount: number;
-  }) {
+  async processPayment(
+    workOrderId: string,
+    data: {
+      paymentMethodId: string;
+      amount: number;
+    },
+  ) {
     return this.request(`/payments/work-order/${workOrderId}`, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify(data),
     });
   }
 
   async getPaymentHistory() {
-    return this.request<any[]>('/payments/history');
+    return this.request<any[]>("/payments/history");
   }
 
   // ============================================
@@ -267,8 +276,8 @@ class ApiService {
     rating: number;
     comment?: string;
   }) {
-    return this.request('/reviews', {
-      method: 'POST',
+    return this.request("/reviews", {
+      method: "POST",
       body: JSON.stringify(data),
     });
   }
@@ -278,18 +287,18 @@ class ApiService {
   // ============================================
 
   async getNotifications() {
-    return this.request<any[]>('/notifications');
+    return this.request<any[]>("/notifications");
   }
 
   async markNotificationAsRead(id: string) {
     return this.request(`/notifications/${id}/read`, {
-      method: 'POST',
+      method: "POST",
     });
   }
 
   async markAllNotificationsAsRead() {
-    return this.request('/notifications/read-all', {
-      method: 'POST',
+    return this.request("/notifications/read-all", {
+      method: "POST",
     });
   }
 
@@ -298,16 +307,16 @@ class ApiService {
   // ============================================
 
   async getSubscription() {
-    return this.request<any>('/subscriptions/current');
+    return this.request<any>("/subscriptions/current");
   }
 
   async getSubscriptionPlans() {
-    return this.request<any[]>('/subscriptions/plans');
+    return this.request<any[]>("/subscriptions/plans");
   }
 
   async subscribeToPlan(planId: string) {
-    return this.request('/subscriptions/subscribe', {
-      method: 'POST',
+    return this.request("/subscriptions/subscribe", {
+      method: "POST",
       body: JSON.stringify({ planId }),
     });
   }
@@ -317,16 +326,18 @@ class ApiService {
   // ============================================
 
   async getChats() {
-    return this.request<any[]>('/chat/conversations');
+    return this.request<any[]>("/chat/conversations");
   }
 
   async getChatMessages(conversationId: string) {
-    return this.request<any[]>(`/chat/conversations/${conversationId}/messages`);
+    return this.request<any[]>(
+      `/chat/conversations/${conversationId}/messages`,
+    );
   }
 
   async sendMessage(conversationId: string, content: string) {
     return this.request(`/chat/conversations/${conversationId}/messages`, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify({ content }),
     });
   }
