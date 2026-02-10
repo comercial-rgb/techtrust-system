@@ -14,6 +14,8 @@ import {
   X,
   Bell,
   ChevronDown,
+  CreditCard,
+  Receipt,
 } from 'lucide-react';
 
 interface DashboardLayoutProps {
@@ -24,8 +26,10 @@ interface DashboardLayoutProps {
 const menuItems = [
   { href: '/dashboard', labelKey: 'client.nav.home', icon: Home },
   { href: '/veiculos', labelKey: 'client.nav.vehicles', icon: Car },
-  { href: '/solicitacoes', labelKey: 'client.nav.requests', icon: FileText, badge: 2 },
+  { href: '/solicitacoes', labelKey: 'client.nav.requests', icon: FileText },
   { href: '/servicos', labelKey: 'client.nav.services', icon: Briefcase },
+  { href: '/pagamentos', labelKey: 'client.nav.payments', icon: CreditCard },
+  { href: '/recibos', labelKey: 'client.nav.receipts', icon: Receipt },
   { href: '/perfil', labelKey: 'client.nav.profile', icon: User },
 ];
 
@@ -111,11 +115,6 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
               >
                 <Icon className={`w-5 h-5 ${active ? 'text-primary-600' : 'text-gray-400'}`} />
                 <span className="font-medium">{tr(item.labelKey)}</span>
-                {item.badge && (
-                  <span className="ml-auto bg-primary-600 text-white text-xs font-semibold px-2 py-0.5 rounded-full">
-                    {item.badge}
-                  </span>
-                )}
               </Link>
             );
           })}

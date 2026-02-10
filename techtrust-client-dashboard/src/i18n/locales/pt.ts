@@ -80,6 +80,8 @@ const pt = {
       vehicles: 'Meus Veículos',
       requests: 'Solicitações',
       services: 'Meus Serviços',
+      payments: 'Pagamentos',
+      receipts: 'Recibos',
       profile: 'Meu Perfil',
       settings: 'Configurações',
       logout: 'Sair',

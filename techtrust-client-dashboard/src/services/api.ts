@@ -132,7 +132,7 @@ class ApiService {
     }>,
   ) {
     return this.request(`/vehicles/${id}`, {
-      method: "PUT",
+      method: "PATCH",
       body: JSON.stringify(data),
     });
   }
@@ -191,7 +191,7 @@ class ApiService {
   // ============================================
 
   async getQuotesForRequest(serviceRequestId: string) {
-    return this.request<any[]>(`/quotes/request/${serviceRequestId}`);
+    return this.request<any[]>(`/quotes/service-requests/${serviceRequestId}`);
   }
 
   async getQuote(id: string) {
@@ -233,19 +233,35 @@ class ApiService {
   // ============================================
 
   async getPaymentMethods() {
-    return this.request<any[]>("/payments/methods");
+    return this.request<any[]>("/payment-methods");
   }
 
   async addPaymentMethod(data: {
-    type: "CREDIT_CARD" | "DEBIT_CARD" | "PIX";
-    cardNumber?: string;
-    cardHolder?: string;
-    expiryDate?: string;
-    cvv?: string;
+    type: string;
+    cardBrand?: string;
+    cardLast4?: string;
+    cardExpMonth?: number;
+    cardExpYear?: number;
+    holderName?: string;
+    pixKey?: string;
+    billingName?: string;
+    billingZip?: string;
   }) {
-    return this.request("/payments/methods", {
+    return this.request("/payment-methods", {
       method: "POST",
       body: JSON.stringify(data),
+    });
+  }
+
+  async setDefaultPaymentMethod(id: string) {
+    return this.request(`/payment-methods/${id}/default`, {
+      method: "PATCH",
+    });
+  }
+
+  async deletePaymentMethod(id: string) {
+    return this.request(`/payment-methods/${id}`, {
+      method: "DELETE",
     });
   }
 
@@ -256,9 +272,9 @@ class ApiService {
       amount: number;
     },
   ) {
-    return this.request(`/payments/work-order/${workOrderId}`, {
+    return this.request(`/payments/create-intent`, {
       method: "POST",
-      body: JSON.stringify(data),
+      body: JSON.stringify({ ...data, workOrderId }),
     });
   }
 

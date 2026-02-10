@@ -80,6 +80,8 @@ const es = {
       vehicles: 'Mis Vehículos',
       requests: 'Solicitudes',
       services: 'Mis Servicios',
+      payments: 'Pagos',
+      receipts: 'Recibos',
       profile: 'Mi Perfil',
       settings: 'Configuración',
       logout: 'Salir',
