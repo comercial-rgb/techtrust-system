@@ -1,22 +1,24 @@
-import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Production API URL (Render)
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://techtrust-api.onrender.com/api/v1';
+const API_URL =
+  process.env.EXPO_PUBLIC_API_URL ||
+  "https://techtrust-api.onrender.com/api/v1";
 
 const api = axios.create({
   baseURL: API_URL,
   // Render can cold-start; keep a slightly higher timeout to avoid false negatives.
   timeout: 60000,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
 // Request interceptor - add token
 api.interceptors.request.use(
   async (config) => {
-    const token = await AsyncStorage.getItem('@TechTrust:token');
+    const token = await AsyncStorage.getItem("@TechTrust:token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -24,7 +26,7 @@ api.interceptors.request.use(
   },
   (error) => {
     return Promise.reject(error);
-  }
+  },
 );
 
 // Response interceptor - handle token refresh
@@ -39,15 +41,17 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshToken = await AsyncStorage.getItem('@TechTrust:refreshToken');
-        
+        const refreshToken = await AsyncStorage.getItem(
+          "@TechTrust:refreshToken",
+        );
+
         if (refreshToken) {
           const response = await axios.post(`${API_URL}/auth/refresh`, {
             refreshToken,
           });
 
           const { token } = response.data.data;
-          await AsyncStorage.setItem('@TechTrust:token', token);
+          await AsyncStorage.setItem("@TechTrust:token", token);
 
           originalRequest.headers.Authorization = `Bearer ${token}`;
           return api(originalRequest);
@@ -55,15 +59,15 @@ api.interceptors.response.use(
       } catch (refreshError) {
         // Refresh failed, clear auth
         await AsyncStorage.multiRemove([
-          '@TechTrust:token',
-          '@TechTrust:refreshToken',
-          '@TechTrust:user',
+          "@TechTrust:token",
+          "@TechTrust:refreshToken",
+          "@TechTrust:user",
         ]);
       }
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 export default api;

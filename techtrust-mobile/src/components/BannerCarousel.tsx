@@ -3,7 +3,7 @@
  * Exibe banners gerenciados pelo admin
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -14,10 +14,10 @@ import {
   TouchableOpacity,
   Linking,
   ActivityIndicator,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const BANNER_HEIGHT = 180;
 const AUTO_PLAY_INTERVAL = 5000; // 5 seconds
 
@@ -35,7 +35,10 @@ interface BannerCarouselProps {
   autoPlay?: boolean;
 }
 
-export default function BannerCarousel({ banners, autoPlay = true }: BannerCarouselProps) {
+export default function BannerCarousel({
+  banners,
+  autoPlay = true,
+}: BannerCarouselProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
@@ -65,7 +68,7 @@ export default function BannerCarousel({ banners, autoPlay = true }: BannerCarou
         await Linking.openURL(banner.linkUrl);
       }
     } catch (error) {
-      console.error('Error opening banner link:', error);
+      console.error("Error opening banner link:", error);
     }
   };
 
@@ -80,21 +83,22 @@ export default function BannerCarousel({ banners, autoPlay = true }: BannerCarou
   }).current;
 
   const handleImageError = (bannerId: string) => {
-    setImageErrors(prev => ({ ...prev, [bannerId]: true }));
+    setImageErrors((prev) => ({ ...prev, [bannerId]: true }));
   };
 
   const renderBanner = ({ item }: { item: Banner }) => {
     const hasError = imageErrors[item.id];
-    
+
     // Ensure imageUrl is absolute (add API base URL if it's relative)
-    let imageUrl = item.imageUrl || '';
-    if (imageUrl && !imageUrl.startsWith('http')) {
-      const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'https://techtrust-api.onrender.com';
-      imageUrl = `${baseUrl}${imageUrl.startsWith('/') ? imageUrl : '/' + imageUrl}`;
+    let imageUrl = item.imageUrl || "";
+    if (imageUrl && !imageUrl.startsWith("http")) {
+      const baseUrl =
+        process.env.EXPO_PUBLIC_API_URL || "https://techtrust-api.onrender.com";
+      imageUrl = `${baseUrl}${imageUrl.startsWith("/") ? imageUrl : "/" + imageUrl}`;
     }
-    
-    console.log('BannerCarousel rendering banner:', item.id, 'URL:', imageUrl);
-    
+
+    console.log("BannerCarousel rendering banner:", item.id, "URL:", imageUrl);
+
     return (
       <TouchableOpacity
         style={styles.bannerContainer}
@@ -103,16 +107,16 @@ export default function BannerCarousel({ banners, autoPlay = true }: BannerCarou
       >
         {!hasError && imageUrl ? (
           <Image
-            source={{ 
+            source={{
               uri: imageUrl,
             }}
             style={styles.bannerImage}
             resizeMode="cover"
             onError={() => {
-              console.log('BannerCarousel image error for:', imageUrl);
+              console.log("BannerCarousel image error for:", imageUrl);
               handleImageError(item.id);
             }}
-            onLoad={() => console.log('BannerCarousel image loaded:', imageUrl)}
+            onLoad={() => console.log("BannerCarousel image loaded:", imageUrl)}
           />
         ) : (
           <View style={[styles.bannerImage, styles.errorPlaceholder]}>
@@ -120,10 +124,10 @@ export default function BannerCarousel({ banners, autoPlay = true }: BannerCarou
             <Text style={styles.errorText}>Image not available</Text>
           </View>
         )}
-        
+
         {/* Gradient overlay for better text readability */}
         <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.7)']}
+          colors={["transparent", "rgba(0,0,0,0.7)"]}
           style={styles.gradient}
         >
           <View style={styles.bannerContent}>
@@ -151,7 +155,7 @@ export default function BannerCarousel({ banners, autoPlay = true }: BannerCarou
         ref={flatListRef}
         data={banners}
         renderItem={renderBanner}
-        keyExtractor={item => item.id}
+        keyExtractor={(item) => item.id}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
@@ -191,30 +195,30 @@ const styles = StyleSheet.create({
     height: BANNER_HEIGHT,
     marginHorizontal: 16,
     borderRadius: 16,
-    overflow: 'hidden',
-    backgroundColor: '#f3f4f6',
+    overflow: "hidden",
+    backgroundColor: "#f3f4f6",
   },
   bannerImage: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   errorPlaceholder: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#e5e7eb',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#e5e7eb",
   },
   errorText: {
     marginTop: 8,
     fontSize: 12,
-    color: '#6b7280',
+    color: "#6b7280",
   },
   gradient: {
-    position: 'absolute',
+    position: "absolute",
     left: 0,
     right: 0,
     bottom: 0,
-    height: '50%',
-    justifyContent: 'flex-end',
+    height: "50%",
+    justifyContent: "flex-end",
     padding: 16,
   },
   bannerContent: {
@@ -222,24 +226,24 @@ const styles = StyleSheet.create({
   },
   bannerTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    color: '#fff',
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    fontWeight: "700",
+    color: "#fff",
+    textShadowColor: "rgba(0, 0, 0, 0.5)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
   bannerSubtitle: {
     fontSize: 14,
-    color: '#fff',
+    color: "#fff",
     opacity: 0.9,
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowColor: "rgba(0, 0, 0, 0.5)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
   pagination: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     gap: 8,
     marginTop: 12,
   },
@@ -247,10 +251,10 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#d1d5db',
+    backgroundColor: "#d1d5db",
   },
   paginationDotActive: {
     width: 24,
-    backgroundColor: '#3b82f6',
+    backgroundColor: "#3b82f6",
   },
 });

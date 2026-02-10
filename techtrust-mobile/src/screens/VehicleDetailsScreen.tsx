@@ -3,7 +3,7 @@
  * Modern design with maintenance history and total spent
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -12,11 +12,11 @@ import {
   TouchableOpacity,
   RefreshControl,
   Alert,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { FadeInView, ScalePress } from '../components/Animated';
-import { useI18n } from '../i18n';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { FadeInView, ScalePress } from "../components/Animated";
+import { useI18n } from "../i18n";
 
 interface MaintenanceRecord {
   id: string;
@@ -27,7 +27,7 @@ interface MaintenanceRecord {
   mileage: number;
   cost: number;
   provider: string;
-  status: 'completed' | 'in-progress' | 'scheduled';
+  status: "completed" | "in-progress" | "scheduled";
 }
 
 interface VehicleDetails {
@@ -67,36 +67,36 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
   async function loadVehicleDetails() {
     try {
       // Buscar detalhes do veículo da API
-      const api = (await import('../services/api')).default;
+      const api = (await import("../services/api")).default;
       const response = await api.get(`/vehicles/${vehicleId}`);
       const vehicleData = response.data.data;
-      
+
       if (vehicleData) {
         setVehicle({
           id: vehicleData.id,
           make: vehicleData.make,
           model: vehicleData.model,
           year: vehicleData.year,
-          vin: vehicleData.vin || '',
-          plateNumber: vehicleData.plateNumber || '',
-          trim: vehicleData.trim || '',
-          color: vehicleData.color || '',
+          vin: vehicleData.vin || "",
+          plateNumber: vehicleData.plateNumber || "",
+          trim: vehicleData.trim || "",
+          color: vehicleData.color || "",
           currentMileage: vehicleData.currentMileage || 0,
-          fuelType: vehicleData.fuelType || '',
-          vehicleType: vehicleData.vehicleType || 'Car',
-          primaryDriver: vehicleData.primaryDriver || '',
-          insuranceProvider: vehicleData.insuranceProvider || '',
-          insurancePolicy: vehicleData.insurancePolicy || '',
-          insuranceExpiry: vehicleData.insuranceExpiry || '',
-          lastService: vehicleData.lastService || '',
-          nextServiceDue: vehicleData.nextServiceDue || '',
+          fuelType: vehicleData.fuelType || "",
+          vehicleType: vehicleData.vehicleType || "Car",
+          primaryDriver: vehicleData.primaryDriver || "",
+          insuranceProvider: vehicleData.insuranceProvider || "",
+          insurancePolicy: vehicleData.insurancePolicy || "",
+          insuranceExpiry: vehicleData.insuranceExpiry || "",
+          lastService: vehicleData.lastService || "",
+          nextServiceDue: vehicleData.nextServiceDue || "",
           isDefault: vehicleData.isDefault || false,
           totalMaintenanceSpent: vehicleData.totalMaintenanceSpent || 0,
           maintenanceHistory: vehicleData.maintenanceHistory || [],
         });
       }
     } catch (error) {
-      console.error('Error loading vehicle:', error);
+      console.error("Error loading vehicle:", error);
     } finally {
       setLoading(false);
     }
@@ -109,25 +109,27 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
   }
 
   function formatDate(date: string) {
-    return new Date(date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
+    return new Date(date).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     });
   }
 
   function formatMileage(miles: number) {
-    return miles.toLocaleString() + ' mi';
+    return miles.toLocaleString() + " mi";
   }
 
   function formatCurrency(amount: number) {
-    return '$' + amount.toFixed(2);
+    return "$" + amount.toFixed(2);
   }
 
   function isExpiringSoon(date: string) {
     const expiry = new Date(date);
     const today = new Date();
-    const daysUntilExpiry = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    const daysUntilExpiry = Math.ceil(
+      (expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+    );
     return daysUntilExpiry <= 30 && daysUntilExpiry > 0;
   }
 
@@ -137,10 +139,14 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
 
   function getStatusColor(status: string) {
     switch (status) {
-      case 'completed': return { bg: '#d1fae5', text: '#10b981' };
-      case 'in-progress': return { bg: '#dbeafe', text: '#3b82f6' };
-      case 'scheduled': return { bg: '#fef3c7', text: '#f59e0b' };
-      default: return { bg: '#f3f4f6', text: '#6b7280' };
+      case "completed":
+        return { bg: "#d1fae5", text: "#10b981" };
+      case "in-progress":
+        return { bg: "#dbeafe", text: "#3b82f6" };
+      case "scheduled":
+        return { bg: "#fef3c7", text: "#f59e0b" };
+      default:
+        return { bg: "#f3f4f6", text: "#6b7280" };
     }
   }
 
@@ -148,14 +154,19 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backBtn}
+          >
             <Ionicons name="arrow-back" size={24} color="#111827" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{t.vehicle?.vehicleDetails || 'Vehicle Details'}</Text>
+          <Text style={styles.headerTitle}>
+            {t.vehicle?.vehicleDetails || "Vehicle Details"}
+          </Text>
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.loadingContainer}>
-          <Text>{t.common?.loading || 'Loading...'}</Text>
+          <Text>{t.common?.loading || "Loading..."}</Text>
         </View>
       </SafeAreaView>
     );
@@ -165,11 +176,19 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backBtn}
+        >
           <Ionicons name="arrow-back" size={24} color="#111827" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t.vehicle?.vehicleDetails || 'Vehicle Details'}</Text>
-        <TouchableOpacity style={styles.editBtn} onPress={() => navigation.navigate('AddVehicle', { vehicle })}>
+        <Text style={styles.headerTitle}>
+          {t.vehicle?.vehicleDetails || "Vehicle Details"}
+        </Text>
+        <TouchableOpacity
+          style={styles.editBtn}
+          onPress={() => navigation.navigate("AddVehicle", { vehicle })}
+        >
           <Ionicons name="create-outline" size={24} color="#1976d2" />
         </TouchableOpacity>
       </View>
@@ -193,7 +212,9 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
             {vehicle.isDefault && (
               <View style={styles.defaultBadge}>
                 <Ionicons name="star" size={12} color="#f59e0b" />
-                <Text style={styles.defaultText}>{t.vehicle?.defaultVehicle || 'Default Vehicle'}</Text>
+                <Text style={styles.defaultText}>
+                  {t.vehicle?.defaultVehicle || "Default Vehicle"}
+                </Text>
               </View>
             )}
           </View>
@@ -204,14 +225,22 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
               <Ionicons name="speedometer-outline" size={24} color="#1976d2" />
-              <Text style={styles.statValue}>{formatMileage(vehicle.currentMileage)}</Text>
-              <Text style={styles.statLabel}>{t.vehicle?.currentMileage || 'Current Mileage'}</Text>
+              <Text style={styles.statValue}>
+                {formatMileage(vehicle.currentMileage)}
+              </Text>
+              <Text style={styles.statLabel}>
+                {t.vehicle?.currentMileage || "Current Mileage"}
+              </Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <Ionicons name="wallet-outline" size={24} color="#10b981" />
-              <Text style={styles.statValue}>{formatCurrency(vehicle.totalMaintenanceSpent)}</Text>
-              <Text style={styles.statLabel}>{t.vehicle?.totalSpent || 'Total Spent'}</Text>
+              <Text style={styles.statValue}>
+                {formatCurrency(vehicle.totalMaintenanceSpent)}
+              </Text>
+              <Text style={styles.statLabel}>
+                {t.vehicle?.totalSpent || "Total Spent"}
+              </Text>
             </View>
           </View>
         </FadeInView>
@@ -219,30 +248,46 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
         {/* Vehicle Information */}
         <FadeInView delay={200}>
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t.vehicle?.vehicleInformation || 'Vehicle Information'}</Text>
+            <Text style={styles.sectionTitle}>
+              {t.vehicle?.vehicleInformation || "Vehicle Information"}
+            </Text>
             <View style={styles.infoCard}>
               <View style={styles.infoRowColumn}>
-                <Text style={styles.infoLabel} numberOfLines={2}>{t.vehicle?.vin || 'VIN (Vehicle Identification Number)'}</Text>
-                <Text style={styles.infoValueFullVIN} selectable>{vehicle.vin || '-'}</Text>
+                <Text style={styles.infoLabel} numberOfLines={2}>
+                  {t.vehicle?.vin || "VIN (Vehicle Identification Number)"}
+                </Text>
+                <Text style={styles.infoValueFullVIN} selectable>
+                  {vehicle.vin || "-"}
+                </Text>
               </View>
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>{t.vehicle?.licensePlate || 'License Plate'}</Text>
+                <Text style={styles.infoLabel}>
+                  {t.vehicle?.licensePlate || "License Plate"}
+                </Text>
                 <Text style={styles.infoValue}>{vehicle.plateNumber}</Text>
               </View>
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>{t.vehicle?.color || 'Color'}</Text>
+                <Text style={styles.infoLabel}>
+                  {t.vehicle?.color || "Color"}
+                </Text>
                 <Text style={styles.infoValue}>{vehicle.color}</Text>
               </View>
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>{t.vehicle?.fuelType || 'Fuel Type'}</Text>
+                <Text style={styles.infoLabel}>
+                  {t.vehicle?.fuelType || "Fuel Type"}
+                </Text>
                 <Text style={styles.infoValue}>{vehicle.fuelType}</Text>
               </View>
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>{t.vehicle?.vehicleType || 'Vehicle Type'}</Text>
+                <Text style={styles.infoLabel}>
+                  {t.vehicle?.vehicleType || "Vehicle Type"}
+                </Text>
                 <Text style={styles.infoValue}>{vehicle.vehicleType}</Text>
               </View>
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>{t.vehicle?.primaryDriver || 'Primary Driver'}</Text>
+                <Text style={styles.infoLabel}>
+                  {t.vehicle?.primaryDriver || "Primary Driver"}
+                </Text>
                 <Text style={styles.infoValue}>{vehicle.primaryDriver}</Text>
               </View>
             </View>
@@ -253,42 +298,70 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
         <FadeInView delay={300}>
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitle}>{t.vehicle?.insurance || 'Insurance'}</Text>
-              <TouchableOpacity onPress={() => navigation.navigate('Insurance', { vehicleId: vehicle.id })}>
-                <Text style={styles.seeAllText}>{t.common?.manage || 'Manage'}</Text>
+              <Text style={styles.sectionTitle}>
+                {t.vehicle?.insurance || "Insurance"}
+              </Text>
+              <TouchableOpacity
+                onPress={() =>
+                  navigation.navigate("Insurance", { vehicleId: vehicle.id })
+                }
+              >
+                <Text style={styles.seeAllText}>
+                  {t.common?.manage || "Manage"}
+                </Text>
               </TouchableOpacity>
             </View>
             <View style={styles.infoCard}>
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>{t.vehicle?.provider || 'Provider'}</Text>
-                <Text style={styles.infoValue}>{vehicle.insuranceProvider}</Text>
+                <Text style={styles.infoLabel}>
+                  {t.vehicle?.provider || "Provider"}
+                </Text>
+                <Text style={styles.infoValue}>
+                  {vehicle.insuranceProvider}
+                </Text>
               </View>
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>{t.vehicle?.policyNumber || 'Policy Number'}</Text>
+                <Text style={styles.infoLabel}>
+                  {t.vehicle?.policyNumber || "Policy Number"}
+                </Text>
                 <Text style={styles.infoValue}>{vehicle.insurancePolicy}</Text>
               </View>
               <View style={styles.infoRowColumn}>
-                <Text style={styles.infoLabel}>{t.vehicle?.expiration || 'Expiration'}</Text>
+                <Text style={styles.infoLabel}>
+                  {t.vehicle?.expiration || "Expiration"}
+                </Text>
                 <View style={styles.expiryContainerColumn}>
-                  <Text style={[
-                    styles.infoValueFull,
-                    isExpired(vehicle.insuranceExpiry) && styles.expiredText,
-                    isExpiringSoon(vehicle.insuranceExpiry) && styles.expiringSoonText,
-                  ]}>
+                  <Text
+                    style={[
+                      styles.infoValueFull,
+                      isExpired(vehicle.insuranceExpiry) && styles.expiredText,
+                      isExpiringSoon(vehicle.insuranceExpiry) &&
+                        styles.expiringSoonText,
+                    ]}
+                  >
                     {formatDate(vehicle.insuranceExpiry)}
                   </Text>
                   {isExpired(vehicle.insuranceExpiry) && (
                     <View style={styles.expiredBadge}>
                       <Ionicons name="warning" size={12} color="#ef4444" />
-                      <Text style={styles.expiredBadgeText}>{t.vehicle?.expired || 'Expired'}</Text>
+                      <Text style={styles.expiredBadgeText}>
+                        {t.vehicle?.expired || "Expired"}
+                      </Text>
                     </View>
                   )}
-                  {isExpiringSoon(vehicle.insuranceExpiry) && !isExpired(vehicle.insuranceExpiry) && (
-                    <View style={styles.expiringSoonBadge}>
-                      <Ionicons name="alert-circle" size={12} color="#f59e0b" />
-                      <Text style={styles.expiringSoonBadgeText}>{t.vehicle?.expiringSoon || 'Expiring Soon'}</Text>
-                    </View>
-                  )}
+                  {isExpiringSoon(vehicle.insuranceExpiry) &&
+                    !isExpired(vehicle.insuranceExpiry) && (
+                      <View style={styles.expiringSoonBadge}>
+                        <Ionicons
+                          name="alert-circle"
+                          size={12}
+                          color="#f59e0b"
+                        />
+                        <Text style={styles.expiringSoonBadgeText}>
+                          {t.vehicle?.expiringSoon || "Expiring Soon"}
+                        </Text>
+                      </View>
+                    )}
                 </View>
               </View>
             </View>
@@ -298,20 +371,30 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
         {/* Service Status */}
         <FadeInView delay={350}>
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t.vehicle?.serviceStatus || 'Service Status'}</Text>
+            <Text style={styles.sectionTitle}>
+              {t.vehicle?.serviceStatus || "Service Status"}
+            </Text>
             <View style={styles.serviceStatusCard}>
               <View style={styles.serviceStatusItem}>
                 <Ionicons name="checkmark-circle" size={20} color="#10b981" />
                 <View style={styles.serviceStatusInfo}>
-                  <Text style={styles.serviceStatusLabel}>{t.vehicle?.lastService || 'Last Service'}</Text>
-                  <Text style={styles.serviceStatusValue}>{formatDate(vehicle.lastService)}</Text>
+                  <Text style={styles.serviceStatusLabel}>
+                    {t.vehicle?.lastService || "Last Service"}
+                  </Text>
+                  <Text style={styles.serviceStatusValue}>
+                    {formatDate(vehicle.lastService)}
+                  </Text>
                 </View>
               </View>
               <View style={styles.serviceStatusItem}>
                 <Ionicons name="calendar" size={20} color="#3b82f6" />
                 <View style={styles.serviceStatusInfo}>
-                  <Text style={styles.serviceStatusLabel}>{t.vehicle?.nextServiceDue || 'Next Service Due'}</Text>
-                  <Text style={styles.serviceStatusValue}>{formatDate(vehicle.nextServiceDue)}</Text>
+                  <Text style={styles.serviceStatusLabel}>
+                    {t.vehicle?.nextServiceDue || "Next Service Due"}
+                  </Text>
+                  <Text style={styles.serviceStatusValue}>
+                    {formatDate(vehicle.nextServiceDue)}
+                  </Text>
                 </View>
               </View>
             </View>
@@ -322,30 +405,35 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
         <FadeInView delay={400}>
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitle}>{t.vehicle?.maintenanceHistory || 'Maintenance History'}</Text>
-              <Text style={styles.historyCount}>{vehicle.maintenanceHistory.length} {t.vehicle?.records || 'records'}</Text>
+              <Text style={styles.sectionTitle}>
+                {t.vehicle?.maintenanceHistory || "Maintenance History"}
+              </Text>
+              <Text style={styles.historyCount}>
+                {vehicle.maintenanceHistory.length}{" "}
+                {t.vehicle?.records || "records"}
+              </Text>
             </View>
-            
+
             {vehicle.maintenanceHistory.map((record, index) => {
               const statusColor = getStatusColor(record.status);
               return (
-                <TouchableOpacity 
-                  key={record.id} 
+                <TouchableOpacity
+                  key={record.id}
                   style={styles.historyCard}
                   onPress={() => {
-                    if (record.status === 'completed') {
-                      navigation.navigate('Services', {
-                        screen: 'WorkOrderDetails',
-                        params: { 
+                    if (record.status === "completed") {
+                      navigation.navigate("Services", {
+                        screen: "WorkOrderDetails",
+                        params: {
                           workOrderId: record.workOrderId || record.id,
                           fromVehicleDetails: true,
                         },
                       });
-                    } else if (record.status === 'scheduled') {
+                    } else if (record.status === "scheduled") {
                       Alert.alert(
-                        t.vehicle?.scheduledService || 'Scheduled Service',
+                        t.vehicle?.scheduledService || "Scheduled Service",
                         `${record.type}\n\n${record.description}\n\nScheduled for: ${formatDate(record.date)}`,
-                        [{ text: 'OK' }]
+                        [{ text: "OK" }],
                       );
                     }
                   }}
@@ -353,10 +441,14 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
                 >
                   <View style={styles.historyHeader}>
                     <View style={styles.historyIconContainer}>
-                      <Ionicons 
-                        name={record.status === 'scheduled' ? 'calendar-outline' : 'construct-outline'} 
-                        size={20} 
-                        color={statusColor.text} 
+                      <Ionicons
+                        name={
+                          record.status === "scheduled"
+                            ? "calendar-outline"
+                            : "construct-outline"
+                        }
+                        size={20}
+                        color={statusColor.text}
                       />
                     </View>
                     <View style={styles.historyInfo}>
@@ -365,46 +457,85 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
                         {record.description}
                       </Text>
                     </View>
-                    <View style={[styles.statusBadge, { backgroundColor: statusColor.bg }]}>
-                      <Text style={[styles.statusText, { color: statusColor.text }]}>
-                        {record.status.charAt(0).toUpperCase() + record.status.slice(1)}
+                    <View
+                      style={[
+                        styles.statusBadge,
+                        { backgroundColor: statusColor.bg },
+                      ]}
+                    >
+                      <Text
+                        style={[styles.statusText, { color: statusColor.text }]}
+                      >
+                        {record.status.charAt(0).toUpperCase() +
+                          record.status.slice(1)}
                       </Text>
                     </View>
                   </View>
-                  
+
                   <View style={styles.historyDetails}>
                     <View style={styles.historyDetailItem}>
-                      <Ionicons name="calendar-outline" size={14} color="#6b7280" />
-                      <Text style={styles.historyDetailText}>{formatDate(record.date)}</Text>
+                      <Ionicons
+                        name="calendar-outline"
+                        size={14}
+                        color="#6b7280"
+                      />
+                      <Text style={styles.historyDetailText}>
+                        {formatDate(record.date)}
+                      </Text>
                     </View>
                     {record.mileage > 0 && (
                       <View style={styles.historyDetailItem}>
-                        <Ionicons name="speedometer-outline" size={14} color="#6b7280" />
-                        <Text style={styles.historyDetailText}>{formatMileage(record.mileage)}</Text>
+                        <Ionicons
+                          name="speedometer-outline"
+                          size={14}
+                          color="#6b7280"
+                        />
+                        <Text style={styles.historyDetailText}>
+                          {formatMileage(record.mileage)}
+                        </Text>
                       </View>
                     )}
                     {record.cost > 0 && (
                       <View style={styles.historyDetailItem}>
-                        <Ionicons name="wallet-outline" size={14} color="#10b981" />
-                        <Text style={[styles.historyDetailText, { color: '#10b981', fontWeight: '600' }]}>
+                        <Ionicons
+                          name="wallet-outline"
+                          size={14}
+                          color="#10b981"
+                        />
+                        <Text
+                          style={[
+                            styles.historyDetailText,
+                            { color: "#10b981", fontWeight: "600" },
+                          ]}
+                        >
                           {formatCurrency(record.cost)}
                         </Text>
                       </View>
                     )}
                   </View>
-                  
-                  {record.provider !== 'TBD' && (
+
+                  {record.provider !== "TBD" && (
                     <View style={styles.historyProvider}>
-                      <Ionicons name="business-outline" size={14} color="#6b7280" />
+                      <Ionicons
+                        name="business-outline"
+                        size={14}
+                        color="#6b7280"
+                      />
                       <Text style={styles.providerText}>{record.provider}</Text>
                     </View>
                   )}
-                  
+
                   {/* Tap indicator for completed services */}
-                  {record.status === 'completed' && (
+                  {record.status === "completed" && (
                     <View style={styles.tapIndicator}>
-                      <Text style={styles.tapIndicatorText}>{t.common?.tapToViewDetails || 'Tap to view details'}</Text>
-                      <Ionicons name="chevron-forward" size={14} color="#9ca3af" />
+                      <Text style={styles.tapIndicatorText}>
+                        {t.common?.tapToViewDetails || "Tap to view details"}
+                      </Text>
+                      <Ionicons
+                        name="chevron-forward"
+                        size={14}
+                        color="#9ca3af"
+                      />
                     </View>
                   )}
                 </TouchableOpacity>
@@ -416,45 +547,65 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
         {/* Actions */}
         <FadeInView delay={500}>
           <View style={styles.actionsSection}>
-            <ScalePress 
-              onPress={() => navigation.navigate('Home', { 
-                screen: 'Dashboard',
-                params: { 
-                  screen: 'CreateRequest',
-                  params: { vehicleId: vehicle.id }
-                }
-              })}
+            <ScalePress
+              onPress={() =>
+                navigation.navigate("Home", {
+                  screen: "Dashboard",
+                  params: {
+                    screen: "CreateRequest",
+                    params: { vehicleId: vehicle.id },
+                  },
+                })
+              }
               style={styles.primaryButton}
             >
               <Ionicons name="add-circle-outline" size={20} color="#fff" />
-              <Text style={styles.primaryButtonText}>{t.vehicle?.requestService || 'Request Service'}</Text>
-            </ScalePress>
-            
-            <ScalePress 
-              onPress={() => navigation.navigate('Insurance', { vehicleId: vehicle.id })}
-              style={styles.secondaryButton}
-            >
-              <Ionicons name="shield-checkmark-outline" size={20} color="#1976d2" />
-              <Text style={styles.secondaryButtonText}>{t.vehicle?.manageInsurance || 'Manage Insurance'}</Text>
+              <Text style={styles.primaryButtonText}>
+                {t.vehicle?.requestService || "Request Service"}
+              </Text>
             </ScalePress>
 
-            <ScalePress 
-              onPress={() => navigation.navigate('VehicleTransfer', { 
-                vehicleId: vehicle.id,
-                vehicleInfo: {
-                  make: vehicle.make,
-                  model: vehicle.model,
-                  year: vehicle.year,
-                  vin: vehicle.vin,
-                  plateNumber: vehicle.plateNumber,
-                },
-                maintenanceHistory: vehicle.maintenanceHistory,
-                totalSpent: vehicle.totalMaintenanceSpent,
-              })}
+            <ScalePress
+              onPress={() =>
+                navigation.navigate("Insurance", { vehicleId: vehicle.id })
+              }
+              style={styles.secondaryButton}
+            >
+              <Ionicons
+                name="shield-checkmark-outline"
+                size={20}
+                color="#1976d2"
+              />
+              <Text style={styles.secondaryButtonText}>
+                {t.vehicle?.manageInsurance || "Manage Insurance"}
+              </Text>
+            </ScalePress>
+
+            <ScalePress
+              onPress={() =>
+                navigation.navigate("VehicleTransfer", {
+                  vehicleId: vehicle.id,
+                  vehicleInfo: {
+                    make: vehicle.make,
+                    model: vehicle.model,
+                    year: vehicle.year,
+                    vin: vehicle.vin,
+                    plateNumber: vehicle.plateNumber,
+                  },
+                  maintenanceHistory: vehicle.maintenanceHistory,
+                  totalSpent: vehicle.totalMaintenanceSpent,
+                })
+              }
               style={styles.transferButton}
             >
-              <Ionicons name="swap-horizontal-outline" size={20} color="#8b5cf6" />
-              <Text style={styles.transferButtonText}>{t.vehicle?.transferVehicle || 'Transfer Vehicle'}</Text>
+              <Ionicons
+                name="swap-horizontal-outline"
+                size={20}
+                color="#8b5cf6"
+              />
+              <Text style={styles.transferButtonText}>
+                {t.vehicle?.transferVehicle || "Transfer Vehicle"}
+              </Text>
             </ScalePress>
           </View>
         </FadeInView>
@@ -468,63 +619,63 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: "#f8fafc",
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: "#f3f4f6",
   },
   backBtn: {
     padding: 8,
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
+    fontWeight: "600",
+    color: "#111827",
   },
   editBtn: {
     padding: 8,
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   heroSection: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: 32,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     marginBottom: 16,
   },
   vehicleIconLarge: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: '#dbeafe',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#dbeafe",
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 16,
   },
   vehicleTitle: {
     fontSize: 24,
-    fontWeight: '700',
-    color: '#111827',
+    fontWeight: "700",
+    color: "#111827",
     marginBottom: 4,
   },
   vehicleTrim: {
     fontSize: 16,
-    color: '#6b7280',
+    color: "#6b7280",
     marginBottom: 12,
   },
   defaultBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fef3c7',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fef3c7",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
@@ -532,17 +683,17 @@ const styles = StyleSheet.create({
   },
   defaultText: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#92400e',
+    fontWeight: "600",
+    color: "#92400e",
   },
   statsRow: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
+    flexDirection: "row",
+    backgroundColor: "#fff",
     borderRadius: 16,
     marginHorizontal: 16,
     padding: 20,
     marginBottom: 16,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
@@ -550,22 +701,22 @@ const styles = StyleSheet.create({
   },
   statItem: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
   },
   statValue: {
     fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
+    fontWeight: "700",
+    color: "#111827",
     marginTop: 8,
   },
   statLabel: {
     fontSize: 12,
-    color: '#6b7280',
+    color: "#6b7280",
     marginTop: 4,
   },
   statDivider: {
     width: 1,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: "#e5e7eb",
     marginHorizontal: 20,
   },
   section: {
@@ -574,102 +725,102 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
+    fontWeight: "700",
+    color: "#111827",
     marginBottom: 12,
   },
   sectionHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 12,
   },
   seeAllText: {
     fontSize: 14,
-    color: '#1976d2',
-    fontWeight: '600',
+    color: "#1976d2",
+    fontWeight: "600",
   },
   historyCount: {
     fontSize: 14,
-    color: '#6b7280',
+    color: "#6b7280",
   },
   infoCard: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 16,
     padding: 16,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
   },
   infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: "#f3f4f6",
   },
   infoRowColumn: {
-    flexDirection: 'column',
+    flexDirection: "column",
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: "#f3f4f6",
   },
   infoLabel: {
     fontSize: 14,
-    color: '#6b7280',
+    color: "#6b7280",
     flexShrink: 0,
     marginRight: 12,
   },
   infoValue: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#111827',
+    fontWeight: "600",
+    color: "#111827",
     flex: 1,
-    textAlign: 'right',
+    textAlign: "right",
   },
   infoValueFull: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#111827',
+    fontWeight: "600",
+    color: "#111827",
     marginTop: 6,
   },
   infoValueFullVIN: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#111827',
+    fontWeight: "600",
+    color: "#111827",
     marginTop: 8,
     letterSpacing: 0.5,
   },
   expiryContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   expiryContainerWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
     marginTop: 6,
     gap: 8,
   },
   expiryContainerColumn: {
-    flexDirection: 'column',
+    flexDirection: "column",
     marginTop: 6,
     gap: 8,
   },
   expiredText: {
-    color: '#ef4444',
+    color: "#ef4444",
   },
   expiringSoonText: {
-    color: '#f59e0b',
+    color: "#f59e0b",
   },
   expiredBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fee2e2',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fee2e2",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
@@ -677,13 +828,13 @@ const styles = StyleSheet.create({
   },
   expiredBadgeText: {
     fontSize: 10,
-    fontWeight: '600',
-    color: '#ef4444',
+    fontWeight: "600",
+    color: "#ef4444",
   },
   expiringSoonBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fef3c7',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fef3c7",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
@@ -691,22 +842,22 @@ const styles = StyleSheet.create({
   },
   expiringSoonBadgeText: {
     fontSize: 10,
-    fontWeight: '600',
-    color: '#f59e0b',
+    fontWeight: "600",
+    color: "#f59e0b",
   },
   serviceStatusCard: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 16,
     padding: 16,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
   },
   serviceStatusItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 8,
     gap: 12,
   },
@@ -715,37 +866,37 @@ const styles = StyleSheet.create({
   },
   serviceStatusLabel: {
     fontSize: 12,
-    color: '#6b7280',
+    color: "#6b7280",
   },
   serviceStatusValue: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#111827',
+    fontWeight: "600",
+    color: "#111827",
     marginTop: 2,
   },
   historyCard: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
   },
   historyHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     marginBottom: 12,
   },
   historyIconContainer: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#f3f4f6',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#f3f4f6",
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 12,
   },
   historyInfo: {
@@ -753,13 +904,13 @@ const styles = StyleSheet.create({
   },
   historyType: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
+    fontWeight: "600",
+    color: "#111827",
     marginBottom: 4,
   },
   historyDescription: {
     fontSize: 13,
-    color: '#6b7280',
+    color: "#6b7280",
     lineHeight: 18,
   },
   statusBadge: {
@@ -769,48 +920,48 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   historyDetails: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 16,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
+    borderTopColor: "#f3f4f6",
   },
   historyDetailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
   },
   historyDetailText: {
     fontSize: 13,
-    color: '#6b7280',
+    color: "#6b7280",
   },
   historyProvider: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
+    borderTopColor: "#f3f4f6",
     gap: 6,
   },
   providerText: {
     fontSize: 13,
-    color: '#6b7280',
+    color: "#6b7280",
   },
   tapIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
     marginTop: 8,
     gap: 4,
   },
   tapIndicatorText: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: "#9ca3af",
   },
   actionsSection: {
     paddingHorizontal: 16,
@@ -818,45 +969,45 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   primaryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#1976d2',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#1976d2",
     paddingVertical: 16,
     borderRadius: 12,
     gap: 8,
   },
   primaryButtonText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
+    fontWeight: "600",
+    color: "#fff",
   },
   secondaryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#dbeafe',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#dbeafe",
     paddingVertical: 16,
     borderRadius: 12,
     gap: 8,
   },
   secondaryButtonText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1976d2',
+    fontWeight: "600",
+    color: "#1976d2",
   },
   transferButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#ede9fe',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#ede9fe",
     paddingVertical: 16,
     borderRadius: 12,
     gap: 8,
   },
   transferButtonText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#8b5cf6',
+    fontWeight: "600",
+    color: "#8b5cf6",
   },
 });

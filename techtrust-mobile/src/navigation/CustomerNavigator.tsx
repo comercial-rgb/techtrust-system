@@ -1,68 +1,68 @@
-import React from 'react';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Ionicons } from '@expo/vector-icons';
-import { View, Text, StyleSheet } from 'react-native';
-import { useI18n } from '../i18n';
-import { useNotifications } from '../contexts/NotificationsContext';
-import { CommonActions } from '@react-navigation/native';
+import React from "react";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { Ionicons } from "@expo/vector-icons";
+import { View, Text, StyleSheet } from "react-native";
+import { useI18n } from "../i18n";
+import { useNotifications } from "../contexts/NotificationsContext";
+import { CommonActions } from "@react-navigation/native";
 
 // Customer Screens - NOVAS TELAS COM DESIGN MODERNO E DADOS MOCKADOS
-import LandingScreen from '../screens/LandingScreen';
-import CustomerDashboardScreen from '../screens/CustomerDashboardScreen';
-import CustomerVehiclesScreen from '../screens/CustomerVehiclesScreen';
-import CustomerWorkOrdersScreen from '../screens/CustomerWorkOrdersScreen';
-import CustomerProfileScreen from '../screens/CustomerProfileScreen';
+import LandingScreen from "../screens/LandingScreen";
+import CustomerDashboardScreen from "../screens/CustomerDashboardScreen";
+import CustomerVehiclesScreen from "../screens/CustomerVehiclesScreen";
+import CustomerWorkOrdersScreen from "../screens/CustomerWorkOrdersScreen";
+import CustomerProfileScreen from "../screens/CustomerProfileScreen";
 
 // Telas auxiliares
-import AddVehicleScreen from '../screens/AddVehicleScreen';
-import VehicleDetailsScreen from '../screens/VehicleDetailsScreen';
-import VehicleTransferScreen from '../screens/VehicleTransferScreen';
-import InsuranceScreen from '../screens/InsuranceScreen';
-import CreateRequestScreen from '../screens/CreateRequestScreen';
-import RequestDetailsScreen from '../screens/RequestDetailsScreen';
-import WorkOrderDetailsScreen from '../screens/WorkOrderDetailsScreen';
-import PaymentScreen from '../screens/PaymentScreen';
-import RatingScreen from '../screens/RatingScreen';
-import ArticleDetailScreen from '../screens/ArticleDetailScreen';
+import AddVehicleScreen from "../screens/AddVehicleScreen";
+import VehicleDetailsScreen from "../screens/VehicleDetailsScreen";
+import VehicleTransferScreen from "../screens/VehicleTransferScreen";
+import InsuranceScreen from "../screens/InsuranceScreen";
+import CreateRequestScreen from "../screens/CreateRequestScreen";
+import RequestDetailsScreen from "../screens/RequestDetailsScreen";
+import WorkOrderDetailsScreen from "../screens/WorkOrderDetailsScreen";
+import PaymentScreen from "../screens/PaymentScreen";
+import RatingScreen from "../screens/RatingScreen";
+import ArticleDetailScreen from "../screens/ArticleDetailScreen";
 
 // Chat Screens
-import ChatListScreen from '../screens/ChatListScreen';
-import ChatScreen from '../screens/ChatScreen';
+import ChatListScreen from "../screens/ChatListScreen";
+import ChatScreen from "../screens/ChatScreen";
 
 // Notifications Screen
-import NotificationsScreen from '../screens/NotificationsScreen';
+import NotificationsScreen from "../screens/NotificationsScreen";
 
 // Support Chat Screen
-import SupportChatScreen from '../screens/SupportChatScreen';
+import SupportChatScreen from "../screens/SupportChatScreen";
 
 // Customer Profile Screens
-import PersonalInfoScreen from '../screens/customer/PersonalInfoScreen';
-import AddressesScreen from '../screens/customer/AddressesScreen';
-import PaymentMethodsScreen from '../screens/customer/PaymentMethodsScreen';
-import ServiceHistoryScreen from '../screens/customer/ServiceHistoryScreen';
-import FavoriteProvidersScreen from '../screens/customer/FavoriteProvidersScreen';
-import HelpCenterScreen from '../screens/customer/HelpCenterScreen';
-import ContactUsScreen from '../screens/customer/ContactUsScreen';
-import RateAppScreen from '../screens/customer/RateAppScreen';
-import TermsAndPoliciesScreen from '../screens/customer/TermsAndPoliciesScreen';
-import SubscriptionPlanScreen from '../screens/customer/SubscriptionPlanScreen';
-import CustomerReportsScreen from '../screens/customer/CustomerReportsScreen';
-import CustomerQuoteDetailsScreen from '../screens/customer/CustomerQuoteDetailsScreen';
+import PersonalInfoScreen from "../screens/customer/PersonalInfoScreen";
+import AddressesScreen from "../screens/customer/AddressesScreen";
+import PaymentMethodsScreen from "../screens/customer/PaymentMethodsScreen";
+import ServiceHistoryScreen from "../screens/customer/ServiceHistoryScreen";
+import FavoriteProvidersScreen from "../screens/customer/FavoriteProvidersScreen";
+import HelpCenterScreen from "../screens/customer/HelpCenterScreen";
+import ContactUsScreen from "../screens/customer/ContactUsScreen";
+import RateAppScreen from "../screens/customer/RateAppScreen";
+import TermsAndPoliciesScreen from "../screens/customer/TermsAndPoliciesScreen";
+import SubscriptionPlanScreen from "../screens/customer/SubscriptionPlanScreen";
+import CustomerReportsScreen from "../screens/customer/CustomerReportsScreen";
+import CustomerQuoteDetailsScreen from "../screens/customer/CustomerQuoteDetailsScreen";
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
 // Custom Tab Bar Icon with Badge
-function TabBarIcon({ 
-  name, 
-  color, 
-  size, 
-  badge 
-}: { 
-  name: any; 
-  color: string; 
-  size: number; 
+function TabBarIcon({
+  name,
+  color,
+  size,
+  badge,
+}: {
+  name: any;
+  color: string;
+  size: number;
   badge?: number;
 }) {
   return (
@@ -70,7 +70,7 @@ function TabBarIcon({
       <Ionicons name={name} size={size} color={color} />
       {badge && badge > 0 && (
         <View style={styles.badge}>
-          <Text style={styles.badgeText}>{badge > 9 ? '9+' : badge}</Text>
+          <Text style={styles.badgeText}>{badge > 9 ? "9+" : badge}</Text>
         </View>
       )}
     </View>
@@ -91,7 +91,10 @@ function DashboardStack() {
       <Stack.Screen name="DashboardMain" component={CustomerDashboardScreen} />
       <Stack.Screen name="CreateRequest" component={CreateRequestScreen} />
       <Stack.Screen name="RequestDetails" component={RequestDetailsScreen} />
-      <Stack.Screen name="QuoteDetails" component={CustomerQuoteDetailsScreen} />
+      <Stack.Screen
+        name="QuoteDetails"
+        component={CustomerQuoteDetailsScreen}
+      />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="ArticleDetail" component={ArticleDetailScreen} />
     </Stack.Navigator>
@@ -113,8 +116,14 @@ function VehiclesStack() {
 function WorkOrdersStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="WorkOrdersList" component={CustomerWorkOrdersScreen} />
-      <Stack.Screen name="WorkOrderDetails" component={WorkOrderDetailsScreen} />
+      <Stack.Screen
+        name="WorkOrdersList"
+        component={CustomerWorkOrdersScreen}
+      />
+      <Stack.Screen
+        name="WorkOrderDetails"
+        component={WorkOrderDetailsScreen}
+      />
       <Stack.Screen name="Payment" component={PaymentScreen} />
       <Stack.Screen name="Rating" component={RatingScreen} />
     </Stack.Navigator>
@@ -138,14 +147,26 @@ function ProfileStack() {
       <Stack.Screen name="Addresses" component={AddressesScreen} />
       <Stack.Screen name="PaymentMethods" component={PaymentMethodsScreen} />
       <Stack.Screen name="ServiceHistory" component={ServiceHistoryScreen} />
-      <Stack.Screen name="ServiceHistoryWorkOrderDetails" component={WorkOrderDetailsScreen} />
-      <Stack.Screen name="FavoriteProviders" component={FavoriteProvidersScreen} />
+      <Stack.Screen
+        name="ServiceHistoryWorkOrderDetails"
+        component={WorkOrderDetailsScreen}
+      />
+      <Stack.Screen
+        name="FavoriteProviders"
+        component={FavoriteProvidersScreen}
+      />
       <Stack.Screen name="Reports" component={CustomerReportsScreen} />
       <Stack.Screen name="HelpCenter" component={HelpCenterScreen} />
       <Stack.Screen name="ContactUs" component={ContactUsScreen} />
       <Stack.Screen name="RateApp" component={RateAppScreen} />
-      <Stack.Screen name="TermsAndPolicies" component={TermsAndPoliciesScreen} />
-      <Stack.Screen name="SubscriptionPlan" component={SubscriptionPlanScreen} />
+      <Stack.Screen
+        name="TermsAndPolicies"
+        component={TermsAndPoliciesScreen}
+      />
+      <Stack.Screen
+        name="SubscriptionPlan"
+        component={SubscriptionPlanScreen}
+      />
       <Stack.Screen name="SupportChat" component={SupportChatScreen} />
       <Stack.Screen name="MyVehicles" component={CustomerVehiclesScreen} />
       <Stack.Screen name="AddVehicle" component={AddVehicleScreen} />
@@ -164,19 +185,19 @@ export default function CustomerNavigator() {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#1976d2',
-        tabBarInactiveTintColor: '#9ca3af',
+        tabBarActiveTintColor: "#1976d2",
+        tabBarInactiveTintColor: "#9ca3af",
         tabBarStyle: {
           height: 85,
           paddingTop: 8,
           paddingBottom: 25,
-          backgroundColor: '#fff',
+          backgroundColor: "#fff",
           borderTopWidth: 1,
-          borderTopColor: '#f3f4f6',
+          borderTopColor: "#f3f4f6",
         },
         tabBarLabelStyle: {
           fontSize: 11,
-          fontWeight: '600',
+          fontWeight: "600",
         },
       }}
     >
@@ -184,7 +205,7 @@ export default function CustomerNavigator() {
         name="Home"
         component={HomeStack}
         options={{
-          tabBarLabel: t.nav?.home || 'Home',
+          tabBarLabel: t.nav?.home || "Home",
           tabBarIcon: ({ color, size }) => (
             <TabBarIcon name="home" color={color} size={size} />
           ),
@@ -195,8 +216,13 @@ export default function CustomerNavigator() {
             navigation.dispatch(
               CommonActions.reset({
                 index: 0,
-                routes: [{ name: 'Home', state: { routes: [{ name: 'LandingMain' }] } }],
-              })
+                routes: [
+                  {
+                    name: "Home",
+                    state: { routes: [{ name: "LandingMain" }] },
+                  },
+                ],
+              }),
             );
           },
         })}
@@ -205,7 +231,7 @@ export default function CustomerNavigator() {
         name="Dashboard"
         component={DashboardStack}
         options={{
-          tabBarLabel: t.nav?.dashboard || 'Dashboard',
+          tabBarLabel: t.nav?.dashboard || "Dashboard",
           tabBarIcon: ({ color, size }) => (
             <TabBarIcon name="grid" color={color} size={size} />
           ),
@@ -218,8 +244,13 @@ export default function CustomerNavigator() {
             navigation.dispatch(
               CommonActions.reset({
                 index: 0,
-                routes: [{ name: 'Dashboard', state: { routes: [{ name: 'DashboardMain' }] } }],
-              })
+                routes: [
+                  {
+                    name: "Dashboard",
+                    state: { routes: [{ name: "DashboardMain" }] },
+                  },
+                ],
+              }),
             );
           },
         })}
@@ -228,7 +259,7 @@ export default function CustomerNavigator() {
         name="Vehicles"
         component={VehiclesStack}
         options={{
-          tabBarLabel: t.nav?.vehicles || 'Vehicles',
+          tabBarLabel: t.nav?.vehicles || "Vehicles",
           tabBarIcon: ({ color, size }) => (
             <TabBarIcon name="car" color={color} size={size} />
           ),
@@ -238,8 +269,13 @@ export default function CustomerNavigator() {
             navigation.dispatch(
               CommonActions.reset({
                 index: 0,
-                routes: [{ name: 'Vehicles', state: { routes: [{ name: 'VehiclesList' }] } }],
-              })
+                routes: [
+                  {
+                    name: "Vehicles",
+                    state: { routes: [{ name: "VehiclesList" }] },
+                  },
+                ],
+              }),
             );
           },
         })}
@@ -248,7 +284,7 @@ export default function CustomerNavigator() {
         name="Services"
         component={WorkOrdersStack}
         options={{
-          tabBarLabel: t.nav?.services || 'Services',
+          tabBarLabel: t.nav?.services || "Services",
           tabBarIcon: ({ color, size }) => (
             <TabBarIcon name="construct" color={color} size={size} />
           ),
@@ -258,8 +294,13 @@ export default function CustomerNavigator() {
             navigation.dispatch(
               CommonActions.reset({
                 index: 0,
-                routes: [{ name: 'Services', state: { routes: [{ name: 'WorkOrdersList' }] } }],
-              })
+                routes: [
+                  {
+                    name: "Services",
+                    state: { routes: [{ name: "WorkOrdersList" }] },
+                  },
+                ],
+              }),
             );
           },
         })}
@@ -268,12 +309,12 @@ export default function CustomerNavigator() {
         name="Messages"
         component={ChatStack}
         options={{
-          tabBarLabel: t.nav?.chat || 'Messages',
+          tabBarLabel: t.nav?.chat || "Messages",
           tabBarIcon: ({ color, size }) => (
-            <TabBarIcon 
-              name="chatbubbles" 
-              color={color} 
-              size={size} 
+            <TabBarIcon
+              name="chatbubbles"
+              color={color}
+              size={size}
               badge={unreadMessagesCount}
             />
           ),
@@ -283,8 +324,13 @@ export default function CustomerNavigator() {
             navigation.dispatch(
               CommonActions.reset({
                 index: 0,
-                routes: [{ name: 'Messages', state: { routes: [{ name: 'ChatList' }] } }],
-              })
+                routes: [
+                  {
+                    name: "Messages",
+                    state: { routes: [{ name: "ChatList" }] },
+                  },
+                ],
+              }),
             );
           },
         })}
@@ -293,7 +339,7 @@ export default function CustomerNavigator() {
         name="Profile"
         component={ProfileStack}
         options={{
-          tabBarLabel: t.nav?.profile || 'Profile',
+          tabBarLabel: t.nav?.profile || "Profile",
           tabBarIcon: ({ color, size }) => (
             <TabBarIcon name="person" color={color} size={size} />
           ),
@@ -304,8 +350,13 @@ export default function CustomerNavigator() {
             navigation.dispatch(
               CommonActions.reset({
                 index: 0,
-                routes: [{ name: 'Profile', state: { routes: [{ name: 'ProfileMain' }] } }],
-              })
+                routes: [
+                  {
+                    name: "Profile",
+                    state: { routes: [{ name: "ProfileMain" }] },
+                  },
+                ],
+              }),
             );
           },
         })}
@@ -316,23 +367,23 @@ export default function CustomerNavigator() {
 
 const styles = StyleSheet.create({
   iconContainer: {
-    position: 'relative',
+    position: "relative",
   },
   badge: {
-    position: 'absolute',
+    position: "absolute",
     right: -8,
     top: -4,
-    backgroundColor: '#ef4444',
+    backgroundColor: "#ef4444",
     borderRadius: 10,
     minWidth: 18,
     height: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: 4,
   },
   badgeText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 10,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
 });

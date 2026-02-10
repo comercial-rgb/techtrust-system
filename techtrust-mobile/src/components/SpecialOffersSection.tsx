@@ -3,7 +3,7 @@
  * Usado na LandingScreen e CustomerDashboard
  */
 
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -13,10 +13,10 @@ import {
   Image,
   Dimensions,
   ActivityIndicator,
-} from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+} from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
 export interface SpecialOffer {
   id: string;
@@ -41,9 +41,9 @@ interface SpecialOffersSectionProps {
   loading?: boolean;
 }
 
-export default function SpecialOffersSection({ 
+export default function SpecialOffersSection({
   offers,
-  onOfferPress, 
+  onOfferPress,
   showHeader = true,
   compact = false,
   loading = false,
@@ -51,125 +51,169 @@ export default function SpecialOffersSection({
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
 
   const handleImageError = (offerId: string) => {
-    setImageErrors(prev => ({ ...prev, [offerId]: true }));
+    setImageErrors((prev) => ({ ...prev, [offerId]: true }));
   };
 
   // Gerar cores baseadas no índice
   const getOfferColors = (index: number) => {
     const colors = [
-      { bgColor: '#fee2e2', accentColor: '#ef4444' },
-      { bgColor: '#fef3c7', accentColor: '#f59e0b' },
-      { bgColor: '#d1fae5', accentColor: '#10b981' },
-      { bgColor: '#dbeafe', accentColor: '#3b82f6' },
+      { bgColor: "#fee2e2", accentColor: "#ef4444" },
+      { bgColor: "#fef3c7", accentColor: "#f59e0b" },
+      { bgColor: "#d1fae5", accentColor: "#10b981" },
+      { bgColor: "#dbeafe", accentColor: "#3b82f6" },
     ];
     return colors[index % colors.length];
   };
-  
-  const renderOffer = ({ item, index }: { item: SpecialOffer; index: number }) => {
+
+  const renderOffer = ({
+    item,
+    index,
+  }: {
+    item: SpecialOffer;
+    index: number;
+  }) => {
     const hasError = imageErrors[item.id];
     const colors = getOfferColors(index);
-    
+
     // Support both imageUrl and image fields
     const rawImageUrl = item.imageUrl || item.image;
-    
+
     // Ensure imageUrl is absolute and properly formatted for both iOS and Android
     let imageUrl = null;
     if (rawImageUrl) {
       const urlStr = String(rawImageUrl).trim();
-      if (urlStr.startsWith('http://') || urlStr.startsWith('https://')) {
+      if (urlStr.startsWith("http://") || urlStr.startsWith("https://")) {
         imageUrl = urlStr;
       } else {
-        const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'https://techtrust-api.onrender.com';
-        const cleanPath = urlStr.startsWith('/') ? urlStr : '/' + urlStr;
+        const apiUrl =
+          process.env.EXPO_PUBLIC_API_URL ||
+          "https://techtrust-api.onrender.com";
+        const cleanPath = urlStr.startsWith("/") ? urlStr : "/" + urlStr;
         imageUrl = `${apiUrl}${cleanPath}`;
       }
     }
-    
+
     // Format discount display - support both API field (discountLabel) and legacy (discount)
     const rawDiscount = (item as any).discountLabel || item.discount;
     const discountDisplay = rawDiscount
-      ? (typeof rawDiscount === 'number' ? `${rawDiscount}% OFF` : String(rawDiscount))
+      ? typeof rawDiscount === "number"
+        ? `${rawDiscount}% OFF`
+        : String(rawDiscount)
       : null;
-    
+
     // Get prices - support API Decimal fields and string fields
     // API returns originalPrice/discountedPrice as Decimal (number), mock data as string
-    const rawOriginal = item.originalPrice || (item as any).regularPrice || item.regularPrice;
-    const rawDiscounted = item.discountedPrice || (item as any).specialPrice || item.specialPrice;
-    
+    const rawOriginal =
+      item.originalPrice || (item as any).regularPrice || item.regularPrice;
+    const rawDiscounted =
+      item.discountedPrice || (item as any).specialPrice || item.specialPrice;
+
     const formatPrice = (val: any): string | null => {
       if (!val) return null;
-      if (typeof val === 'string' && (val.startsWith('$') || val === 'FREE')) return val;
+      if (typeof val === "string" && (val.startsWith("$") || val === "FREE"))
+        return val;
       const num = Number(val);
       if (isNaN(num) || num === 0) return null;
       return `$${num.toFixed(2)}`;
     };
-    
+
     const regularPrice = formatPrice(rawOriginal);
     const specialPrice = formatPrice(rawDiscounted);
-    
+
     // Format valid until date - API returns ISO DateTime, mock returns formatted string
     const rawValidUntil = item.validUntil;
     let validUntil: string | null = null;
     if (rawValidUntil) {
       const dateStr = String(rawValidUntil);
-      if (dateStr.includes('T') || (dateStr.includes('-') && dateStr.length > 10)) {
+      if (
+        dateStr.includes("T") ||
+        (dateStr.includes("-") && dateStr.length > 10)
+      ) {
         // ISO DateTime from API
         const d = new Date(dateStr);
         if (!isNaN(d.getTime())) {
-          validUntil = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+          validUntil = d.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          });
         }
-      } else if (dateStr.includes('-')) {
+      } else if (dateStr.includes("-")) {
         // Date-only string
-        const d = new Date(dateStr + 'T00:00:00');
+        const d = new Date(dateStr + "T00:00:00");
         if (!isNaN(d.getTime())) {
-          validUntil = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+          validUntil = d.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          });
         }
       } else {
         validUntil = dateStr; // Already formatted
       }
     }
-    
+
     // Get promo code - API uses promoCode, component interface uses code
     const promoCode = item.code || (item as any).promoCode;
-    
+
     return (
-      <TouchableOpacity 
+      <TouchableOpacity
         style={[styles.offerCard, compact && styles.offerCardCompact]}
         activeOpacity={0.9}
         onPress={() => onOfferPress?.(item)}
       >
         {imageUrl && !hasError ? (
-          <Image 
-            source={{ 
+          <Image
+            source={{
               uri: imageUrl,
-            }} 
-            style={[styles.offerImage, compact && styles.offerImageCompact]} 
+            }}
+            style={[styles.offerImage, compact && styles.offerImageCompact]}
             onError={(e) => {
-              console.log('Image load error:', imageUrl, e.nativeEvent.error);
+              console.log("Image load error:", imageUrl, e.nativeEvent.error);
               handleImageError(item.id);
             }}
             resizeMode="cover"
           />
         ) : (
-          <View style={[styles.offerImage, compact && styles.offerImageCompact, { backgroundColor: colors.bgColor }]}>
-            <MaterialCommunityIcons name="tag-outline" size={40} color={colors.accentColor} />
+          <View
+            style={[
+              styles.offerImage,
+              compact && styles.offerImageCompact,
+              { backgroundColor: colors.bgColor },
+            ]}
+          >
+            <MaterialCommunityIcons
+              name="tag-outline"
+              size={40}
+              color={colors.accentColor}
+            />
           </View>
         )}
-        
+
         {discountDisplay && (
-          <View style={[styles.discountBadge, { backgroundColor: colors.accentColor }]}>
+          <View
+            style={[
+              styles.discountBadge,
+              { backgroundColor: colors.accentColor },
+            ]}
+          >
             <Text style={styles.discountText}>{discountDisplay}</Text>
           </View>
         )}
-        
+
         <View style={styles.offerContent}>
-          <Text style={styles.offerTitle} numberOfLines={2}>{item.title}</Text>
+          <Text style={styles.offerTitle} numberOfLines={2}>
+            {item.title}
+          </Text>
           {item.description && (
-            <Text style={styles.offerDescription} numberOfLines={compact ? 2 : 3}>
+            <Text
+              style={styles.offerDescription}
+              numberOfLines={compact ? 2 : 3}
+            >
               {item.description}
             </Text>
           )}
-          
+
           {/* Price display */}
           {(regularPrice || specialPrice) && (
             <View style={styles.priceContainer}>
@@ -177,18 +221,27 @@ export default function SpecialOffersSection({
                 <Text style={styles.regularPrice}>{regularPrice}</Text>
               )}
               {specialPrice && (
-                <Text style={[styles.specialPrice, { color: colors.accentColor }]}>{specialPrice}</Text>
+                <Text
+                  style={[styles.specialPrice, { color: colors.accentColor }]}
+                >
+                  {specialPrice}
+                </Text>
               )}
             </View>
           )}
-          
+
           {/* Valid Until */}
           {validUntil && (
             <Text style={styles.validUntil}>Valid until {validUntil}</Text>
           )}
-          
+
           {promoCode && (
-            <View style={[styles.codeContainer, { backgroundColor: colors.bgColor }]}>
+            <View
+              style={[
+                styles.codeContainer,
+                { backgroundColor: colors.bgColor },
+              ]}
+            >
               <Text style={[styles.codeText, { color: colors.accentColor }]}>
                 Code: {promoCode}
               </Text>
@@ -204,7 +257,11 @@ export default function SpecialOffersSection({
       <View style={styles.container}>
         {showHeader && (
           <View style={styles.header}>
-            <MaterialCommunityIcons name="tag-multiple" size={24} color="#ef4444" />
+            <MaterialCommunityIcons
+              name="tag-multiple"
+              size={24}
+              color="#ef4444"
+            />
             <View style={styles.headerText}>
               <Text style={styles.title}>Special Offers</Text>
               <Text style={styles.subtitle}>Limited time deals</Text>
@@ -226,7 +283,11 @@ export default function SpecialOffersSection({
     <View style={styles.container}>
       {showHeader && (
         <View style={styles.header}>
-          <MaterialCommunityIcons name="tag-multiple" size={24} color="#ef4444" />
+          <MaterialCommunityIcons
+            name="tag-multiple"
+            size={24}
+            color="#ef4444"
+          />
           <View style={styles.headerText}>
             <Text style={styles.title}>Special Offers</Text>
             <Text style={styles.subtitle}>Limited time deals</Text>
@@ -241,7 +302,7 @@ export default function SpecialOffersSection({
       <FlatList
         data={offers}
         renderItem={renderOffer}
-        keyExtractor={item => item.id}
+        keyExtractor={(item) => item.id}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.listContainer}
@@ -255,8 +316,8 @@ const styles = StyleSheet.create({
     marginVertical: 8,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 16,
     marginBottom: 16,
     gap: 12,
@@ -266,28 +327,28 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
+    fontWeight: "700",
+    color: "#111827",
   },
   subtitle: {
     fontSize: 13,
-    color: '#6b7280',
+    color: "#6b7280",
     marginTop: 2,
   },
   viewAllBtn: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: '#fef2f2',
+    backgroundColor: "#fef2f2",
     borderRadius: 8,
   },
   viewAllText: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#ef4444',
+    fontWeight: "600",
+    color: "#ef4444",
   },
   loadingContainer: {
     paddingVertical: 40,
-    alignItems: 'center',
+    alignItems: "center",
   },
   listContainer: {
     paddingLeft: 16,
@@ -295,13 +356,13 @@ const styles = StyleSheet.create({
   },
   offerCard: {
     width: 220,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 16,
     marginRight: 12,
-    overflow: 'hidden',
+    overflow: "hidden",
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    shadowColor: '#000',
+    borderColor: "#e5e7eb",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
@@ -311,17 +372,17 @@ const styles = StyleSheet.create({
     width: 180,
   },
   offerImage: {
-    width: '100%',
+    width: "100%",
     height: 120,
-    resizeMode: 'cover',
-    justifyContent: 'center',
-    alignItems: 'center',
+    resizeMode: "cover",
+    justifyContent: "center",
+    alignItems: "center",
   },
   offerImageCompact: {
     height: 90,
   },
   discountBadge: {
-    position: 'absolute',
+    position: "absolute",
     top: 10,
     right: 10,
     paddingHorizontal: 10,
@@ -330,41 +391,41 @@ const styles = StyleSheet.create({
   },
   discountText: {
     fontSize: 12,
-    fontWeight: '700',
-    color: '#fff',
+    fontWeight: "700",
+    color: "#fff",
   },
   offerContent: {
     padding: 14,
   },
   offerTitle: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#111827',
+    fontWeight: "700",
+    color: "#111827",
   },
   offerDescription: {
     fontSize: 13,
-    color: '#6b7280',
+    color: "#6b7280",
     marginTop: 4,
     lineHeight: 18,
   },
   priceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginTop: 8,
     gap: 8,
   },
   regularPrice: {
     fontSize: 13,
-    color: '#9ca3af',
-    textDecorationLine: 'line-through',
+    color: "#9ca3af",
+    textDecorationLine: "line-through",
   },
   specialPrice: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   validUntil: {
     fontSize: 11,
-    color: '#9ca3af',
+    color: "#9ca3af",
     marginTop: 6,
   },
   codeContainer: {
@@ -372,10 +433,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 6,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
   },
   codeText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });

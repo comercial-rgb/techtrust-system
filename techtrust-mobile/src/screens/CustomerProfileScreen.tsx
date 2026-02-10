@@ -3,7 +3,7 @@
  * Modern design with cards and statistics
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -13,18 +13,18 @@ import {
   Switch,
   Alert,
   Modal,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAuth } from '../contexts/AuthContext';
-import { FadeInView, ScalePress } from '../components/Animated';
-import { useI18n, languages, Language } from '../i18n';
-import api from '../services/api';
-import { getVehicles } from '../services/dashboard.service';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useAuth } from "../contexts/AuthContext";
+import { FadeInView, ScalePress } from "../components/Animated";
+import { useI18n, languages, Language } from "../i18n";
+import api from "../services/api";
+import { getVehicles } from "../services/dashboard.service";
 
-const SPOKEN_LANGUAGES_KEY = '@techtrust_spoken_languages';
+const SPOKEN_LANGUAGES_KEY = "@techtrust_spoken_languages";
 
 export default function CustomerProfileScreen({ navigation }: any) {
   const { user, logout } = useAuth();
@@ -32,8 +32,9 @@ export default function CustomerProfileScreen({ navigation }: any) {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
-  const [showSpokenLanguagesModal, setShowSpokenLanguagesModal] = useState(false);
-  const [spokenLanguages, setSpokenLanguages] = useState<string[]>(['en']); // Languages the customer speaks
+  const [showSpokenLanguagesModal, setShowSpokenLanguagesModal] =
+    useState(false);
+  const [spokenLanguages, setSpokenLanguages] = useState<string[]>(["en"]); // Languages the customer speaks
   const [stats, setStats] = useState<{
     totalServices: number;
     totalSpent: number;
@@ -53,59 +54,67 @@ export default function CustomerProfileScreen({ navigation }: any) {
         }
       }
     } catch (error) {
-      console.error('Error loading spoken languages:', error);
+      console.error("Error loading spoken languages:", error);
     }
   };
 
   const loadUserStats = async () => {
     try {
       setLoadingStats(true);
-      
+
       // Load vehicles using the proven dashboard service
       let vehiclesCount = 0;
       try {
         const vehiclesList = await getVehicles();
         vehiclesCount = vehiclesList.length;
       } catch (e) {
-        console.error('Error loading vehicles:', e);
+        console.error("Error loading vehicles:", e);
       }
 
       // Load services
       let totalServices = 0;
       let totalSpent = 0;
       try {
-        const servicesResponse = await api.get('/service-requests');
+        const servicesResponse = await api.get("/service-requests");
         const sData = servicesResponse?.data;
-        const services = sData?.requests || sData?.data || (Array.isArray(sData) ? sData : []);
+        const services =
+          sData?.requests || sData?.data || (Array.isArray(sData) ? sData : []);
         const completed = services.filter((s: any) => {
           const st = s?.status;
-          return st && typeof st === 'string' && (st.toLowerCase() === 'completed');
+          return (
+            st && typeof st === "string" && st.toLowerCase() === "completed"
+          );
         });
         totalServices = completed.length;
-        totalSpent = completed.reduce((sum: number, s: any) => sum + (Number(s.totalPrice) || 0), 0);
+        totalSpent = completed.reduce(
+          (sum: number, s: any) => sum + (Number(s.totalPrice) || 0),
+          0,
+        );
       } catch (e) {
-        console.error('Error loading services:', e);
+        console.error("Error loading services:", e);
       }
 
       // Load subscription
       try {
-        const meResponse = await api.get('/users/me');
+        const meResponse = await api.get("/users/me");
         const meData = meResponse?.data?.data || meResponse?.data;
         if (meData?.subscription) {
           setSubscription(meData.subscription);
         }
       } catch (e) {
-        console.error('Error loading user data:', e);
+        console.error("Error loading user data:", e);
       }
 
       setStats({
         totalServices,
         totalSpent,
         vehiclesCount,
-        memberSince: user?.createdAt ? new Date(user.createdAt).getFullYear().toString() : new Date().getFullYear().toString(),
+        memberSince: user?.createdAt
+          ? new Date(user.createdAt).getFullYear().toString()
+          : new Date().getFullYear().toString(),
       });
     } catch (error) {
-      console.error('ERROR in loadUserStats:', error);
+      console.error("ERROR in loadUserStats:", error);
     } finally {
       setLoadingStats(false);
     }
@@ -116,10 +125,11 @@ export default function CustomerProfileScreen({ navigation }: any) {
     useCallback(() => {
       loadUserStats();
       loadSpokenLanguages();
-    }, [])
+    }, []),
   );
 
-  const currentLanguage = languages.find(l => l.code === language) || languages[0];
+  const currentLanguage =
+    languages.find((l) => l.code === language) || languages[0];
 
   const handleLanguageSelect = async (langCode: Language) => {
     await setLanguage(langCode);
@@ -127,88 +137,91 @@ export default function CustomerProfileScreen({ navigation }: any) {
   };
 
   const toggleSpokenLanguage = (langCode: string) => {
-    setSpokenLanguages(prev => {
+    setSpokenLanguages((prev) => {
       let newLangs: string[];
       if (prev.includes(langCode)) {
         // Don't allow removing all languages
         if (prev.length === 1) return prev;
-        newLangs = prev.filter(l => l !== langCode);
+        newLangs = prev.filter((l) => l !== langCode);
       } else {
         newLangs = [...prev, langCode];
       }
       // Persist to AsyncStorage
-      AsyncStorage.setItem(SPOKEN_LANGUAGES_KEY, JSON.stringify(newLangs)).catch(err => 
-        console.error('Error saving spoken languages:', err)
-      );
+      AsyncStorage.setItem(
+        SPOKEN_LANGUAGES_KEY,
+        JSON.stringify(newLangs),
+      ).catch((err) => console.error("Error saving spoken languages:", err));
       return newLangs;
     });
   };
 
   const getSpokenLanguagesText = () => {
-    if (spokenLanguages.length === 0) return t.profile?.noLanguagesSelected || 'Select languages';
-    const selectedLangs = languages.filter(l => spokenLanguages.includes(l.code));
-    return selectedLangs.map(l => l.flag).join(' ');
+    if (spokenLanguages.length === 0)
+      return t.profile?.noLanguagesSelected || "Select languages";
+    const selectedLangs = languages.filter((l) =>
+      spokenLanguages.includes(l.code),
+    );
+    return selectedLangs.map((l) => l.flag).join(" ");
   };
 
   const handleLogout = () => {
-    Alert.alert(
-      'Log Out',
-      'Are you sure you want to log out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Log Out', style: 'destructive', onPress: logout },
-      ]
-    );
+    Alert.alert("Log Out", "Are you sure you want to log out?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Log Out", style: "destructive", onPress: logout },
+    ]);
   };
 
   const menuItems = [
     {
-      id: 'personal',
-      title: t.profile?.personalInfo || 'Personal Information',
-      subtitle: t.profile?.personalInfoSubtitle || 'Name, email, phone',
-      icon: 'person-circle',
-      color: '#3b82f6',
-      onPress: () => navigation.navigate('PersonalInfo'),
+      id: "personal",
+      title: t.profile?.personalInfo || "Personal Information",
+      subtitle: t.profile?.personalInfoSubtitle || "Name, email, phone",
+      icon: "person-circle",
+      color: "#3b82f6",
+      onPress: () => navigation.navigate("PersonalInfo"),
     },
     {
-      id: 'vehicles',
-      title: t.profile?.myVehicles || 'My Vehicles',
-      subtitle: (stats?.vehiclesCount || 0) > 0 ? `${stats.vehiclesCount} ${stats.vehiclesCount === 1 ? (t.profile?.vehicleRegistered || 'vehicle registered') : (t.profile?.vehiclesRegistered || 'vehicles registered')}` : (t.profile?.noVehicles || 'No vehicles registered'),
-      icon: 'car',
-      color: '#f59e0b',
-      onPress: () => navigation.navigate('MyVehicles'),
+      id: "vehicles",
+      title: t.profile?.myVehicles || "My Vehicles",
+      subtitle:
+        (stats?.vehiclesCount || 0) > 0
+          ? `${stats.vehiclesCount} ${stats.vehiclesCount === 1 ? t.profile?.vehicleRegistered || "vehicle registered" : t.profile?.vehiclesRegistered || "vehicles registered"}`
+          : t.profile?.noVehicles || "No vehicles registered",
+      icon: "car",
+      color: "#f59e0b",
+      onPress: () => navigation.navigate("MyVehicles"),
     },
     {
-      id: 'addresses',
-      title: t.profile?.addresses || 'Addresses',
-      subtitle: t.profile?.savedAddresses || 'Saved addresses',
-      icon: 'location',
-      color: '#10b981',
-      onPress: () => navigation.navigate('Addresses'),
+      id: "addresses",
+      title: t.profile?.addresses || "Addresses",
+      subtitle: t.profile?.savedAddresses || "Saved addresses",
+      icon: "location",
+      color: "#10b981",
+      onPress: () => navigation.navigate("Addresses"),
     },
     {
-      id: 'payment',
-      title: t.profile?.paymentMethods || 'Payment Methods',
-      subtitle: t.profile?.cardsAndMethods || 'Cards and methods',
-      icon: 'card',
-      color: '#8b5cf6',
-      onPress: () => navigation.navigate('PaymentMethods'),
+      id: "payment",
+      title: t.profile?.paymentMethods || "Payment Methods",
+      subtitle: t.profile?.cardsAndMethods || "Cards and methods",
+      icon: "card",
+      color: "#8b5cf6",
+      onPress: () => navigation.navigate("PaymentMethods"),
     },
     {
-      id: 'history',
-      title: t.profile?.serviceHistory || 'Service History',
-      subtitle: `${stats?.totalServices || 0} ${t.profile?.servicesCompleted || 'services completed'}`,
-      icon: 'time',
-      color: '#ec4899',
-      onPress: () => navigation.navigate('ServiceHistory'),
+      id: "history",
+      title: t.profile?.serviceHistory || "Service History",
+      subtitle: `${stats?.totalServices || 0} ${t.profile?.servicesCompleted || "services completed"}`,
+      icon: "time",
+      color: "#ec4899",
+      onPress: () => navigation.navigate("ServiceHistory"),
     },
     {
-      id: 'favorites',
-      title: t.profile?.favoriteProviders || 'Favorite Providers',
-      subtitle: t.profile?.preferredShops || 'Your preferred shops',
-      icon: 'heart',
-      color: '#ef4444',
-      onPress: () => navigation.navigate('FavoriteProviders'),
+      id: "favorites",
+      title: t.profile?.favoriteProviders || "Favorite Providers",
+      subtitle: t.profile?.preferredShops || "Your preferred shops",
+      icon: "heart",
+      color: "#ef4444",
+      onPress: () => navigation.navigate("FavoriteProviders"),
     },
   ];
 
@@ -221,19 +234,21 @@ export default function CustomerProfileScreen({ navigation }: any) {
             <View style={styles.avatarContainer}>
               <View style={styles.avatar}>
                 <Text style={styles.avatarText}>
-                  {user?.fullName?.charAt(0)?.toUpperCase() || 'U'}
+                  {user?.fullName?.charAt(0)?.toUpperCase() || "U"}
                 </Text>
               </View>
               <TouchableOpacity style={styles.editAvatarButton}>
                 <Ionicons name="camera" size={16} color="#fff" />
               </TouchableOpacity>
             </View>
-            <Text style={styles.userName}>{user?.fullName || 'User'}</Text>
+            <Text style={styles.userName}>{user?.fullName || "User"}</Text>
             <Text style={styles.userEmail}>{user?.email}</Text>
-            
+
             <View style={styles.memberBadge}>
               <Ionicons name="shield-checkmark" size={14} color="#1976d2" />
-              <Text style={styles.memberBadgeText}>Member since {stats?.memberSince || new Date().getFullYear()}</Text>
+              <Text style={styles.memberBadgeText}>
+                Member since {stats?.memberSince || new Date().getFullYear()}
+              </Text>
             </View>
           </View>
         </FadeInView>
@@ -263,37 +278,45 @@ export default function CustomerProfileScreen({ navigation }: any) {
           <View style={styles.togglesContainer}>
             <View style={styles.toggleItem}>
               <View style={styles.toggleInfo}>
-                <View style={[styles.toggleIcon, { backgroundColor: '#dbeafe' }]}>
+                <View
+                  style={[styles.toggleIcon, { backgroundColor: "#dbeafe" }]}
+                >
                   <Ionicons name="notifications" size={20} color="#3b82f6" />
                 </View>
                 <View style={styles.toggleText}>
                   <Text style={styles.toggleTitle}>Push Notifications</Text>
-                  <Text style={styles.toggleSubtitle}>Quote and service alerts</Text>
+                  <Text style={styles.toggleSubtitle}>
+                    Quote and service alerts
+                  </Text>
                 </View>
               </View>
               <Switch
                 value={notificationsEnabled}
                 onValueChange={setNotificationsEnabled}
-                trackColor={{ false: '#e5e7eb', true: '#93c5fd' }}
-                thumbColor={notificationsEnabled ? '#3b82f6' : '#f4f3f4'}
+                trackColor={{ false: "#e5e7eb", true: "#93c5fd" }}
+                thumbColor={notificationsEnabled ? "#3b82f6" : "#f4f3f4"}
               />
             </View>
 
             <View style={styles.toggleItem}>
               <View style={styles.toggleInfo}>
-                <View style={[styles.toggleIcon, { backgroundColor: '#fef3c7' }]}>
+                <View
+                  style={[styles.toggleIcon, { backgroundColor: "#fef3c7" }]}
+                >
                   <Ionicons name="mail" size={20} color="#f59e0b" />
                 </View>
                 <View style={styles.toggleText}>
                   <Text style={styles.toggleTitle}>Email Notifications</Text>
-                  <Text style={styles.toggleSubtitle}>Summaries and offers</Text>
+                  <Text style={styles.toggleSubtitle}>
+                    Summaries and offers
+                  </Text>
                 </View>
               </View>
               <Switch
                 value={emailNotifications}
                 onValueChange={setEmailNotifications}
-                trackColor={{ false: '#e5e7eb', true: '#fcd34d' }}
-                thumbColor={emailNotifications ? '#f59e0b' : '#f4f3f4'}
+                trackColor={{ false: "#e5e7eb", true: "#fcd34d" }}
+                thumbColor={emailNotifications ? "#f59e0b" : "#f4f3f4"}
               />
             </View>
           </View>
@@ -302,12 +325,23 @@ export default function CustomerProfileScreen({ navigation }: any) {
         {/* Menu Items */}
         <FadeInView delay={300}>
           <View style={styles.menuContainer}>
-            <Text style={styles.menuTitle}>{t.profile?.myAccount || 'My Account'}</Text>
+            <Text style={styles.menuTitle}>
+              {t.profile?.myAccount || "My Account"}
+            </Text>
             {menuItems.map((item) => (
               <ScalePress key={item.id} onPress={item.onPress}>
                 <View style={styles.menuItem}>
-                  <View style={[styles.menuIcon, { backgroundColor: `${item.color}15` }]}>
-                    <Ionicons name={item.icon as any} size={22} color={item.color} />
+                  <View
+                    style={[
+                      styles.menuIcon,
+                      { backgroundColor: `${item.color}15` },
+                    ]}
+                  >
+                    <Ionicons
+                      name={item.icon as any}
+                      size={22}
+                      color={item.color}
+                    />
                   </View>
                   <View style={styles.menuContent}>
                     <Text style={styles.menuItemTitle}>{item.title}</Text>
@@ -323,16 +357,21 @@ export default function CustomerProfileScreen({ navigation }: any) {
         {/* Languages I Speak Section */}
         <FadeInView delay={320}>
           <View style={styles.menuContainer}>
-            <Text style={styles.menuTitle}>{t.profile?.languagesISpeak || 'Languages I Speak'}</Text>
+            <Text style={styles.menuTitle}>
+              {t.profile?.languagesISpeak || "Languages I Speak"}
+            </Text>
             <ScalePress onPress={() => setShowSpokenLanguagesModal(true)}>
               <View style={styles.menuItem}>
-                <View style={[styles.menuIcon, { backgroundColor: '#f0fdf4' }]}>
+                <View style={[styles.menuIcon, { backgroundColor: "#f0fdf4" }]}>
                   <Ionicons name="chatbubbles" size={22} color="#22c55e" />
                 </View>
                 <View style={styles.menuContent}>
-                  <Text style={styles.menuItemTitle}>{t.profile?.selectLanguages || 'My Languages'}</Text>
+                  <Text style={styles.menuItemTitle}>
+                    {t.profile?.selectLanguages || "My Languages"}
+                  </Text>
                   <Text style={styles.menuItemSubtitle}>
-                    {getSpokenLanguagesText()} • {spokenLanguages.length} {t.profile?.selected || 'selected'}
+                    {getSpokenLanguagesText()} • {spokenLanguages.length}{" "}
+                    {t.profile?.selected || "selected"}
                   </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
@@ -344,8 +383,10 @@ export default function CustomerProfileScreen({ navigation }: any) {
         {/* Subscription Plan Section */}
         <FadeInView delay={350}>
           <View style={styles.menuContainer}>
-            <Text style={styles.menuTitle}>{t.profile?.myPlan || 'My Plan'}</Text>
-            <ScalePress onPress={() => navigation.navigate('SubscriptionPlan')}>
+            <Text style={styles.menuTitle}>
+              {t.profile?.myPlan || "My Plan"}
+            </Text>
+            <ScalePress onPress={() => navigation.navigate("SubscriptionPlan")}>
               <View style={styles.subscriptionCard}>
                 <View style={styles.subscriptionHeader}>
                   <View style={styles.subscriptionIcon}>
@@ -353,45 +394,81 @@ export default function CustomerProfileScreen({ navigation }: any) {
                   </View>
                   <View style={styles.subscriptionInfo}>
                     <Text style={styles.subscriptionName}>
-                      {subscription ? `${subscription.plan?.charAt(0)}${subscription.plan?.slice(1).toLowerCase()} Plan` : (t.profile?.freePlan || 'Free Plan')}
+                      {subscription
+                        ? `${subscription.plan?.charAt(0)}${subscription.plan?.slice(1).toLowerCase()} Plan`
+                        : t.profile?.freePlan || "Free Plan"}
                     </Text>
                     <Text style={styles.subscriptionPrice}>
-                      {subscription && Number(subscription.price) > 0 
-                        ? `$${Number(subscription.price).toFixed(2)}/month` 
-                        : '$0.00/month'}
+                      {subscription && Number(subscription.price) > 0
+                        ? `$${Number(subscription.price).toFixed(2)}/month`
+                        : "$0.00/month"}
                     </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color="#93c5fd" />
                 </View>
                 <View style={styles.subscriptionFeatures}>
-                  {subscription?.plan === 'PREMIUM' || subscription?.plan === 'ENTERPRISE' ? (
+                  {subscription?.plan === "PREMIUM" ||
+                  subscription?.plan === "ENTERPRISE" ? (
                     <>
                       <View style={styles.subscriptionFeature}>
-                        <Ionicons name="checkmark-circle" size={14} color="#10b981" />
-                        <Text style={styles.subscriptionFeatureText}>{t.profile?.prioritySupport || 'Priority Support'}</Text>
-                      </View>
-                      <View style={styles.subscriptionFeature}>
-                        <Ionicons name="checkmark-circle" size={14} color="#10b981" />
+                        <Ionicons
+                          name="checkmark-circle"
+                          size={14}
+                          color="#10b981"
+                        />
                         <Text style={styles.subscriptionFeatureText}>
-                          {subscription.maxVehicles ? `${subscription.maxVehicles} ${t.profile?.vehiclesAllowed || 'vehicles'}` : (t.profile?.unlimitedVehicles || 'Unlimited vehicles')}
+                          {t.profile?.prioritySupport || "Priority Support"}
                         </Text>
                       </View>
                       <View style={styles.subscriptionFeature}>
-                        <Ionicons name="checkmark-circle" size={14} color="#10b981" />
-                        <Text style={styles.subscriptionFeatureText}>{t.profile?.exclusiveDiscounts || 'Exclusive Discounts'}</Text>
+                        <Ionicons
+                          name="checkmark-circle"
+                          size={14}
+                          color="#10b981"
+                        />
+                        <Text style={styles.subscriptionFeatureText}>
+                          {subscription.maxVehicles
+                            ? `${subscription.maxVehicles} ${t.profile?.vehiclesAllowed || "vehicles"}`
+                            : t.profile?.unlimitedVehicles ||
+                              "Unlimited vehicles"}
+                        </Text>
+                      </View>
+                      <View style={styles.subscriptionFeature}>
+                        <Ionicons
+                          name="checkmark-circle"
+                          size={14}
+                          color="#10b981"
+                        />
+                        <Text style={styles.subscriptionFeatureText}>
+                          {t.profile?.exclusiveDiscounts ||
+                            "Exclusive Discounts"}
+                        </Text>
                       </View>
                     </>
                   ) : (
                     <>
                       <View style={styles.subscriptionFeature}>
-                        <Ionicons name="checkmark-circle" size={14} color="#10b981" />
+                        <Ionicons
+                          name="checkmark-circle"
+                          size={14}
+                          color="#10b981"
+                        />
                         <Text style={styles.subscriptionFeatureText}>
-                          {subscription?.maxVehicles ? `${subscription.maxVehicles} ${subscription.maxVehicles === 1 ? 'vehicle' : 'vehicles'}` : (t.profile?.basicFeatures || 'Basic features')}
+                          {subscription?.maxVehicles
+                            ? `${subscription.maxVehicles} ${subscription.maxVehicles === 1 ? "vehicle" : "vehicles"}`
+                            : t.profile?.basicFeatures || "Basic features"}
                         </Text>
                       </View>
                       <View style={styles.subscriptionFeature}>
-                        <Ionicons name="information-circle" size={14} color="#f59e0b" />
-                        <Text style={styles.subscriptionFeatureText}>{t.profile?.upgradForMore || 'Upgrade for more features'}</Text>
+                        <Ionicons
+                          name="information-circle"
+                          size={14}
+                          color="#f59e0b"
+                        />
+                        <Text style={styles.subscriptionFeatureText}>
+                          {t.profile?.upgradForMore ||
+                            "Upgrade for more features"}
+                        </Text>
                       </View>
                     </>
                   )}
@@ -404,55 +481,77 @@ export default function CustomerProfileScreen({ navigation }: any) {
         {/* Support Section */}
         <FadeInView delay={400}>
           <View style={styles.menuContainer}>
-            <Text style={styles.menuTitle}>{t.profile?.helpAndSupport || 'Help & Support'}</Text>
-            
-            <ScalePress onPress={() => navigation.navigate('HelpCenter')}>
+            <Text style={styles.menuTitle}>
+              {t.profile?.helpAndSupport || "Help & Support"}
+            </Text>
+
+            <ScalePress onPress={() => navigation.navigate("HelpCenter")}>
               <View style={styles.menuItem}>
-                <View style={[styles.menuIcon, { backgroundColor: '#f3f4f6' }]}>
+                <View style={[styles.menuIcon, { backgroundColor: "#f3f4f6" }]}>
                   <Ionicons name="help-circle" size={22} color="#6b7280" />
                 </View>
                 <View style={styles.menuContent}>
-                  <Text style={styles.menuItemTitle}>{t.profile?.helpCenter || 'Help Center'}</Text>
-                  <Text style={styles.menuItemSubtitle}>{t.profile?.faqs || 'FAQs'}</Text>
+                  <Text style={styles.menuItemTitle}>
+                    {t.profile?.helpCenter || "Help Center"}
+                  </Text>
+                  <Text style={styles.menuItemSubtitle}>
+                    {t.profile?.faqs || "FAQs"}
+                  </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
               </View>
             </ScalePress>
 
-            <ScalePress onPress={() => navigation.navigate('ContactUs')}>
+            <ScalePress onPress={() => navigation.navigate("ContactUs")}>
               <View style={styles.menuItem}>
-                <View style={[styles.menuIcon, { backgroundColor: '#f3f4f6' }]}>
-                  <Ionicons name="chatbubble-ellipses" size={22} color="#6b7280" />
+                <View style={[styles.menuIcon, { backgroundColor: "#f3f4f6" }]}>
+                  <Ionicons
+                    name="chatbubble-ellipses"
+                    size={22}
+                    color="#6b7280"
+                  />
                 </View>
                 <View style={styles.menuContent}>
-                  <Text style={styles.menuItemTitle}>{t.profile?.contactUs || 'Contact Us'}</Text>
-                  <Text style={styles.menuItemSubtitle}>{t.profile?.chatSupport || 'Chat support'}</Text>
+                  <Text style={styles.menuItemTitle}>
+                    {t.profile?.contactUs || "Contact Us"}
+                  </Text>
+                  <Text style={styles.menuItemSubtitle}>
+                    {t.profile?.chatSupport || "Chat support"}
+                  </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
               </View>
             </ScalePress>
 
-            <ScalePress onPress={() => navigation.navigate('RateApp')}>
+            <ScalePress onPress={() => navigation.navigate("RateApp")}>
               <View style={styles.menuItem}>
-                <View style={[styles.menuIcon, { backgroundColor: '#f3f4f6' }]}>
+                <View style={[styles.menuIcon, { backgroundColor: "#f3f4f6" }]}>
                   <Ionicons name="star" size={22} color="#6b7280" />
                 </View>
                 <View style={styles.menuContent}>
-                  <Text style={styles.menuItemTitle}>{t.profile?.rateApp || 'Rate the App'}</Text>
-                  <Text style={styles.menuItemSubtitle}>{t.profile?.leaveFeedback || 'Leave your feedback'}</Text>
+                  <Text style={styles.menuItemTitle}>
+                    {t.profile?.rateApp || "Rate the App"}
+                  </Text>
+                  <Text style={styles.menuItemSubtitle}>
+                    {t.profile?.leaveFeedback || "Leave your feedback"}
+                  </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
               </View>
             </ScalePress>
 
-            <ScalePress onPress={() => navigation.navigate('TermsAndPolicies')}>
+            <ScalePress onPress={() => navigation.navigate("TermsAndPolicies")}>
               <View style={styles.menuItem}>
-                <View style={[styles.menuIcon, { backgroundColor: '#f3f4f6' }]}>
+                <View style={[styles.menuIcon, { backgroundColor: "#f3f4f6" }]}>
                   <Ionicons name="document-text" size={22} color="#6b7280" />
                 </View>
                 <View style={styles.menuContent}>
-                  <Text style={styles.menuItemTitle}>{t.profile?.termsAndPolicies || 'Terms & Policies'}</Text>
-                  <Text style={styles.menuItemSubtitle}>{t.profile?.termsSubtitle || 'Terms of use and privacy'}</Text>
+                  <Text style={styles.menuItemTitle}>
+                    {t.profile?.termsAndPolicies || "Terms & Policies"}
+                  </Text>
+                  <Text style={styles.menuItemSubtitle}>
+                    {t.profile?.termsSubtitle || "Terms of use and privacy"}
+                  </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
               </View>
@@ -460,12 +559,16 @@ export default function CustomerProfileScreen({ navigation }: any) {
 
             <ScalePress onPress={() => setShowLanguageModal(true)}>
               <View style={styles.menuItem}>
-                <View style={[styles.menuIcon, { backgroundColor: '#eff6ff' }]}>
+                <View style={[styles.menuIcon, { backgroundColor: "#eff6ff" }]}>
                   <Ionicons name="globe" size={22} color="#3b82f6" />
                 </View>
                 <View style={styles.menuContent}>
-                  <Text style={styles.menuItemTitle}>{t.settings?.language || 'Language'}</Text>
-                  <Text style={styles.menuItemSubtitle}>{currentLanguage.flag} {currentLanguage.nativeName}</Text>
+                  <Text style={styles.menuItemTitle}>
+                    {t.settings?.language || "Language"}
+                  </Text>
+                  <Text style={styles.menuItemSubtitle}>
+                    {currentLanguage.flag} {currentLanguage.nativeName}
+                  </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
               </View>
@@ -477,7 +580,7 @@ export default function CustomerProfileScreen({ navigation }: any) {
         <FadeInView delay={500}>
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
             <Ionicons name="log-out" size={20} color="#ef4444" />
-            <Text style={styles.logoutText}>{t.auth?.logout || 'Log Out'}</Text>
+            <Text style={styles.logoutText}>{t.auth?.logout || "Log Out"}</Text>
           </TouchableOpacity>
         </FadeInView>
 
@@ -494,27 +597,31 @@ export default function CustomerProfileScreen({ navigation }: any) {
         animationType="fade"
         onRequestClose={() => setShowLanguageModal(false)}
       >
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.modalOverlay}
           activeOpacity={1}
           onPress={() => setShowLanguageModal(false)}
         >
           <View style={styles.languageModalContent}>
-            <Text style={styles.languageModalTitle}>{t.settings.selectLanguage}</Text>
+            <Text style={styles.languageModalTitle}>
+              {t.settings.selectLanguage}
+            </Text>
             {languages.map((lang) => (
               <TouchableOpacity
                 key={lang.code}
                 style={[
                   styles.languageOption,
-                  language === lang.code && styles.languageOptionSelected
+                  language === lang.code && styles.languageOptionSelected,
                 ]}
                 onPress={() => handleLanguageSelect(lang.code)}
               >
                 <Text style={styles.languageOptionFlag}>{lang.flag}</Text>
-                <Text style={[
-                  styles.languageOptionText,
-                  language === lang.code && styles.languageOptionTextSelected
-                ]}>
+                <Text
+                  style={[
+                    styles.languageOptionText,
+                    language === lang.code && styles.languageOptionTextSelected,
+                  ]}
+                >
                   {lang.nativeName}
                 </Text>
                 {language === lang.code && (
@@ -533,30 +640,37 @@ export default function CustomerProfileScreen({ navigation }: any) {
         animationType="fade"
         onRequestClose={() => setShowSpokenLanguagesModal(false)}
       >
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.modalOverlay}
           activeOpacity={1}
           onPress={() => setShowSpokenLanguagesModal(false)}
         >
           <View style={styles.languageModalContent}>
-            <Text style={styles.languageModalTitle}>{t.profile?.languagesISpeak || 'Languages I Speak'}</Text>
+            <Text style={styles.languageModalTitle}>
+              {t.profile?.languagesISpeak || "Languages I Speak"}
+            </Text>
             <Text style={styles.languageModalSubtitle}>
-              {t.profile?.selectLanguagesHelp || 'Select all languages you can communicate in'}
+              {t.profile?.selectLanguagesHelp ||
+                "Select all languages you can communicate in"}
             </Text>
             {languages.map((lang) => (
               <TouchableOpacity
                 key={lang.code}
                 style={[
                   styles.languageOption,
-                  spokenLanguages.includes(lang.code) && styles.languageOptionSelected
+                  spokenLanguages.includes(lang.code) &&
+                    styles.languageOptionSelected,
                 ]}
                 onPress={() => toggleSpokenLanguage(lang.code)}
               >
                 <Text style={styles.languageOptionFlag}>{lang.flag}</Text>
-                <Text style={[
-                  styles.languageOptionText,
-                  spokenLanguages.includes(lang.code) && styles.languageOptionTextSelected
-                ]}>
+                <Text
+                  style={[
+                    styles.languageOptionText,
+                    spokenLanguages.includes(lang.code) &&
+                      styles.languageOptionTextSelected,
+                  ]}
+                >
                   {lang.nativeName}
                 </Text>
                 {spokenLanguages.includes(lang.code) && (
@@ -564,7 +678,7 @@ export default function CustomerProfileScreen({ navigation }: any) {
                 )}
               </TouchableOpacity>
             ))}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.modalDoneButton}
               onPress={() => setShowSpokenLanguagesModal(false)}
             >
@@ -580,61 +694,61 @@ export default function CustomerProfileScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: "#f8fafc",
   },
   header: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingTop: 20,
     paddingBottom: 24,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: "#f3f4f6",
   },
   avatarContainer: {
-    position: 'relative',
+    position: "relative",
     marginBottom: 16,
   },
   avatar: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#1976d2',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#1976d2",
+    justifyContent: "center",
+    alignItems: "center",
   },
   avatarText: {
     fontSize: 40,
-    fontWeight: '700',
-    color: '#fff',
+    fontWeight: "700",
+    color: "#fff",
   },
   editAvatarButton: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     right: 0,
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#374151',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#374151",
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 3,
-    borderColor: '#fff',
+    borderColor: "#fff",
   },
   userName: {
     fontSize: 24,
-    fontWeight: '700',
-    color: '#111827',
+    fontWeight: "700",
+    color: "#111827",
     marginBottom: 4,
   },
   userEmail: {
     fontSize: 14,
-    color: '#6b7280',
+    color: "#6b7280",
     marginBottom: 12,
   },
   memberBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#dbeafe',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#dbeafe",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
@@ -642,17 +756,17 @@ const styles = StyleSheet.create({
   },
   memberBadgeText: {
     fontSize: 12,
-    color: '#1976d2',
-    fontWeight: '500',
+    color: "#1976d2",
+    fontWeight: "500",
   },
   statsContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
+    flexDirection: "row",
+    backgroundColor: "#fff",
     marginHorizontal: 20,
     marginTop: 20,
     borderRadius: 16,
     padding: 20,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
@@ -660,49 +774,49 @@ const styles = StyleSheet.create({
   },
   statItem: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
   },
   statValue: {
     fontSize: 22,
-    fontWeight: '700',
-    color: '#111827',
+    fontWeight: "700",
+    color: "#111827",
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
-    color: '#6b7280',
+    color: "#6b7280",
   },
   statDivider: {
     width: 1,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: "#e5e7eb",
     marginHorizontal: 16,
   },
   togglesContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     marginHorizontal: 20,
     marginTop: 20,
     borderRadius: 16,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   toggleItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: "#f3f4f6",
   },
   toggleInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     flex: 1,
   },
   toggleIcon: {
     width: 40,
     height: 40,
     borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 12,
   },
   toggleText: {
@@ -710,12 +824,12 @@ const styles = StyleSheet.create({
   },
   toggleTitle: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#111827',
+    fontWeight: "600",
+    color: "#111827",
   },
   toggleSubtitle: {
     fontSize: 13,
-    color: '#6b7280',
+    color: "#6b7280",
     marginTop: 2,
   },
   menuContainer: {
@@ -724,15 +838,15 @@ const styles = StyleSheet.create({
   },
   menuTitle: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#111827',
+    fontWeight: "700",
+    color: "#111827",
     marginBottom: 12,
     paddingHorizontal: 4,
   },
   menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
     padding: 16,
     borderRadius: 12,
     marginBottom: 8,
@@ -741,8 +855,8 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   menuContent: {
     flex: 1,
@@ -750,19 +864,19 @@ const styles = StyleSheet.create({
   },
   menuItemTitle: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#111827',
+    fontWeight: "600",
+    color: "#111827",
   },
   menuItemSubtitle: {
     fontSize: 13,
-    color: '#6b7280',
+    color: "#6b7280",
     marginTop: 2,
   },
   logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fef2f2',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fef2f2",
     marginHorizontal: 20,
     marginTop: 24,
     padding: 16,
@@ -771,25 +885,25 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#ef4444',
+    fontWeight: "600",
+    color: "#ef4444",
   },
   subscriptionCard: {
-    backgroundColor: '#1976d2',
+    backgroundColor: "#1976d2",
     borderRadius: 16,
     padding: 16,
   },
   subscriptionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   subscriptionIcon: {
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   subscriptionInfo: {
     flex: 1,
@@ -797,73 +911,73 @@ const styles = StyleSheet.create({
   },
   subscriptionName: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#fff',
+    fontWeight: "700",
+    color: "#fff",
   },
   subscriptionPrice: {
     fontSize: 14,
-    color: '#93c5fd',
+    color: "#93c5fd",
     marginTop: 2,
   },
   subscriptionFeatures: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.2)',
+    borderTopColor: "rgba(255,255,255,0.2)",
     gap: 12,
   },
   subscriptionFeature: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
   },
   subscriptionFeatureText: {
     fontSize: 12,
-    color: '#bfdbfe',
-    fontWeight: '500',
+    color: "#bfdbfe",
+    fontWeight: "500",
   },
   version: {
-    textAlign: 'center',
+    textAlign: "center",
     fontSize: 12,
-    color: '#9ca3af',
+    color: "#9ca3af",
     marginTop: 24,
   },
   // Language Modal Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   languageModalContent: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 16,
     padding: 20,
-    width: '80%',
+    width: "80%",
     maxWidth: 320,
   },
   languageModalTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#1f2937',
-    textAlign: 'center',
+    fontWeight: "600",
+    color: "#1f2937",
+    textAlign: "center",
     marginBottom: 16,
   },
   languageOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 14,
     paddingHorizontal: 12,
     borderRadius: 12,
     marginBottom: 8,
-    backgroundColor: '#f8fafc',
+    backgroundColor: "#f8fafc",
   },
   languageOptionSelected: {
-    backgroundColor: '#eff6ff',
+    backgroundColor: "#eff6ff",
     borderWidth: 1,
-    borderColor: '#3b82f6',
+    borderColor: "#3b82f6",
   },
   languageOptionFlag: {
     fontSize: 24,
@@ -872,30 +986,30 @@ const styles = StyleSheet.create({
   languageOptionText: {
     flex: 1,
     fontSize: 16,
-    color: '#374151',
-    fontWeight: '500',
+    color: "#374151",
+    fontWeight: "500",
   },
   languageOptionTextSelected: {
-    color: '#3b82f6',
-    fontWeight: '600',
+    color: "#3b82f6",
+    fontWeight: "600",
   },
   languageModalSubtitle: {
     fontSize: 13,
-    color: '#6b7280',
-    textAlign: 'center',
+    color: "#6b7280",
+    textAlign: "center",
     marginBottom: 16,
     marginTop: -8,
   },
   modalDoneButton: {
-    backgroundColor: '#22c55e',
+    backgroundColor: "#22c55e",
     paddingVertical: 14,
     borderRadius: 12,
     marginTop: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
   modalDoneButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });

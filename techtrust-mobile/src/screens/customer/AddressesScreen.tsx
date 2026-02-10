@@ -2,7 +2,7 @@
  * AddressesScreen - Gerenciamento de Endereços do Cliente
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -13,15 +13,15 @@ import {
   Modal,
   Alert,
   ActivityIndicator,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import api from '../../services/api';
-import { useI18n } from '../../i18n';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import api from "../../services/api";
+import { useI18n } from "../../i18n";
 
 // Local fallback key (will migrate to API)
-const ADDRESSES_KEY = '@TechTrust:addresses';
+const ADDRESSES_KEY = "@TechTrust:addresses";
 
 interface Address {
   id: string;
@@ -44,13 +44,13 @@ export default function AddressesScreen({ navigation }: any) {
   const [saving, setSaving] = useState(false);
 
   const [formData, setFormData] = useState({
-    label: '',
-    number: '',
-    street: '',
-    complement: '',
-    city: '',
-    state: '',
-    zipCode: '',
+    label: "",
+    number: "",
+    street: "",
+    complement: "",
+    city: "",
+    state: "",
+    zipCode: "",
   });
 
   useEffect(() => {
@@ -60,14 +60,21 @@ export default function AddressesScreen({ navigation }: any) {
   const loadAddresses = async () => {
     try {
       // Try to load from API (cross-device sync)
-      const response = await api.get('/users/me');
+      const response = await api.get("/users/me");
       const responseData = response.data?.data || response.data;
       const userData = responseData?.user || responseData;
-      
-      if (userData?.addressesJson && Array.isArray(userData.addressesJson) && userData.addressesJson.length > 0) {
+
+      if (
+        userData?.addressesJson &&
+        Array.isArray(userData.addressesJson) &&
+        userData.addressesJson.length > 0
+      ) {
         setAddresses(userData.addressesJson);
         // Also save locally as cache
-        await AsyncStorage.setItem(ADDRESSES_KEY, JSON.stringify(userData.addressesJson));
+        await AsyncStorage.setItem(
+          ADDRESSES_KEY,
+          JSON.stringify(userData.addressesJson),
+        );
       } else {
         // Check if there's local data to migrate to API
         const savedAddresses = await AsyncStorage.getItem(ADDRESSES_KEY);
@@ -76,16 +83,16 @@ export default function AddressesScreen({ navigation }: any) {
           setAddresses(parsed);
           // Migrate local data to API
           try {
-            await api.patch('/users/me', { addressesJson: parsed });
+            await api.patch("/users/me", { addressesJson: parsed });
           } catch (e) {
-            console.log('Could not sync local addresses to API');
+            console.log("Could not sync local addresses to API");
           }
         } else {
           setAddresses([]);
         }
       }
     } catch (error) {
-      console.error('Error loading addresses from API:', error);
+      console.error("Error loading addresses from API:", error);
       // Fallback to local storage
       try {
         const savedAddresses = await AsyncStorage.getItem(ADDRESSES_KEY);
@@ -109,7 +116,7 @@ export default function AddressesScreen({ navigation }: any) {
         label: address.label,
         number: address.number,
         street: address.street,
-        complement: address.complement || '',
+        complement: address.complement || "",
         city: address.city,
         state: address.state,
         zipCode: address.zipCode,
@@ -117,13 +124,13 @@ export default function AddressesScreen({ navigation }: any) {
     } else {
       setEditingAddress(null);
       setFormData({
-        label: '',
-        number: '',
-        street: '',
-        complement: '',
-        city: '',
-        state: '',
-        zipCode: '',
+        label: "",
+        number: "",
+        street: "",
+        complement: "",
+        city: "",
+        state: "",
+        zipCode: "",
       });
     }
     setShowModal(true);
@@ -131,19 +138,20 @@ export default function AddressesScreen({ navigation }: any) {
 
   const handleSave = async () => {
     if (!formData.street || !formData.number || !formData.city) {
-      Alert.alert(t.common?.error || 'Error', t.common?.fillRequiredFields || 'Please fill in all required fields.');
+      Alert.alert(
+        t.common?.error || "Error",
+        t.common?.fillRequiredFields || "Please fill in all required fields.",
+      );
       return;
     }
 
     setSaving(true);
     try {
       let updatedAddresses: Address[];
-      
+
       if (editingAddress) {
-        updatedAddresses = addresses.map(a => 
-          a.id === editingAddress.id 
-            ? { ...a, ...formData }
-            : a
+        updatedAddresses = addresses.map((a) =>
+          a.id === editingAddress.id ? { ...a, ...formData } : a,
         );
       } else {
         const newAddress: Address = {
@@ -153,60 +161,83 @@ export default function AddressesScreen({ navigation }: any) {
         };
         updatedAddresses = [...addresses, newAddress];
       }
-      
+
       setAddresses(updatedAddresses);
-      
+
       // Save to API for cross-device sync
       try {
-        await api.patch('/users/me', { addressesJson: updatedAddresses });
+        await api.patch("/users/me", { addressesJson: updatedAddresses });
       } catch (e) {
-        console.log('Could not sync addresses to API, saving locally');
+        console.log("Could not sync addresses to API, saving locally");
       }
       // Also save locally as cache
-      await AsyncStorage.setItem(ADDRESSES_KEY, JSON.stringify(updatedAddresses));
-      
+      await AsyncStorage.setItem(
+        ADDRESSES_KEY,
+        JSON.stringify(updatedAddresses),
+      );
+
       setShowModal(false);
-      Alert.alert(t.common?.success || 'Success', t.customer?.addressSaved || 'Address saved successfully.');
+      Alert.alert(
+        t.common?.success || "Success",
+        t.customer?.addressSaved || "Address saved successfully.",
+      );
     } finally {
       setSaving(false);
     }
   };
 
   const handleSetDefault = async (addressId: string) => {
-    const updatedAddresses = addresses.map(a => ({
+    const updatedAddresses = addresses.map((a) => ({
       ...a,
       isDefault: a.id === addressId,
     }));
     setAddresses(updatedAddresses);
     await AsyncStorage.setItem(ADDRESSES_KEY, JSON.stringify(updatedAddresses));
-    try { await api.patch('/users/me', { addressesJson: updatedAddresses }); } catch (e) { /* silent */ }
+    try {
+      await api.patch("/users/me", { addressesJson: updatedAddresses });
+    } catch (e) {
+      /* silent */
+    }
   };
 
   const handleDelete = (addressId: string) => {
     Alert.alert(
-      t.customer?.deleteAddress || 'Delete Address',
-      t.customer?.deleteAddressConfirm || 'Are you sure you want to delete this address?',
+      t.customer?.deleteAddress || "Delete Address",
+      t.customer?.deleteAddressConfirm ||
+        "Are you sure you want to delete this address?",
       [
-        { text: t.common?.cancel || 'Cancel', style: 'cancel' },
+        { text: t.common?.cancel || "Cancel", style: "cancel" },
         {
-          text: t.common?.delete || 'Delete',
-          style: 'destructive',
+          text: t.common?.delete || "Delete",
+          style: "destructive",
           onPress: async () => {
-            const updatedAddresses = addresses.filter(a => a.id !== addressId);
+            const updatedAddresses = addresses.filter(
+              (a) => a.id !== addressId,
+            );
             setAddresses(updatedAddresses);
-            await AsyncStorage.setItem(ADDRESSES_KEY, JSON.stringify(updatedAddresses));
-            try { await api.patch('/users/me', { addressesJson: updatedAddresses }); } catch (e) { /* silent */ }
+            await AsyncStorage.setItem(
+              ADDRESSES_KEY,
+              JSON.stringify(updatedAddresses),
+            );
+            try {
+              await api.patch("/users/me", { addressesJson: updatedAddresses });
+            } catch (e) {
+              /* silent */
+            }
           },
         },
-      ]
+      ],
     );
   };
 
   const getAddressIcon = (label: string) => {
     switch (label.toLowerCase()) {
-      case 'home': return 'home';
-      case 'work': return 'briefcase';
-      default: return 'location';
+      case "home":
+        return "home";
+      case "work":
+        return "briefcase";
+      default:
+        return "location";
     }
   };
 
@@ -214,10 +245,15 @@ export default function AddressesScreen({ navigation }: any) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backBtn}
+          >
             <Ionicons name="arrow-back" size={24} color="#111827" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{t.customer?.myAddresses || 'My Addresses'}</Text>
+          <Text style={styles.headerTitle}>
+            {t.customer?.myAddresses || "My Addresses"}
+          </Text>
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.loadingContainer}>
@@ -231,11 +267,19 @@ export default function AddressesScreen({ navigation }: any) {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backBtn}
+        >
           <Ionicons name="arrow-back" size={24} color="#111827" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t.customer?.myAddresses || 'My Addresses'}</Text>
-        <TouchableOpacity onPress={() => handleOpenModal()} style={styles.addBtn}>
+        <Text style={styles.headerTitle}>
+          {t.customer?.myAddresses || "My Addresses"}
+        </Text>
+        <TouchableOpacity
+          onPress={() => handleOpenModal()}
+          style={styles.addBtn}
+        >
           <Ionicons name="add" size={24} color="#1976d2" />
         </TouchableOpacity>
       </View>
@@ -246,11 +290,21 @@ export default function AddressesScreen({ navigation }: any) {
             <View style={styles.emptyIcon}>
               <Ionicons name="location-outline" size={64} color="#d1d5db" />
             </View>
-            <Text style={styles.emptyTitle}>{t.customer?.noAddresses || 'No addresses yet'}</Text>
-            <Text style={styles.emptySubtitle}>{t.customer?.addFirstAddress || 'Add your first address to get started'}</Text>
-            <TouchableOpacity style={styles.emptyButton} onPress={() => handleOpenModal()}>
+            <Text style={styles.emptyTitle}>
+              {t.customer?.noAddresses || "No addresses yet"}
+            </Text>
+            <Text style={styles.emptySubtitle}>
+              {t.customer?.addFirstAddress ||
+                "Add your first address to get started"}
+            </Text>
+            <TouchableOpacity
+              style={styles.emptyButton}
+              onPress={() => handleOpenModal()}
+            >
               <Ionicons name="add" size={20} color="#fff" />
-              <Text style={styles.emptyButtonText}>{t.customer?.addAddress || 'Add Address'}</Text>
+              <Text style={styles.emptyButtonText}>
+                {t.customer?.addAddress || "Add Address"}
+              </Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -259,21 +313,23 @@ export default function AddressesScreen({ navigation }: any) {
               <View key={address.id} style={styles.addressCard}>
                 <View style={styles.addressHeader}>
                   <View style={styles.addressIcon}>
-                    <Ionicons 
-                      name={getAddressIcon(address.label) as any} 
-                      size={20} 
-                      color="#1976d2" 
+                    <Ionicons
+                      name={getAddressIcon(address.label) as any}
+                      size={20}
+                      color="#1976d2"
                     />
                   </View>
                   <View style={styles.addressLabelContainer}>
                     <Text style={styles.addressLabel}>{address.label}</Text>
                     {address.isDefault && (
                       <View style={styles.defaultBadge}>
-                        <Text style={styles.defaultBadgeText}>{t.common?.default || 'Default'}</Text>
+                        <Text style={styles.defaultBadgeText}>
+                          {t.common?.default || "Default"}
+                        </Text>
                       </View>
                     )}
                   </View>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.menuButton}
                     onPress={() => handleOpenModal(address)}
                   >
@@ -283,7 +339,7 @@ export default function AddressesScreen({ navigation }: any) {
 
                 <Text style={styles.addressText}>
                   {address.number} {address.street}
-                  {address.complement ? `, ${address.complement}` : ''}
+                  {address.complement ? `, ${address.complement}` : ""}
                 </Text>
                 <Text style={styles.addressText}>
                   {address.city}, {address.state} {address.zipCode}
@@ -291,20 +347,26 @@ export default function AddressesScreen({ navigation }: any) {
 
                 <View style={styles.addressActions}>
                   {!address.isDefault && (
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={styles.actionButton}
                       onPress={() => handleSetDefault(address.id)}
                     >
                       <Ionicons name="star-outline" size={16} color="#1976d2" />
-                      <Text style={styles.actionButtonText}>{t.common?.setAsDefault || 'Set as Default'}</Text>
+                      <Text style={styles.actionButtonText}>
+                        {t.common?.setAsDefault || "Set as Default"}
+                      </Text>
                     </TouchableOpacity>
                   )}
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={[styles.actionButton, styles.deleteActionButton]}
                     onPress={() => handleDelete(address.id)}
                   >
                     <Ionicons name="trash-outline" size={16} color="#ef4444" />
-                    <Text style={[styles.actionButtonText, { color: '#ef4444' }]}>{t.common?.delete || 'Delete'}</Text>
+                    <Text
+                      style={[styles.actionButtonText, { color: "#ef4444" }]}
+                    >
+                      {t.common?.delete || "Delete"}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -326,7 +388,9 @@ export default function AddressesScreen({ navigation }: any) {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                {editingAddress ? (t.customer?.editAddress || 'Edit Address') : (t.customer?.addAddress || 'Add Address')}
+                {editingAddress
+                  ? t.customer?.editAddress || "Edit Address"
+                  : t.customer?.addAddress || "Add Address"}
               </Text>
               <TouchableOpacity onPress={() => setShowModal(false)}>
                 <Ionicons name="close" size={24} color="#6b7280" />
@@ -336,7 +400,7 @@ export default function AddressesScreen({ navigation }: any) {
             <ScrollView showsVerticalScrollIndicator={false}>
               <Text style={styles.inputLabel}>Label *</Text>
               <View style={styles.labelOptions}>
-                {['Home', 'Work', 'Other'].map((label) => (
+                {["Home", "Work", "Other"].map((label) => (
                   <TouchableOpacity
                     key={label}
                     style={[
@@ -345,15 +409,18 @@ export default function AddressesScreen({ navigation }: any) {
                     ]}
                     onPress={() => setFormData({ ...formData, label })}
                   >
-                    <Ionicons 
-                      name={getAddressIcon(label) as any} 
-                      size={18} 
-                      color={formData.label === label ? '#1976d2' : '#6b7280'} 
+                    <Ionicons
+                      name={getAddressIcon(label) as any}
+                      size={18}
+                      color={formData.label === label ? "#1976d2" : "#6b7280"}
                     />
-                    <Text style={[
-                      styles.labelOptionText,
-                      formData.label === label && styles.labelOptionTextActive,
-                    ]}>
+                    <Text
+                      style={[
+                        styles.labelOptionText,
+                        formData.label === label &&
+                          styles.labelOptionTextActive,
+                      ]}
+                    >
                       {label}
                     </Text>
                   </TouchableOpacity>
@@ -367,7 +434,9 @@ export default function AddressesScreen({ navigation }: any) {
                     style={styles.input}
                     placeholder="123"
                     value={formData.number}
-                    onChangeText={(text) => setFormData({ ...formData, number: text })}
+                    onChangeText={(text) =>
+                      setFormData({ ...formData, number: text })
+                    }
                   />
                 </View>
                 <View style={[styles.inputHalf, { flex: 2 }]}>
@@ -376,7 +445,9 @@ export default function AddressesScreen({ navigation }: any) {
                     style={styles.input}
                     placeholder="Main St"
                     value={formData.street}
-                    onChangeText={(text) => setFormData({ ...formData, street: text })}
+                    onChangeText={(text) =>
+                      setFormData({ ...formData, street: text })
+                    }
                   />
                 </View>
               </View>
@@ -386,7 +457,9 @@ export default function AddressesScreen({ navigation }: any) {
                 style={styles.input}
                 placeholder="Apt, Suite, Unit, etc."
                 value={formData.complement}
-                onChangeText={(text) => setFormData({ ...formData, complement: text })}
+                onChangeText={(text) =>
+                  setFormData({ ...formData, complement: text })
+                }
               />
 
               <View style={styles.inputRow}>
@@ -396,7 +469,9 @@ export default function AddressesScreen({ navigation }: any) {
                     style={styles.input}
                     placeholder="City"
                     value={formData.city}
-                    onChangeText={(text) => setFormData({ ...formData, city: text })}
+                    onChangeText={(text) =>
+                      setFormData({ ...formData, city: text })
+                    }
                   />
                 </View>
                 <View style={[styles.inputHalf, { flex: 1 }]}>
@@ -405,7 +480,9 @@ export default function AddressesScreen({ navigation }: any) {
                     style={styles.input}
                     placeholder="FL"
                     value={formData.state}
-                    onChangeText={(text) => setFormData({ ...formData, state: text })}
+                    onChangeText={(text) =>
+                      setFormData({ ...formData, state: text })
+                    }
                     maxLength={2}
                     autoCapitalize="characters"
                   />
@@ -417,7 +494,9 @@ export default function AddressesScreen({ navigation }: any) {
                 style={styles.input}
                 placeholder="32801"
                 value={formData.zipCode}
-                onChangeText={(text) => setFormData({ ...formData, zipCode: text })}
+                onChangeText={(text) =>
+                  setFormData({ ...formData, zipCode: text })
+                }
                 keyboardType="numeric"
                 maxLength={10}
               />
@@ -428,7 +507,7 @@ export default function AddressesScreen({ navigation }: any) {
                 disabled={saving}
               >
                 <Text style={styles.saveButtonText}>
-                  {saving ? 'Saving...' : 'Save Address'}
+                  {saving ? "Saving..." : "Save Address"}
                 </Text>
               </TouchableOpacity>
             </ScrollView>
@@ -442,36 +521,36 @@ export default function AddressesScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: "#f8fafc",
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: "#f3f4f6",
   },
   backBtn: {
     padding: 8,
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
+    fontWeight: "600",
+    color: "#111827",
   },
   addBtn: {
     padding: 8,
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   emptyState: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: 60,
     paddingHorizontal: 40,
   },
@@ -479,209 +558,209 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: '#f3f4f6',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#f3f4f6",
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 24,
   },
   emptyTitle: {
     fontSize: 20,
-    fontWeight: '600',
-    color: '#374151',
+    fontWeight: "600",
+    color: "#374151",
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#9ca3af',
-    textAlign: 'center',
+    color: "#9ca3af",
+    textAlign: "center",
     marginBottom: 24,
   },
   emptyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1976d2',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#1976d2",
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderRadius: 12,
     gap: 8,
   },
   emptyButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   addressList: {
     padding: 16,
   },
   addressCard: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
   },
   addressHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 12,
   },
   addressIcon: {
     width: 40,
     height: 40,
     borderRadius: 10,
-    backgroundColor: '#dbeafe',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#dbeafe",
+    justifyContent: "center",
+    alignItems: "center",
   },
   addressLabelContainer: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginLeft: 12,
     gap: 8,
   },
   addressLabel: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
+    fontWeight: "600",
+    color: "#111827",
   },
   defaultBadge: {
-    backgroundColor: '#d1fae5',
+    backgroundColor: "#d1fae5",
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 8,
   },
   defaultBadgeText: {
     fontSize: 11,
-    color: '#10b981',
-    fontWeight: '600',
+    color: "#10b981",
+    fontWeight: "600",
   },
   menuButton: {
     padding: 8,
   },
   addressText: {
     fontSize: 14,
-    color: '#6b7280',
+    color: "#6b7280",
     lineHeight: 20,
   },
   addressActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
+    borderTopColor: "#f3f4f6",
     gap: 12,
   },
   actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
   },
   actionButtonText: {
     fontSize: 13,
-    color: '#1976d2',
-    fontWeight: '500',
+    color: "#1976d2",
+    fontWeight: "500",
   },
   deleteActionButton: {
-    marginLeft: 'auto',
+    marginLeft: "auto",
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 20,
     paddingBottom: 40,
-    maxHeight: '90%',
+    maxHeight: "90%",
   },
   modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: "#f3f4f6",
     marginBottom: 16,
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
+    fontWeight: "600",
+    color: "#111827",
   },
   inputLabel: {
     fontSize: 13,
-    color: '#6b7280',
+    color: "#6b7280",
     marginBottom: 8,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   input: {
-    backgroundColor: '#f9fafb',
+    backgroundColor: "#f9fafb",
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    color: '#111827',
+    color: "#111827",
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: "#e5e7eb",
     marginBottom: 16,
   },
   inputRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
   },
   inputHalf: {
     flex: 1,
   },
   labelOptions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
     marginBottom: 16,
   },
   labelOption: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 6,
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: "#f3f4f6",
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: "#e5e7eb",
   },
   labelOptionActive: {
-    backgroundColor: '#dbeafe',
-    borderColor: '#1976d2',
+    backgroundColor: "#dbeafe",
+    borderColor: "#1976d2",
   },
   labelOptionText: {
     fontSize: 14,
-    color: '#6b7280',
+    color: "#6b7280",
   },
   labelOptionTextActive: {
-    color: '#1976d2',
-    fontWeight: '600',
+    color: "#1976d2",
+    fontWeight: "600",
   },
   saveButton: {
-    backgroundColor: '#1976d2',
+    backgroundColor: "#1976d2",
     paddingVertical: 16,
     borderRadius: 12,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 8,
   },
   saveButtonDisabled: {
-    backgroundColor: '#93c5fd',
+    backgroundColor: "#93c5fd",
   },
   saveButtonText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
+    fontWeight: "600",
+    color: "#fff",
   },
 });

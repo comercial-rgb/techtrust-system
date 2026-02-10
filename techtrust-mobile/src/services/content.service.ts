@@ -1,4 +1,4 @@
-import api from './api';
+import api from "./api";
 
 export interface Banner {
   id: string;
@@ -70,10 +70,10 @@ export interface HomeData {
  */
 export const getHomeData = async (): Promise<HomeData> => {
   try {
-    const response = await api.get('/content/home-data');
+    const response = await api.get("/content/home-data");
     return response.data.data;
   } catch (error: any) {
-    console.error('Erro ao buscar dados da home:', error);
+    console.error("Erro ao buscar dados da home:", error);
     throw error;
   }
 };
@@ -83,10 +83,10 @@ export const getHomeData = async (): Promise<HomeData> => {
  */
 export const getBanners = async (): Promise<Banner[]> => {
   try {
-    const response = await api.get('/content/banners');
+    const response = await api.get("/content/banners");
     return response.data?.data ?? response.data;
   } catch (error: any) {
-    console.error('Erro ao buscar banners:', error);
+    console.error("Erro ao buscar banners:", error);
     throw error;
   }
 };
@@ -96,10 +96,10 @@ export const getBanners = async (): Promise<Banner[]> => {
  */
 export const getOffers = async (): Promise<SpecialOffer[]> => {
   try {
-    const response = await api.get('/content/offers');
+    const response = await api.get("/content/offers");
     return response.data?.data ?? response.data;
   } catch (error: any) {
-    console.error('Erro ao buscar ofertas:', error);
+    console.error("Erro ao buscar ofertas:", error);
     throw error;
   }
 };
@@ -109,10 +109,10 @@ export const getOffers = async (): Promise<SpecialOffer[]> => {
  */
 export const getFeaturedProviders = async (): Promise<FeaturedProvider[]> => {
   try {
-    const response = await api.get('/content/featured-providers');
+    const response = await api.get("/content/featured-providers");
     return response.data.data;
   } catch (error: any) {
-    console.error('Erro ao buscar fornecedores em destaque:', error);
+    console.error("Erro ao buscar fornecedores em destaque:", error);
     throw error;
   }
 };
@@ -122,12 +122,12 @@ export const getFeaturedProviders = async (): Promise<FeaturedProvider[]> => {
  */
 export const getArticles = async (): Promise<Article[]> => {
   try {
-    const response = await api.get('/content/articles');
+    const response = await api.get("/content/articles");
     if (response.data?.data) return response.data.data;
     if (Array.isArray(response.data?.articles)) return response.data.articles;
     return response.data;
   } catch (error: any) {
-    console.error('Erro ao buscar artigos:', error);
+    console.error("Erro ao buscar artigos:", error);
     throw error;
   }
 };

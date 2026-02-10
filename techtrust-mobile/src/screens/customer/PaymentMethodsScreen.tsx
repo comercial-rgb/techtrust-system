@@ -2,7 +2,7 @@
  * PaymentMethodsScreen - Gerenciamento de Formas de Pagamento
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -15,22 +15,22 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useI18n } from '../../i18n';
-import { useRoute, CommonActions } from '@react-navigation/native';
-import api from '../../services/api';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useI18n } from "../../i18n";
+import { useRoute, CommonActions } from "@react-navigation/native";
+import api from "../../services/api";
 
 // Storage keys
-const PAYMENT_METHODS_KEY = '@TechTrust:paymentMethods';
-const WALLET_BALANCE_KEY = '@TechTrust:walletBalance';
-const TRANSACTIONS_KEY = '@TechTrust:walletTransactions';
+const PAYMENT_METHODS_KEY = "@TechTrust:paymentMethods";
+const WALLET_BALANCE_KEY = "@TechTrust:walletBalance";
+const TRANSACTIONS_KEY = "@TechTrust:walletTransactions";
 
 interface PaymentMethod {
   id: string;
-  type: 'credit' | 'debit' | 'pix';
+  type: "credit" | "debit" | "pix";
   brand?: string;
   cardBrand?: string;
   lastFour?: string;
@@ -45,7 +45,7 @@ interface PaymentMethod {
 
 interface WalletTransaction {
   id: string;
-  type: 'credit' | 'debit';
+  type: "credit" | "debit";
   amount: number;
   description: string;
   date: string;
@@ -57,58 +57,62 @@ export default function PaymentMethodsScreen({ navigation }: any) {
   const fromDashboard = route.params?.fromDashboard;
   const fromCreateRequest = route.params?.fromCreateRequest;
   const addCardMode = route.params?.addCardMode;
-  
+
   const [loading, setLoading] = useState(true);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [showAddBalanceModal, setShowAddBalanceModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [walletBalance, setWalletBalance] = useState(0);
-  const [recentTransactions, setRecentTransactions] = useState<WalletTransaction[]>([]);
-  const [addBalanceAmount, setAddBalanceAmount] = useState('');
-  const [addBalanceMethod, setAddBalanceMethod] = useState<'card' | 'pix' | 'transfer'>('card');
+  const [recentTransactions, setRecentTransactions] = useState<
+    WalletTransaction[]
+  >([]);
+  const [addBalanceAmount, setAddBalanceAmount] = useState("");
+  const [addBalanceMethod, setAddBalanceMethod] = useState<
+    "card" | "pix" | "transfer"
+  >("card");
 
   // Card validation using Luhn algorithm
   const validateCardNumber = (cardNumber: string): boolean => {
-    const cleaned = cardNumber.replace(/\D/g, '');
+    const cleaned = cardNumber.replace(/\D/g, "");
     if (cleaned.length < 13 || cleaned.length > 19) return false;
-    
+
     let sum = 0;
     let isEven = false;
-    
+
     for (let i = cleaned.length - 1; i >= 0; i--) {
       let digit = parseInt(cleaned.charAt(i));
-      
+
       if (isEven) {
         digit *= 2;
         if (digit > 9) {
           digit -= 9;
         }
       }
-      
+
       sum += digit;
       isEven = !isEven;
     }
-    
+
     return sum % 10 === 0;
   };
 
   const validateExpiryDate = (expiryDate: string): boolean => {
     if (!expiryDate || expiryDate.length !== 5) return false;
-    
-    const [month, year] = expiryDate.split('/');
+
+    const [month, year] = expiryDate.split("/");
     const monthNum = parseInt(month);
-    const yearNum = parseInt('20' + year);
-    
+    const yearNum = parseInt("20" + year);
+
     if (monthNum < 1 || monthNum > 12) return false;
-    
+
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1;
-    
+
     if (yearNum < currentYear) return false;
     if (yearNum === currentYear && monthNum < currentMonth) return false;
-    
+
     return true;
   };
 
@@ -123,7 +127,7 @@ export default function PaymentMethodsScreen({ navigation }: any) {
       const parent = navigation.getParent();
       if (parent) {
         // Navigate to Dashboard with CreateRequest screen
-        parent.navigate('Dashboard', { screen: 'CreateRequest' });
+        parent.navigate("Dashboard", { screen: "CreateRequest" });
         // Pop Profile stack to ProfileMain
         navigation.popToTop();
       } else {
@@ -132,7 +136,7 @@ export default function PaymentMethodsScreen({ navigation }: any) {
     } else if (fromDashboard) {
       const parent = navigation.getParent();
       if (parent) {
-        parent.navigate('Dashboard', { screen: 'DashboardMain' });
+        parent.navigate("Dashboard", { screen: "DashboardMain" });
         navigation.popToTop();
       } else {
         navigation.goBack();
@@ -143,12 +147,12 @@ export default function PaymentMethodsScreen({ navigation }: any) {
   };
 
   const [formData, setFormData] = useState({
-    type: 'credit' as 'credit' | 'debit' | 'pix',
-    cardNumber: '',
-    holderName: '',
-    expiryDate: '',
-    cvv: '',
-    pixKey: '',
+    type: "credit" as "credit" | "debit" | "pix",
+    cardNumber: "",
+    holderName: "",
+    expiryDate: "",
+    cvv: "",
+    pixKey: "",
   });
 
   useEffect(() => {
@@ -158,23 +162,24 @@ export default function PaymentMethodsScreen({ navigation }: any) {
   const loadPaymentMethods = async () => {
     try {
       setLoading(true);
-      
+
       // Try loading from API first (cross-device sync)
       try {
-        const response = await api.get('/payment-methods');
+        const response = await api.get("/payment-methods");
         const apiMethods = response.data?.data || [];
         // Map API fields to component fields
         const methods: PaymentMethod[] = apiMethods.map((m: any) => ({
           id: m.id,
-          type: m.type || 'credit',
+          type: m.type || "credit",
           brand: m.cardBrand || m.brand,
           cardBrand: m.cardBrand,
           lastFour: m.cardLast4 || m.lastFour,
           cardLast4: m.cardLast4,
           holderName: m.holderName,
-          expiryDate: m.cardExpMonth && m.cardExpYear 
-            ? `${String(m.cardExpMonth).padStart(2, '0')}/${String(m.cardExpYear).slice(-2)}`
-            : m.expiryDate,
+          expiryDate:
+            m.cardExpMonth && m.cardExpYear
+              ? `${String(m.cardExpMonth).padStart(2, "0")}/${String(m.cardExpYear).slice(-2)}`
+              : m.expiryDate,
           cardExpMonth: m.cardExpMonth,
           cardExpYear: m.cardExpYear,
           pixKey: m.pixKey,
@@ -182,9 +187,12 @@ export default function PaymentMethodsScreen({ navigation }: any) {
         }));
         setPaymentMethods(methods);
         // Cache to AsyncStorage for offline use
-        await AsyncStorage.setItem(PAYMENT_METHODS_KEY, JSON.stringify(methods));
+        await AsyncStorage.setItem(
+          PAYMENT_METHODS_KEY,
+          JSON.stringify(methods),
+        );
       } catch (apiError) {
-        console.log('API unavailable, loading from cache:', apiError);
+        console.log("API unavailable, loading from cache:", apiError);
         // Fallback to AsyncStorage
         const savedMethods = await AsyncStorage.getItem(PAYMENT_METHODS_KEY);
         if (savedMethods) {
@@ -193,27 +201,26 @@ export default function PaymentMethodsScreen({ navigation }: any) {
           setPaymentMethods([]);
         }
       }
-      
+
       // Load wallet data (still local only)
       const [savedBalance, savedTransactions] = await Promise.all([
         AsyncStorage.getItem(WALLET_BALANCE_KEY),
         AsyncStorage.getItem(TRANSACTIONS_KEY),
       ]);
-      
+
       if (savedBalance) {
         setWalletBalance(parseFloat(savedBalance));
       } else {
         setWalletBalance(0);
       }
-      
+
       if (savedTransactions) {
         setRecentTransactions(JSON.parse(savedTransactions));
       } else {
         setRecentTransactions([]);
       }
-      
     } catch (error) {
-      console.error('Error loading payment methods:', error);
+      console.error("Error loading payment methods:", error);
       setPaymentMethods([]);
       setWalletBalance(0);
       setRecentTransactions([]);
@@ -224,65 +231,76 @@ export default function PaymentMethodsScreen({ navigation }: any) {
 
   const handleOpenModal = () => {
     setFormData({
-      type: 'credit',
-      cardNumber: '',
-      holderName: '',
-      expiryDate: '',
-      cvv: '',
-      pixKey: '',
+      type: "credit",
+      cardNumber: "",
+      holderName: "",
+      expiryDate: "",
+      cvv: "",
+      pixKey: "",
     });
     setShowModal(true);
   };
 
   const handleOpenAddBalanceModal = () => {
-    setAddBalanceAmount('');
-    setAddBalanceMethod('card');
+    setAddBalanceAmount("");
+    setAddBalanceMethod("card");
     setShowAddBalanceModal(true);
   };
 
   const handleAddBalance = async () => {
-    const amount = parseFloat(addBalanceAmount.replace(',', '.'));
+    const amount = parseFloat(addBalanceAmount.replace(",", "."));
     if (!amount || amount <= 0) {
-      Alert.alert(t.common?.error || 'Error', t.customer?.enterValidAmount || 'Please enter a valid amount.');
+      Alert.alert(
+        t.common?.error || "Error",
+        t.customer?.enterValidAmount || "Please enter a valid amount.",
+      );
       return;
     }
     if (amount < 10) {
-      Alert.alert(t.common?.error || 'Error', t.customer?.minimumAmount || 'Minimum amount is $10.00.');
+      Alert.alert(
+        t.common?.error || "Error",
+        t.customer?.minimumAmount || "Minimum amount is $10.00.",
+      );
       return;
     }
 
     setSaving(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
       // Add to balance
       const newBalance = walletBalance + amount;
       setWalletBalance(newBalance);
       await AsyncStorage.setItem(WALLET_BALANCE_KEY, newBalance.toString());
-      
+
       // Add transaction record
-      const methodName = addBalanceMethod === 'card' 
-        ? (t.customer?.balanceAddedViaCard || 'Balance added via card')
-        : addBalanceMethod === 'pix'
-        ? (t.customer?.balanceAddedViaPix || 'Balance added via PIX')
-        : (t.customer?.balanceAddedViaTransfer || 'Balance added via transfer');
-      
+      const methodName =
+        addBalanceMethod === "card"
+          ? t.customer?.balanceAddedViaCard || "Balance added via card"
+          : addBalanceMethod === "pix"
+            ? t.customer?.balanceAddedViaPix || "Balance added via PIX"
+            : t.customer?.balanceAddedViaTransfer ||
+              "Balance added via transfer";
+
       const newTransaction = {
         id: Date.now().toString(),
-        type: 'credit' as const,
+        type: "credit" as const,
         amount: amount,
         description: methodName,
-        date: new Date().toISOString().split('T')[0],
+        date: new Date().toISOString().split("T")[0],
       };
-      
+
       const updatedTransactions = [newTransaction, ...recentTransactions];
       setRecentTransactions(updatedTransactions);
-      await AsyncStorage.setItem(TRANSACTIONS_KEY, JSON.stringify(updatedTransactions));
-      
+      await AsyncStorage.setItem(
+        TRANSACTIONS_KEY,
+        JSON.stringify(updatedTransactions),
+      );
+
       setShowAddBalanceModal(false);
       Alert.alert(
-        t.common?.success || 'Success', 
-        `${t.customer?.balanceAdded || 'Balance added'}: $${amount.toFixed(2)}`
+        t.common?.success || "Success",
+        `${t.customer?.balanceAdded || "Balance added"}: $${amount.toFixed(2)}`,
       );
     } finally {
       setSaving(false);
@@ -290,50 +308,64 @@ export default function PaymentMethodsScreen({ navigation }: any) {
   };
 
   const handleSave = async () => {
-    if (formData.type !== 'pix') {
-      if (!formData.cardNumber || !formData.holderName || !formData.expiryDate || !formData.cvv) {
-        Alert.alert(t.common?.error || 'Error', t.common?.fillRequiredFields || 'Please fill in all required fields.');
+    if (formData.type !== "pix") {
+      if (
+        !formData.cardNumber ||
+        !formData.holderName ||
+        !formData.expiryDate ||
+        !formData.cvv
+      ) {
+        Alert.alert(
+          t.common?.error || "Error",
+          t.common?.fillRequiredFields || "Please fill in all required fields.",
+        );
         return;
       }
-      
+
       // Validate card number
       if (!validateCardNumber(formData.cardNumber)) {
         Alert.alert(
-          t.common?.error || 'Error', 
-          t.customer?.invalidCardNumber || 'Invalid card number. Please check and try again.'
+          t.common?.error || "Error",
+          t.customer?.invalidCardNumber ||
+            "Invalid card number. Please check and try again.",
         );
         return;
       }
-      
+
       // Validate expiry date
       if (!validateExpiryDate(formData.expiryDate)) {
         Alert.alert(
-          t.common?.error || 'Error', 
-          t.customer?.invalidExpiryDate || 'Invalid or expired date. Please check the expiry date.'
+          t.common?.error || "Error",
+          t.customer?.invalidExpiryDate ||
+            "Invalid or expired date. Please check the expiry date.",
         );
         return;
       }
-      
+
       // Validate CVV
       if (!validateCVV(formData.cvv)) {
         Alert.alert(
-          t.common?.error || 'Error', 
-          t.customer?.invalidCVV || 'CVV must be 3 or 4 digits.'
+          t.common?.error || "Error",
+          t.customer?.invalidCVV || "CVV must be 3 or 4 digits.",
         );
         return;
       }
-      
+
       // Validate cardholder name
       if (formData.holderName.trim().length < 3) {
         Alert.alert(
-          t.common?.error || 'Error', 
-          t.customer?.invalidHolderName || 'Please enter a valid cardholder name.'
+          t.common?.error || "Error",
+          t.customer?.invalidHolderName ||
+            "Please enter a valid cardholder name.",
         );
         return;
       }
     } else {
       if (!formData.pixKey) {
-        Alert.alert(t.common?.error || 'Error', t.customer?.enterPixKey || 'Please enter your PIX key.');
+        Alert.alert(
+          t.common?.error || "Error",
+          t.customer?.enterPixKey || "Please enter your PIX key.",
+        );
         return;
       }
     }
@@ -341,24 +373,28 @@ export default function PaymentMethodsScreen({ navigation }: any) {
     setSaving(true);
     try {
       // Parse expiry date for API
-      const [expMonth, expYear] = formData.type !== 'pix' && formData.expiryDate 
-        ? formData.expiryDate.split('/').map(Number) 
-        : [0, 0];
+      const [expMonth, expYear] =
+        formData.type !== "pix" && formData.expiryDate
+          ? formData.expiryDate.split("/").map(Number)
+          : [0, 0];
 
       // Save to API for cross-device sync
       try {
-        const apiPayload = formData.type === 'pix'
-          ? { type: 'pix', pixKey: formData.pixKey }
-          : {
-              type: formData.type,
-              cardBrand: formData.cardNumber.startsWith('4') ? 'Visa' : 'Mastercard',
-              cardLast4: formData.cardNumber.replace(/\s/g, '').slice(-4),
-              cardExpMonth: expMonth,
-              cardExpYear: expYear > 100 ? expYear : 2000 + expYear,
-              holderName: formData.holderName.toUpperCase(),
-            };
+        const apiPayload =
+          formData.type === "pix"
+            ? { type: "pix", pixKey: formData.pixKey }
+            : {
+                type: formData.type,
+                cardBrand: formData.cardNumber.startsWith("4")
+                  ? "Visa"
+                  : "Mastercard",
+                cardLast4: formData.cardNumber.replace(/\s/g, "").slice(-4),
+                cardExpMonth: expMonth,
+                cardExpYear: expYear > 100 ? expYear : 2000 + expYear,
+                holderName: formData.holderName.toUpperCase(),
+              };
 
-        const response = await api.post('/payment-methods', apiPayload);
+        const response = await api.post("/payment-methods", apiPayload);
         const savedMethod = response.data?.data;
 
         if (savedMethod) {
@@ -370,9 +406,10 @@ export default function PaymentMethodsScreen({ navigation }: any) {
             lastFour: savedMethod.cardLast4,
             cardLast4: savedMethod.cardLast4,
             holderName: savedMethod.holderName,
-            expiryDate: savedMethod.cardExpMonth && savedMethod.cardExpYear
-              ? `${String(savedMethod.cardExpMonth).padStart(2, '0')}/${String(savedMethod.cardExpYear).slice(-2)}`
-              : formData.expiryDate,
+            expiryDate:
+              savedMethod.cardExpMonth && savedMethod.cardExpYear
+                ? `${String(savedMethod.cardExpMonth).padStart(2, "0")}/${String(savedMethod.cardExpYear).slice(-2)}`
+                : formData.expiryDate,
             cardExpMonth: savedMethod.cardExpMonth,
             cardExpYear: savedMethod.cardExpYear,
             pixKey: savedMethod.pixKey,
@@ -382,105 +419,132 @@ export default function PaymentMethodsScreen({ navigation }: any) {
           const updatedMethods = [...paymentMethods, newMethod];
           setPaymentMethods(updatedMethods);
           // Cache locally
-          await AsyncStorage.setItem(PAYMENT_METHODS_KEY, JSON.stringify(updatedMethods));
+          await AsyncStorage.setItem(
+            PAYMENT_METHODS_KEY,
+            JSON.stringify(updatedMethods),
+          );
         }
       } catch (apiError) {
-        console.log('API save failed, saving locally:', apiError);
+        console.log("API save failed, saving locally:", apiError);
         // Fallback: save locally only
-        const newMethod: PaymentMethod = formData.type === 'pix'
-          ? {
-              id: Date.now().toString(),
-              type: 'pix',
-              pixKey: formData.pixKey,
-              isDefault: paymentMethods.length === 0,
-            }
-          : {
-              id: Date.now().toString(),
-              type: formData.type,
-              brand: formData.cardNumber.startsWith('4') ? 'Visa' : 'Mastercard',
-              lastFour: formData.cardNumber.replace(/\s/g, '').slice(-4),
-              holderName: formData.holderName.toUpperCase(),
-              expiryDate: formData.expiryDate,
-              isDefault: paymentMethods.length === 0,
-            };
+        const newMethod: PaymentMethod =
+          formData.type === "pix"
+            ? {
+                id: Date.now().toString(),
+                type: "pix",
+                pixKey: formData.pixKey,
+                isDefault: paymentMethods.length === 0,
+              }
+            : {
+                id: Date.now().toString(),
+                type: formData.type,
+                brand: formData.cardNumber.startsWith("4")
+                  ? "Visa"
+                  : "Mastercard",
+                lastFour: formData.cardNumber.replace(/\s/g, "").slice(-4),
+                holderName: formData.holderName.toUpperCase(),
+                expiryDate: formData.expiryDate,
+                isDefault: paymentMethods.length === 0,
+              };
         const updatedMethods = [...paymentMethods, newMethod];
         setPaymentMethods(updatedMethods);
-        await AsyncStorage.setItem(PAYMENT_METHODS_KEY, JSON.stringify(updatedMethods));
+        await AsyncStorage.setItem(
+          PAYMENT_METHODS_KEY,
+          JSON.stringify(updatedMethods),
+        );
       }
-      
+
       setShowModal(false);
-      Alert.alert(t.common?.success || 'Success', t.customer?.paymentMethodAdded || 'Payment method added successfully.');
+      Alert.alert(
+        t.common?.success || "Success",
+        t.customer?.paymentMethodAdded || "Payment method added successfully.",
+      );
     } finally {
       setSaving(false);
     }
   };
 
   const handleSetDefault = async (methodId: string) => {
-    const updatedMethods = paymentMethods.map(m => ({
+    const updatedMethods = paymentMethods.map((m) => ({
       ...m,
       isDefault: m.id === methodId,
     }));
     setPaymentMethods(updatedMethods);
-    await AsyncStorage.setItem(PAYMENT_METHODS_KEY, JSON.stringify(updatedMethods));
+    await AsyncStorage.setItem(
+      PAYMENT_METHODS_KEY,
+      JSON.stringify(updatedMethods),
+    );
     // Sync to API
     try {
       await api.patch(`/payment-methods/${methodId}/default`);
     } catch (error) {
-      console.log('API set-default failed (local change kept):', error);
+      console.log("API set-default failed (local change kept):", error);
     }
   };
 
   const handleDelete = (methodId: string) => {
     Alert.alert(
-      t.customer?.removePaymentMethod || 'Remove Payment Method',
-      t.customer?.removePaymentMethodConfirm || 'Are you sure you want to remove this payment method?',
+      t.customer?.removePaymentMethod || "Remove Payment Method",
+      t.customer?.removePaymentMethodConfirm ||
+        "Are you sure you want to remove this payment method?",
       [
-        { text: t.common?.cancel || 'Cancel', style: 'cancel' },
+        { text: t.common?.cancel || "Cancel", style: "cancel" },
         {
-          text: t.common?.remove || 'Remove',
-          style: 'destructive',
+          text: t.common?.remove || "Remove",
+          style: "destructive",
           onPress: async () => {
-            const updatedMethods = paymentMethods.filter(m => m.id !== methodId);
+            const updatedMethods = paymentMethods.filter(
+              (m) => m.id !== methodId,
+            );
             setPaymentMethods(updatedMethods);
-            await AsyncStorage.setItem(PAYMENT_METHODS_KEY, JSON.stringify(updatedMethods));
+            await AsyncStorage.setItem(
+              PAYMENT_METHODS_KEY,
+              JSON.stringify(updatedMethods),
+            );
             // Sync to API
             try {
               await api.delete(`/payment-methods/${methodId}`);
             } catch (error) {
-              console.log('API delete failed (local change kept):', error);
+              console.log("API delete failed (local change kept):", error);
             }
           },
         },
-      ]
+      ],
     );
   };
 
   const getCardIcon = (brand?: string) => {
     switch (brand?.toLowerCase()) {
-      case 'visa': return 'card';
-      case 'mastercard': return 'card';
-      default: return 'card-outline';
+      case "visa":
+        return "card";
+      case "mastercard":
+        return "card";
+      default:
+        return "card-outline";
     }
   };
 
   const getCardColor = (brand?: string) => {
     switch (brand?.toLowerCase()) {
-      case 'visa': return '#1a1f71';
-      case 'mastercard': return '#eb001b';
-      default: return '#6b7280';
+      case "visa":
+        return "#1a1f71";
+      case "mastercard":
+        return "#eb001b";
+      default:
+        return "#6b7280";
     }
   };
 
   const formatCardNumber = (text: string) => {
-    const cleaned = text.replace(/\D/g, '');
-    const formatted = cleaned.match(/.{1,4}/g)?.join(' ') || cleaned;
+    const cleaned = text.replace(/\D/g, "");
+    const formatted = cleaned.match(/.{1,4}/g)?.join(" ") || cleaned;
     return formatted.substring(0, 19);
   };
 
   const formatExpiryDate = (text: string) => {
-    const cleaned = text.replace(/\D/g, '');
+    const cleaned = text.replace(/\D/g, "");
     if (cleaned.length >= 2) {
-      return cleaned.substring(0, 2) + '/' + cleaned.substring(2, 4);
+      return cleaned.substring(0, 2) + "/" + cleaned.substring(2, 4);
     }
     return cleaned;
   };
@@ -492,7 +556,9 @@ export default function PaymentMethodsScreen({ navigation }: any) {
           <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={24} color="#111827" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{t.customer?.paymentMethods || 'Payment Methods'}</Text>
+          <Text style={styles.headerTitle}>
+            {t.customer?.paymentMethods || "Payment Methods"}
+          </Text>
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.loadingContainer}>
@@ -509,7 +575,9 @@ export default function PaymentMethodsScreen({ navigation }: any) {
         <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color="#111827" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t.customer?.paymentMethods || 'Payment Methods'}</Text>
+        <Text style={styles.headerTitle}>
+          {t.customer?.paymentMethods || "Payment Methods"}
+        </Text>
         <TouchableOpacity onPress={handleOpenModal} style={styles.addBtn}>
           <Ionicons name="add" size={24} color="#1976d2" />
         </TouchableOpacity>
@@ -520,7 +588,8 @@ export default function PaymentMethodsScreen({ navigation }: any) {
         <View style={styles.infoBanner}>
           <Ionicons name="shield-checkmark" size={20} color="#1976d2" />
           <Text style={styles.infoBannerText}>
-            {t.customer?.paymentInfoSecure || 'Your payment information is encrypted and secure'}
+            {t.customer?.paymentInfoSecure ||
+              "Your payment information is encrypted and secure"}
           </Text>
         </View>
 
@@ -532,43 +601,72 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                 <Ionicons name="wallet" size={28} color="#1976d2" />
               </View>
               <View style={styles.walletInfo}>
-                <Text style={styles.walletLabel}>{t.customer?.walletBalance || 'Wallet Balance'}</Text>
-                <Text style={styles.walletBalance}>${walletBalance.toFixed(2)}</Text>
+                <Text style={styles.walletLabel}>
+                  {t.customer?.walletBalance || "Wallet Balance"}
+                </Text>
+                <Text style={styles.walletBalance}>
+                  ${walletBalance.toFixed(2)}
+                </Text>
               </View>
             </View>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.addBalanceButton}
               onPress={handleOpenAddBalanceModal}
             >
               <Ionicons name="add-circle" size={20} color="#fff" />
-              <Text style={styles.addBalanceButtonText}>{t.customer?.addBalance || 'Add Balance'}</Text>
+              <Text style={styles.addBalanceButtonText}>
+                {t.customer?.addBalance || "Add Balance"}
+              </Text>
             </TouchableOpacity>
           </View>
-          
+
           {recentTransactions.length > 0 && (
             <View style={styles.transactionsContainer}>
-              <Text style={styles.transactionsTitle}>{t.customer?.recentTransactions || 'Recent Transactions'}</Text>
+              <Text style={styles.transactionsTitle}>
+                {t.customer?.recentTransactions || "Recent Transactions"}
+              </Text>
               {recentTransactions.slice(0, 3).map((transaction) => (
                 <View key={transaction.id} style={styles.transactionItem}>
-                  <View style={[
-                    styles.transactionIcon,
-                    { backgroundColor: transaction.type === 'credit' ? '#dcfce7' : '#fee2e2' }
-                  ]}>
-                    <Ionicons 
-                      name={transaction.type === 'credit' ? 'arrow-down' : 'arrow-up'} 
-                      size={16} 
-                      color={transaction.type === 'credit' ? '#16a34a' : '#ef4444'} 
+                  <View
+                    style={[
+                      styles.transactionIcon,
+                      {
+                        backgroundColor:
+                          transaction.type === "credit" ? "#dcfce7" : "#fee2e2",
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name={
+                        transaction.type === "credit"
+                          ? "arrow-down"
+                          : "arrow-up"
+                      }
+                      size={16}
+                      color={
+                        transaction.type === "credit" ? "#16a34a" : "#ef4444"
+                      }
                     />
                   </View>
                   <View style={styles.transactionInfo}>
-                    <Text style={styles.transactionDescription}>{transaction.description}</Text>
-                    <Text style={styles.transactionDate}>{transaction.date}</Text>
+                    <Text style={styles.transactionDescription}>
+                      {transaction.description}
+                    </Text>
+                    <Text style={styles.transactionDate}>
+                      {transaction.date}
+                    </Text>
                   </View>
-                  <Text style={[
-                    styles.transactionAmount,
-                    { color: transaction.type === 'credit' ? '#16a34a' : '#ef4444' }
-                  ]}>
-                    {transaction.type === 'credit' ? '+' : '-'}${transaction.amount.toFixed(2)}
+                  <Text
+                    style={[
+                      styles.transactionAmount,
+                      {
+                        color:
+                          transaction.type === "credit" ? "#16a34a" : "#ef4444",
+                      },
+                    ]}
+                  >
+                    {transaction.type === "credit" ? "+" : "-"}$
+                    {transaction.amount.toFixed(2)}
                   </Text>
                 </View>
               ))}
@@ -577,27 +675,44 @@ export default function PaymentMethodsScreen({ navigation }: any) {
         </View>
 
         {/* Payment Methods Title */}
-        <Text style={styles.sectionTitle}>{t.customer?.savedPaymentMethods || 'Saved Payment Methods'}</Text>
+        <Text style={styles.sectionTitle}>
+          {t.customer?.savedPaymentMethods || "Saved Payment Methods"}
+        </Text>
 
         {paymentMethods.length === 0 ? (
           <View style={styles.emptyState}>
             <View style={styles.emptyIcon}>
               <Ionicons name="card-outline" size={64} color="#d1d5db" />
             </View>
-            <Text style={styles.emptyTitle}>{t.customer?.noPaymentMethods || 'No payment methods'}</Text>
-            <Text style={styles.emptySubtitle}>{t.customer?.addCardEasier || 'Add a card to make payments easier'}</Text>
-            <TouchableOpacity style={styles.emptyButton} onPress={handleOpenModal}>
+            <Text style={styles.emptyTitle}>
+              {t.customer?.noPaymentMethods || "No payment methods"}
+            </Text>
+            <Text style={styles.emptySubtitle}>
+              {t.customer?.addCardEasier ||
+                "Add a card to make payments easier"}
+            </Text>
+            <TouchableOpacity
+              style={styles.emptyButton}
+              onPress={handleOpenModal}
+            >
               <Ionicons name="add" size={20} color="#fff" />
-              <Text style={styles.emptyButtonText}>{t.customer?.addPaymentMethod || 'Add Payment Method'}</Text>
+              <Text style={styles.emptyButtonText}>
+                {t.customer?.addPaymentMethod || "Add Payment Method"}
+              </Text>
             </TouchableOpacity>
           </View>
         ) : (
           <View style={styles.methodsList}>
             {paymentMethods.map((method) => (
               <View key={method.id} style={styles.methodCard}>
-                {method.type === 'pix' ? (
+                {method.type === "pix" ? (
                   <View style={styles.methodHeader}>
-                    <View style={[styles.methodIcon, { backgroundColor: '#d1fae5' }]}>
+                    <View
+                      style={[
+                        styles.methodIcon,
+                        { backgroundColor: "#d1fae5" },
+                      ]}
+                    >
                       <Text style={styles.pixIcon}>PIX</Text>
                     </View>
                     <View style={styles.methodInfo}>
@@ -606,31 +721,58 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                     </View>
                     {method.isDefault && (
                       <View style={styles.defaultBadge}>
-                        <Text style={styles.defaultBadgeText}>{t.common?.default || 'Default'}</Text>
+                        <Text style={styles.defaultBadgeText}>
+                          {t.common?.default || "Default"}
+                        </Text>
                       </View>
                     )}
                   </View>
                 ) : (
                   <View style={styles.methodHeader}>
-                    <View style={[styles.methodIcon, { backgroundColor: '#dbeafe' }]}>
-                      <Ionicons 
-                        name={getCardIcon(method.brand || method.cardBrand) as any} 
-                        size={24} 
-                        color={getCardColor(method.brand || method.cardBrand)} 
+                    <View
+                      style={[
+                        styles.methodIcon,
+                        { backgroundColor: "#dbeafe" },
+                      ]}
+                    >
+                      <Ionicons
+                        name={
+                          getCardIcon(method.brand || method.cardBrand) as any
+                        }
+                        size={24}
+                        color={getCardColor(method.brand || method.cardBrand)}
                       />
                     </View>
                     <View style={styles.methodInfo}>
                       <View style={styles.methodTitleRow}>
-                        <Text style={styles.methodTitle}>{method.brand || method.cardBrand}</Text>
-                        <View style={[
-                          styles.typeBadge,
-                          { backgroundColor: method.type === 'credit' ? '#dbeafe' : '#fef3c7' }
-                        ]}>
-                          <Text style={[
-                            styles.typeBadgeText,
-                            { color: method.type === 'credit' ? '#1976d2' : '#92400e' }
-                          ]}>
-                            {method.type === 'credit' ? (t.customer?.credit || 'Credit') : (t.customer?.debit || 'Debit')}
+                        <Text style={styles.methodTitle}>
+                          {method.brand || method.cardBrand}
+                        </Text>
+                        <View
+                          style={[
+                            styles.typeBadge,
+                            {
+                              backgroundColor:
+                                method.type === "credit"
+                                  ? "#dbeafe"
+                                  : "#fef3c7",
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.typeBadgeText,
+                              {
+                                color:
+                                  method.type === "credit"
+                                    ? "#1976d2"
+                                    : "#92400e",
+                              },
+                            ]}
+                          >
+                            {method.type === "credit"
+                              ? t.customer?.credit || "Credit"
+                              : t.customer?.debit || "Debit"}
                           </Text>
                         </View>
                       </View>
@@ -638,12 +780,18 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                         •••• •••• •••• {method.lastFour || method.cardLast4}
                       </Text>
                       <Text style={styles.methodExpiry}>
-                        {t.customer?.expires || 'Expires'} {method.expiryDate || (method.cardExpMonth && method.cardExpYear ? `${String(method.cardExpMonth).padStart(2, '0')}/${String(method.cardExpYear).slice(-2)}` : '')}
+                        {t.customer?.expires || "Expires"}{" "}
+                        {method.expiryDate ||
+                          (method.cardExpMonth && method.cardExpYear
+                            ? `${String(method.cardExpMonth).padStart(2, "0")}/${String(method.cardExpYear).slice(-2)}`
+                            : "")}
                       </Text>
                     </View>
                     {method.isDefault && (
                       <View style={styles.defaultBadge}>
-                        <Text style={styles.defaultBadgeText}>{t.common?.default || 'Default'}</Text>
+                        <Text style={styles.defaultBadgeText}>
+                          {t.common?.default || "Default"}
+                        </Text>
                       </View>
                     )}
                   </View>
@@ -651,20 +799,26 @@ export default function PaymentMethodsScreen({ navigation }: any) {
 
                 <View style={styles.methodActions}>
                   {!method.isDefault && (
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={styles.actionButton}
                       onPress={() => handleSetDefault(method.id)}
                     >
                       <Ionicons name="star-outline" size={16} color="#1976d2" />
-                      <Text style={styles.actionButtonText}>{t.common?.setAsDefault || 'Set as Default'}</Text>
+                      <Text style={styles.actionButtonText}>
+                        {t.common?.setAsDefault || "Set as Default"}
+                      </Text>
                     </TouchableOpacity>
                   )}
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={[styles.actionButton, styles.deleteActionButton]}
                     onPress={() => handleDelete(method.id)}
                   >
                     <Ionicons name="trash-outline" size={16} color="#ef4444" />
-                    <Text style={[styles.actionButtonText, { color: '#ef4444' }]}>{t.common?.remove || 'Remove'}</Text>
+                    <Text
+                      style={[styles.actionButtonText, { color: "#ef4444" }]}
+                    >
+                      {t.common?.remove || "Remove"}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -682,24 +836,26 @@ export default function PaymentMethodsScreen({ navigation }: any) {
         transparent={true}
         onRequestClose={() => setShowModal(false)}
       >
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
           style={styles.modalOverlay}
         >
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.modalBackdrop}
             activeOpacity={1}
             onPress={() => setShowModal(false)}
           />
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t.customer?.addPaymentMethod || 'Add Payment Method'}</Text>
+              <Text style={styles.modalTitle}>
+                {t.customer?.addPaymentMethod || "Add Payment Method"}
+              </Text>
               <TouchableOpacity onPress={() => setShowModal(false)}>
                 <Ionicons name="close" size={24} color="#6b7280" />
               </TouchableOpacity>
             </View>
 
-            <ScrollView 
+            <ScrollView
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{ paddingBottom: 50 }}
               keyboardShouldPersistTaps="handled"
@@ -708,8 +864,16 @@ export default function PaymentMethodsScreen({ navigation }: any) {
               <Text style={styles.inputLabel}>Type</Text>
               <View style={styles.typeOptions}>
                 {[
-                  { type: 'credit' as const, label: 'Credit Card', icon: 'card' },
-                  { type: 'debit' as const, label: 'Debit Card', icon: 'card-outline' },
+                  {
+                    type: "credit" as const,
+                    label: "Credit Card",
+                    icon: "card",
+                  },
+                  {
+                    type: "debit" as const,
+                    label: "Debit Card",
+                    icon: "card-outline",
+                  },
                 ].map((option) => (
                   <TouchableOpacity
                     key={option.type}
@@ -717,31 +881,43 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                       styles.typeOption,
                       formData.type === option.type && styles.typeOptionActive,
                     ]}
-                    onPress={() => setFormData({ ...formData, type: option.type })}
+                    onPress={() =>
+                      setFormData({ ...formData, type: option.type })
+                    }
                   >
-                    <Ionicons 
-                      name={option.icon as any} 
-                      size={20} 
-                      color={formData.type === option.type ? '#1976d2' : '#6b7280'} 
+                    <Ionicons
+                      name={option.icon as any}
+                      size={20}
+                      color={
+                        formData.type === option.type ? "#1976d2" : "#6b7280"
+                      }
                     />
-                    <Text style={[
-                      styles.typeOptionText,
-                      formData.type === option.type && styles.typeOptionTextActive,
-                    ]}>
+                    <Text
+                      style={[
+                        styles.typeOptionText,
+                        formData.type === option.type &&
+                          styles.typeOptionTextActive,
+                      ]}
+                    >
                       {option.label}
                     </Text>
                   </TouchableOpacity>
                 ))}
               </View>
 
-              {formData.type !== 'pix' ? (
+              {formData.type !== "pix" ? (
                 <>
                   <Text style={styles.inputLabel}>Card Number *</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="1234 5678 9012 3456"
                     value={formData.cardNumber}
-                    onChangeText={(text) => setFormData({ ...formData, cardNumber: formatCardNumber(text) })}
+                    onChangeText={(text) =>
+                      setFormData({
+                        ...formData,
+                        cardNumber: formatCardNumber(text),
+                      })
+                    }
                     keyboardType="numeric"
                     maxLength={19}
                   />
@@ -751,7 +927,12 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                     style={styles.input}
                     placeholder="JOHN DOE"
                     value={formData.holderName}
-                    onChangeText={(text) => setFormData({ ...formData, holderName: text.toUpperCase() })}
+                    onChangeText={(text) =>
+                      setFormData({
+                        ...formData,
+                        holderName: text.toUpperCase(),
+                      })
+                    }
                     autoCapitalize="characters"
                   />
 
@@ -762,7 +943,12 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                         style={styles.input}
                         placeholder="MM/YY"
                         value={formData.expiryDate}
-                        onChangeText={(text) => setFormData({ ...formData, expiryDate: formatExpiryDate(text) })}
+                        onChangeText={(text) =>
+                          setFormData({
+                            ...formData,
+                            expiryDate: formatExpiryDate(text),
+                          })
+                        }
                         keyboardType="numeric"
                         maxLength={5}
                       />
@@ -773,7 +959,12 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                         style={styles.input}
                         placeholder="123"
                         value={formData.cvv}
-                        onChangeText={(text) => setFormData({ ...formData, cvv: text.replace(/\D/g, '') })}
+                        onChangeText={(text) =>
+                          setFormData({
+                            ...formData,
+                            cvv: text.replace(/\D/g, ""),
+                          })
+                        }
                         keyboardType="numeric"
                         maxLength={4}
                         secureTextEntry
@@ -788,7 +979,9 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                     style={styles.input}
                     placeholder="Email, phone, CPF or random key"
                     value={formData.pixKey}
-                    onChangeText={(text) => setFormData({ ...formData, pixKey: text })}
+                    onChangeText={(text) =>
+                      setFormData({ ...formData, pixKey: text })
+                    }
                   />
                 </>
               )}
@@ -796,7 +989,8 @@ export default function PaymentMethodsScreen({ navigation }: any) {
               <View style={styles.securityNote}>
                 <Ionicons name="lock-closed" size={16} color="#6b7280" />
                 <Text style={styles.securityNoteText}>
-                  Your card information is encrypted using industry-standard security
+                  Your card information is encrypted using industry-standard
+                  security
                 </Text>
               </View>
 
@@ -806,7 +1000,7 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                 disabled={saving}
               >
                 <Text style={styles.saveButtonText}>
-                  {saving ? 'Adding...' : 'Add Payment Method'}
+                  {saving ? "Adding..." : "Add Payment Method"}
                 </Text>
               </TouchableOpacity>
             </ScrollView>
@@ -824,7 +1018,9 @@ export default function PaymentMethodsScreen({ navigation }: any) {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t.customer?.addBalance || 'Add Balance'}</Text>
+              <Text style={styles.modalTitle}>
+                {t.customer?.addBalance || "Add Balance"}
+              </Text>
               <TouchableOpacity onPress={() => setShowAddBalanceModal(false)}>
                 <Ionicons name="close" size={24} color="#6b7280" />
               </TouchableOpacity>
@@ -832,7 +1028,9 @@ export default function PaymentMethodsScreen({ navigation }: any) {
 
             <ScrollView showsVerticalScrollIndicator={false}>
               {/* Amount Input */}
-              <Text style={styles.inputLabel}>{t.customer?.amount || 'Amount'} *</Text>
+              <Text style={styles.inputLabel}>
+                {t.customer?.amount || "Amount"} *
+              </Text>
               <View style={styles.amountInputContainer}>
                 <Text style={styles.currencySymbol}>$</Text>
                 <TextInput
@@ -843,7 +1041,9 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                   keyboardType="decimal-pad"
                 />
               </View>
-              <Text style={styles.minimumAmountText}>{t.customer?.minimumAmountNote || 'Minimum: $10.00'}</Text>
+              <Text style={styles.minimumAmountText}>
+                {t.customer?.minimumAmountNote || "Minimum: $10.00"}
+              </Text>
 
               {/* Quick Amount Buttons */}
               <View style={styles.quickAmountContainer}>
@@ -859,51 +1059,72 @@ export default function PaymentMethodsScreen({ navigation }: any) {
               </View>
 
               {/* Payment Method Selection */}
-              <Text style={styles.inputLabel}>{t.customer?.paymentMethod || 'Payment Method'}</Text>
+              <Text style={styles.inputLabel}>
+                {t.customer?.paymentMethod || "Payment Method"}
+              </Text>
               <View style={styles.balanceMethodOptions}>
                 {[
-                  { type: 'card' as const, label: t.customer?.creditDebitCard || 'Credit/Debit Card', icon: 'card' },
-                  { type: 'pix' as const, label: 'PIX', icon: 'qr-code' },
-                  { type: 'transfer' as const, label: t.customer?.bankTransfer || 'Bank Transfer', icon: 'swap-horizontal' },
+                  {
+                    type: "card" as const,
+                    label: t.customer?.creditDebitCard || "Credit/Debit Card",
+                    icon: "card",
+                  },
+                  { type: "pix" as const, label: "PIX", icon: "qr-code" },
+                  {
+                    type: "transfer" as const,
+                    label: t.customer?.bankTransfer || "Bank Transfer",
+                    icon: "swap-horizontal",
+                  },
                 ].map((option) => (
                   <TouchableOpacity
                     key={option.type}
                     style={[
                       styles.balanceMethodOption,
-                      addBalanceMethod === option.type && styles.balanceMethodOptionActive,
+                      addBalanceMethod === option.type &&
+                        styles.balanceMethodOptionActive,
                     ]}
                     onPress={() => setAddBalanceMethod(option.type)}
                   >
-                    <Ionicons 
-                      name={option.icon as any} 
-                      size={24} 
-                      color={addBalanceMethod === option.type ? '#1976d2' : '#6b7280'} 
+                    <Ionicons
+                      name={option.icon as any}
+                      size={24}
+                      color={
+                        addBalanceMethod === option.type ? "#1976d2" : "#6b7280"
+                      }
                     />
-                    <Text style={[
-                      styles.balanceMethodText,
-                      addBalanceMethod === option.type && styles.balanceMethodTextActive,
-                    ]}>
+                    <Text
+                      style={[
+                        styles.balanceMethodText,
+                        addBalanceMethod === option.type &&
+                          styles.balanceMethodTextActive,
+                      ]}
+                    >
                       {option.label}
                     </Text>
                   </TouchableOpacity>
                 ))}
               </View>
 
-              {addBalanceMethod === 'pix' && (
+              {addBalanceMethod === "pix" && (
                 <View style={styles.pixInstructions}>
                   <View style={styles.pixQRPlaceholder}>
                     <Ionicons name="qr-code" size={80} color="#1976d2" />
-                    <Text style={styles.pixQRText}>{t.customer?.scanQRCode || 'Scan QR Code'}</Text>
+                    <Text style={styles.pixQRText}>
+                      {t.customer?.scanQRCode || "Scan QR Code"}
+                    </Text>
                   </View>
                   <Text style={styles.pixNote}>
-                    {t.customer?.pixNote || 'Balance will be added automatically after payment confirmation.'}
+                    {t.customer?.pixNote ||
+                      "Balance will be added automatically after payment confirmation."}
                   </Text>
                 </View>
               )}
 
-              {addBalanceMethod === 'transfer' && (
+              {addBalanceMethod === "transfer" && (
                 <View style={styles.transferInstructions}>
-                  <Text style={styles.transferTitle}>{t.customer?.bankDetails || 'Bank Details'}</Text>
+                  <Text style={styles.transferTitle}>
+                    {t.customer?.bankDetails || "Bank Details"}
+                  </Text>
                   <View style={styles.transferDetail}>
                     <Text style={styles.transferLabel}>Bank:</Text>
                     <Text style={styles.transferValue}>TechTrust Bank</Text>
@@ -917,7 +1138,8 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                     <Text style={styles.transferValue}>000-000-000</Text>
                   </View>
                   <Text style={styles.transferNote}>
-                    {t.customer?.transferNote || 'Include your account email as reference. Balance typically credited within 1-2 business days.'}
+                    {t.customer?.transferNote ||
+                      "Include your account email as reference. Balance typically credited within 1-2 business days."}
                   </Text>
                 </View>
               )}
@@ -928,9 +1150,9 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                 disabled={saving}
               >
                 <Text style={styles.saveButtonText}>
-                  {saving 
-                    ? (t.common?.processing || 'Processing...') 
-                    : (t.customer?.addBalance || 'Add Balance')}
+                  {saving
+                    ? t.common?.processing || "Processing..."
+                    : t.customer?.addBalance || "Add Balance"}
                 </Text>
               </TouchableOpacity>
             </ScrollView>
@@ -944,38 +1166,38 @@ export default function PaymentMethodsScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: "#f8fafc",
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: "#f3f4f6",
   },
   backBtn: {
     padding: 8,
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
+    fontWeight: "600",
+    color: "#111827",
   },
   addBtn: {
     padding: 8,
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   infoBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#dbeafe',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#dbeafe",
     marginHorizontal: 16,
     marginTop: 16,
     padding: 12,
@@ -985,10 +1207,10 @@ const styles = StyleSheet.create({
   infoBannerText: {
     flex: 1,
     fontSize: 13,
-    color: '#1e40af',
+    color: "#1e40af",
   },
   emptyState: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: 60,
     paddingHorizontal: 40,
   },
@@ -996,80 +1218,80 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: '#f3f4f6',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#f3f4f6",
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 24,
   },
   emptyTitle: {
     fontSize: 20,
-    fontWeight: '600',
-    color: '#374151',
+    fontWeight: "600",
+    color: "#374151",
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#9ca3af',
-    textAlign: 'center',
+    color: "#9ca3af",
+    textAlign: "center",
     marginBottom: 24,
   },
   emptyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1976d2',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#1976d2",
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderRadius: 12,
     gap: 8,
   },
   emptyButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   methodsList: {
     padding: 16,
   },
   methodCard: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
   },
   methodHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
   },
   methodIcon: {
     width: 48,
     height: 48,
     borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   pixIcon: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#10b981',
+    fontWeight: "700",
+    color: "#10b981",
   },
   methodInfo: {
     flex: 1,
     marginLeft: 12,
   },
   methodTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   methodTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
+    fontWeight: "600",
+    color: "#111827",
   },
   typeBadge: {
     paddingHorizontal: 8,
@@ -1078,138 +1300,138 @@ const styles = StyleSheet.create({
   },
   typeBadgeText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   methodSubtitle: {
     fontSize: 14,
-    color: '#6b7280',
+    color: "#6b7280",
     marginTop: 4,
-    fontFamily: 'monospace',
+    fontFamily: "monospace",
   },
   methodExpiry: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: "#9ca3af",
     marginTop: 2,
   },
   defaultBadge: {
-    backgroundColor: '#d1fae5',
+    backgroundColor: "#d1fae5",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
   },
   defaultBadgeText: {
     fontSize: 11,
-    color: '#10b981',
-    fontWeight: '600',
+    color: "#10b981",
+    fontWeight: "600",
   },
   methodActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
+    borderTopColor: "#f3f4f6",
     gap: 16,
   },
   actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
   },
   actionButtonText: {
     fontSize: 13,
-    color: '#1976d2',
-    fontWeight: '500',
+    color: "#1976d2",
+    fontWeight: "500",
   },
   deleteActionButton: {
-    marginLeft: 'auto',
+    marginLeft: "auto",
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
   },
   modalBackdrop: {
     flex: 1,
   },
   modalContent: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 20,
     paddingBottom: 40,
-    maxHeight: '90%',
+    maxHeight: "90%",
   },
   modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: "#f3f4f6",
     marginBottom: 16,
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
+    fontWeight: "600",
+    color: "#111827",
   },
   inputLabel: {
     fontSize: 13,
-    color: '#6b7280',
+    color: "#6b7280",
     marginBottom: 8,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   input: {
-    backgroundColor: '#f9fafb',
+    backgroundColor: "#f9fafb",
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    color: '#111827',
+    color: "#111827",
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: "#e5e7eb",
     marginBottom: 16,
   },
   inputRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
   },
   inputHalf: {
     flex: 1,
   },
   typeOptions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
     marginBottom: 16,
   },
   typeOption: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 8,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: "#f3f4f6",
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: "#e5e7eb",
   },
   typeOptionActive: {
-    backgroundColor: '#dbeafe',
-    borderColor: '#1976d2',
+    backgroundColor: "#dbeafe",
+    borderColor: "#1976d2",
   },
   typeOptionText: {
     fontSize: 14,
-    color: '#6b7280',
+    color: "#6b7280",
   },
   typeOptionTextActive: {
-    color: '#1976d2',
-    fontWeight: '600',
+    color: "#1976d2",
+    fontWeight: "600",
   },
   securityNote: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: '#f9fafb',
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: "#f9fafb",
     padding: 12,
     borderRadius: 12,
     gap: 8,
@@ -1218,45 +1440,45 @@ const styles = StyleSheet.create({
   securityNoteText: {
     flex: 1,
     fontSize: 12,
-    color: '#6b7280',
+    color: "#6b7280",
     lineHeight: 18,
   },
   saveButton: {
-    backgroundColor: '#1976d2',
+    backgroundColor: "#1976d2",
     paddingVertical: 16,
     borderRadius: 12,
-    alignItems: 'center',
+    alignItems: "center",
   },
   saveButtonDisabled: {
-    backgroundColor: '#93c5fd',
+    backgroundColor: "#93c5fd",
   },
   saveButtonText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
+    fontWeight: "600",
+    color: "#fff",
   },
   // Wallet Section Styles
   walletSection: {
     margin: 16,
   },
   walletCard: {
-    backgroundColor: '#1976d2',
+    backgroundColor: "#1976d2",
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
   },
   walletHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 20,
   },
   walletIconContainer: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 16,
   },
   walletInfo: {
@@ -1264,52 +1486,52 @@ const styles = StyleSheet.create({
   },
   walletLabel: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
+    color: "rgba(255,255,255,0.8)",
     marginBottom: 4,
   },
   walletBalance: {
     fontSize: 32,
-    fontWeight: '700',
-    color: '#fff',
+    fontWeight: "700",
+    color: "#fff",
   },
   addBalanceButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.2)",
     paddingVertical: 12,
     borderRadius: 12,
     gap: 8,
   },
   addBalanceButtonText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
+    fontWeight: "600",
+    color: "#fff",
   },
   transactionsContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 16,
     padding: 16,
   },
   transactionsTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
+    fontWeight: "600",
+    color: "#111827",
     marginBottom: 12,
   },
   transactionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: "#f3f4f6",
   },
   transactionIcon: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 12,
   },
   transactionInfo: {
@@ -1317,159 +1539,159 @@ const styles = StyleSheet.create({
   },
   transactionDescription: {
     fontSize: 14,
-    color: '#374151',
+    color: "#374151",
     marginBottom: 2,
   },
   transactionDate: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: "#9ca3af",
   },
   transactionAmount: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
+    fontWeight: "600",
+    color: "#111827",
     marginHorizontal: 16,
     marginBottom: 12,
   },
   // Add Balance Modal Styles
   amountInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f3f4f6',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f3f4f6",
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: "#e5e7eb",
     paddingHorizontal: 16,
     marginBottom: 8,
   },
   currencySymbol: {
     fontSize: 24,
-    fontWeight: '600',
-    color: '#374151',
+    fontWeight: "600",
+    color: "#374151",
     marginRight: 8,
   },
   amountInput: {
     flex: 1,
     fontSize: 24,
-    fontWeight: '600',
-    color: '#111827',
+    fontWeight: "600",
+    color: "#111827",
     paddingVertical: 16,
   },
   minimumAmountText: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: "#9ca3af",
     marginBottom: 16,
   },
   quickAmountContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 24,
   },
   quickAmountButton: {
     flex: 1,
     marginHorizontal: 4,
     paddingVertical: 12,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: "#f3f4f6",
     borderRadius: 10,
-    alignItems: 'center',
+    alignItems: "center",
   },
   quickAmountText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
+    fontWeight: "600",
+    color: "#374151",
   },
   balanceMethodOptions: {
     gap: 12,
     marginBottom: 20,
   },
   balanceMethodOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 16,
-    backgroundColor: '#f9fafb',
+    backgroundColor: "#f9fafb",
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: "transparent",
     gap: 12,
   },
   balanceMethodOptionActive: {
-    backgroundColor: '#dbeafe',
-    borderColor: '#1976d2',
+    backgroundColor: "#dbeafe",
+    borderColor: "#1976d2",
   },
   balanceMethodText: {
     fontSize: 15,
-    color: '#374151',
+    color: "#374151",
   },
   balanceMethodTextActive: {
-    color: '#1976d2',
-    fontWeight: '600',
+    color: "#1976d2",
+    fontWeight: "600",
   },
   pixInstructions: {
-    alignItems: 'center',
+    alignItems: "center",
     padding: 20,
-    backgroundColor: '#f9fafb',
+    backgroundColor: "#f9fafb",
     borderRadius: 12,
     marginBottom: 20,
   },
   pixQRPlaceholder: {
     width: 160,
     height: 160,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 12,
     borderWidth: 2,
-    borderColor: '#e5e7eb',
-    borderStyle: 'dashed',
+    borderColor: "#e5e7eb",
+    borderStyle: "dashed",
   },
   pixQRText: {
     fontSize: 14,
-    color: '#1976d2',
-    fontWeight: '500',
+    color: "#1976d2",
+    fontWeight: "500",
     marginTop: 8,
   },
   pixNote: {
     fontSize: 13,
-    color: '#6b7280',
-    textAlign: 'center',
+    color: "#6b7280",
+    textAlign: "center",
     lineHeight: 20,
   },
   transferInstructions: {
-    backgroundColor: '#f9fafb',
+    backgroundColor: "#f9fafb",
     borderRadius: 12,
     padding: 16,
     marginBottom: 20,
   },
   transferTitle: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#111827',
+    fontWeight: "600",
+    color: "#111827",
     marginBottom: 12,
   },
   transferDetail: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: "#e5e7eb",
   },
   transferLabel: {
     fontSize: 14,
-    color: '#6b7280',
+    color: "#6b7280",
   },
   transferValue: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#111827',
+    fontWeight: "600",
+    color: "#111827",
   },
   transferNote: {
     fontSize: 12,
-    color: '#6b7280',
+    color: "#6b7280",
     marginTop: 12,
     lineHeight: 18,
   },
