@@ -131,9 +131,9 @@ export default function LoginPage() {
                 <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-primary-600" />
                 <span className="text-sm text-gray-600">{tr('auth.rememberMe')}</span>
               </label>
-              <a href="#" className="text-sm text-primary-600 hover:text-primary-700 font-medium">
+              <Link href="/esqueci-senha" className="text-sm text-primary-600 hover:text-primary-700 font-medium">
                 {tr('auth.forgotPassword')}
-              </a>
+              </Link>
             </div>
 
             <button

@@ -74,6 +74,26 @@ router.post(
 router.post('/logout', asyncHandler(authController.logout));
 
 /**
+ * POST /api/v1/auth/social
+ * Login/cadastro via conta social (Google, Apple, Facebook)
+ */
+router.post(
+  '/social',
+  authRateLimiter,
+  asyncHandler(authController.socialLogin)
+);
+
+/**
+ * POST /api/v1/auth/social/complete
+ * Completar cadastro social (definir senha + telefone)
+ */
+router.post(
+  '/social/complete',
+  authRateLimiter,
+  asyncHandler(authController.completeSocialSignup)
+);
+
+/**
  * POST /api/v1/auth/forgot-password
  * Solicitar recuperação de senha
  */

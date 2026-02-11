@@ -38,7 +38,7 @@ import {
 } from '../services/authService';
 
 export default function LoginScreen({ navigation }: any) {
-  const { login, loginAsProvider } = useAuth();
+  const { login, loginAsProvider, socialLogin } = useAuth();
   const { language, setLanguage, t } = useI18n();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -105,27 +105,26 @@ export default function LoginScreen({ navigation }: any) {
       const googleUser = await signInWithGoogle();
       
       if (googleUser) {
-        // Send to backend for authentication/registration when ready
-        Alert.alert(
-          t.common.success || 'Success',
-          `${t.auth.welcome || 'Welcome'}, ${googleUser.name}!`,
-          [{ text: t.common.ok || 'OK' }]
-        );
-        
-        // Here you would typically:
-        // 1. Send googleUser.id and googleUser.email to your backend
-        // 2. Backend creates/finds user and returns JWT token
-        // 3. Store token and navigate to dashboard
+        // Send to backend for authentication/registration
+        const result = await socialLogin('GOOGLE', googleUser.id, {
+          fullName: googleUser.name,
+        });
+
+        if (result.status === 'NEEDS_PASSWORD') {
+          // Navigate to complete signup screen
+          navigation.navigate('CompleteSocialSignup', {
+            userId: result.userId,
+            email: result.email,
+            fullName: result.fullName,
+            phone: result.phone,
+            provider: 'Google',
+          });
+        }
+        // If AUTHENTICATED, AuthContext already set the user
       }
     } catch (error: any) {
       if (error.message !== 'Google Sign-In not configured') {
-        Alert.alert(t.common.error, t.auth.loginFailed);
-      } else {
-        Alert.alert(
-          t.common?.comingSoon || 'Coming Soon',
-          `Google ${t.auth?.socialLoginComingSoon || 'login will be available soon!'}`,
-          [{ text: t.common?.ok || 'OK' }]
-        );
+        Alert.alert(t.common.error, error.message || t.auth.loginFailed);
       }
     } finally {
       setSocialLoading(null);
@@ -147,20 +146,24 @@ export default function LoginScreen({ navigation }: any) {
       const appleUser = await signInWithApple();
       
       if (appleUser) {
-        // Send to backend for authentication/registration when ready
-        Alert.alert(
-          t.common.success || 'Success',
-          `${t.auth.welcome || 'Welcome'}${appleUser.fullName ? `, ${appleUser.fullName}` : ''}!`,
-          [{ text: t.common.ok || 'OK' }]
-        );
-        
-        // Here you would typically:
-        // 1. Send appleUser.id, identityToken to your backend
-        // 2. Backend verifies with Apple and creates/finds user
-        // 3. Store token and navigate to dashboard
+        // Send to backend for authentication/registration
+        const result = await socialLogin('APPLE', appleUser.identityToken, {
+          appleUserId: appleUser.id,
+          fullName: appleUser.fullName || undefined,
+        });
+
+        if (result.status === 'NEEDS_PASSWORD') {
+          navigation.navigate('CompleteSocialSignup', {
+            userId: result.userId,
+            email: result.email,
+            fullName: result.fullName,
+            phone: result.phone,
+            provider: 'Apple',
+          });
+        }
       }
     } catch (error: any) {
-      Alert.alert(t.common.error, t.auth.loginFailed);
+      Alert.alert(t.common.error, error.message || t.auth.loginFailed);
     } finally {
       setSocialLoading(null);
     }
@@ -172,7 +175,7 @@ export default function LoginScreen({ navigation }: any) {
     } else if (provider === 'apple') {
       handleAppleLogin();
     } else {
-      // Facebook - coming soon
+      // Facebook - will be implemented with expo-facebook SDK
       Alert.alert(
         t.common?.comingSoon || 'Coming Soon',
         `Facebook ${t.auth?.socialLoginComingSoon || 'login will be available soon!'}`,

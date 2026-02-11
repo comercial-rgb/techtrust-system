@@ -16,6 +16,7 @@ interface User {
   fullName: string;
   phone?: string;
   role: 'CUSTOMER' | 'PROVIDER';
+  avatarUrl?: string;
   providerProfile?: {
     businessName: string;
     businessType: string;
@@ -25,15 +26,26 @@ interface User {
   };
 }
 
+interface SocialLoginResult {
+  status: 'AUTHENTICATED' | 'NEEDS_PASSWORD' | 'NEEDS_PHONE_VERIFICATION';
+  userId?: string;
+  email?: string;
+  fullName?: string;
+  phone?: string | null;
+  provider?: string;
+}
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   loginAsProvider: (email: string, password: string) => Promise<void>;
   signup: (data: SignupData) => Promise<{ userId: string }>;
-  signUp: (data: SignupData) => Promise<{ userId: string }>; // Alias for signup
-  verifyOTP: (userId: string, code: string) => Promise<void>;
-  resendOTP: (userId: string) => Promise<void>;
+  signUp: (data: SignupData) => Promise<{ userId: string }>;
+  socialLogin: (provider: string, token: string, extra?: { appleUserId?: string; fullName?: string }) => Promise<SocialLoginResult>;
+  completeSocialSignup: (userId: string, password: string, phone?: string) => Promise<SocialLoginResult>;
+  verifyOTP: (userId: string, code: string, method?: 'sms' | 'email') => Promise<void>;
+  resendOTP: (userId: string, method?: 'sms' | 'email') => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
 }
@@ -215,9 +227,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const resendOTP = async (userId: string): Promise<void> => {
+  const resendOTP = async (userId: string, method: 'sms' | 'email' = 'sms'): Promise<void> => {
     try {
-      await api.post('/auth/resend-otp', { userId });
+      await api.post('/auth/resend-otp', { userId, method });
     } catch (error: any) {
       const message =
         error?.response?.data?.message ||
@@ -227,10 +239,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const verifyOTP = async (userId: string, code: string): Promise<void> => {
+  const verifyOTP = async (userId: string, code: string, method: 'sms' | 'email' = 'sms'): Promise<void> => {
     try {
 
-      const response = await api.post('/auth/verify-otp', { userId, otpCode: code });
+      const response = await api.post('/auth/verify-otp', { userId, otpCode: code, method });
 
       const { token, refreshToken, user: apiUser } = response.data.data;
       const normalizedUser: User = {
@@ -274,6 +286,109 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // ============================================
+  // SOCIAL LOGIN
+  // ============================================
+
+  const socialLogin = async (
+    provider: string,
+    token: string,
+    extra?: { appleUserId?: string; fullName?: string }
+  ): Promise<SocialLoginResult> => {
+    try {
+      const response = await api.post('/auth/social', {
+        provider,
+        token,
+        appleUserId: extra?.appleUserId,
+        fullName: extra?.fullName,
+      });
+
+      const data = response.data.data;
+
+      if (data.status === 'AUTHENTICATED') {
+        // User is fully authenticated
+        const normalizedUser: User = {
+          id: data.user.id,
+          email: data.user.email,
+          fullName: data.user.fullName,
+          phone: data.user.phone || '',
+          role: data.user.role === 'CLIENT' ? 'CUSTOMER' : data.user.role,
+          avatarUrl: data.user.avatarUrl,
+        };
+
+        await AsyncStorage.setItem('@TechTrust:user', JSON.stringify(normalizedUser));
+        await AsyncStorage.setItem('@TechTrust:token', data.token);
+        if (data.refreshToken) {
+          await AsyncStorage.setItem('@TechTrust:refreshToken', data.refreshToken);
+        }
+
+        setUser(normalizedUser);
+      }
+
+      return {
+        status: data.status,
+        userId: data.userId,
+        email: data.email,
+        fullName: data.fullName,
+        phone: data.phone,
+        provider: data.provider,
+      };
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Social login failed';
+      throw new Error(message);
+    }
+  };
+
+  const completeSocialSignup = async (
+    userId: string,
+    password: string,
+    phone?: string
+  ): Promise<SocialLoginResult> => {
+    try {
+      const response = await api.post('/auth/social/complete', {
+        userId,
+        password,
+        phone,
+      });
+
+      const data = response.data.data;
+
+      if (data.status === 'AUTHENTICATED') {
+        const normalizedUser: User = {
+          id: data.user.id,
+          email: data.user.email,
+          fullName: data.user.fullName,
+          phone: data.user.phone || '',
+          role: data.user.role === 'CLIENT' ? 'CUSTOMER' : data.user.role,
+          avatarUrl: data.user.avatarUrl,
+        };
+
+        await AsyncStorage.setItem('@TechTrust:user', JSON.stringify(normalizedUser));
+        await AsyncStorage.setItem('@TechTrust:token', data.token);
+        if (data.refreshToken) {
+          await AsyncStorage.setItem('@TechTrust:refreshToken', data.refreshToken);
+        }
+
+        setUser(normalizedUser);
+      }
+
+      return {
+        status: data.status,
+        userId: data.userId,
+        phone: data.phone,
+      };
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Failed to complete signup';
+      throw new Error(message);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -282,7 +397,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         loginAsProvider,
         signup,
-        signUp: signup, // Alias for components using signUp
+        signUp: signup,
+        socialLogin,
+        completeSocialSignup,
         verifyOTP,
         resendOTP,
         logout,

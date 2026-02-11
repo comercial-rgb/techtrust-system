@@ -99,7 +99,7 @@ export async function calculateRoadDistance(
       throw new Error(`OSRM HTTP ${response.status}`);
     }
     
-    const data = await response.json();
+    const data: any = await response.json();
     
     if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
       const route = data.routes[0];

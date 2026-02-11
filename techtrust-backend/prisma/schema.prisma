@@ -154,6 +154,13 @@ model User {
   cpf      String? // CPF (BR) or SSN (US)
   dateOfBirth DateTime?
   gender   String? // MALE, FEMALE, OTHER, PREFER_NOT_TO_SAY
+  avatarUrl String?
+  
+  // Social login
+  authProvider String?  // LOCAL, GOOGLE, APPLE, FACEBOOK
+  googleId     String?  @unique
+  appleId      String?  @unique
+  facebookId   String?  @unique
   
   // Tipo e status
   role     UserRole      @default(CLIENT)
@@ -165,6 +172,10 @@ model User {
   phoneVerified Boolean   @default(false)
   otpCode       String?
   otpExpiresAt  DateTime?
+  
+  // Email OTP (separate from phone OTP)
+  emailOtpCode      String?
+  emailOtpExpiresAt  DateTime?
   
   // Notificações
   fcmToken            String?
@@ -209,6 +220,9 @@ model User {
   @@index([email])
   @@index([phone])
   @@index([role])
+  @@index([googleId])
+  @@index([appleId])
+  @@index([facebookId])
   @@map("users")
 }
 

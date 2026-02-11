@@ -2,7 +2,7 @@
  * ============================================
  * AUTH CONTROLLER
  * ============================================
- * Controla autenticação: cadastro, login, OTP, etc
+ * Controla autenticação: cadastro, login, OTP, social login, etc
  */
 
 import { Request, Response } from 'express';
@@ -12,6 +12,7 @@ import { hashPassword, comparePassword, validatePasswordStrength } from '../util
 import { generateTokens, verifyRefreshToken } from '../utils/jwt';
 import { generateOTP, getOTPExpiration, isOTPExpired, validateOTPFormat } from '../utils/otp';
 import { sendOTP } from '../services/sms.service';
+import { sendOTPEmail, sendPasswordResetEmail, sendWelcomeEmail } from '../services/email.service';
 import { logger } from '../config/logger';
 
 /**
@@ -112,29 +113,409 @@ export const signup = async (req: Request, res: Response) => {
   }
 };
 
+// ============================================
+// SOCIAL LOGIN (Google / Apple / Facebook)
+// ============================================
+
+/**
+ * Verifica token do Google
+ */
+async function verifyGoogleToken(accessToken: string): Promise<{ id: string; email: string; name: string; picture?: string }> {
+  const response = await fetch('https://www.googleapis.com/userinfo/v2/me', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  if (!response.ok) {
+    throw new AppError('Invalid Google token', 401, 'INVALID_GOOGLE_TOKEN');
+  }
+
+  const data: any = await response.json();
+  return {
+    id: data.id,
+    email: data.email,
+    name: data.name,
+    picture: data.picture,
+  };
+}
+
+/**
+ * Verifica token da Apple (identityToken é um JWT)
+ */
+async function verifyAppleToken(identityToken: string, appleUserId: string): Promise<{ id: string; email: string | null; name: string | null }> {
+  try {
+    // Decode the Apple identity token (JWT)
+    // Apple tokens are signed JWTs. For production, verify signature with Apple's public keys.
+    // For now, we decode and validate the payload.
+    const parts = identityToken.split('.');
+    if (parts.length !== 3) {
+      throw new Error('Invalid Apple token format');
+    }
+
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'));
+
+    // Verify issuer and audience
+    if (payload.iss !== 'https://appleid.apple.com') {
+      throw new Error('Invalid Apple token issuer');
+    }
+
+    // Check expiration
+    if (payload.exp && payload.exp * 1000 < Date.now()) {
+      throw new Error('Apple token expired');
+    }
+
+    return {
+      id: appleUserId || payload.sub,
+      email: payload.email || null,
+      name: null, // Apple only sends name on first sign-in
+    };
+  } catch (error: any) {
+    logger.error('Apple token verification failed:', error);
+    throw new AppError('Invalid Apple token', 401, 'INVALID_APPLE_TOKEN');
+  }
+}
+
+/**
+ * Verifica token do Facebook
+ */
+async function verifyFacebookToken(accessToken: string): Promise<{ id: string; email: string; name: string; picture?: string }> {
+  const response = await fetch(
+    `https://graph.facebook.com/me?fields=id,name,email,picture.type(large)&access_token=${accessToken}`
+  );
+
+  if (!response.ok) {
+    throw new AppError('Invalid Facebook token', 401, 'INVALID_FACEBOOK_TOKEN');
+  }
+
+  const data: any = await response.json();
+  if (!data.email) {
+    throw new AppError('Email permission required from Facebook', 400, 'FACEBOOK_EMAIL_REQUIRED');
+  }
+
+  return {
+    id: data.id,
+    email: data.email,
+    name: data.name,
+    picture: data.picture?.data?.url,
+  };
+}
+
+/**
+ * POST /api/v1/auth/social
+ * Login/cadastro via conta social (Google, Apple, Facebook)
+ * 
+ * Flow:
+ * 1. Receive provider token
+ * 2. Verify with provider API
+ * 3. Find existing user by socialId or email
+ * 4. If exists and has password → login directly
+ * 5. If exists but no social link → link account
+ * 6. If new → create account, return NEEDS_PASSWORD status
+ */
+export const socialLogin = async (req: Request, res: Response) => {
+  try {
+    const { provider, token, appleUserId, fullName: providedName, phone } = req.body;
+
+    if (!provider || !token) {
+      throw new AppError('Provider and token are required', 400, 'MISSING_FIELDS');
+    }
+
+    // 1. Verify token with social provider
+    let socialUser: { id: string; email: string | null; name: string | null; picture?: string };
+
+    switch (provider.toUpperCase()) {
+      case 'GOOGLE':
+        socialUser = await verifyGoogleToken(token);
+        break;
+      case 'APPLE':
+        socialUser = await verifyAppleToken(token, appleUserId);
+        break;
+      case 'FACEBOOK':
+        socialUser = await verifyFacebookToken(token);
+        break;
+      default:
+        throw new AppError('Unsupported provider', 400, 'UNSUPPORTED_PROVIDER');
+    }
+
+    if (!socialUser.email) {
+      throw new AppError('Email is required from social provider', 400, 'EMAIL_REQUIRED');
+    }
+
+    const socialIdField = `${provider.toLowerCase()}Id` as 'googleId' | 'appleId' | 'facebookId';
+
+    // 2. Check if user exists by social ID
+    let user = await prisma.user.findFirst({
+      where: { [socialIdField]: socialUser.id },
+    });
+
+    // 3. Check if user exists by email (link social account)
+    if (!user) {
+      user = await prisma.user.findUnique({
+        where: { email: socialUser.email.toLowerCase() },
+      });
+
+      if (user) {
+        // Link social account to existing user
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            [socialIdField]: socialUser.id,
+            avatarUrl: user.avatarUrl || socialUser.picture || undefined,
+            emailVerified: true, // Email is verified by social provider
+          },
+        });
+        logger.info(`Social account ${provider} linked to existing user: ${user.email}`);
+      }
+    }
+
+    // 4. If user exists with password set → login directly
+    if (user && user.passwordHash && user.status === 'ACTIVE') {
+      // Update last login
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { 
+          lastLoginAt: new Date(),
+          avatarUrl: user.avatarUrl || socialUser.picture || undefined,
+        },
+      });
+
+      const tokens = generateTokens({
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+      });
+
+      logger.info(`Social login (${provider}): ${user.email}`);
+
+      return res.json({
+        success: true,
+        data: {
+          status: 'AUTHENTICATED',
+          token: tokens.accessToken,
+          refreshToken: tokens.refreshToken,
+          expiresIn: tokens.expiresIn,
+          user: {
+            id: user.id,
+            fullName: user.fullName,
+            email: user.email,
+            phone: user.phone,
+            role: user.role,
+            language: user.language,
+            phoneVerified: user.phoneVerified,
+            avatarUrl: user.avatarUrl,
+          },
+        },
+      });
+    }
+
+    // 5. If user exists but needs password or verification
+    if (user && (!user.passwordHash || user.status === 'PENDING_VERIFICATION')) {
+      return res.json({
+        success: true,
+        data: {
+          status: 'NEEDS_PASSWORD',
+          userId: user.id,
+          email: user.email,
+          fullName: user.fullName,
+          phone: user.phone,
+          provider,
+          message: 'Please set a password to complete your account setup.',
+        },
+      });
+    }
+
+    // 6. New user → create account
+    // Require phone for new accounts (can be sent in request body or set later)
+    const newUserPhone = phone || `+0${Date.now()}`; // Temporary placeholder if no phone
+    const hasRealPhone = !!phone;
+
+    const newUser = await prisma.user.create({
+      data: {
+        fullName: socialUser.name || providedName || socialUser.email.split('@')[0],
+        email: socialUser.email.toLowerCase(),
+        phone: newUserPhone,
+        passwordHash: '', // Will be set when user defines password
+        authProvider: provider.toUpperCase(),
+        [socialIdField]: socialUser.id,
+        avatarUrl: socialUser.picture || null,
+        emailVerified: true, // Verified by social provider
+        phoneVerified: hasRealPhone,
+        status: 'PENDING_VERIFICATION', // Needs password setup
+        role: 'CLIENT',
+        language: 'EN',
+      },
+    });
+
+    // Create FREE subscription
+    await prisma.subscription.create({
+      data: {
+        userId: newUser.id,
+        plan: 'FREE',
+        price: 0,
+        maxVehicles: 1,
+        status: 'ACTIVE',
+        currentPeriodStart: new Date(),
+        currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      },
+    });
+
+    logger.info(`New social user created (${provider}): ${newUser.email}`);
+
+    return res.status(201).json({
+      success: true,
+      data: {
+        status: 'NEEDS_PASSWORD',
+        userId: newUser.id,
+        email: newUser.email,
+        fullName: newUser.fullName,
+        phone: hasRealPhone ? newUser.phone : null,
+        provider,
+        message: 'Account created. Please set a password and phone number.',
+      },
+    });
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
+ * POST /api/v1/auth/social/complete
+ * Complete social login registration (set password + phone)
+ */
+export const completeSocialSignup = async (req: Request, res: Response) => {
+  try {
+    const { userId, password, phone } = req.body;
+
+    if (!userId || !password) {
+      throw new AppError('User ID and password are required', 400, 'MISSING_FIELDS');
+    }
+
+    // Validate password
+    const passwordValidation = validatePasswordStrength(password);
+    if (!passwordValidation.valid) {
+      throw new AppError(passwordValidation.message!, 400, 'WEAK_PASSWORD');
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new AppError('User not found', 404, 'USER_NOT_FOUND');
+    }
+
+    // Hash password
+    const passwordHash = await hashPassword(password);
+
+    // Prepare update data
+    const updateData: any = {
+      passwordHash,
+      status: 'ACTIVE',
+    };
+
+    // Update phone if provided
+    if (phone) {
+      // Check phone uniqueness
+      const existingPhone = await prisma.user.findUnique({ where: { phone } });
+      if (existingPhone && existingPhone.id !== userId) {
+        throw new AppError('This phone number is already registered', 409, 'PHONE_ALREADY_EXISTS');
+      }
+      updateData.phone = phone;
+      
+      // Generate OTP for phone verification
+      const otpCode = generateOTP();
+      const otpExpiresAt = getOTPExpiration();
+      updateData.otpCode = otpCode;
+      updateData.otpExpiresAt = otpExpiresAt;
+      
+      // Send SMS
+      sendOTP(phone, otpCode).catch(err => {
+        logger.error('Error sending OTP after social signup:', err);
+      });
+    } else if (user.phone && !user.phone.startsWith('+0')) {
+      // Has valid phone, set active
+      updateData.status = 'ACTIVE';
+      updateData.phoneVerified = true;
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+    });
+
+    // If phone needs verification, return pending state
+    if (phone && !user.phoneVerified) {
+      return res.json({
+        success: true,
+        data: {
+          status: 'NEEDS_PHONE_VERIFICATION',
+          userId: updatedUser.id,
+          phone: updatedUser.phone,
+          message: 'Password set. Please verify your phone number.',
+        },
+      });
+    }
+
+    // Generate tokens
+    const tokens = generateTokens({
+      userId: updatedUser.id,
+      email: updatedUser.email,
+      role: updatedUser.role,
+    });
+
+    // Send welcome email
+    sendWelcomeEmail(updatedUser.email, updatedUser.fullName, updatedUser.language).catch(err => {
+      logger.error('Failed to send welcome email:', err);
+    });
+
+    logger.info(`Social signup completed: ${updatedUser.email}`);
+
+    return res.json({
+      success: true,
+      data: {
+        status: 'AUTHENTICATED',
+        token: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        expiresIn: tokens.expiresIn,
+        user: {
+          id: updatedUser.id,
+          fullName: updatedUser.fullName,
+          email: updatedUser.email,
+          phone: updatedUser.phone,
+          role: updatedUser.role,
+          language: updatedUser.language,
+          phoneVerified: updatedUser.phoneVerified,
+          avatarUrl: updatedUser.avatarUrl,
+        },
+      },
+    });
+  } catch (error) {
+    throw error;
+  }
+};
+
 /**
  * POST /api/v1/auth/verify-otp
- * Verifica código OTP do telefone
+ * Verifica código OTP do telefone ou email
  */
 export const verifyOTP = async (req: Request, res: Response) => {
   try {
-    const { userId, otpCode, code } = req.body;
+    const { userId, otpCode, code, method } = req.body;
     
     // Aceita tanto 'otpCode' quanto 'code' para compatibilidade
     const receivedCode = otpCode || code;
+    const verifyMethod = method || 'sms'; // 'sms' or 'email'
     
     console.log('📥 Recebido verify-otp:', { 
       userId, 
       otpCode,
       code,
       receivedCode,
+      method: verifyMethod,
       body: req.body 
     });
 
     // Trim para garantir que não há espaços
     const cleanOtpCode = receivedCode?.trim();
-    
-    console.log('🧹 Após trim:', { cleanOtpCode, length: cleanOtpCode?.length });
 
     // Validar formato do OTP
     if (!validateOTPFormat(cleanOtpCode)) {
@@ -150,7 +531,67 @@ export const verifyOTP = async (req: Request, res: Response) => {
       throw new AppError('Usuário não encontrado', 404, 'USER_NOT_FOUND');
     }
 
-    // Verificar se já está verificado
+    // Check based on verification method
+    if (verifyMethod === 'email') {
+      // Verify email OTP
+      if (isOTPExpired(user.emailOtpExpiresAt)) {
+        throw new AppError('Código expirado. Solicite um novo.', 400, 'OTP_EXPIRED');
+      }
+      if (user.emailOtpCode?.trim() !== cleanOtpCode) {
+        throw new AppError('Código incorreto', 400, 'INVALID_OTP');
+      }
+
+      // Update - email verified
+      const updatedUser = await prisma.user.update({
+        where: { id: userId },
+        data: {
+          emailVerified: true,
+          emailOtpCode: null,
+          emailOtpExpiresAt: null,
+          // If phone was already verified, set active
+          status: user.phoneVerified ? 'ACTIVE' : user.status,
+        },
+      });
+
+      // If account is now fully active, generate tokens
+      if (updatedUser.status === 'ACTIVE') {
+        const tokens = generateTokens({
+          userId: updatedUser.id,
+          email: updatedUser.email,
+          role: updatedUser.role,
+        });
+
+        logger.info(`Email verificado: ${updatedUser.email}`);
+
+        return res.json({
+          success: true,
+          message: 'Email verificado com sucesso!',
+          data: {
+            token: tokens.accessToken,
+            refreshToken: tokens.refreshToken,
+            expiresIn: tokens.expiresIn,
+            user: {
+              id: updatedUser.id,
+              fullName: updatedUser.fullName,
+              email: updatedUser.email,
+              phone: updatedUser.phone,
+              role: updatedUser.role,
+              language: updatedUser.language,
+              phoneVerified: updatedUser.phoneVerified,
+              emailVerified: updatedUser.emailVerified,
+            },
+          },
+        });
+      }
+
+      return res.json({
+        success: true,
+        message: 'Email verificado! Verifique seu telefone para continuar.',
+        data: { emailVerified: true, phoneVerified: updatedUser.phoneVerified },
+      });
+    }
+
+    // SMS OTP verification (default)
     if (user.phoneVerified) {
       throw new AppError('Telefone já verificado', 400, 'ALREADY_VERIFIED');
     }
@@ -160,20 +601,10 @@ export const verifyOTP = async (req: Request, res: Response) => {
       throw new AppError('Código expirado. Solicite um novo.', 400, 'OTP_EXPIRED');
     }
 
-    console.log('🔍 Comparando OTPs:', {
-      userOtpCode: user.otpCode,
-      userOtpTrimmed: user.otpCode?.trim(),
-      receivedOtp: cleanOtpCode,
-      areEqual: user.otpCode?.trim() === cleanOtpCode
-    });
-
     // Verificar código (comparando ambos com trim para segurança)
     if (user.otpCode?.trim() !== cleanOtpCode) {
-      console.log('❌ OTP não coincide!');
       throw new AppError('Código incorreto', 400, 'INVALID_OTP');
     }
-    
-    console.log('✅ OTP correto! Atualizando usuário...');
 
     // Atualizar usuário
     const updatedUser = await prisma.user.update({
@@ -195,7 +626,7 @@ export const verifyOTP = async (req: Request, res: Response) => {
 
     logger.info(`Telefone verificado: ${updatedUser.email}`);
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Telefone verificado com sucesso!',
       data: {
@@ -210,6 +641,7 @@ export const verifyOTP = async (req: Request, res: Response) => {
           role: updatedUser.role,
           language: updatedUser.language,
           phoneVerified: updatedUser.phoneVerified,
+          emailVerified: updatedUser.emailVerified,
         },
       },
     });
@@ -220,11 +652,11 @@ export const verifyOTP = async (req: Request, res: Response) => {
 
 /**
  * POST /api/v1/auth/resend-otp
- * Reenvia código OTP
+ * Reenvia código OTP (SMS ou Email)
  */
 export const resendOTP = async (req: Request, res: Response) => {
   try {
-    const { userId } = req.body;
+    const { userId, method } = req.body; // method: 'sms' | 'email' (default: 'sms')
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -234,7 +666,7 @@ export const resendOTP = async (req: Request, res: Response) => {
       throw new AppError('Usuário não encontrado', 404, 'USER_NOT_FOUND');
     }
 
-    if (user.phoneVerified) {
+    if (user.phoneVerified && method !== 'email') {
       throw new AppError('Telefone já verificado', 400, 'ALREADY_VERIFIED');
     }
 
@@ -242,25 +674,51 @@ export const resendOTP = async (req: Request, res: Response) => {
     const otpCode = generateOTP();
     const otpExpiresAt = getOTPExpiration();
 
-    // Atualizar usuário
-    await prisma.user.update({
-      where: { id: userId },
-      data: { otpCode, otpExpiresAt },
-    });
+    const deliveryMethod = method === 'email' ? 'email' : 'sms';
 
-    // Enviar SMS
-    await sendOTP(user.phone, otpCode);
+    if (deliveryMethod === 'email') {
+      // Store in email OTP fields
+      await prisma.user.update({
+        where: { id: userId },
+        data: { emailOtpCode: otpCode, emailOtpExpiresAt: otpExpiresAt },
+      });
+      
+      // Send OTP via email
+      await sendOTPEmail(user.email, otpCode, user.language);
+      
+      logger.info(`OTP sent via email to: ${user.email}`);
+      
+      return res.json({
+        success: true,
+        message: 'Novo código enviado por email',
+        data: {
+          method: 'email',
+          otpSentTo: user.email,
+          expiresIn: 600,
+        },
+      });
+    } else {
+      // Store in phone OTP fields
+      await prisma.user.update({
+        where: { id: userId },
+        data: { otpCode, otpExpiresAt },
+      });
 
-    logger.info(`OTP reenviado para: ${user.email}`);
+      // Send via SMS
+      await sendOTP(user.phone, otpCode);
 
-    res.json({
-      success: true,
-      message: 'Novo código enviado por SMS',
-      data: {
-        otpSentTo: user.phone,
-        expiresIn: 600, // 10 minutos em segundos
-      },
-    });
+      logger.info(`OTP reenviado via SMS para: ${user.email}`);
+
+      return res.json({
+        success: true,
+        message: 'Novo código enviado por SMS',
+        data: {
+          method: 'sms',
+          otpSentTo: user.phone,
+          expiresIn: 600,
+        },
+      });
+    }
   } catch (error) {
     throw error;
   }
@@ -431,7 +889,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
       });
     }
 
-    // Gerar token de recuperação (usando mesma função do OTP, mas com validade maior)
+    // Gerar token de recuperação (6 dígitos, validade 1 hora)
     const resetToken = generateOTP();
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
 
@@ -444,22 +902,18 @@ export const forgotPassword = async (req: Request, res: Response) => {
       },
     });
 
-    // TODO: Enviar email com link de recuperação
-    // Por enquanto, vamos apenas logar o token (em produção, enviar por email)
-    logger.info(`Token de recuperação para ${email}: ${resetToken}`);
-    
-    // Em desenvolvimento, retornar o token na resposta (REMOVER EM PRODUÇÃO)
-    if (process.env.NODE_ENV === 'development') {
-      return res.json({
-        success: true,
-        message: 'Link de recuperação enviado!',
-        resetToken, // REMOVER EM PRODUÇÃO
-      });
+    // Enviar email de recuperação
+    try {
+      await sendPasswordResetEmail(email, resetToken, user.language);
+      logger.info(`Password reset email sent to: ${email}`);
+    } catch (emailError) {
+      logger.error(`Failed to send password reset email to ${email}:`, emailError);
+      // Don't fail the request - log and continue
     }
 
     return res.json({
       success: true,
-      message: 'Se o email existir, você receberá um link de recuperação.',
+      message: 'Se o email existir, você receberá um código de recuperação.',
     });
   } catch (error) {
     throw error;

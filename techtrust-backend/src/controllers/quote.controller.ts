@@ -9,7 +9,7 @@ import { Request, Response } from 'express';
 import { prisma } from '../config/database';
 import { AppError } from '../middleware/error-handler';
 import { logger } from '../config/logger';
-import { calculateDistance, calculateRoadDistance } from '../utils/distance';
+import { calculateRoadDistance } from '../utils/distance';
 
 /**
  * POST /api/v1/quotes
