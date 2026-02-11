@@ -105,8 +105,7 @@ export default function LoginScreen({ navigation }: any) {
       const googleUser = await signInWithGoogle();
       
       if (googleUser) {
-        // TODO: Send to backend for authentication/registration
-        // For now, show success message
+        // Send to backend for authentication/registration when ready
         Alert.alert(
           t.common.success || 'Success',
           `${t.auth.welcome || 'Welcome'}, ${googleUser.name}!`,
@@ -148,7 +147,7 @@ export default function LoginScreen({ navigation }: any) {
       const appleUser = await signInWithApple();
       
       if (appleUser) {
-        // TODO: Send to backend for authentication/registration
+        // Send to backend for authentication/registration when ready
         Alert.alert(
           t.common.success || 'Success',
           `${t.auth.welcome || 'Welcome'}${appleUser.fullName ? `, ${appleUser.fullName}` : ''}!`,

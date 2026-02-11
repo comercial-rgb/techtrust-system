@@ -3,7 +3,7 @@
  * Usado tanto por Cliente quanto Fornecedor
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -35,8 +35,23 @@ interface NotificationsScreenProps {
 export default function NotificationsScreen({ navigation, userType = 'customer' }: NotificationsScreenProps) {
   const { t } = useI18n();
   const [refreshing, setRefreshing] = useState(false);
-  // Limpar dados mockados - Load real notifications from API when implemented
+  // Load real notifications from API
   const [notifications, setNotifications] = useState<Notification[]>([]);
+
+  const loadNotifications = async () => {
+    try {
+      const api = (await import('../services/api')).default;
+      const response = await api.get('/notifications');
+      const data = response.data.data || response.data || [];
+      setNotifications(Array.isArray(data) ? data : []);
+    } catch (err) {
+      // Keep existing notifications on error
+    }
+  };
+
+  useEffect(() => {
+    loadNotifications();
+  }, []);
 
   const getNotificationIcon = (type: Notification['type']) => {
     const icons: Record<string, { name: string; color: string; bg: string }> = {
@@ -82,8 +97,8 @@ export default function NotificationsScreen({ navigation, userType = 'customer' 
 
   const onRefresh = async () => {
     setRefreshing(true);
-    // Reload notifications
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Reload notifications from server
+    await loadNotifications();
     setRefreshing(false);
   };
 

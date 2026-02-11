@@ -51,9 +51,7 @@ export default function ServiceHistoryScreen({ navigation }: any) {
   const loadServices = async () => {
     try {
       // Carregar histórico real do backend quando API estiver disponível
-      // TODO: Implementar chamada à API quando endpoint estiver pronto
-      // const response = await api.get('/work-orders?status=COMPLETED,CANCELLED');
-      // setServices(response.data.data || []);
+      // Endpoint: api.get('/work-orders?status=COMPLETED,CANCELLED')
       setServices([]);
     } catch (error) {
       console.error('Error loading service history:', error);

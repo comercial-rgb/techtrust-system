@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useI18n } from '../i18n';
+import api from '../services/api';
 
 interface Quote {
   id: string;
@@ -43,27 +44,35 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
   }, []);
 
   async function loadDetails() {
-    await new Promise(resolve => setTimeout(resolve, 800));
-    setRequest({
-      id: requestId,
-      requestNumber: 'SR-2024-001',
-      title: 'Oil Change and Filters',
-      description: 'Full synthetic 5W30 oil change with air, oil, and fuel filter replacement.',
-      status: 'QUOTES_RECEIVED',
-      vehicle: { make: 'Honda', model: 'Civic', year: 2020, plateNumber: 'ABC-1234' },
-    });
-    setQuotes([
-      { id: '1', provider: { id: 'p1', businessName: 'Auto Center Express', rating: 4.8, totalReviews: 47 }, partsCost: 180, laborCost: 120, totalAmount: 300, estimatedTime: '2 hours', description: 'Full service with Mobil 1 oil' },
-      { id: '2', provider: { id: 'p2', businessName: 'Quick Lube Plus', rating: 4.5, totalReviews: 32 }, partsCost: 150, laborCost: 100, totalAmount: 250, estimatedTime: '2.5 hours', description: 'Synthetic oil with warranty' },
-      { id: '3', provider: { id: 'p3', businessName: 'Premium Auto Shop', rating: 4.9, totalReviews: 89 }, partsCost: 220, laborCost: 150, totalAmount: 370, estimatedTime: '1.5 hours', description: 'Premium complete service' },
-    ]);
-    setLoading(false);
+    try {
+      setLoading(true);
+      const [requestRes, quotesRes] = await Promise.all([
+        api.get(`/service-requests/${requestId}`),
+        api.get(`/quotes?serviceRequestId=${requestId}`),
+      ]);
+      const reqData = requestRes.data.data || requestRes.data;
+      setRequest(reqData);
+      const quotesData = quotesRes.data.data || quotesRes.data || [];
+      setQuotes(Array.isArray(quotesData) ? quotesData : []);
+    } catch (err: any) {
+      Alert.alert(t.common?.error || 'Error', err?.response?.data?.message || t.common?.tryAgain || 'Could not load details');
+    } finally {
+      setLoading(false);
+    }
   }
 
   function handleAcceptQuote(quote: Quote) {
     Alert.alert(t.common?.acceptQuote || 'Accept Quote', `${t.common?.acceptQuoteConfirm || 'Accept'} ${quote.provider.businessName} ${t.common?.for || 'for'} $${quote.totalAmount}?`, [
       { text: t.common?.cancel || 'Cancel', style: 'cancel' },
-      { text: t.common?.accept || 'Accept', onPress: () => { Alert.alert(t.common?.success || 'Success!', t.common?.quoteAccepted || 'Quote accepted!'); navigation.goBack(); } },
+      { text: t.common?.accept || 'Accept', onPress: async () => {
+        try {
+          await api.post(`/quotes/${quote.id}/accept`);
+          Alert.alert(t.common?.success || 'Success!', t.common?.quoteAccepted || 'Quote accepted!');
+          navigation.goBack();
+        } catch (err: any) {
+          Alert.alert(t.common?.error || 'Error', err?.response?.data?.message || t.common?.tryAgain || 'Try again');
+        }
+      } },
     ]);
   }
 

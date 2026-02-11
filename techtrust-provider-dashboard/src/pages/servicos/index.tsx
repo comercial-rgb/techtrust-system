@@ -74,112 +74,35 @@ export default function ServicosPage() {
   async function loadWorkOrders() {
     setLoading(true)
     try {
-      // Em produção, buscar dados reais da API
-      // const response = await api.get('/provider/work-orders')
-      
-      await new Promise(resolve => setTimeout(resolve, 800))
-      
-      setWorkOrders([
-        {
-          id: '1',
-          orderNumber: 'WO-2024-001',
-          status: 'IN_PROGRESS',
-          originalAmount: 450.00,
-          finalAmount: 450.00,
-          createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-          scheduledDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
-          startedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          customer: {
-            fullName: 'Maria Santos',
-            phone: '+1 (407) 555-5678',
-            location: 'Kissimmee, FL',
-          },
-          vehicle: {
-            make: 'Toyota',
-            model: 'Corolla',
-            year: 2019,
-            plateNumber: 'XYZ5678',
-          },
-          serviceRequest: {
-            title: 'Revisão completa',
-            description: 'Revisão dos 30.000 km com verificação de freios e suspensão.',
-          },
+      const response = await api.get('/work-orders')
+      const data = response.data.data
+      const orders = (data.orders || []).map((order: any) => ({
+        id: order.id,
+        orderNumber: order.orderNumber || '',
+        status: order.status || 'PENDING_START',
+        originalAmount: Number(order.originalAmount) || 0,
+        finalAmount: Number(order.finalAmount) || 0,
+        createdAt: order.createdAt,
+        scheduledDate: order.scheduledDate,
+        startedAt: order.startedAt,
+        completedAt: order.completedAt,
+        customer: {
+          fullName: order.customer?.fullName || '',
+          phone: order.customer?.phone || '',
+          location: order.customer?.city ? `${order.customer.city}, ${order.customer.state || ''}` : '',
         },
-        {
-          id: '2',
-          orderNumber: 'WO-2024-002',
-          status: 'PENDING_START',
-          originalAmount: 180.00,
-          finalAmount: 180.00,
-          createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-          scheduledDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
-          customer: {
-            fullName: 'João Silva',
-            phone: '+1 (407) 555-1234',
-            location: 'Orlando, FL',
-          },
-          vehicle: {
-            make: 'Honda',
-            model: 'Civic',
-            year: 2020,
-            plateNumber: 'ABC1234',
-          },
-          serviceRequest: {
-            title: 'Troca de óleo e filtros',
-            description: 'Troca de óleo sintético e filtros.',
-          },
+        vehicle: {
+          make: order.vehicle?.make || '',
+          model: order.vehicle?.model || '',
+          year: order.vehicle?.year || 0,
+          plateNumber: order.vehicle?.plateNumber || '',
         },
-        {
-          id: '3',
-          orderNumber: 'WO-2024-003',
-          status: 'AWAITING_APPROVAL',
-          originalAmount: 320.00,
-          finalAmount: 320.00,
-          createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-          startedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-          completedAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-          customer: {
-            fullName: 'Pedro Costa',
-            phone: '+1 (407) 555-9012',
-            location: 'Orlando, FL',
-          },
-          vehicle: {
-            make: 'Ford',
-            model: 'Focus',
-            year: 2021,
-            plateNumber: 'DEF9012',
-          },
-          serviceRequest: {
-            title: 'Troca de pastilhas de freio',
-            description: 'Substituição das pastilhas dianteiras e traseiras.',
-          },
+        serviceRequest: {
+          title: order.serviceRequest?.title || order.title || '',
+          description: order.serviceRequest?.description || order.description || '',
         },
-        {
-          id: '4',
-          orderNumber: 'WO-2024-004',
-          status: 'COMPLETED',
-          originalAmount: 120.00,
-          finalAmount: 120.00,
-          createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-          startedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-          completedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-          customer: {
-            fullName: 'Ana Oliveira',
-            phone: '+1 (407) 555-3456',
-            location: 'Davenport, FL',
-          },
-          vehicle: {
-            make: 'Chevrolet',
-            model: 'Cruze',
-            year: 2018,
-            plateNumber: 'GHI3456',
-          },
-          serviceRequest: {
-            title: 'Alinhamento e balanceamento',
-            description: 'Alinhamento e balanceamento completo.',
-          },
-        },
-      ])
+      }))
+      setWorkOrders(orders)
     } catch (error) {
       console.error('Erro ao carregar serviços:', error)
     } finally {

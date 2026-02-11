@@ -1,6 +1,5 @@
 /**
  * RatingScreen - Rating Screen
- * With mock data
  */
 
 import React, { useState } from 'react';
@@ -9,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { logos } from '../constants/images';
 import { useI18n } from '../i18n';
+import api from '../services/api';
 
 export default function RatingScreen({ navigation, route }: any) {
   const { t } = useI18n();
@@ -16,10 +16,12 @@ export default function RatingScreen({ navigation, route }: any) {
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  const { serviceTitle, providerName, serviceDate, workOrderId, providerId } = route.params || {};
+
   const serviceData = {
-    title: 'Oil and filter change',
-    provider: "John's Auto Repair",
-    date: new Date().toLocaleDateString('en-US'),
+    title: serviceTitle || t.rating?.serviceCompleted || 'Service Completed',
+    provider: providerName || t.common?.provider || 'Provider',
+    date: serviceDate || new Date().toLocaleDateString('en-US'),
   };
 
   const ratingLabels = ['', t.rating?.terrible || 'Terrible', t.rating?.poor || 'Poor', t.rating?.fair || 'Fair', t.rating?.good || 'Good', t.rating?.excellent || 'Excellent'];
@@ -30,11 +32,21 @@ export default function RatingScreen({ navigation, route }: any) {
       return;
     }
     setSubmitting(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setSubmitting(false);
-    Alert.alert(t.rating?.thankYou || 'Thank you!', t.rating?.reviewSubmitted || 'Your review has been submitted successfully.', [
-      { text: t.common?.ok || 'OK', onPress: () => navigation.navigate('Home') }
-    ]);
+    try {
+      await api.post('/reviews', {
+        workOrderId,
+        providerId,
+        rating,
+        comment: comment.trim() || undefined,
+      });
+      Alert.alert(t.rating?.thankYou || 'Thank you!', t.rating?.reviewSubmitted || 'Your review has been submitted successfully.', [
+        { text: t.common?.ok || 'OK', onPress: () => navigation.navigate('Home') }
+      ]);
+    } catch (err: any) {
+      Alert.alert(t.common?.error || 'Error', err?.response?.data?.message || t.common?.tryAgain || 'Try again');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (

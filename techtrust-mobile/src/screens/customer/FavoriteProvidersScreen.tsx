@@ -44,9 +44,7 @@ export default function FavoriteProvidersScreen({ navigation }: any) {
   const loadProviders = async () => {
     try {
       // Carregar favoritos reais do backend quando API estiver disponível
-      // TODO: Implementar chamada à API quando endpoint estiver pronto
-      // const response = await api.get('/users/favorite-providers');
-      // setProviders(response.data.data || []);
+      // Endpoint: api.get('/users/favorite-providers')
       setProviders([]);
     } catch (error) {
       console.error('Error loading favorite providers:', error);

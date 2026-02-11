@@ -19,6 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../../contexts/AuthContext';
 import { useI18n, languages, Language } from '../../i18n';
+import api from '../../services/api';
 
 interface ProviderStats {
   totalServices: number;
@@ -61,21 +62,15 @@ export default function ProviderProfileScreen({ navigation }: any) {
           text: t.provider?.takePhoto || 'Take Photo', 
           onPress: () => {
             // In production, use expo-image-picker with camera
-            Alert.alert(t.common?.info || 'Info', t.provider?.cameraPlaceholder || 'Camera feature will be implemented with expo-image-picker');
+            Alert.alert(t.common?.info || 'Info', t.provider?.cameraPlaceholder || 'Camera feature will be available soon');
           }
         },
         { 
           text: t.provider?.chooseFromGallery || 'Choose from Gallery', 
           onPress: () => {
-            // In production, use expo-image-picker
-            // For mock, simulate selecting an image
             Alert.alert(
-              t.common?.success || 'Success', 
-              t.provider?.logoUpdated || 'Logo updated successfully!',
-              [{ text: t.common?.ok || 'OK', onPress: () => {
-                // Mock: set a placeholder image URL
-                setLogoUri('https://via.placeholder.com/150');
-              }}]
+              t.common?.info || 'Info', 
+              t.provider?.galleryPlaceholder || 'Gallery feature will be available soon'
             );
           }
         },
@@ -88,17 +83,21 @@ export default function ProviderProfileScreen({ navigation }: any) {
   }, []);
 
   const loadStats = async () => {
-    // Simular carregamento
-    await new Promise(resolve => setTimeout(resolve, 500));
-    setStats({
-      totalServices: 156,
-      completedThisMonth: 12,
-      totalEarnings: 24850.0,
-      rating: 4.8,
-      totalReviews: 47,
-      responseRate: 95,
-      acceptanceRate: 82,
-    });
+    try {
+      const response = await api.get('/providers/me/stats');
+      const data = response.data.data || response.data;
+      setStats({
+        totalServices: data.totalServices || 0,
+        completedThisMonth: data.completedThisMonth || 0,
+        totalEarnings: data.totalEarnings || 0,
+        rating: data.rating || 0,
+        totalReviews: data.totalReviews || 0,
+        responseRate: data.responseRate || 0,
+        acceptanceRate: data.acceptanceRate || 0,
+      });
+    } catch (err) {
+      // Keep default zeros on error
+    }
   };
 
   const handleLogout = () => {

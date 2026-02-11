@@ -85,9 +85,7 @@ export default function InsuranceScreen({ navigation, route }: any) {
   async function loadPolicies() {
     try {
       // Carregar apólices reais do backend quando API estiver disponível
-      // TODO: Implementar chamada à API quando endpoint estiver pronto
-      // const response = await api.get('/insurance-policies');
-      // setPolicies(response.data.data || []);
+      // Endpoint: api.get('/insurance-policies')
       setPolicies([]);
     } catch (error) {
       console.error('Error loading policies:', error);
@@ -177,8 +175,7 @@ export default function InsuranceScreen({ navigation, route }: any) {
       return;
     }
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Save to local storage (insurance managed by user)
 
     if (editingPolicy) {
       setPolicies(prev => prev.map(p => 

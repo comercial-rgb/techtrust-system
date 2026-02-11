@@ -72,133 +72,33 @@ export default function OrcamentosPage() {
   async function loadQuotes() {
     setLoading(true)
     try {
-      // Em produção, buscar dados reais da API
-      // const response = await api.get('/provider/quotes')
-      
-      await new Promise(resolve => setTimeout(resolve, 800))
-      
-      setQuotes([
-        {
-          id: '1',
-          status: 'PENDING',
-          totalAmount: 450.00,
-          partsCost: 200.00,
-          laborCost: 250.00,
-          estimatedDuration: '3h',
-          createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-          expiresAt: new Date(Date.now() + 42 * 60 * 60 * 1000).toISOString(),
-          serviceRequest: {
-            id: 'sr1',
-            requestNumber: 'SR-2024-001',
-            title: 'Troca de óleo e filtros',
-            description: 'Troca de óleo sintético e filtros',
-          },
-          vehicle: {
-            make: 'Honda',
-            model: 'Civic',
-            year: 2020,
-          },
-          customer: {
-            fullName: 'João Silva',
-          },
+      const response = await api.get('/provider/my-quotes')
+      const data = response.data.data
+      const quotesData = (data.quotes || []).map((q: any) => ({
+        id: q.id,
+        status: q.status || 'PENDING',
+        totalAmount: Number(q.totalAmount) || 0,
+        partsCost: Number(q.partsCost) || 0,
+        laborCost: Number(q.laborCost) || 0,
+        estimatedDuration: q.estimatedCompletionTime || q.estimatedDuration || '',
+        createdAt: q.createdAt,
+        expiresAt: q.expiresAt || q.serviceRequest?.quoteDeadline || new Date(new Date(q.createdAt).getTime() + 48 * 60 * 60 * 1000).toISOString(),
+        serviceRequest: {
+          id: q.serviceRequestId || q.serviceRequest?.id || '',
+          requestNumber: q.serviceRequest?.requestNumber || '',
+          title: q.serviceRequest?.title || '',
+          description: q.serviceRequest?.description || '',
         },
-        {
-          id: '2',
-          status: 'ACCEPTED',
-          totalAmount: 320.00,
-          partsCost: 180.00,
-          laborCost: 140.00,
-          estimatedDuration: '2h',
-          createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-          expiresAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-          serviceRequest: {
-            id: 'sr2',
-            requestNumber: 'SR-2024-002',
-            title: 'Troca de pastilhas de freio',
-            description: 'Substituição das pastilhas dianteiras',
-          },
-          vehicle: {
-            make: 'Ford',
-            model: 'Focus',
-            year: 2021,
-          },
-          customer: {
-            fullName: 'Pedro Costa',
-          },
+        vehicle: {
+          make: q.serviceRequest?.vehicle?.make || '',
+          model: q.serviceRequest?.vehicle?.model || '',
+          year: q.serviceRequest?.vehicle?.year || 0,
         },
-        {
-          id: '3',
-          status: 'REJECTED',
-          totalAmount: 580.00,
-          partsCost: 350.00,
-          laborCost: 230.00,
-          estimatedDuration: '4h',
-          createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-          expiresAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-          serviceRequest: {
-            id: 'sr3',
-            requestNumber: 'SR-2024-003',
-            title: 'Revisão completa',
-            description: 'Revisão dos 60.000 km',
-          },
-          vehicle: {
-            make: 'BMW',
-            model: 'X3',
-            year: 2022,
-          },
-          customer: {
-            fullName: 'Ana Oliveira',
-          },
+        customer: {
+          fullName: q.serviceRequest?.user?.fullName || q.customer?.fullName || '',
         },
-        {
-          id: '4',
-          status: 'EXPIRED',
-          totalAmount: 180.00,
-          partsCost: 80.00,
-          laborCost: 100.00,
-          estimatedDuration: '1h',
-          createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-          expiresAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-          serviceRequest: {
-            id: 'sr4',
-            requestNumber: 'SR-2024-004',
-            title: 'Alinhamento e balanceamento',
-            description: 'Alinhamento completo',
-          },
-          vehicle: {
-            make: 'Chevrolet',
-            model: 'Cruze',
-            year: 2018,
-          },
-          customer: {
-            fullName: 'Carlos Lima',
-          },
-        },
-        {
-          id: '5',
-          status: 'PENDING',
-          totalAmount: 250.00,
-          partsCost: 100.00,
-          laborCost: 150.00,
-          estimatedDuration: '2h',
-          createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-          expiresAt: new Date(Date.now() + 47 * 60 * 60 * 1000).toISOString(),
-          serviceRequest: {
-            id: 'sr5',
-            requestNumber: 'SR-2024-005',
-            title: 'Troca de correia dentada',
-            description: 'Substituição da correia dentada e tensor',
-          },
-          vehicle: {
-            make: 'Volkswagen',
-            model: 'Golf',
-            year: 2019,
-          },
-          customer: {
-            fullName: 'Fernanda Souza',
-          },
-        },
-      ])
+      }))
+      setQuotes(quotesData)
     } catch (error) {
       console.error('Erro ao carregar orçamentos:', error)
     } finally {

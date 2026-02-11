@@ -89,35 +89,33 @@ export default function PedidoDetalhesPage() {
   async function loadRequest() {
     setLoading(true)
     try {
-      // Em produção, buscar dados reais da API
-      // const response = await api.get(`/service-requests/${id}`)
-      
-      await new Promise(resolve => setTimeout(resolve, 800))
-      
+      const response = await api.get(`/service-requests/${id}`)
+      const data = response.data.data
       setRequest({
-        id: id as string,
-        requestNumber: 'SR-2024-001',
-        title: 'Troca de óleo e filtros',
-        description: 'Preciso trocar o óleo e filtros do meu carro. Último serviço foi há 10.000 km. Gostaria de usar óleo sintético de boa qualidade. Também verificar se há necessidade de trocar o filtro de ar.',
-        serviceType: 'SCHEDULED_MAINTENANCE',
-        status: 'SEARCHING_PROVIDERS',
-        isUrgent: false,
-        createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-        expiresAt: new Date(Date.now() + 90 * 60 * 1000).toISOString(),
+        id: data.id,
+        requestNumber: data.requestNumber || '',
+        title: data.title || '',
+        description: data.description || '',
+        serviceType: data.serviceType || 'SCHEDULED_MAINTENANCE',
+        status: data.status || 'SEARCHING_PROVIDERS',
+        isUrgent: data.isUrgent || false,
+        createdAt: data.createdAt,
+        expiresAt: data.quoteDeadline || new Date(new Date(data.createdAt).getTime() + 48 * 60 * 60 * 1000).toISOString(),
         customer: {
-          fullName: 'João Silva',
-          phone: '+1 (407) 555-1234',
-          location: 'Orlando, FL - 5.2 km',
+          fullName: data.user?.fullName || '',
+          phone: data.user?.phone || '',
+          location: data.user?.city ? `${data.user.city}, ${data.user.state || ''}` : '',
         },
         vehicle: {
-          make: 'Honda',
-          model: 'Civic',
-          year: 2020,
-          plateNumber: 'ABC1234',
-          color: 'Preto',
-          currentMileage: 45000,
+          make: data.vehicle?.make || '',
+          model: data.vehicle?.model || '',
+          year: data.vehicle?.year || 0,
+          plateNumber: data.vehicle?.plateNumber || '',
+          color: data.vehicle?.color,
+          currentMileage: data.vehicle?.currentMileage,
         },
-        quotesCount: 2,
+        quotesCount: data.quotesCount || 0,
+        photos: data.photos,
       })
     } catch (error) {
       console.error('Erro ao carregar pedido:', error)
@@ -136,16 +134,21 @@ export default function PedidoDetalhesPage() {
 
     setSubmitting(true)
     try {
-      // Em produção, enviar para API
-      // await api.post('/quotes', { ... })
-      
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      await api.post('/quotes', {
+        serviceRequestId: id,
+        partsCost: parseFloat(partsCost),
+        laborCost: parseFloat(laborCost),
+        laborDescription,
+        estimatedCompletionTime: estimatedDuration,
+        notes: notes || undefined,
+      })
       
       setQuoteSubmitted(true)
       setShowQuoteForm(false)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao enviar orçamento:', error)
-      alert('Erro ao enviar orçamento. Tente novamente.')
+      const message = error.response?.data?.message || 'Erro ao enviar orçamento. Tente novamente.'
+      alert(message)
     } finally {
       setSubmitting(false)
     }

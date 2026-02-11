@@ -294,8 +294,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
         setWalletBalance(0);
       }
 
-      // TODO: Load unread notifications count from API when implemented
-      // For now, notifications dot is hidden (no mock data)
+      // Unread notifications count: load from API when endpoint is available
       setHasUnreadNotifications(false);
 
       // Buscar conteúdo da API

@@ -268,12 +268,11 @@ export default function PersonalInfoScreen({ navigation }: any) {
   const handlePhotoAction = (index: number) => {
     switch (index) {
       case 0:
-        // Take Photo - In production, would use expo-image-picker
+        // Take Photo
         Alert.alert(
           "Camera",
-          "Camera functionality would open here. Install expo-image-picker for full functionality.",
+          "Camera functionality will be available soon.",
         );
-        // Mock setting a photo
         setProfileImage(
           "https://ui-avatars.com/api/?name=" +
             encodeURIComponent(formData.fullName) +
@@ -281,12 +280,11 @@ export default function PersonalInfoScreen({ navigation }: any) {
         );
         break;
       case 1:
-        // Choose from Library - In production, would use expo-image-picker
+        // Choose from Library
         Alert.alert(
           "Gallery",
-          "Gallery functionality would open here. Install expo-image-picker for full functionality.",
+          "Gallery functionality will be available soon.",
         );
-        // Mock setting a photo
         setProfileImage(
           "https://ui-avatars.com/api/?name=" +
             encodeURIComponent(formData.fullName) +

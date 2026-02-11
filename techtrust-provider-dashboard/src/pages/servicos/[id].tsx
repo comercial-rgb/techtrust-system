@@ -115,25 +115,14 @@ export default function ServicoDetalhesPage() {
     
     setActionLoading(true)
     try {
-      // await api.post(`/work-orders/${workOrder.id}/start`)
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      await api.post(`/work-orders/${workOrder.id}/start`)
       
-      setWorkOrder({
-        ...workOrder,
-        status: 'IN_PROGRESS',
-        startedAt: new Date().toISOString(),
-        timeline: [
-          ...workOrder.timeline,
-          {
-            status: 'IN_PROGRESS',
-            timestamp: new Date().toISOString(),
-            description: 'Serviço iniciado',
-          },
-        ],
-      })
-    } catch (error) {
+      // Reload the work order to get updated data from the server
+      await loadWorkOrder()
+    } catch (error: any) {
       console.error('Erro ao iniciar serviço:', error)
-      alert('Erro ao iniciar serviço. Tente novamente.')
+      const message = error.response?.data?.message || 'Erro ao iniciar serviço. Tente novamente.'
+      alert(message)
     } finally {
       setActionLoading(false)
     }
@@ -144,31 +133,17 @@ export default function ServicoDetalhesPage() {
     
     setActionLoading(true)
     try {
-      // await api.post(`/work-orders/${workOrder.id}/complete`, {
-      //   finalAmount: parseFloat(finalAmount),
-      //   completionNotes,
-      // })
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      
-      setWorkOrder({
-        ...workOrder,
-        status: 'AWAITING_APPROVAL',
-        completedAt: new Date().toISOString(),
-        finalAmount: parseFloat(finalAmount),
-        timeline: [
-          ...workOrder.timeline,
-          {
-            status: 'AWAITING_APPROVAL',
-            timestamp: new Date().toISOString(),
-            description: 'Serviço concluído, aguardando aprovação do cliente',
-          },
-        ],
+      await api.post(`/work-orders/${workOrder.id}/complete`, {
+        notes: completionNotes || undefined,
       })
       
       setShowCompleteModal(false)
-    } catch (error) {
+      // Reload the work order to get updated data from the server
+      await loadWorkOrder()
+    } catch (error: any) {
       console.error('Erro ao concluir serviço:', error)
-      alert('Erro ao concluir serviço. Tente novamente.')
+      const message = error.response?.data?.message || 'Erro ao concluir serviço. Tente novamente.'
+      alert(message)
     } finally {
       setActionLoading(false)
     }

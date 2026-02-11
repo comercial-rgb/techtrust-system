@@ -82,8 +82,12 @@ export default function VehicleTransferScreen({ navigation, route }: any) {
           onPress: async () => {
             setIsTransferring(true);
             try {
-              // Simulate API call
-              await new Promise(resolve => setTimeout(resolve, 2000));
+              const apiDefault = (await import('../services/api')).default;
+              await apiDefault.post(`/vehicles/${vehicleId}/transfer`, {
+                newOwnerName,
+                newOwnerEmail,
+                includeHistory,
+              });
               
               Alert.alert(
                 t.vehicle?.transferInitiated || 'Transfer Initiated',

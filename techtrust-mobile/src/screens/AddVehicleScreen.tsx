@@ -82,10 +82,8 @@ export default function AddVehicleScreen({ navigation }: any) {
       const vehicles = response.data?.vehicles || response.data?.data || [];
       setVehicleCount(vehicles.length);
       
-      // TODO: Get vehicle limit from user's subscription plan
-      // For now, using default limits:
-      // Freemium: 1 vehicle, Basic: 5 vehicles, Premium: 10 vehicles
-      // This should come from the user's subscription data
+      // Vehicle limit should come from the user's subscription plan
+      // Default limits: Freemium: 1 vehicle, Basic: 5 vehicles, Premium: 10 vehicles
     } catch (error) {
       console.error('Error checking vehicle limit:', error);
     }

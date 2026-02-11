@@ -20,6 +20,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useI18n } from '../../i18n';
+import api from '../../services/api';
 
 interface Review {
   id: string;
@@ -40,9 +41,9 @@ export default function ProviderReviewsScreen({ navigation }: any) {
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | '5' | '4' | '3' | '2' | '1'>('all');
   const [stats, setStats] = useState({
-    average: 4.8,
-    total: 47,
-    distribution: { 5: 32, 4: 10, 3: 3, 2: 1, 1: 1 },
+    average: 0,
+    total: 0,
+    distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
   });
   
   // Reply modal state
@@ -57,64 +58,31 @@ export default function ProviderReviewsScreen({ navigation }: any) {
 
   const loadReviews = async () => {
     setLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    setReviews([
-      {
-        id: '1',
-        customerName: 'John Smith',
-        customerInitials: 'JS',
-        rating: 5,
-        comment: 'Excellent service! Very professional and fast. My car is running perfectly now. Highly recommended!',
-        serviceType: 'Oil Change',
-        vehicle: 'Honda Civic 2020',
-        date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-        reply: 'Thank you for your trust! We are always at your disposal.',
-      },
-      {
-        id: '2',
-        customerName: 'Maria Garcia',
-        customerInitials: 'MG',
-        rating: 5,
-        comment: 'Great customer service. They explained everything that needed to be done and the price was fair.',
-        serviceType: 'Brake Service',
-        vehicle: 'Toyota Corolla 2019',
-        date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-      },
-      {
-        id: '3',
-        customerName: 'Robert Johnson',
-        customerInitials: 'RJ',
-        rating: 4,
-        comment: 'Good service, but took a bit longer than expected. Quality of work was excellent though.',
-        serviceType: 'Engine Diagnostic',
-        vehicle: 'Ford F-150 2021',
-        date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-      },
-      {
-        id: '4',
-        customerName: 'Emily Wilson',
-        customerInitials: 'EW',
-        rating: 5,
-        comment: 'Best mechanic in town! Fixed my AC issue that other shops couldn\'t diagnose.',
-        serviceType: 'AC Repair',
-        vehicle: 'Chevrolet Malibu 2018',
-        date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-        reply: 'We appreciate your feedback! Happy to help anytime.',
-      },
-      {
-        id: '5',
-        customerName: 'David Brown',
-        customerInitials: 'DB',
-        rating: 3,
-        comment: 'Service was okay. Communication could have been better during the repair process.',
-        serviceType: 'Transmission Service',
-        vehicle: 'Nissan Altima 2017',
-        date: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-      },
-    ]);
-    
-    setLoading(false);
+    try {
+      const response = await api.get('/reviews/provider/me');
+      const data = response.data.data || response.data;
+      const reviewsList = data.reviews || data || [];
+      setReviews(Array.isArray(reviewsList) ? reviewsList.map((r: any) => ({
+        id: r.id,
+        customerName: r.customerName || r.customer?.fullName || 'Customer',
+        customerInitials: (r.customerName || r.customer?.fullName || 'C').split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase(),
+        rating: r.rating,
+        comment: r.comment || '',
+        serviceType: r.serviceType || r.workOrder?.serviceType || '',
+        vehicle: r.vehicle || r.workOrder?.vehicle ? `${r.workOrder?.vehicle?.make || ''} ${r.workOrder?.vehicle?.model || ''} ${r.workOrder?.vehicle?.year || ''}`.trim() : '',
+        date: r.createdAt || r.date,
+        reply: r.reply || undefined,
+      })) : []);
+      
+      if (data.stats) {
+        setStats(data.stats);
+      }
+    } catch (err: any) {
+      // Show empty state on error
+      setReviews([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const onRefresh = async () => {
@@ -137,7 +105,7 @@ export default function ProviderReviewsScreen({ navigation }: any) {
 
     setSubmittingReply(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await api.post(`/reviews/${selectedReview?.id}/reply`, { reply: replyText });
       
       // Update the review with the reply
       setReviews(prev => prev.map(r => 

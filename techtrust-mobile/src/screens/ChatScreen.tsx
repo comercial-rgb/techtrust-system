@@ -91,7 +91,8 @@ export default function ChatScreen({ navigation, route }: any) {
       setCurrentUserId(userData.id || '');
 
       // Connect socket
-      const baseUrl = api.defaults.baseURL?.replace('/api/v1', '') || 'http://localhost:3000';
+      const baseUrl = api.defaults.baseURL?.replace('/api/v1', '') || '';
+      if (!baseUrl) return;
       const socket = io(baseUrl, { transports: ['websocket'] });
       socket.on('connect', () => {
         socket.emit('join', userData.id);

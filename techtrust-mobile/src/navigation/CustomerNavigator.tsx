@@ -7,7 +7,7 @@ import { useI18n } from "../i18n";
 import { useNotifications } from "../contexts/NotificationsContext";
 import { CommonActions } from "@react-navigation/native";
 
-// Customer Screens - NOVAS TELAS COM DESIGN MODERNO E DADOS MOCKADOS
+// Customer Screens
 import LandingScreen from "../screens/LandingScreen";
 import CustomerDashboardScreen from "../screens/CustomerDashboardScreen";
 import CustomerVehiclesScreen from "../screens/CustomerVehiclesScreen";

@@ -195,21 +195,18 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   // REFRESH
   // ============================================
   const refreshCounts = useCallback(async () => {
-    // In production, this would fetch from API
-    // For now, we simulate with mock data
     try {
-      // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // In production:
-      // const response = await api.getNotificationCounts();
-      // setState({
-      //   unreadMessagesCount: response.unreadMessages,
-      //   pendingRequestsCount: response.pendingRequests,
-      //   unreadNotificationsCount: response.unreadNotifications,
-      // });
+      const api = (await import('../services/api')).default;
+      const response = await api.get('/notifications/counts');
+      const data = response.data.data || response.data;
+      setState(prev => ({
+        ...prev,
+        unreadMessagesCount: data.unreadMessages ?? prev.unreadMessagesCount,
+        pendingRequestsCount: data.pendingRequests ?? prev.pendingRequestsCount,
+        unreadNotificationsCount: data.unreadNotifications ?? prev.unreadNotificationsCount,
+      }));
     } catch (error) {
-      console.error('Error refreshing counts:', error);
+      // Silently fail - counts will update next time
     }
   }, []);
 

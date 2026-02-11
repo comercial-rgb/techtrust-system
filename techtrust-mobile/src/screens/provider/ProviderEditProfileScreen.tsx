@@ -15,18 +15,20 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useI18n } from '../../i18n';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function ProviderEditProfileScreen({ navigation }: any) {
   const { t } = useI18n();
-  const [businessName, setBusinessName] = useState('AutoCare Express');
+  const { user } = useAuth();
+  const [businessName, setBusinessName] = useState(user?.providerProfile?.businessName || '');
   const [description, setDescription] = useState(
-    'Oficina especializada em manutenção preventiva e corretiva. Atendemos todas as marcas com qualidade e preço justo.'
+    user?.providerProfile?.description || ''
   );
-  const [phone, setPhone] = useState('+1 (407) 555-1234');
-  const [email, setEmail] = useState('autocare@email.com');
-  const [website, setWebsite] = useState('www.autocareexpress.com');
-  const [address, setAddress] = useState('123 Main Street, Orlando, FL 32801');
-  const [cnpj, setCnpj] = useState('12.345.678/0001-90');
+  const [phone, setPhone] = useState(user?.phone || '');
+  const [email, setEmail] = useState(user?.email || '');
+  const [website, setWebsite] = useState(user?.providerProfile?.website || '');
+  const [address, setAddress] = useState(user?.providerProfile?.address || '');
+  const [cnpj, setCnpj] = useState(user?.providerProfile?.cpfCnpj || '');
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
@@ -37,7 +39,15 @@ export default function ProviderEditProfileScreen({ navigation }: any) {
 
     setSaving(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const api = (await import('../../services/api')).default;
+      await api.put('/providers/me/profile', {
+        businessName: businessName.trim(),
+        description: description.trim(),
+        phone: phone.trim(),
+        email: email.trim(),
+        website: website.trim(),
+        address: address.trim(),
+      });
       Alert.alert(t.common?.success || 'Success', t.provider?.profileUpdated || 'Profile updated successfully!');
       navigation.goBack();
     } catch (error) {

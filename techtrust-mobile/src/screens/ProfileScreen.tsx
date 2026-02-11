@@ -65,12 +65,7 @@ export default function ProfileScreen({ navigation }: any) {
         ? vehiclesData.length
         : 0;
 
-      console.log(
-        "� DEBUG - Raw vehicles response:",
-        JSON.stringify(vehiclesResponse.data, null, 2),
-      );
-      console.log("📊 Profile loaded - vehicles:", vehicleCount);
-      console.log("📊 Vehicles array:", JSON.stringify(vehiclesData, null, 2));
+
 
       const sub = userData.subscription;
       if (sub) {
@@ -168,42 +163,26 @@ export default function ProfileScreen({ navigation }: any) {
       title: t.profile?.editProfile || "Edit Profile",
       description: t.profile?.editProfileDesc || "Change name, address, etc",
       icon: "account-edit",
-      onPress: () =>
-        Alert.alert(
-          t.common?.comingSoon || "Coming Soon",
-          t.common?.featureInDevelopment || "Feature in development",
-        ),
+      onPress: () => navigation.navigate('EditProfile'),
     },
     {
       title: t.profile?.changePassword || "Change Password",
       description:
         t.profile?.changePasswordDesc || "Change your access password",
       icon: "lock",
-      onPress: () =>
-        Alert.alert(
-          t.common?.comingSoon || "Coming Soon",
-          t.common?.featureInDevelopment || "Feature in development",
-        ),
+      onPress: () => navigation.navigate('ChangePassword'),
     },
     {
       title: t.nav?.notifications || "Notifications",
       description: t.profile?.notificationsDesc || "Configure alerts",
       icon: "bell",
-      onPress: () =>
-        Alert.alert(
-          t.common?.comingSoon || "Coming Soon",
-          t.common?.featureInDevelopment || "Feature in development",
-        ),
+      onPress: () => navigation.navigate('Notifications'),
     },
     {
       title: t.profile?.helpSupport || "Help & Support",
       description: t.profile?.helpSupportDesc || "Help center",
       icon: "help-circle",
-      onPress: () =>
-        Alert.alert(
-          t.common?.comingSoon || "Coming Soon",
-          t.common?.featureInDevelopment || "Feature in development",
-        ),
+      onPress: () => navigation.navigate('Support'),
     },
   ];
 

@@ -11,6 +11,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useI18n } from '../i18n';
 import { CANCELLATION_RULES, DISPUTE_RULES } from '../config/businessRules';
 import * as serviceFlowService from '../services/service-flow.service';
+import api from '../services/api';
 
 export default function WorkOrderDetailsScreen({ navigation, route }: any) {
   const { t } = useI18n();
@@ -154,8 +155,7 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
     
     setProcessingAction(true);
     try {
-      // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await api.post(`/work-orders/${workOrder?.id}/dispute`, { reason: disputeReason });
       
       setShowDisputeModal(false);
       setDisputeReason('');
@@ -164,8 +164,8 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
         t.businessRules?.dispute?.submittedSuccessfully || 'Dispute submitted. Please wait for our analysis.',
         [{ text: 'OK', onPress: () => loadDetails() }]
       );
-    } catch (error) {
-      Alert.alert(t.common?.error || 'Error', t.common?.tryAgain || 'Try again');
+    } catch (error: any) {
+      Alert.alert(t.common?.error || 'Error', error?.response?.data?.message || t.common?.tryAgain || 'Try again');
     } finally {
       setProcessingAction(false);
     }

@@ -102,7 +102,7 @@ export default function SpecialOffersSection({
       : null;
 
     // Get prices - support API Decimal fields and string fields
-    // API returns originalPrice/discountedPrice as Decimal (number), mock data as string
+    // API returns originalPrice/discountedPrice as Decimal (number), legacy data as string
     const rawOriginal =
       item.originalPrice || (item as any).regularPrice || item.regularPrice;
     const rawDiscounted =
@@ -120,7 +120,7 @@ export default function SpecialOffersSection({
     const regularPrice = formatPrice(rawOriginal);
     const specialPrice = formatPrice(rawDiscounted);
 
-    // Format valid until date - API returns ISO DateTime, mock returns formatted string
+    // Format valid until date - API returns ISO DateTime, legacy returns formatted string
     const rawValidUntil = item.validUntil;
     let validUntil: string | null = null;
     if (rawValidUntil) {

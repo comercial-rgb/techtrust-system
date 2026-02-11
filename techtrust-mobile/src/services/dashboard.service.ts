@@ -1,6 +1,6 @@
 /**
  * Dashboard Service - Busca dados reais do backend
- * Substitui todos os dados mock por chamadas à API
+ * Serviço de Dashboard - Chamadas à API
  */
 
 import api from './api';

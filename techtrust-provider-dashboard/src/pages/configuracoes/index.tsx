@@ -119,35 +119,38 @@ export default function ConfiguracoesPage() {
   async function loadProfile() {
     setLoading(true)
     try {
-      // Em produção, buscar dados reais da API
-      // const response = await api.get('/provider/profile')
-      
-      await new Promise(resolve => setTimeout(resolve, 800))
-      
+      const response = await api.get('/provider/dashboard')
+      const data = response.data.data
+      const p = data.profile || {}
+      const hours = p.businessHours || {}
+
+      const defaultDay = { open: '08:00', close: '18:00', closed: false }
+      const parseDay = (day: any) => day ? { open: day.open || '08:00', close: day.close || '18:00', closed: !!day.closed } : defaultDay
+
       setProfile({
-        businessName: 'Auto Center Express',
-        businessType: 'AUTO_REPAIR',
-        description: 'Oficina especializada em manutenção preventiva e corretiva. Mais de 15 anos de experiência no mercado automotivo.',
-        phone: '+1 (407) 555-1234',
-        email: 'contato@autocenterexpress.com',
-        address: '1234 Main Street',
-        city: 'Orlando',
-        state: 'FL',
-        zipCode: '32801',
-        serviceRadius: 25,
-        averageRating: 4.8,
-        totalReviews: 47,
-        isVerified: true,
+        businessName: p.businessName || user?.fullName || '',
+        businessType: p.businessType || 'AUTO_REPAIR',
+        description: p.description || '',
+        phone: p.businessPhone || user?.phone || '',
+        email: p.businessEmail || user?.email || '',
+        address: p.address || '',
+        city: p.city || '',
+        state: p.state || '',
+        zipCode: p.zipCode || '',
+        serviceRadius: p.serviceRadiusKm || 25,
+        averageRating: p.averageRating || 0,
+        totalReviews: p.totalReviews || 0,
+        isVerified: p.isVerified || false,
         workingHours: {
-          monday: { open: '08:00', close: '18:00', closed: false },
-          tuesday: { open: '08:00', close: '18:00', closed: false },
-          wednesday: { open: '08:00', close: '18:00', closed: false },
-          thursday: { open: '08:00', close: '18:00', closed: false },
-          friday: { open: '08:00', close: '18:00', closed: false },
-          saturday: { open: '08:00', close: '14:00', closed: false },
-          sunday: { open: '08:00', close: '14:00', closed: true },
+          monday: parseDay(hours.monday),
+          tuesday: parseDay(hours.tuesday),
+          wednesday: parseDay(hours.wednesday),
+          thursday: parseDay(hours.thursday),
+          friday: parseDay(hours.friday),
+          saturday: parseDay(hours.saturday),
+          sunday: parseDay(hours.sunday || { open: '08:00', close: '14:00', closed: true }),
         },
-        services: ['SCHEDULED_MAINTENANCE', 'REPAIR', 'INSPECTION', 'DETAILING'],
+        services: p.specialties || ['SCHEDULED_MAINTENANCE', 'REPAIR'],
         notifications: {
           newRequests: true,
           quoteAccepted: true,
@@ -166,8 +169,18 @@ export default function ConfiguracoesPage() {
   async function handleSave() {
     setSaving(true)
     try {
-      // await api.put('/provider/profile', profile)
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      await api.patch('/provider/profile', {
+        businessName: profile.businessName,
+        businessPhone: profile.phone,
+        businessEmail: profile.email,
+        address: profile.address,
+        city: profile.city,
+        state: profile.state,
+        zipCode: profile.zipCode,
+        serviceRadiusKm: profile.serviceRadius,
+        specialties: profile.services,
+        businessHours: profile.workingHours,
+      })
       
       setSuccessMessage(t('settings.messages.savedSuccess'))
       setTimeout(() => setSuccessMessage(''), 3000)

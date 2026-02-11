@@ -32,73 +32,18 @@ import { getHomeData, Banner, SpecialOffer } from "../services/content.service";
 
 const { width } = Dimensions.get("window");
 
-// Mock data para anúncios/banners
-const BANNERS = [
+// Default banners when API has no data
+const BANNERS: Banner[] = [
   {
     id: "1",
-    imageUrl:
-      "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=800",
+    imageUrl: "",
     title: "TechTrust AutoSolutions",
     subtitle: "Your Trusted Auto Service Partner",
   },
-  {
-    id: "2",
-    imageUrl:
-      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800",
-    title: "Quality Service Guaranteed",
-    subtitle: "Certified Mechanics Near You",
-  },
-  {
-    id: "3",
-    imageUrl:
-      "https://images.unsplash.com/photo-1489824904134-891ab64532f1?w=800",
-    title: "Fast & Reliable",
-    subtitle: "24/7 Roadside Assistance",
-  },
 ];
 
-// Mock data para ofertas especiais
-const SPECIAL_OFFERS = [
-  {
-    id: "1",
-    image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400",
-    title: "Oil Change Special",
-    discount: "15% OFF",
-    description: "Full synthetic oil change with filter",
-    validUntil: "Dec 31, 2025",
-    originalPrice: "$89.99",
-    discountedPrice: "$76.49",
-    serviceType: "oil",
-    vehicleTypes: ["Car", "SUV", "Pickup", "Van"], // All except Light Truck
-    fuelTypes: ["Gasoline", "Diesel", "Hybrid"], // Not Electric
-  },
-  {
-    id: "2",
-    image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400",
-    title: "Brake Service",
-    discount: "20% OFF",
-    description: "Front or rear brake pad replacement",
-    validUntil: "Dec 25, 2025",
-    originalPrice: "$199.99",
-    discountedPrice: "$159.99",
-    serviceType: "brake",
-    vehicleTypes: ["Car", "SUV", "Pickup", "Van", "Light Truck"], // All types
-    fuelTypes: ["Gasoline", "Diesel", "Hybrid", "Electric"], // All fuels
-  },
-  {
-    id: "3",
-    image: "https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=400",
-    title: "A/C Check",
-    discount: "FREE",
-    description: "Complete A/C system inspection",
-    validUntil: "Dec 20, 2025",
-    originalPrice: "$49.99",
-    discountedPrice: "FREE",
-    serviceType: "ac",
-    vehicleTypes: ["Car", "SUV", "Van"], // Not Pickup or Light Truck
-    fuelTypes: ["Gasoline", "Diesel", "Hybrid", "Electric"], // All fuels
-  },
-];
+// Default offers - loaded from API
+const SPECIAL_OFFERS: SpecialOffer[] = [];
 
 // Service types used in Home search/provider cards
 const SERVICE_TYPE_IDS = [
@@ -130,32 +75,40 @@ interface ProviderResult {
   languages?: string[];
 }
 
-// Limpar dados mockados - Articles will be loaded from API
+// Articles loaded from API
 const ARTICLES: any[] = [];
 
-// Mock data para benefícios
+// App benefits/features - static content
 const BENEFITS = [
   {
     id: "1",
     icon: "shield-checkmark",
+    titleKey: "verifiedProviders",
+    descKey: "verifiedProvidersDesc",
     title: "Verified Providers",
     description: "All mechanics are background-checked and certified",
   },
   {
     id: "2",
     icon: "cash",
+    titleKey: "transparentPricing",
+    descKey: "transparentPricingDesc",
     title: "Transparent Pricing",
     description: "Compare quotes and pay only for what you need",
   },
   {
     id: "3",
     icon: "time",
+    titleKey: "saveTime",
+    descKey: "saveTimeDesc",
     title: "Save Time",
     description: "Book appointments and track service in real-time",
   },
   {
     id: "4",
     icon: "star",
+    titleKey: "qualityGuaranteed",
+    descKey: "qualityGuaranteedDesc",
     title: "Quality Guaranteed",
     description: "Rated services with warranty protection",
   },
@@ -373,7 +326,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
 
     if (normalized in mapById) return mapById[normalized];
 
-    // Back-compat for older mock values
+    // Back-compat for older values
     const mapByLegacyName: Record<string, string> = {
       "Oil Change": mapById.oilChange,
       Brakes: mapById.brakes,
@@ -399,13 +352,12 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
   const loadHomeData = async () => {
     try {
       const data = await getHomeData();
-      setBanners(data.banners || BANNERS);
-      setOffers(data.offers || SPECIAL_OFFERS);
+      setBanners(data.banners?.length ? data.banners : BANNERS);
+      setOffers(data.offers || []);
     } catch (error) {
-      console.error("Erro ao carregar dados da home:", error);
-      // Usar dados mock como fallback
+      // Use defaults on error
       setBanners(BANNERS);
-      setOffers(SPECIAL_OFFERS);
+      setOffers([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -436,9 +388,8 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
   };
 
   const handleSearch = async () => {
-    // TODO: Integrate with real providers search API
-    // In production, call: api.get('/providers/search', { params: { state: selectedState, city: selectedCity, service: selectedService } })
-    // For now, show empty results until providers search endpoint is available
+    // Providers search: api.get('/providers/search', { params: { state, city, service } })
+    // Returns empty results until providers search endpoint is available
     setSearchResults([]);
     setHasSearched(true);
   };
@@ -572,7 +523,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
     navigation.navigate("Dashboard", { screen: "CreateRequest" });
 
   const renderBanner = ({ item }: { item: Banner }) => {
-    // Support both 'imageUrl' (API/interface) and 'image' (legacy mock) fields
+    // Support both 'imageUrl' (API/interface) and 'image' (legacy) fields
     const bannerUrl = item.imageUrl || (item as any).image || "";
     const fullUrl = bannerUrl.startsWith("http")
       ? bannerUrl
@@ -611,7 +562,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
   };
 
   const renderOffer = ({ item }: { item: SpecialOffer }) => {
-    // Support both image and imageUrl fields (mock vs API)
+    // Support both image and imageUrl fields
     const rawImageUrl = item.imageUrl || item.image;
     let imageUrl: string | null = null;
     if (rawImageUrl) {
@@ -621,10 +572,10 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
         : `${process.env.EXPO_PUBLIC_API_URL || "https://techtrust-api.onrender.com"}${urlStr.startsWith("/") ? urlStr : "/" + urlStr}`;
     }
 
-    // Support both API field (discountLabel) and mock field (discount)
+    // Support both API field (discountLabel) and legacy field (discount)
     const discountDisplay = (item as any).discountLabel || item.discount || "";
 
-    // Format prices - API returns Decimal (number), mock returns string like "$89.99"
+    // Format prices - API returns Decimal (number), legacy returns string like "$89.99"
     const formatPrice = (val: any): string => {
       if (!val) return "";
       if (typeof val === "string" && (val.startsWith("$") || val === "FREE"))
@@ -636,7 +587,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
     const originalPrice = formatPrice(item.originalPrice);
     const discountedPrice = formatPrice(item.discountedPrice);
 
-    // Format validUntil - API returns ISO DateTime, mock returns formatted string
+    // Format validUntil - API returns ISO DateTime, legacy returns formatted string
     let validUntilStr = "";
     if (item.validUntil) {
       const raw = String(item.validUntil);
@@ -888,9 +839,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                   setSelectedState("");
                   setSelectedCity("");
                   setSelectedService("");
-                  // Simulate refresh delay
-                  await new Promise((resolve) => setTimeout(resolve, 1000));
-                  setRefreshing(false);
+                  await loadHomeData();
                 }}
                 colors={["#1976d2"]}
                 tintColor="#1976d2"
@@ -928,7 +877,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
               />
               {/* Pagination dots */}
               <View style={styles.pagination}>
-                {BANNERS.map((_, index) => (
+                {banners.map((_, index) => (
                   <View
                     key={index}
                     style={[

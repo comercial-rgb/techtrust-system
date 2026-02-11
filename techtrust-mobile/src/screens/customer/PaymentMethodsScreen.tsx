@@ -266,7 +266,10 @@ export default function PaymentMethodsScreen({ navigation }: any) {
 
     setSaving(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const response = await api.post('/wallet/add-balance', {
+        amount,
+        method: addBalanceMethod,
+      });
 
       // Add to balance
       const newBalance = walletBalance + amount;
@@ -1125,21 +1128,9 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                   <Text style={styles.transferTitle}>
                     {t.customer?.bankDetails || "Bank Details"}
                   </Text>
-                  <View style={styles.transferDetail}>
-                    <Text style={styles.transferLabel}>Bank:</Text>
-                    <Text style={styles.transferValue}>TechTrust Bank</Text>
-                  </View>
-                  <View style={styles.transferDetail}>
-                    <Text style={styles.transferLabel}>Account:</Text>
-                    <Text style={styles.transferValue}>123456-7</Text>
-                  </View>
-                  <View style={styles.transferDetail}>
-                    <Text style={styles.transferLabel}>Routing:</Text>
-                    <Text style={styles.transferValue}>000-000-000</Text>
-                  </View>
                   <Text style={styles.transferNote}>
                     {t.customer?.transferNote ||
-                      "Include your account email as reference. Balance typically credited within 1-2 business days."}
+                      "Please contact support for bank transfer details. Balance typically credited within 1-2 business days."}
                   </Text>
                 </View>
               )}

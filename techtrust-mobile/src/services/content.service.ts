@@ -18,10 +18,10 @@ export interface SpecialOffer {
   discountValue?: number;
   discountType?: string;
   promoCode?: string;
-  // Legacy/mock fields
+  // Legacy fields
   discount?: number | string;
   imageUrl?: string;
-  image?: string; // Legacy support for mock data
+  image?: string; // Legacy support
   code?: string;
   originalPrice?: string | number;
   discountedPrice?: string | number;

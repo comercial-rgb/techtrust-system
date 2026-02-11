@@ -86,11 +86,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           };
           setUser(normalizedUser);
           await AsyncStorage.setItem('@TechTrust:user', JSON.stringify(normalizedUser));
-          console.log('✅ Sessão restaurada:', normalizedUser.email);
+
         }
       } catch (apiError: any) {
         // Token inválido ou expirado - limpar dados
-        console.log('⚠️ Token inválido, limpando dados antigos');
+
         await clearAuthData();
       }
     } catch (error) {
@@ -138,8 +138,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setUser(normalizedUser);
     } catch (error: any) {
-      console.log('❌ Erro no login:', error?.response?.data);
-      
       // Verificar se é erro de telefone não verificado
       const errorCode = error?.response?.data?.code;
       const message =
@@ -182,8 +180,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setUser(normalizedUser);
     } catch (error: any) {
-      console.log('❌ Erro no login provider:', error?.response?.data);
-      
       // Verificar se é erro de telefone não verificado
       const errorCode = error?.response?.data?.code;
       const message =
@@ -233,7 +229,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const verifyOTP = async (userId: string, code: string): Promise<void> => {
     try {
-      console.log('🔐 Verificando OTP:', { userId, code, codeLength: code?.length });
+
       const response = await api.post('/auth/verify-otp', { userId, otpCode: code });
 
       const { token, refreshToken, user: apiUser } = response.data.data;

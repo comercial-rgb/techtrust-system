@@ -192,9 +192,7 @@ export default function CreateRequestScreen({ navigation }: any) {
 
   async function loadFavoriteProviders() {
     try {
-      // TODO: Implement API call to fetch favorite providers
-      // const response = await api.get('/users/favorite-providers');
-      // setFavoriteProviders(response.data);
+      // Fetch favorite providers from API: api.get('/users/favorite-providers')
       setFavoriteProviders([]); // Empty until API is integrated
     } catch (error) {
       console.error("Error loading favorite providers:", error);
@@ -434,8 +432,6 @@ export default function CreateRequestScreen({ navigation }: any) {
   ];
 
   async function handleGetLocation() {
-    // In production, use expo-location or react-native-geolocation
-    // For mock, simulate getting location
     Alert.alert(
       t.createRequest?.shareLocation || "Share Location",
       t.createRequest?.shareLocationMessage ||
@@ -444,15 +440,24 @@ export default function CreateRequestScreen({ navigation }: any) {
         { text: t.common?.cancel || "Cancel", style: "cancel" },
         {
           text: t.common?.allow || "Allow",
-          onPress: () => {
-            // Mock location - Orlando, FL
-            setCurrentLocation({ lat: 28.5383, lng: -81.3792 });
-            setShareLocation(true);
-            Alert.alert(
-              t.common?.success || "Success",
-              t.createRequest?.locationShared ||
-                "Your location will be shared with the provider",
-            );
+          onPress: async () => {
+            try {
+              const Location = await import('expo-location');
+              const { status } = await Location.requestForegroundPermissionsAsync();
+              if (status !== 'granted') {
+                Alert.alert(t.common?.error || 'Error', t.createRequest?.locationPermissionDenied || 'Location permission denied');
+                return;
+              }
+              const location = await Location.getCurrentPositionAsync({});
+              setCurrentLocation({ lat: location.coords.latitude, lng: location.coords.longitude });
+              setShareLocation(true);
+              Alert.alert(
+                t.common?.success || "Success",
+                t.createRequest?.locationShared || "Your location will be shared with the provider",
+              );
+            } catch (err) {
+              Alert.alert(t.common?.error || 'Error', t.createRequest?.locationError || 'Could not get location');
+            }
           },
         },
       ],
@@ -478,22 +483,39 @@ export default function CreateRequestScreen({ navigation }: any) {
       return;
     }
     setSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    setSubmitting(false);
+    try {
+      const apiDefault = (await import("../services/api")).default;
+      await apiDefault.post('/service-requests', {
+        vehicleId: selectedVehicle,
+        serviceType: selectedService,
+        title,
+        description,
+        providerId: selectedProvider?.id || preSelectedProviderId || undefined,
+        location: shareLocation && currentLocation ? currentLocation : undefined,
+        urgency: selectedUrgency || undefined,
+        preferredDate: preferredDate || undefined,
+      });
 
-    // Different message if sending to specific provider
-    const providerName =
-      selectedProvider?.businessName || preSelectedProviderName;
-    const successMessage = providerName
-      ? `${t.createRequest?.requestSentTo || "Request sent to"} ${providerName}. ${t.createRequest?.providerWillRespond || "They will respond shortly."}`
-      : t.createRequest?.quotesWithin ||
-        "You will receive quotes within 48 hours.";
+      const providerName =
+        selectedProvider?.businessName || preSelectedProviderName;
+      const successMessage = providerName
+        ? `${t.createRequest?.requestSentTo || "Request sent to"} ${providerName}. ${t.createRequest?.providerWillRespond || "They will respond shortly."}`
+        : t.createRequest?.quotesWithin ||
+          "You will receive quotes within 48 hours.";
 
-    Alert.alert(
-      t.createRequest?.submitted || "Request Submitted!",
-      successMessage,
-      [{ text: t.common.ok, onPress: () => navigation.goBack() }],
-    );
+      Alert.alert(
+        t.createRequest?.submitted || "Request Submitted!",
+        successMessage,
+        [{ text: t.common.ok, onPress: () => navigation.goBack() }],
+      );
+    } catch (err: any) {
+      Alert.alert(
+        t.common.error,
+        err?.response?.data?.message || t.common?.tryAgain || "Could not submit request. Please try again.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   // Show loading while checking payment method

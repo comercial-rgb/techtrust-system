@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminLayout from '../../components/AdminLayout';
+import { adminApi } from '../../services/api';
 import {
   ChevronLeft,
   Save,
@@ -46,8 +47,13 @@ export default function NovoUsuarioPage() {
     setLoading(true);
 
     try {
-      // API call here
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await adminApi.createUser({
+        fullName: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        password: formData.password,
+        role: formData.role as 'ADMIN' | 'CUSTOMER' | 'PROVIDER',
+      });
       router.push('/usuarios');
     } catch (err: any) {
       setError(err.message || 'Erro ao criar usuário');

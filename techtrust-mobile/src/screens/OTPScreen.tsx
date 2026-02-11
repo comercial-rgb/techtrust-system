@@ -108,16 +108,7 @@ export default function OTPScreen({ route, navigation }: any) {
     // Limpa e valida o código
     const otpCode = otp.join('').replace(/\s/g, ''); // Remove todos os espaços
     
-    console.log('🔍 OTP Array:', otp);
-    console.log('🔍 OTP Code:', otpCode);
-    console.log('🔍 User ID:', userId);
-    
-    // DEBUG: Mostra alert para o usuário ver os valores
-    Alert.alert(
-      'DEBUG - Dados OTP',
-      `Array: [${otp.join(',')}]\nCódigo: "${otpCode}"\nTamanho: ${otpCode.length}\nUserId: ${userId?.substring(0, 8)}...`,
-      [{ text: 'OK' }]
-    );
+
 
     if (!userId) {
       setHasError(true);
@@ -141,7 +132,7 @@ export default function OTPScreen({ route, navigation }: any) {
       return;
     }
 
-    console.log('✅ Validação passou, enviando para backend...');
+
     setLoading(true);
     try {
       await verifyOTP(userId, otpCode);

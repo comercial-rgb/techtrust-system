@@ -30,19 +30,7 @@ interface BankAccount {
 
 export default function ProviderBankDetailsScreen({ navigation }: any) {
   const { t } = useI18n();
-  const [accounts, setAccounts] = useState<BankAccount[]>([
-    {
-      id: '1',
-      bankName: 'Nubank',
-      bankCode: '260',
-      agency: '0001',
-      account: '12345678-9',
-      accountType: 'checking',
-      holderName: 'Auto Mecânica Silva LTDA',
-      cpfCnpj: '12.345.678/0001-90',
-      isPrimary: true,
-    },
-  ]);
+  const [accounts, setAccounts] = useState<BankAccount[]>([]);
 
   const [isAdding, setIsAdding] = useState(false);
   const [newAccount, setNewAccount] = useState({
