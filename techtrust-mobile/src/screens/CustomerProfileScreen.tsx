@@ -45,7 +45,6 @@ export default function CustomerProfileScreen({ navigation }: any) {
   const [subscription, setSubscription] = useState<any>(null);
 
   const loadSpokenLanguages = async () => {
-  const loadSpokenLanguages = async () => {
     try {
       // First load from local storage for instant display
       const saved = await AsyncStorage.getItem(SPOKEN_LANGUAGES_KEY);
