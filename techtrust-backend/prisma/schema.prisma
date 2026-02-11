@@ -178,6 +178,7 @@ model User {
   state   String?
   zipCode String?
   addressesJson Json? // JSON array of user addresses for cross-device sync
+  preferencesJson Json? // JSON object for user preferences (spokenLanguages, etc.) for cross-device sync
   
   // Metadata
   lastLoginAt DateTime?

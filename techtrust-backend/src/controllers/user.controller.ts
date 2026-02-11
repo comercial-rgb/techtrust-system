@@ -42,6 +42,7 @@ export const getMe = async (req: Request, res: Response) => {
       dateOfBirth: true,
       gender: true,
       addressesJson: true,
+      preferencesJson: true,
       createdAt: true,
       lastLoginAt: true,
     },
@@ -91,6 +92,7 @@ export const updateMe = async (req: Request, res: Response) => {
     dateOfBirth,
     gender,
     addressesJson,
+    preferencesJson,
   } = req.body;
 
   const user = await prisma.user.update({
@@ -111,6 +113,7 @@ export const updateMe = async (req: Request, res: Response) => {
       }),
       ...(gender !== undefined && { gender }),
       ...(addressesJson !== undefined && { addressesJson }),
+      ...(preferencesJson !== undefined && { preferencesJson }),
     },
     select: {
       id: true,
@@ -130,6 +133,7 @@ export const updateMe = async (req: Request, res: Response) => {
       dateOfBirth: true,
       gender: true,
       addressesJson: true,
+      preferencesJson: true,
     },
   });
 

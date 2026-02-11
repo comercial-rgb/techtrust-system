@@ -45,13 +45,30 @@ export default function CustomerProfileScreen({ navigation }: any) {
   const [subscription, setSubscription] = useState<any>(null);
 
   const loadSpokenLanguages = async () => {
+  const loadSpokenLanguages = async () => {
     try {
+      // First load from local storage for instant display
       const saved = await AsyncStorage.getItem(SPOKEN_LANGUAGES_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
           setSpokenLanguages(parsed);
         }
+      }
+
+      // Then try to sync from backend (cross-device sync)
+      try {
+        const response = await api.get("/users/me");
+        const userData = response?.data?.data?.user || response?.data?.data;
+        if (userData?.preferencesJson?.spokenLanguages) {
+          const backendLangs = userData.preferencesJson.spokenLanguages;
+          if (Array.isArray(backendLangs) && backendLangs.length > 0) {
+            setSpokenLanguages(backendLangs);
+            await AsyncStorage.setItem(SPOKEN_LANGUAGES_KEY, JSON.stringify(backendLangs));
+          }
+        }
+      } catch (apiError) {
+        console.log("Could not sync spoken languages from backend");
       }
     } catch (error) {
       console.error("Error loading spoken languages:", error);
@@ -151,6 +168,9 @@ export default function CustomerProfileScreen({ navigation }: any) {
         SPOKEN_LANGUAGES_KEY,
         JSON.stringify(newLangs),
       ).catch((err) => console.error("Error saving spoken languages:", err));
+      // Sync to backend for cross-device persistence
+      api.patch("/users/me", { preferencesJson: { spokenLanguages: newLangs } })
+        .catch((err) => console.log("Could not sync spoken languages to backend:", err));
       return newLangs;
     });
   };

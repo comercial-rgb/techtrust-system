@@ -5,6 +5,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '../services/api';
 
 import en from './locales/en';
 import pt from './locales/pt';
@@ -58,9 +59,32 @@ export function I18nProvider({ children }: I18nProviderProps) {
 
   const loadLanguage = async () => {
     try {
+      // First load from local storage for instant display
       const savedLanguage = await AsyncStorage.getItem(LANGUAGE_KEY);
       if (savedLanguage && (savedLanguage === 'en' || savedLanguage === 'pt' || savedLanguage === 'es')) {
         setLanguageState(savedLanguage as Language);
+      }
+
+      // Then try to sync from backend (cross-device sync)
+      try {
+        const token = await AsyncStorage.getItem('@TechTrust:token');
+        if (token) {
+          const response = await api.get('/users/me');
+          const userData = response.data?.data?.user || response.data?.data;
+          if (userData?.language) {
+            const backendLang = userData.language.toLowerCase() as Language;
+            if (backendLang === 'en' || backendLang === 'pt' || backendLang === 'es') {
+              // Backend language takes priority for cross-device sync
+              if (backendLang !== savedLanguage) {
+                setLanguageState(backendLang);
+                await AsyncStorage.setItem(LANGUAGE_KEY, backendLang);
+              }
+            }
+          }
+        }
+      } catch (apiError) {
+        // Silently fail - use local language
+        console.log('Could not sync language from backend, using local');
       }
     } catch (error) {
       console.error('Error loading language:', error);
@@ -73,6 +97,16 @@ export function I18nProvider({ children }: I18nProviderProps) {
     try {
       await AsyncStorage.setItem(LANGUAGE_KEY, lang);
       setLanguageState(lang);
+
+      // Sync to backend for cross-device persistence
+      try {
+        const token = await AsyncStorage.getItem('@TechTrust:token');
+        if (token) {
+          await api.patch('/users/me', { language: lang.toUpperCase() });
+        }
+      } catch (apiError) {
+        console.log('Could not sync language to backend:', apiError);
+      }
     } catch (error) {
       console.error('Error saving language:', error);
     }
