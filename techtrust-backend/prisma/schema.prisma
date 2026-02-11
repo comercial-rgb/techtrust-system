@@ -197,6 +197,9 @@ model User {
   reviewsReceived   Review[]       @relation("ProviderReviews")
   notifications     Notification[]
   paymentMethods    PaymentMethod[]
+  wallet            Wallet?
+  tipsGiven         Tip[]          @relation("CustomerTips")
+  tipsReceived      Tip[]          @relation("ProviderTips")
   chatMessagesFrom  ChatMessage[]  @relation("MessageFrom")
   chatMessagesTo    ChatMessage[]  @relation("MessageTo")
   supportTickets    SupportTicket[]
@@ -571,6 +574,7 @@ model WorkOrder {
   reviews              Review[]
   supplements          PaymentSupplement[]
   cancellationRequests CancellationRequest[]
+  tips                 Tip[]
 
   @@index([serviceRequestId])
   @@index([customerId])
@@ -798,6 +802,81 @@ model PaymentMethod {
   @@index([userId])
   @@index([userId, isDefault])
   @@map("payment_methods")
+}
+
+// ============================================
+// WALLET - Cross-device synced balance & transactions
+// ============================================
+model Wallet {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  balance Decimal @default(0) @db.Decimal(10, 2)
+  
+  transactions WalletTransaction[]
+
+  @@map("wallets")
+}
+
+model WalletTransaction {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  
+  walletId String
+  wallet   Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  
+  type        String  // "credit" or "debit"
+  amount      Decimal @db.Decimal(10, 2)
+  description String
+  method      String? // "card", "pix", "transfer", "tip_received", "tip_sent", "service_payment"
+  
+  // Reference to related entities
+  relatedPaymentId String?
+  relatedTipId     String?
+
+  @@index([walletId])
+  @@index([walletId, createdAt])
+  @@map("wallet_transactions")
+}
+
+// ============================================
+// TIP - Optional gratuity after service completion
+// ============================================
+model Tip {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  
+  // Who tips who
+  customerId String
+  customer   User   @relation("CustomerTips", fields: [customerId], references: [id])
+  providerId String
+  provider   User   @relation("ProviderTips", fields: [providerId], references: [id])
+  
+  // Context
+  workOrderId String
+  workOrder   WorkOrder @relation(fields: [workOrderId], references: [id])
+  reviewId    String?
+  
+  // Amount
+  amount      Decimal @db.Decimal(10, 2)
+  
+  // Payment
+  paymentMethod String? // "wallet", "card"
+  paymentMethodId String? // ID of PaymentMethod used
+  stripePaymentIntentId String?
+  
+  status String @default("COMPLETED") // "PENDING", "COMPLETED", "FAILED", "REFUNDED"
+  
+  message String? // Optional message with the tip
+
+  @@index([customerId])
+  @@index([providerId])
+  @@index([workOrderId])
+  @@map("tips")
 }
 
 model ChatMessage {

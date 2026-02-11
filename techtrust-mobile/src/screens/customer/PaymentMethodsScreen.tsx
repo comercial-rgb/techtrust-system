@@ -202,22 +202,28 @@ export default function PaymentMethodsScreen({ navigation }: any) {
         }
       }
 
-      // Load wallet data (still local only)
-      const [savedBalance, savedTransactions] = await Promise.all([
-        AsyncStorage.getItem(WALLET_BALANCE_KEY),
-        AsyncStorage.getItem(TRANSACTIONS_KEY),
-      ]);
-
-      if (savedBalance) {
-        setWalletBalance(parseFloat(savedBalance));
-      } else {
-        setWalletBalance(0);
-      }
-
-      if (savedTransactions) {
-        setRecentTransactions(JSON.parse(savedTransactions));
-      } else {
-        setRecentTransactions([]);
+      // Load wallet data from backend (cross-device sync)
+      try {
+        const walletResponse = await api.get("/wallet");
+        const walletData = walletResponse.data?.data;
+        if (walletData) {
+          setWalletBalance(walletData.balance || 0);
+          setRecentTransactions(walletData.transactions || []);
+          // Cache locally for offline
+          await AsyncStorage.setItem(WALLET_BALANCE_KEY, String(walletData.balance || 0));
+          await AsyncStorage.setItem(TRANSACTIONS_KEY, JSON.stringify(walletData.transactions || []));
+        }
+      } catch (walletApiError) {
+        console.log("Wallet API unavailable, loading from cache");
+        // Fallback to local cache
+        const [savedBalance, savedTransactions] = await Promise.all([
+          AsyncStorage.getItem(WALLET_BALANCE_KEY),
+          AsyncStorage.getItem(TRANSACTIONS_KEY),
+        ]);
+        if (savedBalance) setWalletBalance(parseFloat(savedBalance));
+        else setWalletBalance(0);
+        if (savedTransactions) setRecentTransactions(JSON.parse(savedTransactions));
+        else setRecentTransactions([]);
       }
     } catch (error) {
       console.error("Error loading payment methods:", error);
@@ -266,15 +272,36 @@ export default function PaymentMethodsScreen({ navigation }: any) {
 
     setSaving(true);
     try {
-      // Wallet balance is managed locally until wallet API is available
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Add funds via backend API (cross-device sync)
+      const response = await api.post("/wallet/add-funds", {
+        amount,
+        method: addBalanceMethod,
+      });
+      const data = response.data?.data;
 
-      // Add to balance
+      if (data) {
+        // Update from server response
+        setWalletBalance(data.balance);
+        // Add new transaction to the beginning of the list
+        if (data.transaction) {
+          setRecentTransactions((prev) => [data.transaction, ...prev]);
+        }
+        // Cache locally
+        await AsyncStorage.setItem(WALLET_BALANCE_KEY, String(data.balance));
+      }
+
+      setShowAddBalanceModal(false);
+      Alert.alert(
+        t.common?.success || "Success",
+        `${t.customer?.balanceAdded || "Balance added"}: $${amount.toFixed(2)}`,
+      );
+    } catch (err: any) {
+      // Fallback to local if API fails
+      console.log("Wallet API error, saving locally:", err);
       const newBalance = walletBalance + amount;
       setWalletBalance(newBalance);
       await AsyncStorage.setItem(WALLET_BALANCE_KEY, newBalance.toString());
 
-      // Add transaction record
       const methodName =
         addBalanceMethod === "card"
           ? t.customer?.balanceAddedViaCard || "Balance added via card"

@@ -18,6 +18,8 @@ export const createReview = async (req: Request, res: Response) => {
   const customerId = req.user!.id;
   const {
     workOrderId,
+    rating,
+    comment,
     ratingQuality,
     ratingTimeliness,
     ratingCommunication,
@@ -49,13 +51,14 @@ export const createReview = async (req: Request, res: Response) => {
     throw new AppError('Você já avaliou este serviço', 409, 'ALREADY_REVIEWED');
   }
 
-  // Calcular rating geral
-  const overallRating = (
-    Number(ratingQuality) +
-    Number(ratingTimeliness) +
-    Number(ratingCommunication) +
-    Number(ratingValue)
-  ) / 4;
+  // Support both simple rating and detailed ratings
+  const simpleRating = Number(rating) || 0;
+  const qRating = Number(ratingQuality) || simpleRating;
+  const tRating = Number(ratingTimeliness) || simpleRating;
+  const cRating = Number(ratingCommunication) || simpleRating;
+  const vRating = Number(ratingValue) || simpleRating;
+  const overallRating = simpleRating || (qRating + tRating + cRating + vRating) / 4;
+  const finalComment = customerComment || comment || null;
 
   // Criar avaliação
   const review = await prisma.review.create({
@@ -64,11 +67,11 @@ export const createReview = async (req: Request, res: Response) => {
       customerId,
       providerId: workOrder.providerId,
       customerRating: Math.round(overallRating),
-      qualityRating: Number(ratingQuality),
-      timelinessRating: Number(ratingTimeliness),
-      communicationRating: Number(ratingCommunication),
-      valueRating: Number(ratingValue),
-      customerComment,
+      qualityRating: qRating,
+      timelinessRating: tRating,
+      communicationRating: cRating,
+      valueRating: vRating,
+      customerComment: finalComment,
     },
   });
 

@@ -43,6 +43,8 @@ import webhookRoutes from "./routes/webhook.routes";
 import connectRoutes from "./routes/connect.routes";
 import serviceFlowRoutes from "./routes/service-flow.routes";
 import supportRoutes from "./routes/support.routes";
+import walletRoutes from "./routes/wallet.routes";
+import tipRoutes from "./routes/tip.routes";
 
 // Carregar variáveis de ambiente
 dotenv.config();
@@ -233,6 +235,8 @@ app.use(`/api/${API_VERSION}/connect`, connectRoutes); // Stripe Connect (provid
 app.use(`/api/${API_VERSION}/webhooks`, webhookRoutes); // Stripe Webhooks
 app.use(`/api/${API_VERSION}/service-flow`, serviceFlowRoutes); // Fluxo completo de pagamento
 app.use(`/api/${API_VERSION}/support`, supportRoutes); // Support tickets
+app.use(`/api/${API_VERSION}/wallet`, walletRoutes); // Wallet balance & transactions
+app.use(`/api/${API_VERSION}/tips`, tipRoutes); // Tips/gratuity system
 
 // ============================================
 // ERROR HANDLER (deve ser o último middleware)
