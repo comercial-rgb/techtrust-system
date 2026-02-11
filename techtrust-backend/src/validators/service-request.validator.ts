@@ -17,45 +17,46 @@ export const createServiceRequestValidation = [
 
   body('serviceType')
     .trim()
-    .notEmpty().withMessage('Tipo de serviço é obrigatório')
-    .isIn([
-      'SCHEDULED_MAINTENANCE',
-      'REPAIR',
-      'ROADSIDE_SOS',
-      'INSPECTION',
-      'DETAILING',
-    ]).withMessage('Tipo de serviço inválido'),
+    .notEmpty().withMessage('Tipo de serviço é obrigatório'),
 
   body('title')
     .trim()
     .notEmpty().withMessage('Título é obrigatório')
-    .isLength({ min: 10, max: 100 }).withMessage('Título deve ter entre 10 e 100 caracteres'),
+    .isLength({ min: 3, max: 200 }).withMessage('Título deve ter entre 3 e 200 caracteres'),
 
   body('description')
+    .optional()
     .trim()
-    .notEmpty().withMessage('Descrição é obrigatória')
-    .isLength({ min: 20, max: 1000 }).withMessage('Descrição deve ter entre 20 e 1000 caracteres'),
+    .isLength({ max: 2000 }).withMessage('Descrição deve ter no máximo 2000 caracteres'),
 
   body('serviceLocationType')
-    .trim()
-    .notEmpty().withMessage('Tipo de local é obrigatório')
-    .isIn(['SHOP', 'MOBILE', 'CUSTOMER_LOCATION']).withMessage('Tipo de local inválido'),
+    .optional()
+    .trim(),
 
   body('customerAddress')
     .optional()
     .trim(),
 
   body('preferredDate')
-    .optional()
-    .isISO8601().withMessage('Data preferida inválida'),
+    .optional(),
 
   body('preferredTime')
-    .optional()
-    .isISO8601().withMessage('Hora preferida inválida'),
+    .optional(),
 
   body('isUrgent')
     .optional()
     .isBoolean().withMessage('isUrgent deve ser true ou false'),
+
+  body('location')
+    .optional(),
+
+  body('serviceLatitude')
+    .optional()
+    .isFloat({ min: -90, max: 90 }).withMessage('Latitude inválida'),
+
+  body('serviceLongitude')
+    .optional()
+    .isFloat({ min: -180, max: 180 }).withMessage('Longitude inválida'),
 ];
 
 /**

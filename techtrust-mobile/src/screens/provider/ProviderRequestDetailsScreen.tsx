@@ -148,11 +148,24 @@ export default function ProviderRequestDetailsScreen({ route, navigation }: any)
   const loadRequest = async () => {
     setLoading(true);
     try {
-      const response = await api.get(`/service-requests/${requestId}`);
-      const sr = response.data?.data;
+      // Load request and provider profile in parallel
+      const [requestResponse, profileResponse] = await Promise.all([
+        api.get(`/service-requests/${requestId}`),
+        api.get('/providers/profile').catch(() => null),
+      ]);
+      
+      const sr = requestResponse.data?.data;
 
       if (!sr) {
         throw new Error('Request not found');
+      }
+
+      // Load provider's service area settings
+      if (profileResponse?.data?.data) {
+        const pp = profileResponse.data.data.providerProfile || profileResponse.data.data;
+        setProviderServiceRadius(pp.serviceRadiusKm || 25);
+        setProviderFreeKm(pp.freeKm ? Number(pp.freeKm) : 0);
+        setProviderCostPerKm(pp.extraFeePerKm ? Number(pp.extraFeePerKm) : 0);
       }
 
       // Calculate time remaining until quoteDeadline
@@ -486,18 +499,39 @@ export default function ProviderRequestDetailsScreen({ route, navigation }: any)
           )}
           
           {request.serviceLocation.coordinates && request.serviceLocation.type !== 'shop' && (
-            <TouchableOpacity 
-              style={styles.openMapsBtn}
-              onPress={() => {
-                const url = Platform.OS === 'ios' 
-                  ? `maps://app?daddr=${request.serviceLocation.coordinates?.lat},${request.serviceLocation.coordinates?.lng}`
-                  : `google.navigation:q=${request.serviceLocation.coordinates?.lat},${request.serviceLocation.coordinates?.lng}`;
-                Linking.openURL(url);
-              }}
-            >
-              <MaterialCommunityIcons name="directions" size={18} color="#fff" />
-              <Text style={styles.openMapsText}>{t.provider?.getDirections || 'Get Directions'}</Text>
-            </TouchableOpacity>
+            <View style={styles.navigationButtons}>
+              <TouchableOpacity 
+                style={[styles.openMapsBtn, { flex: 1, backgroundColor: '#4285F4' }]}
+                onPress={() => {
+                  const lat = request.serviceLocation.coordinates?.lat;
+                  const lng = request.serviceLocation.coordinates?.lng;
+                  const url = Platform.OS === 'ios' 
+                    ? `maps://app?daddr=${lat},${lng}`
+                    : `google.navigation:q=${lat},${lng}`;
+                  Linking.openURL(url).catch(() => {
+                    // Fallback to web Google Maps
+                    Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`);
+                  });
+                }}
+              >
+                <MaterialCommunityIcons name="google-maps" size={18} color="#fff" />
+                <Text style={styles.openMapsText}>{Platform.OS === 'ios' ? 'Apple Maps' : 'Google Maps'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.openMapsBtn, { flex: 1, backgroundColor: '#33CCFF' }]}
+                onPress={() => {
+                  const lat = request.serviceLocation.coordinates?.lat;
+                  const lng = request.serviceLocation.coordinates?.lng;
+                  const url = `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
+                  Linking.openURL(url).catch(() => {
+                    Alert.alert('Waze', 'Waze is not installed. Please install it from the App Store.');
+                  });
+                }}
+              >
+                <MaterialCommunityIcons name="waze" size={18} color="#fff" />
+                <Text style={styles.openMapsText}>Waze</Text>
+              </TouchableOpacity>
+            </View>
           )}
         </View>
 
@@ -1963,6 +1997,11 @@ const styles = StyleSheet.create({
     color: '#92400e',
     fontWeight: '500',
   },
+  navigationButtons: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 12,
+  },
   openMapsBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1971,7 +2010,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#1976d2',
     paddingVertical: 12,
     borderRadius: 10,
-    marginTop: 12,
   },
   openMapsText: {
     color: '#fff',

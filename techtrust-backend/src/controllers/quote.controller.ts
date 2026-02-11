@@ -109,7 +109,7 @@ export const createQuote = async (req: Request, res: Response) => {
       travelFee = (distanceKm - freeKm) * extraFeePerKm;
     }
 
-    logger.info(`Distância calculada: ${distanceKm.toFixed(2)} km, Taxa: R$ ${travelFee.toFixed(2)}`);
+    logger.info(`Distância calculada: ${distanceKm.toFixed(2)} km, Taxa: $ ${travelFee.toFixed(2)}`);
   }
 
   // Calcular total (incluindo taxa de deslocamento)

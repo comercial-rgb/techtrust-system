@@ -13,6 +13,7 @@ import {
   Alert,
   Share,
   Platform,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -46,6 +47,8 @@ interface Quote {
     email: string;
     address: string;
     rating: number;
+    latitude?: number;
+    longitude?: number;
   };
   request: {
     title: string;
@@ -134,6 +137,8 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
             email: providerData.email || '',
             address: providerProfile.businessAddress || providerProfile.address || '',
             rating: Number(providerProfile.averageRating || providerData.rating) || 0,
+            latitude: providerProfile.baseLatitude ? Number(providerProfile.baseLatitude) : undefined,
+            longitude: providerProfile.baseLongitude ? Number(providerProfile.baseLongitude) : undefined,
           },
           request: {
             title: requestData.title || requestData.serviceType || 'Service',
@@ -573,6 +578,56 @@ Valid until: ${formatDate(quote.validUntil)}
               <Ionicons name="call" size={18} color="#1976d2" />
             </TouchableOpacity>
           </View>
+          
+          {/* Navigation Buttons - Get directions to provider */}
+          {(quote.provider.latitude && quote.provider.longitude) || quote.provider.address ? (
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
+              <TouchableOpacity 
+                style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#4285F4', paddingVertical: 10, borderRadius: 8 }}
+                onPress={() => {
+                  if (quote.provider.latitude && quote.provider.longitude) {
+                    const url = Platform.OS === 'ios'
+                      ? `maps://app?daddr=${quote.provider.latitude},${quote.provider.longitude}`
+                      : `google.navigation:q=${quote.provider.latitude},${quote.provider.longitude}`;
+                    Linking.openURL(url).catch(() => {
+                      Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${quote.provider.latitude},${quote.provider.longitude}`);
+                    });
+                  } else {
+                    Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(quote.provider.address)}`);
+                  }
+                }}
+              >
+                <Ionicons name="navigate" size={16} color="#fff" />
+                <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>
+                  {Platform.OS === 'ios' ? 'Maps' : 'Google Maps'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#33CCFF', paddingVertical: 10, borderRadius: 8 }}
+                onPress={() => {
+                  if (quote.provider.latitude && quote.provider.longitude) {
+                    Linking.openURL(`https://waze.com/ul?ll=${quote.provider.latitude},${quote.provider.longitude}&navigate=yes`);
+                  } else {
+                    Linking.openURL(`https://waze.com/ul?q=${encodeURIComponent(quote.provider.address)}&navigate=yes`);
+                  }
+                }}
+              >
+                <Ionicons name="compass" size={16} color="#fff" />
+                <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>Waze</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+          
+          {/* Distance Info */}
+          {quote.distanceKm && quote.distanceKm > 0 ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, padding: 8, backgroundColor: '#f0f9ff', borderRadius: 6 }}>
+              <Ionicons name="location" size={14} color="#1976d2" />
+              <Text style={{ fontSize: 12, color: '#1e40af' }}>
+                {quote.distanceKm.toFixed(1)} km away
+                {quote.travelFee > 0 ? ` • Travel fee: $${quote.travelFee.toFixed(2)}` : ' • No travel fee'}
+              </Text>
+            </View>
+          ) : null}
         </View>
 
         {/* Vehicle & Service */}

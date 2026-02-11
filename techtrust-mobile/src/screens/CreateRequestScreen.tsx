@@ -485,11 +485,23 @@ export default function CreateRequestScreen({ navigation }: any) {
     setSubmitting(true);
     try {
       const apiDefault = (await import("../services/api")).default;
+      
+      // Build selected address for customerAddress field
+      let customerAddress: string | undefined;
+      if (serviceLocation !== 'shop' && userAddresses.length > 0) {
+        const defaultAddr = userAddresses.find((a: any) => a.isDefault) || userAddresses[0];
+        if (defaultAddr) {
+          customerAddress = [defaultAddr.street, defaultAddr.city, defaultAddr.state, defaultAddr.zipCode].filter(Boolean).join(', ');
+        }
+      }
+      
       await apiDefault.post('/service-requests', {
         vehicleId: selectedVehicle,
         serviceType: selectedService,
         title,
         description,
+        serviceLocationType: serviceLocation === 'mobile' ? 'MOBILE' : serviceLocation === 'roadside' ? 'REMOTE' : 'IN_SHOP',
+        customerAddress: customerAddress || undefined,
         providerId: selectedProvider?.id || preSelectedProviderId || undefined,
         location: shareLocation && currentLocation ? currentLocation : undefined,
         urgency: selectedUrgency || undefined,

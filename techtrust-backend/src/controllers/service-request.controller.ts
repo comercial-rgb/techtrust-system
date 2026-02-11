@@ -9,6 +9,7 @@ import { Request, Response } from 'express';
 import { prisma } from '../config/database';
 import { AppError } from '../middleware/error-handler';
 import { logger } from '../config/logger';
+import { geocodeAddress } from '../services/geocoding.service';
 
 /**
  * POST /api/v1/service-requests
@@ -26,6 +27,9 @@ export const createServiceRequest = async (req: Request, res: Response) => {
     preferredDate,
     preferredTime,
     isUrgent,
+    location,
+    serviceLatitude,
+    serviceLongitude,
   } = req.body;
 
   // Verificar se veículo pertence ao usuário
@@ -118,6 +122,34 @@ export const createServiceRequest = async (req: Request, res: Response) => {
   const expiresAt = new Date();
   expiresAt.setHours(expiresAt.getHours() + 24);
 
+  // Resolve GPS coordinates for the service location
+  let finalLatitude: number | null = null;
+  let finalLongitude: number | null = null;
+
+  // Priority 1: Direct lat/lng from body
+  if (serviceLatitude && serviceLongitude) {
+    finalLatitude = Number(serviceLatitude);
+    finalLongitude = Number(serviceLongitude);
+  }
+  // Priority 2: location object { lat, lng } from mobile app
+  else if (location?.lat && location?.lng) {
+    finalLatitude = Number(location.lat);
+    finalLongitude = Number(location.lng);
+  }
+  // Priority 3: Geocode the customer address
+  else if (customerAddress) {
+    try {
+      const coords = await geocodeAddress(customerAddress);
+      if (coords) {
+        finalLatitude = coords.latitude;
+        finalLongitude = coords.longitude;
+        logger.info(`Geocoded address "${customerAddress}" -> ${finalLatitude}, ${finalLongitude}`);
+      }
+    } catch (err) {
+      logger.warn(`Failed to geocode address: ${customerAddress}`, err);
+    }
+  }
+
   // Criar solicitação
   const serviceRequest = await prisma.serviceRequest.create({
     data: {
@@ -129,6 +161,9 @@ export const createServiceRequest = async (req: Request, res: Response) => {
       description,
       serviceLocationType,
       customerAddress,
+      serviceLatitude: finalLatitude,
+      serviceLongitude: finalLongitude,
+      locationType: serviceLocationType || null,
       preferredDate: preferredDate ? new Date(preferredDate) : null,
       preferredTime: preferredTime ? new Date(preferredTime) : null,
       isUrgent: isUrgent || false,
@@ -231,13 +266,31 @@ export const getServiceRequest = async (req: Request, res: Response) => {
   const userId = req.user!.id;
   const { requestId } = req.params;
 
+  // Allow both the customer who created it and providers to view
   const request = await prisma.serviceRequest.findFirst({
     where: {
       id: requestId,
-      userId: userId,
+      OR: [
+        { userId: userId },
+        { quotes: { some: { providerId: userId } } },
+        // Allow any provider to view open requests
+        { status: { in: ['SEARCHING_PROVIDERS', 'QUOTES_RECEIVED'] } },
+      ],
     },
     include: {
       vehicle: true,
+      user: {
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          phone: true,
+          city: true,
+          state: true,
+          averageRating: true,
+          _count: { select: { serviceRequests: true } },
+        },
+      },
       quotes: {
         include: {
           provider: {
@@ -252,6 +305,11 @@ export const getServiceRequest = async (req: Request, res: Response) => {
                   averageRating: true,
                   totalReviews: true,
                   totalServicesCompleted: true,
+                  baseLatitude: true,
+                  baseLongitude: true,
+                  address: true,
+                  city: true,
+                  state: true,
                 },
               },
             },

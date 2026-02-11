@@ -1,8 +1,9 @@
 /**
  * ProviderServiceAreaScreen - Área de Cobertura
+ * Connected to backend API
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -15,10 +16,13 @@ import {
   Modal,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { useFocusEffect } from '@react-navigation/native';
 import { useI18n } from '../../i18n';
+import api from '../../services/api';
 
 interface CoverageZone {
   id: string;
@@ -29,23 +33,57 @@ interface CoverageZone {
 
 export default function ProviderServiceAreaScreen({ navigation }: any) {
   const { t } = useI18n();
-  const [baseAddress, setBaseAddress] = useState('Av. Paulista, 1000 - Bela Vista, São Paulo - SP');
-  const [serviceRadius, setServiceRadius] = useState(15);
-  const [mobileService, setMobileService] = useState(true);
-  const [roadsideAssistance, setRoadsideAssistance] = useState(true);
-  const [extraFeePerKm, setExtraFeePerKm] = useState('5.00');
-  const [freeKm, setFreeKm] = useState('5');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [baseAddress, setBaseAddress] = useState('');
+  const [serviceRadius, setServiceRadius] = useState(25);
+  const [mobileService, setMobileService] = useState(false);
+  const [roadsideAssistance, setRoadsideAssistance] = useState(false);
+  const [extraFeePerKm, setExtraFeePerKm] = useState('0.00');
+  const [freeKm, setFreeKm] = useState('0');
   const [showAddZoneModal, setShowAddZoneModal] = useState(false);
   const [newZoneName, setNewZoneName] = useState('');
   const [newZoneRegion, setNewZoneRegion] = useState('');
+  const [coverageZones, setCoverageZones] = useState<CoverageZone[]>([]);
 
-  const [coverageZones, setCoverageZones] = useState<CoverageZone[]>([
-    { id: '1', name: 'Centro', region: 'São Paulo - SP', active: true },
-    { id: '2', name: 'Zona Sul', region: 'São Paulo - SP', active: true },
-    { id: '3', name: 'Zona Oeste', region: 'São Paulo - SP', active: true },
-    { id: '4', name: 'Zona Norte', region: 'São Paulo - SP', active: false },
-    { id: '5', name: 'ABC Paulista', region: 'Grande São Paulo', active: false },
-  ]);
+  // Load provider profile from API
+  const loadProfile = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get('/providers/profile');
+      const profile = response.data?.data?.providerProfile || response.data?.data || {};
+      const user = response.data?.data;
+
+      // Build base address from profile
+      const addr = [profile.address, profile.city, profile.state].filter(Boolean).join(', ');
+      setBaseAddress(addr || user?.city || '');
+      setServiceRadius(profile.serviceRadiusKm || 25);
+      setMobileService(profile.mobileService || false);
+      setRoadsideAssistance(profile.roadsideAssistance || false);
+      setFreeKm(String(profile.freeKm || 0));
+      setExtraFeePerKm(String(Number(profile.extraFeePerKm || 0).toFixed(2)));
+
+      // Load coverage zones if available
+      if (profile.coverageZones && Array.isArray(profile.coverageZones)) {
+        setCoverageZones(profile.coverageZones.map((z: any) => ({
+          id: z.id,
+          name: z.name,
+          region: z.region || '',
+          active: z.active !== false,
+        })));
+      }
+    } catch (error) {
+      console.error('Error loading profile:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      loadProfile();
+    }, [])
+  );
 
   const toggleZone = (id: string) => {
     setCoverageZones(zones =>
@@ -90,12 +128,47 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
     );
   };
 
-  const handleSave = () => {
-    Alert.alert(t.common?.success || 'Success', t.provider?.serviceAreaUpdated || 'Service area updated!');
-    navigation.goBack();
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await api.patch('/providers/profile', {
+        serviceRadiusKm: serviceRadius,
+        mobileService,
+        roadsideAssistance,
+        freeKm: Number(freeKm) || 0,
+        extraFeePerKm: Number(extraFeePerKm) || 0,
+      });
+      Alert.alert(t.common?.success || 'Success', t.provider?.serviceAreaUpdated || 'Service area updated!');
+      navigation.goBack();
+    } catch (error: any) {
+      Alert.alert(
+        t.common?.error || 'Error',
+        error?.response?.data?.message || 'Failed to save settings. Please try again.'
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const radiusOptions = [5, 10, 15, 20, 30, 50];
+  const radiusOptions = [5, 10, 15, 20, 25, 30, 50];
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <MaterialCommunityIcons name="arrow-left" size={24} color="#111827" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{t.provider?.serviceArea || 'Service Area'}</Text>
+          <View style={styles.infoBtn} />
+        </View>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#1976d2" />
+          <Text style={{ marginTop: 12, color: '#6b7280' }}>Loading...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -235,7 +308,7 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
                   <View style={styles.feeInputGroup}>
                     <Text style={styles.feeInputLabel}>{t.provider?.extraKmFee || 'Extra KM Fee'}</Text>
                     <View style={styles.inputWithUnit}>
-                      <Text style={styles.inputPrefix}>R$</Text>
+                      <Text style={styles.inputPrefix}>$</Text>
                       <TextInput
                         style={styles.feeInput}
                         value={extraFeePerKm}
@@ -246,7 +319,7 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
                   </View>
                 </View>
                 <Text style={styles.feeNote}>
-                  {t.provider?.firstKmFree || 'First'} {freeKm} {t.provider?.kmFree || 'km free, after'} R$ {extraFeePerKm}/{t.provider?.extraKm || 'km extra'}
+                  {t.provider?.firstKmFree || 'First'} {freeKm} {t.provider?.kmFree || 'km free, after'} ${extraFeePerKm}/{t.provider?.extraKm || 'km extra'}
                 </Text>
                 <View style={styles.distanceInfo}>
                   <MaterialCommunityIcons name="map-marker-distance" size={20} color="#6b7280" />
@@ -334,8 +407,16 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
 
       {/* Save Button */}
       <View style={styles.bottomContainer}>
-        <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-          <Text style={styles.saveBtnText}>{t.common?.saveChanges || 'Save Changes'}</Text>
+        <TouchableOpacity 
+          style={[styles.saveBtn, saving && { opacity: 0.6 }]} 
+          onPress={handleSave}
+          disabled={saving}
+        >
+          {saving ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <Text style={styles.saveBtnText}>{t.common?.saveChanges || 'Save Changes'}</Text>
+          )}
         </TouchableOpacity>
       </View>
 
