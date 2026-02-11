@@ -119,7 +119,7 @@ export default function ConfiguracoesPage() {
   async function loadProfile() {
     setLoading(true)
     try {
-      const response = await api.get('/provider/dashboard')
+      const response = await api.get('/providers/dashboard')
       const data = response.data.data
       const p = data.profile || {}
       const hours = p.businessHours || {}
@@ -169,7 +169,7 @@ export default function ConfiguracoesPage() {
   async function handleSave() {
     setSaving(true)
     try {
-      await api.patch('/provider/profile', {
+      await api.patch('/providers/profile', {
         businessName: profile.businessName,
         businessPhone: profile.phone,
         businessEmail: profile.email,

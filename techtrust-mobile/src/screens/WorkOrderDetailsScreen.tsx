@@ -155,7 +155,7 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
     
     setProcessingAction(true);
     try {
-      await api.post(`/work-orders/${workOrder?.id}/dispute`, { reason: disputeReason });
+      await api.post(`/work-orders/${workOrder?.id}/report-issue`, { reason: disputeReason });
       
       setShowDisputeModal(false);
       setDisputeReason('');

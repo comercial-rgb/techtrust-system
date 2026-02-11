@@ -72,7 +72,7 @@ export default function OrcamentosPage() {
   async function loadQuotes() {
     setLoading(true)
     try {
-      const response = await api.get('/provider/my-quotes')
+      const response = await api.get('/providers/my-quotes')
       const data = response.data.data
       const quotesData = (data.quotes || []).map((q: any) => ({
         id: q.id,

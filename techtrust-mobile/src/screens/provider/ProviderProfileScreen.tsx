@@ -84,7 +84,7 @@ export default function ProviderProfileScreen({ navigation }: any) {
 
   const loadStats = async () => {
     try {
-      const response = await api.get('/providers/me/stats');
+      const response = await api.get('/providers/dashboard-stats');
       const data = response.data.data || response.data;
       setStats({
         totalServices: data.totalServices || 0,

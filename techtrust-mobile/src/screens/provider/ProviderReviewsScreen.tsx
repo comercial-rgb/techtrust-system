@@ -105,7 +105,7 @@ export default function ProviderReviewsScreen({ navigation }: any) {
 
     setSubmittingReply(true);
     try {
-      await api.post(`/reviews/${selectedReview?.id}/reply`, { reply: replyText });
+      await api.post(`/reviews/${selectedReview?.id}/response`, { providerResponse: replyText });
       
       // Update the review with the reply
       setReviews(prev => prev.map(r => 

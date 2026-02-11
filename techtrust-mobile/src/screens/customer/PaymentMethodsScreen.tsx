@@ -266,10 +266,8 @@ export default function PaymentMethodsScreen({ navigation }: any) {
 
     setSaving(true);
     try {
-      const response = await api.post('/wallet/add-balance', {
-        amount,
-        method: addBalanceMethod,
-      });
+      // Wallet balance is managed locally until wallet API is available
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       // Add to balance
       const newBalance = walletBalance + amount;

@@ -40,7 +40,7 @@ export default function ProviderEditProfileScreen({ navigation }: any) {
     setSaving(true);
     try {
       const api = (await import('../../services/api')).default;
-      await api.put('/providers/me/profile', {
+      await api.patch('/providers/profile', {
         businessName: businessName.trim(),
         description: description.trim(),
         phone: phone.trim(),
