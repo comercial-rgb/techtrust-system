@@ -8,15 +8,37 @@ import { StatusBar } from "expo-status-bar";
 import { NavigationContainer } from "@react-navigation/native";
 import { Provider as PaperProvider } from "react-native-paper";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { StripeProvider } from "@stripe/stripe-react-native";
 import * as Updates from "expo-updates";
 import { AuthProvider } from "./src/contexts/AuthContext";
 import { NotificationsProvider } from "./src/contexts/NotificationsContext";
 import { I18nProvider } from "./src/i18n";
 import RootNavigator from "./src/navigation/RootNavigator";
 import SplashScreen from "./src/components/SplashScreen";
+import { API_URL } from "./src/config/api";
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
+  const [stripePublishableKey, setStripePublishableKey] = useState<string | null>(null);
+
+  // Fetch Stripe publishable key from backend
+  useEffect(() => {
+    async function fetchStripeConfig() {
+      try {
+        const response = await fetch(
+          "https://techtrust-api.onrender.com/api/v1/config/stripe"
+        );
+        const data = await response.json();
+        if (data.success && data.data?.publishableKey) {
+          setStripePublishableKey(data.data.publishableKey);
+          console.log("💳 [Stripe] Publishable key loaded");
+        }
+      } catch (e) {
+        console.warn("💳 [Stripe] Failed to fetch config:", e);
+      }
+    }
+    fetchStripeConfig();
+  }, []);
 
   // 🔄 Check for updates on app start AND periodically
   useEffect(() => {
@@ -78,18 +100,23 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <I18nProvider>
-        <PaperProvider>
-          <AuthProvider>
-            <NotificationsProvider>
-              <NavigationContainer>
-                <StatusBar style="auto" />
-                <RootNavigator />
-              </NavigationContainer>
-            </NotificationsProvider>
-          </AuthProvider>
-        </PaperProvider>
-      </I18nProvider>
+      <StripeProvider
+        publishableKey={stripePublishableKey || "pk_test_placeholder"}
+        merchantIdentifier="merchant.com.techtrustautosolutions"
+      >
+        <I18nProvider>
+          <PaperProvider>
+            <AuthProvider>
+              <NotificationsProvider>
+                <NavigationContainer>
+                  <StatusBar style="auto" />
+                  <RootNavigator />
+                </NavigationContainer>
+              </NotificationsProvider>
+            </AuthProvider>
+          </PaperProvider>
+        </I18nProvider>
+      </StripeProvider>
     </SafeAreaProvider>
   );
 }

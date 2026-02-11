@@ -211,6 +211,19 @@ app.get("/health", (_req, res) => {
 });
 
 // ============================================
+// PUBLIC CONFIG (Stripe publishable key, etc.)
+// ============================================
+app.get(`/api/${API_VERSION}/config/stripe`, (_req, res) => {
+  res.json({
+    success: true,
+    data: {
+      publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || '',
+      merchantIdentifier: 'merchant.com.techtrustautosolutions',
+    },
+  });
+});
+
+// ============================================
 // API ROUTES
 // ============================================
 app.use(`/api/${API_VERSION}/auth`, authRoutes);

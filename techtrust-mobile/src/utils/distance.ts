@@ -1,12 +1,19 @@
 /**
  * Distance Calculation Utilities
- * Haversine formula for calculating distances between GPS coordinates
+ * OSRM road distance (primary) + Haversine with correction factor (fallback)
+ * Calculates REAL driving distance via road network
  */
 
 export interface Location {
   latitude: number;
   longitude: number;
 }
+
+/**
+ * Correction factor applied to Haversine straight-line distance
+ * to approximate road distance when OSRM is unavailable.
+ */
+const HAVERSINE_ROAD_CORRECTION_FACTOR = 1.4;
 
 /**
  * Convert degrees to radians
@@ -16,12 +23,30 @@ function toRadians(degrees: number): number {
 }
 
 /**
- * Calculate distance between two GPS coordinates using Haversine formula
- * @param lat1 Latitude of point 1
- * @param lon1 Longitude of point 1
- * @param lat2 Latitude of point 2
- * @param lon2 Longitude of point 2
- * @returns Distance in kilometers
+ * Calculate straight-line distance using Haversine formula (internal)
+ */
+function calculateHaversineDistance(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number {
+  const R = 6371;
+  const dLat = toRadians(lat2 - lat1);
+  const dLon = toRadians(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRadians(lat1)) *
+      Math.cos(toRadians(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+/**
+ * Calculate distance with road correction factor (sync fallback)
+ * Applies 1.4x correction to Haversine to approximate road distance
  */
 export function calculateDistance(
   lat1: number,
@@ -29,22 +54,47 @@ export function calculateDistance(
   lat2: number,
   lon2: number
 ): number {
-  const R = 6371; // Earth's radius in kilometers
-  
-  const dLat = toRadians(lat2 - lat1);
-  const dLon = toRadians(lon2 - lon1);
-  
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRadians(lat1)) *
-      Math.cos(toRadians(lat2)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const distance = R * c;
-  
-  return distance;
+  return calculateHaversineDistance(lat1, lon1, lat2, lon2) * HAVERSINE_ROAD_CORRECTION_FACTOR;
+}
+
+/**
+ * Calculate REAL driving distance via OSRM (async)
+ * Falls back to Haversine * 1.4 if OSRM is unavailable.
+ */
+export async function calculateRoadDistance(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): Promise<{ distanceKm: number; durationMinutes: number; isRoadDistance: boolean }> {
+  try {
+    const url = `https://router.project-osrm.org/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=false`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
+    
+    if (!response.ok) throw new Error(`OSRM HTTP ${response.status}`);
+    
+    const data = await response.json();
+    if (data.code === 'Ok' && data.routes?.length > 0) {
+      const route = data.routes[0];
+      return {
+        distanceKm: route.distance / 1000,
+        durationMinutes: Math.round(route.duration / 60),
+        isRoadDistance: true,
+      };
+    }
+    throw new Error(`OSRM: ${data.code}`);
+  } catch {
+    const corrected = calculateHaversineDistance(lat1, lon1, lat2, lon2) * HAVERSINE_ROAD_CORRECTION_FACTOR;
+    return {
+      distanceKm: corrected,
+      durationMinutes: Math.round((corrected / 30) * 60),
+      isRoadDistance: false,
+    };
+  }
 }
 
 /**

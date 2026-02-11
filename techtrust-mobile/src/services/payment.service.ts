@@ -161,6 +161,7 @@ export async function getPaymentHistory(params?: {
 export interface PaymentMethod {
   id: string;
   type: 'credit' | 'debit' | 'pix';
+  stripePaymentMethodId: string | null;
   cardBrand: string | null;
   cardLast4: string | null;
   cardExpMonth: number | null;

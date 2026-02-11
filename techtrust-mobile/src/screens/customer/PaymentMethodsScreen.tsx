@@ -19,6 +19,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { CardField, useConfirmSetupIntent, CardFieldInput } from "@stripe/stripe-react-native";
 import { useI18n } from "../../i18n";
 import { useRoute, CommonActions } from "@react-navigation/native";
 import api from "../../services/api";
@@ -57,6 +58,7 @@ export default function PaymentMethodsScreen({ navigation }: any) {
   const fromDashboard = route.params?.fromDashboard;
   const fromCreateRequest = route.params?.fromCreateRequest;
   const addCardMode = route.params?.addCardMode;
+  const { confirmSetupIntent } = useConfirmSetupIntent();
 
   const [loading, setLoading] = useState(true);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
@@ -71,6 +73,9 @@ export default function PaymentMethodsScreen({ navigation }: any) {
   const [addBalanceMethod, setAddBalanceMethod] = useState<
     "card" | "pix" | "transfer"
   >("card");
+
+  // Stripe CardField state
+  const [cardComplete, setCardComplete] = useState(false);
 
   // Card validation using Luhn algorithm
   const validateCardNumber = (cardNumber: string): boolean => {
@@ -336,59 +341,8 @@ export default function PaymentMethodsScreen({ navigation }: any) {
   };
 
   const handleSave = async () => {
-    if (formData.type !== "pix") {
-      if (
-        !formData.cardNumber ||
-        !formData.holderName ||
-        !formData.expiryDate ||
-        !formData.cvv
-      ) {
-        Alert.alert(
-          t.common?.error || "Error",
-          t.common?.fillRequiredFields || "Please fill in all required fields.",
-        );
-        return;
-      }
-
-      // Validate card number
-      if (!validateCardNumber(formData.cardNumber)) {
-        Alert.alert(
-          t.common?.error || "Error",
-          t.customer?.invalidCardNumber ||
-            "Invalid card number. Please check and try again.",
-        );
-        return;
-      }
-
-      // Validate expiry date
-      if (!validateExpiryDate(formData.expiryDate)) {
-        Alert.alert(
-          t.common?.error || "Error",
-          t.customer?.invalidExpiryDate ||
-            "Invalid or expired date. Please check the expiry date.",
-        );
-        return;
-      }
-
-      // Validate CVV
-      if (!validateCVV(formData.cvv)) {
-        Alert.alert(
-          t.common?.error || "Error",
-          t.customer?.invalidCVV || "CVV must be 3 or 4 digits.",
-        );
-        return;
-      }
-
-      // Validate cardholder name
-      if (formData.holderName.trim().length < 3) {
-        Alert.alert(
-          t.common?.error || "Error",
-          t.customer?.invalidHolderName ||
-            "Please enter a valid cardholder name.",
-        );
-        return;
-      }
-    } else {
+    if (formData.type === "pix") {
+      // PIX flow remains the same (no Stripe needed)
       if (!formData.pixKey) {
         Alert.alert(
           t.common?.error || "Error",
@@ -396,97 +350,105 @@ export default function PaymentMethodsScreen({ navigation }: any) {
         );
         return;
       }
+      setSaving(true);
+      try {
+        const response = await api.post("/payment-methods", {
+          type: "pix",
+          pixKey: formData.pixKey,
+        });
+        const savedMethod = response.data?.data;
+        if (savedMethod) {
+          const newMethod: PaymentMethod = {
+            id: savedMethod.id,
+            type: "pix",
+            pixKey: savedMethod.pixKey,
+            isDefault: savedMethod.isDefault,
+          };
+          const updatedMethods = [...paymentMethods, newMethod];
+          setPaymentMethods(updatedMethods);
+          await AsyncStorage.setItem(PAYMENT_METHODS_KEY, JSON.stringify(updatedMethods));
+        }
+        setShowModal(false);
+        Alert.alert(t.common?.success || "Success", "PIX key added successfully.");
+      } catch (err: any) {
+        Alert.alert(t.common?.error || "Error", err.response?.data?.message || "Failed to add PIX key.");
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
+    // ============================================
+    // STRIPE CARD FLOW (PCI Compliant)
+    // ============================================
+    if (!cardComplete) {
+      Alert.alert(
+        t.common?.error || "Error",
+        "Please fill in all card details.",
+      );
+      return;
     }
 
     setSaving(true);
     try {
-      // Parse expiry date for API
-      const [expMonth, expYear] =
-        formData.type !== "pix" && formData.expiryDate
-          ? formData.expiryDate.split("/").map(Number)
-          : [0, 0];
+      // Step 1: Get SetupIntent from backend
+      const setupResponse = await api.post("/payments/setup-intent");
+      const { clientSecret } = setupResponse.data?.data;
 
-      // Save to API for cross-device sync
-      try {
-        const apiPayload =
-          formData.type === "pix"
-            ? { type: "pix", pixKey: formData.pixKey }
-            : {
-                type: formData.type,
-                cardBrand: formData.cardNumber.startsWith("4")
-                  ? "Visa"
-                  : "Mastercard",
-                cardLast4: formData.cardNumber.replace(/\s/g, "").slice(-4),
-                cardExpMonth: expMonth,
-                cardExpYear: expYear > 100 ? expYear : 2000 + expYear,
-                holderName: formData.holderName.toUpperCase(),
-              };
+      if (!clientSecret) {
+        throw new Error("Failed to create SetupIntent");
+      }
 
-        const response = await api.post("/payment-methods", apiPayload);
-        const savedMethod = response.data?.data;
+      // Step 2: Confirm SetupIntent with Stripe SDK (handles 3D Secure, etc.)
+      const { setupIntent, error } = await confirmSetupIntent(clientSecret, {
+        paymentMethodType: "Card",
+      });
 
-        if (savedMethod) {
-          const newMethod: PaymentMethod = {
-            id: savedMethod.id,
-            type: savedMethod.type || formData.type,
-            brand: savedMethod.cardBrand,
-            cardBrand: savedMethod.cardBrand,
-            lastFour: savedMethod.cardLast4,
-            cardLast4: savedMethod.cardLast4,
-            holderName: savedMethod.holderName,
-            expiryDate:
-              savedMethod.cardExpMonth && savedMethod.cardExpYear
-                ? `${String(savedMethod.cardExpMonth).padStart(2, "0")}/${String(savedMethod.cardExpYear).slice(-2)}`
-                : formData.expiryDate,
-            cardExpMonth: savedMethod.cardExpMonth,
-            cardExpYear: savedMethod.cardExpYear,
-            pixKey: savedMethod.pixKey,
-            isDefault: savedMethod.isDefault,
-          };
+      if (error) {
+        throw new Error(error.message || "Card verification failed");
+      }
 
-          const updatedMethods = [...paymentMethods, newMethod];
-          setPaymentMethods(updatedMethods);
-          // Cache locally
-          await AsyncStorage.setItem(
-            PAYMENT_METHODS_KEY,
-            JSON.stringify(updatedMethods),
-          );
-        }
-      } catch (apiError) {
-        console.log("API save failed, saving locally:", apiError);
-        // Fallback: save locally only
-        const newMethod: PaymentMethod =
-          formData.type === "pix"
-            ? {
-                id: Date.now().toString(),
-                type: "pix",
-                pixKey: formData.pixKey,
-                isDefault: paymentMethods.length === 0,
-              }
-            : {
-                id: Date.now().toString(),
-                type: formData.type,
-                brand: formData.cardNumber.startsWith("4")
-                  ? "Visa"
-                  : "Mastercard",
-                lastFour: formData.cardNumber.replace(/\s/g, "").slice(-4),
-                holderName: formData.holderName.toUpperCase(),
-                expiryDate: formData.expiryDate,
-                isDefault: paymentMethods.length === 0,
-              };
+      if (!setupIntent?.paymentMethodId) {
+        throw new Error("No payment method returned from Stripe");
+      }
+
+      // Step 3: Save to our backend (linked to Stripe paymentMethodId)
+      const saveResponse = await api.post("/payment-methods/stripe", {
+        stripePaymentMethodId: setupIntent.paymentMethodId,
+      });
+
+      const savedMethod = saveResponse.data?.data;
+      if (savedMethod) {
+        const newMethod: PaymentMethod = {
+          id: savedMethod.id,
+          type: savedMethod.type || "credit",
+          brand: savedMethod.cardBrand,
+          cardBrand: savedMethod.cardBrand,
+          lastFour: savedMethod.cardLast4,
+          cardLast4: savedMethod.cardLast4,
+          holderName: savedMethod.holderName,
+          expiryDate:
+            savedMethod.cardExpMonth && savedMethod.cardExpYear
+              ? `${String(savedMethod.cardExpMonth).padStart(2, "0")}/${String(savedMethod.cardExpYear).slice(-2)}`
+              : undefined,
+          cardExpMonth: savedMethod.cardExpMonth,
+          cardExpYear: savedMethod.cardExpYear,
+          isDefault: savedMethod.isDefault,
+        };
+
         const updatedMethods = [...paymentMethods, newMethod];
         setPaymentMethods(updatedMethods);
-        await AsyncStorage.setItem(
-          PAYMENT_METHODS_KEY,
-          JSON.stringify(updatedMethods),
-        );
+        await AsyncStorage.setItem(PAYMENT_METHODS_KEY, JSON.stringify(updatedMethods));
       }
 
       setShowModal(false);
       Alert.alert(
         t.common?.success || "Success",
-        t.customer?.paymentMethodAdded || "Payment method added successfully.",
+        t.customer?.paymentMethodAdded || "Card added successfully!",
       );
+    } catch (err: any) {
+      const msg = err.response?.data?.message || err.message || "Failed to add card";
+      Alert.alert(t.common?.error || "Error", msg);
     } finally {
       setSaving(false);
     }
@@ -935,69 +897,36 @@ export default function PaymentMethodsScreen({ navigation }: any) {
 
               {formData.type !== "pix" ? (
                 <>
-                  <Text style={styles.inputLabel}>Card Number *</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="1234 5678 9012 3456"
-                    value={formData.cardNumber}
-                    onChangeText={(text) =>
-                      setFormData({
-                        ...formData,
-                        cardNumber: formatCardNumber(text),
-                      })
-                    }
-                    keyboardType="numeric"
-                    maxLength={19}
+                  <Text style={styles.inputLabel}>Card Details *</Text>
+                  <CardField
+                    postalCodeEnabled={false}
+                    placeholders={{
+                      number: "4242 4242 4242 4242",
+                    }}
+                    cardStyle={{
+                      backgroundColor: "#f9fafb",
+                      textColor: "#111827",
+                      borderWidth: 1,
+                      borderColor: "#d1d5db",
+                      borderRadius: 8,
+                      fontSize: 16,
+                      placeholderColor: "#9ca3af",
+                    }}
+                    style={{
+                      width: "100%",
+                      height: 50,
+                      marginBottom: 16,
+                    }}
+                    onCardChange={(cardDetails: CardFieldInput.Details) => {
+                      setCardComplete(cardDetails.complete);
+                    }}
                   />
-
-                  <Text style={styles.inputLabel}>Cardholder Name *</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="JOHN DOE"
-                    value={formData.holderName}
-                    onChangeText={(text) =>
-                      setFormData({
-                        ...formData,
-                        holderName: text.toUpperCase(),
-                      })
-                    }
-                    autoCapitalize="characters"
-                  />
-
-                  <View style={styles.inputRow}>
-                    <View style={styles.inputHalf}>
-                      <Text style={styles.inputLabel}>Expiry Date *</Text>
-                      <TextInput
-                        style={styles.input}
-                        placeholder="MM/YY"
-                        value={formData.expiryDate}
-                        onChangeText={(text) =>
-                          setFormData({
-                            ...formData,
-                            expiryDate: formatExpiryDate(text),
-                          })
-                        }
-                        keyboardType="numeric"
-                        maxLength={5}
-                      />
-                    </View>
-                    <View style={styles.inputHalf}>
-                      <Text style={styles.inputLabel}>CVV *</Text>
-                      <TextInput
-                        style={styles.input}
-                        placeholder="123"
-                        value={formData.cvv}
-                        onChangeText={(text) =>
-                          setFormData({
-                            ...formData,
-                            cvv: text.replace(/\D/g, ""),
-                          })
-                        }
-                        keyboardType="numeric"
-                        maxLength={4}
-                        secureTextEntry
-                      />
-                    </View>
+                  <View style={styles.securityNote}>
+                    <Ionicons name="shield-checkmark" size={16} color="#22c55e" />
+                    <Text style={styles.securityNoteText}>
+                      Card data goes directly to Stripe. We never see or store
+                      your full card number.
+                    </Text>
                   </View>
                 </>
               ) : (
@@ -1013,14 +942,6 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                   />
                 </>
               )}
-
-              <View style={styles.securityNote}>
-                <Ionicons name="lock-closed" size={16} color="#6b7280" />
-                <Text style={styles.securityNoteText}>
-                  Your card information is encrypted using industry-standard
-                  security
-                </Text>
-              </View>
 
               <TouchableOpacity
                 style={[styles.saveButton, saving && styles.saveButtonDisabled]}

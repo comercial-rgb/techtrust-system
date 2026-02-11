@@ -1,6 +1,7 @@
 /**
  * Distance Calculation Utilities for Backend
- * Haversine formula for calculating distances between GPS coordinates
+ * OSRM road distance (primary) + Haversine fallback
+ * Calculates REAL driving distance via road network
  */
 
 export interface Location {
@@ -14,7 +15,15 @@ export interface DistanceCalculationResult {
   travelFee: number;
   estimatedTimeMinutes: number;
   withinRadius: boolean;
+  isRoadDistance: boolean; // true = OSRM road, false = Haversine estimate
 }
+
+/**
+ * Correction factor applied to Haversine straight-line distance
+ * to approximate road distance when OSRM is unavailable.
+ * Urban areas typically have 1.3-1.5x straight-line distance.
+ */
+const HAVERSINE_ROAD_CORRECTION_FACTOR = 1.4;
 
 /**
  * Convert degrees to radians
@@ -24,14 +33,10 @@ function toRadians(degrees: number): number {
 }
 
 /**
- * Calculate distance between two GPS coordinates using Haversine formula
- * @param lat1 Latitude of point 1
- * @param lon1 Longitude of point 1
- * @param lat2 Latitude of point 2
- * @param lon2 Longitude of point 2
- * @returns Distance in kilometers
+ * Calculate straight-line distance using Haversine formula (fallback)
+ * NOTE: This does NOT consider roads. Use calculateRoadDistance() for accuracy.
  */
-export function calculateDistance(
+export function calculateHaversineDistance(
   lat1: number,
   lon1: number,
   lat2: number,
@@ -56,16 +61,95 @@ export function calculateDistance(
 }
 
 /**
- * Calculate distance between two locations
- * @param from Starting location
- * @param to Destination location
- * @returns Distance in kilometers
+ * Backward-compatible synchronous distance (Haversine with correction factor)
+ * For cases where async isn't possible
+ */
+export function calculateDistance(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number {
+  return calculateHaversineDistance(lat1, lon1, lat2, lon2) * HAVERSINE_ROAD_CORRECTION_FACTOR;
+}
+
+/**
+ * Calculate REAL driving distance via OSRM (Open Source Routing Machine)
+ * Uses the public OSRM demo server. Falls back to Haversine * correction factor.
+ * 
+ * @returns { distanceKm, durationMinutes, isRoadDistance }
+ */
+export async function calculateRoadDistance(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): Promise<{ distanceKm: number; durationMinutes: number; isRoadDistance: boolean }> {
+  try {
+    // OSRM expects lon,lat order (opposite of lat,lon)
+    const url = `https://router.project-osrm.org/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=false`;
+    
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000); // 5s timeout
+    
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
+    
+    if (!response.ok) {
+      throw new Error(`OSRM HTTP ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+      const route = data.routes[0];
+      return {
+        distanceKm: route.distance / 1000, // meters → km
+        durationMinutes: Math.round(route.duration / 60), // seconds → minutes
+        isRoadDistance: true,
+      };
+    }
+    
+    throw new Error(`OSRM no route: ${data.code}`);
+  } catch (error: any) {
+    // Fallback to Haversine with correction factor
+    const haversine = calculateHaversineDistance(lat1, lon1, lat2, lon2);
+    const corrected = haversine * HAVERSINE_ROAD_CORRECTION_FACTOR;
+    const estimatedMinutes = Math.round((corrected / 30) * 60); // ~30km/h urban
+    
+    console.warn(`[Distance] OSRM unavailable (${error.message}), using Haversine * ${HAVERSINE_ROAD_CORRECTION_FACTOR}`);
+    
+    return {
+      distanceKm: corrected,
+      durationMinutes: estimatedMinutes,
+      isRoadDistance: false,
+    };
+  }
+}
+
+/**
+ * Calculate distance between two locations (sync, uses correction factor)
  */
 export function getDistanceBetweenLocations(
   from: Location,
   to: Location
 ): number {
   return calculateDistance(
+    from.latitude,
+    from.longitude,
+    to.latitude,
+    to.longitude
+  );
+}
+
+/**
+ * Calculate ROAD distance between two locations (async, uses OSRM)
+ */
+export async function getRoadDistanceBetweenLocations(
+  from: Location,
+  to: Location
+): Promise<{ distanceKm: number; durationMinutes: number; isRoadDistance: boolean }> {
+  return calculateRoadDistance(
     from.latitude,
     from.longitude,
     to.latitude,
@@ -111,7 +195,8 @@ export function isWithinServiceRadius(
 
 /**
  * Estimate travel time based on distance
- * Assumes average speed of 30 km/h in urban areas
+ * NOTE: When using OSRM (calculateRoadDistance), the duration is already included.
+ * This is only used for Haversine fallback estimates.
  * @param distanceKm Distance in kilometers
  * @param averageSpeedKmh Average speed (default: 30 km/h)
  * @returns Estimated time in minutes
@@ -140,11 +225,7 @@ export function milesToKm(miles: number): number {
 }
 
 /**
- * Calculate complete distance information for service matching
- * @param providerLocation Provider's base location
- * @param serviceLocation Service request location
- * @param providerConfig Provider's service area configuration
- * @returns Complete distance calculation result
+ * Calculate complete distance information (sync, Haversine with correction)
  */
 export function calculateServiceDistance(
   providerLocation: Location,
@@ -178,6 +259,43 @@ export function calculateServiceDistance(
     travelFee,
     estimatedTimeMinutes,
     withinRadius,
+    isRoadDistance: false,
+  };
+}
+
+/**
+ * Calculate complete distance information using REAL road distance (async, OSRM)
+ * Falls back to corrected Haversine if OSRM is unavailable.
+ */
+export async function calculateServiceRoadDistance(
+  providerLocation: Location,
+  serviceLocation: Location,
+  providerConfig: {
+    serviceRadiusKm: number;
+    freeKm?: number;
+    feePerKm?: number;
+  }
+): Promise<DistanceCalculationResult> {
+  const roadResult = await getRoadDistanceBetweenLocations(providerLocation, serviceLocation);
+  
+  const distanceKm = roadResult.distanceKm;
+  const distanceMiles = kmToMiles(distanceKm);
+  
+  const travelFee = calculateTravelFee(
+    distanceKm,
+    providerConfig.freeKm || 0,
+    providerConfig.feePerKm || 0
+  );
+  
+  const withinRadius = distanceKm <= providerConfig.serviceRadiusKm;
+  
+  return {
+    distanceKm,
+    distanceMiles,
+    travelFee,
+    estimatedTimeMinutes: roadResult.durationMinutes,
+    withinRadius,
+    isRoadDistance: roadResult.isRoadDistance,
   };
 }
 

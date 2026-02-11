@@ -301,6 +301,49 @@ export async function listPaymentMethods(stripeCustomerId: string): Promise<
 }
 
 /**
+ * Retrieve a single payment method from Stripe by ID
+ */
+export async function retrievePaymentMethod(paymentMethodId: string): Promise<{
+  id: string;
+  type: string;
+  card?: {
+    brand: string;
+    last4: string;
+    expMonth: number;
+    expYear: number;
+  };
+  billingName?: string;
+  billingZip?: string;
+}> {
+  if (MOCK_STRIPE) {
+    return {
+      id: paymentMethodId,
+      type: 'card',
+      card: { brand: 'visa', last4: '4242', expMonth: 12, expYear: 2030 },
+      billingName: 'Mock User',
+    };
+  }
+
+  const s = getStripe();
+  const pm = await s.paymentMethods.retrieve(paymentMethodId);
+
+  return {
+    id: pm.id,
+    type: pm.type,
+    card: pm.card
+      ? {
+          brand: pm.card.brand,
+          last4: pm.card.last4,
+          expMonth: pm.card.exp_month,
+          expYear: pm.card.exp_year,
+        }
+      : undefined,
+    billingName: pm.billing_details?.name || undefined,
+    billingZip: pm.billing_details?.address?.postal_code || undefined,
+  };
+}
+
+/**
  * Detach (remover) payment method do customer
  */
 export async function detachPaymentMethod(paymentMethodId: string): Promise<void> {

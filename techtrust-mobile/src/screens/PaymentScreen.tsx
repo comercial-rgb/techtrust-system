@@ -1,17 +1,19 @@
 /**
  * PaymentScreen - Tela de Pagamento
- * Integrada com o backend Stripe
+ * Integrada com Stripe SDK para cobranças REAIS
  */
 
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useConfirmPayment } from '@stripe/stripe-react-native';
 import { useI18n } from '../i18n';
 import * as paymentService from '../services/payment.service';
 
 export default function PaymentScreen({ navigation, route }: any) {
   const { t } = useI18n();
+  const { confirmPayment: stripeConfirmPayment } = useConfirmPayment();
   const workOrderId = route.params?.workOrderId;
   const orderNumber = route.params?.orderNumber;
   const serviceTitle = route.params?.serviceTitle || 'Service';
@@ -33,11 +35,11 @@ export default function PaymentScreen({ navigation, route }: any) {
     setLoading(true);
     setError(null);
     try {
-      // Carregar métodos de pagamento salvos
+      // Load saved payment methods
       const methods = await paymentService.getPaymentMethods();
       setSavedMethods(methods);
 
-      // Selecionar o default
+      // Select the default
       const defaultMethod = methods.find(m => m.isDefault);
       if (defaultMethod) {
         setSelectedMethodId(defaultMethod.id);
@@ -45,7 +47,7 @@ export default function PaymentScreen({ navigation, route }: any) {
         setSelectedMethodId(methods[0].id);
       }
 
-      // Criar PaymentIntent se tem workOrderId
+      // Create PaymentIntent
       if (workOrderId) {
         const intent = await paymentService.createPaymentIntent(
           workOrderId,
@@ -86,17 +88,52 @@ export default function PaymentScreen({ navigation, route }: any) {
 
     setProcessing(true);
     try {
-      // Confirmar pagamento com o backend (que verifica com Stripe)
+      // Find the selected payment method's Stripe ID
+      const selectedMethod = savedMethods.find(m => m.id === selectedMethodId);
+      const stripePaymentMethodId = selectedMethod?.stripePaymentMethodId;
+
+      if (!stripePaymentMethodId) {
+        // This card was saved before Stripe integration — prompt user to re-add
+        Alert.alert(
+          'Card Update Required',
+          'This card needs to be re-added for secure payments. Please add a new card.',
+          [
+            { text: t.common?.cancel || 'Cancel' },
+            { text: 'Add Card', onPress: () => navigation.navigate('PaymentMethods', { addCardMode: true }) },
+          ]
+        );
+        return;
+      }
+
+      // ============================================
+      // STRIPE CLIENT-SIDE CONFIRMATION (Real Payment)
+      // ============================================
+      // This places a HOLD on the customer's card via capture_method: 'manual'
+      // The actual charge happens when provider calls "capture" after service
+      const { paymentIntent: confirmedIntent, error: stripeError } = await stripeConfirmPayment(
+        paymentIntent.clientSecret,
+        {
+          paymentMethodType: 'Card',
+          paymentMethodData: {
+            paymentMethodId: stripePaymentMethodId,
+          },
+        }
+      );
+
+      if (stripeError) {
+        throw new Error(stripeError.message || 'Payment authorization failed');
+      }
+
+      // Notify backend of successful pre-authorization
       const result = await paymentService.confirmPayment(paymentIntent.paymentId);
 
       if (result.success) {
         Alert.alert(
-          t.payment?.paymentConfirmed || 'Payment Confirmed!',
-          t.payment?.paymentSuccess || 'Your payment has been processed successfully.',
+          t.payment?.paymentConfirmed || 'Payment Authorized!',
+          'A hold has been placed on your card. You will only be charged after the service is completed.',
           [{ text: t.common?.ok || 'OK', onPress: () => navigation.navigate('Rating', { workOrderId }) }]
         );
       } else {
-        // Stripe status não é 'succeeded' - pagamento ainda pendente
         Alert.alert(
           t.payment?.paymentPending || 'Payment Pending',
           result.message || 'Payment is still being processed. Please wait.',

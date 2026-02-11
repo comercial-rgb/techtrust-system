@@ -9,7 +9,7 @@ import { Request, Response } from 'express';
 import { prisma } from '../config/database';
 import { AppError } from '../middleware/error-handler';
 import { logger } from '../config/logger';
-import { calculateDistance } from '../utils/distance';
+import { calculateDistance, calculateRoadDistance } from '../utils/distance';
 
 /**
  * POST /api/v1/quotes
@@ -94,12 +94,15 @@ export const createQuote = async (req: Request, res: Response) => {
     serviceRequest.serviceLatitude &&
     serviceRequest.serviceLongitude
   ) {
-    distanceKm = calculateDistance(
+    // Use OSRM road distance for accurate pricing (falls back to Haversine * 1.4)
+    const roadResult = await calculateRoadDistance(
       providerProfile.baseLatitude.toNumber(),
       providerProfile.baseLongitude.toNumber(),
       serviceRequest.serviceLatitude.toNumber(),
       serviceRequest.serviceLongitude.toNumber()
     );
+
+    distanceKm = roadResult.distanceKm;
 
     // Calcular taxa de deslocamento
     const freeKm = Number(providerProfile.freeKm);
@@ -109,7 +112,7 @@ export const createQuote = async (req: Request, res: Response) => {
       travelFee = (distanceKm - freeKm) * extraFeePerKm;
     }
 
-    logger.info(`Distância calculada: ${distanceKm.toFixed(2)} km, Taxa: $ ${travelFee.toFixed(2)}`);
+    logger.info(`Distância calculada: ${distanceKm.toFixed(2)} km (${roadResult.isRoadDistance ? 'OSRM road' : 'Haversine estimate'}), Taxa: $ ${travelFee.toFixed(2)}`);
   }
 
   // Calcular total (incluindo taxa de deslocamento)

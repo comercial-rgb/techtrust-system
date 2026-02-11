@@ -11,6 +11,7 @@ import { authenticate } from "../middleware/auth";
 import { asyncHandler } from "../utils/async-handler";
 import { prisma } from "../config/database";
 import { AppError } from "../middleware/error-handler";
+import * as stripeService from "../services/stripe.service";
 
 const router = Router();
 
@@ -31,6 +32,7 @@ router.get(
       select: {
         id: true,
         type: true,
+        stripePaymentMethodId: true,
         cardBrand: true,
         cardLast4: true,
         cardExpMonth: true,
@@ -114,6 +116,76 @@ router.post(
         cardExpYear: true,
         holderName: true,
         pixKey: true,
+        isDefault: true,
+        createdAt: true,
+      },
+    });
+
+    return res.status(201).json({
+      success: true,
+      data: method,
+    });
+  }),
+);
+
+/**
+ * POST /api/v1/payment-methods/stripe
+ * Save a card from Stripe SetupIntent confirmation (PCI compliant)
+ * Called by mobile after user confirms SetupIntent with Stripe SDK
+ */
+router.post(
+  "/stripe",
+  asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user!.id;
+    const { stripePaymentMethodId } = req.body;
+
+    if (!stripePaymentMethodId) {
+      throw new AppError(
+        "stripePaymentMethodId is required",
+        400,
+        "MISSING_STRIPE_PM_ID",
+      );
+    }
+
+    // Check if this Stripe PM is already saved
+    const existing = await prisma.paymentMethod.findUnique({
+      where: { stripePaymentMethodId },
+    });
+    if (existing) {
+      return res.json({ success: true, data: existing, message: "Already saved" });
+    }
+
+    // Retrieve card details from Stripe
+    const stripeMethod = await stripeService.retrievePaymentMethod(stripePaymentMethodId);
+
+    // Count existing methods (for isDefault)
+    const existingCount = await prisma.paymentMethod.count({
+      where: { userId, isActive: true },
+    });
+
+    const method = await prisma.paymentMethod.create({
+      data: {
+        userId,
+        type: stripeMethod.type === "card" ? "credit" : stripeMethod.type,
+        stripePaymentMethodId,
+        cardBrand: stripeMethod.card?.brand || null,
+        cardLast4: stripeMethod.card?.last4 || null,
+        cardExpMonth: stripeMethod.card?.expMonth || null,
+        cardExpYear: stripeMethod.card?.expYear || null,
+        holderName: stripeMethod.billingName || null,
+        billingName: stripeMethod.billingName || null,
+        billingZip: stripeMethod.billingZip || null,
+        isDefault: existingCount === 0,
+      },
+      select: {
+        id: true,
+        type: true,
+        stripePaymentMethodId: true,
+        cardBrand: true,
+        cardLast4: true,
+        cardExpMonth: true,
+        cardExpYear: true,
+        holderName: true,
         isDefault: true,
         createdAt: true,
       },
