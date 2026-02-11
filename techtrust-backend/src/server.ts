@@ -39,6 +39,10 @@ import geocodingRoutes from "./routes/geocoding.routes";
 import databaseRoutes from "./routes/database.routes";
 import uploadRoutes from "./routes/upload.routes";
 import paymentMethodsRoutes from "./routes/payment-methods.routes";
+import webhookRoutes from "./routes/webhook.routes";
+import connectRoutes from "./routes/connect.routes";
+import serviceFlowRoutes from "./routes/service-flow.routes";
+import supportRoutes from "./routes/support.routes";
 
 // Carregar variáveis de ambiente
 dotenv.config();
@@ -80,7 +84,7 @@ io.on("connection", (socket) => {
     logger.debug(`Usuário ${userId} entrou na sala`);
   });
 
-  // Enviar mensagem
+  // Enviar mensagem (persists to DB)
   socket.on(
     "send_message",
     async (data: {
@@ -88,8 +92,30 @@ io.on("connection", (socket) => {
       to: string;
       message: string;
       workOrderId?: string;
+      serviceRequestId?: string;
     }) => {
-      io.to(`user:${data.to}`).emit("receive_message", data);
+      try {
+        const { prisma: db } = await import("./config/database");
+        const sorted = [data.from, data.to].sort();
+        const conversationId = data.serviceRequestId
+          ? `${sorted[0]}_${sorted[1]}_${data.serviceRequestId}`
+          : `${sorted[0]}_${sorted[1]}`;
+
+        const saved = await db.chatMessage.create({
+          data: {
+            fromUserId: data.from,
+            toUserId: data.to,
+            message: data.message,
+            workOrderId: data.workOrderId || null,
+            serviceRequestId: data.serviceRequestId || null,
+            conversationId,
+          },
+        });
+        io.to(`user:${data.to}`).emit("receive_message", { ...saved, conversationId });
+      } catch (err) {
+        logger.error("Socket send_message error:", err);
+        io.to(`user:${data.to}`).emit("receive_message", data);
+      }
     },
   );
 
@@ -132,7 +158,16 @@ app.use(
   }),
 );
 
-// Body parser
+// ============================================
+// STRIPE WEBHOOK - Raw body (ANTES do json parser)
+// ============================================
+// O Stripe precisa do raw body para verificar assinatura do webhook
+app.use(
+  `/api/${API_VERSION}/webhooks/stripe`,
+  express.raw({ type: 'application/json' })
+);
+
+// Body parser (para todas as outras rotas)
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -194,6 +229,10 @@ app.use(`/api/${API_VERSION}/geocoding`, geocodingRoutes); // Rotas públicas de
 app.use(`/api/${API_VERSION}/admin/database`, databaseRoutes); // Rotas admin de database
 app.use(`/api/${API_VERSION}/upload`, uploadRoutes); // Rotas de upload de imagens
 app.use(`/api/${API_VERSION}/payment-methods`, paymentMethodsRoutes); // Métodos de pagamento do usuário
+app.use(`/api/${API_VERSION}/connect`, connectRoutes); // Stripe Connect (providers)
+app.use(`/api/${API_VERSION}/webhooks`, webhookRoutes); // Stripe Webhooks
+app.use(`/api/${API_VERSION}/service-flow`, serviceFlowRoutes); // Fluxo completo de pagamento
+app.use(`/api/${API_VERSION}/support`, supportRoutes); // Support tickets
 
 // ============================================
 // ERROR HANDLER (deve ser o último middleware)

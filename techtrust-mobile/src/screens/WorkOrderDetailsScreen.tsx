@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useI18n } from '../i18n';
 import { CANCELLATION_RULES, DISPUTE_RULES } from '../config/businessRules';
+import * as serviceFlowService from '../services/service-flow.service';
 
 export default function WorkOrderDetailsScreen({ navigation, route }: any) {
   const { t } = useI18n();
@@ -54,7 +55,9 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
   const getStatusInfo = (status: string) => {
     switch (status) {
       case 'PENDING_START': return { label: t.workOrder?.awaitingStart || 'Awaiting Start', color: '#f59e0b', bgColor: '#fef3c7' };
+      case 'PAYMENT_HOLD': return { label: t.workOrder?.paymentHold || 'Payment Hold', color: '#8b5cf6', bgColor: '#ede9fe' };
       case 'IN_PROGRESS': return { label: t.workOrder?.inProgress || 'In Progress', color: '#3b82f6', bgColor: '#dbeafe' };
+      case 'AWAITING_APPROVAL': return { label: t.workOrder?.awaitingApproval || 'Awaiting Approval', color: '#8b5cf6', bgColor: '#ede9fe' };
       case 'AWAITING_PAYMENT': return { label: t.workOrder?.awaitingPayment || 'Awaiting Payment', color: '#8b5cf6', bgColor: '#ede9fe' };
       case 'COMPLETED': return { label: t.workOrder?.completed || 'Completed', color: '#10b981', bgColor: '#d1fae5' };
       case 'CANCELLED': return { label: t.workOrder?.cancelled || 'Cancelled', color: '#ef4444', bgColor: '#fee2e2' };
@@ -126,8 +129,7 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
   const handleCancel = async () => {
     setProcessingAction(true);
     try {
-      // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await serviceFlowService.requestCancellation(workOrderId, 'Customer requested cancellation');
       
       setShowCancelModal(false);
       Alert.alert(
@@ -135,8 +137,9 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
         t.businessRules?.cancellation?.cancelledSuccessfully || 'Service cancelled successfully',
         [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
-    } catch (error) {
-      Alert.alert(t.common?.error || 'Error', t.common?.tryAgain || 'Try again');
+    } catch (error: any) {
+      const msg = error.response?.data?.message || t.common?.tryAgain || 'Try again';
+      Alert.alert(t.common?.error || 'Error', msg);
     } finally {
       setProcessingAction(false);
     }
@@ -413,8 +416,8 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
           ))}
         </View>
 
-        {/* Action Button - Confirm Service Completion */}
-        {workOrder?.status === 'AWAITING_PAYMENT' && (
+        {/* Action Button - Navigate to Service Approval */}
+        {(workOrder?.status === 'AWAITING_APPROVAL' || workOrder?.status === 'AWAITING_PAYMENT') && (
           <View style={styles.confirmServiceContainer}>
             <View style={styles.paymentHeldInfo}>
               <Ionicons name="shield-checkmark" size={24} color="#10b981" />
@@ -422,7 +425,7 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
                 <Text style={styles.paymentHeldTitle}>{t.workOrder?.paymentHeld || 'Payment Held'}</Text>
                 <Text style={styles.paymentHeldAmount}>${workOrder?.finalAmount?.toFixed(2)}</Text>
                 <Text style={styles.paymentHeldNote}>
-                  {t.workOrder?.paymentHeldNote || 'This amount is held on your card and will be charged when you confirm service completion.'}
+                  {t.workOrder?.serviceCompletedByProvider || 'The provider has completed the service. Please review and approve.'}
                 </Text>
               </View>
             </View>
@@ -430,29 +433,11 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
             <TouchableOpacity 
               style={styles.confirmServiceBtn} 
               onPress={() => {
-                Alert.alert(
-                  t.workOrder?.confirmServiceTitle || 'Confirm Service Completion',
-                  `${t.workOrder?.confirmServiceMessage || 'By confirming, the payment of'} $${workOrder?.finalAmount?.toFixed(2)} ${t.workOrder?.willBeCharged || 'will be charged to your card. Only confirm if you are satisfied with the service.'}`,
-                  [
-                    { text: t.common?.cancel || 'Cancel', style: 'cancel' },
-                    { 
-                      text: t.workOrder?.confirmAndPay || 'Confirm & Pay', 
-                      onPress: async () => {
-                        // In production: call API to capture payment
-                        await new Promise(resolve => setTimeout(resolve, 1500));
-                        Alert.alert(
-                          t.common?.success || 'Success!',
-                          t.workOrder?.serviceCompletedPaid || 'Service confirmed and payment completed! Thank you.',
-                          [{ text: t.common?.ok || 'OK', onPress: () => navigation.goBack() }]
-                        );
-                      }
-                    },
-                  ]
-                );
+                navigation.navigate('ServiceApproval', { workOrderId: workOrder.id });
               }}
             >
               <Ionicons name="checkmark-circle" size={20} color="#fff" />
-              <Text style={styles.confirmServiceText}>{t.workOrder?.confirmAndPay || 'Confirm & Pay'}</Text>
+              <Text style={styles.confirmServiceText}>{t.workOrder?.reviewAndApprove || 'Review & Approve Service'}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 

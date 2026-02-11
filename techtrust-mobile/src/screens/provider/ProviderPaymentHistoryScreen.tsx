@@ -1,8 +1,8 @@
 /**
- * ProviderPaymentHistoryScreen - Histórico de Pagamentos
+ * ProviderPaymentHistoryScreen - Histórico de Pagamentos (API)
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,133 +10,110 @@ import {
   ScrollView,
   TouchableOpacity,
   FlatList,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useI18n } from '../../i18n';
+import * as paymentService from '../../services/payment.service';
 
 interface Payment {
   id: string;
-  orderId: string;
-  clientName: string;
-  service: string;
-  amount: number;
+  paymentNumber: string;
+  status: string;
+  subtotal: number;
   platformFee: number;
-  netAmount: number;
-  status: 'paid' | 'pending' | 'processing';
-  date: string;
-  paidAt?: string;
+  providerAmount: number;
+  totalAmount: number;
+  createdAt: string;
+  capturedAt: string | null;
+  workOrder: {
+    orderNumber: string;
+    serviceRequest: {
+      title: string;
+      vehicle: { plateNumber: string; make: string; model: string };
+    };
+  };
 }
 
-type FilterType = 'all' | 'paid' | 'pending' | 'processing';
+type FilterType = 'all' | 'CAPTURED' | 'PENDING' | 'REFUNDED';
 
 export default function ProviderPaymentHistoryScreen({ navigation }: any) {
   const { t } = useI18n();
   const [filter, setFilter] = useState<FilterType>('all');
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [balance, setBalance] = useState({ available: 0, pending: 0 });
 
-  const payments: Payment[] = [
-    {
-      id: '1',
-      orderId: 'OS-2024-001',
-      clientName: 'João Silva',
-      service: 'Troca de Óleo + Filtros',
-      amount: 350.00,
-      platformFee: 35.00,
-      netAmount: 315.00,
-      status: 'paid',
-      date: '2024-01-15',
-      paidAt: '2024-01-17',
-    },
-    {
-      id: '2',
-      orderId: 'OS-2024-002',
-      clientName: 'Maria Santos',
-      service: 'Revisão de Freios',
-      amount: 580.00,
-      platformFee: 58.00,
-      netAmount: 522.00,
-      status: 'paid',
-      date: '2024-01-14',
-      paidAt: '2024-01-16',
-    },
-    {
-      id: '3',
-      orderId: 'OS-2024-003',
-      clientName: 'Carlos Oliveira',
-      service: 'Diagnóstico Eletrônico',
-      amount: 150.00,
-      platformFee: 15.00,
-      netAmount: 135.00,
-      status: 'processing',
-      date: '2024-01-16',
-    },
-    {
-      id: '4',
-      orderId: 'OS-2024-004',
-      clientName: 'Ana Pereira',
-      service: 'Alinhamento e Balanceamento',
-      amount: 180.00,
-      platformFee: 18.00,
-      netAmount: 162.00,
-      status: 'pending',
-      date: '2024-01-17',
-    },
-    {
-      id: '5',
-      orderId: 'OS-2024-005',
-      clientName: 'Pedro Costa',
-      service: 'Troca de Pastilhas',
-      amount: 420.00,
-      platformFee: 42.00,
-      netAmount: 378.00,
-      status: 'pending',
-      date: '2024-01-17',
-    },
-  ];
+  const loadData = useCallback(async () => {
+    try {
+      const [historyRes, balanceRes] = await Promise.all([
+        paymentService.getPaymentHistory({ limit: 50 }),
+        paymentService.getProviderBalance(),
+      ]);
+      setPayments(historyRes.data as any);
+      setBalance(balanceRes);
+    } catch (err) {
+      console.error('Error loading payment history:', err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  const onRefresh = () => { setRefreshing(true); loadData(); };
 
   const filteredPayments = payments.filter(p => {
     if (filter === 'all') return true;
     return p.status === filter;
   });
 
-  const totalPaid = payments.filter(p => p.status === 'paid').reduce((sum, p) => sum + p.netAmount, 0);
-  const totalPending = payments.filter(p => p.status === 'pending' || p.status === 'processing').reduce((sum, p) => sum + p.netAmount, 0);
-
-  const getStatusColor = (status: Payment['status']) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
-      case 'paid': return '#10b981';
-      case 'pending': return '#f59e0b';
-      case 'processing': return '#3b82f6';
+      case 'CAPTURED': return '#10b981';
+      case 'PENDING': case 'AUTHORIZED': return '#f59e0b';
+      case 'REFUNDED': return '#3b82f6';
+      case 'FAILED': case 'CANCELLED': return '#ef4444';
+      default: return '#6b7280';
     }
   };
 
-  const getStatusText = (status: Payment['status']) => {
+  const getStatusText = (status: string) => {
     switch (status) {
-      case 'paid': return t.provider?.paid || 'Paid';
-      case 'pending': return t.common?.pending || 'Pending';
-      case 'processing': return t.provider?.processing || 'Processing';
+      case 'CAPTURED': return t.provider?.paid || 'Paid';
+      case 'PENDING': return t.common?.pending || 'Pending';
+      case 'AUTHORIZED': return t.provider?.processing || 'Processing';
+      case 'REFUNDED': return 'Refunded';
+      case 'FAILED': return 'Failed';
+      case 'CANCELLED': return 'Cancelled';
+      default: return status;
     }
   };
 
-  const getStatusIcon = (status: Payment['status']) => {
+  const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'paid': return 'check-circle';
-      case 'pending': return 'clock-outline';
-      case 'processing': return 'sync';
+      case 'CAPTURED': return 'check-circle';
+      case 'PENDING': case 'AUTHORIZED': return 'clock-outline';
+      case 'REFUNDED': return 'undo';
+      default: return 'alert-circle-outline';
     }
   };
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
-    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+    return date.toLocaleDateString('en-US', { day: '2-digit', month: 'short' });
   };
 
   const renderPaymentItem = ({ item }: { item: Payment }) => (
     <TouchableOpacity style={styles.paymentCard}>
       <View style={styles.paymentHeader}>
         <View style={styles.paymentInfo}>
-          <Text style={styles.orderId}>{item.orderId}</Text>
-          <Text style={styles.clientName}>{item.clientName}</Text>
+          <Text style={styles.orderId}>{item.workOrder?.orderNumber || item.paymentNumber}</Text>
+          <Text style={styles.clientName}>{item.workOrder?.serviceRequest?.title || 'Service'}</Text>
         </View>
         <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
           <MaterialCommunityIcons 
@@ -150,39 +127,60 @@ export default function ProviderPaymentHistoryScreen({ navigation }: any) {
         </View>
       </View>
 
-      <Text style={styles.serviceName}>{item.service}</Text>
+      {item.workOrder?.serviceRequest?.vehicle && (
+        <Text style={styles.serviceName}>
+          {item.workOrder.serviceRequest.vehicle.make} {item.workOrder.serviceRequest.vehicle.model} - {item.workOrder.serviceRequest.vehicle.plateNumber}
+        </Text>
+      )}
 
       <View style={styles.paymentDetails}>
         <View style={styles.detailCol}>
-          <Text style={styles.detailLabel}>{t.provider?.totalValue || 'Total Value'}</Text>
-          <Text style={styles.detailValue}>R$ {item.amount.toFixed(2)}</Text>
+          <Text style={styles.detailLabel}>{t.provider?.totalValue || 'Total'}</Text>
+          <Text style={styles.detailValue}>${item.totalAmount.toFixed(2)}</Text>
         </View>
         <View style={styles.detailCol}>
-          <Text style={styles.detailLabel}>{t.provider?.fee || 'Fee'} (10%)</Text>
-          <Text style={[styles.detailValue, { color: '#ef4444' }]}>- R$ {item.platformFee.toFixed(2)}</Text>
+          <Text style={styles.detailLabel}>{t.provider?.fee || 'Fee'}</Text>
+          <Text style={[styles.detailValue, { color: '#ef4444' }]}>-${item.platformFee.toFixed(2)}</Text>
         </View>
         <View style={styles.detailCol}>
-          <Text style={styles.detailLabel}>{t.provider?.netAmount || 'Net'}</Text>
-          <Text style={[styles.detailValue, styles.netValue]}>R$ {item.netAmount.toFixed(2)}</Text>
+          <Text style={styles.detailLabel}>{t.provider?.netAmount || 'You receive'}</Text>
+          <Text style={[styles.detailValue, styles.netValue]}>${item.providerAmount.toFixed(2)}</Text>
         </View>
       </View>
 
       <View style={styles.paymentFooter}>
         <View style={styles.dateInfo}>
           <MaterialCommunityIcons name="calendar" size={14} color="#6b7280" />
-          <Text style={styles.dateText}>{t.provider?.service || 'Service'}: {formatDate(item.date)}</Text>
+          <Text style={styles.dateText}>{formatDate(item.createdAt)}</Text>
         </View>
-        {item.paidAt && (
+        {item.capturedAt && (
           <View style={styles.dateInfo}>
             <MaterialCommunityIcons name="check" size={14} color="#10b981" />
             <Text style={[styles.dateText, { color: '#10b981' }]}>
-              {t.provider?.paid || 'Paid'}: {formatDate(item.paidAt)}
+              {t.provider?.paid || 'Paid'}: {formatDate(item.capturedAt)}
             </Text>
           </View>
         )}
       </View>
     </TouchableOpacity>
   );
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <MaterialCommunityIcons name="arrow-left" size={24} color="#111827" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{t.provider?.paymentHistory || 'Payment History'}</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#1976d2" />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -203,14 +201,14 @@ export default function ProviderPaymentHistoryScreen({ navigation }: any) {
           <MaterialCommunityIcons name="check-circle" size={24} color="#16a34a" />
           <Text style={styles.summaryLabel}>{t.provider?.received || 'Received'}</Text>
           <Text style={[styles.summaryValue, { color: '#16a34a' }]}>
-            R$ {totalPaid.toFixed(2)}
+            ${balance.available.toFixed(2)}
           </Text>
         </View>
         <View style={[styles.summaryCard, { backgroundColor: '#fef3c7' }]}>
           <MaterialCommunityIcons name="clock-outline" size={24} color="#d97706" />
-          <Text style={styles.summaryLabel}>{t.provider?.toReceive || 'To Receive'}</Text>
+          <Text style={styles.summaryLabel}>{t.provider?.toReceive || 'Pending'}</Text>
           <Text style={[styles.summaryValue, { color: '#d97706' }]}>
-            R$ {totalPending.toFixed(2)}
+            ${balance.pending.toFixed(2)}
           </Text>
         </View>
       </View>
@@ -224,9 +222,9 @@ export default function ProviderPaymentHistoryScreen({ navigation }: any) {
       >
         {[
           { key: 'all', label: t.common?.all || 'All', count: payments.length },
-          { key: 'paid', label: t.provider?.paid || 'Paid', count: payments.filter(p => p.status === 'paid').length },
-          { key: 'processing', label: t.provider?.processing || 'Processing', count: payments.filter(p => p.status === 'processing').length },
-          { key: 'pending', label: t.common?.pending || 'Pending', count: payments.filter(p => p.status === 'pending').length },
+          { key: 'CAPTURED', label: t.provider?.paid || 'Paid', count: payments.filter(p => p.status === 'CAPTURED').length },
+          { key: 'PENDING', label: t.common?.pending || 'Pending', count: payments.filter(p => p.status === 'PENDING' || p.status === 'AUTHORIZED').length },
+          { key: 'REFUNDED', label: 'Refunded', count: payments.filter(p => p.status === 'REFUNDED').length },
         ].map(f => (
           <TouchableOpacity
             key={f.key}
@@ -264,6 +262,7 @@ export default function ProviderPaymentHistoryScreen({ navigation }: any) {
         renderItem={renderPaymentItem}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#1976d2']} />}
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <MaterialCommunityIcons name="cash-remove" size={60} color="#d1d5db" />

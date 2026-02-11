@@ -64,13 +64,13 @@ export default function HelpCenterScreen({ navigation }: any) {
     {
       id: '3',
       question: 'How do I pay for a service?',
-      answer: 'After a service is completed, you\'ll receive a notification to make payment. Go to the service details and tap "Pay Now". You can use a saved card or add a new payment method.',
+      answer: 'TechTrust uses a pre-authorization (hold) payment model. When you accept a quote, a temporary hold is placed on your card for the quoted amount plus fees. Your card is NOT charged until you review and approve the completed service. You can add or manage payment methods in Profile > Payment Methods.',
       category: 'payments',
     },
     {
       id: '4',
       question: 'Can I cancel a service request?',
-      answer: 'Yes, you can cancel a service request before accepting a quote. Once you accept a quote, cancellation may be subject to the provider\'s policy. Contact the provider directly for cancellation.',
+      answer: 'Yes. Before accepting a quote, you can cancel at no cost. After accepting a quote: cancellations made more than 24 hours after acceptance incur a 10% fee; within 24 hours, a 25% fee applies. Once service has started, cancellation requires provider validation. Use the "Cancel" button on the service details screen — the fee is calculated automatically.',
       category: 'services',
     },
     {
@@ -82,7 +82,7 @@ export default function HelpCenterScreen({ navigation }: any) {
     {
       id: '6',
       question: 'Is my payment information secure?',
-      answer: 'Yes, we use industry-standard encryption to protect your payment information. We never store your full card number on our servers. All transactions are processed through secure payment providers.',
+      answer: 'Yes. All payment information is processed through PCI-DSS compliant payment processors (Stripe and/or Chase Payment Solutions). We never store your full card number on our servers. Data is encrypted using TLS/SSL both in transit and at rest.',
       category: 'payments',
     },
     {
@@ -106,7 +106,7 @@ export default function HelpCenterScreen({ navigation }: any) {
     {
       id: '10',
       question: 'How do refunds work?',
-      answer: 'Refund policies vary by provider. If you\'re eligible for a refund, it will be processed to your original payment method within 5-10 business days.',
+      answer: 'Refund requests must be submitted within 48 hours of service approval. Use the "Report Issue" button on the service details screen. Approved refunds are processed to your original payment method within 5-10 business days. Alternatively, you can choose a platform credit and receive a 10% bonus on the refund amount.',
       category: 'payments',
     },
   ];

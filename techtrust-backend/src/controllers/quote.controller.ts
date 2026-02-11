@@ -252,9 +252,25 @@ export const getQuote = async (req: Request, res: Response) => {
     throw new AppError('Orçamento não encontrado', 404, 'QUOTE_NOT_FOUND');
   }
 
+  // Enrich response with computed fields for mobile consumption
+  const enrichedQuote = {
+    ...quote,
+    // Map partsList JSON → items array for mobile
+    items: Array.isArray(quote.partsList) ? (quote.partsList as any[]).map((item: any, idx: number) => ({
+      id: item.id || String(idx + 1),
+      type: item.type === 'LABOR' || item.type === 'service' ? 'LABOR' : 'PART',
+      description: item.description || '',
+      partCode: item.partCode || item.brand || undefined,
+      quantity: Number(item.quantity) || 1,
+      unitPrice: Number(item.unitPrice) || 0,
+    })) : [],
+    partsTotal: Number(quote.partsCost),
+    laborTotal: Number(quote.laborCost),
+  };
+
   res.json({
     success: true,
-    data: quote,
+    data: enrichedQuote,
   });
 };
 

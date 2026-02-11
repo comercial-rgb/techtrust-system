@@ -56,6 +56,7 @@ const es = {
       content: 'Contenido',
       reports: 'Reportes',
       notifications: 'Notificaciones',
+      support: 'Soporte',
       logs: 'Logs de Auditoría',
       settings: 'Configuración',
     },

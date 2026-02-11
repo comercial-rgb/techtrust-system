@@ -49,6 +49,7 @@ import TermsAndPoliciesScreen from "../screens/customer/TermsAndPoliciesScreen";
 import SubscriptionPlanScreen from "../screens/customer/SubscriptionPlanScreen";
 import CustomerReportsScreen from "../screens/customer/CustomerReportsScreen";
 import CustomerQuoteDetailsScreen from "../screens/customer/CustomerQuoteDetailsScreen";
+import ServiceApprovalScreen from "../screens/customer/ServiceApprovalScreen";
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -125,6 +126,7 @@ function WorkOrdersStack() {
         component={WorkOrderDetailsScreen}
       />
       <Stack.Screen name="Payment" component={PaymentScreen} />
+      <Stack.Screen name="ServiceApproval" component={ServiceApprovalScreen} />
       <Stack.Screen name="Rating" component={RatingScreen} />
     </Stack.Navigator>
   );

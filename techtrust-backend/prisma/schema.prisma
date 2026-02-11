@@ -100,6 +100,40 @@ enum NotificationType {
   REMINDER
   SYSTEM_ALERT
   CHAT_MESSAGE
+  SUPPLEMENT_REQUESTED
+  SUPPLEMENT_APPROVED
+  SUPPLEMENT_REJECTED
+  INSUFFICIENT_FUNDS
+  CANCELLATION_REQUESTED
+  CANCELLATION_VALIDATED
+  SERVICE_PHOTOS_UPLOADED
+  TERMS_ACCEPTED
+  RECEIPT_GENERATED
+}
+
+enum PaymentProcessor {
+  STRIPE
+  CHASE
+}
+
+enum SupplementStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  HOLD_PLACED
+  HOLD_FAILED
+  CAPTURED
+  VOIDED
+}
+
+enum CancellationRequestStatus {
+  REQUESTED
+  PENDING_PROVIDER_VALIDATION
+  PROVIDER_CONFIRMED_NO_COST
+  PROVIDER_REPORTED_COSTS
+  APPROVED
+  REJECTED
+  COMPLETED
 }
 
 // ============================================
@@ -164,6 +198,8 @@ model User {
   paymentMethods    PaymentMethod[]
   chatMessagesFrom  ChatMessage[]  @relation("MessageFrom")
   chatMessagesTo    ChatMessage[]  @relation("MessageTo")
+  supportTickets    SupportTicket[]
+  supportMessages   SupportMessage[]
   articles          Article[]
 
   @@index([email])
@@ -384,8 +420,9 @@ model ServiceRequest {
   cancellationReason String?
   
   // Relacionamentos
-  quotes     Quote[]
-  workOrders WorkOrder[]
+  quotes       Quote[]
+  workOrders   WorkOrder[]
+  chatMessages ChatMessage[] @relation("ServiceRequestChats")
 
   @@index([userId])
   @@index([vehicleId])
@@ -509,14 +546,30 @@ model WorkOrder {
   providerNotes String?
   customerNotes String?
   
+  // Presença do cliente
+  clientPresent Boolean?
+  serviceLocationType String? // IN_SHOP, MOBILE, REMOTE
+  
+  // Finalização pelo fornecedor
+  serviceCompletedByProvider Boolean @default(false)
+  serviceCompletionNotes     String?
+  
+  // Aprovação do cliente com termos legais
+  termsAcceptedAt           DateTime?
+  termsAcceptedIp           String?
+  fraudDisclaimerAcceptedAt DateTime?
+  serviceApprovalSignature  String? // nome digitado como assinatura
+  
   // Garantia
   warrantyMonths    Int?
   warrantyMileage   Int?
   warrantyExpiresAt DateTime?
   
   // Relacionamentos
-  payments Payment[]
-  reviews  Review[]
+  payments             Payment[]
+  reviews              Review[]
+  supplements          PaymentSupplement[]
+  cancellationRequests CancellationRequest[]
 
   @@index([serviceRequestId])
   @@index([customerId])
@@ -540,25 +593,36 @@ model Payment {
   providerId  String
   provider    User      @relation("ProviderPayments", fields: [providerId], references: [id])
   
+  // Processador de pagamento
+  paymentProcessor PaymentProcessor @default(STRIPE)
+  
   // Stripe
   stripePaymentIntentId String @unique
   stripeChargeId        String?
   stripeTransferId      String?
   
+  // Chase (futuro)
+  chaseTransactionId String?
+  
   // Valores
   subtotal      Decimal @db.Decimal(10, 2)
   platformFee   Decimal @db.Decimal(10, 2)
-  stripeFee     Decimal @db.Decimal(10, 2)
+  processingFee Decimal @db.Decimal(10, 2) // Stripe ou Chase fee
   totalAmount   Decimal @db.Decimal(10, 2)
   providerAmount Decimal @db.Decimal(10, 2)
   
   // Status
   status PaymentStatus @default(PENDING)
   
+  // Tipo do pagamento
+  paymentType String @default("SERVICE") // SERVICE, SUPPLEMENT, CANCELLATION_FEE
+  parentPaymentId String? // para suplementos, referencia o pagamento original
+  
   // Método de pagamento
   paymentMethodId String?
   cardLast4       String?
   cardBrand       String?
+  cardType        String? // credit, debit
   
   // Datas
   authorizedAt           DateTime?
@@ -569,6 +633,9 @@ model Payment {
   // Reembolso
   refundAmount Decimal? @db.Decimal(10, 2)
   refundReason String?
+  
+  // Recibo
+  receipt Receipt?
 
   @@index([workOrderId])
   @@index([customerId])
@@ -745,6 +812,13 @@ model ChatMessage {
   // Contexto (opcional)
   workOrderId String?
   
+  // Conversation identifier (groups messages between two users for a context)
+  conversationId String?
+  
+  // Link to service request (associates chat with a specific request)
+  serviceRequestId String?
+  serviceRequest   ServiceRequest? @relation("ServiceRequestChats", fields: [serviceRequestId], references: [id])
+  
   // Conteúdo
   message String
   
@@ -758,8 +832,88 @@ model ChatMessage {
   @@index([fromUserId])
   @@index([toUserId])
   @@index([workOrderId])
+  @@index([conversationId])
+  @@index([serviceRequestId])
   @@index([createdAt])
   @@map("chat_messages")
+}
+
+// ============================================
+// SUPPORT TICKETS (Customer support conversations)
+// ============================================
+
+enum SupportTicketStatus {
+  OPEN
+  WAITING_ADMIN
+  WAITING_CUSTOMER
+  RESOLVED
+  CLOSED
+}
+
+model SupportTicket {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Ticket identifier (e.g., SUP-000001)
+  ticketNumber String @unique
+  
+  // Customer
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Topic / category
+  topic    String   // payments, services, account, vehicles, technical, other
+  subject  String
+  
+  // Customer language (detected/selected)
+  language String @default("en") // en, pt, es
+  
+  // Status
+  status SupportTicketStatus @default(OPEN)
+  
+  // Admin assigned
+  assignedAdminId String?
+  
+  // Resolution
+  resolvedAt DateTime?
+  closedAt   DateTime?
+  
+  // Messages
+  messages SupportMessage[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([ticketNumber])
+  @@index([createdAt])
+  @@map("support_tickets")
+}
+
+model SupportMessage {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  
+  // Ticket
+  ticketId String
+  ticket   SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  
+  // Sender
+  senderId String
+  sender   User   @relation(fields: [senderId], references: [id])
+  senderRole String // CLIENT, ADMIN, SYSTEM
+  
+  // Content
+  message String
+  attachments Json @default("[]")
+  
+  // Status
+  isRead Boolean  @default(false)
+  readAt DateTime?
+
+  @@index([ticketId])
+  @@index([senderId])
+  @@index([createdAt])
+  @@map("support_messages")
 }
 
 model SystemSettings {
@@ -992,4 +1146,135 @@ model CoverageZone {
   @@index([providerId])
   @@index([active])
   @@map("coverage_zones")
+}
+
+// ============================================
+// PAYMENT SUPPLEMENTS (Complemento de valor)
+// ============================================
+model PaymentSupplement {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  supplementNumber String @unique
+  
+  workOrderId String
+  workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  
+  // Quem pediu e valores
+  requestedByProviderId String
+  description           String
+  additionalAmount      Decimal @db.Decimal(10, 2)
+  
+  // Detalhamento
+  additionalParts Json @default("[]")
+  additionalLabor Decimal @default(0) @db.Decimal(10, 2)
+  reason          String? // motivo detalhado
+  
+  // Status do suplemento
+  status SupplementStatus @default(REQUESTED)
+  
+  // Aprovação do cliente
+  approvedByCustomerAt DateTime?
+  rejectedByCustomerAt DateTime?
+  customerNote         String?
+  
+  // Hold (pré-autorização do suplemento)
+  stripePaymentIntentId String?
+  holdPlacedAt          DateTime?
+  holdFailedReason      String?
+  holdAmount            Decimal? @db.Decimal(10, 2)
+  capturedAt            DateTime?
+  
+  // Se hold falhou, continuar com orçamento original
+  proceedWithOriginal Boolean @default(false)
+  
+  @@index([workOrderId])
+  @@index([status])
+  @@map("payment_supplements")
+}
+
+// ============================================
+// CANCELLATION REQUESTS (Pedido de cancelamento)
+// ============================================
+model CancellationRequest {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  workOrderId String
+  workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  
+  // Cliente que pediu cancelamento
+  requestedByCustomerId String
+  reason                String?
+  
+  // Status do pedido
+  status CancellationRequestStatus @default(REQUESTED)
+  
+  // Validação do fornecedor
+  providerValidation       String? // descrição do que foi feito
+  providerHasIncurredCosts Boolean?
+  providerReportedCosts    Decimal? @db.Decimal(10, 2)
+  providerEvidencePhotos   Json @default("[]")
+  providerValidatedAt      DateTime?
+  
+  // Taxa de cancelamento calculada
+  cancellationFeePercent Decimal? @db.Decimal(5, 2)
+  cancellationFeeAmount  Decimal? @db.Decimal(10, 2)
+  
+  // Resolução
+  resolvedAt DateTime?
+  resolvedBy String? // admin ou sistema
+  resolution String? // FULL_REFUND, PARTIAL_REFUND, NO_REFUND, FEE_CHARGED
+  
+  @@index([workOrderId])
+  @@index([status])
+  @@map("cancellation_requests")
+}
+
+// ============================================
+// RECEIPTS (Recibos de pagamento)
+// ============================================
+model Receipt {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  
+  receiptNumber String @unique
+  
+  // Pagamento associado
+  paymentId String  @unique
+  payment   Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  
+  // Dados do recibo
+  customerName  String
+  customerEmail String
+  providerName  String
+  providerBusinessName String?
+  
+  // Serviço
+  serviceDescription String
+  vehicleInfo        String
+  orderNumber        String
+  
+  // Valores detalhados
+  subtotal      Decimal @db.Decimal(10, 2)
+  platformFee   Decimal @db.Decimal(10, 2)
+  processingFee Decimal @db.Decimal(10, 2)
+  totalAmount   Decimal @db.Decimal(10, 2)
+  supplementsTotal Decimal @default(0) @db.Decimal(10, 2)
+  
+  // Processador
+  paymentProcessor  PaymentProcessor
+  paymentMethodInfo String // "Visa ending in 4242"
+  
+  // Termos aceitos
+  termsAcceptedAt           DateTime?
+  fraudDisclaimerAcceptedAt DateTime?
+  
+  // PDF (futuro)
+  pdfUrl String?
+  
+  @@index([paymentId])
+  @@map("receipts")
 }

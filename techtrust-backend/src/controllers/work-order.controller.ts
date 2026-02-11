@@ -201,6 +201,7 @@ export const startWorkOrder = async (req: Request, res: Response) => {
 export const completeWorkOrder = async (req: Request, res: Response) => {
   const providerId = req.user!.id;
   const { orderId } = req.params;
+  const { notes } = req.body;
 
   const order = await prisma.workOrder.findFirst({
     where: {
@@ -222,6 +223,19 @@ export const completeWorkOrder = async (req: Request, res: Response) => {
     data: {
       status: 'AWAITING_APPROVAL',
       completedAt: new Date(),
+      serviceCompletedByProvider: true,
+      serviceCompletionNotes: notes || null,
+    },
+  });
+
+  // Notificar cliente
+  await prisma.notification.create({
+    data: {
+      userId: order.customerId,
+      type: 'SERVICE_COMPLETED',
+      title: 'Service Completed',
+      message: `The provider has completed service for order ${order.orderNumber}. Please review and approve.`,
+      data: JSON.stringify({ workOrderId: order.id }),
     },
   });
 
@@ -235,7 +249,8 @@ export const completeWorkOrder = async (req: Request, res: Response) => {
 
 /**
  * POST /api/v1/work-orders/:orderId/approve
- * Cliente aprova conclusão
+ * Cliente aprova conclusão (fluxo simples - sem captura de pagamento)
+ * Para pagamentos, usar POST /service-flow/approve-service
  */
 export const approveCompletion = async (req: Request, res: Response) => {
   const customerId = req.user!.id;
@@ -245,6 +260,9 @@ export const approveCompletion = async (req: Request, res: Response) => {
     where: {
       id: orderId,
       customerId: customerId,
+    },
+    include: {
+      payments: true,
     },
   });
 
@@ -256,15 +274,23 @@ export const approveCompletion = async (req: Request, res: Response) => {
     throw new AppError('Ordem não está aguardando aprovação', 400, 'INVALID_STATUS');
   }
 
+  // Se tem pagamentos autorizados, direcionar para service-flow
+  const authorizedPayments = order.payments.filter(p => p.status === 'AUTHORIZED');
+  if (authorizedPayments.length > 0) {
+    throw new AppError(
+      'This order has authorized payments. Use POST /api/v1/service-flow/approve-service to approve with payment capture.',
+      400,
+      'USE_SERVICE_FLOW'
+    );
+  }
+
   await prisma.$transaction([
-    // Aprovar ordem
     prisma.workOrder.update({
       where: { id: orderId },
       data: {
         status: 'COMPLETED',
       },
     }),
-    // Atualizar service request
     prisma.serviceRequest.update({
       where: { id: order.serviceRequestId },
       data: {
@@ -288,6 +314,7 @@ export const approveCompletion = async (req: Request, res: Response) => {
 export const reportIssue = async (req: Request, res: Response) => {
   const customerId = req.user!.id;
   const { orderId } = req.params;
+  const { reason } = req.body;
 
   const order = await prisma.workOrder.findFirst({
     where: {
@@ -300,10 +327,27 @@ export const reportIssue = async (req: Request, res: Response) => {
     throw new AppError('Ordem não encontrada', 404, 'ORDER_NOT_FOUND');
   }
 
+  // Só pode disputar se está em andamento, aguardando aprovação ou completada
+  if (!['IN_PROGRESS', 'AWAITING_APPROVAL', 'COMPLETED'].includes(order.status)) {
+    throw new AppError('Não é possível reportar problema neste status', 400, 'INVALID_STATUS');
+  }
+
   await prisma.workOrder.update({
     where: { id: orderId },
     data: {
       status: 'DISPUTED',
+      customerNotes: reason || null,
+    },
+  });
+
+  // Notificar provider
+  await prisma.notification.create({
+    data: {
+      userId: order.providerId,
+      type: 'SYSTEM_ALERT',
+      title: 'Issue Reported',
+      message: `Customer reported an issue with order ${order.orderNumber}. ${reason ? `Reason: ${reason}` : ''}`,
+      data: JSON.stringify({ workOrderId: order.id }),
     },
   });
 

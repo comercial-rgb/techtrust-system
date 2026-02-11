@@ -3,7 +3,7 @@
  * Real-time messaging interface
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useI18n } from '../i18n';
 import { useNotifications } from '../contexts/NotificationsContext';
+import api from '../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { io, Socket } from 'socket.io-client';
 
 interface Message {
   id: string;
@@ -43,11 +46,13 @@ interface ChatParticipant {
 export default function ChatScreen({ navigation, route }: any) {
   const { t } = useI18n();
   const { markMessagesAsRead: markMessagesAsReadGlobal } = useNotifications();
-  const { chatId, requestId, participant } = route.params || {};
+  const { chatId, requestId, participant, conversationId: paramConversationId, serviceRequestId } = route.params || {};
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(true);
   const flatListRef = useRef<FlatList>(null);
+  const socketRef = useRef<Socket | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string>('');
   
   const [chatParticipant] = useState<ChatParticipant>({
     id: participant?.id || '',
@@ -73,8 +78,43 @@ export default function ChatScreen({ navigation, route }: any) {
   });
 
   useEffect(() => {
-    loadMessages();
+    initChat();
+    return () => {
+      socketRef.current?.disconnect();
+    };
   }, []);
+
+  async function initChat() {
+    try {
+      const userDataStr = await AsyncStorage.getItem('@TechTrust:userData');
+      const userData = userDataStr ? JSON.parse(userDataStr) : {};
+      setCurrentUserId(userData.id || '');
+
+      // Connect socket
+      const baseUrl = api.defaults.baseURL?.replace('/api/v1', '') || 'http://localhost:3000';
+      const socket = io(baseUrl, { transports: ['websocket'] });
+      socket.on('connect', () => {
+        socket.emit('join', userData.id);
+      });
+      socket.on('receive_message', (data: any) => {
+        if (data.fromUserId !== userData.id) {
+          setMessages(prev => [...prev, {
+            id: data.id || Date.now().toString(),
+            text: data.message,
+            senderId: data.fromUserId,
+            senderName: chatParticipant.name,
+            timestamp: data.createdAt || new Date().toISOString(),
+            isOwn: false,
+            status: 'delivered' as const,
+          }]);
+        }
+      });
+      socketRef.current = socket;
+    } catch (e) {
+      console.error('Socket init error:', e);
+    }
+    loadMessages();
+  }
 
   // Mark all unread messages as read when chat opens
   useEffect(() => {
@@ -154,12 +194,26 @@ export default function ChatScreen({ navigation, route }: any) {
 
   async function loadMessages() {
     try {
-      // Carregar mensagens reais do backend quando API estiver disponível
-      // Por enquanto, iniciar com lista vazia
-      // TODO: Implementar chamada à API quando endpoint de chat estiver pronto
-      // const response = await api.get(`/chats/${chatId}/messages`);
-      // setMessages(response.data.data || []);
-      setMessages([]);
+      const convId = paramConversationId || chatId;
+      if (convId) {
+        const { data } = await api.get(`/chat/conversations/${convId}`);
+        if (data.success && data.data) {
+          const userDataStr = await AsyncStorage.getItem('@TechTrust:userData');
+          const userData = userDataStr ? JSON.parse(userDataStr) : {};
+          const mapped = data.data.map((m: any) => ({
+            id: m.id,
+            text: m.message,
+            senderId: m.fromUserId,
+            senderName: m.fromUser?.fullName || '',
+            timestamp: m.createdAt,
+            isOwn: m.fromUserId === userData.id,
+            status: m.isRead ? 'read' as const : 'delivered' as const,
+          }));
+          setMessages(mapped);
+        }
+      } else {
+        setMessages([]);
+      }
     } catch (error) {
       console.error('Error loading messages:', error);
       setMessages([]);
@@ -197,11 +251,12 @@ export default function ChatScreen({ navigation, route }: any) {
 
   async function handleSend() {
     if (!inputText.trim()) return;
+    const text = inputText.trim();
 
     const newMessage: Message = {
       id: Date.now().toString(),
-      text: inputText.trim(),
-      senderId: 'me',
+      text,
+      senderId: currentUserId,
       senderName: 'You',
       timestamp: new Date().toISOString(),
       isOwn: true,
@@ -211,17 +266,22 @@ export default function ChatScreen({ navigation, route }: any) {
     setMessages(prev => [...prev, newMessage]);
     setInputText('');
 
-    // Scroll to bottom
     setTimeout(() => {
       flatListRef.current?.scrollToEnd({ animated: true });
     }, 100);
 
-    // Simulate message delivery
-    setTimeout(() => {
-      setMessages(prev => 
-        prev.map(m => m.id === newMessage.id ? { ...m, status: 'delivered' } : m)
+    try {
+      await api.post('/chat/messages', {
+        toUserId: participant?.id,
+        message: text,
+        serviceRequestId: serviceRequestId || requestId || undefined,
+      });
+      setMessages(prev =>
+        prev.map(m => m.id === newMessage.id ? { ...m, status: 'delivered' as const } : m)
       );
-    }, 1000);
+    } catch (error) {
+      console.error('Error sending message:', error);
+    }
   }
 
   function getStatusIcon(status: string) {

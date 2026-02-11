@@ -56,6 +56,7 @@ const pt = {
       content: 'Conteúdo',
       reports: 'Relatórios',
       notifications: 'Notificações',
+      support: 'Suporte',
       logs: 'Logs de Auditoria',
       settings: 'Configurações',
     },

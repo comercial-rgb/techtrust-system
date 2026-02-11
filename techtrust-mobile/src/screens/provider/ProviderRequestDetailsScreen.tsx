@@ -25,6 +25,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useI18n } from '../../i18n';
 import { useNotifications } from '../../contexts/NotificationsContext';
+import api from '../../services/api';
 
 interface QuoteLineItem {
   id: string;
@@ -147,48 +148,70 @@ export default function ProviderRequestDetailsScreen({ route, navigation }: any)
   const loadRequest = async () => {
     setLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 800));
+      const response = await api.get(`/service-requests/${requestId}`);
+      const sr = response.data?.data;
+
+      if (!sr) {
+        throw new Error('Request not found');
+      }
+
+      // Calculate time remaining until quoteDeadline
+      let expiresIn = '';
+      if (sr.quoteDeadline) {
+        const diff = new Date(sr.quoteDeadline).getTime() - Date.now();
+        if (diff > 0) {
+          const hours = Math.floor(diff / (1000 * 60 * 60));
+          const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+          expiresIn = hours > 0 ? `${hours}h ${mins}min` : `${mins}min`;
+        } else {
+          expiresIn = 'Expired';
+        }
+      }
+
+      const vehicle = sr.vehicle || {};
+      const user = sr.user || {};
 
       setRequest({
-        id: requestId,
-        requestNumber: 'SR-2024-001',
-        title: 'Oil change and filters',
-        description:
-          'I need to change the oil and filters in my car. Last service was 10,000 km ago. I would like to use good quality synthetic oil. Also check if the air filter needs to be replaced.',
-        serviceType: 'SCHEDULED_MAINTENANCE',
-        isUrgent: false,
-        expiresIn: '1h 30min',
-        status: 'pending',
+        id: sr.id,
+        requestNumber: sr.requestNumber || `SR-${sr.id.substring(0, 6)}`,
+        title: sr.title || sr.serviceType || 'Service Request',
+        description: sr.description || '',
+        serviceType: sr.serviceType || 'REPAIR',
+        isUrgent: sr.urgencyLevel === 'URGENT' || sr.isUrgent || false,
+        expiresIn,
+        status: sr.status === 'QUOTES_RECEIVED' ? 'quoted' : 'pending',
         serviceLocation: {
-          type: 'mobile',
-          address: '123 Main Street, Orlando, FL 32801',
-          coordinates: { lat: 28.5383, lng: -81.3792 },
+          type: sr.serviceLocationType === 'MOBILE' ? 'mobile' : sr.serviceLocationType === 'REMOTE' ? 'roadside' : 'shop',
+          address: sr.serviceAddress || '',
+          coordinates: sr.serviceLatitude && sr.serviceLongitude
+            ? { lat: Number(sr.serviceLatitude), lng: Number(sr.serviceLongitude) }
+            : undefined,
         },
         customer: {
-          name: 'John Smith',
-          phone: '+1 (407) 555-1234',
-          location: 'Orlando, FL',
-          distance: '3.2 km',
-          rating: 4.8,
-          totalRequests: 12,
+          name: user.fullName || 'Customer',
+          phone: user.phone || '',
+          location: sr.serviceAddress || user.city || '',
+          distance: sr.distanceKm ? `${Number(sr.distanceKm).toFixed(1)} km` : '',
+          rating: user.averageRating ? Number(user.averageRating) : 0,
+          totalRequests: user._count?.serviceRequests || 0,
         },
         vehicle: {
-          make: 'Honda',
-          model: 'Civic',
-          year: 2020,
-          plateNumber: 'ABC1234',
-          color: 'Black',
-          mileage: 45000,
-          vin: '1HGBH41JXMN109186',
-          fuelType: 'Gasoline',
-          transmission: 'Automatic CVT',
-          engine: '2.0L i-VTEC',
-          lastServiceDate: '2024-07-15',
-          lastServiceMileage: 40000,
+          make: vehicle.make || '',
+          model: vehicle.model || '',
+          year: vehicle.year || 0,
+          plateNumber: vehicle.plateNumber || vehicle.licensePlate || '',
+          color: vehicle.color || '',
+          mileage: vehicle.mileage || 0,
+          vin: vehicle.vin || '',
+          fuelType: vehicle.fuelType || '',
+          transmission: vehicle.transmission || '',
+          engine: vehicle.engine || '',
+          lastServiceDate: vehicle.lastServiceDate || undefined,
+          lastServiceMileage: vehicle.lastServiceMileage || undefined,
         },
-        quotesCount: 2,
-        preferredDate: '2024-02-20',
-        preferredTime: '09:00',
+        quotesCount: sr.quotesCount || sr._count?.quotes || 0,
+        preferredDate: sr.preferredDate || undefined,
+        preferredTime: sr.preferredTime || undefined,
       });
     } catch (error) {
       console.error('Error loading request:', error);
@@ -235,7 +258,40 @@ export default function ProviderRequestDetailsScreen({ route, navigation }: any)
 
     setSubmitting(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Separate parts and labor
+      const partItems = validItems.filter(i => i.type === 'part');
+      const laborItemsList = validItems.filter(i => i.type === 'service');
+
+      const partsCost = partItems.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+      const laborCost = laborItemsList.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+
+      // Build partsList for backend
+      const partsList = validItems.map(item => ({
+        type: item.type === 'part' ? 'PART' : 'LABOR',
+        description: item.description,
+        brand: item.brand || undefined,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+      }));
+
+      await api.post('/quotes', {
+        serviceRequestId: requestId,
+        partsCost,
+        laborCost,
+        additionalFees: 0,
+        taxAmount: 0, // Tax calculated by jurisdiction - can be set later
+        partsList,
+        laborDescription: laborDescription || undefined,
+        estimatedHours: estimatedDuration ? parseFloat(estimatedDuration.replace(/[^\d.]/g, '')) || undefined : undefined,
+        estimatedCompletionTime: estimatedDuration,
+        availableDate: selectedDate || undefined,
+        availableTime: selectedTime ? `${selectedDate}T${selectedTime}:00` : undefined,
+        warrantyMonths: partsWarrantyMonths ? parseInt(partsWarrantyMonths) : undefined,
+        warrantyMileage: undefined,
+        warrantyDescription: warrantyTerms || undefined,
+        notes: notes || undefined,
+      });
+
       setQuoteSubmitted(true);
       setShowQuoteModal(false);
       Alert.alert(
@@ -243,8 +299,9 @@ export default function ProviderRequestDetailsScreen({ route, navigation }: any)
         t.common?.quoteSentSuccess || 'Your quote was sent. The customer will be notified.',
         [{ text: t.common?.ok || 'OK', onPress: () => navigation.goBack() }]
       );
-    } catch (error) {
-      Alert.alert(t.common?.error || 'Error', t.common?.quoteSentError || 'Could not send the quote. Please try again.');
+    } catch (error: any) {
+      const msg = error.response?.data?.message || t.common?.quoteSentError || 'Could not send the quote. Please try again.';
+      Alert.alert(t.common?.error || 'Error', msg);
     } finally {
       setSubmitting(false);
     }

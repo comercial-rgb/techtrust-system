@@ -19,6 +19,13 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { useI18n } from '../../i18n';
+import api from '../../services/api';
+import * as serviceFlowService from '../../services/service-flow.service';
+import PriceBreakdownCard, {
+  PriceBreakdownData,
+  PriceLineItem,
+  calculateCustomerTotal,
+} from '../../components/PriceBreakdownCard';
 
 interface QuoteLineItem {
   id: string;
@@ -55,7 +62,11 @@ interface Quote {
   laborTotal: number;
   discount: number;
   tax: number;
+  travelFee: number;
+  distanceKm: number | null;
+  additionalFees: number;
   grandTotal: number;
+  isMobileService: boolean;
   warranty: {
     partsMonths: number;
     serviceDays: number;
@@ -90,21 +101,68 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
       const quoteData = await getQuoteDetails(quoteId);
       
       if (quoteData) {
+        // Map provider data
+        const providerData = quoteData.provider || {};
+        const providerProfile = providerData.providerProfile || {};
+        
+        // Map vehicle — may come from serviceRequest.vehicle
+        const vehicleData = quoteData.vehicle || quoteData.serviceRequest?.vehicle || {};
+        
+        // Map request — may come from serviceRequest
+        const requestData = quoteData.serviceRequest || quoteData.request || {};
+
+        // Build line items from partsList (JSON) or items array
+        const rawItems = quoteData.partsList || quoteData.items || [];
+        const mappedItems: QuoteLineItem[] = Array.isArray(rawItems)
+          ? rawItems.map((item: any, idx: number) => ({
+              id: item.id || String(idx + 1),
+              type: item.type === 'LABOR' || item.type === 'service' ? 'LABOR' : 'PART',
+              description: item.description || '',
+              partCode: item.partCode || item.brand || undefined,
+              quantity: Number(item.quantity) || 1,
+              unitPrice: Number(item.unitPrice) || 0,
+            }))
+          : [];
+
         setQuote({
           id: quoteData.id,
           quoteNumber: quoteData.quoteNumber || `QT-${quoteData.id.substring(0, 4)}`,
           status: quoteData.status,
-          provider: quoteData.provider || { name: 'Provider', phone: '', email: '', address: '', rating: 0 },
-          request: quoteData.serviceRequest || { title: 'Service', description: '' },
-          vehicle: quoteData.vehicle || { make: 'N/A', model: 'N/A', year: 0, plate: '' },
-          items: quoteData.items || [],
-          partsTotal: quoteData.partsTotal || 0,
-          laborTotal: quoteData.laborTotal || 0,
+          provider: {
+            name: providerData.fullName || providerData.name || 'Provider',
+            phone: providerData.phone || '',
+            email: providerData.email || '',
+            address: providerProfile.businessAddress || providerProfile.address || '',
+            rating: Number(providerProfile.averageRating || providerData.rating) || 0,
+          },
+          request: {
+            title: requestData.title || requestData.serviceType || 'Service',
+            description: requestData.description || '',
+          },
+          vehicle: {
+            make: vehicleData.make || 'N/A',
+            model: vehicleData.model || 'N/A',
+            year: vehicleData.year || 0,
+            plate: vehicleData.plateNumber || vehicleData.licensePlate || vehicleData.plate || '',
+          },
+          items: mappedItems,
+          partsTotal: quoteData.partsTotal || Number(quoteData.partsCost) || 0,
+          laborTotal: quoteData.laborTotal || Number(quoteData.laborCost) || 0,
           discount: quoteData.discount || 0,
-          tax: quoteData.tax || 0,
-          grandTotal: quoteData.grandTotal || quoteData.totalAmount || 0,
-          warranty: quoteData.warranty || { partsMonths: 0, serviceDays: 0, terms: '' },
-          estimatedDays: quoteData.estimatedDays || 1,
+          tax: quoteData.tax || Number(quoteData.taxAmount) || 0,
+          travelFee: Number(quoteData.travelFee) || 0,
+          distanceKm: quoteData.distanceKm ? Number(quoteData.distanceKm) : null,
+          additionalFees: Number(quoteData.additionalFees) || 0,
+          grandTotal: quoteData.grandTotal || Number(quoteData.totalAmount) || 0,
+          isMobileService: quoteData.serviceRequest?.serviceLocationType === 'MOBILE' ||
+                           quoteData.serviceRequest?.serviceLocation === 'MOBILE' ||
+                           (Number(quoteData.distanceKm) || 0) > 0,
+          warranty: quoteData.warranty || {
+            partsMonths: quoteData.warrantyMonths || 0,
+            serviceDays: quoteData.warrantyDays || 90,
+            terms: quoteData.warrantyDescription || '',
+          },
+          estimatedDays: quoteData.estimatedDays || (quoteData.estimatedCompletionTime ? 1 : 1),
           validUntil: quoteData.validUntil || new Date().toISOString(),
           notes: quoteData.notes || '',
           createdAt: quoteData.createdAt,
@@ -138,33 +196,58 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
   const handleAcceptQuote = () => {
     if (!quote) return;
     
+    const { platformFee, processingFee, customerTotal } = calculateCustomerTotal(quote.grandTotal);
+    
     Alert.alert(
       t.quote?.acceptQuote || 'Accept Quote',
-      `${t.quote?.acceptQuoteConfirm || 'By accepting this quote, a payment hold of'} $${quote.grandTotal.toFixed(2)} ${t.quote?.willBePlaced || 'will be placed on your card. The charge will only be completed after you confirm service completion.'}`,
+      `${t.quote?.acceptQuoteConfirm || 'By accepting this quote, a payment hold will be placed on your card:'}\n\n` +
+      `Service: $${quote.grandTotal.toFixed(2)}\n` +
+      `Platform fee (10%): $${platformFee.toFixed(2)}\n` +
+      `Processing fee: $${processingFee.toFixed(2)}\n` +
+      `━━━━━━━━━━━━━━━━\n` +
+      `Total hold: $${customerTotal.toFixed(2)}\n\n` +
+      `${t.quote?.chargeOnlyAfterApproval || 'You will only be charged after you review and approve the completed service.'}`,
       [
         { text: t.common?.cancel || 'Cancel', style: 'cancel' },
         { 
           text: t.quote?.acceptAndHold || 'Accept & Hold Payment', 
           onPress: async () => {
-            // Simulate payment hold
-            Alert.alert(
-              t.common?.processing || 'Processing...',
-              t.quote?.holdingPayment || 'Placing payment hold...',
-            );
-            
-            // In production: call API to create payment hold
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            
-            Alert.alert(
-              t.common?.success || 'Success!',
-              `${t.quote?.quoteAcceptedPaymentHeld || 'Quote accepted! A payment hold of'} $${quote.grandTotal.toFixed(2)} ${t.quote?.hasBeenPlaced || 'has been placed. You will only be charged when you confirm service completion.'}`,
-              [
-                { 
-                  text: t.common?.ok || 'OK', 
-                  onPress: () => navigation.goBack()
-                }
-              ]
-            );
+            try {
+              // Step 1: Accept quote via backend (creates WorkOrder)
+              const acceptResponse = await api.post(`/quotes/${quote.id}/accept`);
+              const workOrderId = acceptResponse.data?.data?.workOrder?.id;
+              
+              if (!workOrderId) {
+                throw new Error('Work order not created');
+              }
+
+              // Step 2: Create payment hold via service-flow
+              try {
+                await serviceFlowService.approveQuoteWithPaymentHold(
+                  workOrderId,
+                  quote.id,
+                  'STRIPE'
+                );
+              } catch (holdError: any) {
+                // Payment hold failed but WO was created - inform user
+                console.warn('Payment hold failed:', holdError);
+                Alert.alert(
+                  t.common?.warning || 'Warning',
+                  t.quote?.quoteAcceptedNoHold || 'Quote accepted but payment hold could not be placed. Please add a payment method and try again from the work order.',
+                  [{ text: t.common?.ok || 'OK', onPress: () => navigation.goBack() }]
+                );
+                return;
+              }
+
+              Alert.alert(
+                t.common?.success || 'Success!',
+                `${t.quote?.quoteAcceptedPaymentHeld || 'Quote accepted! A payment hold of'} $${customerTotal.toFixed(2)} ${t.quote?.hasBeenPlaced || 'has been placed. You will only be charged when you confirm service completion.'}`,
+                [{ text: t.common?.ok || 'OK', onPress: () => navigation.goBack() }]
+              );
+            } catch (error: any) {
+              const msg = error.response?.data?.message || error.message || 'Failed to accept quote';
+              Alert.alert(t.common?.error || 'Error', msg);
+            }
           }
         },
       ]
@@ -180,9 +263,15 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
         { 
           text: 'Reject', 
           style: 'destructive',
-          onPress: () => {
-            Alert.alert('Quote Rejected', 'You can still view other quotes for this request.');
-            navigation.goBack();
+          onPress: async () => {
+            try {
+              await api.post(`/quotes/${quote!.id}/reject`);
+              Alert.alert('Quote Rejected', 'You can still view other quotes for this request.');
+              navigation.goBack();
+            } catch (error: any) {
+              const msg = error.response?.data?.message || 'Failed to reject quote';
+              Alert.alert('Error', msg);
+            }
           }
         },
       ]
@@ -191,6 +280,8 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
 
   const generatePdfHtml = () => {
     if (!quote) return '';
+
+    const { platformFee, processingFee, customerTotal } = calculateCustomerTotal(quote.grandTotal);
 
     const itemsHtml = quote.items.map(item => `
       <tr>
@@ -300,13 +391,31 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
             <span class="totals-value" style="color: #10b981;">-$${quote.discount.toFixed(2)}</span>
           </div>
           ` : ''}
+          ${quote.travelFee > 0 ? `
+          <div class="totals-row">
+            <span class="totals-label">Travel Fee${quote.distanceKm ? ` (${quote.distanceKm.toFixed(1)} km)` : ''}:</span>
+            <span class="totals-value">$${quote.travelFee.toFixed(2)}</span>
+          </div>
+          ` : ''}
           <div class="totals-row">
             <span class="totals-label">Tax:</span>
             <span class="totals-value">$${quote.tax.toFixed(2)}</span>
           </div>
+          <div class="totals-row" style="border-top: 1px solid #e5e7eb; padding-top: 8px; margin-top: 8px;">
+            <span class="totals-label" style="font-weight: 600;">Service Subtotal:</span>
+            <span class="totals-value" style="font-weight: 600;">$${quote.grandTotal.toFixed(2)}</span>
+          </div>
+          <div class="totals-row">
+            <span class="totals-label">Platform Fee (10%):</span>
+            <span class="totals-value">$${platformFee.toFixed(2)}</span>
+          </div>
+          <div class="totals-row">
+            <span class="totals-label">Processing Fee:</span>
+            <span class="totals-value">$${processingFee.toFixed(2)}</span>
+          </div>
           <div class="totals-row grand-total">
-            <span class="totals-label" style="font-weight: bold; color: #1f2937;">Grand Total:</span>
-            <span class="totals-value" style="font-size: 20px;">$${quote.grandTotal.toFixed(2)}</span>
+            <span class="totals-label" style="font-weight: bold; color: #1f2937;">Total You Pay:</span>
+            <span class="totals-value" style="font-size: 20px;">$${customerTotal.toFixed(2)}</span>
           </div>
         </div>
 
@@ -362,6 +471,8 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
   const handleShareText = async () => {
     if (!quote) return;
 
+    const { platformFee, processingFee, customerTotal } = calculateCustomerTotal(quote.grandTotal);
+
     const text = `
 Quote: ${quote.quoteNumber}
 Provider: ${quote.provider.name}
@@ -369,8 +480,13 @@ Service: ${quote.request.title}
 Vehicle: ${quote.vehicle.year} ${quote.vehicle.make} ${quote.vehicle.model}
 
 Parts: $${quote.partsTotal.toFixed(2)}
-Labor: $${quote.laborTotal.toFixed(2)}
-Total: $${quote.grandTotal.toFixed(2)}
+Labor: $${quote.laborTotal.toFixed(2)}${quote.travelFee > 0 ? `\nTravel Fee: $${quote.travelFee.toFixed(2)}` : ''}${quote.discount > 0 ? `\nDiscount: -$${quote.discount.toFixed(2)}` : ''}
+Tax: $${quote.tax.toFixed(2)}
+Service Subtotal: $${quote.grandTotal.toFixed(2)}
+Platform Fee (10%): $${platformFee.toFixed(2)}
+Processing Fee: $${processingFee.toFixed(2)}
+━━━━━━━━━━━━━━━━
+Total: $${customerTotal.toFixed(2)}
 
 Valid until: ${formatDate(quote.validUntil)}
     `.trim();
@@ -396,8 +512,27 @@ Valid until: ${formatDate(quote.validUntil)}
   }
 
   const statusInfo = getStatusInfo(quote.status);
-  const partsItems = quote.items.filter(i => i.type === 'PART');
-  const laborItems = quote.items.filter(i => i.type === 'LABOR');
+
+  // Build price breakdown data from quote
+  const priceBreakdownData: PriceBreakdownData = {
+    items: quote.items.map(item => ({
+      description: item.description,
+      partCode: item.partCode,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      type: item.type,
+    })),
+    partsSubtotal: quote.partsTotal,
+    laborSubtotal: quote.laborTotal,
+    travelFee: quote.travelFee,
+    discount: quote.discount,
+    taxAmount: quote.tax,
+    serviceTotal: quote.grandTotal,
+    isMobileService: quote.isMobileService,
+    distanceKm: quote.distanceKm ?? undefined,
+  };
+
+  const { customerTotal: finalCustomerTotal } = calculateCustomerTotal(quote.grandTotal);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -458,71 +593,12 @@ Valid until: ${formatDate(quote.validUntil)}
           </View>
         </View>
 
-        {/* Quote Items - Parts */}
-        {partsItems.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Parts</Text>
-            {partsItems.map((item) => (
-              <View key={item.id} style={styles.lineItem}>
-                <View style={styles.lineItemIcon}>
-                  <Ionicons name="cog" size={16} color="#6b7280" />
-                </View>
-                <View style={styles.lineItemInfo}>
-                  <Text style={styles.lineItemName}>{item.description}</Text>
-                  {item.partCode && (
-                    <Text style={styles.lineItemCode}>Code: {item.partCode}</Text>
-                  )}
-                  <Text style={styles.lineItemQty}>{item.quantity} x ${item.unitPrice.toFixed(2)}</Text>
-                </View>
-                <Text style={styles.lineItemTotal}>${(item.quantity * item.unitPrice).toFixed(2)}</Text>
-              </View>
-            ))}
-            <View style={styles.subtotalRow}>
-              <Text style={styles.subtotalLabel}>Parts Subtotal</Text>
-              <Text style={styles.subtotalValue}>${quote.partsTotal.toFixed(2)}</Text>
-            </View>
-          </View>
-        )}
-
-        {/* Quote Items - Labor */}
-        {laborItems.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Labor</Text>
-            {laborItems.map((item) => (
-              <View key={item.id} style={styles.lineItem}>
-                <View style={styles.lineItemIcon}>
-                  <Ionicons name="construct" size={16} color="#6b7280" />
-                </View>
-                <View style={styles.lineItemInfo}>
-                  <Text style={styles.lineItemName}>{item.description}</Text>
-                  <Text style={styles.lineItemQty}>{item.quantity} x ${item.unitPrice.toFixed(2)}</Text>
-                </View>
-                <Text style={styles.lineItemTotal}>${(item.quantity * item.unitPrice).toFixed(2)}</Text>
-              </View>
-            ))}
-            <View style={styles.subtotalRow}>
-              <Text style={styles.subtotalLabel}>Labor Subtotal</Text>
-              <Text style={styles.subtotalValue}>${quote.laborTotal.toFixed(2)}</Text>
-            </View>
-          </View>
-        )}
-
-        {/* Total Section */}
-        <View style={styles.totalSection}>
-          {quote.discount > 0 && (
-            <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Discount</Text>
-              <Text style={[styles.totalValue, { color: '#10b981' }]}>-${quote.discount.toFixed(2)}</Text>
-            </View>
-          )}
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Tax</Text>
-            <Text style={styles.totalValue}>${quote.tax.toFixed(2)}</Text>
-          </View>
-          <View style={[styles.totalRow, styles.grandTotalRow]}>
-            <Text style={styles.grandTotalLabel}>Grand Total</Text>
-            <Text style={styles.grandTotalValue}>${quote.grandTotal.toFixed(2)}</Text>
-          </View>
+        {/* Price Breakdown */}
+        <View style={styles.section}>
+          <PriceBreakdownCard
+            data={priceBreakdownData}
+            showPlatformFees={quote.status === 'PENDING'}
+          />
         </View>
 
         {/* Warranty */}

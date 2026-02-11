@@ -41,6 +41,7 @@ const menuItems = [
   { href: '/assinaturas', key: 'admin.nav.subscriptions', icon: Tag },
   { href: '/conteudo', key: 'admin.nav.content', icon: Megaphone },
   { href: '/relatorios', key: 'admin.nav.reports', icon: BarChart3 },
+  { href: '/suporte', key: 'admin.nav.support', icon: MessageSquare },
   { href: '/notificacoes', key: 'admin.nav.notifications', icon: Bell },
   { href: '/logs', key: 'admin.nav.logs', icon: History },
   { href: '/configuracoes', key: 'admin.nav.settings', icon: Settings },

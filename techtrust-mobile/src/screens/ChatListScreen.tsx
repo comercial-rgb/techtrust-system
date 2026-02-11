@@ -1,6 +1,7 @@
 /**
  * ChatListScreen - List of Conversations
  * Shows all chats between customer and providers
+ * Each conversation linked to a service request with a conversation ID
  */
 
 import React, { useState, useCallback } from 'react';
@@ -11,26 +12,36 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { FadeInView } from '../components/Animated';
 import { useI18n } from '../i18n';
+import api from '../services/api';
 
 interface ChatPreview {
-  id: string;
-  participantId: string;
-  participantName: string;
-  participantRole: 'customer' | 'provider';
-  lastMessage: string;
-  lastMessageTime: string;
-  unreadCount: number;
-  isOnline: boolean;
-  relatedRequest?: {
+  conversationId: string;
+  otherUser: {
     id: string;
-    title: string;
+    name: string;
+    role: string;
   };
+  serviceRequest: {
+    id: string;
+    requestNumber: string;
+    title: string;
+    status: string;
+  } | null;
+  lastMessage: {
+    id: string;
+    message: string;
+    createdAt: string;
+    fromUserId: string;
+    isRead: boolean;
+  };
+  unreadCount: number;
 }
 
 export default function ChatListScreen({ navigation }: any) {
@@ -39,7 +50,6 @@ export default function ChatListScreen({ navigation }: any) {
   const [refreshing, setRefreshing] = useState(false);
   const [chats, setChats] = useState<ChatPreview[]>([]);
 
-  // Reload chats every time the screen gains focus
   useFocusEffect(
     useCallback(() => {
       loadChats();
@@ -49,11 +59,10 @@ export default function ChatListScreen({ navigation }: any) {
   async function loadChats() {
     try {
       setLoading(true);
-      // Carregar chats reais do backend quando API estiver disponível
-      // TODO: Implementar chamada à API quando endpoint de chat list estiver pronto
-      // const response = await api.get('/chats');
-      // setChats(response.data.data || []);
-      setChats([]);
+      const { data } = await api.get('/chat/conversations');
+      if (data.success) {
+        setChats(data.data || []);
+      }
     } catch (error) {
       console.error('Error loading chats:', error);
       setChats([]);
@@ -85,19 +94,8 @@ export default function ChatListScreen({ navigation }: any) {
     } else if (days < 7) {
       return date.toLocaleDateString('en-US', { weekday: 'short' });
     } else {
-      return date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-      });
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     }
-  }
-
-  function markChatAsRead(chatId: string) {
-    setChats(prevChats => 
-      prevChats.map(chat => 
-        chat.id === chatId ? { ...chat, unreadCount: 0 } : chat
-      )
-    );
   }
 
   function renderChat({ item, index }: { item: ChatPreview; index: number }) {
@@ -106,14 +104,10 @@ export default function ChatListScreen({ navigation }: any) {
         <TouchableOpacity
           style={styles.chatItem}
           onPress={() => {
-            // Mark chat as read when opening
-            if (item.unreadCount > 0) {
-              markChatAsRead(item.id);
-            }
-            navigation.navigate('Chat', { 
-              chatId: item.id, 
-              participant: { id: item.participantId, name: item.participantName },
-              requestId: item.relatedRequest?.id,
+            navigation.navigate('Chat', {
+              conversationId: item.conversationId,
+              participant: { id: item.otherUser.id, name: item.otherUser.name },
+              serviceRequestId: item.serviceRequest?.id,
             });
           }}
         >
@@ -121,19 +115,18 @@ export default function ChatListScreen({ navigation }: any) {
             <View style={styles.avatar}>
               <Ionicons name="business" size={24} color="#1976d2" />
             </View>
-            {item.isOnline && <View style={styles.onlineIndicator} />}
           </View>
 
           <View style={styles.chatContent}>
             <View style={styles.chatHeader}>
               <Text style={styles.chatName} numberOfLines={1}>
-                {item.participantName}
+                {item.otherUser.name}
               </Text>
               <Text style={[
                 styles.chatTime,
                 item.unreadCount > 0 && styles.chatTimeUnread
               ]}>
-                {formatTime(item.lastMessageTime)}
+                {formatTime(item.lastMessage.createdAt)}
               </Text>
             </View>
 
@@ -142,7 +135,7 @@ export default function ChatListScreen({ navigation }: any) {
                 styles.lastMessage,
                 item.unreadCount > 0 && styles.lastMessageUnread
               ]} numberOfLines={1}>
-                {item.lastMessage}
+                {item.lastMessage.message}
               </Text>
               {item.unreadCount > 0 && (
                 <View style={styles.unreadBadge}>
@@ -153,11 +146,11 @@ export default function ChatListScreen({ navigation }: any) {
               )}
             </View>
 
-            {item.relatedRequest && (
+            {item.serviceRequest && (
               <View style={styles.requestTag}>
                 <Ionicons name="document-text-outline" size={12} color="#6b7280" />
                 <Text style={styles.requestTagText} numberOfLines={1}>
-                  {item.relatedRequest.title}
+                  #{item.serviceRequest.requestNumber} • {item.serviceRequest.title}
                 </Text>
               </View>
             )}

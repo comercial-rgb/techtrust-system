@@ -106,6 +106,10 @@ export default function CreateRequestScreen({ navigation }: any) {
     lng: number;
   } | null>(null);
 
+  // Address check for mobile/roadside services
+  const [userAddresses, setUserAddresses] = useState<any[]>([]);
+  const [addressesLoaded, setAddressesLoaded] = useState(false);
+
   // Payment Method Check
   const [checkingPayment, setCheckingPayment] = useState(true);
   const [hasPaymentMethod, setHasPaymentMethod] = useState(false);
@@ -158,8 +162,33 @@ export default function CreateRequestScreen({ navigation }: any) {
     useCallback(() => {
       checkRequirements();
       loadFavoriteProviders();
+      loadUserAddresses();
     }, []),
   );
+
+  // Load user addresses from API / AsyncStorage
+  async function loadUserAddresses() {
+    try {
+      let addresses: any[] = [];
+      try {
+        const apiDefault = (await import("../services/api")).default;
+        const response = await apiDefault.get("/users/me");
+        const raw = response.data?.data?.addressesJson || response.data?.addressesJson;
+        if (raw) {
+          addresses = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        }
+      } catch {
+        const AsyncStorage = (await import("@react-native-async-storage/async-storage")).default;
+        const saved = await AsyncStorage.getItem("@TechTrust:addresses");
+        if (saved) addresses = JSON.parse(saved);
+      }
+      setUserAddresses(Array.isArray(addresses) ? addresses : []);
+    } catch {
+      setUserAddresses([]);
+    } finally {
+      setAddressesLoaded(true);
+    }
+  }
 
   async function loadFavoriteProviders() {
     try {
@@ -854,7 +883,24 @@ export default function CreateRequestScreen({ navigation }: any) {
                 styles.locationCard,
                 serviceLocation === option.id && styles.locationCardSelected,
               ]}
-              onPress={() => setServiceLocation(option.id)}
+              onPress={() => {
+                // Validate addresses for mobile/roadside
+                if ((option.id === 'mobile' || option.id === 'roadside') && addressesLoaded && userAddresses.length === 0) {
+                  Alert.alert(
+                    'Address Required',
+                    'To request a mobile or roadside service, you need at least one registered address. Would you like to add one now?',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      {
+                        text: 'Add Address',
+                        onPress: () => navigation.navigate('Profile', { screen: 'Addresses' }),
+                      },
+                    ],
+                  );
+                  return;
+                }
+                setServiceLocation(option.id);
+              }}
             >
               <View
                 style={[

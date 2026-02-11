@@ -14,3 +14,4 @@ export { default as TermsAndPoliciesScreen } from './TermsAndPoliciesScreen';
 export { default as SubscriptionPlanScreen } from './SubscriptionPlanScreen';
 export { default as CustomerQuoteDetailsScreen } from './CustomerQuoteDetailsScreen';
 export { default as CustomerReportsScreen } from './CustomerReportsScreen';
+export { default as ServiceApprovalScreen } from './ServiceApprovalScreen';

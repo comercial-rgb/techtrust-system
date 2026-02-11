@@ -33,7 +33,7 @@ export default function ProviderTermsAndPoliciesScreen({ navigation }: any) {
         return (
           <View style={styles.contentContainer}>
             <Text style={styles.contentTitle}>{t.provider?.termsOfUseProviders || 'Terms of Use - Providers'}</Text>
-            <Text style={styles.lastUpdated}>{t.provider?.lastUpdated || 'Last updated'}: {t.common?.monthJanuary || 'January'} 2024</Text>
+            <Text style={styles.lastUpdated}>{t.provider?.lastUpdated || 'Last updated'}: February 2026</Text>
 
             <Text style={styles.sectionHeading}>1. {t.provider?.registrationEligibility || 'Registration and Eligibility'}</Text>
             <Text style={styles.paragraph}>
@@ -57,6 +57,7 @@ export default function ProviderTermsAndPoliciesScreen({ navigation }: any) {
               <Text style={styles.bulletItem}>• {t.provider?.oblCommunication || 'Maintain clear communication with the customer'}</Text>
               <Text style={styles.bulletItem}>• {t.provider?.oblInvoice || 'Issue invoice when requested'}</Text>
               <Text style={styles.bulletItem}>• {t.provider?.oblRespond || 'Respond to requests in a timely manner'}</Text>
+              <Text style={styles.bulletItem}>• Document service with photos (minimum 3 when customer is absent)</Text>
             </View>
 
             <Text style={styles.sectionHeading}>3. {t.provider?.serviceQuality || 'Service Quality'}</Text>
@@ -68,6 +69,24 @@ export default function ProviderTermsAndPoliciesScreen({ navigation }: any) {
             <Text style={styles.paragraph}>
               {t.provider?.cancellationPolicy || 'Frequent cancellations negatively affect your reputation on the platform. High cancellation rates may result in penalties or suspension.'}
             </Text>
+            <Text style={styles.paragraph}>
+              {'When a customer requests cancellation after service has started, you will be asked to validate the request and report work already completed. You may be compensated for documented work performed.'}
+            </Text>
+
+            <Text style={styles.sectionHeading}>5. Independent Contractor Status</Text>
+            <Text style={styles.paragraph}>
+              You are an independent contractor, not an employee of TechTrust AutoSolutions LLC. You are responsible for your own taxes, insurance, business licenses, and compliance with all applicable federal, state, and local laws. TechTrust does not withhold taxes from your earnings.
+            </Text>
+
+            <Text style={styles.sectionHeading}>6. Dispute Resolution & Arbitration</Text>
+            <Text style={styles.paragraph}>
+              Any disputes arising from this agreement shall be resolved through binding arbitration administered by the American Arbitration Association (AAA) in the State of Florida. YOU WAIVE YOUR RIGHT TO A JURY TRIAL AND TO PARTICIPATE IN CLASS ACTIONS OR CLASS ARBITRATIONS.
+            </Text>
+
+            <Text style={styles.sectionHeading}>7. Governing Law</Text>
+            <Text style={styles.paragraph}>
+              These terms are governed by the laws of the State of Florida. Any non-arbitrable legal action shall be brought exclusively in courts located in Florida.
+            </Text>
           </View>
         );
 
@@ -75,7 +94,7 @@ export default function ProviderTermsAndPoliciesScreen({ navigation }: any) {
         return (
           <View style={styles.contentContainer}>
             <Text style={styles.contentTitle}>{t.provider?.privacyPolicy || 'Privacy Policy'}</Text>
-            <Text style={styles.lastUpdated}>{t.provider?.lastUpdated || 'Last updated'}: {t.common?.monthJanuary || 'January'} 2024</Text>
+            <Text style={styles.lastUpdated}>{t.provider?.lastUpdated || 'Last updated'}: February 2026</Text>
 
             <Text style={styles.sectionHeading}>1. {t.provider?.dataCollected || 'Data Collected'}</Text>
             <Text style={styles.paragraph}>
@@ -109,7 +128,12 @@ export default function ProviderTermsAndPoliciesScreen({ navigation }: any) {
 
             <Text style={styles.sectionHeading}>4. {t.provider?.dataCompliance || 'Data Compliance'}</Text>
             <Text style={styles.paragraph}>
-              {t.provider?.dataComplianceDesc || 'We comply with data protection regulations. You may request access, correction, or deletion of your data at any time through support.'}
+              We comply with applicable data protection laws, including the California Consumer Privacy Act (CCPA/CPRA) and Florida's Information Protection Act. You may request access, correction, or deletion of your data at any time through support at privacy@techtrust.com.
+            </Text>
+
+            <Text style={styles.sectionHeading}>5. Data Breach Notification</Text>
+            <Text style={styles.paragraph}>
+              In the event of a data breach affecting your personal information, we will notify you as required by applicable federal and state law, including Florida Statutes § 501.171.
             </Text>
           </View>
         );
@@ -118,7 +142,7 @@ export default function ProviderTermsAndPoliciesScreen({ navigation }: any) {
         return (
           <View style={styles.contentContainer}>
             <Text style={styles.contentTitle}>{t.provider?.partnershipContract || 'Partnership Contract'}</Text>
-            <Text style={styles.lastUpdated}>{t.provider?.lastUpdated || 'Last updated'}: {t.common?.monthJanuary || 'January'} 2024</Text>
+            <Text style={styles.lastUpdated}>{t.provider?.lastUpdated || 'Last updated'}: February 2026</Text>
 
             <Text style={styles.sectionHeading}>1. {t.provider?.contractObject || 'Contract Object'}</Text>
             <Text style={styles.paragraph}>
@@ -144,6 +168,21 @@ export default function ProviderTermsAndPoliciesScreen({ navigation }: any) {
             <Text style={styles.paragraph}>
               {t.provider?.intellectualPropertyDesc || 'Use of the TechTrust brand is only permitted for partnership disclosure, according to provided guidelines. Marketing materials must be pre-approved.'}
             </Text>
+
+            <Text style={styles.sectionHeading}>6. Tax Obligations</Text>
+            <Text style={styles.paragraph}>
+              As an independent contractor, you are responsible for reporting and paying all applicable federal, state, and local taxes on your earnings. TechTrust will issue a 1099-NEC form for earnings over $600 in a calendar year, as required by IRS regulations. You are responsible for estimated quarterly tax payments.
+            </Text>
+
+            <Text style={styles.sectionHeading}>7. Insurance Requirements</Text>
+            <Text style={styles.paragraph}>
+              You are responsible for maintaining appropriate business insurance, including general liability insurance. TechTrust does not provide insurance coverage for services performed through the platform. Proof of insurance may be requested at any time.
+            </Text>
+
+            <Text style={styles.sectionHeading}>8. Governing Law</Text>
+            <Text style={styles.paragraph}>
+              This contract is governed by the laws of the State of Florida. TechTrust AutoSolutions LLC is registered in the State of Florida.
+            </Text>
           </View>
         );
 
@@ -151,7 +190,7 @@ export default function ProviderTermsAndPoliciesScreen({ navigation }: any) {
         return (
           <View style={styles.contentContainer}>
             <Text style={styles.contentTitle}>{t.provider?.feePolicy || 'Fee Policy'}</Text>
-            <Text style={styles.lastUpdated}>{t.provider?.lastUpdated || 'Last updated'}: {t.common?.monthJanuary || 'January'} 2024</Text>
+            <Text style={styles.lastUpdated}>{t.provider?.lastUpdated || 'Last updated'}: February 2026</Text>
 
             <View style={styles.feeCard}>
               <View style={styles.feeHeader}>
@@ -160,13 +199,13 @@ export default function ProviderTermsAndPoliciesScreen({ navigation }: any) {
               </View>
               <Text style={styles.feeValue}>10%</Text>
               <Text style={styles.feeDescription}>
-                Sobre o valor total do serviço
+                Of the total service value
               </Text>
             </View>
 
             <Text style={styles.sectionHeading}>1. {t.provider?.howItWorks || 'How It Works'}</Text>
             <Text style={styles.paragraph}>
-              {t.provider?.howItWorksDesc || 'TechTrust charges a 10% fee on the total value of each completed service. This fee is automatically deducted at the time of payment transfer.'}
+              TechTrust charges a flat 10% platform fee on the total value of each completed service. This fee is automatically deducted when the customer approves the completed service and payment is captured. The processing fee (Stripe: 2.9% + $0.30) is paid by the customer, not the provider.
             </Text>
 
             <Text style={styles.sectionHeading}>2. {t.provider?.whatsIncluded || "What's Included"}</Text>
@@ -177,28 +216,38 @@ export default function ProviderTermsAndPoliciesScreen({ navigation }: any) {
               <Text style={styles.bulletItem}>• {t.provider?.inclMarketing || 'Marketing and customer acquisition'}</Text>
               <Text style={styles.bulletItem}>• {t.provider?.inclRatings || 'Rating system'}</Text>
               <Text style={styles.bulletItem}>• {t.provider?.inclFraudProtection || 'Fraud protection'}</Text>
+              <Text style={styles.bulletItem}>• Pre-authorization payment security</Text>
+              <Text style={styles.bulletItem}>• Dispute mediation support</Text>
             </View>
 
             <Text style={styles.sectionHeading}>3. {t.provider?.payments || 'Payments'}</Text>
             <Text style={styles.paragraph}>
-              {t.provider?.paymentsDesc || 'Transfers are made within 2 business days after service completion and customer confirmation. In case of installments, the amount is transferred as payments are confirmed.'}
+              Transfers are made within 2 business days after service completion and customer approval. Payments are processed through Stripe Connect to your linked bank account. Minimum withdrawal amount is $50.00.
             </Text>
 
-            <Text style={styles.sectionHeading}>4. {t.provider?.volumeDiscounts || 'Volume Discounts'}</Text>
+            <Text style={styles.sectionHeading}>4. Payment Example</Text>
             <View style={styles.tierCard}>
               <View style={styles.tierRow}>
-                <Text style={styles.tierLabel}>{t.provider?.tier1 || 'Up to 10 services/month'}</Text>
-                <Text style={styles.tierValue}>10%</Text>
+                <Text style={styles.tierLabel}>Service quoted</Text>
+                <Text style={styles.tierValue}>$200.00</Text>
               </View>
               <View style={styles.tierRow}>
-                <Text style={styles.tierLabel}>{t.provider?.tier2 || '11-30 services/month'}</Text>
-                <Text style={styles.tierValue}>9%</Text>
+                <Text style={styles.tierLabel}>Platform fee (10%)</Text>
+                <Text style={[styles.tierValue, { color: '#ef4444' }]}>-$20.00</Text>
               </View>
               <View style={styles.tierRow}>
-                <Text style={styles.tierLabel}>{t.provider?.tier3 || '31+ services/month'}</Text>
-                <Text style={styles.tierValue}>8%</Text>
+                <Text style={[styles.tierLabel, { fontWeight: '600' }]}>You receive</Text>
+                <Text style={[styles.tierValue, { fontWeight: '700' }]}>$180.00</Text>
               </View>
             </View>
+            <Text style={[styles.paragraph, { marginTop: 8, fontStyle: 'italic' }]}>
+              Note: The customer pays the processing fee separately. It does not affect your earnings.
+            </Text>
+
+            <Text style={styles.sectionHeading}>5. Tax Reporting</Text>
+            <Text style={styles.paragraph}>
+              TechTrust will issue a 1099-NEC form for annual earnings exceeding $600, as required by the IRS. It is your responsibility to report all income and pay applicable taxes.
+            </Text>
           </View>
         );
     }

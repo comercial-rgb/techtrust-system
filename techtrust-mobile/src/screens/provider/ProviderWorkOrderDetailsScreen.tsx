@@ -21,6 +21,8 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useI18n } from '../../i18n';
 import { CANCELLATION_RULES, PROVIDER_POINTS_SYSTEM } from '../../config/businessRules';
+import api from '../../services/api';
+import * as serviceFlowService from '../../services/service-flow.service';
 
 interface QuoteLineItem {
   id: string;
@@ -134,25 +136,12 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
           onPress: async () => {
             setActionLoading(true);
             try {
-              // TODO: Call API to start service
-              // await api.post(`/work-orders/${workOrderId}/start`);
-              await new Promise(resolve => setTimeout(resolve, 1000));
-              setWorkOrder({
-                ...workOrder,
-                status: 'IN_PROGRESS',
-                startedAt: new Date().toISOString(),
-                timeline: [
-                  ...workOrder.timeline,
-                  {
-                    status: 'IN_PROGRESS',
-                    timestamp: new Date().toISOString(),
-                    description: t.workOrder?.serviceStarted || 'Service started',
-                  },
-                ],
-              });
+              await api.post(`/work-orders/${workOrderId}/start`);
+              await loadWorkOrder();
               Alert.alert(t.common?.success || 'Success', t.workOrder?.serviceStartedSuccess || 'Service started successfully!');
-            } catch (error) {
-              Alert.alert(t.common?.error || 'Error', t.workOrder?.couldNotStart || 'Could not start the service.');
+            } catch (error: any) {
+              const msg = error.response?.data?.message || t.workOrder?.couldNotStart || 'Could not start the service.';
+              Alert.alert(t.common?.error || 'Error', msg);
             } finally {
               setActionLoading(false);
             }
@@ -167,27 +156,16 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
 
     setActionLoading(true);
     try {
-      // TODO: Call API to complete service
-      // await api.post(`/work-orders/${workOrderId}/complete`, { finalAmount: parseFloat(finalAmount), notes: completionNotes });
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setWorkOrder({
-        ...workOrder,
-        status: 'AWAITING_APPROVAL',
-        completedAt: new Date().toISOString(),
-        finalAmount: parseFloat(finalAmount),
-        timeline: [
-          ...workOrder.timeline,
-          {
-            status: 'AWAITING_APPROVAL',
-            timestamp: new Date().toISOString(),
-            description: t.workOrder?.serviceCompletedAwaitingApproval || 'Service completed, awaiting approval',
-          },
-        ],
-      });
+      await serviceFlowService.completeService(
+        workOrderId,
+        completionNotes || undefined
+      );
       setShowCompleteModal(false);
+      await loadWorkOrder();
       Alert.alert(t.common?.success || 'Success', t.workOrder?.markedAsCompleted || 'Service marked as completed! Awaiting customer approval.');
-    } catch (error) {
-      Alert.alert(t.common?.error || 'Error', t.workOrder?.couldNotComplete || 'Could not complete the service.');
+    } catch (error: any) {
+      const msg = error.response?.data?.message || t.workOrder?.couldNotComplete || 'Could not complete the service.';
+      Alert.alert(t.common?.error || 'Error', msg);
     } finally {
       setActionLoading(false);
     }
@@ -225,9 +203,8 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
 
     setActionLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await serviceFlowService.requestCancellation(workOrderId, cancelReason);
       
-      // Provider gets penalty points for cancelling
       const penaltyPoints = PROVIDER_POINTS_SYSTEM.NEGATIVE_ACTIONS.CANCEL_AFTER_ACCEPT;
       
       setShowCancelModal(false);
@@ -239,8 +216,9 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
           `Work order cancelled. You received ${Math.abs(penaltyPoints)} penalty points.`,
         [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
-    } catch (error) {
-      Alert.alert(t.common?.error || 'Error', t.common?.tryAgain || 'Please try again');
+    } catch (error: any) {
+      const msg = error.response?.data?.message || t.common?.tryAgain || 'Please try again';
+      Alert.alert(t.common?.error || 'Error', msg);
     } finally {
       setActionLoading(false);
     }
@@ -866,7 +844,19 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
                   }
                   setActionLoading(true);
                   try {
-                    await new Promise(resolve => setTimeout(resolve, 1500));
+                    const totalAmount = validItems.reduce((sum, item) => {
+                      return sum + (parseFloat(item.quantity) || 0) * (parseFloat(item.unitPrice) || 0);
+                    }, 0);
+                    await serviceFlowService.requestSupplement(
+                      workOrderId,
+                      totalAmount,
+                      additionalPartsReason,
+                      validItems.map(item => ({
+                        description: item.description,
+                        quantity: parseFloat(item.quantity) || 1,
+                        unitPrice: parseFloat(item.unitPrice) || 0,
+                      }))
+                    );
                     setShowAdditionalPartsModal(false);
                     setAdditionalPartsReason('');
                     setAdditionalItems([{ type: 'part', description: '', quantity: '1', unitPrice: '' }]);
@@ -874,8 +864,9 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
                       t.common?.success || 'Success',
                       t.provider?.additionalItemsRequested || 'Additional items request sent to customer for approval.'
                     );
-                  } catch (error) {
-                    Alert.alert(t.common?.error || 'Error', t.common?.tryAgain || 'Please try again');
+                  } catch (error: any) {
+                    const msg = error.response?.data?.message || t.common?.tryAgain || 'Please try again';
+                    Alert.alert(t.common?.error || 'Error', msg);
                   } finally {
                     setActionLoading(false);
                   }
