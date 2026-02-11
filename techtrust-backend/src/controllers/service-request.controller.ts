@@ -287,7 +287,6 @@ export const getServiceRequest = async (req: Request, res: Response) => {
           phone: true,
           city: true,
           state: true,
-          averageRating: true,
           _count: { select: { serviceRequests: true } },
         },
       },
