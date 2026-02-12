@@ -72,6 +72,13 @@ export default function SignupScreen({ navigation }: any) {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<'CLIENT' | 'PROVIDER'>('CLIENT');
+  // Provider-specific fields
+  const [businessName, setBusinessName] = useState('');
+  const [businessAddress, setBusinessAddress] = useState('');
+  const [businessCity, setBusinessCity] = useState('');
+  const [businessState, setBusinessState] = useState('FL');
+  const [businessZipCode, setBusinessZipCode] = useState('');
 
   // ✨ Toast hook
   const { toast, error, hideToast } = useToast();
@@ -79,12 +86,18 @@ export default function SignupScreen({ navigation }: any) {
   // ✨ Calcular progresso do formulário
   const calculateProgress = () => {
     let filled = 0;
+    const totalFields = selectedRole === 'PROVIDER' ? 8 : 5;
     if (fullName.length > 0) filled++;
     if (email.length > 0) filled++;
     if (phone.length > 0) filled++;
     if (password.length >= 8) filled++;
     if (confirmPassword.length > 0 && confirmPassword === password) filled++;
-    return filled / 5;
+    if (selectedRole === 'PROVIDER') {
+      if (businessName.length > 0) filled++;
+      if (businessAddress.length > 0) filled++;
+      if (businessZipCode.length > 0) filled++;
+    }
+    return filled / totalFields;
   };
 
   // ✨ Validar força da senha
@@ -102,6 +115,13 @@ export default function SignupScreen({ navigation }: any) {
     if (!fullName || !email || !phone || !password || !confirmPassword) {
       setHasError(true);
       error(t.auth?.fillAllFields || 'Please fill all fields');
+      setTimeout(() => setHasError(false), 500);
+      return;
+    }
+
+    if (selectedRole === 'PROVIDER' && (!businessName || !businessAddress || !businessZipCode)) {
+      setHasError(true);
+      error(t.auth?.fillBusinessFields || 'Please fill all business fields');
       setTimeout(() => setHasError(false), 500);
       return;
     }
@@ -136,6 +156,14 @@ export default function SignupScreen({ navigation }: any) {
         phone: normalizedPhone,
         password,
         language: 'PT',
+        role: selectedRole,
+        ...(selectedRole === 'PROVIDER' ? {
+          businessName,
+          businessAddress,
+          businessCity: businessCity || 'Miami',
+          businessState: businessState || 'FL',
+          businessZipCode,
+        } : {}),
       });
 
       navigation.navigate('OTP', { userId, phone: normalizedPhone });
@@ -183,6 +211,59 @@ export default function SignupScreen({ navigation }: any) {
             <Text style={styles.progressText}>
               {Math.round(calculateProgress() * 100)}% {t.common?.complete || 'complete'}
             </Text>
+          </View>
+        </FadeInView>
+
+        {/* 🔄 Role Selector */}
+        <FadeInView delay={60}>
+          <View style={styles.roleSelectorContainer}>
+            <Text style={styles.inputLabel}>
+              {t.auth?.accountType || 'Account Type'}
+            </Text>
+            <View style={styles.roleButtons}>
+              <TouchableOpacity
+                style={[
+                  styles.roleButton,
+                  selectedRole === 'CLIENT' && { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
+                ]}
+                onPress={() => setSelectedRole('CLIENT')}
+              >
+                <Ionicons
+                  name="person"
+                  size={20}
+                  color={selectedRole === 'CLIENT' ? '#fff' : '#6b7280'}
+                />
+                <Text
+                  style={[
+                    styles.roleButtonText,
+                    selectedRole === 'CLIENT' && styles.roleButtonTextActive,
+                  ]}
+                >
+                  {t.auth?.customer || 'Customer'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.roleButton,
+                  selectedRole === 'PROVIDER' && { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
+                ]}
+                onPress={() => setSelectedRole('PROVIDER')}
+              >
+                <Ionicons
+                  name="construct"
+                  size={20}
+                  color={selectedRole === 'PROVIDER' ? '#fff' : '#6b7280'}
+                />
+                <Text
+                  style={[
+                    styles.roleButtonText,
+                    selectedRole === 'PROVIDER' && styles.roleButtonTextActive,
+                  ]}
+                >
+                  {t.auth?.provider || 'Service Provider'}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </FadeInView>
 
@@ -325,6 +406,90 @@ export default function SignupScreen({ navigation }: any) {
               </View>
             </SlideInView>
 
+            {/* Provider Business Fields */}
+            {selectedRole === 'PROVIDER' && (
+              <>
+                <SlideInView direction="right" delay={310}>
+                  <View style={[styles.inputContainer, { backgroundColor: '#f0f9ff', padding: 12, borderRadius: 12, marginBottom: 8 }]}>
+                    <Text style={[styles.inputLabel, { color: theme.colors.primary, fontWeight: '700', fontSize: 15, marginBottom: 8 }]}>
+                      🏢 {t.auth?.businessInfo || 'Business Information'}
+                    </Text>
+                    <TextInput
+                      value={businessName}
+                      onChangeText={setBusinessName}
+                      mode="outlined"
+                      label={t.auth?.businessName || 'Business Name'}
+                      placeholder="Ex: John's Auto Repair"
+                      style={styles.input}
+                      outlineStyle={styles.inputOutline}
+                      textColor="#000"
+                      error={hasError && selectedRole === 'PROVIDER' && !businessName}
+                    />
+                  </View>
+                </SlideInView>
+                <SlideInView direction="left" delay={320}>
+                  <View style={styles.inputContainer}>
+                    <TextInput
+                      value={businessAddress}
+                      onChangeText={setBusinessAddress}
+                      mode="outlined"
+                      label={t.auth?.businessAddress || 'Business Address'}
+                      placeholder="123 Main St"
+                      style={styles.input}
+                      outlineStyle={styles.inputOutline}
+                      textColor="#000"
+                      error={hasError && selectedRole === 'PROVIDER' && !businessAddress}
+                    />
+                  </View>
+                </SlideInView>
+                <SlideInView direction="right" delay={330}>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <View style={[styles.inputContainer, { flex: 2 }]}>
+                      <TextInput
+                        value={businessCity}
+                        onChangeText={setBusinessCity}
+                        mode="outlined"
+                        label={t.auth?.city || 'City'}
+                        placeholder="Miami"
+                        style={styles.input}
+                        outlineStyle={styles.inputOutline}
+                        textColor="#000"
+                      />
+                    </View>
+                    <View style={[styles.inputContainer, { flex: 1 }]}>
+                      <TextInput
+                        value={businessState}
+                        onChangeText={setBusinessState}
+                        mode="outlined"
+                        label={t.auth?.state || 'State'}
+                        placeholder="FL"
+                        maxLength={2}
+                        autoCapitalize="characters"
+                        style={styles.input}
+                        outlineStyle={styles.inputOutline}
+                        textColor="#000"
+                      />
+                    </View>
+                    <View style={[styles.inputContainer, { flex: 1 }]}>
+                      <TextInput
+                        value={businessZipCode}
+                        onChangeText={setBusinessZipCode}
+                        mode="outlined"
+                        label={t.auth?.zipCode || 'ZIP'}
+                        placeholder="33101"
+                        keyboardType="numeric"
+                        maxLength={5}
+                        style={styles.input}
+                        outlineStyle={styles.inputOutline}
+                        textColor="#000"
+                        error={hasError && selectedRole === 'PROVIDER' && !businessZipCode}
+                      />
+                    </View>
+                  </View>
+                </SlideInView>
+              </>
+            )}
+
             {/* Botões */}
             <FadeInView delay={350}>
               <View style={styles.buttonsContainer}>
@@ -461,6 +626,33 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     textAlign: 'right',
     marginTop: 4,
+  },
+  roleSelectorContainer: {
+    marginBottom: 20,
+  },
+  roleButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  roleButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#e5e7eb',
+    backgroundColor: '#f9fafb',
+  },
+  roleButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
+  roleButtonTextActive: {
+    color: '#fff',
   },
   form: {
     width: '100%',

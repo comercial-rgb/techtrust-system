@@ -61,6 +61,12 @@ interface SignupData {
   phone: string;
   password: string;
   language?: string;
+  role?: 'CLIENT' | 'PROVIDER';
+  businessName?: string;
+  businessAddress?: string;
+  businessCity?: string;
+  businessState?: string;
+  businessZipCode?: string;
 }
 
 // ============================================

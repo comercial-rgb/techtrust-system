@@ -21,7 +21,10 @@ import { logger } from '../config/logger';
  */
 export const signup = async (req: Request, res: Response) => {
   try {
-    const { fullName, email, phone, password, language } = req.body;
+    const { fullName, email, phone, password, language, role, businessName, businessAddress, businessCity, businessState, businessZipCode } = req.body;
+
+    // Validar role
+    const userRole = role === 'PROVIDER' ? 'PROVIDER' : 'CLIENT';
 
     // Validar força da senha
     const passwordValidation = validatePasswordStrength(password);
@@ -66,10 +69,25 @@ export const signup = async (req: Request, res: Response) => {
         language: language || 'EN',
         otpCode,
         otpExpiresAt,
-        role: 'CLIENT',
+        role: userRole,
         status: 'PENDING_VERIFICATION',
       },
     });
+
+    // Se for provider, criar ProviderProfile
+    if (userRole === 'PROVIDER' && businessName) {
+      await prisma.providerProfile.create({
+        data: {
+          userId: user.id,
+          businessName,
+          address: businessAddress || '',
+          city: businessCity || '',
+          state: businessState || 'FL',
+          zipCode: businessZipCode || '',
+          servicesOffered: '[]',
+        },
+      });
+    }
 
     // Criar assinatura FREE
     await prisma.subscription.create({
