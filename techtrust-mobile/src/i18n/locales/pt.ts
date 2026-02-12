@@ -1630,8 +1630,13 @@ export default {
       "Permissão de localização é necessária para encontrar prestadores próximos.",
     selectDateTime: "Escolha data e horário",
     diagnosticFee: "Taxa de Diagnóstico",
+    appServiceFee: "Taxa do App",
+    appFeeMessage:
+      "Esta é a taxa de serviço TechTrust para conectar você com prestadores verificados. Assinantes não pagam taxa do app!",
+    providerFeeNote:
+      "O prestador pode opcionalmente cobrar uma taxa de diagnóstico (até $50) ao aceitar seu agendamento. Você será notificado antes de qualquer cobrança.",
     feeWaivedMessage:
-      "Esta taxa é creditada no reparo se você prosseguir com o serviço. Se não prosseguir, 50% vai para o prestador como compensação pelo tempo.",
+      "Assine mensalmente para eliminar taxas do app em todas as estimativas. Pague apenas a taxa opcional do prestador.",
     fdacsProtection:
       "Sua visita diagnóstica é protegida pelas regulamentações FDACS da Flórida. Você receberá uma Estimativa Escrita válida por 15 dias antes de qualquer trabalho.",
     reviewConfirm: "Revisar e Confirmar",

@@ -290,7 +290,7 @@ export const getQuote = async (req: Request, res: Response) => {
               totalServicesCompleted: true,
               city: true,
               state: true,
-              fdacsLicense: true,
+              fdacsRegistrationNumber: true,
               specialties: true,
             },
           },

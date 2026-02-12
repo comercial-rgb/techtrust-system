@@ -1623,8 +1623,13 @@ export default {
       "Location permission is required to find nearby providers.",
     selectDateTime: "Choose date and time",
     diagnosticFee: "Diagnostic Fee",
+    appServiceFee: "App Service Fee",
+    appFeeMessage:
+      "This is the TechTrust service fee for connecting you with verified providers. Subscribers pay no app fee!",
+    providerFeeNote:
+      "The provider may optionally charge a diagnostic fee (up to $50) when accepting your appointment. You will be notified before any charge.",
     feeWaivedMessage:
-      "This fee is credited toward your repair if you proceed with the service. If you choose not to proceed, 50% goes to the provider as compensation for their time.",
+      "Subscribe monthly to eliminate app fees on all estimates. Only pay the provider's optional diagnostic fee.",
     fdacsProtection:
       "Your diagnostic visit is protected under Florida FDACS regulations. You will receive a Written Estimate valid for 15 days before any work begins.",
     reviewConfirm: "Review & Confirm",

@@ -26,7 +26,9 @@ try {
   DateTimePicker = require("@react-native-community/datetimepicker").default;
 } catch (e) {}
 
-const DIAGNOSTIC_FEE = 50;
+const APP_SERVICE_FEE = 2.99;
+const APP_SERVICE_FEE_FREE_PLAN = 5.00;
+const MAX_PROVIDER_DIAGNOSTIC_FEE = 50;
 const DEFAULT_RADIUS_MILES = 25;
 
 interface VehicleItem {
@@ -270,7 +272,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
         scheduledDate: date.toISOString(),
         serviceDescription: `Diagnostic: ${diagnosticServiceTypes.find((s) => s.id === selectedServiceType)?.label || selectedServiceType}`,
         serviceType: selectedServiceType.toUpperCase(),
-        diagnosticFee: DIAGNOSTIC_FEE,
+        diagnosticFee: 0, // Provider sets fee when accepting
         feeWaivedOnService: true,
         latitude: userLocation?.lat,
         longitude: userLocation?.lng,
@@ -665,7 +667,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
               />
             )}
 
-            {/* Diagnostic Fee Card */}
+            {/* App Service Fee Card */}
             <View style={styles.feeCard}>
               <View style={styles.feeHeader}>
                 <Ionicons
@@ -674,12 +676,12 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
                   color="#1976d2"
                 />
                 <Text style={styles.feeTitle}>
-                  {t.scheduleAppointment?.diagnosticFee ||
-                    "Diagnostic Fee"}
+                  {t.scheduleAppointment?.appServiceFee ||
+                    "App Service Fee"}
                 </Text>
               </View>
               <Text style={styles.feeAmount}>
-                ${DIAGNOSTIC_FEE.toFixed(2)}
+                ${APP_SERVICE_FEE.toFixed(2)}
               </Text>
               <View style={styles.feeDisclaimer}>
                 <Ionicons
@@ -688,8 +690,19 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
                   color="#059669"
                 />
                 <Text style={styles.feeDisclaimerText}>
-                  {t.scheduleAppointment?.feeWaivedMessage ||
-                    "This fee is credited toward your repair if you proceed with the service. If you choose not to proceed, 50% goes to the provider as compensation for their time."}
+                  {t.scheduleAppointment?.appFeeMessage ||
+                    "This is the TechTrust service fee for connecting you with verified providers. Subscribers pay no app fee!"}
+                </Text>
+              </View>
+              <View style={[styles.feeDisclaimer, { marginTop: 8, backgroundColor: "#fefce8", borderColor: "#fde68a" }]}>
+                <Ionicons
+                  name="alert-circle"
+                  size={16}
+                  color="#b45309"
+                />
+                <Text style={[styles.feeDisclaimerText, { color: "#92400e" }]}>
+                  {t.scheduleAppointment?.providerFeeNote ||
+                    "The provider may optionally charge a diagnostic fee (up to $50) when accepting your appointment. You will be notified before any charge."}
                 </Text>
               </View>
             </View>
@@ -787,17 +800,17 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
                 <Ionicons name="cash" size={20} color="#6b7280" />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.summaryLabel}>
-                    {t.scheduleAppointment?.diagnosticFee ||
-                      "Diagnostic Fee"}
+                    {t.scheduleAppointment?.appServiceFee ||
+                      "App Service Fee"}
                   </Text>
                   <Text style={styles.summaryValue}>
-                    ${DIAGNOSTIC_FEE.toFixed(2)}
+                    ${APP_SERVICE_FEE.toFixed(2)}
                   </Text>
                 </View>
               </View>
             </View>
 
-            {/* Fee disclaimer */}
+            {/* Fee info */}
             <View style={styles.feeDisclaimer}>
               <Ionicons
                 name="information-circle"
@@ -805,8 +818,19 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
                 color="#059669"
               />
               <Text style={styles.feeDisclaimerText}>
-                {t.scheduleAppointment?.feeWaivedMessage ||
-                  "This fee is credited toward your repair if you proceed with the service. If you choose not to proceed, 50% goes to the provider as compensation for their time."}
+                {t.scheduleAppointment?.appFeeMessage ||
+                  "This is the TechTrust service fee for connecting you with verified providers. Subscribers pay no app fee!"}
+              </Text>
+            </View>
+            <View style={[styles.feeDisclaimer, { backgroundColor: "#fefce8", borderColor: "#fde68a" }]}>
+              <Ionicons
+                name="alert-circle"
+                size={16}
+                color="#b45309"
+              />
+              <Text style={[styles.feeDisclaimerText, { color: "#92400e" }]}>
+                {t.scheduleAppointment?.providerFeeNote ||
+                  "The provider may optionally charge a diagnostic fee (up to $50) when accepting your appointment. You will be notified before any charge."}
               </Text>
             </View>
 
