@@ -19,8 +19,7 @@ import AddVehicleScreen from "../screens/AddVehicleScreen";
 import VehicleDetailsScreen from "../screens/VehicleDetailsScreen";
 import VehicleTransferScreen from "../screens/VehicleTransferScreen";
 import InsuranceScreen from "../screens/InsuranceScreen";
-import CreateRequestScreen from "../screens/CreateRequestScreen";
-import RequestDetailsScreen from "../screens/RequestDetailsScreen";
+import CreateRequestScreen from "../screens/CreateRequestScreen";import ServiceChoiceScreen from '../screens/ServiceChoiceScreen';import RequestDetailsScreen from "../screens/RequestDetailsScreen";
 import WorkOrderDetailsScreen from "../screens/WorkOrderDetailsScreen";
 import PaymentScreen from "../screens/PaymentScreen";
 import RatingScreen from "../screens/RatingScreen";
@@ -99,6 +98,7 @@ function DashboardStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="DashboardMain" component={CustomerDashboardScreen} />
+      <Stack.Screen name="ServiceChoice" component={ServiceChoiceScreen} />
       <Stack.Screen name="CreateRequest" component={CreateRequestScreen} />
       <Stack.Screen name="RequestDetails" component={RequestDetailsScreen} />
       <Stack.Screen

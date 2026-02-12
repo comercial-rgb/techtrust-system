@@ -350,7 +350,7 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
         <TouchableOpacity
           style={styles.newRequestButton}
           onPress={() =>
-            navigation.navigate("Dashboard", { screen: "CreateRequest" })
+            navigation.navigate("Dashboard", { screen: "ServiceChoice" })
           }
         >
           <Ionicons name="add" size={20} color="#fff" />
@@ -669,7 +669,7 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
               <TouchableOpacity
                 style={styles.emptyButton}
                 onPress={() =>
-                  navigation.navigate("Dashboard", { screen: "CreateRequest" })
+                  navigation.navigate("Dashboard", { screen: "ServiceChoice" })
                 }
               >
                 <Ionicons name="add" size={20} color="#fff" />

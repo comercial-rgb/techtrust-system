@@ -205,6 +205,15 @@ export default function AppointmentsScreen({ navigation }: any) {
           <Ionicons name="calendar-outline" size={64} color="#d1d5db" />
           <Text style={styles.emptyTitle}>{t.fdacs.noAppointments}</Text>
           <Text style={styles.emptyText}>{t.fdacs.schedulePrompt}</Text>
+          <TouchableOpacity
+            style={styles.scheduleButton}
+            onPress={() => navigation.navigate("ScheduleAppointment")}
+          >
+            <Ionicons name="add-circle-outline" size={20} color="#fff" />
+            <Text style={styles.scheduleButtonText}>
+              {t.serviceChoice?.scheduleDiagnostic || "Schedule Visit"}
+            </Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <FlatList
@@ -300,5 +309,20 @@ const styles = StyleSheet.create({
     color: "#6b7280",
     textAlign: "center",
     marginTop: 8,
+  },
+  scheduleButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#16a34a",
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 14,
+    marginTop: 20,
+  },
+  scheduleButtonText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "600",
   },
 });

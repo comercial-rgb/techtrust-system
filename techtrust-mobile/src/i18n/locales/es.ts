@@ -1584,4 +1584,18 @@ export default {
     savePercent: "Ahorre {percent}%",
     youSave: "Ahorra ${amount} comparado con el original",
   },
+
+  // Service Choice Screen
+  serviceChoice: {
+    title: "¿Cómo podemos ayudar?",
+    subtitle: "Elige la opción que mejor se adapte a tus necesidades",
+    requestService: "Solicitar Servicio",
+    requestServiceDesc:
+      "¿Ya sabes lo que necesitas? Solicita cotizaciones de proveedores certificados en tu área. Compara precios y elige la mejor opción.",
+    getQuotes: "Obtener Cotizaciones",
+    diagnostic: "Diagnóstico y Estimación",
+    diagnosticDesc:
+      "¿No estás seguro del problema? Agenda una visita diagnóstica. Un técnico certificado inspeccionará tu vehículo y proporcionará un presupuesto escrito.",
+    scheduleDiagnostic: "Agendar Visita",
+  },
 };

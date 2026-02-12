@@ -1586,4 +1586,18 @@ export default {
     savePercent: "Save {percent}%",
     youSave: "You save ${amount} compared to original",
   },
+
+  // Service Choice Screen
+  serviceChoice: {
+    title: "How can we help?",
+    subtitle: "Choose the option that best fits your needs",
+    requestService: "Request Service",
+    requestServiceDesc:
+      "Already know what you need? Request quotes from certified providers in your area. Compare prices and choose the best option.",
+    getQuotes: "Get Quotes",
+    diagnostic: "Diagnostic & Estimate",
+    diagnosticDesc:
+      "Not sure what's wrong? Schedule a diagnostic visit. A certified technician will inspect your vehicle and provide a written estimate.",
+    scheduleDiagnostic: "Schedule Visit",
+  },
 };

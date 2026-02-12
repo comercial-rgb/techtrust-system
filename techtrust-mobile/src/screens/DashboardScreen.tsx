@@ -162,7 +162,7 @@ export default function DashboardScreen({ navigation }: any) {
                 title={t.customerDashboard?.noRequests || 'No requests'}
                 description={t.customerDashboard?.createFirstRequest || 'Create your first service request!'}
                 actionLabel={t.customerDashboard?.newRequest || 'New Request'}
-                onAction={() => navigation.navigate('CreateRequest')}
+                onAction={() => navigation.navigate('ServiceChoice')}
               />
             )}
 
@@ -212,7 +212,7 @@ export default function DashboardScreen({ navigation }: any) {
       <FAB
         icon="plus"
         style={[styles.fab, { backgroundColor: theme.colors.primary }]}
-        onPress={() => navigation.navigate('CreateRequest')}
+        onPress={() => navigation.navigate('ServiceChoice')}
         label={t.customerDashboard?.newRequest || 'New Request'}
       />
 
