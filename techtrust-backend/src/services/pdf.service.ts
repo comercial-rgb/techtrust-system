@@ -11,19 +11,19 @@
 
 import { PrismaClient } from '@prisma/client';
 import { v2 as cloudinary } from 'cloudinary';
-import path from 'path';
 
 const prisma = new PrismaClient();
 
-// pdfmake Node.js setup with PdfPrinter
-const PdfPrinter = require('pdfmake');
+// pdfmake Node.js setup with PdfPrinter (v0.2.x)
+const PdfPrinter = require('pdfmake/src/printer');
+const vfsFonts = require('pdfmake/build/vfs_fonts');
 
 const fonts = {
   Roboto: {
-    normal: path.resolve(__dirname, '../../node_modules/pdfmake/build/fonts/Roboto/Roboto-Regular.ttf'),
-    bold: path.resolve(__dirname, '../../node_modules/pdfmake/build/fonts/Roboto/Roboto-Medium.ttf'),
-    italics: path.resolve(__dirname, '../../node_modules/pdfmake/build/fonts/Roboto/Roboto-Italic.ttf'),
-    bolditalics: path.resolve(__dirname, '../../node_modules/pdfmake/build/fonts/Roboto/Roboto-MediumItalic.ttf'),
+    normal: Buffer.from(vfsFonts['Roboto-Regular.ttf'], 'base64'),
+    bold: Buffer.from(vfsFonts['Roboto-Medium.ttf'], 'base64'),
+    italics: Buffer.from(vfsFonts['Roboto-Italic.ttf'], 'base64'),
+    bolditalics: Buffer.from(vfsFonts['Roboto-MediumItalic.ttf'], 'base64'),
   },
 };
 
