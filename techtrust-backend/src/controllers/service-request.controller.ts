@@ -6,6 +6,7 @@
  */
 
 import { Request, Response } from "express";
+import { ServiceType } from "@prisma/client";
 import { prisma } from "../config/database";
 import { AppError } from "../middleware/error-handler";
 import { logger } from "../config/logger";
@@ -34,7 +35,7 @@ const SERVICE_TYPE_MAP: Record<string, string> = {
   other: "REPAIR",
 };
 
-function resolveServiceType(raw: string): string {
+function resolveServiceType(raw: string): ServiceType {
   // If it already matches a Prisma enum value, use it directly
   const enumValues = [
     "SCHEDULED_MAINTENANCE",
@@ -45,15 +46,15 @@ function resolveServiceType(raw: string): string {
     "DIAGNOSTIC",
   ];
   const upper = raw.toUpperCase();
-  if (enumValues.includes(upper)) return upper;
+  if (enumValues.includes(upper)) return upper as ServiceType;
 
   // Otherwise map from mobile short ID
   const mapped = SERVICE_TYPE_MAP[raw.toLowerCase()];
-  if (mapped) return mapped;
+  if (mapped) return mapped as ServiceType;
 
   // Fallback
   logger.warn(`Unknown serviceType "${raw}", defaulting to REPAIR`);
-  return "REPAIR";
+  return "REPAIR" as ServiceType;
 }
 
 /**

@@ -16,7 +16,6 @@ import {
   PrismaClient,
   ComplianceType,
   ComplianceStatus,
-  InsurancePolicyStatus,
 } from "@prisma/client";
 
 const prisma = new PrismaClient();

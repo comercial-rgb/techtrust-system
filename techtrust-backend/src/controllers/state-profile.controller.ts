@@ -121,7 +121,7 @@ export const upsertStateProfile = async (req: Request, res: Response): Promise<a
 // ============================================
 
 /** GET /compliance-requirements - List all catalog requirements */
-export const listComplianceRequirements = async (req: Request, res: Response) => {
+export const listComplianceRequirements = async (_req: Request, res: Response) => {
   try {
     const requirements = await prisma.complianceRequirement.findMany({
       where: { isActive: true },
@@ -368,7 +368,7 @@ export const getActiveStates = async (_req: Request, res: Response) => {
 };
 
 /** GET /states/all - Get all state profiles (admin) */
-export const getAllStates = async (req: Request, res: Response) => {
+export const getAllStates = async (_req: Request, res: Response) => {
   try {
     const states = await prisma.stateProfile.findMany({
       orderBy: { stateName: "asc" },
@@ -386,7 +386,7 @@ export const getAllStates = async (req: Request, res: Response) => {
 // ============================================
 
 /** GET /disclaimers - List active disclaimers */
-export const listDisclaimers = async (req: Request, res: Response) => {
+export const listDisclaimers = async (_req: Request, res: Response) => {
   try {
     const disclaimers = await prisma.disclaimerVersion.findMany({
       where: { isActive: true },
