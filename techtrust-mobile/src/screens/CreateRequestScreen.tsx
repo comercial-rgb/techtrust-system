@@ -533,7 +533,7 @@ export default function CreateRequestScreen({ navigation }: any) {
         providerId: selectedProvider?.id || preSelectedProviderId || undefined,
         location:
           shareLocation && currentLocation ? currentLocation : undefined,
-        urgency: selectedUrgency || undefined,
+        urgency: urgency || undefined,
         preferredDate: preferredDate || undefined,
       });
 

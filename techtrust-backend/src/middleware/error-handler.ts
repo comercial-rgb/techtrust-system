@@ -58,6 +58,13 @@ export const errorHandler = (
     }
   }
 
+  // Prisma validation errors (e.g. invalid enum value)
+  if (err.name === 'PrismaClientValidationError') {
+    statusCode = 400;
+    errorCode = 'VALIDATION_ERROR';
+    message = 'Dados inválidos enviados ao servidor';
+  }
+
   // Erros de validação
   if (err.name === 'ValidationError') {
     statusCode = 400;

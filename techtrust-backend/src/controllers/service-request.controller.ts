@@ -12,6 +12,51 @@ import { logger } from "../config/logger";
 import { geocodeAddress } from "../services/geocoding.service";
 
 /**
+ * Map mobile app service-type IDs to Prisma ServiceType enum values.
+ * The mobile sends short IDs like "oil", "brake", etc.
+ */
+const SERVICE_TYPE_MAP: Record<string, string> = {
+  oil: "SCHEDULED_MAINTENANCE",
+  brake: "REPAIR",
+  tire: "REPAIR",
+  engine: "REPAIR",
+  electric: "REPAIR",
+  ac: "REPAIR",
+  suspension: "REPAIR",
+  transmission: "REPAIR",
+  inspection: "INSPECTION",
+  detailing: "DETAILING",
+  towing: "ROADSIDE_SOS",
+  roadside: "ROADSIDE_SOS",
+  battery: "ROADSIDE_SOS",
+  lockout: "ROADSIDE_SOS",
+  diagnostic: "DIAGNOSTIC",
+  other: "REPAIR",
+};
+
+function resolveServiceType(raw: string): string {
+  // If it already matches a Prisma enum value, use it directly
+  const enumValues = [
+    "SCHEDULED_MAINTENANCE",
+    "REPAIR",
+    "ROADSIDE_SOS",
+    "INSPECTION",
+    "DETAILING",
+    "DIAGNOSTIC",
+  ];
+  const upper = raw.toUpperCase();
+  if (enumValues.includes(upper)) return upper;
+
+  // Otherwise map from mobile short ID
+  const mapped = SERVICE_TYPE_MAP[raw.toLowerCase()];
+  if (mapped) return mapped;
+
+  // Fallback
+  logger.warn(`Unknown serviceType "${raw}", defaulting to REPAIR`);
+  return "REPAIR";
+}
+
+/**
  * POST /api/v1/service-requests
  * Criar nova solicitação de serviço
  */
@@ -19,7 +64,7 @@ export const createServiceRequest = async (req: Request, res: Response) => {
   const userId = req.user!.id;
   const {
     vehicleId,
-    serviceType,
+    serviceType: rawServiceType,
     title,
     description,
     serviceLocationType,
@@ -27,10 +72,18 @@ export const createServiceRequest = async (req: Request, res: Response) => {
     preferredDate,
     preferredTime,
     isUrgent,
+    urgency,
     location,
     serviceLatitude,
     serviceLongitude,
   } = req.body;
+
+  // Resolve mobile service-type ID → Prisma enum value
+  const serviceType = resolveServiceType(rawServiceType);
+
+  // Accept either isUrgent (boolean) or urgency (string from mobile)
+  const resolvedIsUrgent =
+    isUrgent === true || urgency === "urgent" || urgency === "emergency";
 
   // Verificar se veículo pertence ao usuário
   const vehicle = await prisma.vehicle.findFirst({
@@ -178,7 +231,7 @@ export const createServiceRequest = async (req: Request, res: Response) => {
       locationType: serviceLocationType || null,
       preferredDate: preferredDate ? new Date(preferredDate) : null,
       preferredTime: preferredTime ? new Date(preferredTime) : null,
-      isUrgent: isUrgent || false,
+      isUrgent: resolvedIsUrgent,
       status: "SEARCHING_PROVIDERS",
       maxQuotes: 5,
       quoteDeadline,
