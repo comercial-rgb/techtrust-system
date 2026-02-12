@@ -122,9 +122,20 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
   const getRequestStatusInfo = (status: string) => {
     switch (status) {
       case 'SEARCHING':
+      case 'SEARCHING_PROVIDERS':
+      case 'DRAFT':
         return { label: t.serviceRequest?.searching || 'Searching', color: '#3b82f6', bgColor: '#dbeafe', icon: 'search' };
       case 'QUOTES_RECEIVED':
+      case 'QUOTE_ACCEPTED':
         return { label: t.serviceRequest?.quotesReceived || 'Quotes Received', color: '#f59e0b', bgColor: '#fef3c7', icon: 'pricetag' };
+      case 'SCHEDULED':
+        return { label: t.workOrder?.scheduled || 'Scheduled', color: '#8b5cf6', bgColor: '#ede9fe', icon: 'calendar' };
+      case 'IN_PROGRESS':
+        return { label: t.workOrder?.inProgress || 'In Progress', color: '#3b82f6', bgColor: '#dbeafe', icon: 'construct' };
+      case 'COMPLETED':
+        return { label: t.workOrder?.completed || 'Completed', color: '#10b981', bgColor: '#d1fae5', icon: 'checkmark-circle' };
+      case 'CANCELLED':
+        return { label: t.common?.cancelled || 'Cancelled', color: '#ef4444', bgColor: '#fee2e2', icon: 'close-circle' };
       default:
         return { label: status, color: '#6b7280', bgColor: '#f3f4f6', icon: 'ellipse' };
     }

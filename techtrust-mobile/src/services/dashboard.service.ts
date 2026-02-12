@@ -121,11 +121,21 @@ export async function getServiceRequests(): Promise<ServiceRequest[]> {
     const requests = raw.requests || (Array.isArray(raw) ? raw : []);
     
     // Mapear para formato esperado pela UI
+    // Normalizar status do backend para o que a UI espera
+    const normalizeStatus = (status: string) => {
+      const map: Record<string, string> = {
+        'SEARCHING_PROVIDERS': 'SEARCHING',
+        'QUOTE_ACCEPTED': 'QUOTES_RECEIVED',
+        'DRAFT': 'SEARCHING',
+      };
+      return map[status] || status;
+    };
+
     return requests.map((req: any) => ({
       id: req.id,
       requestNumber: req.requestNumber,
       title: req.title || req.description?.substring(0, 50) || 'Solicitação de Serviço',
-      status: req.status,
+      status: normalizeStatus(req.status),
       quotesCount: req._count?.quotes || req.quotesCount || 0,
       createdAt: req.createdAt,
       vehicle: req.vehicle ? {

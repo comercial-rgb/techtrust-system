@@ -84,7 +84,8 @@ export const signup = async (req: Request, res: Response) => {
           city: businessCity || '',
           state: businessState || 'FL',
           zipCode: businessZipCode || '',
-          servicesOffered: '[]',
+          servicesOffered: [],
+          specialties: [],
         },
       });
     }
