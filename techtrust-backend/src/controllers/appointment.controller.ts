@@ -457,14 +457,17 @@ export const getProviderSlots = async (req: Request, res: Response) => {
   const { providerId } = req.params;
   const { date } = req.query; // e.g. "2026-02-15"
 
-  // Check provider exists
+  // Check provider exists + get business hours
   const provider = await prisma.user.findFirst({
     where: { id: providerId, role: 'PROVIDER', status: 'ACTIVE' },
     select: {
       id: true,
       fullName: true,
       providerProfile: {
-        select: { businessName: true },
+        select: {
+          businessName: true,
+          businessHours: true,
+        },
       },
     },
   });
@@ -495,6 +498,42 @@ export const getProviderSlots = async (req: Request, res: Response) => {
     orderBy: { scheduledDate: 'asc' },
   });
 
+  // Parse business hours to generate available slots
+  const businessHours = provider.providerProfile?.businessHours as any;
+  let availableSlots: string[] = [];
+
+  if (date && businessHours) {
+    const dayOfWeek = new Date(date as string)
+      .toLocaleDateString('en-US', { weekday: 'long' })
+      .toLowerCase();
+    
+    // Support formats: { monday: { open: "08:00", close: "17:00" } }
+    // or { monday: { start: "08:00", end: "17:00" } }
+    const dayHours = businessHours[dayOfWeek];
+
+    if (dayHours && (dayHours.open || dayHours.start)) {
+      const openTime = dayHours.open || dayHours.start;
+      const closeTime = dayHours.close || dayHours.end;
+
+      const [openH] = openTime.split(':').map(Number);
+      const [closeH, closeM] = closeTime.split(':').map(Number);
+
+      const bookedTimes = new Set(
+        bookedAppointments
+          .filter((a) => a.scheduledTime)
+          .map((a) => a.scheduledTime)
+      );
+
+      // Generate 1-hour slots
+      for (let h = openH; h < closeH || (h === closeH && 0 < closeM); h++) {
+        const slot = `${String(h).padStart(2, '0')}:00`;
+        if (!bookedTimes.has(slot)) {
+          availableSlots.push(slot);
+        }
+      }
+    }
+  }
+
   return res.json({
     success: true,
     data: {
@@ -504,6 +543,8 @@ export const getProviderSlots = async (req: Request, res: Response) => {
         businessName: provider.providerProfile?.businessName,
       },
       bookedSlots: bookedAppointments,
+      availableSlots,
+      businessHours: businessHours || null,
     },
   });
 };

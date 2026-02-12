@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useI18n } from '../../i18n';
 import * as fdacsService from '../../services/fdacs.service';
 
 let DateTimePicker: any = null;
@@ -20,6 +21,7 @@ try {
 
 export default function ScheduleAppointmentScreen({ route, navigation }: any) {
   const { serviceRequestId, providerId, vehicleId } = route.params || {};
+  const { t } = useI18n();
 
   const [date, setDate] = useState(new Date(Date.now() + 24 * 60 * 60 * 1000));
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -32,11 +34,11 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
 
   async function handleSubmit() {
     if (!serviceDescription.trim()) {
-      Alert.alert('Required', 'Please describe the service needed.');
+      Alert.alert(t.common.required, t.fdacs.pleaseDescribeService);
       return;
     }
     if (!location.trim()) {
-      Alert.alert('Required', 'Please provide the appointment location.');
+      Alert.alert(t.common.required, t.fdacs.pleaseProvideLocation);
       return;
     }
 
@@ -52,11 +54,11 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
         diagnosticFee: diagnosticFee ? parseFloat(diagnosticFee) : undefined,
         customerNotes: notes.trim() || undefined,
       });
-      Alert.alert('Success', 'Appointment scheduled successfully!', [
-        { text: 'OK', onPress: () => navigation.goBack() },
+      Alert.alert(t.common.success, t.fdacs.appointmentScheduled, [
+        { text: t.common.ok, onPress: () => navigation.goBack() },
       ]);
     } catch (error: any) {
-      Alert.alert('Error', error?.response?.data?.message || 'Failed to schedule appointment.');
+      Alert.alert(t.common.error, error?.response?.data?.message || t.fdacs.failedToSchedule);
     } finally {
       setSubmitting(false);
     }
@@ -86,17 +88,17 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#111827" />
         </TouchableOpacity>
-        <Text style={styles.title}>Schedule Appointment</Text>
+        <Text style={styles.title}>{t.fdacs.scheduleAppointment}</Text>
         <View style={{ width: 24 }} />
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
         {/* Description */}
         <View style={styles.field}>
-          <Text style={styles.label}>Service Description *</Text>
+          <Text style={styles.label}>{t.fdacs.serviceDescriptionRequired}</Text>
           <TextInput
             style={[styles.input, styles.textArea]}
-            placeholder="Describe what needs to be inspected or estimated..."
+            placeholder={t.fdacs.serviceDescriptionPlaceholder}
             value={serviceDescription}
             onChangeText={setServiceDescription}
             multiline
@@ -107,7 +109,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
 
         {/* Date & Time */}
         <View style={styles.field}>
-          <Text style={styles.label}>Date & Time *</Text>
+          <Text style={styles.label}>{t.fdacs.dateTime}</Text>
           <View style={styles.dateTimeRow}>
             <TouchableOpacity
               style={[styles.dateBtn, { flex: 1 }]}
@@ -140,10 +142,10 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
 
         {/* Location */}
         <View style={styles.field}>
-          <Text style={styles.label}>Location *</Text>
+          <Text style={styles.label}>{t.fdacs.locationRequired}</Text>
           <TextInput
             style={styles.input}
-            placeholder="Address or location for the appointment"
+            placeholder={t.fdacs.locationPlaceholder}
             value={location}
             onChangeText={setLocation}
           />
@@ -151,25 +153,25 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
 
         {/* Diagnostic Fee */}
         <View style={styles.field}>
-          <Text style={styles.label}>Diagnostic Fee ($)</Text>
+          <Text style={styles.label}>{t.fdacs.diagnosticFeeInput}</Text>
           <TextInput
             style={styles.input}
-            placeholder="0.00 (waived if service completed on platform)"
+            placeholder={t.fdacs.diagnosticFeePlaceholder}
             value={diagnosticFee}
             onChangeText={setDiagnosticFee}
             keyboardType="decimal-pad"
           />
           <Text style={styles.hint}>
-            The diagnostic fee will be waived if the customer completes the service through TechTrust.
+            {t.fdacs.diagnosticFeeHint}
           </Text>
         </View>
 
         {/* Notes */}
         <View style={styles.field}>
-          <Text style={styles.label}>Additional Notes</Text>
+          <Text style={styles.label}>{t.fdacs.additionalNotes}</Text>
           <TextInput
             style={[styles.input, styles.textArea]}
-            placeholder="Any additional instructions or details..."
+            placeholder={t.fdacs.additionalNotesPlaceholder}
             value={notes}
             onChangeText={setNotes}
             multiline
@@ -182,8 +184,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
         <View style={styles.fdacsInfo}>
           <Ionicons name="information-circle" size={20} color="#1976d2" />
           <Text style={styles.fdacsText}>
-            After the diagnostic visit, a Written Estimate (WE) will be generated in compliance with
-            Florida FDACS regulations. The customer can then approve or share the estimate for competing quotes.
+            {t.fdacs.fdacsScheduleInfo}
           </Text>
         </View>
       </ScrollView>
@@ -200,7 +201,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
           ) : (
             <>
               <Ionicons name="calendar-outline" size={20} color="#fff" />
-              <Text style={styles.submitBtnText}>Schedule Appointment</Text>
+              <Text style={styles.submitBtnText}>{t.fdacs.scheduleAppointment}</Text>
             </>
           )}
         </TouchableOpacity>

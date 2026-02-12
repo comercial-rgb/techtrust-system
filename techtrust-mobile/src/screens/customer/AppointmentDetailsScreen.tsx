@@ -37,7 +37,7 @@ export default function AppointmentDetailsScreen({ navigation, route }: any) {
       setAppointment(res.data?.appointment);
     } catch (error) {
       console.error('Error loading appointment:', error);
-      Alert.alert('Error', 'Could not load appointment details.');
+      Alert.alert(t.common.error, t.fdacs.couldNotLoad);
     } finally {
       setLoading(false);
     }
@@ -47,10 +47,10 @@ export default function AppointmentDetailsScreen({ navigation, route }: any) {
     try {
       setProcessing(true);
       await fdacsService.confirmAppointment(appointmentId);
-      Alert.alert('Success', 'Appointment confirmed!');
+      Alert.alert(t.common.success, t.fdacs.appointmentConfirmed);
       loadDetails();
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.message || 'Could not confirm.');
+      Alert.alert(t.common.error, error.response?.data?.message || t.fdacs.couldNotConfirm);
     } finally {
       setProcessing(false);
     }
@@ -60,10 +60,10 @@ export default function AppointmentDetailsScreen({ navigation, route }: any) {
     try {
       setProcessing(true);
       await fdacsService.checkInAppointment(appointmentId);
-      Alert.alert('Success', 'Checked in successfully!');
+      Alert.alert(t.common.success, t.fdacs.checkedIn);
       loadDetails();
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.message || 'Could not check in.');
+      Alert.alert(t.common.error, error.response?.data?.message || t.fdacs.couldNotCheckIn);
     } finally {
       setProcessing(false);
     }
@@ -71,20 +71,20 @@ export default function AppointmentDetailsScreen({ navigation, route }: any) {
 
   const handleComplete = async () => {
     Alert.alert(
-      'Complete Appointment',
-      'Mark this diagnostic visit as completed?',
+      t.fdacs.confirmTitle,
+      t.fdacs.confirmMessage,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t.common.cancel, style: 'cancel' },
         {
-          text: 'Complete',
+          text: t.fdacs.statusCompleted,
           onPress: async () => {
             try {
               setProcessing(true);
               await fdacsService.completeAppointment(appointmentId);
-              Alert.alert('Success', 'Appointment completed! You can now create a Written Estimate.');
+              Alert.alert(t.common.success, t.fdacs.appointmentCompleted);
               loadDetails();
             } catch (error: any) {
-              Alert.alert('Error', error.response?.data?.message || 'Could not complete.');
+              Alert.alert(t.common.error, error.response?.data?.message || t.fdacs.couldNotComplete);
             } finally {
               setProcessing(false);
             }
@@ -96,21 +96,21 @@ export default function AppointmentDetailsScreen({ navigation, route }: any) {
 
   const handleCancel = async () => {
     Alert.alert(
-      'Cancel Appointment',
-      'Are you sure you want to cancel this appointment?',
+      t.fdacs.cancelTitle,
+      t.fdacs.cancelMessage,
       [
-        { text: 'No', style: 'cancel' },
+        { text: t.common.no, style: 'cancel' },
         {
-          text: 'Yes, Cancel',
+          text: t.fdacs.yesCancel,
           style: 'destructive',
           onPress: async () => {
             try {
               setProcessing(true);
-              await fdacsService.cancelAppointment(appointmentId, 'Cancelled by user');
-              Alert.alert('Cancelled', 'Appointment has been cancelled.');
+              await fdacsService.cancelAppointment(appointmentId, t.fdacs.cancelledByUser);
+              Alert.alert(t.fdacs.statusCancelled, t.fdacs.appointmentCancelled);
               navigation.goBack();
             } catch (error: any) {
-              Alert.alert('Error', error.response?.data?.message || 'Could not cancel.');
+              Alert.alert(t.common.error, error.response?.data?.message || t.fdacs.couldNotCancel);
             } finally {
               setProcessing(false);
             }
@@ -122,13 +122,13 @@ export default function AppointmentDetailsScreen({ navigation, route }: any) {
 
   const getStatusInfo = (status: string) => {
     switch (status) {
-      case 'REQUESTED': return { label: 'Requested', color: '#f59e0b', bgColor: '#fef3c7' };
-      case 'CONFIRMED': return { label: 'Confirmed', color: '#3b82f6', bgColor: '#dbeafe' };
-      case 'PROVIDER_EN_ROUTE': return { label: 'Provider En Route', color: '#8b5cf6', bgColor: '#ede9fe' };
-      case 'IN_PROGRESS': return { label: 'In Progress', color: '#3b82f6', bgColor: '#dbeafe' };
-      case 'COMPLETED': return { label: 'Completed', color: '#10b981', bgColor: '#d1fae5' };
-      case 'CANCELLED': return { label: 'Cancelled', color: '#ef4444', bgColor: '#fee2e2' };
-      case 'NO_SHOW': return { label: 'No Show', color: '#6b7280', bgColor: '#f3f4f6' };
+      case 'REQUESTED': return { label: t.fdacs.statusRequested, color: '#f59e0b', bgColor: '#fef3c7' };
+      case 'CONFIRMED': return { label: t.fdacs.statusConfirmed, color: '#3b82f6', bgColor: '#dbeafe' };
+      case 'PROVIDER_EN_ROUTE': return { label: t.fdacs.statusProviderEnRoute, color: '#8b5cf6', bgColor: '#ede9fe' };
+      case 'IN_PROGRESS': return { label: t.fdacs.statusInProgress, color: '#3b82f6', bgColor: '#dbeafe' };
+      case 'COMPLETED': return { label: t.fdacs.statusCompleted, color: '#10b981', bgColor: '#d1fae5' };
+      case 'CANCELLED': return { label: t.fdacs.statusCancelled, color: '#ef4444', bgColor: '#fee2e2' };
+      case 'NO_SHOW': return { label: t.fdacs.statusNoShow, color: '#6b7280', bgColor: '#f3f4f6' };
       default: return { label: status, color: '#6b7280', bgColor: '#f3f4f6' };
     }
   };
@@ -179,7 +179,7 @@ export default function AppointmentDetailsScreen({ navigation, route }: any) {
 
         {/* Schedule Info */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Schedule</Text>
+          <Text style={styles.cardTitle}>{t.fdacs.schedule}</Text>
           <View style={styles.row}>
             <Ionicons name="calendar-outline" size={18} color="#6b7280" />
             <Text style={styles.rowText}>
@@ -195,7 +195,7 @@ export default function AppointmentDetailsScreen({ navigation, route }: any) {
           <View style={styles.row}>
             <Ionicons name="location-outline" size={18} color="#6b7280" />
             <Text style={styles.rowText}>
-              {appointment.locationType === 'ON_SITE' ? 'On-site (customer location)' : 'At provider shop'}
+              {appointment.locationType === 'ON_SITE' ? t.fdacs.onSiteCustomer : t.fdacs.atProviderShop}
             </Text>
           </View>
           {appointment.address && (
@@ -205,14 +205,14 @@ export default function AppointmentDetailsScreen({ navigation, route }: any) {
 
         {/* Service Info */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Service Description</Text>
+          <Text style={styles.cardTitle}>{t.fdacs.serviceDescription}</Text>
           <Text style={styles.descText}>{appointment.serviceDescription}</Text>
         </View>
 
         {/* Vehicle */}
         {appointment.vehicle && (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Vehicle</Text>
+            <Text style={styles.cardTitle}>{t.fdacs.vehicle}</Text>
             <Text style={styles.rowText}>
               {appointment.vehicle.year} {appointment.vehicle.make} {appointment.vehicle.model}
               {appointment.vehicle.plateNumber ? ` (${appointment.vehicle.plateNumber})` : ''}
@@ -222,12 +222,12 @@ export default function AppointmentDetailsScreen({ navigation, route }: any) {
 
         {/* Provider/Customer info */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>{isProvider ? 'Customer' : 'Provider'}</Text>
+          <Text style={styles.cardTitle}>{isProvider ? t.fdacs.customer : t.fdacs.provider}</Text>
           {isProvider ? (
-            <Text style={styles.rowText}>{appointment.customer?.fullName || 'N/A'}</Text>
+            <Text style={styles.rowText}>{appointment.customer?.fullName || t.fdacs.na}</Text>
           ) : (
             <>
-              <Text style={styles.rowText}>{appointment.provider?.fullName || 'N/A'}</Text>
+              <Text style={styles.rowText}>{appointment.provider?.fullName || t.fdacs.na}</Text>
               {appointment.provider?.providerProfile?.businessName && (
                 <Text style={styles.subText}>{appointment.provider.providerProfile.businessName}</Text>
               )}
@@ -238,22 +238,22 @@ export default function AppointmentDetailsScreen({ navigation, route }: any) {
         {/* Fees */}
         {(Number(appointment.diagnosticFee) > 0 || Number(appointment.travelFee) > 0) && (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Fees</Text>
+            <Text style={styles.cardTitle}>{t.fdacs.fees}</Text>
             {Number(appointment.diagnosticFee) > 0 && (
               <View style={styles.feeRow}>
-                <Text style={styles.feeLabel}>Diagnostic Fee</Text>
+                <Text style={styles.feeLabel}>{t.fdacs.diagnosticFee}</Text>
                 <Text style={styles.feeValue}>${Number(appointment.diagnosticFee).toFixed(2)}</Text>
               </View>
             )}
             {Number(appointment.travelFee) > 0 && (
               <View style={styles.feeRow}>
-                <Text style={styles.feeLabel}>Travel Fee</Text>
+                <Text style={styles.feeLabel}>{t.fdacs.travelFee}</Text>
                 <Text style={styles.feeValue}>${Number(appointment.travelFee).toFixed(2)}</Text>
               </View>
             )}
             {appointment.feeWaivedOnService && (
               <Text style={styles.waivedNote}>
-                * Diagnostic fee waived if service is completed on TechTrust
+                {t.fdacs.feeWaivedNote}
               </Text>
             )}
           </View>
@@ -262,16 +262,16 @@ export default function AppointmentDetailsScreen({ navigation, route }: any) {
         {/* Notes */}
         {(appointment.customerNotes || appointment.providerNotes) && (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Notes</Text>
+            <Text style={styles.cardTitle}>{t.fdacs.notes}</Text>
             {appointment.customerNotes && (
               <>
-                <Text style={styles.noteLabel}>Customer:</Text>
+                <Text style={styles.noteLabel}>{t.fdacs.customer}:</Text>
                 <Text style={styles.noteText}>{appointment.customerNotes}</Text>
               </>
             )}
             {appointment.providerNotes && (
               <>
-                <Text style={styles.noteLabel}>Provider:</Text>
+                <Text style={styles.noteLabel}>{t.fdacs.provider}:</Text>
                 <Text style={styles.noteText}>{appointment.providerNotes}</Text>
               </>
             )}
@@ -281,7 +281,7 @@ export default function AppointmentDetailsScreen({ navigation, route }: any) {
         {/* Resulting Estimates */}
         {appointment.quotes && appointment.quotes.length > 0 && (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Written Estimates</Text>
+            <Text style={styles.cardTitle}>{t.fdacs.writtenEstimates}</Text>
             {appointment.quotes.map((q: any) => (
               <TouchableOpacity
                 key={q.id}
@@ -308,7 +308,7 @@ export default function AppointmentDetailsScreen({ navigation, route }: any) {
               disabled={processing}
             >
               <Ionicons name="checkmark-circle-outline" size={20} color="#fff" />
-              <Text style={styles.actionBtnText}>Confirm Appointment</Text>
+              <Text style={styles.actionBtnText}>{t.fdacs.confirmAppointment}</Text>
             </TouchableOpacity>
           )}
 
@@ -319,7 +319,7 @@ export default function AppointmentDetailsScreen({ navigation, route }: any) {
               disabled={processing}
             >
               <Ionicons name="log-in-outline" size={20} color="#fff" />
-              <Text style={styles.actionBtnText}>Check In</Text>
+              <Text style={styles.actionBtnText}>{t.fdacs.checkIn}</Text>
             </TouchableOpacity>
           )}
 
@@ -330,7 +330,7 @@ export default function AppointmentDetailsScreen({ navigation, route }: any) {
               disabled={processing}
             >
               <Ionicons name="checkmark-done-outline" size={20} color="#fff" />
-              <Text style={styles.actionBtnText}>Complete Diagnostic</Text>
+              <Text style={styles.actionBtnText}>{t.fdacs.completeDiagnostic}</Text>
             </TouchableOpacity>
           )}
 
@@ -342,7 +342,7 @@ export default function AppointmentDetailsScreen({ navigation, route }: any) {
               disabled={processing}
             >
               <Ionicons name="close-circle-outline" size={20} color="#fff" />
-              <Text style={styles.actionBtnText}>Cancel Appointment</Text>
+              <Text style={styles.actionBtnText}>{t.fdacs.cancelAppointment}</Text>
             </TouchableOpacity>
           )}
         </View>

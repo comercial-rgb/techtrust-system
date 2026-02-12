@@ -9,11 +9,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import { useI18n } from '../../i18n';
 import { useAuth } from '../../contexts/AuthContext';
 import * as fdacsService from '../../services/fdacs.service';
 
 export default function EstimateSharesScreen({ navigation }: any) {
   const { user } = useAuth();
+  const { t } = useI18n();
   const isProvider = user?.role === 'PROVIDER';
   const [loading, setLoading] = useState(true);
   const [shares, setShares] = useState<fdacsService.EstimateShare[]>([]);
@@ -44,9 +46,9 @@ export default function EstimateSharesScreen({ navigation }: any) {
 
   const getStatusInfo = (status: string) => {
     switch (status) {
-      case 'OPEN': return { label: 'Open', color: '#3b82f6', bgColor: '#dbeafe' };
-      case 'CLOSED': return { label: 'Closed', color: '#6b7280', bgColor: '#f3f4f6' };
-      case 'EXPIRED': return { label: 'Expired', color: '#ef4444', bgColor: '#fee2e2' };
+      case 'OPEN': return { label: t.fdacs.statusOpen, color: '#3b82f6', bgColor: '#dbeafe' };
+      case 'CLOSED': return { label: t.fdacs.statusClosed, color: '#6b7280', bgColor: '#f3f4f6' };
+      case 'EXPIRED': return { label: t.fdacs.statusExpired, color: '#ef4444', bgColor: '#fee2e2' };
       default: return { label: status, color: '#6b7280', bgColor: '#f3f4f6' };
     }
   };
@@ -72,13 +74,13 @@ export default function EstimateSharesScreen({ navigation }: any) {
           <View style={styles.metaItem}>
             <Ionicons name="document-text-outline" size={14} color="#6b7280" />
             <Text style={styles.metaText}>
-              {item.competingQuotesCount || 0} competing estimate{(item.competingQuotesCount || 0) !== 1 ? 's' : ''}
+              {item.competingQuotesCount || 0} {(item.competingQuotesCount || 0) !== 1 ? t.fdacs.competingEstimates : t.fdacs.competingEstimate}
             </Text>
           </View>
           <View style={styles.metaItem}>
             <Ionicons name="cash-outline" size={14} color="#6b7280" />
             <Text style={styles.metaText}>
-              Original: ${Number(item.originalTotal).toFixed(2)}
+              {t.fdacs.originalTotal}: ${Number(item.originalTotal).toFixed(2)}
             </Text>
           </View>
         </View>
@@ -87,7 +89,7 @@ export default function EstimateSharesScreen({ navigation }: any) {
           <View style={styles.expiresRow}>
             <Ionicons name="time-outline" size={14} color="#f59e0b" />
             <Text style={styles.expiresText}>
-              Expires: {new Date(item.expiresAt).toLocaleDateString()}
+              {t.fdacs.expires}: {new Date(item.expiresAt).toLocaleDateString()}
             </Text>
           </View>
         )}
@@ -101,7 +103,7 @@ export default function EstimateSharesScreen({ navigation }: any) {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#111827" />
         </TouchableOpacity>
-        <Text style={styles.title}>Estimate Comparison</Text>
+        <Text style={styles.title}>{t.fdacs.estimateComparison}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -112,13 +114,13 @@ export default function EstimateSharesScreen({ navigation }: any) {
             style={[styles.tab, tab === 'mine' && styles.tabActive]}
             onPress={() => setTab('mine')}
           >
-            <Text style={[styles.tabText, tab === 'mine' && styles.tabTextActive]}>My Shares</Text>
+            <Text style={[styles.tabText, tab === 'mine' && styles.tabTextActive]}>{t.fdacs.myShares}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tab, tab === 'available' && styles.tabActive]}
             onPress={() => setTab('available')}
           >
-            <Text style={[styles.tabText, tab === 'available' && styles.tabTextActive]}>Available</Text>
+            <Text style={[styles.tabText, tab === 'available' && styles.tabTextActive]}>{t.fdacs.available}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -129,12 +131,12 @@ export default function EstimateSharesScreen({ navigation }: any) {
         <View style={styles.emptyState}>
           <Ionicons name="git-compare-outline" size={64} color="#d1d5db" />
           <Text style={styles.emptyTitle}>
-            {tab === 'available' ? 'No available estimates' : 'No shared estimates'}
+            {tab === 'available' ? t.fdacs.noAvailableEstimates : t.fdacs.noSharedEstimates}
           </Text>
           <Text style={styles.emptyText}>
             {tab === 'available'
-              ? 'When customers share their estimates for competing quotes, they will appear here.'
-              : 'Share a Written Estimate to get competing quotes from other providers.'}
+              ? t.fdacs.availableHint
+              : t.fdacs.sharedHint}
           </Text>
         </View>
       ) : (

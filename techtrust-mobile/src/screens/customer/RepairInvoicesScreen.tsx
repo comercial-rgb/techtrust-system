@@ -9,9 +9,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import { useI18n } from '../../i18n';
 import * as fdacsService from '../../services/fdacs.service';
 
 export default function RepairInvoicesScreen({ navigation }: any) {
+  const { t } = useI18n();
   const [loading, setLoading] = useState(true);
   const [invoices, setInvoices] = useState<fdacsService.RepairInvoice[]>([]);
 
@@ -35,11 +37,11 @@ export default function RepairInvoicesScreen({ navigation }: any) {
 
   const getStatusInfo = (status: string) => {
     switch (status) {
-      case 'DRAFT': return { label: 'Draft', color: '#6b7280', bgColor: '#f3f4f6' };
-      case 'IN_PROGRESS': return { label: 'In Progress', color: '#3b82f6', bgColor: '#dbeafe' };
-      case 'COMPLETED': return { label: 'Ready for Review', color: '#f59e0b', bgColor: '#fef3c7' };
-      case 'APPROVED': return { label: 'Approved', color: '#10b981', bgColor: '#d1fae5' };
-      case 'DISPUTED': return { label: 'Disputed', color: '#ef4444', bgColor: '#fee2e2' };
+      case 'DRAFT': return { label: t.fdacs.statusDraft, color: '#6b7280', bgColor: '#f3f4f6' };
+      case 'IN_PROGRESS': return { label: t.fdacs.statusInProgress, color: '#3b82f6', bgColor: '#dbeafe' };
+      case 'COMPLETED': return { label: t.fdacs.statusReadyForReview, color: '#f59e0b', bgColor: '#fef3c7' };
+      case 'APPROVED': return { label: t.fdacs.statusApproved, color: '#10b981', bgColor: '#d1fae5' };
+      case 'DISPUTED': return { label: t.fdacs.statusDisputed, color: '#ef4444', bgColor: '#fee2e2' };
       default: return { label: status, color: '#6b7280', bgColor: '#f3f4f6' };
     }
   };
@@ -64,19 +66,19 @@ export default function RepairInvoicesScreen({ navigation }: any) {
 
         <View style={styles.amountRow}>
           <View>
-            <Text style={styles.amountLabel}>Original</Text>
+            <Text style={styles.amountLabel}>{t.fdacs.original}</Text>
             <Text style={styles.amountValue}>${Number(item.originalTotal).toFixed(2)}</Text>
           </View>
           {hasSupplement && (
             <View>
-              <Text style={styles.amountLabel}>Supplements</Text>
+              <Text style={styles.amountLabel}>{t.fdacs.supplements}</Text>
               <Text style={[styles.amountValue, { color: '#f59e0b' }]}>
                 +${Number(item.supplementsTotal).toFixed(2)}
               </Text>
             </View>
           )}
           <View>
-            <Text style={styles.amountLabel}>Final Total</Text>
+            <Text style={styles.amountLabel}>{t.fdacs.finalTotal}</Text>
             <Text style={[styles.amountValue, { color: '#10b981', fontWeight: '700' }]}>
               ${Number(item.finalTotal).toFixed(2)}
             </Text>
@@ -109,16 +111,16 @@ export default function RepairInvoicesScreen({ navigation }: any) {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#111827" />
         </TouchableOpacity>
-        <Text style={styles.title}>Repair Invoices</Text>
+        <Text style={styles.title}>{t.fdacs.repairInvoices}</Text>
         <View style={{ width: 24 }} />
       </View>
 
       {invoices.length === 0 ? (
         <View style={styles.emptyState}>
           <Ionicons name="document-text-outline" size={64} color="#d1d5db" />
-          <Text style={styles.emptyTitle}>No invoices yet</Text>
+          <Text style={styles.emptyTitle}>{t.fdacs.noInvoices}</Text>
           <Text style={styles.emptyText}>
-            Repair invoices are generated automatically when a Written Estimate is approved.
+            {t.fdacs.noInvoicesHint}
           </Text>
         </View>
       ) : (

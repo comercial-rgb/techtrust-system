@@ -9,12 +9,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import { useI18n } from '../../i18n';
 import { useAuth } from '../../contexts/AuthContext';
 import * as fdacsService from '../../services/fdacs.service';
 
 export default function CompareEstimatesScreen({ route, navigation }: any) {
   const { shareId } = route.params;
   const { user } = useAuth();
+  const { t } = useI18n();
   const [loading, setLoading] = useState(true);
   const [share, setShare] = useState<any>(null);
 
@@ -38,18 +40,18 @@ export default function CompareEstimatesScreen({ route, navigation }: any) {
 
   async function handleCloseSharing() {
     Alert.alert(
-      'Close Sharing',
-      'No more providers will be able to submit competing quotes. Are you sure?',
+      t.fdacs.closeSharingTitle,
+      t.fdacs.closeSharingMessage,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t.common.cancel, style: 'cancel' },
         {
-          text: 'Close', style: 'destructive',
+          text: t.common.close, style: 'destructive',
           onPress: async () => {
             try {
               await fdacsService.closeSharing(shareId);
               loadDetail();
             } catch (error) {
-              Alert.alert('Error', 'Failed to close sharing');
+              Alert.alert(t.common.error, t.fdacs.failedToClose);
             }
           }
         },
@@ -75,7 +77,7 @@ export default function CompareEstimatesScreen({ route, navigation }: any) {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#111827" />
         </TouchableOpacity>
-        <Text style={styles.title}>Compare Estimates</Text>
+        <Text style={styles.title}>{t.fdacs.compareEstimates}</Text>
         {isOwner && share.status === 'OPEN' && (
           <TouchableOpacity onPress={handleCloseSharing}>
             <Ionicons name="close-circle" size={24} color="#ef4444" />
@@ -88,7 +90,7 @@ export default function CompareEstimatesScreen({ route, navigation }: any) {
         {/* Vehicle Info */}
         <View style={styles.vehicleCard}>
           <Ionicons name="car-outline" size={20} color="#6b7280" />
-          <Text style={styles.vehicleText}>{share.vehicleInfo || 'Vehicle'}</Text>
+          <Text style={styles.vehicleText}>{share.vehicleInfo || t.fdacs.vehicle}</Text>
           <View style={[styles.statusBadge, { backgroundColor: share.status === 'OPEN' ? '#dbeafe' : '#f3f4f6' }]}>
             <Text style={[styles.statusText, { color: share.status === 'OPEN' ? '#3b82f6' : '#6b7280' }]}>
               {share.status}
@@ -97,32 +99,32 @@ export default function CompareEstimatesScreen({ route, navigation }: any) {
         </View>
 
         {/* Original Estimate */}
-        <Text style={styles.sectionLabel}>Original Written Estimate</Text>
+        <Text style={styles.sectionLabel}>{t.fdacs.originalWrittenEstimate}</Text>
         <View style={[styles.estimateCard, styles.originalCard]}>
           <View style={styles.estimateHeader}>
             <View>
-              <Text style={styles.estimateNumber}>{original?.estimateNumber || 'N/A'}</Text>
-              <Text style={styles.providerName}>{original?.providerName || 'Original Provider'}</Text>
+              <Text style={styles.estimateNumber}>{original?.estimateNumber || t.fdacs.na}</Text>
+              <Text style={styles.providerName}>{original?.providerName || t.fdacs.originalProvider}</Text>
             </View>
             <View style={styles.originalBadge}>
-              <Text style={styles.originalBadgeText}>Original</Text>
+              <Text style={styles.originalBadgeText}>{t.fdacs.originalBadge}</Text>
             </View>
           </View>
 
           <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Total Estimate</Text>
+            <Text style={styles.totalLabel}>{t.fdacs.totalEstimate}</Text>
             <Text style={styles.totalValue}>${Number(original?.totalAmount || 0).toFixed(2)}</Text>
           </View>
 
           {original?.laborCost != null && (
             <View style={styles.breakdownRow}>
-              <Text style={styles.breakdownLabel}>Labor</Text>
+              <Text style={styles.breakdownLabel}>{t.fdacs.labor}</Text>
               <Text style={styles.breakdownValue}>${Number(original.laborCost).toFixed(2)}</Text>
             </View>
           )}
           {original?.partsCost != null && (
             <View style={styles.breakdownRow}>
-              <Text style={styles.breakdownLabel}>Parts</Text>
+              <Text style={styles.breakdownLabel}>{t.fdacs.parts}</Text>
               <Text style={styles.breakdownValue}>${Number(original.partsCost).toFixed(2)}</Text>
             </View>
           )}
@@ -131,14 +133,14 @@ export default function CompareEstimatesScreen({ route, navigation }: any) {
             style={styles.viewDetailBtn}
             onPress={() => navigation.navigate('QuoteDetails', { quoteId: original?.id })}
           >
-            <Text style={styles.viewDetailText}>View Full Estimate</Text>
+            <Text style={styles.viewDetailText}>{t.fdacs.viewFullEstimate}</Text>
             <Ionicons name="chevron-forward" size={16} color="#1976d2" />
           </TouchableOpacity>
         </View>
 
         {/* Competing Estimates */}
         <Text style={styles.sectionLabel}>
-          Competing Estimates ({competing.length})
+          {t.fdacs.competingEstimatesTitle} ({competing.length})
         </Text>
 
         {competing.length === 0 ? (
@@ -146,8 +148,8 @@ export default function CompareEstimatesScreen({ route, navigation }: any) {
             <Ionicons name="hourglass-outline" size={40} color="#d1d5db" />
             <Text style={styles.emptyText}>
               {share.status === 'OPEN'
-                ? 'Waiting for providers to submit competing quotes...'
-                : 'No competing estimates were received.'}
+                ? t.fdacs.waitingForProviders
+                : t.fdacs.noCompetingReceived}
             </Text>
           </View>
         ) : (
@@ -162,17 +164,17 @@ export default function CompareEstimatesScreen({ route, navigation }: any) {
                 <View style={styles.estimateHeader}>
                   <View>
                     <Text style={styles.estimateNumber}>{cq.estimateNumber || `Quote #${idx + 1}`}</Text>
-                    <Text style={styles.providerName}>{cq.providerName || 'Provider'}</Text>
+                    <Text style={styles.providerName}>{cq.providerName || t.fdacs.provider}</Text>
                   </View>
                   {savings > 0 && (
                     <View style={styles.savingsBadge}>
-                      <Text style={styles.savingsBadgeText}>Save {savingsPercent}%</Text>
+                      <Text style={styles.savingsBadgeText}>{t.fdacs.savePercent.replace('{percent}', savingsPercent)}</Text>
                     </View>
                   )}
                 </View>
 
                 <View style={styles.totalRow}>
-                  <Text style={styles.totalLabel}>Total Estimate</Text>
+                  <Text style={styles.totalLabel}>{t.fdacs.totalEstimate}</Text>
                   <Text style={[styles.totalValue, savings > 0 && { color: '#10b981' }]}>
                     ${Number(cq.totalAmount || 0).toFixed(2)}
                   </Text>
@@ -180,19 +182,19 @@ export default function CompareEstimatesScreen({ route, navigation }: any) {
 
                 {savings > 0 && (
                   <Text style={styles.savingsText}>
-                    You save ${savings.toFixed(2)} compared to original
+                    {t.fdacs.youSave.replace('${amount}', savings.toFixed(2))}
                   </Text>
                 )}
 
                 {cq.laborCost != null && (
                   <View style={styles.breakdownRow}>
-                    <Text style={styles.breakdownLabel}>Labor</Text>
+                    <Text style={styles.breakdownLabel}>{t.fdacs.labor}</Text>
                     <Text style={styles.breakdownValue}>${Number(cq.laborCost).toFixed(2)}</Text>
                   </View>
                 )}
                 {cq.partsCost != null && (
                   <View style={styles.breakdownRow}>
-                    <Text style={styles.breakdownLabel}>Parts</Text>
+                    <Text style={styles.breakdownLabel}>{t.fdacs.parts}</Text>
                     <Text style={styles.breakdownValue}>${Number(cq.partsCost).toFixed(2)}</Text>
                   </View>
                 )}
@@ -201,7 +203,7 @@ export default function CompareEstimatesScreen({ route, navigation }: any) {
                   style={styles.viewDetailBtn}
                   onPress={() => navigation.navigate('QuoteDetails', { quoteId: cq.id })}
                 >
-                  <Text style={styles.viewDetailText}>View Full Estimate</Text>
+                  <Text style={styles.viewDetailText}>{t.fdacs.viewFullEstimate}</Text>
                   <Ionicons name="chevron-forward" size={16} color="#1976d2" />
                 </TouchableOpacity>
               </View>

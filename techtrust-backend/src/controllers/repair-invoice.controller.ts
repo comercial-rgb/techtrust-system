@@ -20,6 +20,7 @@ import { prisma } from '../config/database';
 import { AppError } from '../middleware/error-handler';
 import { logger } from '../config/logger';
 import { generateInvoiceNumber } from '../utils/number-generators';
+import { generateRepairInvoicePdf } from '../services/pdf.service';
 
 // ============================================
 // HELPER: Create Repair Invoice from approved Quote
@@ -327,6 +328,15 @@ export const completeInvoice = async (req: Request, res: Response) => {
       completedAt: new Date(),
     },
   });
+
+  // Generate PDF for the completed invoice
+  try {
+    await generateRepairInvoicePdf(id);
+    logger.info(`PDF generated for invoice: ${invoice.invoiceNumber}`);
+  } catch (pdfError) {
+    logger.error(`PDF generation failed for invoice ${invoice.invoiceNumber}:`, pdfError);
+    // Non-blocking: invoice still completes even if PDF fails
+  }
 
   // Notify customer
   await prisma.notification.create({

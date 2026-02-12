@@ -208,6 +208,16 @@ export const completeWorkOrder = async (req: Request, res: Response) => {
       id: orderId,
       providerId: providerId,
     },
+    include: {
+      serviceRequest: {
+        include: {
+          appointments: {
+            where: { feeWaivedOnService: true },
+            take: 1,
+          },
+        },
+      },
+    },
   });
 
   if (!order) {
@@ -218,6 +228,9 @@ export const completeWorkOrder = async (req: Request, res: Response) => {
     throw new AppError('Ordem não está em progresso', 400, 'INVALID_STATUS');
   }
 
+  // Auto-waive diagnostic fee if appointment had feeWaivedOnService = true
+  const shouldWaiveFee = order.serviceRequest?.appointments?.length > 0;
+
   await prisma.workOrder.update({
     where: { id: orderId },
     data: {
@@ -227,6 +240,23 @@ export const completeWorkOrder = async (req: Request, res: Response) => {
       serviceCompletionNotes: notes || null,
     },
   });
+
+  // Propagate fee waiver to related quotes and invoices
+  if (shouldWaiveFee) {
+    // Update all quotes linked to this service request
+    await prisma.quote.updateMany({
+      where: { serviceRequestId: order.serviceRequestId },
+      data: { diagnosticFeeWaived: true },
+    });
+
+    // Update all invoices for this work order
+    await prisma.repairInvoice.updateMany({
+      where: { workOrderId: orderId },
+      data: { diagnosticFeeWaived: true },
+    });
+
+    logger.info(`Diagnostic fee auto-waived for order: ${order.orderNumber}`);
+  }
 
   // Notificar cliente
   await prisma.notification.create({

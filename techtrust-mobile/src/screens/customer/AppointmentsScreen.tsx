@@ -37,13 +37,13 @@ export default function AppointmentsScreen({ navigation }: any) {
 
   const getStatusInfo = (status: string) => {
     switch (status) {
-      case 'REQUESTED': return { label: 'Requested', color: '#f59e0b', bgColor: '#fef3c7', icon: 'time-outline' as const };
-      case 'CONFIRMED': return { label: 'Confirmed', color: '#3b82f6', bgColor: '#dbeafe', icon: 'checkmark-circle-outline' as const };
-      case 'PROVIDER_EN_ROUTE': return { label: 'En Route', color: '#8b5cf6', bgColor: '#ede9fe', icon: 'car-outline' as const };
-      case 'IN_PROGRESS': return { label: 'In Progress', color: '#3b82f6', bgColor: '#dbeafe', icon: 'construct-outline' as const };
-      case 'COMPLETED': return { label: 'Completed', color: '#10b981', bgColor: '#d1fae5', icon: 'checkmark-done-outline' as const };
-      case 'CANCELLED': return { label: 'Cancelled', color: '#ef4444', bgColor: '#fee2e2', icon: 'close-circle-outline' as const };
-      case 'NO_SHOW': return { label: 'No Show', color: '#6b7280', bgColor: '#f3f4f6', icon: 'alert-circle-outline' as const };
+      case 'REQUESTED': return { label: t.fdacs.statusRequested, color: '#f59e0b', bgColor: '#fef3c7', icon: 'time-outline' as const };
+      case 'CONFIRMED': return { label: t.fdacs.statusConfirmed, color: '#3b82f6', bgColor: '#dbeafe', icon: 'checkmark-circle-outline' as const };
+      case 'PROVIDER_EN_ROUTE': return { label: t.fdacs.statusEnRoute, color: '#8b5cf6', bgColor: '#ede9fe', icon: 'car-outline' as const };
+      case 'IN_PROGRESS': return { label: t.fdacs.statusInProgress, color: '#3b82f6', bgColor: '#dbeafe', icon: 'construct-outline' as const };
+      case 'COMPLETED': return { label: t.fdacs.statusCompleted, color: '#10b981', bgColor: '#d1fae5', icon: 'checkmark-done-outline' as const };
+      case 'CANCELLED': return { label: t.fdacs.statusCancelled, color: '#ef4444', bgColor: '#fee2e2', icon: 'close-circle-outline' as const };
+      case 'NO_SHOW': return { label: t.fdacs.statusNoShow, color: '#6b7280', bgColor: '#f3f4f6', icon: 'alert-circle-outline' as const };
       default: return { label: status, color: '#6b7280', bgColor: '#f3f4f6', icon: 'help-circle-outline' as const };
     }
   };
@@ -77,7 +77,7 @@ export default function AppointmentsScreen({ navigation }: any) {
         <View style={styles.infoRow}>
           <Ionicons name="location-outline" size={16} color="#6b7280" />
           <Text style={styles.infoText}>
-            {item.locationType === 'ON_SITE' ? 'On-site visit' : 'At provider shop'}
+            {item.locationType === 'ON_SITE' ? t.fdacs.onSiteVisit : t.fdacs.atProviderShop}
           </Text>
         </View>
 
@@ -92,11 +92,11 @@ export default function AppointmentsScreen({ navigation }: any) {
 
         {Number(item.diagnosticFee) > 0 && (
           <View style={styles.feeRow}>
-            <Text style={styles.feeLabel}>Diagnostic Fee:</Text>
+            <Text style={styles.feeLabel}>{t.fdacs.diagnosticFeeLabel}</Text>
             <Text style={styles.feeValue}>
               ${Number(item.diagnosticFee).toFixed(2)}
               {item.feeWaivedOnService && (
-                <Text style={styles.waived}> (waived if service completed)</Text>
+                <Text style={styles.waived}> {t.fdacs.waivedIfCompleted}</Text>
               )}
             </Text>
           </View>
@@ -119,15 +119,15 @@ export default function AppointmentsScreen({ navigation }: any) {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#111827" />
         </TouchableOpacity>
-        <Text style={styles.title}>Appointments</Text>
+        <Text style={styles.title}>{t.fdacs.appointments}</Text>
         <View style={{ width: 24 }} />
       </View>
 
       {appointments.length === 0 ? (
         <View style={styles.emptyState}>
           <Ionicons name="calendar-outline" size={64} color="#d1d5db" />
-          <Text style={styles.emptyTitle}>No appointments yet</Text>
-          <Text style={styles.emptyText}>Schedule a diagnostic visit with a provider to get started.</Text>
+          <Text style={styles.emptyTitle}>{t.fdacs.noAppointments}</Text>
+          <Text style={styles.emptyText}>{t.fdacs.schedulePrompt}</Text>
         </View>
       ) : (
         <FlatList

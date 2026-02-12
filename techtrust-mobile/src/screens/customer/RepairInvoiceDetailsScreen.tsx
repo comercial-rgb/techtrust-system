@@ -9,12 +9,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import { useI18n } from '../../i18n';
 import { useAuth } from '../../contexts/AuthContext';
 import * as fdacsService from '../../services/fdacs.service';
 
 export default function RepairInvoiceDetailsScreen({ route, navigation }: any) {
   const { invoiceId } = route.params;
   const { user } = useAuth();
+  const { t } = useI18n();
   const isProvider = user?.role === 'PROVIDER';
 
   const [loading, setLoading] = useState(true);
@@ -41,18 +43,18 @@ export default function RepairInvoiceDetailsScreen({ route, navigation }: any) {
 
   async function handleComplete() {
     Alert.alert(
-      'Complete Invoice',
-      'Mark this repair as completed? The customer will review and approve the final invoice.',
+      t.fdacs.completeInvoiceTitle,
+      t.fdacs.completeInvoiceMessage,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t.common.cancel, style: 'cancel' },
         {
-          text: 'Complete', onPress: async () => {
+          text: t.fdacs.statusCompleted, onPress: async () => {
             try {
               setActing(true);
               await fdacsService.completeInvoice(invoiceId);
               loadInvoice();
             } catch (error) {
-              Alert.alert('Error', 'Failed to complete invoice');
+              Alert.alert(t.common.error, t.fdacs.failedToComplete);
             } finally {
               setActing(false);
             }
@@ -64,18 +66,18 @@ export default function RepairInvoiceDetailsScreen({ route, navigation }: any) {
 
   async function handleAccept() {
     Alert.alert(
-      'Accept Invoice',
-      'You confirm that all work has been satisfactorily completed.',
+      t.fdacs.acceptInvoiceTitle,
+      t.fdacs.acceptInvoiceMessage,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t.common.cancel, style: 'cancel' },
         {
-          text: 'Accept', onPress: async () => {
+          text: t.fdacs.acceptInvoice, onPress: async () => {
             try {
               setActing(true);
               await fdacsService.acceptInvoice(invoiceId);
               loadInvoice();
             } catch (error) {
-              Alert.alert('Error', 'Failed to accept invoice');
+              Alert.alert(t.common.error, t.fdacs.failedToAccept);
             } finally {
               setActing(false);
             }
@@ -87,20 +89,20 @@ export default function RepairInvoiceDetailsScreen({ route, navigation }: any) {
 
   async function handleDispute() {
     Alert.alert(
-      'Dispute Invoice',
-      'Are you sure you want to dispute this invoice?',
+      t.fdacs.disputeInvoiceTitle,
+      t.fdacs.disputeInvoiceMessage,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t.common.cancel, style: 'cancel' },
         {
-          text: 'Submit Dispute',
+          text: t.fdacs.submitDispute,
           style: 'destructive',
           onPress: async () => {
             try {
               setActing(true);
-              await fdacsService.disputeInvoice(invoiceId, 'Dispute submitted by customer');
+              await fdacsService.disputeInvoice(invoiceId, t.fdacs.disputeSubmitted);
               loadInvoice();
             } catch (error) {
-              Alert.alert('Error', 'Failed to dispute invoice');
+              Alert.alert(t.common.error, t.fdacs.failedToDispute);
             } finally {
               setActing(false);
             }
@@ -112,11 +114,11 @@ export default function RepairInvoiceDetailsScreen({ route, navigation }: any) {
 
   const getStatusInfo = (status: string) => {
     switch (status) {
-      case 'DRAFT': return { label: 'Draft', color: '#6b7280', icon: 'create-outline' as const };
-      case 'IN_PROGRESS': return { label: 'In Progress', color: '#3b82f6', icon: 'construct-outline' as const };
-      case 'COMPLETED': return { label: 'Ready for Review', color: '#f59e0b', icon: 'checkmark-circle-outline' as const };
-      case 'APPROVED': return { label: 'Approved', color: '#10b981', icon: 'shield-checkmark-outline' as const };
-      case 'DISPUTED': return { label: 'Disputed', color: '#ef4444', icon: 'warning-outline' as const };
+      case 'DRAFT': return { label: t.fdacs.statusDraft, color: '#6b7280', icon: 'create-outline' as const };
+      case 'IN_PROGRESS': return { label: t.fdacs.statusInProgress, color: '#3b82f6', icon: 'construct-outline' as const };
+      case 'COMPLETED': return { label: t.fdacs.statusReadyForReview, color: '#f59e0b', icon: 'checkmark-circle-outline' as const };
+      case 'APPROVED': return { label: t.fdacs.statusApproved, color: '#10b981', icon: 'shield-checkmark-outline' as const };
+      case 'DISPUTED': return { label: t.fdacs.statusDisputed, color: '#ef4444', icon: 'warning-outline' as const };
       default: return { label: status, color: '#6b7280', icon: 'document-outline' as const };
     }
   };
@@ -139,7 +141,7 @@ export default function RepairInvoiceDetailsScreen({ route, navigation }: any) {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#111827" />
         </TouchableOpacity>
-        <Text style={styles.title}>Repair Invoice</Text>
+        <Text style={styles.title}>{t.fdacs.repairInvoice}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -155,19 +157,19 @@ export default function RepairInvoiceDetailsScreen({ route, navigation }: any) {
 
         {/* Vehicle */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Vehicle</Text>
+          <Text style={styles.sectionTitle}>{t.fdacs.vehicle}</Text>
           <Text style={styles.vehicleText}>{invoice.vehicleInfo}</Text>
         </View>
 
         {/* Provider */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Service Provider</Text>
+          <Text style={styles.sectionTitle}>{t.fdacs.serviceProvider}</Text>
           <Text style={styles.providerName}>{invoice.providerBusinessName || invoice.providerName}</Text>
         </View>
 
         {/* Line Items */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Services & Parts</Text>
+          <Text style={styles.sectionTitle}>{t.fdacs.servicesParts}</Text>
           {lineItems.length > 0 ? (
             lineItems.map((item: any, idx: number) => (
               <View key={idx} style={styles.lineItem}>
@@ -175,7 +177,7 @@ export default function RepairInvoiceDetailsScreen({ route, navigation }: any) {
                   <Text style={styles.lineItemDesc}>{item.description}</Text>
                   {item.isSupplement && (
                     <View style={styles.supplementTag}>
-                      <Text style={styles.supplementTagText}>Supplement</Text>
+                      <Text style={styles.supplementTagText}>{t.fdacs.supplement}</Text>
                     </View>
                   )}
                 </View>
@@ -183,26 +185,26 @@ export default function RepairInvoiceDetailsScreen({ route, navigation }: any) {
               </View>
             ))
           ) : (
-            <Text style={styles.emptyItems}>No items listed yet</Text>
+            <Text style={styles.emptyItems}>{t.fdacs.noItemsListed}</Text>
           )}
         </View>
 
         {/* Totals */}
         <View style={styles.totalsSection}>
           <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Original Estimate</Text>
+            <Text style={styles.totalLabel}>{t.fdacs.originalEstimate}</Text>
             <Text style={styles.totalValue}>${Number(invoice.originalTotal).toFixed(2)}</Text>
           </View>
           {hasSupplement && (
             <View style={styles.totalRow}>
-              <Text style={[styles.totalLabel, { color: '#f59e0b' }]}>Supplements</Text>
+              <Text style={[styles.totalLabel, { color: '#f59e0b' }]}>{t.fdacs.supplements}</Text>
               <Text style={[styles.totalValue, { color: '#f59e0b' }]}>
                 +${Number(invoice.supplementsTotal).toFixed(2)}
               </Text>
             </View>
           )}
           <View style={[styles.totalRow, styles.totalFinal]}>
-            <Text style={styles.totalFinalLabel}>Final Total</Text>
+            <Text style={styles.totalFinalLabel}>{t.fdacs.finalTotal}</Text>
             <Text style={styles.totalFinalValue}>${Number(invoice.finalTotal).toFixed(2)}</Text>
           </View>
         </View>
@@ -210,7 +212,7 @@ export default function RepairInvoiceDetailsScreen({ route, navigation }: any) {
         {/* Work Performed */}
         {(invoice as any).workPerformed && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Work Performed</Text>
+            <Text style={styles.sectionTitle}>{t.fdacs.workPerformed}</Text>
             <Text style={styles.bodyText}>{(invoice as any).workPerformed}</Text>
           </View>
         )}
@@ -218,7 +220,7 @@ export default function RepairInvoiceDetailsScreen({ route, navigation }: any) {
         {/* Dispute Reason */}
         {(invoice as any).disputeReason && (
           <View style={[styles.section, { backgroundColor: '#fef2f2', borderColor: '#ef4444' }]}>
-            <Text style={[styles.sectionTitle, { color: '#ef4444' }]}>Dispute Reason</Text>
+            <Text style={[styles.sectionTitle, { color: '#ef4444' }]}>{t.fdacs.disputeReason}</Text>
             <Text style={styles.bodyText}>{(invoice as any).disputeReason}</Text>
           </View>
         )}
@@ -228,14 +230,14 @@ export default function RepairInvoiceDetailsScreen({ route, navigation }: any) {
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
             <Ionicons name="shield-checkmark" size={18} color="#1976d2" />
             <Text style={[styles.sectionTitle, { color: '#1976d2', marginLeft: 6, marginBottom: 0 }]}>
-              FDACS Compliance
+              {t.fdacs.fdacsCompliance}
             </Text>
           </View>
           <Text style={styles.fdacsText}>
-            This Repair Invoice is generated in compliance with Florida Department of Agriculture and Consumer Services (FDACS) Motor Vehicle Repair Act.
+            {t.fdacs.fdacsComplianceText}
           </Text>
           <Text style={[styles.fdacsText, { marginTop: 4 }]}>
-            Written Estimate: {(invoice as any).estimateNumber || 'N/A'}
+            {t.fdacs.writtenEstimateRef}: {(invoice as any).estimateNumber || t.fdacs.na}
           </Text>
         </View>
       </ScrollView>
@@ -252,7 +254,7 @@ export default function RepairInvoiceDetailsScreen({ route, navigation }: any) {
             <View style={styles.actionBar}>
               <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#10b981' }]} onPress={handleComplete}>
                 <Ionicons name="checkmark-circle" size={20} color="#fff" />
-                <Text style={styles.actionBtnText}>Mark Completed</Text>
+                <Text style={styles.actionBtnText}>{t.fdacs.markCompleted}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -262,11 +264,11 @@ export default function RepairInvoiceDetailsScreen({ route, navigation }: any) {
             <View style={styles.actionBar}>
               <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#ef4444', flex: 0.4 }]} onPress={handleDispute}>
                 <Ionicons name="flag" size={20} color="#fff" />
-                <Text style={styles.actionBtnText}>Dispute</Text>
+                <Text style={styles.actionBtnText}>{t.fdacs.disputeButton}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#10b981', flex: 0.6 }]} onPress={handleAccept}>
                 <Ionicons name="shield-checkmark" size={20} color="#fff" />
-                <Text style={styles.actionBtnText}>Accept Invoice</Text>
+                <Text style={styles.actionBtnText}>{t.fdacs.acceptInvoice}</Text>
               </TouchableOpacity>
             </View>
           )}
