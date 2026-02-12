@@ -46,14 +46,37 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
   async function loadDetails() {
     try {
       setLoading(true);
-      const [requestRes, quotesRes] = await Promise.all([
-        api.get(`/service-requests/${requestId}`),
-        api.get(`/quotes?serviceRequestId=${requestId}`),
-      ]);
+      const requestRes = await api.get(`/service-requests/${requestId}`);
       const reqData = requestRes.data.data || requestRes.data;
       setRequest(reqData);
-      const quotesData = quotesRes.data.data || quotesRes.data || [];
-      setQuotes(Array.isArray(quotesData) ? quotesData : []);
+
+      // Quotes are already included in the service request response
+      const includedQuotes = reqData?.quotes || [];
+      if (includedQuotes.length > 0) {
+        setQuotes(includedQuotes.map((q: any) => ({
+          id: q.id,
+          provider: {
+            id: q.provider?.id || q.providerId,
+            businessName: q.provider?.providerProfile?.businessName || q.provider?.fullName || 'Provider',
+            rating: q.provider?.providerProfile?.averageRating || 0,
+            totalReviews: q.provider?.providerProfile?.totalReviews || 0,
+          },
+          partsCost: q.partsCost || 0,
+          laborCost: q.laborCost || 0,
+          totalAmount: q.totalAmount || 0,
+          estimatedTime: q.estimatedTime || '',
+          description: q.description || '',
+        })));
+      } else {
+        // Fallback: try the quotes endpoint
+        try {
+          const quotesRes = await api.get(`/quotes/service-requests/${requestId}`);
+          const quotesData = quotesRes.data.data || quotesRes.data || [];
+          setQuotes(Array.isArray(quotesData) ? quotesData : []);
+        } catch {
+          setQuotes([]);
+        }
+      }
     } catch (err: any) {
       Alert.alert(t.common?.error || 'Error', err?.response?.data?.message || t.common?.tryAgain || 'Could not load details');
     } finally {
@@ -128,7 +151,7 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
           <Text style={styles.description}>{request?.description}</Text>
           <View style={styles.vehicleRow}>
             <Ionicons name="car" size={18} color="#6b7280" />
-            <Text style={styles.vehicleText}>{request?.vehicle.make} {request?.vehicle.model} {request?.vehicle.year}</Text>
+            <Text style={styles.vehicleText}>{request?.vehicle?.make} {request?.vehicle?.model} {request?.vehicle?.year}</Text>
           </View>
         </View>
 
