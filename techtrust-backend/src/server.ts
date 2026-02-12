@@ -120,7 +120,10 @@ io.on("connection", (socket) => {
             conversationId,
           },
         });
-        io.to(`user:${data.to}`).emit("receive_message", { ...saved, conversationId });
+        io.to(`user:${data.to}`).emit("receive_message", {
+          ...saved,
+          conversationId,
+        });
       } catch (err) {
         logger.error("Socket send_message error:", err);
         io.to(`user:${data.to}`).emit("receive_message", data);
@@ -173,7 +176,7 @@ app.use(
 // O Stripe precisa do raw body para verificar assinatura do webhook
 app.use(
   `/api/${API_VERSION}/webhooks/stripe`,
-  express.raw({ type: 'application/json' })
+  express.raw({ type: "application/json" }),
 );
 
 // Body parser (para todas as outras rotas)
@@ -224,8 +227,8 @@ app.get(`/api/${API_VERSION}/config/stripe`, (_req, res) => {
   res.json({
     success: true,
     data: {
-      publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || '',
-      merchantIdentifier: 'merchant.com.techtrustautosolutions',
+      publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || "",
+      merchantIdentifier: "merchant.com.techtrustautosolutions",
     },
   });
 });
@@ -286,7 +289,8 @@ httpServer.listen(PORT, async () => {
 
   // Start compliance expiration checker
   try {
-    const { scheduleExpirationCheck } = await import("./services/expiration-checker");
+    const { scheduleExpirationCheck } =
+      await import("./services/expiration-checker");
     scheduleExpirationCheck();
     logger.info("🔄 Compliance expiration checker: Ativo");
   } catch (error) {

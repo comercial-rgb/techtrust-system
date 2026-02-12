@@ -8,7 +8,7 @@
  * - Repair Invoices
  */
 
-import api from './api';
+import api from "./api";
 
 // ============================================
 // APPOINTMENT TYPES
@@ -135,7 +135,7 @@ export const scheduleAppointment = async (data: {
   feeWaivedOnService?: boolean;
   customerNotes?: string;
 }) => {
-  const response = await api.post('/appointments', data);
+  const response = await api.post("/appointments", data);
   return response.data;
 };
 
@@ -144,7 +144,7 @@ export const getMyAppointments = async (params?: {
   page?: number;
   limit?: number;
 }) => {
-  const response = await api.get('/appointments/my', { params });
+  const response = await api.get("/appointments/my", { params });
   return response.data;
 };
 
@@ -153,11 +153,14 @@ export const getAppointment = async (id: string) => {
   return response.data;
 };
 
-export const confirmAppointment = async (id: string, data?: {
-  providerNotes?: string;
-  suggestedDate?: string;
-  suggestedTime?: string;
-}) => {
+export const confirmAppointment = async (
+  id: string,
+  data?: {
+    providerNotes?: string;
+    suggestedDate?: string;
+    suggestedTime?: string;
+  },
+) => {
   const response = await api.patch(`/appointments/${id}/confirm`, data || {});
   return response.data;
 };
@@ -167,9 +170,12 @@ export const checkInAppointment = async (id: string) => {
   return response.data;
 };
 
-export const completeAppointment = async (id: string, data?: {
-  providerNotes?: string;
-}) => {
+export const completeAppointment = async (
+  id: string,
+  data?: {
+    providerNotes?: string;
+  },
+) => {
   const response = await api.patch(`/appointments/${id}/complete`, data || {});
   return response.data;
 };
@@ -200,12 +206,12 @@ export const shareEstimate = async (data: {
   shareOriginalProviderName?: boolean;
   expiresInDays?: number;
 }) => {
-  const response = await api.post('/estimate-shares', data);
+  const response = await api.post("/estimate-shares", data);
   return response.data;
 };
 
 export const getMySharedEstimates = async (active?: boolean) => {
-  const response = await api.get('/estimate-shares/my', {
+  const response = await api.get("/estimate-shares/my", {
     params: active !== undefined ? { active: String(active) } : {},
   });
   return response.data;
@@ -217,7 +223,7 @@ export const getAvailableSharedEstimates = async (params?: {
   page?: number;
   limit?: number;
 }) => {
-  const response = await api.get('/estimate-shares/available', { params });
+  const response = await api.get("/estimate-shares/available", { params });
   return response.data;
 };
 
@@ -226,20 +232,26 @@ export const getSharedEstimateDetail = async (id: string) => {
   return response.data;
 };
 
-export const submitCompetingQuote = async (shareId: string, data: {
-  totalAmount: number;
-  laborCost: number;
-  partsCost: number;
-  travelFee?: number;
-  taxAmount?: number;
-  warrantyMonths?: number;
-  warrantyMileage?: number;
-  partsList?: any[];
-  laborDescription?: string;
-  notes?: string;
-  validDays?: number;
-}) => {
-  const response = await api.post(`/estimate-shares/${shareId}/submit-quote`, data);
+export const submitCompetingQuote = async (
+  shareId: string,
+  data: {
+    totalAmount: number;
+    laborCost: number;
+    partsCost: number;
+    travelFee?: number;
+    taxAmount?: number;
+    warrantyMonths?: number;
+    warrantyMileage?: number;
+    partsList?: any[];
+    laborDescription?: string;
+    notes?: string;
+    validDays?: number;
+  },
+) => {
+  const response = await api.post(
+    `/estimate-shares/${shareId}/submit-quote`,
+    data,
+  );
   return response.data;
 };
 
@@ -257,7 +269,7 @@ export const getMyInvoices = async (params?: {
   page?: number;
   limit?: number;
 }) => {
-  const response = await api.get('/repair-invoices/my', { params });
+  const response = await api.get("/repair-invoices/my", { params });
   return response.data;
 };
 
@@ -266,29 +278,42 @@ export const getInvoice = async (id: string) => {
   return response.data;
 };
 
-export const updateInvoiceWork = async (id: string, data: {
-  servicePerformed?: string;
-  warrantyStatement?: string;
-  odometerReading?: number;
-}) => {
+export const updateInvoiceWork = async (
+  id: string,
+  data: {
+    servicePerformed?: string;
+    warrantyStatement?: string;
+    odometerReading?: number;
+  },
+) => {
   const response = await api.patch(`/repair-invoices/${id}/update-work`, data);
   return response.data;
 };
 
-export const completeInvoice = async (id: string, data?: {
-  servicePerformed?: string;
-  warrantyStatement?: string;
-}) => {
-  const response = await api.patch(`/repair-invoices/${id}/complete`, data || {});
+export const completeInvoice = async (
+  id: string,
+  data?: {
+    servicePerformed?: string;
+    warrantyStatement?: string;
+  },
+) => {
+  const response = await api.patch(
+    `/repair-invoices/${id}/complete`,
+    data || {},
+  );
   return response.data;
 };
 
 export const acceptInvoice = async (id: string, signature?: string) => {
-  const response = await api.patch(`/repair-invoices/${id}/accept`, { signature });
+  const response = await api.patch(`/repair-invoices/${id}/accept`, {
+    signature,
+  });
   return response.data;
 };
 
 export const disputeInvoice = async (id: string, reason?: string) => {
-  const response = await api.patch(`/repair-invoices/${id}/dispute`, { reason });
+  const response = await api.patch(`/repair-invoices/${id}/dispute`, {
+    reason,
+  });
   return response.data;
 };

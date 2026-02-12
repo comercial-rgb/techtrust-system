@@ -5,10 +5,10 @@
  * Ordens de serviço (após aceitar orçamento)
  */
 
-import { Request, Response } from 'express';
-import { prisma } from '../config/database';
-import { AppError } from '../middleware/error-handler';
-import { logger } from '../config/logger';
+import { Request, Response } from "express";
+import { prisma } from "../config/database";
+import { AppError } from "../middleware/error-handler";
+import { logger } from "../config/logger";
 
 /**
  * GET /api/v1/work-orders
@@ -22,11 +22,11 @@ export const getWorkOrders = async (req: Request, res: Response) => {
   const where: any = {};
 
   // Cliente vê suas ordens
-  if (userRole === 'CLIENT') {
+  if (userRole === "CLIENT") {
     where.customerId = userId;
   }
   // Fornecedor vê ordens dele
-  else if (userRole === 'PROVIDER') {
+  else if (userRole === "PROVIDER") {
     where.providerId = userId;
   }
 
@@ -42,7 +42,7 @@ export const getWorkOrders = async (req: Request, res: Response) => {
       skip,
       take: Number(limit),
       orderBy: {
-        createdAt: 'desc',
+        createdAt: "desc",
       },
       include: {
         vehicle: {
@@ -101,9 +101,9 @@ export const getWorkOrder = async (req: Request, res: Response) => {
 
   const where: any = { id: orderId };
 
-  if (userRole === 'CLIENT') {
+  if (userRole === "CLIENT") {
     where.customerId = userId;
-  } else if (userRole === 'PROVIDER') {
+  } else if (userRole === "PROVIDER") {
     where.providerId = userId;
   }
 
@@ -138,7 +138,11 @@ export const getWorkOrder = async (req: Request, res: Response) => {
   });
 
   if (!order) {
-    throw new AppError('Ordem de serviço não encontrada', 404, 'ORDER_NOT_FOUND');
+    throw new AppError(
+      "Ordem de serviço não encontrada",
+      404,
+      "ORDER_NOT_FOUND",
+    );
   }
 
   res.json({
@@ -163,17 +167,21 @@ export const startWorkOrder = async (req: Request, res: Response) => {
   });
 
   if (!order) {
-    throw new AppError('Ordem não encontrada', 404, 'ORDER_NOT_FOUND');
+    throw new AppError("Ordem não encontrada", 404, "ORDER_NOT_FOUND");
   }
 
-  if (order.status !== 'PENDING_START') {
-    throw new AppError('Esta ordem não pode ser iniciada', 400, 'INVALID_STATUS');
+  if (order.status !== "PENDING_START") {
+    throw new AppError(
+      "Esta ordem não pode ser iniciada",
+      400,
+      "INVALID_STATUS",
+    );
   }
 
   await prisma.workOrder.update({
     where: { id: orderId },
     data: {
-      status: 'IN_PROGRESS',
+      status: "IN_PROGRESS",
       startedAt: new Date(),
     },
   });
@@ -182,7 +190,7 @@ export const startWorkOrder = async (req: Request, res: Response) => {
   await prisma.serviceRequest.update({
     where: { id: order.serviceRequestId },
     data: {
-      status: 'IN_PROGRESS',
+      status: "IN_PROGRESS",
     },
   });
 
@@ -190,7 +198,7 @@ export const startWorkOrder = async (req: Request, res: Response) => {
 
   res.json({
     success: true,
-    message: 'Serviço iniciado!',
+    message: "Serviço iniciado!",
   });
 };
 
@@ -221,11 +229,11 @@ export const completeWorkOrder = async (req: Request, res: Response) => {
   });
 
   if (!order) {
-    throw new AppError('Ordem não encontrada', 404, 'ORDER_NOT_FOUND');
+    throw new AppError("Ordem não encontrada", 404, "ORDER_NOT_FOUND");
   }
 
-  if (order.status !== 'IN_PROGRESS') {
-    throw new AppError('Ordem não está em progresso', 400, 'INVALID_STATUS');
+  if (order.status !== "IN_PROGRESS") {
+    throw new AppError("Ordem não está em progresso", 400, "INVALID_STATUS");
   }
 
   // Auto-waive diagnostic fee if appointment had feeWaivedOnService = true
@@ -234,7 +242,7 @@ export const completeWorkOrder = async (req: Request, res: Response) => {
   await prisma.workOrder.update({
     where: { id: orderId },
     data: {
-      status: 'AWAITING_APPROVAL',
+      status: "AWAITING_APPROVAL",
       completedAt: new Date(),
       serviceCompletedByProvider: true,
       serviceCompletionNotes: notes || null,
@@ -262,8 +270,8 @@ export const completeWorkOrder = async (req: Request, res: Response) => {
   await prisma.notification.create({
     data: {
       userId: order.customerId,
-      type: 'SERVICE_COMPLETED',
-      title: 'Service Completed',
+      type: "SERVICE_COMPLETED",
+      title: "Service Completed",
       message: `The provider has completed service for order ${order.orderNumber}. Please review and approve.`,
       data: JSON.stringify({ workOrderId: order.id }),
     },
@@ -273,7 +281,7 @@ export const completeWorkOrder = async (req: Request, res: Response) => {
 
   res.json({
     success: true,
-    message: 'Serviço concluído! Aguardando aprovação do cliente.',
+    message: "Serviço concluído! Aguardando aprovação do cliente.",
   });
 };
 
@@ -297,20 +305,26 @@ export const approveCompletion = async (req: Request, res: Response) => {
   });
 
   if (!order) {
-    throw new AppError('Ordem não encontrada', 404, 'ORDER_NOT_FOUND');
+    throw new AppError("Ordem não encontrada", 404, "ORDER_NOT_FOUND");
   }
 
-  if (order.status !== 'AWAITING_APPROVAL') {
-    throw new AppError('Ordem não está aguardando aprovação', 400, 'INVALID_STATUS');
+  if (order.status !== "AWAITING_APPROVAL") {
+    throw new AppError(
+      "Ordem não está aguardando aprovação",
+      400,
+      "INVALID_STATUS",
+    );
   }
 
   // Se tem pagamentos autorizados, direcionar para service-flow
-  const authorizedPayments = order.payments.filter(p => p.status === 'AUTHORIZED');
+  const authorizedPayments = order.payments.filter(
+    (p) => p.status === "AUTHORIZED",
+  );
   if (authorizedPayments.length > 0) {
     throw new AppError(
-      'This order has authorized payments. Use POST /api/v1/service-flow/approve-service to approve with payment capture.',
+      "This order has authorized payments. Use POST /api/v1/service-flow/approve-service to approve with payment capture.",
       400,
-      'USE_SERVICE_FLOW'
+      "USE_SERVICE_FLOW",
     );
   }
 
@@ -318,13 +332,13 @@ export const approveCompletion = async (req: Request, res: Response) => {
     prisma.workOrder.update({
       where: { id: orderId },
       data: {
-        status: 'COMPLETED',
+        status: "COMPLETED",
       },
     }),
     prisma.serviceRequest.update({
       where: { id: order.serviceRequestId },
       data: {
-        status: 'COMPLETED',
+        status: "COMPLETED",
       },
     }),
   ]);
@@ -333,7 +347,7 @@ export const approveCompletion = async (req: Request, res: Response) => {
 
   res.json({
     success: true,
-    message: 'Serviço aprovado! Você pode avaliar o fornecedor agora.',
+    message: "Serviço aprovado! Você pode avaliar o fornecedor agora.",
   });
 };
 
@@ -354,18 +368,24 @@ export const reportIssue = async (req: Request, res: Response) => {
   });
 
   if (!order) {
-    throw new AppError('Ordem não encontrada', 404, 'ORDER_NOT_FOUND');
+    throw new AppError("Ordem não encontrada", 404, "ORDER_NOT_FOUND");
   }
 
   // Só pode disputar se está em andamento, aguardando aprovação ou completada
-  if (!['IN_PROGRESS', 'AWAITING_APPROVAL', 'COMPLETED'].includes(order.status)) {
-    throw new AppError('Não é possível reportar problema neste status', 400, 'INVALID_STATUS');
+  if (
+    !["IN_PROGRESS", "AWAITING_APPROVAL", "COMPLETED"].includes(order.status)
+  ) {
+    throw new AppError(
+      "Não é possível reportar problema neste status",
+      400,
+      "INVALID_STATUS",
+    );
   }
 
   await prisma.workOrder.update({
     where: { id: orderId },
     data: {
-      status: 'DISPUTED',
+      status: "DISPUTED",
       customerNotes: reason || null,
     },
   });
@@ -374,9 +394,9 @@ export const reportIssue = async (req: Request, res: Response) => {
   await prisma.notification.create({
     data: {
       userId: order.providerId,
-      type: 'SYSTEM_ALERT',
-      title: 'Issue Reported',
-      message: `Customer reported an issue with order ${order.orderNumber}. ${reason ? `Reason: ${reason}` : ''}`,
+      type: "SYSTEM_ALERT",
+      title: "Issue Reported",
+      message: `Customer reported an issue with order ${order.orderNumber}. ${reason ? `Reason: ${reason}` : ""}`,
       data: JSON.stringify({ workOrderId: order.id }),
     },
   });
@@ -385,6 +405,6 @@ export const reportIssue = async (req: Request, res: Response) => {
 
   res.json({
     success: true,
-    message: 'Problema reportado. Nossa equipe entrará em contato em breve.',
+    message: "Problema reportado. Nossa equipe entrará em contato em breve.",
   });
 };

@@ -1,16 +1,16 @@
-import { Router } from 'express';
-import * as authController from '../controllers/auth.controller';
-import { validate } from '../middleware/validation';
-import { authRateLimiter } from '../middleware/rate-limiter';
-import { asyncHandler } from '../utils/async-handler';
-import { debugLogger } from '../middleware/debug';
+import { Router } from "express";
+import * as authController from "../controllers/auth.controller";
+import { validate } from "../middleware/validation";
+import { authRateLimiter } from "../middleware/rate-limiter";
+import { asyncHandler } from "../utils/async-handler";
+import { debugLogger } from "../middleware/debug";
 import {
   signupValidation,
   verifyOTPValidation,
   resendOTPValidation,
   loginValidation,
   refreshValidation,
-} from '../validators/auth.validator';
+} from "../validators/auth.validator";
 
 const router = Router();
 
@@ -19,10 +19,10 @@ const router = Router();
  * Cadastro de novo usuário
  */
 router.post(
-  '/signup',
+  "/signup",
   authRateLimiter,
   validate(signupValidation),
-  asyncHandler(authController.signup)
+  asyncHandler(authController.signup),
 );
 
 /**
@@ -30,10 +30,10 @@ router.post(
  * Verificar código OTP
  */
 router.post(
-  '/verify-otp',
+  "/verify-otp",
   debugLogger, // Adiciona debug antes da validação
   validate(verifyOTPValidation),
-  asyncHandler(authController.verifyOTP)
+  asyncHandler(authController.verifyOTP),
 );
 
 /**
@@ -41,9 +41,9 @@ router.post(
  * Reenviar código OTP
  */
 router.post(
-  '/resend-otp',
+  "/resend-otp",
   validate(resendOTPValidation),
-  asyncHandler(authController.resendOTP)
+  asyncHandler(authController.resendOTP),
 );
 
 /**
@@ -51,10 +51,10 @@ router.post(
  * Login de usuário
  */
 router.post(
-  '/login',
+  "/login",
   authRateLimiter,
   validate(loginValidation),
-  asyncHandler(authController.login)
+  asyncHandler(authController.login),
 );
 
 /**
@@ -62,25 +62,25 @@ router.post(
  * Renovar token de acesso
  */
 router.post(
-  '/refresh',
+  "/refresh",
   validate(refreshValidation),
-  asyncHandler(authController.refresh)
+  asyncHandler(authController.refresh),
 );
 
 /**
  * POST /api/v1/auth/logout
  * Logout (descarta tokens no client-side)
  */
-router.post('/logout', asyncHandler(authController.logout));
+router.post("/logout", asyncHandler(authController.logout));
 
 /**
  * POST /api/v1/auth/social
  * Login/cadastro via conta social (Google, Apple, Facebook)
  */
 router.post(
-  '/social',
+  "/social",
   authRateLimiter,
-  asyncHandler(authController.socialLogin)
+  asyncHandler(authController.socialLogin),
 );
 
 /**
@@ -88,9 +88,9 @@ router.post(
  * Completar cadastro social (definir senha + telefone)
  */
 router.post(
-  '/social/complete',
+  "/social/complete",
   authRateLimiter,
-  asyncHandler(authController.completeSocialSignup)
+  asyncHandler(authController.completeSocialSignup),
 );
 
 /**
@@ -98,9 +98,9 @@ router.post(
  * Solicitar recuperação de senha
  */
 router.post(
-  '/forgot-password',
+  "/forgot-password",
   authRateLimiter,
-  asyncHandler(authController.forgotPassword)
+  asyncHandler(authController.forgotPassword),
 );
 
 /**
@@ -108,9 +108,9 @@ router.post(
  * Redefinir senha com token
  */
 router.post(
-  '/reset-password',
+  "/reset-password",
   authRateLimiter,
-  asyncHandler(authController.resetPassword)
+  asyncHandler(authController.resetPassword),
 );
 
 export default router;

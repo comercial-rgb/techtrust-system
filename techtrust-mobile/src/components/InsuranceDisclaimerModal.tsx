@@ -3,7 +3,7 @@
  * Records acceptance in UserRiskAcceptanceLog for audit trail
  */
 
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -13,10 +13,10 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { acceptRiskDisclaimer } from '../../services/compliance.service';
-import { Platform } from 'react-native';
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { acceptRiskDisclaimer } from "../../services/compliance.service";
+import { Platform } from "react-native";
 
 interface Props {
   visible: boolean;
@@ -52,7 +52,10 @@ export default function InsuranceDisclaimerModal({
 
   const handleAccept = async () => {
     if (!accepted) {
-      Alert.alert('Required', 'You must check the acknowledgment box to proceed.');
+      Alert.alert(
+        "Required",
+        "You must check the acknowledgment box to proceed.",
+      );
       return;
     }
 
@@ -65,8 +68,11 @@ export default function InsuranceDisclaimerModal({
       });
       onAccept();
     } catch (error: any) {
-      Alert.alert('Error', 'Failed to record your acknowledgment. Please try again.');
-      console.error('Risk acceptance error:', error);
+      Alert.alert(
+        "Error",
+        "Failed to record your acknowledgment. Please try again.",
+      );
+      console.error("Risk acceptance error:", error);
     } finally {
       setSubmitting(false);
     }
@@ -85,8 +91,13 @@ export default function InsuranceDisclaimerModal({
           </View>
 
           {/* Content */}
-          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-            <Text style={styles.disclaimerText}>{disclaimerText || defaultDisclaimer}</Text>
+          <ScrollView
+            style={styles.content}
+            showsVerticalScrollIndicator={false}
+          >
+            <Text style={styles.disclaimerText}>
+              {disclaimerText || defaultDisclaimer}
+            </Text>
           </ScrollView>
 
           {/* Checkbox */}
@@ -99,7 +110,8 @@ export default function InsuranceDisclaimerModal({
               {accepted && <Ionicons name="checkmark" size={16} color="#fff" />}
             </View>
             <Text style={styles.checkboxLabel}>
-              I understand and accept the risks of proceeding without verified insurance coverage
+              I understand and accept the risks of proceeding without verified
+              insurance coverage
             </Text>
           </TouchableOpacity>
 
@@ -129,18 +141,18 @@ export default function InsuranceDisclaimerModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
   },
   modal: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: '85%',
+    maxHeight: "85%",
     paddingBottom: 34,
   },
   header: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingTop: 24,
     paddingBottom: 12,
     paddingHorizontal: 24,
@@ -149,15 +161,15 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#fffbeb',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#fffbeb",
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 12,
   },
   title: {
     fontSize: 20,
-    fontWeight: '700',
-    color: '#1f2937',
+    fontWeight: "700",
+    color: "#1f2937",
   },
   content: {
     paddingHorizontal: 24,
@@ -165,12 +177,12 @@ const styles = StyleSheet.create({
   },
   disclaimerText: {
     fontSize: 14,
-    color: '#374151',
+    color: "#374151",
     lineHeight: 22,
   },
   checkboxRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     paddingHorizontal: 24,
     paddingVertical: 16,
     gap: 12,
@@ -180,24 +192,24 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: '#d1d5db',
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderColor: "#d1d5db",
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: 2,
   },
   checkboxChecked: {
-    backgroundColor: '#1976d2',
-    borderColor: '#1976d2',
+    backgroundColor: "#1976d2",
+    borderColor: "#1976d2",
   },
   checkboxLabel: {
     flex: 1,
     fontSize: 14,
-    color: '#374151',
+    color: "#374151",
     lineHeight: 20,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   actions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     paddingHorizontal: 24,
     gap: 12,
   },
@@ -206,27 +218,27 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    alignItems: 'center',
+    borderColor: "#d1d5db",
+    alignItems: "center",
   },
   declineBtnText: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#6b7280',
+    fontWeight: "600",
+    color: "#6b7280",
   },
   acceptBtn: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: '#d97706',
-    alignItems: 'center',
+    backgroundColor: "#d97706",
+    alignItems: "center",
   },
   acceptBtnDisabled: {
     opacity: 0.5,
   },
   acceptBtnText: {
     fontSize: 15,
-    fontWeight: '700',
-    color: '#fff',
+    fontWeight: "700",
+    color: "#fff",
   },
 });

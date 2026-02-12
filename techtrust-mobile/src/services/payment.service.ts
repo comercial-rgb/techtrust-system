@@ -6,7 +6,7 @@
  * métodos de pagamento e assinaturas
  */
 
-import api from './api';
+import api from "./api";
 
 // ============================================
 // PAYMENT INTENTS
@@ -35,9 +35,9 @@ export interface CreatePaymentIntentResponse {
  */
 export async function createPaymentIntent(
   workOrderId: string,
-  paymentMethodId?: string
+  paymentMethodId?: string,
 ): Promise<CreatePaymentIntentResponse> {
-  const { data } = await api.post('/payments/create-intent', {
+  const { data } = await api.post("/payments/create-intent", {
     workOrderId,
     paymentMethodId,
   });
@@ -72,7 +72,10 @@ export async function capturePayment(paymentId: string): Promise<{
 /**
  * Cancelar pré-autorização (liberar hold sem cobrar)
  */
-export async function voidPayment(paymentId: string, reason?: string): Promise<{
+export async function voidPayment(
+  paymentId: string,
+  reason?: string,
+): Promise<{
   success: boolean;
   message: string;
 }> {
@@ -85,7 +88,7 @@ export async function voidPayment(paymentId: string, reason?: string): Promise<{
  */
 export async function requestRefund(
   paymentId: string,
-  reason?: string
+  reason?: string,
 ): Promise<{ success: boolean; message: string; refundId?: string }> {
   const { data } = await api.post(`/payments/${paymentId}/refund`, { reason });
   return data;
@@ -99,7 +102,7 @@ export async function createSetupIntent(): Promise<{
   publishableKey: string;
   stripeCustomerId: string;
 }> {
-  const { data } = await api.post('/payments/setup-intent');
+  const { data } = await api.post("/payments/setup-intent");
   return data.data;
 }
 
@@ -110,7 +113,13 @@ export async function createSetupIntent(): Promise<{
 export interface PaymentRecord {
   id: string;
   paymentNumber: string;
-  status: 'PENDING' | 'AUTHORIZED' | 'CAPTURED' | 'REFUNDED' | 'FAILED' | 'CANCELLED';
+  status:
+    | "PENDING"
+    | "AUTHORIZED"
+    | "CAPTURED"
+    | "REFUNDED"
+    | "FAILED"
+    | "CANCELLED";
   subtotal: number;
   platformFee: number;
   stripeFee: number;
@@ -150,7 +159,7 @@ export async function getPaymentHistory(params?: {
   limit?: number;
   status?: string;
 }): Promise<PaymentHistoryResponse> {
-  const { data } = await api.get('/payments/history', { params });
+  const { data } = await api.get("/payments/history", { params });
   return data;
 }
 
@@ -160,7 +169,7 @@ export async function getPaymentHistory(params?: {
 
 export interface PaymentMethod {
   id: string;
-  type: 'credit' | 'debit' | 'pix';
+  type: "credit" | "debit" | "pix";
   stripePaymentMethodId: string | null;
   cardBrand: string | null;
   cardLast4: string | null;
@@ -176,7 +185,7 @@ export interface PaymentMethod {
  * Listar métodos de pagamento
  */
 export async function getPaymentMethods(): Promise<PaymentMethod[]> {
-  const { data } = await api.get('/payment-methods');
+  const { data } = await api.get("/payment-methods");
   return data.data;
 }
 
@@ -184,7 +193,7 @@ export async function getPaymentMethods(): Promise<PaymentMethod[]> {
  * Adicionar método de pagamento
  */
 export async function addPaymentMethod(method: {
-  type: 'credit' | 'debit' | 'pix';
+  type: "credit" | "debit" | "pix";
   cardBrand?: string;
   cardLast4?: string;
   cardExpMonth?: string;
@@ -192,7 +201,7 @@ export async function addPaymentMethod(method: {
   holderName?: string;
   pixKey?: string;
 }): Promise<PaymentMethod> {
-  const { data } = await api.post('/payment-methods', method);
+  const { data } = await api.post("/payment-methods", method);
   return data.data;
 }
 
@@ -216,9 +225,9 @@ export async function removePaymentMethod(id: string): Promise<void> {
 
 export interface SubscriptionInfo {
   id: string;
-  plan: 'FREE' | 'BASIC' | 'PREMIUM' | 'ENTERPRISE';
+  plan: "FREE" | "BASIC" | "PREMIUM" | "ENTERPRISE";
   price: number;
-  status: 'ACTIVE' | 'PAST_DUE' | 'CANCELLED' | 'EXPIRED';
+  status: "ACTIVE" | "PAST_DUE" | "CANCELLED" | "EXPIRED";
   maxVehicles: number;
   maxServiceRequestsPerMonth: number | null;
   currentPeriodStart: string;
@@ -245,7 +254,7 @@ export interface SubscriptionPlan {
  * Obter assinatura atual
  */
 export async function getMySubscription(): Promise<SubscriptionInfo> {
-  const { data } = await api.get('/subscriptions/me');
+  const { data } = await api.get("/subscriptions/me");
   return data.data;
 }
 
@@ -253,7 +262,7 @@ export async function getMySubscription(): Promise<SubscriptionInfo> {
  * Listar planos disponíveis
  */
 export async function getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
-  const { data } = await api.get('/subscriptions/plans');
+  const { data } = await api.get("/subscriptions/plans");
   return data.data;
 }
 
@@ -262,14 +271,14 @@ export async function getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
  */
 export async function subscribe(
   planKey: string,
-  billingPeriod: 'monthly' | 'yearly' = 'monthly'
+  billingPeriod: "monthly" | "yearly" = "monthly",
 ): Promise<{
   subscriptionId: string;
   clientSecret?: string;
   plan: string;
   message: string;
 }> {
-  const { data } = await api.post('/subscriptions/subscribe', {
+  const { data } = await api.post("/subscriptions/subscribe", {
     planKey,
     billingPeriod,
   });
@@ -281,9 +290,9 @@ export async function subscribe(
  */
 export async function cancelSubscription(
   immediately: boolean = false,
-  reason?: string
+  reason?: string,
 ): Promise<{ success: boolean; message: string }> {
-  const { data } = await api.post('/subscriptions/cancel', {
+  const { data } = await api.post("/subscriptions/cancel", {
     immediately,
     reason,
   });
@@ -299,7 +308,7 @@ export async function getSubscriptionUsage(): Promise<{
   serviceRequests: { used: number; limit: number | null; unlimited: boolean };
   period: { start: string; end: string };
 }> {
-  const { data } = await api.get('/subscriptions/usage');
+  const { data } = await api.get("/subscriptions/usage");
   return data.data;
 }
 
@@ -314,7 +323,7 @@ export async function startConnectOnboarding(): Promise<{
   onboardingUrl: string;
   accountId: string;
 }> {
-  const { data } = await api.post('/connect/onboard');
+  const { data } = await api.post("/connect/onboard");
   return data.data;
 }
 
@@ -329,7 +338,7 @@ export async function getConnectStatus(): Promise<{
   payoutsEnabled: boolean;
   requirements: string[];
 }> {
-  const { data } = await api.get('/connect/status');
+  const { data } = await api.get("/connect/status");
   return data.data;
 }
 
@@ -337,7 +346,7 @@ export async function getConnectStatus(): Promise<{
  * Obter link do dashboard Stripe Express
  */
 export async function getConnectDashboard(): Promise<{ dashboardUrl: string }> {
-  const { data } = await api.get('/connect/dashboard');
+  const { data } = await api.get("/connect/dashboard");
   return data.data;
 }
 
@@ -349,7 +358,7 @@ export async function getProviderBalance(): Promise<{
   pending: number;
   currency: string;
 }> {
-  const { data } = await api.get('/connect/balance');
+  const { data } = await api.get("/connect/balance");
   return data.data;
 }
 

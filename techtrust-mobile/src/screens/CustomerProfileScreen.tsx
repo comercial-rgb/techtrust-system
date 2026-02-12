@@ -63,7 +63,10 @@ export default function CustomerProfileScreen({ navigation }: any) {
           const backendLangs = userData.preferencesJson.spokenLanguages;
           if (Array.isArray(backendLangs) && backendLangs.length > 0) {
             setSpokenLanguages(backendLangs);
-            await AsyncStorage.setItem(SPOKEN_LANGUAGES_KEY, JSON.stringify(backendLangs));
+            await AsyncStorage.setItem(
+              SPOKEN_LANGUAGES_KEY,
+              JSON.stringify(backendLangs),
+            );
           }
         }
       } catch (apiError) {
@@ -168,8 +171,11 @@ export default function CustomerProfileScreen({ navigation }: any) {
         JSON.stringify(newLangs),
       ).catch((err) => console.error("Error saving spoken languages:", err));
       // Sync to backend for cross-device persistence
-      api.patch("/users/me", { preferencesJson: { spokenLanguages: newLangs } })
-        .catch((err) => console.log("Could not sync spoken languages to backend:", err));
+      api
+        .patch("/users/me", { preferencesJson: { spokenLanguages: newLangs } })
+        .catch((err) =>
+          console.log("Could not sync spoken languages to backend:", err),
+        );
       return newLangs;
     });
   };

@@ -5,10 +5,10 @@
  * Features específicas para fornecedores
  */
 
-import { Request, Response } from 'express';
-import { prisma } from '../config/database';
-import { geocodeAddress, formatAddress } from '../services/geocoding.service';
-import { findProvidersWithinRadius } from '../utils/distance';
+import { Request, Response } from "express";
+import { prisma } from "../config/database";
+import { geocodeAddress, formatAddress } from "../services/geocoding.service";
+import { findProvidersWithinRadius } from "../utils/distance";
 
 /**
  * GET /api/v1/providers/dashboard
@@ -18,34 +18,40 @@ export const getDashboard = async (req: Request, res: Response) => {
   const providerId = req.user!.id;
 
   // Estatísticas gerais
-  const [profile, activeQuotes, activeWorkOrders, completedServices, pendingPayments] = await Promise.all([
+  const [
+    profile,
+    activeQuotes,
+    activeWorkOrders,
+    completedServices,
+    pendingPayments,
+  ] = await Promise.all([
     prisma.providerProfile.findUnique({
       where: { userId: providerId },
     }),
     prisma.quote.count({
       where: {
         providerId,
-        status: 'PENDING',
+        status: "PENDING",
       },
     }),
     prisma.workOrder.count({
       where: {
         providerId,
         status: {
-          in: ['PENDING_START', 'IN_PROGRESS', 'AWAITING_APPROVAL'],
+          in: ["PENDING_START", "IN_PROGRESS", "AWAITING_APPROVAL"],
         },
       },
     }),
     prisma.workOrder.count({
       where: {
         providerId,
-        status: 'COMPLETED',
+        status: "COMPLETED",
       },
     }),
     prisma.payment.aggregate({
       where: {
         providerId,
-        status: 'PENDING',
+        status: "PENDING",
       },
       _sum: {
         providerAmount: true,
@@ -57,7 +63,7 @@ export const getDashboard = async (req: Request, res: Response) => {
   const totalRevenue = await prisma.payment.aggregate({
     where: {
       providerId,
-      status: 'CAPTURED',
+      status: "CAPTURED",
     },
     _sum: {
       providerAmount: true,
@@ -69,7 +75,7 @@ export const getDashboard = async (req: Request, res: Response) => {
     where: { providerId },
     take: 5,
     orderBy: {
-      createdAt: 'desc',
+      createdAt: "desc",
     },
     include: {
       serviceRequest: {
@@ -118,11 +124,11 @@ export const getAvailableRequests = async (req: Request, res: Response) => {
     select: { serviceRequestId: true },
   });
 
-  const quotedRequestIds = myQuotes.map(q => q.serviceRequestId);
+  const quotedRequestIds = myQuotes.map((q) => q.serviceRequestId);
 
   const where: any = {
     status: {
-      in: ['SEARCHING_PROVIDERS', 'QUOTES_RECEIVED'],
+      in: ["SEARCHING_PROVIDERS", "QUOTES_RECEIVED"],
     },
     quotesCount: {
       lt: 5, // Ainda aceita orçamentos
@@ -146,7 +152,7 @@ export const getAvailableRequests = async (req: Request, res: Response) => {
       skip,
       take: Number(limit),
       orderBy: {
-        createdAt: 'desc',
+        createdAt: "desc",
       },
       include: {
         vehicle: {
@@ -204,7 +210,7 @@ export const getMyQuotes = async (req: Request, res: Response) => {
       skip,
       take: Number(limit),
       orderBy: {
-        createdAt: 'desc',
+        createdAt: "desc",
       },
       include: {
         serviceRequest: {
@@ -268,15 +274,17 @@ export const updateProfile = async (req: Request, res: Response) => {
   // Se endereço foi fornecido, tenta fazer geocoding
   let baseLatitude = undefined;
   let baseLongitude = undefined;
-  
+
   if (address && city && state) {
     const fullAddress = formatAddress(address, city, state, zipCode);
     const geocoded = await geocodeAddress(fullAddress);
-    
+
     if (geocoded) {
       baseLatitude = geocoded.latitude;
       baseLongitude = geocoded.longitude;
-      console.log(`Geocoding bem-sucedido: ${fullAddress} -> (${baseLatitude}, ${baseLongitude})`);
+      console.log(
+        `Geocoding bem-sucedido: ${fullAddress} -> (${baseLatitude}, ${baseLongitude})`,
+      );
     } else {
       console.warn(`Geocoding falhou para: ${fullAddress}`);
     }
@@ -286,7 +294,7 @@ export const updateProfile = async (req: Request, res: Response) => {
     where: { userId: providerId },
     create: {
       userId: providerId,
-      businessName: businessName || 'My Business',
+      businessName: businessName || "My Business",
       businessPhone,
       businessEmail,
       address,
@@ -322,16 +330,20 @@ export const updateProfile = async (req: Request, res: Response) => {
       ...(mobileService !== undefined && { mobileService }),
       ...(roadsideAssistance !== undefined && { roadsideAssistance }),
       ...(freeKm !== undefined && { freeKm: Number(freeKm) }),
-      ...(extraFeePerKm !== undefined && { extraFeePerKm: Number(extraFeePerKm) }),
+      ...(extraFeePerKm !== undefined && {
+        extraFeePerKm: Number(extraFeePerKm),
+      }),
       ...(specialties && { specialties }),
       ...(businessHours && { businessHours }),
-      ...(fdacsRegistrationNumber !== undefined && { fdacsRegistrationNumber: fdacsRegistrationNumber || null }),
+      ...(fdacsRegistrationNumber !== undefined && {
+        fdacsRegistrationNumber: fdacsRegistrationNumber || null,
+      }),
     },
   });
 
   res.json({
     success: true,
-    message: 'Perfil atualizado com sucesso',
+    message: "Perfil atualizado com sucesso",
     data: profile,
   });
 };
@@ -341,13 +353,16 @@ export const updateProfile = async (req: Request, res: Response) => {
  * Buscar providers por localização e raio
  * Query params: lat, lng, radius (km), serviceType
  */
-export const searchProvidersByLocation = async (req: Request, res: Response): Promise<void> => {
+export const searchProvidersByLocation = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   const { lat, lng, radius = 50 } = req.query;
 
   if (!lat || !lng) {
     res.status(400).json({
       success: false,
-      message: 'Latitude e longitude são obrigatórios',
+      message: "Latitude e longitude são obrigatórios",
     });
     return;
   }
@@ -363,7 +378,7 @@ export const searchProvidersByLocation = async (req: Request, res: Response): Pr
       baseLongitude: { not: null },
       isVerified: true,
       user: {
-        status: 'ACTIVE',
+        status: "ACTIVE",
       },
     },
     include: {
@@ -379,7 +394,7 @@ export const searchProvidersByLocation = async (req: Request, res: Response): Pr
   });
 
   // Transformar para formato esperado pela função
-  const mappedProviders = providers.map(p => ({
+  const mappedProviders = providers.map((p) => ({
     ...p,
     baseLocation: {
       latitude: Number(p.baseLatitude),
@@ -393,7 +408,7 @@ export const searchProvidersByLocation = async (req: Request, res: Response): Pr
   const serviceLocation = { latitude, longitude };
   const providersWithDistance = findProvidersWithinRadius(
     serviceLocation,
-    mappedProviders
+    mappedProviders,
   );
 
   // Enriquecer resultado com dados adicionais
@@ -434,11 +449,17 @@ export const searchProvidersByLocation = async (req: Request, res: Response): Pr
  */
 export const getDashboardStats = async (req: Request, res: Response) => {
   const providerId = req.user!.id;
-  
+
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  const [profile, pendingRequests, activeWorkOrders, completedThisMonth, earningsThisMonth] = await Promise.all([
+  const [
+    profile,
+    pendingRequests,
+    activeWorkOrders,
+    completedThisMonth,
+    earningsThisMonth,
+  ] = await Promise.all([
     prisma.providerProfile.findUnique({
       where: { userId: providerId },
     }),
@@ -446,7 +467,7 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     prisma.serviceRequest.count({
       where: {
         status: {
-          in: ['SEARCHING_PROVIDERS', 'QUOTES_RECEIVED'],
+          in: ["SEARCHING_PROVIDERS", "QUOTES_RECEIVED"],
         },
         quotesCount: {
           lt: 5,
@@ -458,7 +479,7 @@ export const getDashboardStats = async (req: Request, res: Response) => {
       where: {
         providerId,
         status: {
-          in: ['PENDING_START', 'IN_PROGRESS', 'AWAITING_APPROVAL'],
+          in: ["PENDING_START", "IN_PROGRESS", "AWAITING_APPROVAL"],
         },
       },
     }),
@@ -466,7 +487,7 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     prisma.workOrder.count({
       where: {
         providerId,
-        status: 'COMPLETED',
+        status: "COMPLETED",
         completedAt: {
           gte: startOfMonth,
         },
@@ -476,7 +497,7 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     prisma.payment.aggregate({
       where: {
         providerId,
-        status: 'CAPTURED',
+        status: "CAPTURED",
         capturedAt: {
           gte: startOfMonth,
         },
@@ -511,17 +532,20 @@ export const getRecentActivity = async (req: Request, res: Response) => {
   const [recentQuotes, recentPayments, recentWorkOrders] = await Promise.all([
     prisma.quote.findMany({
       where: { providerId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: 5,
       include: {
         serviceRequest: {
-          select: { title: true, vehicle: { select: { make: true, model: true, year: true } } },
+          select: {
+            title: true,
+            vehicle: { select: { make: true, model: true, year: true } },
+          },
         },
       },
     }),
     prisma.payment.findMany({
-      where: { providerId, status: 'CAPTURED' },
-      orderBy: { capturedAt: 'desc' },
+      where: { providerId, status: "CAPTURED" },
+      orderBy: { capturedAt: "desc" },
       take: 5,
       include: {
         workOrder: {
@@ -532,8 +556,8 @@ export const getRecentActivity = async (req: Request, res: Response) => {
       },
     }),
     prisma.workOrder.findMany({
-      where: { providerId, status: 'COMPLETED' },
-      orderBy: { completedAt: 'desc' },
+      where: { providerId, status: "COMPLETED" },
+      orderBy: { completedAt: "desc" },
       take: 5,
       include: {
         serviceRequest: { select: { title: true } },
@@ -548,40 +572,40 @@ export const getRecentActivity = async (req: Request, res: Response) => {
     const hours = Math.floor(minutes / 60);
     if (hours < 24) return `${hours}h`;
     const days = Math.floor(hours / 24);
-    return `${days} day${days > 1 ? 's' : ''}`;
+    return `${days} day${days > 1 ? "s" : ""}`;
   };
 
   // Combinar e formatar atividades
   const activities: any[] = [];
-  
-  recentQuotes.forEach(q => {
+
+  recentQuotes.forEach((q) => {
     activities.push({
       id: q.id,
-      type: q.status === 'ACCEPTED' ? 'quote_accepted' : 'new_request',
-      title: q.status === 'ACCEPTED' ? 'Quote accepted!' : 'Quote sent',
+      type: q.status === "ACCEPTED" ? "quote_accepted" : "new_request",
+      title: q.status === "ACCEPTED" ? "Quote accepted!" : "Quote sent",
       description: `${q.serviceRequest.title} - ${q.serviceRequest.vehicle?.make} ${q.serviceRequest.vehicle?.model}`,
       time: formatTimeAgo(q.createdAt),
-      amount: q.status === 'ACCEPTED' ? q.totalAmount : undefined,
+      amount: q.status === "ACCEPTED" ? q.totalAmount : undefined,
     });
   });
 
-  recentPayments.forEach(p => {
+  recentPayments.forEach((p) => {
     activities.push({
       id: p.id,
-      type: 'payment_received',
-      title: 'Payment received',
-      description: p.workOrder?.serviceRequest?.title || 'Service',
+      type: "payment_received",
+      title: "Payment received",
+      description: p.workOrder?.serviceRequest?.title || "Service",
       time: formatTimeAgo(p.capturedAt || p.createdAt),
       amount: p.providerAmount,
     });
   });
 
-  recentWorkOrders.forEach(wo => {
+  recentWorkOrders.forEach((wo) => {
     activities.push({
       id: wo.id,
-      type: 'work_completed',
-      title: 'Service completed',
-      description: wo.serviceRequest?.title || 'Service',
+      type: "work_completed",
+      title: "Service completed",
+      description: wo.serviceRequest?.title || "Service",
       time: formatTimeAgo(wo.completedAt || wo.createdAt),
     });
   });
@@ -607,18 +631,18 @@ export const getPendingRequests = async (req: Request, res: Response) => {
     where: { providerId },
     select: { serviceRequestId: true },
   });
-  const quotedRequestIds = myQuotes.map(q => q.serviceRequestId);
+  const quotedRequestIds = myQuotes.map((q) => q.serviceRequestId);
 
   // Buscar solicitações disponíveis
   const requests = await prisma.serviceRequest.findMany({
     where: {
       status: {
-        in: ['SEARCHING_PROVIDERS', 'QUOTES_RECEIVED'],
+        in: ["SEARCHING_PROVIDERS", "QUOTES_RECEIVED"],
       },
       quotesCount: { lt: 5 },
       NOT: { id: { in: quotedRequestIds } },
     },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: "desc" },
     take: 10,
     include: {
       vehicle: { select: { make: true, model: true, year: true } },
@@ -635,11 +659,14 @@ export const getPendingRequests = async (req: Request, res: Response) => {
     return `${Math.floor(hours / 24)} days`;
   };
 
-  const pendingRequests = requests.map(r => ({
+  const pendingRequests = requests.map((r) => ({
     id: r.id,
-    title: r.title || r.description?.substring(0, 50) || 'Solicitação de Serviço',
-    vehicle: r.vehicle ? `${r.vehicle.make} ${r.vehicle.model} ${r.vehicle.year}` : 'N/A',
-    location: r.user ? `${r.user.city || ''}, ${r.user.state || ''}` : '',
+    title:
+      r.title || r.description?.substring(0, 50) || "Solicitação de Serviço",
+    vehicle: r.vehicle
+      ? `${r.vehicle.make} ${r.vehicle.model} ${r.vehicle.year}`
+      : "N/A",
+    location: r.user ? `${r.user.city || ""}, ${r.user.state || ""}` : "",
     timeAgo: formatTimeAgo(r.createdAt),
     isUrgent: r.isUrgent || false,
   }));

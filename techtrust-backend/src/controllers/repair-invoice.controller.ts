@@ -15,12 +15,12 @@
  * - PATCH  /:id/dispute       → Customer disputes invoice
  */
 
-import { Request, Response } from 'express';
-import { prisma } from '../config/database';
-import { AppError } from '../middleware/error-handler';
-import { logger } from '../config/logger';
-import { generateInvoiceNumber } from '../utils/number-generators';
-import { generateRepairInvoicePdf } from '../services/pdf.service';
+import { Request, Response } from "express";
+import { prisma } from "../config/database";
+import { AppError } from "../middleware/error-handler";
+import { logger } from "../config/logger";
+import { generateInvoiceNumber } from "../utils/number-generators";
+import { generateRepairInvoicePdf } from "../services/pdf.service";
 
 // ============================================
 // HELPER: Create Repair Invoice from approved Quote
@@ -29,7 +29,7 @@ import { generateRepairInvoicePdf } from '../services/pdf.service';
 export const createRepairInvoiceFromQuote = async (
   quoteId: string,
   workOrderId: string,
-  tx?: any
+  tx?: any,
 ): Promise<any> => {
   const db = tx || prisma;
 
@@ -54,7 +54,7 @@ export const createRepairInvoiceFromQuote = async (
     },
   });
 
-  if (!quote) throw new AppError('Quote not found', 404, 'QUOTE_NOT_FOUND');
+  if (!quote) throw new AppError("Quote not found", 404, "QUOTE_NOT_FOUND");
 
   const customer = await db.user.findUnique({
     where: { id: quote.serviceRequest.userId },
@@ -62,20 +62,22 @@ export const createRepairInvoiceFromQuote = async (
   });
 
   const vehicle = quote.serviceRequest.vehicle;
-  const vehicleInfo = `${vehicle.year} ${vehicle.make} ${vehicle.model}${vehicle.licensePlate ? ` (${vehicle.licensePlate})` : ''}`;
+  const vehicleInfo = `${vehicle.year} ${vehicle.make} ${vehicle.model}${vehicle.licensePlate ? ` (${vehicle.licensePlate})` : ""}`;
 
   const invoiceNumber = await generateInvoiceNumber();
 
   // Build line items from quote partsList (JSON field)
   const rawParts = (quote.partsList as any[]) || [];
   const lineItems = rawParts.map((item: any) => ({
-    description: item.description || item.name || 'Part/Service',
+    description: item.description || item.name || "Part/Service",
     partsCost: Number(item.partsCost || item.cost || 0),
     laborCost: Number(item.laborCost || 0),
     quantity: item.quantity || 1,
-    partCondition: item.partCondition || 'NEW',
+    partCondition: item.partCondition || "NEW",
     isNoCharge: item.isNoCharge || false,
-    total: (Number(item.partsCost || item.cost || 0) + Number(item.laborCost || 0)) * (item.quantity || 1),
+    total:
+      (Number(item.partsCost || item.cost || 0) + Number(item.laborCost || 0)) *
+      (item.quantity || 1),
   }));
 
   const repairInvoice = await db.repairInvoice.create({
@@ -89,7 +91,8 @@ export const createRepairInvoiceFromQuote = async (
       providerId: quote.providerId,
       providerName: quote.provider.fullName,
       providerBusinessName: quote.provider.providerProfile?.businessName,
-      fdacsRegistrationNumber: quote.provider.providerProfile?.fdacsRegistrationNumber,
+      fdacsRegistrationNumber:
+        quote.provider.providerProfile?.fdacsRegistrationNumber,
       vehicleInfo,
       originalPartsCost: quote.partsCost || 0,
       originalLaborCost: quote.laborCost || 0,
@@ -107,11 +110,13 @@ export const createRepairInvoiceFromQuote = async (
       warrantyMileage: quote.warrantyMileage,
       diagnosticFee: quote.diagnosticFee || 0,
       diagnosticFeeWaived: quote.diagnosticFeeWaived || false,
-      status: 'DRAFT',
+      status: "DRAFT",
     },
   });
 
-  logger.info(`Repair Invoice created: ${invoiceNumber} from quote ${quote.quoteNumber}`);
+  logger.info(
+    `Repair Invoice created: ${invoiceNumber} from quote ${quote.quoteNumber}`,
+  );
 
   return repairInvoice;
 };
@@ -129,7 +134,7 @@ export const updateInvoiceWithSupplement = async (
     approvedAt?: Date;
     rejectedAt?: Date;
     reason?: string;
-  }
+  },
 ) => {
   const invoice = await prisma.repairInvoice.findFirst({
     where: { workOrderId },
@@ -146,7 +151,8 @@ export const updateInvoiceWithSupplement = async (
       approvedAt: supplementData.approvedAt || new Date(),
     });
 
-    const newSupplementsTotal = Number(invoice.supplementsTotal) + supplementData.amount;
+    const newSupplementsTotal =
+      Number(invoice.supplementsTotal) + supplementData.amount;
 
     await prisma.repairInvoice.update({
       where: { id: invoice.id },
@@ -179,14 +185,14 @@ export const updateInvoiceWithSupplement = async (
 export const getMyInvoices = async (req: Request, res: Response) => {
   const userId = req.user!.id;
   const role = req.user!.role;
-  const { status, page = '1', limit = '20' } = req.query;
+  const { status, page = "1", limit = "20" } = req.query;
 
   const pageNum = parseInt(page as string) || 1;
   const limitNum = parseInt(limit as string) || 20;
   const skip = (pageNum - 1) * limitNum;
 
   const where: any = {};
-  if (role === 'PROVIDER') {
+  if (role === "PROVIDER") {
     where.providerId = userId;
   } else {
     where.customerId = userId;
@@ -212,7 +218,7 @@ export const getMyInvoices = async (req: Request, res: Response) => {
         createdAt: true,
         completedAt: true,
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       skip,
       take: limitNum,
     }),
@@ -266,9 +272,10 @@ export const getInvoice = async (req: Request, res: Response) => {
     },
   });
 
-  if (!invoice) throw new AppError('Invoice not found', 404, 'INVOICE_NOT_FOUND');
+  if (!invoice)
+    throw new AppError("Invoice not found", 404, "INVOICE_NOT_FOUND");
   if (invoice.customerId !== userId && invoice.providerId !== userId) {
-    throw new AppError('Not authorized', 403, 'FORBIDDEN');
+    throw new AppError("Not authorized", 403, "FORBIDDEN");
   }
 
   return res.json({ success: true, data: { invoice } });
@@ -283,10 +290,15 @@ export const updateWorkPerformed = async (req: Request, res: Response) => {
   const { servicePerformed, warrantyStatement, odometerReading } = req.body;
 
   const invoice = await prisma.repairInvoice.findFirst({
-    where: { id, providerId, status: { in: ['DRAFT', 'IN_PROGRESS'] } },
+    where: { id, providerId, status: { in: ["DRAFT", "IN_PROGRESS"] } },
   });
 
-  if (!invoice) throw new AppError('Invoice not found or cannot be updated', 404, 'NOT_FOUND');
+  if (!invoice)
+    throw new AppError(
+      "Invoice not found or cannot be updated",
+      404,
+      "NOT_FOUND",
+    );
 
   const updated = await prisma.repairInvoice.update({
     where: { id },
@@ -294,13 +306,13 @@ export const updateWorkPerformed = async (req: Request, res: Response) => {
       servicePerformed,
       warrantyStatement,
       odometerReading,
-      status: 'IN_PROGRESS',
+      status: "IN_PROGRESS",
     },
   });
 
   return res.json({
     success: true,
-    message: 'Invoice updated.',
+    message: "Invoice updated.",
     data: { invoice: updated },
   });
 };
@@ -314,17 +326,22 @@ export const completeInvoice = async (req: Request, res: Response) => {
   const { servicePerformed, warrantyStatement } = req.body;
 
   const invoice = await prisma.repairInvoice.findFirst({
-    where: { id, providerId, status: { in: ['DRAFT', 'IN_PROGRESS'] } },
+    where: { id, providerId, status: { in: ["DRAFT", "IN_PROGRESS"] } },
   });
 
-  if (!invoice) throw new AppError('Invoice not found or already completed', 404, 'NOT_FOUND');
+  if (!invoice)
+    throw new AppError(
+      "Invoice not found or already completed",
+      404,
+      "NOT_FOUND",
+    );
 
   const updated = await prisma.repairInvoice.update({
     where: { id },
     data: {
       servicePerformed: servicePerformed || invoice.servicePerformed,
       warrantyStatement: warrantyStatement || invoice.warrantyStatement,
-      status: 'COMPLETED',
+      status: "COMPLETED",
       completedAt: new Date(),
     },
   });
@@ -334,7 +351,10 @@ export const completeInvoice = async (req: Request, res: Response) => {
     await generateRepairInvoicePdf(id);
     logger.info(`PDF generated for invoice: ${invoice.invoiceNumber}`);
   } catch (pdfError) {
-    logger.error(`PDF generation failed for invoice ${invoice.invoiceNumber}:`, pdfError);
+    logger.error(
+      `PDF generation failed for invoice ${invoice.invoiceNumber}:`,
+      pdfError,
+    );
     // Non-blocking: invoice still completes even if PDF fails
   }
 
@@ -342,8 +362,8 @@ export const completeInvoice = async (req: Request, res: Response) => {
   await prisma.notification.create({
     data: {
       userId: invoice.customerId,
-      type: 'REPAIR_INVOICE_GENERATED',
-      title: 'Repair Invoice Ready',
+      type: "REPAIR_INVOICE_GENERATED",
+      title: "Repair Invoice Ready",
       message: `Your repair invoice ${invoice.invoiceNumber} is ready for review. Final total: $${Number(updated.finalTotal).toFixed(2)}.`,
       data: JSON.stringify({
         invoiceId: id,
@@ -357,7 +377,7 @@ export const completeInvoice = async (req: Request, res: Response) => {
 
   return res.json({
     success: true,
-    message: 'Invoice marked as completed. Customer has been notified.',
+    message: "Invoice marked as completed. Customer has been notified.",
     data: { invoice: updated },
   });
 };
@@ -371,15 +391,20 @@ export const acceptInvoice = async (req: Request, res: Response) => {
   const { signature } = req.body; // Optional digital signature
 
   const invoice = await prisma.repairInvoice.findFirst({
-    where: { id, customerId, status: 'COMPLETED' },
+    where: { id, customerId, status: "COMPLETED" },
   });
 
-  if (!invoice) throw new AppError('Invoice not found or cannot be accepted', 404, 'NOT_FOUND');
+  if (!invoice)
+    throw new AppError(
+      "Invoice not found or cannot be accepted",
+      404,
+      "NOT_FOUND",
+    );
 
   const updated = await prisma.repairInvoice.update({
     where: { id },
     data: {
-      status: 'APPROVED',
+      status: "APPROVED",
       customerAcceptedAt: new Date(),
       customerSignature: signature || null,
     },
@@ -389,7 +414,7 @@ export const acceptInvoice = async (req: Request, res: Response) => {
 
   return res.json({
     success: true,
-    message: 'Invoice accepted.',
+    message: "Invoice accepted.",
     data: { invoice: updated },
   });
 };
@@ -403,23 +428,28 @@ export const disputeInvoice = async (req: Request, res: Response) => {
   const { reason } = req.body;
 
   const invoice = await prisma.repairInvoice.findFirst({
-    where: { id, customerId, status: 'COMPLETED' },
+    where: { id, customerId, status: "COMPLETED" },
   });
 
-  if (!invoice) throw new AppError('Invoice not found or cannot be disputed', 404, 'NOT_FOUND');
+  if (!invoice)
+    throw new AppError(
+      "Invoice not found or cannot be disputed",
+      404,
+      "NOT_FOUND",
+    );
 
   const updated = await prisma.repairInvoice.update({
     where: { id },
-    data: { status: 'DISPUTED' },
+    data: { status: "DISPUTED" },
   });
 
   // Notify provider
   await prisma.notification.create({
     data: {
       userId: invoice.providerId,
-      type: 'REPAIR_INVOICE_GENERATED',
-      title: 'Invoice Disputed',
-      message: `Customer has disputed invoice ${invoice.invoiceNumber}.${reason ? ` Reason: ${reason}` : ''}`,
+      type: "REPAIR_INVOICE_GENERATED",
+      title: "Invoice Disputed",
+      message: `Customer has disputed invoice ${invoice.invoiceNumber}.${reason ? ` Reason: ${reason}` : ""}`,
       data: JSON.stringify({ invoiceId: id, reason }),
     },
   });
@@ -428,7 +458,7 @@ export const disputeInvoice = async (req: Request, res: Response) => {
 
   return res.json({
     success: true,
-    message: 'Invoice disputed. Support team will review.',
+    message: "Invoice disputed. Support team will review.",
     data: { invoice: updated },
   });
 };

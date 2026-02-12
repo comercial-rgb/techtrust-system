@@ -16,11 +16,11 @@
  * - GET    /provider/:id/slots → Get provider availability
  */
 
-import { Request, Response } from 'express';
-import { prisma } from '../config/database';
-import { AppError } from '../middleware/error-handler';
-import { logger } from '../config/logger';
-import { generateAppointmentNumber } from '../utils/number-generators';
+import { Request, Response } from "express";
+import { prisma } from "../config/database";
+import { AppError } from "../middleware/error-handler";
+import { logger } from "../config/logger";
+import { generateAppointmentNumber } from "../utils/number-generators";
 
 // ============================================
 // 1. SCHEDULE APPOINTMENT
@@ -35,8 +35,8 @@ export const scheduleAppointment = async (req: Request, res: Response) => {
     scheduledTime,
     estimatedDuration,
     serviceDescription,
-    serviceType = 'DIAGNOSTIC',
-    locationType = 'IN_SHOP',
+    serviceType = "DIAGNOSTIC",
+    locationType = "IN_SHOP",
     address,
     latitude,
     longitude,
@@ -48,7 +48,7 @@ export const scheduleAppointment = async (req: Request, res: Response) => {
 
   // Validate provider exists and is a provider
   const provider = await prisma.user.findFirst({
-    where: { id: providerId, role: 'PROVIDER', status: 'ACTIVE' },
+    where: { id: providerId, role: "PROVIDER", status: "ACTIVE" },
     select: {
       id: true,
       fullName: true,
@@ -57,14 +57,22 @@ export const scheduleAppointment = async (req: Request, res: Response) => {
       },
     },
   });
-  if (!provider) throw new AppError('Provider not found', 404, 'PROVIDER_NOT_FOUND');
+  if (!provider)
+    throw new AppError("Provider not found", 404, "PROVIDER_NOT_FOUND");
 
   // Validate vehicle belongs to customer
   const vehicle = await prisma.vehicle.findFirst({
     where: { id: vehicleId, userId: customerId },
-    select: { id: true, make: true, model: true, year: true, plateNumber: true },
+    select: {
+      id: true,
+      make: true,
+      model: true,
+      year: true,
+      plateNumber: true,
+    },
   });
-  if (!vehicle) throw new AppError('Vehicle not found', 404, 'VEHICLE_NOT_FOUND');
+  if (!vehicle)
+    throw new AppError("Vehicle not found", 404, "VEHICLE_NOT_FOUND");
 
   // Validate service request if provided
   if (serviceRequestId) {
@@ -72,13 +80,22 @@ export const scheduleAppointment = async (req: Request, res: Response) => {
       where: { id: serviceRequestId, userId: customerId },
       select: { id: true },
     });
-    if (!sr) throw new AppError('Service request not found', 404, 'SERVICE_REQUEST_NOT_FOUND');
+    if (!sr)
+      throw new AppError(
+        "Service request not found",
+        404,
+        "SERVICE_REQUEST_NOT_FOUND",
+      );
   }
 
   // Validate scheduled date is in the future
   const schedDate = new Date(scheduledDate);
   if (schedDate <= new Date()) {
-    throw new AppError('Scheduled date must be in the future', 400, 'INVALID_DATE');
+    throw new AppError(
+      "Scheduled date must be in the future",
+      400,
+      "INVALID_DATE",
+    );
   }
 
   const appointmentNumber = await generateAppointmentNumber();
@@ -103,12 +120,20 @@ export const scheduleAppointment = async (req: Request, res: Response) => {
       travelFee,
       feeWaivedOnService,
       customerNotes,
-      status: 'REQUESTED',
+      status: "REQUESTED",
     },
     include: {
       customer: { select: { id: true, fullName: true, phone: true } },
       provider: { select: { id: true, fullName: true } },
-      vehicle: { select: { id: true, make: true, model: true, year: true, plateNumber: true } },
+      vehicle: {
+        select: {
+          id: true,
+          make: true,
+          model: true,
+          year: true,
+          plateNumber: true,
+        },
+      },
     },
   });
 
@@ -116,8 +141,8 @@ export const scheduleAppointment = async (req: Request, res: Response) => {
   await prisma.notification.create({
     data: {
       userId: providerId,
-      type: 'APPOINTMENT_SCHEDULED',
-      title: 'New Appointment Request',
+      type: "APPOINTMENT_SCHEDULED",
+      title: "New Appointment Request",
       message: `A customer wants to schedule a diagnostic visit for their ${vehicle.year} ${vehicle.make} ${vehicle.model} on ${schedDate.toLocaleDateString()}.`,
       data: JSON.stringify({
         appointmentId: appointment.id,
@@ -130,11 +155,13 @@ export const scheduleAppointment = async (req: Request, res: Response) => {
     },
   });
 
-  logger.info(`Appointment scheduled: ${appointmentNumber} by customer ${customerId} with provider ${providerId}`);
+  logger.info(
+    `Appointment scheduled: ${appointmentNumber} by customer ${customerId} with provider ${providerId}`,
+  );
 
   return res.status(201).json({
     success: true,
-    message: 'Appointment request submitted. Provider will confirm shortly.',
+    message: "Appointment request submitted. Provider will confirm shortly.",
     data: { appointment },
   });
 };
@@ -145,14 +172,14 @@ export const scheduleAppointment = async (req: Request, res: Response) => {
 export const getMyAppointments = async (req: Request, res: Response) => {
   const userId = req.user!.id;
   const role = req.user!.role;
-  const { status, page = '1', limit = '20' } = req.query;
+  const { status, page = "1", limit = "20" } = req.query;
 
   const pageNum = parseInt(page as string) || 1;
   const limitNum = parseInt(limit as string) || 20;
   const skip = (pageNum - 1) * limitNum;
 
   const where: any = {};
-  if (role === 'PROVIDER') {
+  if (role === "PROVIDER") {
     where.providerId = userId;
   } else {
     where.customerId = userId;
@@ -165,7 +192,9 @@ export const getMyAppointments = async (req: Request, res: Response) => {
     prisma.appointment.findMany({
       where,
       include: {
-        customer: { select: { id: true, fullName: true, phone: true, avatarUrl: true } },
+        customer: {
+          select: { id: true, fullName: true, phone: true, avatarUrl: true },
+        },
         provider: {
           select: {
             id: true,
@@ -174,9 +203,17 @@ export const getMyAppointments = async (req: Request, res: Response) => {
             providerProfile: { select: { businessName: true } },
           },
         },
-        vehicle: { select: { id: true, make: true, model: true, year: true, plateNumber: true } },
+        vehicle: {
+          select: {
+            id: true,
+            make: true,
+            model: true,
+            year: true,
+            plateNumber: true,
+          },
+        },
       },
-      orderBy: { scheduledDate: 'asc' },
+      orderBy: { scheduledDate: "asc" },
       skip,
       take: limitNum,
     }),
@@ -207,7 +244,15 @@ export const getAppointment = async (req: Request, res: Response) => {
   const appointment = await prisma.appointment.findUnique({
     where: { id },
     include: {
-      customer: { select: { id: true, fullName: true, phone: true, email: true, avatarUrl: true } },
+      customer: {
+        select: {
+          id: true,
+          fullName: true,
+          phone: true,
+          email: true,
+          avatarUrl: true,
+        },
+      },
       provider: {
         select: {
           id: true,
@@ -240,9 +285,10 @@ export const getAppointment = async (req: Request, res: Response) => {
     },
   });
 
-  if (!appointment) throw new AppError('Appointment not found', 404, 'APPOINTMENT_NOT_FOUND');
+  if (!appointment)
+    throw new AppError("Appointment not found", 404, "APPOINTMENT_NOT_FOUND");
   if (appointment.customerId !== userId && appointment.providerId !== userId) {
-    throw new AppError('Not authorized', 403, 'FORBIDDEN');
+    throw new AppError("Not authorized", 403, "FORBIDDEN");
   }
 
   return res.json({ success: true, data: { appointment } });
@@ -257,17 +303,22 @@ export const confirmAppointment = async (req: Request, res: Response) => {
   const { providerNotes, suggestedDate, suggestedTime } = req.body;
 
   const appointment = await prisma.appointment.findFirst({
-    where: { id, providerId, status: 'REQUESTED' },
+    where: { id, providerId, status: "REQUESTED" },
     include: {
       customer: { select: { id: true, fullName: true } },
       vehicle: { select: { make: true, model: true, year: true } },
     },
   });
 
-  if (!appointment) throw new AppError('Appointment not found or already processed', 404, 'NOT_FOUND');
+  if (!appointment)
+    throw new AppError(
+      "Appointment not found or already processed",
+      404,
+      "NOT_FOUND",
+    );
 
   const updateData: any = {
-    status: 'CONFIRMED',
+    status: "CONFIRMED",
     providerNotes,
   };
 
@@ -284,9 +335,9 @@ export const confirmAppointment = async (req: Request, res: Response) => {
   await prisma.notification.create({
     data: {
       userId: appointment.customerId,
-      type: 'APPOINTMENT_CONFIRMED',
-      title: 'Appointment Confirmed!',
-      message: `Your diagnostic appointment for your ${appointment.vehicle.year} ${appointment.vehicle.make} ${appointment.vehicle.model} has been confirmed for ${updated.scheduledDate.toLocaleDateString()}${updated.scheduledTime ? ` at ${updated.scheduledTime}` : ''}.`,
+      type: "APPOINTMENT_CONFIRMED",
+      title: "Appointment Confirmed!",
+      message: `Your diagnostic appointment for your ${appointment.vehicle.year} ${appointment.vehicle.make} ${appointment.vehicle.model} has been confirmed for ${updated.scheduledDate.toLocaleDateString()}${updated.scheduledTime ? ` at ${updated.scheduledTime}` : ""}.`,
       data: JSON.stringify({
         appointmentId: id,
         scheduledDate: updated.scheduledDate.toISOString(),
@@ -295,11 +346,13 @@ export const confirmAppointment = async (req: Request, res: Response) => {
     },
   });
 
-  logger.info(`Appointment confirmed: ${appointment.appointmentNumber} by provider ${providerId}`);
+  logger.info(
+    `Appointment confirmed: ${appointment.appointmentNumber} by provider ${providerId}`,
+  );
 
   return res.json({
     success: true,
-    message: 'Appointment confirmed.',
+    message: "Appointment confirmed.",
     data: { appointment: updated },
   });
 };
@@ -312,18 +365,23 @@ export const checkInAppointment = async (req: Request, res: Response) => {
   const { id } = req.params;
 
   const appointment = await prisma.appointment.findFirst({
-    where: { id, providerId, status: 'CONFIRMED' },
+    where: { id, providerId, status: "CONFIRMED" },
     include: {
       customer: { select: { id: true, fullName: true } },
     },
   });
 
-  if (!appointment) throw new AppError('Appointment not found or not in confirmed state', 404, 'NOT_FOUND');
+  if (!appointment)
+    throw new AppError(
+      "Appointment not found or not in confirmed state",
+      404,
+      "NOT_FOUND",
+    );
 
   const updated = await prisma.appointment.update({
     where: { id },
     data: {
-      status: 'IN_PROGRESS',
+      status: "IN_PROGRESS",
       providerCheckedInAt: new Date(),
     },
   });
@@ -332,18 +390,21 @@ export const checkInAppointment = async (req: Request, res: Response) => {
   await prisma.notification.create({
     data: {
       userId: appointment.customerId,
-      type: 'APPOINTMENT_CONFIRMED',
-      title: 'Provider Has Arrived',
-      message: 'The provider has checked in and started the diagnostic inspection.',
+      type: "APPOINTMENT_CONFIRMED",
+      title: "Provider Has Arrived",
+      message:
+        "The provider has checked in and started the diagnostic inspection.",
       data: JSON.stringify({ appointmentId: id }),
     },
   });
 
-  logger.info(`Provider checked in for appointment: ${appointment.appointmentNumber}`);
+  logger.info(
+    `Provider checked in for appointment: ${appointment.appointmentNumber}`,
+  );
 
   return res.json({
     success: true,
-    message: 'Checked in successfully.',
+    message: "Checked in successfully.",
     data: { appointment: updated },
   });
 };
@@ -357,19 +418,24 @@ export const completeAppointment = async (req: Request, res: Response) => {
   const { providerNotes } = req.body;
 
   const appointment = await prisma.appointment.findFirst({
-    where: { id, providerId, status: 'IN_PROGRESS' },
+    where: { id, providerId, status: "IN_PROGRESS" },
     include: {
       customer: { select: { id: true, fullName: true } },
       vehicle: { select: { make: true, model: true, year: true } },
     },
   });
 
-  if (!appointment) throw new AppError('Appointment not found or not in progress', 404, 'NOT_FOUND');
+  if (!appointment)
+    throw new AppError(
+      "Appointment not found or not in progress",
+      404,
+      "NOT_FOUND",
+    );
 
   const updated = await prisma.appointment.update({
     where: { id },
     data: {
-      status: 'COMPLETED',
+      status: "COMPLETED",
       completedAt: new Date(),
       providerNotes: providerNotes || appointment.providerNotes,
     },
@@ -379,8 +445,8 @@ export const completeAppointment = async (req: Request, res: Response) => {
   await prisma.notification.create({
     data: {
       userId: appointment.customerId,
-      type: 'ESTIMATE_CREATED',
-      title: 'Diagnostic Complete',
+      type: "ESTIMATE_CREATED",
+      title: "Diagnostic Complete",
       message: `The diagnostic inspection for your ${appointment.vehicle.year} ${appointment.vehicle.make} ${appointment.vehicle.model} is complete. A Written Estimate will be sent shortly.`,
       data: JSON.stringify({ appointmentId: id }),
     },
@@ -390,7 +456,7 @@ export const completeAppointment = async (req: Request, res: Response) => {
 
   return res.json({
     success: true,
-    message: 'Appointment completed. You can now create a Written Estimate.',
+    message: "Appointment completed. You can now create a Written Estimate.",
     data: { appointment: updated },
   });
 };
@@ -407,7 +473,7 @@ export const cancelAppointment = async (req: Request, res: Response) => {
     where: {
       id,
       OR: [{ customerId: userId }, { providerId: userId }],
-      status: { in: ['REQUESTED', 'CONFIRMED'] },
+      status: { in: ["REQUESTED", "CONFIRMED"] },
     },
     include: {
       customer: { select: { id: true, fullName: true } },
@@ -415,15 +481,24 @@ export const cancelAppointment = async (req: Request, res: Response) => {
     },
   });
 
-  if (!appointment) throw new AppError('Appointment not found or cannot be cancelled', 404, 'NOT_FOUND');
+  if (!appointment)
+    throw new AppError(
+      "Appointment not found or cannot be cancelled",
+      404,
+      "NOT_FOUND",
+    );
 
-  const cancelledBy = appointment.customerId === userId ? 'CUSTOMER' : 'PROVIDER';
-  const notifyUserId = cancelledBy === 'CUSTOMER' ? appointment.providerId : appointment.customerId;
+  const cancelledBy =
+    appointment.customerId === userId ? "CUSTOMER" : "PROVIDER";
+  const notifyUserId =
+    cancelledBy === "CUSTOMER"
+      ? appointment.providerId
+      : appointment.customerId;
 
   const updated = await prisma.appointment.update({
     where: { id },
     data: {
-      status: 'CANCELLED',
+      status: "CANCELLED",
       cancelledAt: new Date(),
       cancelledBy,
       cancellationReason: reason,
@@ -434,18 +509,20 @@ export const cancelAppointment = async (req: Request, res: Response) => {
   await prisma.notification.create({
     data: {
       userId: notifyUserId,
-      type: 'APPOINTMENT_CANCELLED',
-      title: 'Appointment Cancelled',
-      message: `The appointment ${appointment.appointmentNumber} has been cancelled by the ${cancelledBy.toLowerCase()}.${reason ? ` Reason: ${reason}` : ''}`,
+      type: "APPOINTMENT_CANCELLED",
+      title: "Appointment Cancelled",
+      message: `The appointment ${appointment.appointmentNumber} has been cancelled by the ${cancelledBy.toLowerCase()}.${reason ? ` Reason: ${reason}` : ""}`,
       data: JSON.stringify({ appointmentId: id, cancelledBy, reason }),
     },
   });
 
-  logger.info(`Appointment cancelled: ${appointment.appointmentNumber} by ${cancelledBy}`);
+  logger.info(
+    `Appointment cancelled: ${appointment.appointmentNumber} by ${cancelledBy}`,
+  );
 
   return res.json({
     success: true,
-    message: 'Appointment cancelled.',
+    message: "Appointment cancelled.",
     data: { appointment: updated },
   });
 };
@@ -459,7 +536,7 @@ export const getProviderSlots = async (req: Request, res: Response) => {
 
   // Check provider exists + get business hours
   const provider = await prisma.user.findFirst({
-    where: { id: providerId, role: 'PROVIDER', status: 'ACTIVE' },
+    where: { id: providerId, role: "PROVIDER", status: "ACTIVE" },
     select: {
       id: true,
       fullName: true,
@@ -471,7 +548,8 @@ export const getProviderSlots = async (req: Request, res: Response) => {
       },
     },
   });
-  if (!provider) throw new AppError('Provider not found', 404, 'PROVIDER_NOT_FOUND');
+  if (!provider)
+    throw new AppError("Provider not found", 404, "PROVIDER_NOT_FOUND");
 
   // Get existing appointments for that date (to show busy slots)
   let dateFilter: any = {};
@@ -487,7 +565,7 @@ export const getProviderSlots = async (req: Request, res: Response) => {
   const bookedAppointments = await prisma.appointment.findMany({
     where: {
       providerId,
-      status: { in: ['CONFIRMED', 'IN_PROGRESS'] },
+      status: { in: ["CONFIRMED", "IN_PROGRESS"] },
       ...dateFilter,
     },
     select: {
@@ -495,7 +573,7 @@ export const getProviderSlots = async (req: Request, res: Response) => {
       scheduledTime: true,
       estimatedDuration: true,
     },
-    orderBy: { scheduledDate: 'asc' },
+    orderBy: { scheduledDate: "asc" },
   });
 
   // Parse business hours to generate available slots
@@ -504,9 +582,9 @@ export const getProviderSlots = async (req: Request, res: Response) => {
 
   if (date && businessHours) {
     const dayOfWeek = new Date(date as string)
-      .toLocaleDateString('en-US', { weekday: 'long' })
+      .toLocaleDateString("en-US", { weekday: "long" })
       .toLowerCase();
-    
+
     // Support formats: { monday: { open: "08:00", close: "17:00" } }
     // or { monday: { start: "08:00", end: "17:00" } }
     const dayHours = businessHours[dayOfWeek];
@@ -515,18 +593,18 @@ export const getProviderSlots = async (req: Request, res: Response) => {
       const openTime = dayHours.open || dayHours.start;
       const closeTime = dayHours.close || dayHours.end;
 
-      const [openH] = openTime.split(':').map(Number);
-      const [closeH, closeM] = closeTime.split(':').map(Number);
+      const [openH] = openTime.split(":").map(Number);
+      const [closeH, closeM] = closeTime.split(":").map(Number);
 
       const bookedTimes = new Set(
         bookedAppointments
           .filter((a) => a.scheduledTime)
-          .map((a) => a.scheduledTime)
+          .map((a) => a.scheduledTime),
       );
 
       // Generate 1-hour slots
       for (let h = openH; h < closeH || (h === closeH && 0 < closeM); h++) {
-        const slot = `${String(h).padStart(2, '0')}:00`;
+        const slot = `${String(h).padStart(2, "0")}:00`;
         if (!bookedTimes.has(slot)) {
           availableSlots.push(slot);
         }

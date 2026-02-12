@@ -3,9 +3,15 @@
  * Suporta CUSTOMER e PROVIDER com API real
  */
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import api from '../services/api';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import api from "../services/api";
 
 // ============================================
 // TYPES
@@ -15,7 +21,7 @@ interface User {
   email: string;
   fullName: string;
   phone?: string;
-  role: 'CUSTOMER' | 'PROVIDER';
+  role: "CUSTOMER" | "PROVIDER";
   avatarUrl?: string;
   providerProfile?: {
     businessName: string;
@@ -32,7 +38,7 @@ interface User {
 }
 
 interface SocialLoginResult {
-  status: 'AUTHENTICATED' | 'NEEDS_PASSWORD' | 'NEEDS_PHONE_VERIFICATION';
+  status: "AUTHENTICATED" | "NEEDS_PASSWORD" | "NEEDS_PHONE_VERIFICATION";
   userId?: string;
   email?: string;
   fullName?: string;
@@ -47,10 +53,22 @@ interface AuthContextType {
   loginAsProvider: (email: string, password: string) => Promise<void>;
   signup: (data: SignupData) => Promise<{ userId: string }>;
   signUp: (data: SignupData) => Promise<{ userId: string }>;
-  socialLogin: (provider: string, token: string, extra?: { appleUserId?: string; fullName?: string }) => Promise<SocialLoginResult>;
-  completeSocialSignup: (userId: string, password: string, phone?: string) => Promise<SocialLoginResult>;
-  verifyOTP: (userId: string, code: string, method?: 'sms' | 'email') => Promise<void>;
-  resendOTP: (userId: string, method?: 'sms' | 'email') => Promise<void>;
+  socialLogin: (
+    provider: string,
+    token: string,
+    extra?: { appleUserId?: string; fullName?: string },
+  ) => Promise<SocialLoginResult>;
+  completeSocialSignup: (
+    userId: string,
+    password: string,
+    phone?: string,
+  ) => Promise<SocialLoginResult>;
+  verifyOTP: (
+    userId: string,
+    code: string,
+    method?: "sms" | "email",
+  ) => Promise<void>;
+  resendOTP: (userId: string, method?: "sms" | "email") => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
 }
@@ -61,7 +79,7 @@ interface SignupData {
   phone: string;
   password: string;
   language?: string;
-  role?: 'CLIENT' | 'PROVIDER';
+  role?: "CLIENT" | "PROVIDER";
   businessName?: string;
   businessAddress?: string;
   businessCity?: string;
@@ -84,19 +102,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkAuth = async () => {
     try {
-      const storedUser = await AsyncStorage.getItem('@TechTrust:user');
-      const token = await AsyncStorage.getItem('@TechTrust:token');
-      
+      const storedUser = await AsyncStorage.getItem("@TechTrust:user");
+      const token = await AsyncStorage.getItem("@TechTrust:token");
+
       // Se não tem usuário ou token, limpar dados antigos e retornar
       if (!storedUser || !token) {
-        console.log('🔍 Sem dados de autenticação salvos');
+        console.log("🔍 Sem dados de autenticação salvos");
         await clearAuthData();
         return;
       }
-      
+
       // Tentar validar o token com a API
       try {
-        const response = await api.get('/users/me');
+        const response = await api.get("/users/me");
         if (response.data?.data) {
           // Token válido, atualizar dados do usuário
           const apiUser = response.data.data;
@@ -104,12 +122,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             id: apiUser.id,
             email: apiUser.email,
             fullName: apiUser.fullName,
-            phone: apiUser.phone || '',
-            role: apiUser.role === 'CLIENT' ? 'CUSTOMER' : apiUser.role,
+            phone: apiUser.phone || "",
+            role: apiUser.role === "CLIENT" ? "CUSTOMER" : apiUser.role,
           };
           setUser(normalizedUser);
-          await AsyncStorage.setItem('@TechTrust:user', JSON.stringify(normalizedUser));
-
+          await AsyncStorage.setItem(
+            "@TechTrust:user",
+            JSON.stringify(normalizedUser),
+          );
         }
       } catch (apiError: any) {
         // Token inválido ou expirado - limpar dados
@@ -117,7 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await clearAuthData();
       }
     } catch (error) {
-      console.error('Erro ao verificar auth:', error);
+      console.error("Erro ao verificar auth:", error);
       await clearAuthData();
     } finally {
       setLoading(false);
@@ -128,35 +148,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const clearAuthData = async () => {
     try {
       await AsyncStorage.multiRemove([
-        '@TechTrust:user',
-        '@TechTrust:token',
-        '@TechTrust:refreshToken',
-        '@TechTrust:pendingUser',
+        "@TechTrust:user",
+        "@TechTrust:token",
+        "@TechTrust:refreshToken",
+        "@TechTrust:pendingUser",
       ]);
       setUser(null);
     } catch (error) {
-      console.error('Erro ao limpar dados:', error);
+      console.error("Erro ao limpar dados:", error);
     }
   };
 
   // Login como CLIENTE (padrão)
   const login = async (email: string, password: string) => {
     try {
-      const response = await api.post('/auth/login', { email, password });
+      const response = await api.post("/auth/login", { email, password });
 
       const { token, refreshToken, user: apiUser } = response.data.data;
       const normalizedUser: User = {
         id: apiUser.id,
         email: apiUser.email,
         fullName: apiUser.fullName,
-        phone: apiUser.phone || '',
-        role: apiUser.role === 'CLIENT' ? 'CUSTOMER' : apiUser.role,
+        phone: apiUser.phone || "",
+        role: apiUser.role === "CLIENT" ? "CUSTOMER" : apiUser.role,
       };
 
-      await AsyncStorage.setItem('@TechTrust:user', JSON.stringify(normalizedUser));
-      await AsyncStorage.setItem('@TechTrust:token', token);
+      await AsyncStorage.setItem(
+        "@TechTrust:user",
+        JSON.stringify(normalizedUser),
+      );
+      await AsyncStorage.setItem("@TechTrust:token", token);
       if (refreshToken) {
-        await AsyncStorage.setItem('@TechTrust:refreshToken', refreshToken);
+        await AsyncStorage.setItem("@TechTrust:refreshToken", refreshToken);
       }
 
       setUser(normalizedUser);
@@ -166,8 +189,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const message =
         error?.response?.data?.message ||
         error?.message ||
-        'Erro ao fazer login';
-      
+        "Erro ao fazer login";
+
       // Criar erro com código para tratamento específico
       const loginError = new Error(message) as any;
       loginError.code = errorCode;
@@ -178,27 +201,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Login como FORNECEDOR
   const loginAsProvider = async (email: string, password: string) => {
     try {
-      const response = await api.post('/auth/login', { email, password });
+      const response = await api.post("/auth/login", { email, password });
 
       const { token, refreshToken, user: apiUser } = response.data.data;
 
       // Validar se é provider
-      if (apiUser.role !== 'PROVIDER') {
-        throw new Error('Esta conta não é de fornecedor');
+      if (apiUser.role !== "PROVIDER") {
+        throw new Error("Esta conta não é de fornecedor");
       }
 
       const normalizedUser: User = {
         id: apiUser.id,
         email: apiUser.email,
         fullName: apiUser.fullName,
-        phone: apiUser.phone || '',
-        role: 'PROVIDER',
+        phone: apiUser.phone || "",
+        role: "PROVIDER",
       };
 
-      await AsyncStorage.setItem('@TechTrust:user', JSON.stringify(normalizedUser));
-      await AsyncStorage.setItem('@TechTrust:token', token);
+      await AsyncStorage.setItem(
+        "@TechTrust:user",
+        JSON.stringify(normalizedUser),
+      );
+      await AsyncStorage.setItem("@TechTrust:token", token);
       if (refreshToken) {
-        await AsyncStorage.setItem('@TechTrust:refreshToken', refreshToken);
+        await AsyncStorage.setItem("@TechTrust:refreshToken", refreshToken);
       }
 
       setUser(normalizedUser);
@@ -208,8 +234,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const message =
         error?.response?.data?.message ||
         error?.message ||
-        'Erro ao fazer login';
-      
+        "Erro ao fazer login";
+
       // Criar erro com código para tratamento específico
       const loginError = new Error(message) as any;
       loginError.code = errorCode;
@@ -219,13 +245,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signup = async (data: SignupData): Promise<{ userId: string }> => {
     try {
-      const response = await api.post('/auth/signup', data);
-      
+      const response = await api.post("/auth/signup", data);
+
       const { userId } = response.data.data;
 
       await AsyncStorage.setItem(
-        '@TechTrust:pendingUser',
-        JSON.stringify({ userId, email: data.email, phone: data.phone })
+        "@TechTrust:pendingUser",
+        JSON.stringify({ userId, email: data.email, phone: data.phone }),
       );
 
       return { userId };
@@ -233,50 +259,63 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const message =
         error?.response?.data?.message ||
         error?.message ||
-        'Erro ao criar conta';
+        "Erro ao criar conta";
       throw new Error(message);
     }
   };
 
-  const resendOTP = async (userId: string, method: 'sms' | 'email' = 'sms'): Promise<void> => {
+  const resendOTP = async (
+    userId: string,
+    method: "sms" | "email" = "sms",
+  ): Promise<void> => {
     try {
-      await api.post('/auth/resend-otp', { userId, method });
+      await api.post("/auth/resend-otp", { userId, method });
     } catch (error: any) {
       const message =
         error?.response?.data?.message ||
         error?.message ||
-        'Erro ao reenviar código';
+        "Erro ao reenviar código";
       throw new Error(message);
     }
   };
 
-  const verifyOTP = async (userId: string, code: string, method: 'sms' | 'email' = 'sms'): Promise<void> => {
+  const verifyOTP = async (
+    userId: string,
+    code: string,
+    method: "sms" | "email" = "sms",
+  ): Promise<void> => {
     try {
-
-      const response = await api.post('/auth/verify-otp', { userId, otpCode: code, method });
+      const response = await api.post("/auth/verify-otp", {
+        userId,
+        otpCode: code,
+        method,
+      });
 
       const { token, refreshToken, user: apiUser } = response.data.data;
       const normalizedUser: User = {
         id: apiUser.id,
         email: apiUser.email,
         fullName: apiUser.fullName,
-        phone: apiUser.phone || '',
-        role: apiUser.role === 'CLIENT' ? 'CUSTOMER' : apiUser.role,
+        phone: apiUser.phone || "",
+        role: apiUser.role === "CLIENT" ? "CUSTOMER" : apiUser.role,
       };
 
-      await AsyncStorage.setItem('@TechTrust:user', JSON.stringify(normalizedUser));
-      await AsyncStorage.setItem('@TechTrust:token', token);
+      await AsyncStorage.setItem(
+        "@TechTrust:user",
+        JSON.stringify(normalizedUser),
+      );
+      await AsyncStorage.setItem("@TechTrust:token", token);
       if (refreshToken) {
-        await AsyncStorage.setItem('@TechTrust:refreshToken', refreshToken);
+        await AsyncStorage.setItem("@TechTrust:refreshToken", refreshToken);
       }
-      await AsyncStorage.removeItem('@TechTrust:pendingUser');
+      await AsyncStorage.removeItem("@TechTrust:pendingUser");
 
       setUser(normalizedUser);
     } catch (error: any) {
       const message =
         error?.response?.data?.message ||
         error?.message ||
-        'Erro ao verificar código';
+        "Erro ao verificar código";
       throw new Error(message);
     }
   };
@@ -285,15 +324,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       // Limpar TODOS os dados do AsyncStorage relacionados à autenticação
       await AsyncStorage.multiRemove([
-        '@TechTrust:user',
-        '@TechTrust:token',
-        '@TechTrust:refreshToken',
-        '@TechTrust:pendingUser',
+        "@TechTrust:user",
+        "@TechTrust:token",
+        "@TechTrust:refreshToken",
+        "@TechTrust:pendingUser",
       ]);
       setUser(null);
-      console.log('✅ Logout realizado com sucesso');
+      console.log("✅ Logout realizado com sucesso");
     } catch (error) {
-      console.error('Erro ao fazer logout:', error);
+      console.error("Erro ao fazer logout:", error);
     }
   };
 
@@ -304,10 +343,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const socialLogin = async (
     provider: string,
     token: string,
-    extra?: { appleUserId?: string; fullName?: string }
+    extra?: { appleUserId?: string; fullName?: string },
   ): Promise<SocialLoginResult> => {
     try {
-      const response = await api.post('/auth/social', {
+      const response = await api.post("/auth/social", {
         provider,
         token,
         appleUserId: extra?.appleUserId,
@@ -316,21 +355,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const data = response.data.data;
 
-      if (data.status === 'AUTHENTICATED') {
+      if (data.status === "AUTHENTICATED") {
         // User is fully authenticated
         const normalizedUser: User = {
           id: data.user.id,
           email: data.user.email,
           fullName: data.user.fullName,
-          phone: data.user.phone || '',
-          role: data.user.role === 'CLIENT' ? 'CUSTOMER' : data.user.role,
+          phone: data.user.phone || "",
+          role: data.user.role === "CLIENT" ? "CUSTOMER" : data.user.role,
           avatarUrl: data.user.avatarUrl,
         };
 
-        await AsyncStorage.setItem('@TechTrust:user', JSON.stringify(normalizedUser));
-        await AsyncStorage.setItem('@TechTrust:token', data.token);
+        await AsyncStorage.setItem(
+          "@TechTrust:user",
+          JSON.stringify(normalizedUser),
+        );
+        await AsyncStorage.setItem("@TechTrust:token", data.token);
         if (data.refreshToken) {
-          await AsyncStorage.setItem('@TechTrust:refreshToken', data.refreshToken);
+          await AsyncStorage.setItem(
+            "@TechTrust:refreshToken",
+            data.refreshToken,
+          );
         }
 
         setUser(normalizedUser);
@@ -348,7 +393,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const message =
         error?.response?.data?.message ||
         error?.message ||
-        'Social login failed';
+        "Social login failed";
       throw new Error(message);
     }
   };
@@ -356,10 +401,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const completeSocialSignup = async (
     userId: string,
     password: string,
-    phone?: string
+    phone?: string,
   ): Promise<SocialLoginResult> => {
     try {
-      const response = await api.post('/auth/social/complete', {
+      const response = await api.post("/auth/social/complete", {
         userId,
         password,
         phone,
@@ -367,20 +412,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const data = response.data.data;
 
-      if (data.status === 'AUTHENTICATED') {
+      if (data.status === "AUTHENTICATED") {
         const normalizedUser: User = {
           id: data.user.id,
           email: data.user.email,
           fullName: data.user.fullName,
-          phone: data.user.phone || '',
-          role: data.user.role === 'CLIENT' ? 'CUSTOMER' : data.user.role,
+          phone: data.user.phone || "",
+          role: data.user.role === "CLIENT" ? "CUSTOMER" : data.user.role,
           avatarUrl: data.user.avatarUrl,
         };
 
-        await AsyncStorage.setItem('@TechTrust:user', JSON.stringify(normalizedUser));
-        await AsyncStorage.setItem('@TechTrust:token', data.token);
+        await AsyncStorage.setItem(
+          "@TechTrust:user",
+          JSON.stringify(normalizedUser),
+        );
+        await AsyncStorage.setItem("@TechTrust:token", data.token);
         if (data.refreshToken) {
-          await AsyncStorage.setItem('@TechTrust:refreshToken', data.refreshToken);
+          await AsyncStorage.setItem(
+            "@TechTrust:refreshToken",
+            data.refreshToken,
+          );
         }
 
         setUser(normalizedUser);
@@ -395,7 +446,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const message =
         error?.response?.data?.message ||
         error?.message ||
-        'Failed to complete signup';
+        "Failed to complete signup";
       throw new Error(message);
     }
   };
@@ -425,7 +476,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }

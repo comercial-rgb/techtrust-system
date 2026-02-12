@@ -5,10 +5,10 @@
  * Cross-device wallet balance & transactions
  */
 
-import { Request, Response } from 'express';
-import { prisma } from '../config/database';
-import { AppError } from '../middleware/error-handler';
-import { logger } from '../config/logger';
+import { Request, Response } from "express";
+import { prisma } from "../config/database";
+import { AppError } from "../middleware/error-handler";
+import { logger } from "../config/logger";
 
 /**
  * GET /api/v1/wallet
@@ -22,7 +22,7 @@ export const getWallet = async (req: Request, res: Response) => {
     where: { userId },
     include: {
       transactions: {
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         take: 50,
       },
     },
@@ -33,7 +33,7 @@ export const getWallet = async (req: Request, res: Response) => {
       data: { userId },
       include: {
         transactions: {
-          orderBy: { createdAt: 'desc' },
+          orderBy: { createdAt: "desc" },
           take: 50,
         },
       },
@@ -50,7 +50,7 @@ export const getWallet = async (req: Request, res: Response) => {
         amount: Number(t.amount),
         description: t.description,
         method: t.method,
-        date: t.createdAt.toISOString().split('T')[0],
+        date: t.createdAt.toISOString().split("T")[0],
         createdAt: t.createdAt,
       })),
     },
@@ -66,15 +66,15 @@ export const addFunds = async (req: Request, res: Response) => {
   const { amount, method } = req.body;
 
   if (!amount || amount <= 0) {
-    throw new AppError('Amount must be greater than 0', 400, 'INVALID_AMOUNT');
+    throw new AppError("Amount must be greater than 0", 400, "INVALID_AMOUNT");
   }
 
   if (amount < 10) {
-    throw new AppError('Minimum amount is $10.00', 400, 'MINIMUM_AMOUNT');
+    throw new AppError("Minimum amount is $10.00", 400, "MINIMUM_AMOUNT");
   }
 
-  if (!['card', 'pix', 'transfer'].includes(method)) {
-    throw new AppError('Invalid funding method', 400, 'INVALID_METHOD');
+  if (!["card", "pix", "transfer"].includes(method)) {
+    throw new AppError("Invalid funding method", 400, "INVALID_METHOD");
   }
 
   // Find or create wallet
@@ -95,7 +95,7 @@ export const addFunds = async (req: Request, res: Response) => {
     const transaction = await tx.walletTransaction.create({
       data: {
         walletId: wallet!.id,
-        type: 'credit',
+        type: "credit",
         amount,
         description: `Funds added via ${method}`,
         method,
@@ -105,11 +105,13 @@ export const addFunds = async (req: Request, res: Response) => {
     return { wallet: updatedWallet, transaction };
   });
 
-  logger.info(`Wallet funds added: $${amount} via ${method} for user ${userId}`);
+  logger.info(
+    `Wallet funds added: $${amount} via ${method} for user ${userId}`,
+  );
 
   res.json({
     success: true,
-    message: 'Funds added successfully',
+    message: "Funds added successfully",
     data: {
       balance: Number(result.wallet.balance),
       transaction: {
@@ -118,7 +120,7 @@ export const addFunds = async (req: Request, res: Response) => {
         amount: Number(result.transaction.amount),
         description: result.transaction.description,
         method: result.transaction.method,
-        date: result.transaction.createdAt.toISOString().split('T')[0],
+        date: result.transaction.createdAt.toISOString().split("T")[0],
       },
     },
   });
@@ -143,7 +145,7 @@ export const getTransactions = async (req: Request, res: Response) => {
   const [transactions, total] = await Promise.all([
     prisma.walletTransaction.findMany({
       where: { walletId: wallet.id },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       skip,
       take: limit,
     }),
@@ -159,7 +161,7 @@ export const getTransactions = async (req: Request, res: Response) => {
         amount: Number(t.amount),
         description: t.description,
         method: t.method,
-        date: t.createdAt.toISOString().split('T')[0],
+        date: t.createdAt.toISOString().split("T")[0],
         createdAt: t.createdAt,
       })),
       total,

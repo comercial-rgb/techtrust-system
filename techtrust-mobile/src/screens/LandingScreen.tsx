@@ -1050,7 +1050,8 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                         {t.common?.noResults || "No results found"}
                       </Text>
                       <Text style={styles.noResultsSubtext}>
-                        {(t.common as any)?.tryDifferentTerms || "Try adjusting your filters"}
+                        {(t.common as any)?.tryDifferentTerms ||
+                          "Try adjusting your filters"}
                       </Text>
                     </View>
                   )}
@@ -1335,7 +1336,8 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                   {t.common?.noResults || "No results found"}
                 </Text>
                 <Text style={styles.noResultsSubtext}>
-                  {(t.common as any)?.tryDifferentTerms || "Try adjusting your filters"}
+                  {(t.common as any)?.tryDifferentTerms ||
+                    "Try adjusting your filters"}
                 </Text>
               </View>
             )}

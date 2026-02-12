@@ -2,35 +2,40 @@
  * EstimateSharesScreen - Browse and manage shared Written Estimates
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback } from "react";
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
-import { useI18n } from '../../i18n';
-import { useAuth } from '../../contexts/AuthContext';
-import * as fdacsService from '../../services/fdacs.service';
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  ActivityIndicator,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
+import { useI18n } from "../../i18n";
+import { useAuth } from "../../contexts/AuthContext";
+import * as fdacsService from "../../services/fdacs.service";
 
 export default function EstimateSharesScreen({ navigation }: any) {
   const { user } = useAuth();
   const { t } = useI18n();
-  const isProvider = user?.role === 'PROVIDER';
+  const isProvider = user?.role === "PROVIDER";
   const [loading, setLoading] = useState(true);
   const [shares, setShares] = useState<fdacsService.EstimateShare[]>([]);
-  const [tab, setTab] = useState<'mine' | 'available'>('mine');
+  const [tab, setTab] = useState<"mine" | "available">("mine");
 
   useFocusEffect(
     useCallback(() => {
       loadShares();
-    }, [tab])
+    }, [tab]),
   );
 
   async function loadShares() {
     try {
       setLoading(true);
-      if (tab === 'available' && isProvider) {
+      if (tab === "available" && isProvider) {
         const res = await fdacsService.getAvailableSharedEstimates();
         setShares(res.data?.shares || []);
       } else {
@@ -38,7 +43,7 @@ export default function EstimateSharesScreen({ navigation }: any) {
         setShares(res.data?.shares || []);
       }
     } catch (error) {
-      console.error('Error loading shares:', error);
+      console.error("Error loading shares:", error);
     } finally {
       setLoading(false);
     }
@@ -46,10 +51,26 @@ export default function EstimateSharesScreen({ navigation }: any) {
 
   const getStatusInfo = (status: string) => {
     switch (status) {
-      case 'OPEN': return { label: t.fdacs.statusOpen, color: '#3b82f6', bgColor: '#dbeafe' };
-      case 'CLOSED': return { label: t.fdacs.statusClosed, color: '#6b7280', bgColor: '#f3f4f6' };
-      case 'EXPIRED': return { label: t.fdacs.statusExpired, color: '#ef4444', bgColor: '#fee2e2' };
-      default: return { label: status, color: '#6b7280', bgColor: '#f3f4f6' };
+      case "OPEN":
+        return {
+          label: t.fdacs.statusOpen,
+          color: "#3b82f6",
+          bgColor: "#dbeafe",
+        };
+      case "CLOSED":
+        return {
+          label: t.fdacs.statusClosed,
+          color: "#6b7280",
+          bgColor: "#f3f4f6",
+        };
+      case "EXPIRED":
+        return {
+          label: t.fdacs.statusExpired,
+          color: "#ef4444",
+          bgColor: "#fee2e2",
+        };
+      default:
+        return { label: status, color: "#6b7280", bgColor: "#f3f4f6" };
     }
   };
 
@@ -59,12 +80,21 @@ export default function EstimateSharesScreen({ navigation }: any) {
     return (
       <TouchableOpacity
         style={styles.card}
-        onPress={() => navigation.navigate('CompareEstimates', { shareId: item.id })}
+        onPress={() =>
+          navigation.navigate("CompareEstimates", { shareId: item.id })
+        }
       >
         <View style={styles.cardHeader}>
           <Text style={styles.shareNumber}>{item.shareNumber}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: statusInfo.bgColor }]}>
-            <Text style={[styles.statusText, { color: statusInfo.color }]}>{statusInfo.label}</Text>
+          <View
+            style={[
+              styles.statusBadge,
+              { backgroundColor: statusInfo.bgColor },
+            ]}
+          >
+            <Text style={[styles.statusText, { color: statusInfo.color }]}>
+              {statusInfo.label}
+            </Text>
           </View>
         </View>
 
@@ -74,7 +104,10 @@ export default function EstimateSharesScreen({ navigation }: any) {
           <View style={styles.metaItem}>
             <Ionicons name="document-text-outline" size={14} color="#6b7280" />
             <Text style={styles.metaText}>
-              {item.competingQuotesCount || 0} {(item.competingQuotesCount || 0) !== 1 ? t.fdacs.competingEstimates : t.fdacs.competingEstimate}
+              {item.competingQuotesCount || 0}{" "}
+              {(item.competingQuotesCount || 0) !== 1
+                ? t.fdacs.competingEstimates
+                : t.fdacs.competingEstimate}
             </Text>
           </View>
           <View style={styles.metaItem}>
@@ -111,32 +144,47 @@ export default function EstimateSharesScreen({ navigation }: any) {
       {isProvider && (
         <View style={styles.tabs}>
           <TouchableOpacity
-            style={[styles.tab, tab === 'mine' && styles.tabActive]}
-            onPress={() => setTab('mine')}
+            style={[styles.tab, tab === "mine" && styles.tabActive]}
+            onPress={() => setTab("mine")}
           >
-            <Text style={[styles.tabText, tab === 'mine' && styles.tabTextActive]}>{t.fdacs.myShares}</Text>
+            <Text
+              style={[styles.tabText, tab === "mine" && styles.tabTextActive]}
+            >
+              {t.fdacs.myShares}
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.tab, tab === 'available' && styles.tabActive]}
-            onPress={() => setTab('available')}
+            style={[styles.tab, tab === "available" && styles.tabActive]}
+            onPress={() => setTab("available")}
           >
-            <Text style={[styles.tabText, tab === 'available' && styles.tabTextActive]}>{t.fdacs.available}</Text>
+            <Text
+              style={[
+                styles.tabText,
+                tab === "available" && styles.tabTextActive,
+              ]}
+            >
+              {t.fdacs.available}
+            </Text>
           </TouchableOpacity>
         </View>
       )}
 
       {loading ? (
-        <ActivityIndicator size="large" color="#1976d2" style={{ marginTop: 40 }} />
+        <ActivityIndicator
+          size="large"
+          color="#1976d2"
+          style={{ marginTop: 40 }}
+        />
       ) : shares.length === 0 ? (
         <View style={styles.emptyState}>
           <Ionicons name="git-compare-outline" size={64} color="#d1d5db" />
           <Text style={styles.emptyTitle}>
-            {tab === 'available' ? t.fdacs.noAvailableEstimates : t.fdacs.noSharedEstimates}
+            {tab === "available"
+              ? t.fdacs.noAvailableEstimates
+              : t.fdacs.noSharedEstimates}
           </Text>
           <Text style={styles.emptyText}>
-            {tab === 'available'
-              ? t.fdacs.availableHint
-              : t.fdacs.sharedHint}
+            {tab === "available" ? t.fdacs.availableHint : t.fdacs.sharedHint}
           </Text>
         </View>
       ) : (
@@ -153,39 +201,86 @@ export default function EstimateSharesScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
+  container: { flex: 1, backgroundColor: "#f8fafc" },
   header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#e5e7eb',
-    backgroundColor: '#fff',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
+    backgroundColor: "#fff",
   },
-  title: { fontSize: 18, fontWeight: '700', color: '#111827' },
+  title: { fontSize: 18, fontWeight: "700", color: "#111827" },
   tabs: {
-    flexDirection: 'row', backgroundColor: '#fff', paddingHorizontal: 16, paddingVertical: 8,
-    borderBottomWidth: 1, borderBottomColor: '#e5e7eb',
+    flexDirection: "row",
+    backgroundColor: "#fff",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
   },
   tab: {
-    flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 8,
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 8,
+    borderRadius: 8,
   },
-  tabActive: { backgroundColor: '#1976d2' },
-  tabText: { fontSize: 14, fontWeight: '600', color: '#6b7280' },
-  tabTextActive: { color: '#fff' },
+  tabActive: { backgroundColor: "#1976d2" },
+  tabText: { fontSize: 14, fontWeight: "600", color: "#6b7280" },
+  tabTextActive: { color: "#fff" },
   card: {
-    backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 12,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3,
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
     elevation: 2,
   },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  shareNumber: { fontSize: 14, fontWeight: '600', color: '#1976d2' },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  shareNumber: { fontSize: 14, fontWeight: "600", color: "#1976d2" },
   statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
-  statusText: { fontSize: 12, fontWeight: '600' },
-  vehicleInfo: { fontSize: 15, fontWeight: '500', color: '#111827', marginBottom: 12 },
-  metaRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  metaText: { fontSize: 13, color: '#6b7280' },
-  expiresRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  expiresText: { fontSize: 12, color: '#f59e0b' },
-  emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
-  emptyTitle: { fontSize: 18, fontWeight: '600', color: '#374151', marginTop: 16 },
-  emptyText: { fontSize: 14, color: '#6b7280', textAlign: 'center', marginTop: 8 },
+  statusText: { fontSize: 12, fontWeight: "600" },
+  vehicleInfo: {
+    fontSize: 15,
+    fontWeight: "500",
+    color: "#111827",
+    marginBottom: 12,
+  },
+  metaRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  metaItem: { flexDirection: "row", alignItems: "center", gap: 4 },
+  metaText: { fontSize: 13, color: "#6b7280" },
+  expiresRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+  expiresText: { fontSize: 12, color: "#f59e0b" },
+  emptyState: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 32,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#374151",
+    marginTop: 16,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: "#6b7280",
+    textAlign: "center",
+    marginTop: 8,
+  },
 });

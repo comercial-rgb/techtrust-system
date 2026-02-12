@@ -3,7 +3,7 @@
  * Serviços em andamento e concluídos do fornecedor
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -11,16 +11,16 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { useFocusEffect } from '@react-navigation/native';
-import { useI18n } from '../../i18n';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { useFocusEffect } from "@react-navigation/native";
+import { useI18n } from "../../i18n";
 
 interface WorkOrder {
   id: string;
   orderNumber: string;
-  status: 'PENDING_START' | 'IN_PROGRESS' | 'AWAITING_APPROVAL' | 'COMPLETED';
+  status: "PENDING_START" | "IN_PROGRESS" | "AWAITING_APPROVAL" | "COMPLETED";
   finalAmount: number;
   createdAt: string;
   scheduledDate?: string;
@@ -45,13 +45,13 @@ export default function ProviderWorkOrdersScreen({ navigation }: any) {
   const [filteredWorkOrders, setFilteredWorkOrders] = useState<WorkOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
+  const [filter, setFilter] = useState<"all" | "active" | "completed">("all");
 
   // Reload data when screen gains focus
   useFocusEffect(
     useCallback(() => {
       loadWorkOrders();
-    }, [])
+    }, []),
   );
 
   useEffect(() => {
@@ -62,9 +62,11 @@ export default function ProviderWorkOrdersScreen({ navigation }: any) {
     setLoading(true);
     try {
       // Buscar ordens de serviço reais da API
-      const response = await import('../../services/api').then(m => m.default.get('/work-orders'));
+      const response = await import("../../services/api").then((m) =>
+        m.default.get("/work-orders"),
+      );
       const apiWorkOrders = response.data.data || [];
-      
+
       // Mapear para o formato esperado pela UI
       const mappedWorkOrders: WorkOrder[] = apiWorkOrders.map((wo: any) => ({
         id: wo.id,
@@ -74,23 +76,37 @@ export default function ProviderWorkOrdersScreen({ navigation }: any) {
         createdAt: wo.createdAt,
         scheduledDate: wo.scheduledDate,
         customer: {
-          name: wo.customer?.name || wo.quote?.serviceRequest?.user?.fullName || 'Cliente',
-          phone: wo.customer?.phone || wo.quote?.serviceRequest?.user?.phone || '',
-          location: wo.customer?.location || '',
+          name:
+            wo.customer?.name ||
+            wo.quote?.serviceRequest?.user?.fullName ||
+            "Cliente",
+          phone:
+            wo.customer?.phone || wo.quote?.serviceRequest?.user?.phone || "",
+          location: wo.customer?.location || "",
         },
         vehicle: {
-          make: wo.vehicle?.make || wo.quote?.serviceRequest?.vehicle?.make || 'N/A',
-          model: wo.vehicle?.model || wo.quote?.serviceRequest?.vehicle?.model || 'N/A',
-          year: wo.vehicle?.year || wo.quote?.serviceRequest?.vehicle?.year || 0,
+          make:
+            wo.vehicle?.make ||
+            wo.quote?.serviceRequest?.vehicle?.make ||
+            "N/A",
+          model:
+            wo.vehicle?.model ||
+            wo.quote?.serviceRequest?.vehicle?.model ||
+            "N/A",
+          year:
+            wo.vehicle?.year || wo.quote?.serviceRequest?.vehicle?.year || 0,
         },
         serviceRequest: {
-          title: wo.serviceRequest?.title || wo.quote?.serviceRequest?.title || 'Serviço',
+          title:
+            wo.serviceRequest?.title ||
+            wo.quote?.serviceRequest?.title ||
+            "Serviço",
         },
       }));
 
       setWorkOrders(mappedWorkOrders);
     } catch (error) {
-      console.error('Error loading services:', error);
+      console.error("Error loading services:", error);
       setWorkOrders([]);
     } finally {
       setLoading(false);
@@ -98,14 +114,20 @@ export default function ProviderWorkOrdersScreen({ navigation }: any) {
   };
 
   const filterWorkOrders = () => {
-    if (filter === 'all') {
+    if (filter === "all") {
       setFilteredWorkOrders(workOrders);
-    } else if (filter === 'active') {
+    } else if (filter === "active") {
       setFilteredWorkOrders(
-        workOrders.filter(wo => ['PENDING_START', 'IN_PROGRESS', 'AWAITING_APPROVAL'].includes(wo.status))
+        workOrders.filter((wo) =>
+          ["PENDING_START", "IN_PROGRESS", "AWAITING_APPROVAL"].includes(
+            wo.status,
+          ),
+        ),
       );
     } else {
-      setFilteredWorkOrders(workOrders.filter(wo => wo.status === 'COMPLETED'));
+      setFilteredWorkOrders(
+        workOrders.filter((wo) => wo.status === "COMPLETED"),
+      );
     }
   };
 
@@ -116,27 +138,61 @@ export default function ProviderWorkOrdersScreen({ navigation }: any) {
   };
 
   const getStatusInfo = (status: string) => {
-    const statuses: Record<string, { icon: string; color: string; bg: string; label: string }> = {
-      PENDING_START: { icon: 'clock-outline', color: '#f59e0b', bg: '#fef3c7', label: t.workOrder.waiting || 'Waiting' },
-      IN_PROGRESS: { icon: 'progress-wrench', color: '#3b82f6', bg: '#dbeafe', label: t.workOrder.inProgress },
-      AWAITING_APPROVAL: { icon: 'clock-check-outline', color: '#8b5cf6', bg: '#ede9fe', label: t.workOrder.awaitingApproval || 'Awaiting Approval' },
-      COMPLETED: { icon: 'check-circle', color: '#10b981', bg: '#d1fae5', label: t.workOrder.completed },
+    const statuses: Record<
+      string,
+      { icon: string; color: string; bg: string; label: string }
+    > = {
+      PENDING_START: {
+        icon: "clock-outline",
+        color: "#f59e0b",
+        bg: "#fef3c7",
+        label: t.workOrder.waiting || "Waiting",
+      },
+      IN_PROGRESS: {
+        icon: "progress-wrench",
+        color: "#3b82f6",
+        bg: "#dbeafe",
+        label: t.workOrder.inProgress,
+      },
+      AWAITING_APPROVAL: {
+        icon: "clock-check-outline",
+        color: "#8b5cf6",
+        bg: "#ede9fe",
+        label: t.workOrder.awaitingApproval || "Awaiting Approval",
+      },
+      COMPLETED: {
+        icon: "check-circle",
+        color: "#10b981",
+        bg: "#d1fae5",
+        label: t.workOrder.completed,
+      },
     };
-    return statuses[status] || { icon: 'help-circle', color: '#6b7280', bg: '#f3f4f6', label: status };
+    return (
+      statuses[status] || {
+        icon: "help-circle",
+        color: "#6b7280",
+        bg: "#f3f4f6",
+        label: status,
+      }
+    );
   };
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
-    const locale = language === 'pt' ? 'pt-BR' : language === 'es' ? 'es-ES' : 'en-US';
-    return date.toLocaleDateString(locale, { day: '2-digit', month: 'short' });
+    const locale =
+      language === "pt" ? "pt-BR" : language === "es" ? "es-ES" : "en-US";
+    return date.toLocaleDateString(locale, { day: "2-digit", month: "short" });
   };
 
   // Stats
   const stats = {
-    pendingStart: workOrders.filter(wo => wo.status === 'PENDING_START').length,
-    inProgress: workOrders.filter(wo => wo.status === 'IN_PROGRESS').length,
-    awaitingApproval: workOrders.filter(wo => wo.status === 'AWAITING_APPROVAL').length,
-    completed: workOrders.filter(wo => wo.status === 'COMPLETED').length,
+    pendingStart: workOrders.filter((wo) => wo.status === "PENDING_START")
+      .length,
+    inProgress: workOrders.filter((wo) => wo.status === "IN_PROGRESS").length,
+    awaitingApproval: workOrders.filter(
+      (wo) => wo.status === "AWAITING_APPROVAL",
+    ).length,
+    completed: workOrders.filter((wo) => wo.status === "COMPLETED").length,
   };
 
   const renderWorkOrder = ({ item }: { item: WorkOrder }) => {
@@ -145,22 +201,34 @@ export default function ProviderWorkOrdersScreen({ navigation }: any) {
     return (
       <TouchableOpacity
         style={styles.workOrderCard}
-        onPress={() => navigation.navigate('ProviderWorkOrderDetails', { workOrderId: item.id })}
+        onPress={() =>
+          navigation.navigate("ProviderWorkOrderDetails", {
+            workOrderId: item.id,
+          })
+        }
         activeOpacity={0.7}
       >
         {/* Header */}
         <View style={styles.cardHeader}>
           <View style={[styles.statusIcon, { backgroundColor: statusInfo.bg }]}>
-            <MaterialCommunityIcons name={statusInfo.icon as any} size={22} color={statusInfo.color} />
+            <MaterialCommunityIcons
+              name={statusInfo.icon as any}
+              size={22}
+              color={statusInfo.color}
+            />
           </View>
           <View style={styles.cardHeaderInfo}>
-            <Text style={styles.cardTitle} numberOfLines={1}>{item.serviceRequest.title}</Text>
+            <Text style={styles.cardTitle} numberOfLines={1}>
+              {item.serviceRequest.title}
+            </Text>
             <Text style={styles.vehicleText}>
               {item.vehicle.make} {item.vehicle.model} {item.vehicle.year}
             </Text>
           </View>
           <View style={styles.amountContainer}>
-            <Text style={styles.amountText}>${item.finalAmount.toFixed(2)}</Text>
+            <Text style={styles.amountText}>
+              ${item.finalAmount.toFixed(2)}
+            </Text>
           </View>
         </View>
 
@@ -178,15 +246,23 @@ export default function ProviderWorkOrdersScreen({ navigation }: any) {
           <Text style={styles.dateText}>
             #{item.orderNumber} • {formatDate(item.createdAt)}
           </Text>
-          <View style={[styles.statusBadge, { backgroundColor: statusInfo.bg }]}>
-            <Text style={[styles.statusText, { color: statusInfo.color }]}>{statusInfo.label}</Text>
+          <View
+            style={[styles.statusBadge, { backgroundColor: statusInfo.bg }]}
+          >
+            <Text style={[styles.statusText, { color: statusInfo.color }]}>
+              {statusInfo.label}
+            </Text>
           </View>
         </View>
 
         {/* Scheduled date hint */}
-        {item.status === 'PENDING_START' && item.scheduledDate && (
+        {item.status === "PENDING_START" && item.scheduledDate && (
           <View style={styles.scheduledHint}>
-            <MaterialCommunityIcons name="calendar-clock" size={14} color="#f59e0b" />
+            <MaterialCommunityIcons
+              name="calendar-clock"
+              size={14}
+              color="#f59e0b"
+            />
             <Text style={styles.scheduledText}>
               {t.workOrder.scheduled}: {formatDate(item.scheduledDate)}
             </Text>
@@ -194,17 +270,27 @@ export default function ProviderWorkOrdersScreen({ navigation }: any) {
         )}
 
         {/* Action hint */}
-        {(item.status === 'PENDING_START' || item.status === 'IN_PROGRESS') && (
+        {(item.status === "PENDING_START" || item.status === "IN_PROGRESS") && (
           <View style={styles.actionHint}>
             <MaterialCommunityIcons
-              name={item.status === 'PENDING_START' ? 'play-circle' : 'check-circle'}
+              name={
+                item.status === "PENDING_START" ? "play-circle" : "check-circle"
+              }
               size={16}
-              color={item.status === 'PENDING_START' ? '#3b82f6' : '#10b981'}
+              color={item.status === "PENDING_START" ? "#3b82f6" : "#10b981"}
             />
-            <Text style={[styles.actionHintText, {
-              color: item.status === 'PENDING_START' ? '#3b82f6' : '#10b981'
-            }]}>
-              {item.status === 'PENDING_START' ? t.workOrder.tapToStart : t.workOrder.tapToComplete}
+            <Text
+              style={[
+                styles.actionHintText,
+                {
+                  color:
+                    item.status === "PENDING_START" ? "#3b82f6" : "#10b981",
+                },
+              ]}
+            >
+              {item.status === "PENDING_START"
+                ? t.workOrder.tapToStart
+                : t.workOrder.tapToComplete}
             </Text>
           </View>
         )}
@@ -213,23 +299,31 @@ export default function ProviderWorkOrdersScreen({ navigation }: any) {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       {/* Stats */}
       <View style={styles.statsContainer}>
-        <View style={[styles.statItem, { backgroundColor: '#fef3c7' }]}>
-          <Text style={[styles.statValue, { color: '#92400e' }]}>{stats.pendingStart}</Text>
+        <View style={[styles.statItem, { backgroundColor: "#fef3c7" }]}>
+          <Text style={[styles.statValue, { color: "#92400e" }]}>
+            {stats.pendingStart}
+          </Text>
           <Text style={styles.statLabel}>{t.workOrder.waiting}</Text>
         </View>
-        <View style={[styles.statItem, { backgroundColor: '#dbeafe' }]}>
-          <Text style={[styles.statValue, { color: '#1e40af' }]}>{stats.inProgress}</Text>
+        <View style={[styles.statItem, { backgroundColor: "#dbeafe" }]}>
+          <Text style={[styles.statValue, { color: "#1e40af" }]}>
+            {stats.inProgress}
+          </Text>
           <Text style={styles.statLabel}>{t.workOrder.inProgress}</Text>
         </View>
-        <View style={[styles.statItem, { backgroundColor: '#ede9fe' }]}>
-          <Text style={[styles.statValue, { color: '#5b21b6' }]}>{stats.awaitingApproval}</Text>
+        <View style={[styles.statItem, { backgroundColor: "#ede9fe" }]}>
+          <Text style={[styles.statValue, { color: "#5b21b6" }]}>
+            {stats.awaitingApproval}
+          </Text>
           <Text style={styles.statLabel}>{t.workOrder.approval}</Text>
         </View>
-        <View style={[styles.statItem, { backgroundColor: '#d1fae5' }]}>
-          <Text style={[styles.statValue, { color: '#065f46' }]}>{stats.completed}</Text>
+        <View style={[styles.statItem, { backgroundColor: "#d1fae5" }]}>
+          <Text style={[styles.statValue, { color: "#065f46" }]}>
+            {stats.completed}
+          </Text>
           <Text style={styles.statLabel}>{t.workOrder.completed}</Text>
         </View>
       </View>
@@ -237,26 +331,47 @@ export default function ProviderWorkOrdersScreen({ navigation }: any) {
       {/* Filters */}
       <View style={styles.filterContainer}>
         <TouchableOpacity
-          style={[styles.filterTab, filter === 'all' && styles.filterTabActive]}
-          onPress={() => setFilter('all')}
+          style={[styles.filterTab, filter === "all" && styles.filterTabActive]}
+          onPress={() => setFilter("all")}
         >
-          <Text style={[styles.filterTabText, filter === 'all' && styles.filterTabTextActive]}>
+          <Text
+            style={[
+              styles.filterTabText,
+              filter === "all" && styles.filterTabTextActive,
+            ]}
+          >
             {t.common.all}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.filterTab, filter === 'active' && styles.filterTabActive]}
-          onPress={() => setFilter('active')}
+          style={[
+            styles.filterTab,
+            filter === "active" && styles.filterTabActive,
+          ]}
+          onPress={() => setFilter("active")}
         >
-          <Text style={[styles.filterTabText, filter === 'active' && styles.filterTabTextActive]}>
+          <Text
+            style={[
+              styles.filterTabText,
+              filter === "active" && styles.filterTabTextActive,
+            ]}
+          >
             {t.workOrder.active}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.filterTab, filter === 'completed' && styles.filterTabActive]}
-          onPress={() => setFilter('completed')}
+          style={[
+            styles.filterTab,
+            filter === "completed" && styles.filterTabActive,
+          ]}
+          onPress={() => setFilter("completed")}
         >
-          <Text style={[styles.filterTabText, filter === 'completed' && styles.filterTabTextActive]}>
+          <Text
+            style={[
+              styles.filterTabText,
+              filter === "completed" && styles.filterTabTextActive,
+            ]}
+          >
             {t.workOrder.completed}
           </Text>
         </TouchableOpacity>
@@ -265,25 +380,41 @@ export default function ProviderWorkOrdersScreen({ navigation }: any) {
       {/* FDACS Quick Action */}
       <TouchableOpacity
         style={{
-          flexDirection: 'row', alignItems: 'center', gap: 8,
-          backgroundColor: '#fef3c7', marginHorizontal: 16, marginBottom: 8,
-          paddingHorizontal: 14, paddingVertical: 10,
-          borderRadius: 10, borderWidth: 1, borderColor: '#fde68a',
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 8,
+          backgroundColor: "#fef3c7",
+          marginHorizontal: 16,
+          marginBottom: 8,
+          paddingHorizontal: 14,
+          paddingVertical: 10,
+          borderRadius: 10,
+          borderWidth: 1,
+          borderColor: "#fde68a",
         }}
-        onPress={() => navigation.navigate('RepairInvoices')}
+        onPress={() => navigation.navigate("RepairInvoices")}
       >
-        <MaterialCommunityIcons name="file-document-check" size={20} color="#d97706" />
-        <Text style={{ fontSize: 14, fontWeight: '600', color: '#92400e' }}>
-          {t.fdacs?.repairInvoices || 'Repair Invoices'}
+        <MaterialCommunityIcons
+          name="file-document-check"
+          size={20}
+          color="#d97706"
+        />
+        <Text style={{ fontSize: 14, fontWeight: "600", color: "#92400e" }}>
+          {t.fdacs?.repairInvoices || "Repair Invoices"}
         </Text>
-        <MaterialCommunityIcons name="chevron-right" size={20} color="#d97706" style={{ marginLeft: 'auto' }} />
+        <MaterialCommunityIcons
+          name="chevron-right"
+          size={20}
+          color="#d97706"
+          style={{ marginLeft: "auto" }}
+        />
       </TouchableOpacity>
 
       {/* List */}
       <FlatList
         data={filteredWorkOrders}
         renderItem={renderWorkOrder}
-        keyExtractor={item => item.id}
+        keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -291,10 +422,17 @@ export default function ProviderWorkOrdersScreen({ navigation }: any) {
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <MaterialCommunityIcons name="toolbox-outline" size={64} color="#d1d5db" />
-            <Text style={styles.emptyTitle}>{t.workOrder?.noServicesFound || 'No services found'}</Text>
+            <MaterialCommunityIcons
+              name="toolbox-outline"
+              size={64}
+              color="#d1d5db"
+            />
+            <Text style={styles.emptyTitle}>
+              {t.workOrder?.noServicesFound || "No services found"}
+            </Text>
             <Text style={styles.emptySubtitle}>
-              {t.workOrder?.servicesWillAppear || 'Your services will appear here when quotes are accepted'}
+              {t.workOrder?.servicesWillAppear ||
+                "Your services will appear here when quotes are accepted"}
             </Text>
           </View>
         }
@@ -306,10 +444,10 @@ export default function ProviderWorkOrdersScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: "#f8fafc",
   },
   statsContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 8,
@@ -318,20 +456,20 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 12,
     padding: 12,
-    alignItems: 'center',
+    alignItems: "center",
   },
   statValue: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 2,
   },
   statLabel: {
     fontSize: 10,
-    color: '#6b7280',
-    textAlign: 'center',
+    color: "#6b7280",
+    textAlign: "center",
   },
   filterContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     paddingHorizontal: 16,
     gap: 10,
     marginBottom: 8,
@@ -340,48 +478,48 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: "#e5e7eb",
   },
   filterTabActive: {
-    backgroundColor: '#1976d2',
-    borderColor: '#1976d2',
+    backgroundColor: "#1976d2",
+    borderColor: "#1976d2",
   },
   filterTabText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#6b7280',
+    fontWeight: "600",
+    color: "#6b7280",
   },
   filterTabTextActive: {
-    color: '#fff',
+    color: "#fff",
   },
   listContent: {
     padding: 16,
     paddingTop: 8,
   },
   workOrderCard: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
   },
   cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     marginBottom: 12,
   },
   statusIcon: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 12,
   },
   cardHeaderInfo: {
@@ -389,46 +527,46 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1f2937',
+    fontWeight: "600",
+    color: "#1f2937",
     marginBottom: 4,
   },
   vehicleText: {
     fontSize: 14,
-    color: '#6b7280',
+    color: "#6b7280",
   },
   amountContainer: {
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
   },
   amountText: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1f2937',
+    fontWeight: "bold",
+    color: "#1f2937",
   },
   customerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
     marginBottom: 12,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: "#f3f4f6",
   },
   customerText: {
     fontSize: 13,
-    color: '#6b7280',
+    color: "#6b7280",
   },
   separator: {
-    color: '#d1d5db',
+    color: "#d1d5db",
   },
   cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   dateText: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: "#9ca3af",
   },
   statusBadge: {
     paddingHorizontal: 10,
@@ -437,49 +575,49 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   scheduledHint: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
     marginTop: 10,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
+    borderTopColor: "#f3f4f6",
   },
   scheduledText: {
     fontSize: 12,
-    color: '#f59e0b',
-    fontWeight: '500',
+    color: "#f59e0b",
+    fontWeight: "500",
   },
   actionHint: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
     marginTop: 10,
     gap: 4,
   },
   actionHintText: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 60,
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#374151',
+    fontWeight: "600",
+    color: "#374151",
     marginTop: 16,
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#9ca3af',
-    textAlign: 'center',
+    color: "#9ca3af",
+    textAlign: "center",
     paddingHorizontal: 32,
   },
 });

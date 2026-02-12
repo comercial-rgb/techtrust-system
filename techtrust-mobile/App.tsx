@@ -3,12 +3,13 @@
  * Navegação simplificada usando RootNavigator
  * Com Splash Screen animada
  */
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { StatusBar } from "expo-status-bar";
 import { NavigationContainer } from "@react-navigation/native";
 import { Provider as PaperProvider } from "react-native-paper";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StripeProvider } from "@stripe/stripe-react-native";
+import { Alert, AppState, Platform } from "react-native";
 import * as Updates from "expo-updates";
 import { AuthProvider } from "./src/contexts/AuthContext";
 import { NotificationsProvider } from "./src/contexts/NotificationsContext";
@@ -19,15 +20,22 @@ import { API_URL } from "./src/config/api";
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
-  const [stripePublishableKey, setStripePublishableKey] = useState<string | null>(null);
+  const [stripePublishableKey, setStripePublishableKey] = useState<
+    string | null
+  >(null);
+  const appIsReady = useRef(false);
 
   // Fetch Stripe publishable key from backend
   useEffect(() => {
     async function fetchStripeConfig() {
       try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
         const response = await fetch(
-          "https://techtrust-api.onrender.com/api/v1/config/stripe"
+          "https://techtrust-api.onrender.com/api/v1/config/stripe",
+          { signal: controller.signal },
         );
+        clearTimeout(timeout);
         const data = await response.json();
         if (data.success && data.data?.publishableKey) {
           setStripePublishableKey(data.data.publishableKey);
@@ -40,53 +48,78 @@ export default function App() {
     fetchStripeConfig();
   }, []);
 
-  // 🔄 Check for updates on app start AND periodically
+  // 🔄 OTA Updates — safe check that won't crash iOS on first launch
   useEffect(() => {
+    let isMounted = true;
+
     async function checkForUpdates() {
+      // Skip in dev mode
+      if (__DEV__) return;
+
       try {
-        if (!__DEV__) {
-          console.log("🔄 [OTA] Checking for updates...");
-          console.log("🔄 [OTA] Current update ID:", Updates.updateId);
-          console.log("🔄 [OTA] Runtime version:", Updates.runtimeVersion);
+        // Wait for app to be fully ready before checking updates
+        // This prevents crashes on iOS first launch
+        if (!appIsReady.current) {
+          console.log("🔄 [OTA] Waiting for app to be ready...");
+          return;
+        }
 
-          const update = await Updates.checkForUpdateAsync();
-          console.log(
-            "🔄 [OTA] Check result:",
-            JSON.stringify(update, null, 2),
-          );
+        console.log("🔄 [OTA] Checking for updates...");
+        console.log("🔄 [OTA] Current update ID:", Updates.updateId);
+        console.log("🔄 [OTA] Channel:", Updates.channel);
 
-          if (update.isAvailable) {
-            console.log("📦 [OTA] Update available! Downloading...");
-            const fetchResult = await Updates.fetchUpdateAsync();
-            console.log(
-              "📥 [OTA] Fetch result:",
-              JSON.stringify(fetchResult, null, 2),
-            );
-            console.log("✅ [OTA] Update downloaded! Reloading app now...");
-            // 🚀 IMPORTANT: Reload immediately to apply the update
-            await Updates.reloadAsync();
-          } else {
-            console.log("✅ [OTA] App is up to date");
+        const update = await Updates.checkForUpdateAsync();
+
+        if (!isMounted) return;
+
+        if (update.isAvailable) {
+          console.log("📦 [OTA] Update available! Downloading...");
+          const fetchResult = await Updates.fetchUpdateAsync();
+          console.log("📥 [OTA] Download complete, isNew:", fetchResult.isNew);
+
+          if (fetchResult.isNew && isMounted) {
+            // Give the app a moment to stabilize before reloading
+            // This prevents the crash-on-first-launch issue
+            setTimeout(async () => {
+              try {
+                await Updates.reloadAsync();
+              } catch (reloadErr) {
+                console.warn("⚠️ [OTA] Reload failed, will apply on next launch:", reloadErr);
+              }
+            }, 1500);
           }
         } else {
-          console.log("⚠️ [OTA] Running in DEV mode - updates disabled");
+          console.log("✅ [OTA] App is up to date");
         }
       } catch (e) {
-        console.error("❌ [OTA] Error checking for updates:", e);
-        if (e instanceof Error) {
-          console.error("❌ [OTA] Error message:", e.message);
-          console.error("❌ [OTA] Error stack:", e.stack);
-        }
+        // Silently fail — common on first launch or poor connectivity
+        console.warn("⚠️ [OTA] Update check failed (non-fatal):", e instanceof Error ? e.message : e);
       }
     }
 
-    // Check immediately on mount
-    checkForUpdates();
+    // Delay initial check to let the app fully initialize
+    // This is the key fix for iOS first-launch crash
+    const initialDelay = setTimeout(() => {
+      appIsReady.current = true;
+      checkForUpdates();
+    }, 5000);
 
-    // Check every 30 seconds for updates
-    const interval = setInterval(checkForUpdates, 30000);
+    // Check periodically (every 2 minutes instead of 30s to reduce overhead)
+    const interval = setInterval(checkForUpdates, 120000);
 
-    return () => clearInterval(interval);
+    // Also check when app comes back to foreground
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active" && appIsReady.current) {
+        checkForUpdates();
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      clearTimeout(initialDelay);
+      clearInterval(interval);
+      subscription.remove();
+    };
   }, []);
 
   if (showSplash) {

@@ -3,8 +3,8 @@
  * Manages ComplianceItems (FDACS, BTR City/County, EPA 609)
  */
 
-import { Request, Response } from 'express';
-import { PrismaClient, ComplianceType, ComplianceStatus } from '@prisma/client';
+import { Request, Response } from "express";
+import { PrismaClient, ComplianceType, ComplianceStatus } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -19,13 +19,15 @@ export const getComplianceItems = async (req: Request, res: Response) => {
     const items = await prisma.complianceItem.findMany({
       where: { providerProfileId },
       include: { technician: true },
-      orderBy: { type: 'asc' },
+      orderBy: { type: "asc" },
     });
 
     res.json({ success: true, data: { items } });
   } catch (error: any) {
-    console.error('Error fetching compliance items:', error);
-    res.status(500).json({ success: false, message: 'Failed to fetch compliance items' });
+    console.error("Error fetching compliance items:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch compliance items" });
   }
 };
 
@@ -33,7 +35,10 @@ export const getComplianceItems = async (req: Request, res: Response) => {
 // POST /compliance/:providerProfileId
 // Create or update a compliance item
 // ============================================
-export const upsertComplianceItem = async (req: Request, res: Response): Promise<any> => {
+export const upsertComplianceItem = async (
+  req: Request,
+  res: Response,
+): Promise<any> => {
   try {
     const { providerProfileId } = req.params;
     const user = (req as any).user;
@@ -48,7 +53,9 @@ export const upsertComplianceItem = async (req: Request, res: Response): Promise
     } = req.body;
 
     if (!type) {
-      return res.status(400).json({ success: false, message: 'Compliance type is required' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Compliance type is required" });
     }
 
     // Verify the provider profile belongs to this user (or admin)
@@ -57,17 +64,21 @@ export const upsertComplianceItem = async (req: Request, res: Response): Promise
     });
 
     if (!profile) {
-      return res.status(404).json({ success: false, message: 'Provider profile not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: "Provider profile not found" });
     }
 
-    if (profile.userId !== user.userId && user.role !== 'ADMIN') {
-      return res.status(403).json({ success: false, message: 'Not authorized' });
+    if (profile.userId !== user.userId && user.role !== "ADMIN") {
+      return res
+        .status(403)
+        .json({ success: false, message: "Not authorized" });
     }
 
     // Determine initial status based on what's provided
-    let status: ComplianceStatus = 'NOT_PROVIDED';
+    let status: ComplianceStatus = "NOT_PROVIDED";
     if (licenseNumber || (documentUploads && documentUploads.length > 0)) {
-      status = 'PROVIDED_UNVERIFIED';
+      status = "PROVIDED_UNVERIFIED";
     }
 
     const item = await prisma.complianceItem.upsert({
@@ -101,8 +112,10 @@ export const upsertComplianceItem = async (req: Request, res: Response): Promise
 
     res.json({ success: true, data: { item } });
   } catch (error: any) {
-    console.error('Error upserting compliance item:', error);
-    res.status(500).json({ success: false, message: 'Failed to save compliance item' });
+    console.error("Error upserting compliance item:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to save compliance item" });
   }
 };
 
@@ -111,7 +124,10 @@ export const upsertComplianceItem = async (req: Request, res: Response): Promise
 // Auto-create required compliance items based on provider location/services
 // Called after provider profile setup or services update
 // ============================================
-export const autoCreateComplianceItems = async (req: Request, res: Response): Promise<any> => {
+export const autoCreateComplianceItems = async (
+  req: Request,
+  res: Response,
+): Promise<any> => {
   try {
     const { providerProfileId } = req.params;
 
@@ -120,7 +136,9 @@ export const autoCreateComplianceItems = async (req: Request, res: Response): Pr
     });
 
     if (!profile) {
-      return res.status(404).json({ success: false, message: 'Provider profile not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: "Provider profile not found" });
     }
 
     const created: string[] = [];
@@ -130,66 +148,79 @@ export const autoCreateComplianceItems = async (req: Request, res: Response): Pr
       where: {
         providerProfileId_type_technicianId: {
           providerProfileId,
-          type: 'FDACS_MOTOR_VEHICLE_REPAIR',
+          type: "FDACS_MOTOR_VEHICLE_REPAIR",
           technicianId: null as unknown as string,
         },
       },
       update: {},
       create: {
         providerProfileId,
-        type: 'FDACS_MOTOR_VEHICLE_REPAIR',
-        status: profile.fdacsRegistrationNumber ? 'PROVIDED_UNVERIFIED' : 'NOT_PROVIDED',
+        type: "FDACS_MOTOR_VEHICLE_REPAIR",
+        status: profile.fdacsRegistrationNumber
+          ? "PROVIDED_UNVERIFIED"
+          : "NOT_PROVIDED",
         licenseNumber: profile.fdacsRegistrationNumber || undefined,
-        issuingAuthority: 'FDACS',
+        issuingAuthority: "FDACS",
       },
     });
-    created.push('FDACS_MOTOR_VEHICLE_REPAIR');
+    created.push("FDACS_MOTOR_VEHICLE_REPAIR");
 
     // 2. County BTR - Always required
     await prisma.complianceItem.upsert({
       where: {
         providerProfileId_type_technicianId: {
           providerProfileId,
-          type: 'LOCAL_BTR_COUNTY',
+          type: "LOCAL_BTR_COUNTY",
           technicianId: null as unknown as string,
         },
       },
       update: {},
       create: {
         providerProfileId,
-        type: 'LOCAL_BTR_COUNTY',
-        status: 'NOT_PROVIDED',
-        issuingAuthority: profile.county ? `${profile.county} County Tax Collector` : undefined,
+        type: "LOCAL_BTR_COUNTY",
+        status: "NOT_PROVIDED",
+        issuingAuthority: profile.county
+          ? `${profile.county} County Tax Collector`
+          : undefined,
       },
     });
-    created.push('LOCAL_BTR_COUNTY');
+    created.push("LOCAL_BTR_COUNTY");
 
     // 3. City BTR - Only if inside city limits
-    const cityStatus: ComplianceStatus = profile.insideCityLimits === false ? 'NOT_APPLICABLE' : 'NOT_PROVIDED';
+    const cityStatus: ComplianceStatus =
+      profile.insideCityLimits === false ? "NOT_APPLICABLE" : "NOT_PROVIDED";
     await prisma.complianceItem.upsert({
       where: {
         providerProfileId_type_technicianId: {
           providerProfileId,
-          type: 'LOCAL_BTR_CITY',
+          type: "LOCAL_BTR_CITY",
           technicianId: null as unknown as string,
         },
       },
       update: {
-        status: profile.insideCityLimits === false ? 'NOT_APPLICABLE' : undefined,
+        status:
+          profile.insideCityLimits === false ? "NOT_APPLICABLE" : undefined,
       },
       create: {
         providerProfileId,
-        type: 'LOCAL_BTR_CITY',
+        type: "LOCAL_BTR_CITY",
         status: cityStatus,
-        issuingAuthority: profile.insideCityLimits ? `City of ${profile.city}` : undefined,
+        issuingAuthority: profile.insideCityLimits
+          ? `City of ${profile.city}`
+          : undefined,
       },
     });
-    created.push('LOCAL_BTR_CITY');
+    created.push("LOCAL_BTR_CITY");
 
     res.json({ success: true, data: { created } });
   } catch (error: any) {
-    console.error('Error auto-creating compliance items:', error);
-    res.status(500).json({ success: false, message: 'Failed to auto-create compliance items' });
+    console.error("Error auto-creating compliance items:", error);
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "Failed to auto-create compliance items",
+      });
   }
 };
 
@@ -197,7 +228,10 @@ export const autoCreateComplianceItems = async (req: Request, res: Response): Pr
 // GET /compliance/:providerProfileId/summary
 // Get compliance summary with service gating info
 // ============================================
-export const getComplianceSummary = async (req: Request, res: Response): Promise<any> => {
+export const getComplianceSummary = async (
+  req: Request,
+  res: Response,
+): Promise<any> => {
   try {
     const { providerProfileId } = req.params;
 
@@ -211,44 +245,68 @@ export const getComplianceSummary = async (req: Request, res: Response): Promise
     });
 
     if (!profile) {
-      return res.status(404).json({ success: false, message: 'Provider profile not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: "Provider profile not found" });
     }
 
     const servicesOffered = (profile.servicesOffered as string[]) || [];
 
     // Build compliance summary
-    const fdacs = profile.complianceItems.find(c => c.type === 'FDACS_MOTOR_VEHICLE_REPAIR');
-    const countyBtr = profile.complianceItems.find(c => c.type === 'LOCAL_BTR_COUNTY');
-    const cityBtr = profile.complianceItems.find(c => c.type === 'LOCAL_BTR_CITY');
+    const fdacs = profile.complianceItems.find(
+      (c) => c.type === "FDACS_MOTOR_VEHICLE_REPAIR",
+    );
+    const countyBtr = profile.complianceItems.find(
+      (c) => c.type === "LOCAL_BTR_COUNTY",
+    );
+    const cityBtr = profile.complianceItems.find(
+      (c) => c.type === "LOCAL_BTR_CITY",
+    );
 
     // Service gating checks
-    const serviceGating: Record<string, { allowed: boolean; reason?: string }> = {};
+    const serviceGating: Record<string, { allowed: boolean; reason?: string }> =
+      {};
 
     // A/C Service gating: requires at least 1 technician with VERIFIED EPA 609
-    if (servicesOffered.includes('AC_SERVICE')) {
-      const verifiedTechs = profile.technicians.filter(t => t.epa609Status === 'VERIFIED' && t.isActive);
-      serviceGating['AC_SERVICE'] = {
+    if (servicesOffered.includes("AC_SERVICE")) {
+      const verifiedTechs = profile.technicians.filter(
+        (t) => t.epa609Status === "VERIFIED" && t.isActive,
+      );
+      serviceGating["AC_SERVICE"] = {
         allowed: verifiedTechs.length > 0,
-        reason: verifiedTechs.length === 0 ? 'Certification required (EPA 609)' : undefined,
+        reason:
+          verifiedTechs.length === 0
+            ? "Certification required (EPA 609)"
+            : undefined,
       };
     }
 
     // Towing gating: requires COMMERCIAL_AUTO + ON_HOOK insurance verified & not expired
-    if (servicesOffered.includes('TOWING')) {
-      const commercialAuto = profile.insurancePolicies.find(p => p.type === 'COMMERCIAL_AUTO');
-      const onHook = profile.insurancePolicies.find(p => p.type === 'ON_HOOK');
-      const commercialOk = commercialAuto?.status === 'INS_VERIFIED' && 
-        (!commercialAuto.expirationDate || commercialAuto.expirationDate > new Date());
-      const onHookOk = onHook?.status === 'INS_VERIFIED' &&
+    if (servicesOffered.includes("TOWING")) {
+      const commercialAuto = profile.insurancePolicies.find(
+        (p) => p.type === "COMMERCIAL_AUTO",
+      );
+      const onHook = profile.insurancePolicies.find(
+        (p) => p.type === "ON_HOOK",
+      );
+      const commercialOk =
+        commercialAuto?.status === "INS_VERIFIED" &&
+        (!commercialAuto.expirationDate ||
+          commercialAuto.expirationDate > new Date());
+      const onHookOk =
+        onHook?.status === "INS_VERIFIED" &&
         (!onHook.expirationDate || onHook.expirationDate > new Date());
-      serviceGating['TOWING'] = {
+      serviceGating["TOWING"] = {
         allowed: commercialOk && onHookOk,
-        reason: (!commercialOk || !onHookOk) ? 'Insurance required (Commercial Auto + On-Hook)' : undefined,
+        reason:
+          !commercialOk || !onHookOk
+            ? "Insurance required (Commercial Auto + On-Hook)"
+            : undefined,
       };
     }
 
     // Insurance summary
-    const insuranceSummary = profile.insurancePolicies.map(p => ({
+    const insuranceSummary = profile.insurancePolicies.map((p) => ({
       type: p.type,
       status: p.status,
       hasCoverage: p.hasCoverage,
@@ -257,20 +315,42 @@ export const getComplianceSummary = async (req: Request, res: Response): Promise
     }));
 
     // General liability check
-    const generalLiability = profile.insurancePolicies.find(p => p.type === 'GENERAL_LIABILITY');
-    const hasVerifiedInsurance = generalLiability?.status === 'INS_VERIFIED';
+    const generalLiability = profile.insurancePolicies.find(
+      (p) => p.type === "GENERAL_LIABILITY",
+    );
+    const hasVerifiedInsurance = generalLiability?.status === "INS_VERIFIED";
 
     res.json({
       success: true,
       data: {
         providerPublicStatus: profile.providerPublicStatus,
         licensing: {
-          fdacs: fdacs ? { status: fdacs.status, licenseNumber: fdacs.licenseNumber, expirationDate: fdacs.expirationDate } : null,
-          countyBtr: countyBtr ? { status: countyBtr.status, issuingAuthority: countyBtr.issuingAuthority, expirationDate: countyBtr.expirationDate } : null,
-          cityBtr: cityBtr ? { status: cityBtr.status, issuingAuthority: cityBtr.issuingAuthority, expirationDate: cityBtr.expirationDate } : null,
+          fdacs: fdacs
+            ? {
+                status: fdacs.status,
+                licenseNumber: fdacs.licenseNumber,
+                expirationDate: fdacs.expirationDate,
+              }
+            : null,
+          countyBtr: countyBtr
+            ? {
+                status: countyBtr.status,
+                issuingAuthority: countyBtr.issuingAuthority,
+                expirationDate: countyBtr.expirationDate,
+              }
+            : null,
+          cityBtr: cityBtr
+            ? {
+                status: cityBtr.status,
+                issuingAuthority: cityBtr.issuingAuthority,
+                expirationDate: cityBtr.expirationDate,
+              }
+            : null,
         },
         federal: {
-          epa609TechniciansCount: profile.technicians.filter(t => t.epa609Status === 'VERIFIED').length,
+          epa609TechniciansCount: profile.technicians.filter(
+            (t) => t.epa609Status === "VERIFIED",
+          ).length,
           totalTechnicians: profile.technicians.length,
         },
         insurance: insuranceSummary,
@@ -280,7 +360,9 @@ export const getComplianceSummary = async (req: Request, res: Response): Promise
       },
     });
   } catch (error: any) {
-    console.error('Error fetching compliance summary:', error);
-    res.status(500).json({ success: false, message: 'Failed to fetch compliance summary' });
+    console.error("Error fetching compliance summary:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch compliance summary" });
   }
 };

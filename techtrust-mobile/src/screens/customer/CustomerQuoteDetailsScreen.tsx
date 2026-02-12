@@ -3,7 +3,7 @@
  * View quote with new format including part codes, warranty, and share functionality
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -14,35 +14,35 @@ import {
   Share,
   Platform,
   Linking,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
-import { useI18n } from '../../i18n';
-import api from '../../services/api';
-import * as serviceFlowService from '../../services/service-flow.service';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import * as Print from "expo-print";
+import * as Sharing from "expo-sharing";
+import { useI18n } from "../../i18n";
+import api from "../../services/api";
+import * as serviceFlowService from "../../services/service-flow.service";
 import PriceBreakdownCard, {
   PriceBreakdownData,
   PriceLineItem,
   calculateCustomerTotal,
-} from '../../components/PriceBreakdownCard';
+} from "../../components/PriceBreakdownCard";
 
 interface QuoteLineItem {
   id: string;
-  type: 'PART' | 'LABOR';
+  type: "PART" | "LABOR";
   description: string;
   partCode?: string;
   quantity: number;
   unitPrice: number;
-  partCondition?: 'NEW' | 'USED' | 'REBUILT' | 'RECONDITIONED';
+  partCondition?: "NEW" | "USED" | "REBUILT" | "RECONDITIONED";
   isNoCharge?: boolean;
 }
 
 interface Quote {
   id: string;
   quoteNumber: string;
-  status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED';
+  status: "PENDING" | "ACCEPTED" | "REJECTED" | "EXPIRED";
   provider: {
     name: string;
     phone: string;
@@ -100,19 +100,21 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
         setLoading(false);
         return;
       }
-      
+
       // Carregar detalhes do orçamento do backend
-      const { getQuoteDetails } = await import('../../services/dashboard.service');
+      const { getQuoteDetails } =
+        await import("../../services/dashboard.service");
       const quoteData = await getQuoteDetails(quoteId);
-      
+
       if (quoteData) {
         // Map provider data
         const providerData = quoteData.provider || {};
         const providerProfile = providerData.providerProfile || {};
-        
+
         // Map vehicle — may come from serviceRequest.vehicle
-        const vehicleData = quoteData.vehicle || quoteData.serviceRequest?.vehicle || {};
-        
+        const vehicleData =
+          quoteData.vehicle || quoteData.serviceRequest?.vehicle || {};
+
         // Map request — may come from serviceRequest
         const requestData = quoteData.serviceRequest || quoteData.request || {};
 
@@ -121,8 +123,11 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
         const mappedItems: QuoteLineItem[] = Array.isArray(rawItems)
           ? rawItems.map((item: any, idx: number) => ({
               id: item.id || String(idx + 1),
-              type: item.type === 'LABOR' || item.type === 'service' ? 'LABOR' : 'PART',
-              description: item.description || '',
+              type:
+                item.type === "LABOR" || item.type === "service"
+                  ? "LABOR"
+                  : "PART",
+              description: item.description || "",
               partCode: item.partCode || item.brand || undefined,
               quantity: Number(item.quantity) || 1,
               unitPrice: Number(item.unitPrice) || 0,
@@ -133,26 +138,37 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
 
         setQuote({
           id: quoteData.id,
-          quoteNumber: quoteData.quoteNumber || `QT-${quoteData.id.substring(0, 4)}`,
+          quoteNumber:
+            quoteData.quoteNumber || `QT-${quoteData.id.substring(0, 4)}`,
           status: quoteData.status,
           provider: {
-            name: providerData.fullName || providerData.name || 'Provider',
-            phone: providerData.phone || '',
-            email: providerData.email || '',
-            address: providerProfile.businessAddress || providerProfile.address || '',
-            rating: Number(providerProfile.averageRating || providerData.rating) || 0,
-            latitude: providerProfile.baseLatitude ? Number(providerProfile.baseLatitude) : undefined,
-            longitude: providerProfile.baseLongitude ? Number(providerProfile.baseLongitude) : undefined,
+            name: providerData.fullName || providerData.name || "Provider",
+            phone: providerData.phone || "",
+            email: providerData.email || "",
+            address:
+              providerProfile.businessAddress || providerProfile.address || "",
+            rating:
+              Number(providerProfile.averageRating || providerData.rating) || 0,
+            latitude: providerProfile.baseLatitude
+              ? Number(providerProfile.baseLatitude)
+              : undefined,
+            longitude: providerProfile.baseLongitude
+              ? Number(providerProfile.baseLongitude)
+              : undefined,
           },
           request: {
-            title: requestData.title || requestData.serviceType || 'Service',
-            description: requestData.description || '',
+            title: requestData.title || requestData.serviceType || "Service",
+            description: requestData.description || "",
           },
           vehicle: {
-            make: vehicleData.make || 'N/A',
-            model: vehicleData.model || 'N/A',
+            make: vehicleData.make || "N/A",
+            model: vehicleData.model || "N/A",
             year: vehicleData.year || 0,
-            plate: vehicleData.plateNumber || vehicleData.licensePlate || vehicleData.plate || '',
+            plate:
+              vehicleData.plateNumber ||
+              vehicleData.licensePlate ||
+              vehicleData.plate ||
+              "",
           },
           items: mappedItems,
           partsTotal: quoteData.partsTotal || Number(quoteData.partsCost) || 0,
@@ -160,27 +176,33 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
           discount: quoteData.discount || 0,
           tax: quoteData.tax || Number(quoteData.taxAmount) || 0,
           travelFee: Number(quoteData.travelFee) || 0,
-          distanceKm: quoteData.distanceKm ? Number(quoteData.distanceKm) : null,
+          distanceKm: quoteData.distanceKm
+            ? Number(quoteData.distanceKm)
+            : null,
           additionalFees: Number(quoteData.additionalFees) || 0,
-          grandTotal: quoteData.grandTotal || Number(quoteData.totalAmount) || 0,
-          isMobileService: quoteData.serviceRequest?.serviceLocationType === 'MOBILE' ||
-                           quoteData.serviceRequest?.serviceLocation === 'MOBILE' ||
-                           (Number(quoteData.distanceKm) || 0) > 0,
+          grandTotal:
+            quoteData.grandTotal || Number(quoteData.totalAmount) || 0,
+          isMobileService:
+            quoteData.serviceRequest?.serviceLocationType === "MOBILE" ||
+            quoteData.serviceRequest?.serviceLocation === "MOBILE" ||
+            (Number(quoteData.distanceKm) || 0) > 0,
           warranty: quoteData.warranty || {
             partsMonths: quoteData.warrantyMonths || 0,
             serviceDays: quoteData.warrantyDays || 90,
-            terms: quoteData.warrantyDescription || '',
+            terms: quoteData.warrantyDescription || "",
           },
-          estimatedDays: quoteData.estimatedDays || (quoteData.estimatedCompletionTime ? 1 : 1),
+          estimatedDays:
+            quoteData.estimatedDays ||
+            (quoteData.estimatedCompletionTime ? 1 : 1),
           validUntil: quoteData.validUntil || new Date().toISOString(),
-          notes: quoteData.notes || '',
+          notes: quoteData.notes || "",
           createdAt: quoteData.createdAt,
         });
       } else {
         setQuote(null);
       }
     } catch (error) {
-      console.error('Error loading quote details:', error);
+      console.error("Error loading quote details:", error);
       setQuote(null);
     } finally {
       setLoading(false);
@@ -189,45 +211,73 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
 
   const getStatusInfo = (status: string) => {
     switch (status) {
-      case 'PENDING':
-        return { label: 'Pending', color: '#f59e0b', bgColor: '#fef3c7', icon: 'time' };
-      case 'ACCEPTED':
-        return { label: 'Accepted', color: '#10b981', bgColor: '#d1fae5', icon: 'checkmark-circle' };
-      case 'REJECTED':
-        return { label: 'Rejected', color: '#ef4444', bgColor: '#fee2e2', icon: 'close-circle' };
-      case 'EXPIRED':
-        return { label: 'Expired', color: '#6b7280', bgColor: '#f3f4f6', icon: 'alert-circle' };
+      case "PENDING":
+        return {
+          label: "Pending",
+          color: "#f59e0b",
+          bgColor: "#fef3c7",
+          icon: "time",
+        };
+      case "ACCEPTED":
+        return {
+          label: "Accepted",
+          color: "#10b981",
+          bgColor: "#d1fae5",
+          icon: "checkmark-circle",
+        };
+      case "REJECTED":
+        return {
+          label: "Rejected",
+          color: "#ef4444",
+          bgColor: "#fee2e2",
+          icon: "close-circle",
+        };
+      case "EXPIRED":
+        return {
+          label: "Expired",
+          color: "#6b7280",
+          bgColor: "#f3f4f6",
+          icon: "alert-circle",
+        };
       default:
-        return { label: status, color: '#6b7280', bgColor: '#f3f4f6', icon: 'ellipse' };
+        return {
+          label: status,
+          color: "#6b7280",
+          bgColor: "#f3f4f6",
+          icon: "ellipse",
+        };
     }
   };
 
   const handleAcceptQuote = () => {
     if (!quote) return;
-    
-    const { platformFee, processingFee, customerTotal } = calculateCustomerTotal(quote.grandTotal);
-    
+
+    const { platformFee, processingFee, customerTotal } =
+      calculateCustomerTotal(quote.grandTotal);
+
     Alert.alert(
-      t.quote?.acceptQuote || 'Accept Quote',
-      `${t.quote?.acceptQuoteConfirm || 'By accepting this quote, a payment hold will be placed on your card:'}\n\n` +
-      `Service: $${quote.grandTotal.toFixed(2)}\n` +
-      `Platform fee (10%): $${platformFee.toFixed(2)}\n` +
-      `Processing fee: $${processingFee.toFixed(2)}\n` +
-      `━━━━━━━━━━━━━━━━\n` +
-      `Total hold: $${customerTotal.toFixed(2)}\n\n` +
-      `${t.quote?.chargeOnlyAfterApproval || 'You will only be charged after you review and approve the completed service.'}`,
+      t.quote?.acceptQuote || "Accept Quote",
+      `${t.quote?.acceptQuoteConfirm || "By accepting this quote, a payment hold will be placed on your card:"}\n\n` +
+        `Service: $${quote.grandTotal.toFixed(2)}\n` +
+        `Platform fee (10%): $${platformFee.toFixed(2)}\n` +
+        `Processing fee: $${processingFee.toFixed(2)}\n` +
+        `━━━━━━━━━━━━━━━━\n` +
+        `Total hold: $${customerTotal.toFixed(2)}\n\n` +
+        `${t.quote?.chargeOnlyAfterApproval || "You will only be charged after you review and approve the completed service."}`,
       [
-        { text: t.common?.cancel || 'Cancel', style: 'cancel' },
-        { 
-          text: t.quote?.acceptAndHold || 'Accept & Hold Payment', 
+        { text: t.common?.cancel || "Cancel", style: "cancel" },
+        {
+          text: t.quote?.acceptAndHold || "Accept & Hold Payment",
           onPress: async () => {
             try {
               // Step 1: Accept quote via backend (creates WorkOrder)
-              const acceptResponse = await api.post(`/quotes/${quote.id}/accept`);
+              const acceptResponse = await api.post(
+                `/quotes/${quote.id}/accept`,
+              );
               const workOrderId = acceptResponse.data?.data?.workOrder?.id;
-              
+
               if (!workOrderId) {
-                throw new Error('Work order not created');
+                throw new Error("Work order not created");
               }
 
               // Step 2: Create payment hold via service-flow
@@ -235,75 +285,94 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
                 await serviceFlowService.approveQuoteWithPaymentHold(
                   workOrderId,
                   quote.id,
-                  'STRIPE'
+                  "STRIPE",
                 );
               } catch (holdError: any) {
                 // Payment hold failed but WO was created - inform user
-                console.warn('Payment hold failed:', holdError);
+                console.warn("Payment hold failed:", holdError);
                 Alert.alert(
-                  t.common?.warning || 'Warning',
-                  t.quote?.quoteAcceptedNoHold || 'Quote accepted but payment hold could not be placed. Please add a payment method and try again from the work order.',
-                  [{ text: t.common?.ok || 'OK', onPress: () => navigation.goBack() }]
+                  t.common?.warning || "Warning",
+                  t.quote?.quoteAcceptedNoHold ||
+                    "Quote accepted but payment hold could not be placed. Please add a payment method and try again from the work order.",
+                  [
+                    {
+                      text: t.common?.ok || "OK",
+                      onPress: () => navigation.goBack(),
+                    },
+                  ],
                 );
                 return;
               }
 
               Alert.alert(
-                t.common?.success || 'Success!',
-                `${t.quote?.quoteAcceptedPaymentHeld || 'Quote accepted! A payment hold of'} $${customerTotal.toFixed(2)} ${t.quote?.hasBeenPlaced || 'has been placed. You will only be charged when you confirm service completion.'}`,
-                [{ text: t.common?.ok || 'OK', onPress: () => navigation.goBack() }]
+                t.common?.success || "Success!",
+                `${t.quote?.quoteAcceptedPaymentHeld || "Quote accepted! A payment hold of"} $${customerTotal.toFixed(2)} ${t.quote?.hasBeenPlaced || "has been placed. You will only be charged when you confirm service completion."}`,
+                [
+                  {
+                    text: t.common?.ok || "OK",
+                    onPress: () => navigation.goBack(),
+                  },
+                ],
               );
             } catch (error: any) {
-              const msg = error.response?.data?.message || error.message || 'Failed to accept quote';
-              Alert.alert(t.common?.error || 'Error', msg);
+              const msg =
+                error.response?.data?.message ||
+                error.message ||
+                "Failed to accept quote";
+              Alert.alert(t.common?.error || "Error", msg);
             }
-          }
+          },
         },
-      ]
+      ],
     );
   };
 
   const handleRejectQuote = () => {
-    Alert.alert(
-      'Reject Quote',
-      'Are you sure you want to reject this quote?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Reject', 
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await api.post(`/quotes/${quote!.id}/reject`);
-              Alert.alert('Quote Rejected', 'You can still view other quotes for this request.');
-              navigation.goBack();
-            } catch (error: any) {
-              const msg = error.response?.data?.message || 'Failed to reject quote';
-              Alert.alert('Error', msg);
-            }
+    Alert.alert("Reject Quote", "Are you sure you want to reject this quote?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Reject",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await api.post(`/quotes/${quote!.id}/reject`);
+            Alert.alert(
+              "Quote Rejected",
+              "You can still view other quotes for this request.",
+            );
+            navigation.goBack();
+          } catch (error: any) {
+            const msg =
+              error.response?.data?.message || "Failed to reject quote";
+            Alert.alert("Error", msg);
           }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const generatePdfHtml = () => {
-    if (!quote) return '';
+    if (!quote) return "";
 
-    const { platformFee, processingFee, customerTotal } = calculateCustomerTotal(quote.grandTotal);
+    const { platformFee, processingFee, customerTotal } =
+      calculateCustomerTotal(quote.grandTotal);
 
-    const itemsHtml = quote.items.map(item => `
+    const itemsHtml = quote.items
+      .map(
+        (item) => `
       <tr>
         <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">
           <div style="font-weight: 500;">${item.description}</div>
-          ${item.partCode ? `<div style="font-size: 12px; color: #6b7280;">Code: ${item.partCode}</div>` : ''}
+          ${item.partCode ? `<div style="font-size: 12px; color: #6b7280;">Code: ${item.partCode}</div>` : ""}
         </td>
-        <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.type === 'PART' ? 'Part' : 'Labor'}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.type === "PART" ? "Part" : "Labor"}</td>
         <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity}</td>
         <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: right;">$${item.unitPrice.toFixed(2)}</td>
         <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 500;">$${(item.quantity * item.unitPrice).toFixed(2)}</td>
       </tr>
-    `).join('');
+    `,
+      )
+      .join("");
 
     return `
       <!DOCTYPE html>
@@ -394,18 +463,26 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
             <span class="totals-label">Labor Subtotal:</span>
             <span class="totals-value">$${quote.laborTotal.toFixed(2)}</span>
           </div>
-          ${quote.discount > 0 ? `
+          ${
+            quote.discount > 0
+              ? `
           <div class="totals-row">
             <span class="totals-label">Discount:</span>
             <span class="totals-value" style="color: #10b981;">-$${quote.discount.toFixed(2)}</span>
           </div>
-          ` : ''}
-          ${quote.travelFee > 0 ? `
+          `
+              : ""
+          }
+          ${
+            quote.travelFee > 0
+              ? `
           <div class="totals-row">
-            <span class="totals-label">Travel Fee${quote.distanceKm ? ` (${quote.distanceKm.toFixed(1)} km)` : ''}:</span>
+            <span class="totals-label">Travel Fee${quote.distanceKm ? ` (${quote.distanceKm.toFixed(1)} km)` : ""}:</span>
             <span class="totals-value">$${quote.travelFee.toFixed(2)}</span>
           </div>
-          ` : ''}
+          `
+              : ""
+          }
           <div class="totals-row">
             <span class="totals-label">Tax:</span>
             <span class="totals-value">$${quote.tax.toFixed(2)}</span>
@@ -439,12 +516,16 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
           </div>
         </div>
 
-        ${quote.notes ? `
+        ${
+          quote.notes
+            ? `
         <div class="section">
           <div class="section-title">Notes</div>
           <div style="font-size: 13px; color: #374151;">${quote.notes}</div>
         </div>
-        ` : ''}
+        `
+            : ""
+        }
 
         <div class="footer">
           <div>Thank you for choosing TechTrust!</div>
@@ -461,26 +542,30 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
     try {
       const html = generatePdfHtml();
       const { uri } = await Print.printToFileAsync({ html });
-      
+
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(uri, {
-          mimeType: 'application/pdf',
+          mimeType: "application/pdf",
           dialogTitle: `Quote ${quote.quoteNumber}`,
-          UTI: 'com.adobe.pdf',
+          UTI: "com.adobe.pdf",
         });
       } else {
-        Alert.alert('Sharing not available', 'Sharing is not available on this device.');
+        Alert.alert(
+          "Sharing not available",
+          "Sharing is not available on this device.",
+        );
       }
     } catch (error) {
-      console.error('Error generating PDF:', error);
-      Alert.alert('Error', 'Could not generate PDF. Please try again.');
+      console.error("Error generating PDF:", error);
+      Alert.alert("Error", "Could not generate PDF. Please try again.");
     }
   };
 
   const handleShareText = async () => {
     if (!quote) return;
 
-    const { platformFee, processingFee, customerTotal } = calculateCustomerTotal(quote.grandTotal);
+    const { platformFee, processingFee, customerTotal } =
+      calculateCustomerTotal(quote.grandTotal);
 
     const text = `
 Quote: ${quote.quoteNumber}
@@ -489,7 +574,7 @@ Service: ${quote.request.title}
 Vehicle: ${quote.vehicle.year} ${quote.vehicle.make} ${quote.vehicle.model}
 
 Parts: $${quote.partsTotal.toFixed(2)}
-Labor: $${quote.laborTotal.toFixed(2)}${quote.travelFee > 0 ? `\nTravel Fee: $${quote.travelFee.toFixed(2)}` : ''}${quote.discount > 0 ? `\nDiscount: -$${quote.discount.toFixed(2)}` : ''}
+Labor: $${quote.laborTotal.toFixed(2)}${quote.travelFee > 0 ? `\nTravel Fee: $${quote.travelFee.toFixed(2)}` : ""}${quote.discount > 0 ? `\nDiscount: -$${quote.discount.toFixed(2)}` : ""}
 Tax: $${quote.tax.toFixed(2)}
 Service Subtotal: $${quote.grandTotal.toFixed(2)}
 Platform Fee (10%): $${platformFee.toFixed(2)}
@@ -506,7 +591,7 @@ Valid until: ${formatDate(quote.validUntil)}
         title: `Quote ${quote.quoteNumber}`,
       });
     } catch (error) {
-      console.error('Error sharing:', error);
+      console.error("Error sharing:", error);
     }
   };
 
@@ -524,7 +609,7 @@ Valid until: ${formatDate(quote.validUntil)}
 
   // Build price breakdown data from quote
   const priceBreakdownData: PriceBreakdownData = {
-    items: quote.items.map(item => ({
+    items: quote.items.map((item) => ({
       description: item.description,
       partCode: item.partCode,
       quantity: item.quantity,
@@ -543,20 +628,36 @@ Valid until: ${formatDate(quote.validUntil)}
     distanceKm: quote.distanceKm ?? undefined,
   };
 
-  const { customerTotal: finalCustomerTotal } = calculateCustomerTotal(quote.grandTotal);
+  const { customerTotal: finalCustomerTotal } = calculateCustomerTotal(
+    quote.grandTotal,
+  );
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => navigation.goBack()}
+        >
           <Ionicons name="arrow-back" size={24} color="#111827" />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>{quote.quoteNumber}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: statusInfo.bgColor }]}>
-            <Ionicons name={statusInfo.icon as any} size={12} color={statusInfo.color} />
-            <Text style={[styles.statusText, { color: statusInfo.color }]}>{statusInfo.label}</Text>
+          <View
+            style={[
+              styles.statusBadge,
+              { backgroundColor: statusInfo.bgColor },
+            ]}
+          >
+            <Ionicons
+              name={statusInfo.icon as any}
+              size={12}
+              color={statusInfo.color}
+            />
+            <Text style={[styles.statusText, { color: statusInfo.color }]}>
+              {statusInfo.label}
+            </Text>
           </View>
         </View>
         <TouchableOpacity style={styles.shareBtn} onPress={handleSharePdf}>
@@ -578,59 +679,107 @@ Valid until: ${formatDate(quote.validUntil)}
                 <Ionicons name="star" size={14} color="#fbbf24" />
                 <Text style={styles.ratingText}>{quote.provider.rating}</Text>
               </View>
-              <Text style={styles.providerAddress}>{quote.provider.address}</Text>
+              <Text style={styles.providerAddress}>
+                {quote.provider.address}
+              </Text>
             </View>
             <TouchableOpacity style={styles.callBtn}>
               <Ionicons name="call" size={18} color="#1976d2" />
             </TouchableOpacity>
           </View>
-          
+
           {/* Navigation Buttons - Get directions to provider */}
-          {(quote.provider.latitude && quote.provider.longitude) || quote.provider.address ? (
-            <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
-              <TouchableOpacity 
-                style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#4285F4', paddingVertical: 10, borderRadius: 8 }}
+          {(quote.provider.latitude && quote.provider.longitude) ||
+          quote.provider.address ? (
+            <View style={{ flexDirection: "row", gap: 10, marginTop: 10 }}>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                  backgroundColor: "#4285F4",
+                  paddingVertical: 10,
+                  borderRadius: 8,
+                }}
                 onPress={() => {
                   if (quote.provider.latitude && quote.provider.longitude) {
-                    const url = Platform.OS === 'ios'
-                      ? `maps://app?daddr=${quote.provider.latitude},${quote.provider.longitude}`
-                      : `google.navigation:q=${quote.provider.latitude},${quote.provider.longitude}`;
+                    const url =
+                      Platform.OS === "ios"
+                        ? `maps://app?daddr=${quote.provider.latitude},${quote.provider.longitude}`
+                        : `google.navigation:q=${quote.provider.latitude},${quote.provider.longitude}`;
                     Linking.openURL(url).catch(() => {
-                      Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${quote.provider.latitude},${quote.provider.longitude}`);
+                      Linking.openURL(
+                        `https://www.google.com/maps/dir/?api=1&destination=${quote.provider.latitude},${quote.provider.longitude}`,
+                      );
                     });
                   } else {
-                    Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(quote.provider.address)}`);
+                    Linking.openURL(
+                      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(quote.provider.address)}`,
+                    );
                   }
                 }}
               >
                 <Ionicons name="navigate" size={16} color="#fff" />
-                <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>
-                  {Platform.OS === 'ios' ? 'Maps' : 'Google Maps'}
+                <Text
+                  style={{ color: "#fff", fontSize: 13, fontWeight: "600" }}
+                >
+                  {Platform.OS === "ios" ? "Maps" : "Google Maps"}
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#33CCFF', paddingVertical: 10, borderRadius: 8 }}
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                  backgroundColor: "#33CCFF",
+                  paddingVertical: 10,
+                  borderRadius: 8,
+                }}
                 onPress={() => {
                   if (quote.provider.latitude && quote.provider.longitude) {
-                    Linking.openURL(`https://waze.com/ul?ll=${quote.provider.latitude},${quote.provider.longitude}&navigate=yes`);
+                    Linking.openURL(
+                      `https://waze.com/ul?ll=${quote.provider.latitude},${quote.provider.longitude}&navigate=yes`,
+                    );
                   } else {
-                    Linking.openURL(`https://waze.com/ul?q=${encodeURIComponent(quote.provider.address)}&navigate=yes`);
+                    Linking.openURL(
+                      `https://waze.com/ul?q=${encodeURIComponent(quote.provider.address)}&navigate=yes`,
+                    );
                   }
                 }}
               >
                 <Ionicons name="compass" size={16} color="#fff" />
-                <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>Waze</Text>
+                <Text
+                  style={{ color: "#fff", fontSize: 13, fontWeight: "600" }}
+                >
+                  Waze
+                </Text>
               </TouchableOpacity>
             </View>
           ) : null}
-          
+
           {/* Distance Info */}
           {quote.distanceKm && quote.distanceKm > 0 ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, padding: 8, backgroundColor: '#f0f9ff', borderRadius: 6 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                marginTop: 8,
+                padding: 8,
+                backgroundColor: "#f0f9ff",
+                borderRadius: 6,
+              }}
+            >
               <Ionicons name="location" size={14} color="#1976d2" />
-              <Text style={{ fontSize: 12, color: '#1e40af' }}>
+              <Text style={{ fontSize: 12, color: "#1e40af" }}>
                 {quote.distanceKm.toFixed(1)} km away
-                {quote.travelFee > 0 ? ` • Travel fee: $${quote.travelFee.toFixed(2)}` : ' • No travel fee'}
+                {quote.travelFee > 0
+                  ? ` • Travel fee: $${quote.travelFee.toFixed(2)}`
+                  : " • No travel fee"}
               </Text>
             </View>
           ) : null}
@@ -642,14 +791,18 @@ Valid until: ${formatDate(quote.validUntil)}
             <View style={[styles.infoCard, { flex: 1, marginRight: 8 }]}>
               <Ionicons name="car" size={20} color="#f59e0b" />
               <Text style={styles.infoLabel}>Vehicle</Text>
-              <Text style={styles.infoValue}>{quote.vehicle.year} {quote.vehicle.make}</Text>
+              <Text style={styles.infoValue}>
+                {quote.vehicle.year} {quote.vehicle.make}
+              </Text>
               <Text style={styles.infoSubvalue}>{quote.vehicle.model}</Text>
             </View>
             <View style={[styles.infoCard, { flex: 1, marginLeft: 8 }]}>
               <Ionicons name="calendar" size={20} color="#10b981" />
               <Text style={styles.infoLabel}>Est. Time</Text>
               <Text style={styles.infoValue}>{quote.estimatedDays} day(s)</Text>
-              <Text style={styles.infoSubvalue}>Valid until {formatDate(quote.validUntil)}</Text>
+              <Text style={styles.infoSubvalue}>
+                Valid until {formatDate(quote.validUntil)}
+              </Text>
             </View>
           </View>
         </View>
@@ -658,7 +811,7 @@ Valid until: ${formatDate(quote.validUntil)}
         <View style={styles.section}>
           <PriceBreakdownCard
             data={priceBreakdownData}
-            showPlatformFees={quote.status === 'PENDING'}
+            showPlatformFees={quote.status === "PENDING"}
           />
         </View>
 
@@ -670,13 +823,17 @@ Valid until: ${formatDate(quote.validUntil)}
               <View style={styles.warrantyItem}>
                 <Ionicons name="shield-checkmark" size={20} color="#1976d2" />
                 <Text style={styles.warrantyLabel}>Parts</Text>
-                <Text style={styles.warrantyValue}>{quote.warranty.partsMonths} months</Text>
+                <Text style={styles.warrantyValue}>
+                  {quote.warranty.partsMonths} months
+                </Text>
               </View>
               <View style={styles.warrantyDivider} />
               <View style={styles.warrantyItem}>
                 <Ionicons name="construct" size={20} color="#1976d2" />
                 <Text style={styles.warrantyLabel}>Service</Text>
-                <Text style={styles.warrantyValue}>{quote.warranty.serviceDays} days</Text>
+                <Text style={styles.warrantyValue}>
+                  {quote.warranty.serviceDays} days
+                </Text>
               </View>
             </View>
             <Text style={styles.warrantyTerms}>{quote.warranty.terms}</Text>
@@ -697,11 +854,17 @@ Valid until: ${formatDate(quote.validUntil)}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Share Quote</Text>
           <View style={styles.shareOptions}>
-            <TouchableOpacity style={styles.shareOption} onPress={handleSharePdf}>
+            <TouchableOpacity
+              style={styles.shareOption}
+              onPress={handleSharePdf}
+            >
               <Ionicons name="document" size={24} color="#ef4444" />
               <Text style={styles.shareOptionText}>PDF</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.shareOption} onPress={handleShareText}>
+            <TouchableOpacity
+              style={styles.shareOption}
+              onPress={handleShareText}
+            >
               <Ionicons name="chatbubble" size={24} color="#10b981" />
               <Text style={styles.shareOptionText}>Text</Text>
             </TouchableOpacity>
@@ -712,13 +875,19 @@ Valid until: ${formatDate(quote.validUntil)}
       </ScrollView>
 
       {/* Action Buttons */}
-      {quote.status === 'PENDING' && (
+      {quote.status === "PENDING" && (
         <View style={styles.actionBar}>
-          <TouchableOpacity style={styles.rejectBtn} onPress={handleRejectQuote}>
+          <TouchableOpacity
+            style={styles.rejectBtn}
+            onPress={handleRejectQuote}
+          >
             <Ionicons name="close" size={20} color="#ef4444" />
             <Text style={styles.rejectBtnText}>Reject</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.acceptBtn} onPress={handleAcceptQuote}>
+          <TouchableOpacity
+            style={styles.acceptBtn}
+            onPress={handleAcceptQuote}
+          >
             <Ionicons name="checkmark" size={20} color="#fff" />
             <Text style={styles.acceptBtnText}>Accept Quote</Text>
           </TouchableOpacity>
@@ -731,40 +900,40 @@ Valid until: ${formatDate(quote.validUntil)}
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: "#f8fafc",
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    borderBottomColor: "#f1f5f9",
   },
   backBtn: {
     width: 40,
     height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerCenter: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   headerTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
+    fontWeight: "600",
+    color: "#111827",
   },
   statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -773,31 +942,31 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   shareBtn: {
     width: 40,
     height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   section: {
     padding: 16,
   },
   sectionTitle: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#6b7280',
-    textTransform: 'uppercase',
+    fontWeight: "600",
+    color: "#6b7280",
+    textTransform: "uppercase",
     marginBottom: 12,
   },
   providerCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
     borderRadius: 16,
     padding: 16,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
@@ -807,9 +976,9 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#eff6ff',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#eff6ff",
+    justifyContent: "center",
+    alignItems: "center",
   },
   providerInfo: {
     flex: 1,
@@ -817,41 +986,41 @@ const styles = StyleSheet.create({
   },
   providerName: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
+    fontWeight: "600",
+    color: "#111827",
   },
   providerRating: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
     marginTop: 2,
   },
   ratingText: {
     fontSize: 13,
-    color: '#6b7280',
+    color: "#6b7280",
   },
   providerAddress: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: "#9ca3af",
     marginTop: 2,
   },
   callBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#eff6ff',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#eff6ff",
+    justifyContent: "center",
+    alignItems: "center",
   },
   infoRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
   },
   infoCard: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 16,
     padding: 16,
-    alignItems: 'center',
-    shadowColor: '#000',
+    alignItems: "center",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
@@ -859,24 +1028,24 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 12,
-    color: '#6b7280',
+    color: "#6b7280",
     marginTop: 8,
   },
   infoValue: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
+    fontWeight: "600",
+    color: "#111827",
     marginTop: 4,
   },
   infoSubvalue: {
     fontSize: 11,
-    color: '#9ca3af',
+    color: "#9ca3af",
     marginTop: 2,
   },
   lineItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
     borderRadius: 12,
     padding: 14,
     marginBottom: 8,
@@ -885,9 +1054,9 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: '#f3f4f6',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#f3f4f6",
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 12,
   },
   lineItemInfo: {
@@ -895,145 +1064,145 @@ const styles = StyleSheet.create({
   },
   lineItemName: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#111827',
+    fontWeight: "500",
+    color: "#111827",
   },
   lineItemCode: {
     fontSize: 11,
-    color: '#1976d2',
+    color: "#1976d2",
     marginTop: 2,
   },
   lineItemQty: {
     fontSize: 12,
-    color: '#6b7280',
+    color: "#6b7280",
     marginTop: 2,
   },
   lineItemTotal: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#111827',
+    fontWeight: "600",
+    color: "#111827",
   },
   subtotalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     paddingTop: 12,
     paddingHorizontal: 4,
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: "#e5e7eb",
     marginTop: 4,
   },
   subtotalLabel: {
     fontSize: 14,
-    color: '#6b7280',
+    color: "#6b7280",
   },
   subtotalValue: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
+    fontWeight: "600",
+    color: "#374151",
   },
   totalSection: {
     marginHorizontal: 16,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 16,
     padding: 16,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
   },
   totalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 8,
   },
   totalLabel: {
     fontSize: 14,
-    color: '#6b7280',
+    color: "#6b7280",
   },
   totalValue: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#374151',
+    fontWeight: "500",
+    color: "#374151",
   },
   grandTotalRow: {
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: "#e5e7eb",
     paddingTop: 12,
     marginTop: 4,
     marginBottom: 0,
   },
   grandTotalLabel: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
+    fontWeight: "600",
+    color: "#111827",
   },
   grandTotalValue: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1976d2',
+    fontWeight: "bold",
+    color: "#1976d2",
   },
   warrantyCard: {
-    backgroundColor: '#eff6ff',
+    backgroundColor: "#eff6ff",
     borderRadius: 16,
     padding: 16,
     borderLeftWidth: 4,
-    borderLeftColor: '#1976d2',
+    borderLeftColor: "#1976d2",
   },
   warrantyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   warrantyItem: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
   },
   warrantyDivider: {
     width: 1,
     height: 40,
-    backgroundColor: '#bfdbfe',
+    backgroundColor: "#bfdbfe",
   },
   warrantyLabel: {
     fontSize: 12,
-    color: '#6b7280',
+    color: "#6b7280",
     marginTop: 6,
   },
   warrantyValue: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1976d2',
+    fontWeight: "600",
+    color: "#1976d2",
     marginTop: 2,
   },
   warrantyTerms: {
     fontSize: 12,
-    color: '#6b7280',
+    color: "#6b7280",
     marginTop: 12,
     lineHeight: 18,
   },
   notesCard: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 12,
     padding: 14,
   },
   notesText: {
     fontSize: 14,
-    color: '#374151',
+    color: "#374151",
     lineHeight: 20,
   },
   shareOptions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
   },
   shareOption: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 8,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 12,
     paddingVertical: 14,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
@@ -1041,49 +1210,49 @@ const styles = StyleSheet.create({
   },
   shareOptionText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
+    fontWeight: "600",
+    color: "#374151",
   },
   actionBar: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    flexDirection: 'row',
+    flexDirection: "row",
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
+    borderTopColor: "#f1f5f9",
     gap: 12,
   },
   rejectBtn: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 6,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: '#fef2f2',
+    backgroundColor: "#fef2f2",
   },
   rejectBtnText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#ef4444',
+    fontWeight: "600",
+    color: "#ef4444",
   },
   acceptBtn: {
     flex: 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 6,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: '#1976d2',
+    backgroundColor: "#1976d2",
   },
   acceptBtnText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
+    fontWeight: "600",
+    color: "#fff",
   },
 });

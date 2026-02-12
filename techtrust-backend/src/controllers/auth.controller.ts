@@ -5,15 +5,28 @@
  * Controla autenticação: cadastro, login, OTP, social login, etc
  */
 
-import { Request, Response } from 'express';
-import { prisma } from '../config/database';
-import { AppError } from '../middleware/error-handler';
-import { hashPassword, comparePassword, validatePasswordStrength } from '../utils/password';
-import { generateTokens, verifyRefreshToken } from '../utils/jwt';
-import { generateOTP, getOTPExpiration, isOTPExpired, validateOTPFormat } from '../utils/otp';
-import { sendOTP } from '../services/sms.service';
-import { sendOTPEmail, sendPasswordResetEmail, sendWelcomeEmail } from '../services/email.service';
-import { logger } from '../config/logger';
+import { Request, Response } from "express";
+import { prisma } from "../config/database";
+import { AppError } from "../middleware/error-handler";
+import {
+  hashPassword,
+  comparePassword,
+  validatePasswordStrength,
+} from "../utils/password";
+import { generateTokens, verifyRefreshToken } from "../utils/jwt";
+import {
+  generateOTP,
+  getOTPExpiration,
+  isOTPExpired,
+  validateOTPFormat,
+} from "../utils/otp";
+import { sendOTP } from "../services/sms.service";
+import {
+  sendOTPEmail,
+  sendPasswordResetEmail,
+  sendWelcomeEmail,
+} from "../services/email.service";
+import { logger } from "../config/logger";
 
 /**
  * POST /api/v1/auth/signup
@@ -21,15 +34,27 @@ import { logger } from '../config/logger';
  */
 export const signup = async (req: Request, res: Response) => {
   try {
-    const { fullName, email, phone, password, language, role, businessName, businessAddress, businessCity, businessState, businessZipCode } = req.body;
+    const {
+      fullName,
+      email,
+      phone,
+      password,
+      language,
+      role,
+      businessName,
+      businessAddress,
+      businessCity,
+      businessState,
+      businessZipCode,
+    } = req.body;
 
     // Validar role
-    const userRole = role === 'PROVIDER' ? 'PROVIDER' : 'CLIENT';
+    const userRole = role === "PROVIDER" ? "PROVIDER" : "CLIENT";
 
     // Validar força da senha
     const passwordValidation = validatePasswordStrength(password);
     if (!passwordValidation.valid) {
-      throw new AppError(passwordValidation.message!, 400, 'WEAK_PASSWORD');
+      throw new AppError(passwordValidation.message!, 400, "WEAK_PASSWORD");
     }
 
     // Verificar se email já existe
@@ -39,7 +64,11 @@ export const signup = async (req: Request, res: Response) => {
 
     if (existingEmail) {
       logger.warn(`Tentativa de cadastro com email duplicado: ${email}`);
-      throw new AppError('Este email já está cadastrado', 409, 'EMAIL_ALREADY_EXISTS');
+      throw new AppError(
+        "Este email já está cadastrado",
+        409,
+        "EMAIL_ALREADY_EXISTS",
+      );
     }
 
     // Verificar se telefone já existe
@@ -49,7 +78,11 @@ export const signup = async (req: Request, res: Response) => {
 
     if (existingPhone) {
       logger.warn(`Tentativa de cadastro com telefone duplicado: ${phone}`);
-      throw new AppError('Este telefone já está cadastrado', 409, 'PHONE_ALREADY_EXISTS');
+      throw new AppError(
+        "Este telefone já está cadastrado",
+        409,
+        "PHONE_ALREADY_EXISTS",
+      );
     }
 
     // Hash da senha
@@ -66,24 +99,24 @@ export const signup = async (req: Request, res: Response) => {
         email: email.toLowerCase(),
         phone,
         passwordHash,
-        language: language || 'EN',
+        language: language || "EN",
         otpCode,
         otpExpiresAt,
         role: userRole,
-        status: 'PENDING_VERIFICATION',
+        status: "PENDING_VERIFICATION",
       },
     });
 
     // Se for provider, criar ProviderProfile
-    if (userRole === 'PROVIDER' && businessName) {
+    if (userRole === "PROVIDER" && businessName) {
       await prisma.providerProfile.create({
         data: {
           userId: user.id,
           businessName,
-          address: businessAddress || '',
-          city: businessCity || '',
-          state: businessState || 'FL',
-          zipCode: businessZipCode || '',
+          address: businessAddress || "",
+          city: businessCity || "",
+          state: businessState || "FL",
+          zipCode: businessZipCode || "",
           servicesOffered: [],
           specialties: [],
         },
@@ -94,10 +127,10 @@ export const signup = async (req: Request, res: Response) => {
     await prisma.subscription.create({
       data: {
         userId: user.id,
-        plan: 'FREE',
+        plan: "FREE",
         price: 0,
         maxVehicles: 1,
-        status: 'ACTIVE',
+        status: "ACTIVE",
         currentPeriodStart: new Date(),
         currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 dias
       },
@@ -108,10 +141,10 @@ export const signup = async (req: Request, res: Response) => {
       // Não bloquear o cadastro aguardando o provedor de SMS.
       // Se o envio falhar (ou travar), o usuário ainda consegue solicitar reenvio.
       sendOTP(phone, otpCode).catch((err) => {
-        logger.error('Erro ao enviar OTP:', err);
+        logger.error("Erro ao enviar OTP:", err);
       });
     } catch (error) {
-      logger.error('Erro ao enviar OTP:', error);
+      logger.error("Erro ao enviar OTP:", error);
       // Não falha o cadastro, mas avisa
     }
 
@@ -119,7 +152,7 @@ export const signup = async (req: Request, res: Response) => {
 
     res.status(201).json({
       success: true,
-      message: 'Conta criada! Verifique seu telefone.',
+      message: "Conta criada! Verifique seu telefone.",
       data: {
         userId: user.id,
         email: user.email,
@@ -139,13 +172,15 @@ export const signup = async (req: Request, res: Response) => {
 /**
  * Verifica token do Google
  */
-async function verifyGoogleToken(accessToken: string): Promise<{ id: string; email: string; name: string; picture?: string }> {
-  const response = await fetch('https://www.googleapis.com/userinfo/v2/me', {
+async function verifyGoogleToken(
+  accessToken: string,
+): Promise<{ id: string; email: string; name: string; picture?: string }> {
+  const response = await fetch("https://www.googleapis.com/userinfo/v2/me", {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
 
   if (!response.ok) {
-    throw new AppError('Invalid Google token', 401, 'INVALID_GOOGLE_TOKEN');
+    throw new AppError("Invalid Google token", 401, "INVALID_GOOGLE_TOKEN");
   }
 
   const data: any = await response.json();
@@ -160,26 +195,31 @@ async function verifyGoogleToken(accessToken: string): Promise<{ id: string; ema
 /**
  * Verifica token da Apple (identityToken é um JWT)
  */
-async function verifyAppleToken(identityToken: string, appleUserId: string): Promise<{ id: string; email: string | null; name: string | null }> {
+async function verifyAppleToken(
+  identityToken: string,
+  appleUserId: string,
+): Promise<{ id: string; email: string | null; name: string | null }> {
   try {
     // Decode the Apple identity token (JWT)
     // Apple tokens are signed JWTs. For production, verify signature with Apple's public keys.
     // For now, we decode and validate the payload.
-    const parts = identityToken.split('.');
+    const parts = identityToken.split(".");
     if (parts.length !== 3) {
-      throw new Error('Invalid Apple token format');
+      throw new Error("Invalid Apple token format");
     }
 
-    const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'));
+    const payload = JSON.parse(
+      Buffer.from(parts[1], "base64").toString("utf8"),
+    );
 
     // Verify issuer and audience
-    if (payload.iss !== 'https://appleid.apple.com') {
-      throw new Error('Invalid Apple token issuer');
+    if (payload.iss !== "https://appleid.apple.com") {
+      throw new Error("Invalid Apple token issuer");
     }
 
     // Check expiration
     if (payload.exp && payload.exp * 1000 < Date.now()) {
-      throw new Error('Apple token expired');
+      throw new Error("Apple token expired");
     }
 
     return {
@@ -188,26 +228,32 @@ async function verifyAppleToken(identityToken: string, appleUserId: string): Pro
       name: null, // Apple only sends name on first sign-in
     };
   } catch (error: any) {
-    logger.error('Apple token verification failed:', error);
-    throw new AppError('Invalid Apple token', 401, 'INVALID_APPLE_TOKEN');
+    logger.error("Apple token verification failed:", error);
+    throw new AppError("Invalid Apple token", 401, "INVALID_APPLE_TOKEN");
   }
 }
 
 /**
  * Verifica token do Facebook
  */
-async function verifyFacebookToken(accessToken: string): Promise<{ id: string; email: string; name: string; picture?: string }> {
+async function verifyFacebookToken(
+  accessToken: string,
+): Promise<{ id: string; email: string; name: string; picture?: string }> {
   const response = await fetch(
-    `https://graph.facebook.com/me?fields=id,name,email,picture.type(large)&access_token=${accessToken}`
+    `https://graph.facebook.com/me?fields=id,name,email,picture.type(large)&access_token=${accessToken}`,
   );
 
   if (!response.ok) {
-    throw new AppError('Invalid Facebook token', 401, 'INVALID_FACEBOOK_TOKEN');
+    throw new AppError("Invalid Facebook token", 401, "INVALID_FACEBOOK_TOKEN");
   }
 
   const data: any = await response.json();
   if (!data.email) {
-    throw new AppError('Email permission required from Facebook', 400, 'FACEBOOK_EMAIL_REQUIRED');
+    throw new AppError(
+      "Email permission required from Facebook",
+      400,
+      "FACEBOOK_EMAIL_REQUIRED",
+    );
   }
 
   return {
@@ -221,7 +267,7 @@ async function verifyFacebookToken(accessToken: string): Promise<{ id: string; e
 /**
  * POST /api/v1/auth/social
  * Login/cadastro via conta social (Google, Apple, Facebook)
- * 
+ *
  * Flow:
  * 1. Receive provider token
  * 2. Verify with provider API
@@ -232,34 +278,56 @@ async function verifyFacebookToken(accessToken: string): Promise<{ id: string; e
  */
 export const socialLogin = async (req: Request, res: Response) => {
   try {
-    const { provider, token, appleUserId, fullName: providedName, phone } = req.body;
+    const {
+      provider,
+      token,
+      appleUserId,
+      fullName: providedName,
+      phone,
+    } = req.body;
 
     if (!provider || !token) {
-      throw new AppError('Provider and token are required', 400, 'MISSING_FIELDS');
+      throw new AppError(
+        "Provider and token are required",
+        400,
+        "MISSING_FIELDS",
+      );
     }
 
     // 1. Verify token with social provider
-    let socialUser: { id: string; email: string | null; name: string | null; picture?: string };
+    let socialUser: {
+      id: string;
+      email: string | null;
+      name: string | null;
+      picture?: string;
+    };
 
     switch (provider.toUpperCase()) {
-      case 'GOOGLE':
+      case "GOOGLE":
         socialUser = await verifyGoogleToken(token);
         break;
-      case 'APPLE':
+      case "APPLE":
         socialUser = await verifyAppleToken(token, appleUserId);
         break;
-      case 'FACEBOOK':
+      case "FACEBOOK":
         socialUser = await verifyFacebookToken(token);
         break;
       default:
-        throw new AppError('Unsupported provider', 400, 'UNSUPPORTED_PROVIDER');
+        throw new AppError("Unsupported provider", 400, "UNSUPPORTED_PROVIDER");
     }
 
     if (!socialUser.email) {
-      throw new AppError('Email is required from social provider', 400, 'EMAIL_REQUIRED');
+      throw new AppError(
+        "Email is required from social provider",
+        400,
+        "EMAIL_REQUIRED",
+      );
     }
 
-    const socialIdField = `${provider.toLowerCase()}Id` as 'googleId' | 'appleId' | 'facebookId';
+    const socialIdField = `${provider.toLowerCase()}Id` as
+      | "googleId"
+      | "appleId"
+      | "facebookId";
 
     // 2. Check if user exists by social ID
     let user = await prisma.user.findFirst({
@@ -282,16 +350,18 @@ export const socialLogin = async (req: Request, res: Response) => {
             emailVerified: true, // Email is verified by social provider
           },
         });
-        logger.info(`Social account ${provider} linked to existing user: ${user.email}`);
+        logger.info(
+          `Social account ${provider} linked to existing user: ${user.email}`,
+        );
       }
     }
 
     // 4. If user exists with password set → login directly
-    if (user && user.passwordHash && user.status === 'ACTIVE') {
+    if (user && user.passwordHash && user.status === "ACTIVE") {
       // Update last login
       await prisma.user.update({
         where: { id: user.id },
-        data: { 
+        data: {
           lastLoginAt: new Date(),
           avatarUrl: user.avatarUrl || socialUser.picture || undefined,
         },
@@ -308,7 +378,7 @@ export const socialLogin = async (req: Request, res: Response) => {
       return res.json({
         success: true,
         data: {
-          status: 'AUTHENTICATED',
+          status: "AUTHENTICATED",
           token: tokens.accessToken,
           refreshToken: tokens.refreshToken,
           expiresIn: tokens.expiresIn,
@@ -327,17 +397,20 @@ export const socialLogin = async (req: Request, res: Response) => {
     }
 
     // 5. If user exists but needs password or verification
-    if (user && (!user.passwordHash || user.status === 'PENDING_VERIFICATION')) {
+    if (
+      user &&
+      (!user.passwordHash || user.status === "PENDING_VERIFICATION")
+    ) {
       return res.json({
         success: true,
         data: {
-          status: 'NEEDS_PASSWORD',
+          status: "NEEDS_PASSWORD",
           userId: user.id,
           email: user.email,
           fullName: user.fullName,
           phone: user.phone,
           provider,
-          message: 'Please set a password to complete your account setup.',
+          message: "Please set a password to complete your account setup.",
         },
       });
     }
@@ -349,18 +422,19 @@ export const socialLogin = async (req: Request, res: Response) => {
 
     const newUser = await prisma.user.create({
       data: {
-        fullName: socialUser.name || providedName || socialUser.email.split('@')[0],
+        fullName:
+          socialUser.name || providedName || socialUser.email.split("@")[0],
         email: socialUser.email.toLowerCase(),
         phone: newUserPhone,
-        passwordHash: '', // Will be set when user defines password
+        passwordHash: "", // Will be set when user defines password
         authProvider: provider.toUpperCase(),
         [socialIdField]: socialUser.id,
         avatarUrl: socialUser.picture || null,
         emailVerified: true, // Verified by social provider
         phoneVerified: hasRealPhone,
-        status: 'PENDING_VERIFICATION', // Needs password setup
-        role: 'CLIENT',
-        language: 'EN',
+        status: "PENDING_VERIFICATION", // Needs password setup
+        role: "CLIENT",
+        language: "EN",
       },
     });
 
@@ -368,10 +442,10 @@ export const socialLogin = async (req: Request, res: Response) => {
     await prisma.subscription.create({
       data: {
         userId: newUser.id,
-        plan: 'FREE',
+        plan: "FREE",
         price: 0,
         maxVehicles: 1,
-        status: 'ACTIVE',
+        status: "ACTIVE",
         currentPeriodStart: new Date(),
         currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       },
@@ -382,13 +456,13 @@ export const socialLogin = async (req: Request, res: Response) => {
     return res.status(201).json({
       success: true,
       data: {
-        status: 'NEEDS_PASSWORD',
+        status: "NEEDS_PASSWORD",
         userId: newUser.id,
         email: newUser.email,
         fullName: newUser.fullName,
         phone: hasRealPhone ? newUser.phone : null,
         provider,
-        message: 'Account created. Please set a password and phone number.',
+        message: "Account created. Please set a password and phone number.",
       },
     });
   } catch (error) {
@@ -405,13 +479,17 @@ export const completeSocialSignup = async (req: Request, res: Response) => {
     const { userId, password, phone } = req.body;
 
     if (!userId || !password) {
-      throw new AppError('User ID and password are required', 400, 'MISSING_FIELDS');
+      throw new AppError(
+        "User ID and password are required",
+        400,
+        "MISSING_FIELDS",
+      );
     }
 
     // Validate password
     const passwordValidation = validatePasswordStrength(password);
     if (!passwordValidation.valid) {
-      throw new AppError(passwordValidation.message!, 400, 'WEAK_PASSWORD');
+      throw new AppError(passwordValidation.message!, 400, "WEAK_PASSWORD");
     }
 
     const user = await prisma.user.findUnique({
@@ -419,7 +497,7 @@ export const completeSocialSignup = async (req: Request, res: Response) => {
     });
 
     if (!user) {
-      throw new AppError('User not found', 404, 'USER_NOT_FOUND');
+      throw new AppError("User not found", 404, "USER_NOT_FOUND");
     }
 
     // Hash password
@@ -428,7 +506,7 @@ export const completeSocialSignup = async (req: Request, res: Response) => {
     // Prepare update data
     const updateData: any = {
       passwordHash,
-      status: 'ACTIVE',
+      status: "ACTIVE",
     };
 
     // Update phone if provided
@@ -436,23 +514,27 @@ export const completeSocialSignup = async (req: Request, res: Response) => {
       // Check phone uniqueness
       const existingPhone = await prisma.user.findUnique({ where: { phone } });
       if (existingPhone && existingPhone.id !== userId) {
-        throw new AppError('This phone number is already registered', 409, 'PHONE_ALREADY_EXISTS');
+        throw new AppError(
+          "This phone number is already registered",
+          409,
+          "PHONE_ALREADY_EXISTS",
+        );
       }
       updateData.phone = phone;
-      
+
       // Generate OTP for phone verification
       const otpCode = generateOTP();
       const otpExpiresAt = getOTPExpiration();
       updateData.otpCode = otpCode;
       updateData.otpExpiresAt = otpExpiresAt;
-      
+
       // Send SMS
-      sendOTP(phone, otpCode).catch(err => {
-        logger.error('Error sending OTP after social signup:', err);
+      sendOTP(phone, otpCode).catch((err) => {
+        logger.error("Error sending OTP after social signup:", err);
       });
-    } else if (user.phone && !user.phone.startsWith('+0')) {
+    } else if (user.phone && !user.phone.startsWith("+0")) {
       // Has valid phone, set active
-      updateData.status = 'ACTIVE';
+      updateData.status = "ACTIVE";
       updateData.phoneVerified = true;
     }
 
@@ -466,10 +548,10 @@ export const completeSocialSignup = async (req: Request, res: Response) => {
       return res.json({
         success: true,
         data: {
-          status: 'NEEDS_PHONE_VERIFICATION',
+          status: "NEEDS_PHONE_VERIFICATION",
           userId: updatedUser.id,
           phone: updatedUser.phone,
-          message: 'Password set. Please verify your phone number.',
+          message: "Password set. Please verify your phone number.",
         },
       });
     }
@@ -482,8 +564,12 @@ export const completeSocialSignup = async (req: Request, res: Response) => {
     });
 
     // Send welcome email
-    sendWelcomeEmail(updatedUser.email, updatedUser.fullName, updatedUser.language).catch(err => {
-      logger.error('Failed to send welcome email:', err);
+    sendWelcomeEmail(
+      updatedUser.email,
+      updatedUser.fullName,
+      updatedUser.language,
+    ).catch((err) => {
+      logger.error("Failed to send welcome email:", err);
     });
 
     logger.info(`Social signup completed: ${updatedUser.email}`);
@@ -491,7 +577,7 @@ export const completeSocialSignup = async (req: Request, res: Response) => {
     return res.json({
       success: true,
       data: {
-        status: 'AUTHENTICATED',
+        status: "AUTHENTICATED",
         token: tokens.accessToken,
         refreshToken: tokens.refreshToken,
         expiresIn: tokens.expiresIn,
@@ -519,18 +605,18 @@ export const completeSocialSignup = async (req: Request, res: Response) => {
 export const verifyOTP = async (req: Request, res: Response) => {
   try {
     const { userId, otpCode, code, method } = req.body;
-    
+
     // Aceita tanto 'otpCode' quanto 'code' para compatibilidade
     const receivedCode = otpCode || code;
-    const verifyMethod = method || 'sms'; // 'sms' or 'email'
-    
-    console.log('📥 Recebido verify-otp:', { 
-      userId, 
+    const verifyMethod = method || "sms"; // 'sms' or 'email'
+
+    console.log("📥 Recebido verify-otp:", {
+      userId,
       otpCode,
       code,
       receivedCode,
       method: verifyMethod,
-      body: req.body 
+      body: req.body,
     });
 
     // Trim para garantir que não há espaços
@@ -538,7 +624,7 @@ export const verifyOTP = async (req: Request, res: Response) => {
 
     // Validar formato do OTP
     if (!validateOTPFormat(cleanOtpCode)) {
-      throw new AppError('Código OTP inválido', 400, 'INVALID_OTP_FORMAT');
+      throw new AppError("Código OTP inválido", 400, "INVALID_OTP_FORMAT");
     }
 
     // Buscar usuário
@@ -547,17 +633,21 @@ export const verifyOTP = async (req: Request, res: Response) => {
     });
 
     if (!user) {
-      throw new AppError('Usuário não encontrado', 404, 'USER_NOT_FOUND');
+      throw new AppError("Usuário não encontrado", 404, "USER_NOT_FOUND");
     }
 
     // Check based on verification method
-    if (verifyMethod === 'email') {
+    if (verifyMethod === "email") {
       // Verify email OTP
       if (isOTPExpired(user.emailOtpExpiresAt)) {
-        throw new AppError('Código expirado. Solicite um novo.', 400, 'OTP_EXPIRED');
+        throw new AppError(
+          "Código expirado. Solicite um novo.",
+          400,
+          "OTP_EXPIRED",
+        );
       }
       if (user.emailOtpCode?.trim() !== cleanOtpCode) {
-        throw new AppError('Código incorreto', 400, 'INVALID_OTP');
+        throw new AppError("Código incorreto", 400, "INVALID_OTP");
       }
 
       // Update - email verified
@@ -568,12 +658,12 @@ export const verifyOTP = async (req: Request, res: Response) => {
           emailOtpCode: null,
           emailOtpExpiresAt: null,
           // If phone was already verified, set active
-          status: user.phoneVerified ? 'ACTIVE' : user.status,
+          status: user.phoneVerified ? "ACTIVE" : user.status,
         },
       });
 
       // If account is now fully active, generate tokens
-      if (updatedUser.status === 'ACTIVE') {
+      if (updatedUser.status === "ACTIVE") {
         const tokens = generateTokens({
           userId: updatedUser.id,
           email: updatedUser.email,
@@ -584,7 +674,7 @@ export const verifyOTP = async (req: Request, res: Response) => {
 
         return res.json({
           success: true,
-          message: 'Email verificado com sucesso!',
+          message: "Email verificado com sucesso!",
           data: {
             token: tokens.accessToken,
             refreshToken: tokens.refreshToken,
@@ -605,24 +695,28 @@ export const verifyOTP = async (req: Request, res: Response) => {
 
       return res.json({
         success: true,
-        message: 'Email verificado! Verifique seu telefone para continuar.',
+        message: "Email verificado! Verifique seu telefone para continuar.",
         data: { emailVerified: true, phoneVerified: updatedUser.phoneVerified },
       });
     }
 
     // SMS OTP verification (default)
     if (user.phoneVerified) {
-      throw new AppError('Telefone já verificado', 400, 'ALREADY_VERIFIED');
+      throw new AppError("Telefone já verificado", 400, "ALREADY_VERIFIED");
     }
 
     // Verificar se OTP expirou
     if (isOTPExpired(user.otpExpiresAt)) {
-      throw new AppError('Código expirado. Solicite um novo.', 400, 'OTP_EXPIRED');
+      throw new AppError(
+        "Código expirado. Solicite um novo.",
+        400,
+        "OTP_EXPIRED",
+      );
     }
 
     // Verificar código (comparando ambos com trim para segurança)
     if (user.otpCode?.trim() !== cleanOtpCode) {
-      throw new AppError('Código incorreto', 400, 'INVALID_OTP');
+      throw new AppError("Código incorreto", 400, "INVALID_OTP");
     }
 
     // Atualizar usuário
@@ -630,7 +724,7 @@ export const verifyOTP = async (req: Request, res: Response) => {
       where: { id: userId },
       data: {
         phoneVerified: true,
-        status: 'ACTIVE',
+        status: "ACTIVE",
         otpCode: null,
         otpExpiresAt: null,
       },
@@ -647,7 +741,7 @@ export const verifyOTP = async (req: Request, res: Response) => {
 
     return res.json({
       success: true,
-      message: 'Telefone verificado com sucesso!',
+      message: "Telefone verificado com sucesso!",
       data: {
         token: tokens.accessToken,
         refreshToken: tokens.refreshToken,
@@ -682,36 +776,36 @@ export const resendOTP = async (req: Request, res: Response) => {
     });
 
     if (!user) {
-      throw new AppError('Usuário não encontrado', 404, 'USER_NOT_FOUND');
+      throw new AppError("Usuário não encontrado", 404, "USER_NOT_FOUND");
     }
 
-    if (user.phoneVerified && method !== 'email') {
-      throw new AppError('Telefone já verificado', 400, 'ALREADY_VERIFIED');
+    if (user.phoneVerified && method !== "email") {
+      throw new AppError("Telefone já verificado", 400, "ALREADY_VERIFIED");
     }
 
     // Gerar novo OTP
     const otpCode = generateOTP();
     const otpExpiresAt = getOTPExpiration();
 
-    const deliveryMethod = method === 'email' ? 'email' : 'sms';
+    const deliveryMethod = method === "email" ? "email" : "sms";
 
-    if (deliveryMethod === 'email') {
+    if (deliveryMethod === "email") {
       // Store in email OTP fields
       await prisma.user.update({
         where: { id: userId },
         data: { emailOtpCode: otpCode, emailOtpExpiresAt: otpExpiresAt },
       });
-      
+
       // Send OTP via email
       await sendOTPEmail(user.email, otpCode, user.language);
-      
+
       logger.info(`OTP sent via email to: ${user.email}`);
-      
+
       return res.json({
         success: true,
-        message: 'Novo código enviado por email',
+        message: "Novo código enviado por email",
         data: {
-          method: 'email',
+          method: "email",
           otpSentTo: user.email,
           expiresIn: 600,
         },
@@ -730,9 +824,9 @@ export const resendOTP = async (req: Request, res: Response) => {
 
       return res.json({
         success: true,
-        message: 'Novo código enviado por SMS',
+        message: "Novo código enviado por SMS",
         data: {
-          method: 'sms',
+          method: "sms",
           otpSentTo: user.phone,
           expiresIn: 600,
         },
@@ -750,8 +844,8 @@ export const resendOTP = async (req: Request, res: Response) => {
 export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
-    
-    console.log('🔐 Tentativa de login:', { email });
+
+    console.log("🔐 Tentativa de login:", { email });
 
     // Buscar usuário
     const user = await prisma.user.findUnique({
@@ -759,35 +853,55 @@ export const login = async (req: Request, res: Response) => {
     });
 
     if (!user) {
-      console.log('❌ Usuário não encontrado:', email);
-      throw new AppError('Email ou senha incorretos', 401, 'INVALID_CREDENTIALS');
+      console.log("❌ Usuário não encontrado:", email);
+      throw new AppError(
+        "Email ou senha incorretos",
+        401,
+        "INVALID_CREDENTIALS",
+      );
     }
-    
-    console.log('👤 Usuário encontrado:', { id: user.id, status: user.status, phoneVerified: user.phoneVerified });
+
+    console.log("👤 Usuário encontrado:", {
+      id: user.id,
+      status: user.status,
+      phoneVerified: user.phoneVerified,
+    });
 
     // Verificar senha
     const isPasswordValid = await comparePassword(password, user.passwordHash);
 
     if (!isPasswordValid) {
-      console.log('❌ Senha inválida para:', email);
-      throw new AppError('Email ou senha incorretos', 401, 'INVALID_CREDENTIALS');
+      console.log("❌ Senha inválida para:", email);
+      throw new AppError(
+        "Email ou senha incorretos",
+        401,
+        "INVALID_CREDENTIALS",
+      );
     }
-    
-    console.log('✅ Senha válida para:', email);
+
+    console.log("✅ Senha válida para:", email);
 
     // Verificar status da conta
-    if (user.status === 'SUSPENDED') {
-      throw new AppError('Conta suspensa. Entre em contato com o suporte.', 403, 'ACCOUNT_SUSPENDED');
+    if (user.status === "SUSPENDED") {
+      throw new AppError(
+        "Conta suspensa. Entre em contato com o suporte.",
+        403,
+        "ACCOUNT_SUSPENDED",
+      );
     }
 
-    if (user.status === 'INACTIVE') {
-      throw new AppError('Conta inativa', 403, 'ACCOUNT_INACTIVE');
+    if (user.status === "INACTIVE") {
+      throw new AppError("Conta inativa", 403, "ACCOUNT_INACTIVE");
     }
 
     // Verificar se telefone foi verificado (usuário precisa completar cadastro)
-    if (user.status === 'PENDING_VERIFICATION' || !user.phoneVerified) {
-      console.log('⚠️ Telefone não verificado para:', email);
-      throw new AppError('Verifique seu telefone para continuar', 403, 'PHONE_NOT_VERIFIED');
+    if (user.status === "PENDING_VERIFICATION" || !user.phoneVerified) {
+      console.log("⚠️ Telefone não verificado para:", email);
+      throw new AppError(
+        "Verifique seu telefone para continuar",
+        403,
+        "PHONE_NOT_VERIFIED",
+      );
     }
 
     // Atualizar último login
@@ -836,7 +950,11 @@ export const refresh = async (req: Request, res: Response) => {
     const { refreshToken } = req.body;
 
     if (!refreshToken) {
-      throw new AppError('Refresh token não fornecido', 400, 'MISSING_REFRESH_TOKEN');
+      throw new AppError(
+        "Refresh token não fornecido",
+        400,
+        "MISSING_REFRESH_TOKEN",
+      );
     }
 
     // Verificar refresh token
@@ -848,7 +966,7 @@ export const refresh = async (req: Request, res: Response) => {
     });
 
     if (!user) {
-      throw new AppError('Usuário não encontrado', 404, 'USER_NOT_FOUND');
+      throw new AppError("Usuário não encontrado", 404, "USER_NOT_FOUND");
     }
 
     // Gerar novos tokens
@@ -877,7 +995,7 @@ export const refresh = async (req: Request, res: Response) => {
 export const logout = async (_req: Request, res: Response) => {
   res.json({
     success: true,
-    message: 'Logout realizado com sucesso',
+    message: "Logout realizado com sucesso",
   });
 };
 
@@ -890,7 +1008,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
     const { email } = req.body;
 
     if (!email) {
-      throw new AppError('Email é obrigatório', 400, 'MISSING_EMAIL');
+      throw new AppError("Email é obrigatório", 400, "MISSING_EMAIL");
     }
 
     // Buscar usuário
@@ -901,10 +1019,12 @@ export const forgotPassword = async (req: Request, res: Response) => {
     // Por segurança, sempre retornar sucesso mesmo se usuário não existir
     // Isso previne enumeração de emails
     if (!user) {
-      logger.info(`Tentativa de recuperação para email não cadastrado: ${email}`);
+      logger.info(
+        `Tentativa de recuperação para email não cadastrado: ${email}`,
+      );
       return res.json({
         success: true,
-        message: 'Se o email existir, você receberá um link de recuperação.',
+        message: "Se o email existir, você receberá um link de recuperação.",
       });
     }
 
@@ -926,13 +1046,16 @@ export const forgotPassword = async (req: Request, res: Response) => {
       await sendPasswordResetEmail(email, resetToken, user.language);
       logger.info(`Password reset email sent to: ${email}`);
     } catch (emailError) {
-      logger.error(`Failed to send password reset email to ${email}:`, emailError);
+      logger.error(
+        `Failed to send password reset email to ${email}:`,
+        emailError,
+      );
       // Don't fail the request - log and continue
     }
 
     return res.json({
       success: true,
-      message: 'Se o email existir, você receberá um código de recuperação.',
+      message: "Se o email existir, você receberá um código de recuperação.",
     });
   } catch (error) {
     throw error;
@@ -948,13 +1071,17 @@ export const resetPassword = async (req: Request, res: Response) => {
     const { email, token, newPassword } = req.body;
 
     if (!email || !token || !newPassword) {
-      throw new AppError('Email, token e nova senha são obrigatórios', 400, 'MISSING_FIELDS');
+      throw new AppError(
+        "Email, token e nova senha são obrigatórios",
+        400,
+        "MISSING_FIELDS",
+      );
     }
 
     // Validar força da senha
     const passwordValidation = validatePasswordStrength(newPassword);
     if (!passwordValidation.valid) {
-      throw new AppError(passwordValidation.message!, 400, 'WEAK_PASSWORD');
+      throw new AppError(passwordValidation.message!, 400, "WEAK_PASSWORD");
     }
 
     // Buscar usuário
@@ -963,17 +1090,21 @@ export const resetPassword = async (req: Request, res: Response) => {
     });
 
     if (!user) {
-      throw new AppError('Token inválido ou expirado', 400, 'INVALID_TOKEN');
+      throw new AppError("Token inválido ou expirado", 400, "INVALID_TOKEN");
     }
 
     // Verificar token
     if (user.otpCode !== token) {
-      throw new AppError('Token inválido', 400, 'INVALID_TOKEN');
+      throw new AppError("Token inválido", 400, "INVALID_TOKEN");
     }
 
     // Verificar expiração
     if (!user.otpExpiresAt || isOTPExpired(user.otpExpiresAt)) {
-      throw new AppError('Token expirado. Solicite um novo link de recuperação.', 400, 'EXPIRED_TOKEN');
+      throw new AppError(
+        "Token expirado. Solicite um novo link de recuperação.",
+        400,
+        "EXPIRED_TOKEN",
+      );
     }
 
     // Criptografar nova senha
@@ -993,7 +1124,7 @@ export const resetPassword = async (req: Request, res: Response) => {
 
     res.json({
       success: true,
-      message: 'Senha redefinida com sucesso! Faça login com sua nova senha.',
+      message: "Senha redefinida com sucesso! Faça login com sua nova senha.",
     });
   } catch (error) {
     throw error;

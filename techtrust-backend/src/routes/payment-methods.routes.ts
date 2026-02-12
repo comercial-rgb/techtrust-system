@@ -152,11 +152,17 @@ router.post(
       where: { stripePaymentMethodId },
     });
     if (existing) {
-      return res.json({ success: true, data: existing, message: "Already saved" });
+      return res.json({
+        success: true,
+        data: existing,
+        message: "Already saved",
+      });
     }
 
     // Retrieve card details from Stripe
-    const stripeMethod = await stripeService.retrievePaymentMethod(stripePaymentMethodId);
+    const stripeMethod = await stripeService.retrievePaymentMethod(
+      stripePaymentMethodId,
+    );
 
     // Count existing methods (for isDefault)
     const existingCount = await prisma.paymentMethod.count({

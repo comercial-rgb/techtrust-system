@@ -5,12 +5,12 @@
  * Orçamentos de fornecedores
  */
 
-import { Request, Response } from 'express';
-import { prisma } from '../config/database';
-import { AppError } from '../middleware/error-handler';
-import { logger } from '../config/logger';
-import { calculateRoadDistance } from '../utils/distance';
-import { generateEstimateNumber } from '../utils/number-generators';
+import { Request, Response } from "express";
+import { prisma } from "../config/database";
+import { AppError } from "../middleware/error-handler";
+import { logger } from "../config/logger";
+import { calculateRoadDistance } from "../utils/distance";
+import { generateEstimateNumber } from "../utils/number-generators";
 
 /**
  * POST /api/v1/quotes
@@ -38,8 +38,12 @@ export const createQuote = async (req: Request, res: Response) => {
   } = req.body;
 
   // Verificar se é fornecedor
-  if (req.user!.role !== 'PROVIDER') {
-    throw new AppError('Apenas fornecedores podem criar orçamentos', 403, 'NOT_A_PROVIDER');
+  if (req.user!.role !== "PROVIDER") {
+    throw new AppError(
+      "Apenas fornecedores podem criar orçamentos",
+      403,
+      "NOT_A_PROVIDER",
+    );
   }
 
   // Verificar se solicitação existe e está aberta
@@ -48,16 +52,30 @@ export const createQuote = async (req: Request, res: Response) => {
   });
 
   if (!serviceRequest) {
-    throw new AppError('Solicitação não encontrada', 404, 'REQUEST_NOT_FOUND');
+    throw new AppError("Solicitação não encontrada", 404, "REQUEST_NOT_FOUND");
   }
 
-  if (serviceRequest.status !== 'SEARCHING_PROVIDERS' && serviceRequest.status !== 'QUOTES_RECEIVED') {
-    throw new AppError('Esta solicitação não está mais aceitando orçamentos', 400, 'REQUEST_CLOSED');
+  if (
+    serviceRequest.status !== "SEARCHING_PROVIDERS" &&
+    serviceRequest.status !== "QUOTES_RECEIVED"
+  ) {
+    throw new AppError(
+      "Esta solicitação não está mais aceitando orçamentos",
+      400,
+      "REQUEST_CLOSED",
+    );
   }
 
   // Verificar se deadline passou
-  if (serviceRequest.quoteDeadline && new Date() > serviceRequest.quoteDeadline) {
-    throw new AppError('Prazo para enviar orçamentos expirou', 400, 'QUOTE_DEADLINE_PASSED');
+  if (
+    serviceRequest.quoteDeadline &&
+    new Date() > serviceRequest.quoteDeadline
+  ) {
+    throw new AppError(
+      "Prazo para enviar orçamentos expirou",
+      400,
+      "QUOTE_DEADLINE_PASSED",
+    );
   }
 
   // Verificar se já atingiu máximo de quotes
@@ -66,7 +84,11 @@ export const createQuote = async (req: Request, res: Response) => {
   });
 
   if (existingQuotes >= serviceRequest.maxQuotes) {
-    throw new AppError('Esta solicitação já tem o máximo de orçamentos', 400, 'MAX_QUOTES_REACHED');
+    throw new AppError(
+      "Esta solicitação já tem o máximo de orçamentos",
+      400,
+      "MAX_QUOTES_REACHED",
+    );
   }
 
   // Verificar se fornecedor já enviou orçamento
@@ -78,7 +100,11 @@ export const createQuote = async (req: Request, res: Response) => {
   });
 
   if (existingQuote) {
-    throw new AppError('Você já enviou um orçamento para esta solicitação', 409, 'QUOTE_ALREADY_EXISTS');
+    throw new AppError(
+      "Você já enviou um orçamento para esta solicitação",
+      409,
+      "QUOTE_ALREADY_EXISTS",
+    );
   }
 
   // Buscar perfil do provider para obter coordenadas
@@ -101,7 +127,7 @@ export const createQuote = async (req: Request, res: Response) => {
       providerProfile.baseLatitude.toNumber(),
       providerProfile.baseLongitude.toNumber(),
       serviceRequest.serviceLatitude.toNumber(),
-      serviceRequest.serviceLongitude.toNumber()
+      serviceRequest.serviceLongitude.toNumber(),
     );
 
     distanceKm = roadResult.distanceKm;
@@ -109,16 +135,23 @@ export const createQuote = async (req: Request, res: Response) => {
     // Calcular taxa de deslocamento
     const freeKm = Number(providerProfile.freeKm);
     const extraFeePerKm = Number(providerProfile.extraFeePerKm);
-    
+
     if (distanceKm > freeKm) {
       travelFee = (distanceKm - freeKm) * extraFeePerKm;
     }
 
-    logger.info(`Distância calculada: ${distanceKm.toFixed(2)} km (${roadResult.isRoadDistance ? 'OSRM road' : 'Haversine estimate'}), Taxa: $ ${travelFee.toFixed(2)}`);
+    logger.info(
+      `Distância calculada: ${distanceKm.toFixed(2)} km (${roadResult.isRoadDistance ? "OSRM road" : "Haversine estimate"}), Taxa: $ ${travelFee.toFixed(2)}`,
+    );
   }
 
   // Calcular total (incluindo taxa de deslocamento)
-  const totalAmount = Number(partsCost) + Number(laborCost) + Number(additionalFees) + Number(taxAmount) + travelFee;
+  const totalAmount =
+    Number(partsCost) +
+    Number(laborCost) +
+    Number(additionalFees) +
+    Number(taxAmount) +
+    travelFee;
 
   // Gerar número do orçamento
   const quoteNumber = `QT-${Date.now()}-${Math.random().toString(36).substring(7).toUpperCase()}`;
@@ -135,7 +168,7 @@ export const createQuote = async (req: Request, res: Response) => {
     data: {
       quoteNumber,
       estimateNumber,
-      estimateType: 'DIRECT',
+      estimateType: "DIRECT",
       serviceRequestId,
       providerId,
       partsCost,
@@ -156,7 +189,7 @@ export const createQuote = async (req: Request, res: Response) => {
       warrantyDescription,
       odometerReading: odometerReading ? Number(odometerReading) : null,
       notes,
-      status: 'PENDING',
+      status: "PENDING",
       validUntil,
     },
   });
@@ -165,7 +198,7 @@ export const createQuote = async (req: Request, res: Response) => {
   await prisma.serviceRequest.update({
     where: { id: serviceRequestId },
     data: {
-      status: 'QUOTES_RECEIVED',
+      status: "QUOTES_RECEIVED",
       quotesCount: existingQuotes + 1,
     },
   });
@@ -174,7 +207,7 @@ export const createQuote = async (req: Request, res: Response) => {
 
   res.status(201).json({
     success: true,
-    message: 'Orçamento enviado com sucesso!',
+    message: "Orçamento enviado com sucesso!",
     data: quote,
   });
 };
@@ -196,7 +229,7 @@ export const getQuotesForRequest = async (req: Request, res: Response) => {
   });
 
   if (!request) {
-    throw new AppError('Solicitação não encontrada', 404, 'REQUEST_NOT_FOUND');
+    throw new AppError("Solicitação não encontrada", 404, "REQUEST_NOT_FOUND");
   }
 
   const quotes = await prisma.quote.findMany({
@@ -223,7 +256,7 @@ export const getQuotesForRequest = async (req: Request, res: Response) => {
       },
     },
     orderBy: {
-      totalAmount: 'asc',
+      totalAmount: "asc",
     },
   });
 
@@ -260,23 +293,27 @@ export const getQuote = async (req: Request, res: Response) => {
   });
 
   if (!quote) {
-    throw new AppError('Orçamento não encontrado', 404, 'QUOTE_NOT_FOUND');
+    throw new AppError("Orçamento não encontrado", 404, "QUOTE_NOT_FOUND");
   }
 
   // Enrich response with computed fields for mobile consumption
   const enrichedQuote = {
     ...quote,
     // Map partsList JSON → items array for mobile
-    items: Array.isArray(quote.partsList) ? (quote.partsList as any[]).map((item: any, idx: number) => ({
-      id: item.id || String(idx + 1),
-      type: item.type === 'LABOR' || item.type === 'service' ? 'LABOR' : 'PART',
-      description: item.description || '',
-      partCode: item.partCode || item.brand || undefined,
-      partCondition: item.partCondition || (item.type === 'PART' ? 'NEW' : undefined),
-      quantity: Number(item.quantity) || 1,
-      unitPrice: Number(item.unitPrice) || 0,
-      isNoCharge: item.isNoCharge || false,
-    })) : [],
+    items: Array.isArray(quote.partsList)
+      ? (quote.partsList as any[]).map((item: any, idx: number) => ({
+          id: item.id || String(idx + 1),
+          type:
+            item.type === "LABOR" || item.type === "service" ? "LABOR" : "PART",
+          description: item.description || "",
+          partCode: item.partCode || item.brand || undefined,
+          partCondition:
+            item.partCondition || (item.type === "PART" ? "NEW" : undefined),
+          quantity: Number(item.quantity) || 1,
+          unitPrice: Number(item.unitPrice) || 0,
+          isNoCharge: item.isNoCharge || false,
+        }))
+      : [],
     partsTotal: Number(quote.partsCost),
     laborTotal: Number(quote.laborCost),
   };
@@ -303,22 +340,30 @@ export const acceptQuote = async (req: Request, res: Response) => {
   });
 
   if (!quote) {
-    throw new AppError('Orçamento não encontrado', 404, 'QUOTE_NOT_FOUND');
+    throw new AppError("Orçamento não encontrado", 404, "QUOTE_NOT_FOUND");
   }
 
   // Verificar se solicitação pertence ao usuário
   if (quote.serviceRequest.userId !== userId) {
-    throw new AppError('Você não tem permissão para aceitar este orçamento', 403, 'FORBIDDEN');
+    throw new AppError(
+      "Você não tem permissão para aceitar este orçamento",
+      403,
+      "FORBIDDEN",
+    );
   }
 
   // Verificar se ainda está válido
   if (new Date() > quote.validUntil) {
-    throw new AppError('Este orçamento expirou', 400, 'QUOTE_EXPIRED');
+    throw new AppError("Este orçamento expirou", 400, "QUOTE_EXPIRED");
   }
 
   // Verificar se status permite aceitação
-  if (quote.status !== 'PENDING') {
-    throw new AppError('Este orçamento não pode mais ser aceito', 400, 'QUOTE_NOT_AVAILABLE');
+  if (quote.status !== "PENDING") {
+    throw new AppError(
+      "Este orçamento não pode mais ser aceito",
+      400,
+      "QUOTE_NOT_AVAILABLE",
+    );
   }
 
   // Usar transaction
@@ -327,7 +372,7 @@ export const acceptQuote = async (req: Request, res: Response) => {
     prisma.quote.update({
       where: { id: quoteId },
       data: {
-        status: 'ACCEPTED',
+        status: "ACCEPTED",
         acceptedAt: new Date(),
       },
     }),
@@ -336,10 +381,10 @@ export const acceptQuote = async (req: Request, res: Response) => {
       where: {
         serviceRequestId: quote.serviceRequestId,
         id: { not: quoteId },
-        status: 'PENDING',
+        status: "PENDING",
       },
       data: {
-        status: 'REJECTED',
+        status: "REJECTED",
         rejectedAt: new Date(),
       },
     }),
@@ -347,7 +392,7 @@ export const acceptQuote = async (req: Request, res: Response) => {
     prisma.serviceRequest.update({
       where: { id: quote.serviceRequestId },
       data: {
-        status: 'QUOTE_ACCEPTED',
+        status: "QUOTE_ACCEPTED",
         acceptedQuoteId: quoteId,
       },
     }),
@@ -364,7 +409,7 @@ export const acceptQuote = async (req: Request, res: Response) => {
       customerId: userId,
       providerId: quote.providerId,
       vehicleId: quote.serviceRequest.vehicleId,
-      status: 'PENDING_START',
+      status: "PENDING_START",
       originalAmount: quote.totalAmount,
       finalAmount: quote.totalAmount,
       warrantyMonths: quote.warrantyMonths,
@@ -372,11 +417,13 @@ export const acceptQuote = async (req: Request, res: Response) => {
     },
   });
 
-  logger.info(`Orçamento aceito: ${quote.quoteNumber}, Work Order criada: ${workOrder.orderNumber}`);
+  logger.info(
+    `Orçamento aceito: ${quote.quoteNumber}, Work Order criada: ${workOrder.orderNumber}`,
+  );
 
   res.json({
     success: true,
-    message: 'Orçamento aceito! Ordem de serviço criada.',
+    message: "Orçamento aceito! Ordem de serviço criada.",
     data: {
       quote,
       workOrder,
@@ -400,21 +447,29 @@ export const rejectQuote = async (req: Request, res: Response) => {
   });
 
   if (!quote) {
-    throw new AppError('Orçamento não encontrado', 404, 'QUOTE_NOT_FOUND');
+    throw new AppError("Orçamento não encontrado", 404, "QUOTE_NOT_FOUND");
   }
 
   if (quote.serviceRequest.userId !== userId) {
-    throw new AppError('Você não tem permissão para rejeitar este orçamento', 403, 'FORBIDDEN');
+    throw new AppError(
+      "Você não tem permissão para rejeitar este orçamento",
+      403,
+      "FORBIDDEN",
+    );
   }
 
-  if (quote.status !== 'PENDING') {
-    throw new AppError('Este orçamento não pode ser rejeitado', 400, 'QUOTE_NOT_PENDING');
+  if (quote.status !== "PENDING") {
+    throw new AppError(
+      "Este orçamento não pode ser rejeitado",
+      400,
+      "QUOTE_NOT_PENDING",
+    );
   }
 
   await prisma.quote.update({
     where: { id: quoteId },
     data: {
-      status: 'REJECTED',
+      status: "REJECTED",
       rejectedAt: new Date(),
     },
   });
@@ -423,6 +478,6 @@ export const rejectQuote = async (req: Request, res: Response) => {
 
   res.json({
     success: true,
-    message: 'Orçamento rejeitado',
+    message: "Orçamento rejeitado",
   });
 };

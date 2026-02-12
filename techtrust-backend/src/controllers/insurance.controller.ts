@@ -3,8 +3,12 @@
  * Manage provider insurance coverage
  */
 
-import { Request, Response } from 'express';
-import { PrismaClient, InsurancePolicyType, InsurancePolicyStatus } from '@prisma/client';
+import { Request, Response } from "express";
+import {
+  PrismaClient,
+  InsurancePolicyType,
+  InsurancePolicyStatus,
+} from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -18,13 +22,15 @@ export const getInsurancePolicies = async (req: Request, res: Response) => {
 
     const policies = await prisma.insurancePolicy.findMany({
       where: { providerProfileId },
-      orderBy: { type: 'asc' },
+      orderBy: { type: "asc" },
     });
 
     res.json({ success: true, data: { policies } });
   } catch (error: any) {
-    console.error('Error fetching insurance policies:', error);
-    res.status(500).json({ success: false, message: 'Failed to fetch insurance policies' });
+    console.error("Error fetching insurance policies:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch insurance policies" });
   }
 };
 
@@ -32,7 +38,10 @@ export const getInsurancePolicies = async (req: Request, res: Response) => {
 // POST /insurance/:providerProfileId
 // Create or update an insurance policy
 // ============================================
-export const upsertInsurancePolicy = async (req: Request, res: Response): Promise<any> => {
+export const upsertInsurancePolicy = async (
+  req: Request,
+  res: Response,
+): Promise<any> => {
   try {
     const { providerProfileId } = req.params;
     const user = (req as any).user;
@@ -49,33 +58,44 @@ export const upsertInsurancePolicy = async (req: Request, res: Response): Promis
     } = req.body;
 
     if (!type) {
-      return res.status(400).json({ success: false, message: 'Insurance type is required' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Insurance type is required" });
     }
 
     // Verify ownership
-    const profile = await prisma.providerProfile.findUnique({ where: { id: providerProfileId } });
-    if (!profile) return res.status(404).json({ success: false, message: 'Provider profile not found' });
-    if (profile.userId !== user.userId && user.role !== 'ADMIN') {
-      return res.status(403).json({ success: false, message: 'Not authorized' });
+    const profile = await prisma.providerProfile.findUnique({
+      where: { id: providerProfileId },
+    });
+    if (!profile)
+      return res
+        .status(404)
+        .json({ success: false, message: "Provider profile not found" });
+    if (profile.userId !== user.userId && user.role !== "ADMIN") {
+      return res
+        .status(403)
+        .json({ success: false, message: "Not authorized" });
     }
 
     // Determine status
-    let status: InsurancePolicyStatus = 'INS_NOT_PROVIDED';
+    let status: InsurancePolicyStatus = "INS_NOT_PROVIDED";
     if (hasCoverage) {
       // Validate required fields when hasCoverage is true
       if (!carrierName || !policyNumber || !expirationDate) {
         return res.status(400).json({
           success: false,
-          message: 'When coverage is declared, carrier name, policy number, and expiration date are required',
+          message:
+            "When coverage is declared, carrier name, policy number, and expiration date are required",
         });
       }
       if (!coiUploads || coiUploads.length === 0) {
         return res.status(400).json({
           success: false,
-          message: 'At least one Certificate of Insurance (COI) document is required',
+          message:
+            "At least one Certificate of Insurance (COI) document is required",
         });
       }
-      status = 'INS_PROVIDED_UNVERIFIED';
+      status = "INS_PROVIDED_UNVERIFIED";
     }
 
     const policy = await prisma.insurancePolicy.upsert({
@@ -90,8 +110,10 @@ export const upsertInsurancePolicy = async (req: Request, res: Response): Promis
         status,
         carrierName: hasCoverage ? carrierName : null,
         policyNumber: hasCoverage ? policyNumber : null,
-        effectiveDate: hasCoverage && effectiveDate ? new Date(effectiveDate) : null,
-        expirationDate: hasCoverage && expirationDate ? new Date(expirationDate) : null,
+        effectiveDate:
+          hasCoverage && effectiveDate ? new Date(effectiveDate) : null,
+        expirationDate:
+          hasCoverage && expirationDate ? new Date(expirationDate) : null,
         coverageLimit: hasCoverage ? coverageLimit : null,
         deductible: hasCoverage ? deductible : null,
         coiUploads: hasCoverage ? coiUploads : [],
@@ -103,8 +125,10 @@ export const upsertInsurancePolicy = async (req: Request, res: Response): Promis
         status,
         carrierName: hasCoverage ? carrierName : null,
         policyNumber: hasCoverage ? policyNumber : null,
-        effectiveDate: hasCoverage && effectiveDate ? new Date(effectiveDate) : null,
-        expirationDate: hasCoverage && expirationDate ? new Date(expirationDate) : null,
+        effectiveDate:
+          hasCoverage && effectiveDate ? new Date(effectiveDate) : null,
+        expirationDate:
+          hasCoverage && expirationDate ? new Date(expirationDate) : null,
         coverageLimit: hasCoverage ? coverageLimit : null,
         deductible: hasCoverage ? deductible : null,
         coiUploads: hasCoverage ? coiUploads : [],
@@ -113,8 +137,10 @@ export const upsertInsurancePolicy = async (req: Request, res: Response): Promis
 
     res.json({ success: true, data: { policy } });
   } catch (error: any) {
-    console.error('Error upserting insurance policy:', error);
-    res.status(500).json({ success: false, message: 'Failed to save insurance policy' });
+    console.error("Error upserting insurance policy:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to save insurance policy" });
   }
 };
 
@@ -122,27 +148,39 @@ export const upsertInsurancePolicy = async (req: Request, res: Response): Promis
 // POST /insurance/:providerProfileId/batch
 // Batch update multiple insurance policies at once (onboarding)
 // ============================================
-export const batchUpsertInsurance = async (req: Request, res: Response): Promise<any> => {
+export const batchUpsertInsurance = async (
+  req: Request,
+  res: Response,
+): Promise<any> => {
   try {
     const { providerProfileId } = req.params;
     const user = (req as any).user;
     const { policies } = req.body;
 
-    const profile = await prisma.providerProfile.findUnique({ where: { id: providerProfileId } });
-    if (!profile) return res.status(404).json({ success: false, message: 'Provider profile not found' });
-    if (profile.userId !== user.userId && user.role !== 'ADMIN') {
-      return res.status(403).json({ success: false, message: 'Not authorized' });
+    const profile = await prisma.providerProfile.findUnique({
+      where: { id: providerProfileId },
+    });
+    if (!profile)
+      return res
+        .status(404)
+        .json({ success: false, message: "Provider profile not found" });
+    if (profile.userId !== user.userId && user.role !== "ADMIN") {
+      return res
+        .status(403)
+        .json({ success: false, message: "Not authorized" });
     }
 
     if (!Array.isArray(policies)) {
-      return res.status(400).json({ success: false, message: 'policies must be an array' });
+      return res
+        .status(400)
+        .json({ success: false, message: "policies must be an array" });
     }
 
     const results = [];
     for (const p of policies) {
-      let status: InsurancePolicyStatus = 'INS_NOT_PROVIDED';
+      let status: InsurancePolicyStatus = "INS_NOT_PROVIDED";
       if (p.hasCoverage && p.carrierName && p.policyNumber) {
-        status = 'INS_PROVIDED_UNVERIFIED';
+        status = "INS_PROVIDED_UNVERIFIED";
       }
 
       const policy = await prisma.insurancePolicy.upsert({
@@ -182,7 +220,9 @@ export const batchUpsertInsurance = async (req: Request, res: Response): Promise
 
     res.json({ success: true, data: { policies: results } });
   } catch (error: any) {
-    console.error('Error batch upserting insurance:', error);
-    res.status(500).json({ success: false, message: 'Failed to save insurance policies' });
+    console.error("Error batch upserting insurance:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to save insurance policies" });
   }
 };

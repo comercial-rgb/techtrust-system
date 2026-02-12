@@ -40,23 +40,23 @@ export function calculateHaversineDistance(
   lat1: number,
   lon1: number,
   lat2: number,
-  lon2: number
+  lon2: number,
 ): number {
   const R = 6371; // Earth's radius in kilometers
-  
+
   const dLat = toRadians(lat2 - lat1);
   const dLon = toRadians(lon2 - lon1);
-  
+
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(toRadians(lat1)) *
       Math.cos(toRadians(lat2)) *
       Math.sin(dLon / 2) *
       Math.sin(dLon / 2);
-  
+
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   const distance = R * c;
-  
+
   return distance;
 }
 
@@ -68,40 +68,47 @@ export function calculateDistance(
   lat1: number,
   lon1: number,
   lat2: number,
-  lon2: number
+  lon2: number,
 ): number {
-  return calculateHaversineDistance(lat1, lon1, lat2, lon2) * HAVERSINE_ROAD_CORRECTION_FACTOR;
+  return (
+    calculateHaversineDistance(lat1, lon1, lat2, lon2) *
+    HAVERSINE_ROAD_CORRECTION_FACTOR
+  );
 }
 
 /**
  * Calculate REAL driving distance via OSRM (Open Source Routing Machine)
  * Uses the public OSRM demo server. Falls back to Haversine * correction factor.
- * 
+ *
  * @returns { distanceKm, durationMinutes, isRoadDistance }
  */
 export async function calculateRoadDistance(
   lat1: number,
   lon1: number,
   lat2: number,
-  lon2: number
-): Promise<{ distanceKm: number; durationMinutes: number; isRoadDistance: boolean }> {
+  lon2: number,
+): Promise<{
+  distanceKm: number;
+  durationMinutes: number;
+  isRoadDistance: boolean;
+}> {
   try {
     // OSRM expects lon,lat order (opposite of lat,lon)
     const url = `https://router.project-osrm.org/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=false`;
-    
+
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000); // 5s timeout
-    
+
     const response = await fetch(url, { signal: controller.signal });
     clearTimeout(timeout);
-    
+
     if (!response.ok) {
       throw new Error(`OSRM HTTP ${response.status}`);
     }
-    
+
     const data: any = await response.json();
-    
-    if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+
+    if (data.code === "Ok" && data.routes && data.routes.length > 0) {
       const route = data.routes[0];
       return {
         distanceKm: route.distance / 1000, // meters → km
@@ -109,16 +116,18 @@ export async function calculateRoadDistance(
         isRoadDistance: true,
       };
     }
-    
+
     throw new Error(`OSRM no route: ${data.code}`);
   } catch (error: any) {
     // Fallback to Haversine with correction factor
     const haversine = calculateHaversineDistance(lat1, lon1, lat2, lon2);
     const corrected = haversine * HAVERSINE_ROAD_CORRECTION_FACTOR;
     const estimatedMinutes = Math.round((corrected / 30) * 60); // ~30km/h urban
-    
-    console.warn(`[Distance] OSRM unavailable (${error.message}), using Haversine * ${HAVERSINE_ROAD_CORRECTION_FACTOR}`);
-    
+
+    console.warn(
+      `[Distance] OSRM unavailable (${error.message}), using Haversine * ${HAVERSINE_ROAD_CORRECTION_FACTOR}`,
+    );
+
     return {
       distanceKm: corrected,
       durationMinutes: estimatedMinutes,
@@ -132,13 +141,13 @@ export async function calculateRoadDistance(
  */
 export function getDistanceBetweenLocations(
   from: Location,
-  to: Location
+  to: Location,
 ): number {
   return calculateDistance(
     from.latitude,
     from.longitude,
     to.latitude,
-    to.longitude
+    to.longitude,
   );
 }
 
@@ -147,13 +156,17 @@ export function getDistanceBetweenLocations(
  */
 export async function getRoadDistanceBetweenLocations(
   from: Location,
-  to: Location
-): Promise<{ distanceKm: number; durationMinutes: number; isRoadDistance: boolean }> {
+  to: Location,
+): Promise<{
+  distanceKm: number;
+  durationMinutes: number;
+  isRoadDistance: boolean;
+}> {
   return calculateRoadDistance(
     from.latitude,
     from.longitude,
     to.latitude,
-    to.longitude
+    to.longitude,
   );
 }
 
@@ -167,12 +180,12 @@ export async function getRoadDistanceBetweenLocations(
 export function calculateTravelFee(
   distanceKm: number,
   freeKm: number = 0,
-  feePerKm: number = 0
+  feePerKm: number = 0,
 ): number {
   if (distanceKm <= freeKm) {
     return 0;
   }
-  
+
   const extraKm = distanceKm - freeKm;
   return extraKm * feePerKm;
 }
@@ -187,9 +200,12 @@ export function calculateTravelFee(
 export function isWithinServiceRadius(
   providerLocation: Location,
   serviceLocation: Location,
-  serviceRadiusKm: number
+  serviceRadiusKm: number,
 ): boolean {
-  const distance = getDistanceBetweenLocations(providerLocation, serviceLocation);
+  const distance = getDistanceBetweenLocations(
+    providerLocation,
+    serviceLocation,
+  );
   return distance <= serviceRadiusKm;
 }
 
@@ -203,7 +219,7 @@ export function isWithinServiceRadius(
  */
 export function estimateTravelTime(
   distanceKm: number,
-  averageSpeedKmh: number = 30
+  averageSpeedKmh: number = 30,
 ): number {
   const hours = distanceKm / averageSpeedKmh;
   const minutes = Math.round(hours * 60);
@@ -235,24 +251,27 @@ export function calculateServiceDistance(
     freeKm?: number;
     feePerKm?: number;
     averageSpeedKmh?: number;
-  }
+  },
 ): DistanceCalculationResult {
-  const distanceKm = getDistanceBetweenLocations(providerLocation, serviceLocation);
+  const distanceKm = getDistanceBetweenLocations(
+    providerLocation,
+    serviceLocation,
+  );
   const distanceMiles = kmToMiles(distanceKm);
-  
+
   const travelFee = calculateTravelFee(
     distanceKm,
     providerConfig.freeKm || 0,
-    providerConfig.feePerKm || 0
+    providerConfig.feePerKm || 0,
   );
-  
+
   const estimatedTimeMinutes = estimateTravelTime(
     distanceKm,
-    providerConfig.averageSpeedKmh || 30
+    providerConfig.averageSpeedKmh || 30,
   );
-  
+
   const withinRadius = distanceKm <= providerConfig.serviceRadiusKm;
-  
+
   return {
     distanceKm,
     distanceMiles,
@@ -274,21 +293,24 @@ export async function calculateServiceRoadDistance(
     serviceRadiusKm: number;
     freeKm?: number;
     feePerKm?: number;
-  }
+  },
 ): Promise<DistanceCalculationResult> {
-  const roadResult = await getRoadDistanceBetweenLocations(providerLocation, serviceLocation);
-  
+  const roadResult = await getRoadDistanceBetweenLocations(
+    providerLocation,
+    serviceLocation,
+  );
+
   const distanceKm = roadResult.distanceKm;
   const distanceMiles = kmToMiles(distanceKm);
-  
+
   const travelFee = calculateTravelFee(
     distanceKm,
     providerConfig.freeKm || 0,
-    providerConfig.feePerKm || 0
+    providerConfig.feePerKm || 0,
   );
-  
+
   const withinRadius = distanceKm <= providerConfig.serviceRadiusKm;
-  
+
   return {
     distanceKm,
     distanceMiles,
@@ -305,17 +327,19 @@ export async function calculateServiceRoadDistance(
  * @param providers List of providers with their locations and service radius
  * @returns Providers within radius, sorted by distance
  */
-export function findProvidersWithinRadius<T extends {
-  baseLocation: Location;
-  serviceRadiusKm: number;
-  freeKm?: number;
-  feePerKm?: number;
-}>(
+export function findProvidersWithinRadius<
+  T extends {
+    baseLocation: Location;
+    serviceRadiusKm: number;
+    freeKm?: number;
+    feePerKm?: number;
+  },
+>(
   serviceLocation: Location,
-  providers: T[]
+  providers: T[],
 ): Array<T & { distanceInfo: DistanceCalculationResult }> {
   const results = providers
-    .map(provider => {
+    .map((provider) => {
       const distanceInfo = calculateServiceDistance(
         provider.baseLocation,
         serviceLocation,
@@ -323,17 +347,17 @@ export function findProvidersWithinRadius<T extends {
           serviceRadiusKm: provider.serviceRadiusKm,
           freeKm: provider.freeKm,
           feePerKm: provider.feePerKm,
-        }
+        },
       );
-      
+
       return {
         ...provider,
         distanceInfo,
       };
     })
-    .filter(item => item.distanceInfo.withinRadius)
+    .filter((item) => item.distanceInfo.withinRadius)
     .sort((a, b) => a.distanceInfo.distanceKm - b.distanceInfo.distanceKm);
-  
+
   return results;
 }
 
@@ -361,19 +385,19 @@ export function getCenterPoint(loc1: Location, loc2: Location): Location {
   const lon1 = toRadians(loc1.longitude);
   const lat2 = toRadians(loc2.latitude);
   const lon2 = toRadians(loc2.longitude);
-  
+
   const dLon = lon2 - lon1;
-  
+
   const Bx = Math.cos(lat2) * Math.cos(dLon);
   const By = Math.cos(lat2) * Math.sin(dLon);
-  
+
   const lat3 = Math.atan2(
     Math.sin(lat1) + Math.sin(lat2),
-    Math.sqrt((Math.cos(lat1) + Bx) * (Math.cos(lat1) + Bx) + By * By)
+    Math.sqrt((Math.cos(lat1) + Bx) * (Math.cos(lat1) + Bx) + By * By),
   );
-  
+
   const lon3 = lon1 + Math.atan2(By, Math.cos(lat1) + Bx);
-  
+
   return {
     latitude: lat3 * (180 / Math.PI),
     longitude: lon3 * (180 / Math.PI),
@@ -386,10 +410,13 @@ export function getCenterPoint(loc1: Location, loc2: Location): Location {
  * @param longitude Longitude value
  * @returns true if valid coordinates
  */
-export function isValidCoordinates(latitude: number, longitude: number): boolean {
+export function isValidCoordinates(
+  latitude: number,
+  longitude: number,
+): boolean {
   return (
-    typeof latitude === 'number' &&
-    typeof longitude === 'number' &&
+    typeof latitude === "number" &&
+    typeof longitude === "number" &&
     !isNaN(latitude) &&
     !isNaN(longitude) &&
     latitude >= -90 &&

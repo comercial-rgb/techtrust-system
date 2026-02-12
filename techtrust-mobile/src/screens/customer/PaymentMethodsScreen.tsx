@@ -19,7 +19,11 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { CardField, useConfirmSetupIntent, CardFieldInput } from "@stripe/stripe-react-native";
+import {
+  CardField,
+  useConfirmSetupIntent,
+  CardFieldInput,
+} from "@stripe/stripe-react-native";
 import { useI18n } from "../../i18n";
 import { useRoute, CommonActions } from "@react-navigation/native";
 import api from "../../services/api";
@@ -215,8 +219,14 @@ export default function PaymentMethodsScreen({ navigation }: any) {
           setWalletBalance(walletData.balance || 0);
           setRecentTransactions(walletData.transactions || []);
           // Cache locally for offline
-          await AsyncStorage.setItem(WALLET_BALANCE_KEY, String(walletData.balance || 0));
-          await AsyncStorage.setItem(TRANSACTIONS_KEY, JSON.stringify(walletData.transactions || []));
+          await AsyncStorage.setItem(
+            WALLET_BALANCE_KEY,
+            String(walletData.balance || 0),
+          );
+          await AsyncStorage.setItem(
+            TRANSACTIONS_KEY,
+            JSON.stringify(walletData.transactions || []),
+          );
         }
       } catch (walletApiError) {
         console.log("Wallet API unavailable, loading from cache");
@@ -227,7 +237,8 @@ export default function PaymentMethodsScreen({ navigation }: any) {
         ]);
         if (savedBalance) setWalletBalance(parseFloat(savedBalance));
         else setWalletBalance(0);
-        if (savedTransactions) setRecentTransactions(JSON.parse(savedTransactions));
+        if (savedTransactions)
+          setRecentTransactions(JSON.parse(savedTransactions));
         else setRecentTransactions([]);
       }
     } catch (error) {
@@ -366,12 +377,21 @@ export default function PaymentMethodsScreen({ navigation }: any) {
           };
           const updatedMethods = [...paymentMethods, newMethod];
           setPaymentMethods(updatedMethods);
-          await AsyncStorage.setItem(PAYMENT_METHODS_KEY, JSON.stringify(updatedMethods));
+          await AsyncStorage.setItem(
+            PAYMENT_METHODS_KEY,
+            JSON.stringify(updatedMethods),
+          );
         }
         setShowModal(false);
-        Alert.alert(t.common?.success || "Success", "PIX key added successfully.");
+        Alert.alert(
+          t.common?.success || "Success",
+          "PIX key added successfully.",
+        );
       } catch (err: any) {
-        Alert.alert(t.common?.error || "Error", err.response?.data?.message || "Failed to add PIX key.");
+        Alert.alert(
+          t.common?.error || "Error",
+          err.response?.data?.message || "Failed to add PIX key.",
+        );
       } finally {
         setSaving(false);
       }
@@ -438,7 +458,10 @@ export default function PaymentMethodsScreen({ navigation }: any) {
 
         const updatedMethods = [...paymentMethods, newMethod];
         setPaymentMethods(updatedMethods);
-        await AsyncStorage.setItem(PAYMENT_METHODS_KEY, JSON.stringify(updatedMethods));
+        await AsyncStorage.setItem(
+          PAYMENT_METHODS_KEY,
+          JSON.stringify(updatedMethods),
+        );
       }
 
       setShowModal(false);
@@ -447,7 +470,8 @@ export default function PaymentMethodsScreen({ navigation }: any) {
         t.customer?.paymentMethodAdded || "Card added successfully!",
       );
     } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || "Failed to add card";
+      const msg =
+        err.response?.data?.message || err.message || "Failed to add card";
       Alert.alert(t.common?.error || "Error", msg);
     } finally {
       setSaving(false);
@@ -922,7 +946,11 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                     }}
                   />
                   <View style={styles.securityNote}>
-                    <Ionicons name="shield-checkmark" size={16} color="#22c55e" />
+                    <Ionicons
+                      name="shield-checkmark"
+                      size={16}
+                      color="#22c55e"
+                    />
                     <Text style={styles.securityNoteText}>
                       Card data goes directly to Stripe. We never see or store
                       your full card number.

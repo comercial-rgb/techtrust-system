@@ -1,29 +1,40 @@
-import { useState } from 'react';
-import Link from 'next/link';
-import { useAuth } from '../contexts/AuthContext';
-import { Car, Mail, Lock, Eye, EyeOff, ArrowRight, Shield, Clock, Star, Globe2 } from 'lucide-react';
-import { useI18n, languages, Language } from '../i18n';
+import { useState } from "react";
+import Link from "next/link";
+import { useAuth } from "../contexts/AuthContext";
+import {
+  Car,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  ArrowRight,
+  Shield,
+  Clock,
+  Star,
+  Globe2,
+} from "lucide-react";
+import { useI18n, languages, Language } from "../i18n";
 
 export default function LoginPage() {
   const { login } = useAuth();
   const { translate, language, setLanguage } = useI18n();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const tr = translate;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
     try {
       await login(email, password);
     } catch (err: any) {
-      setError(err.message || tr('auth.loginError'));
+      setError(err.message || tr("auth.loginError"));
     } finally {
       setLoading(false);
     }
@@ -41,13 +52,17 @@ export default function LoginPage() {
                 <Car className="w-7 h-7 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">{tr('brand.name')}</h1>
-                <p className="text-sm text-gray-500">{tr('client.subtitle')}</p>
+                <h1 className="text-2xl font-bold text-gray-900">
+                  {tr("brand.name")}
+                </h1>
+                <p className="text-sm text-gray-500">{tr("client.subtitle")}</p>
               </div>
             </div>
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <Globe2 className="w-4 h-4" />
-              <label className="sr-only" htmlFor="lang-select">{tr('common.language')}</label>
+              <label className="sr-only" htmlFor="lang-select">
+                {tr("common.language")}
+              </label>
               <select
                 id="lang-select"
                 value={language}
@@ -66,11 +81,9 @@ export default function LoginPage() {
           {/* Welcome */}
           <div className="mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              {tr('auth.welcomeBack')}
+              {tr("auth.welcomeBack")}
             </h2>
-            <p className="text-gray-600">
-              {tr('auth.clientIntro')}
-            </p>
+            <p className="text-gray-600">{tr("auth.clientIntro")}</p>
           </div>
 
           {/* Error */}
@@ -87,7 +100,7 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                {tr('auth.email')}
+                {tr("auth.email")}
               </label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
@@ -104,12 +117,12 @@ export default function LoginPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                {tr('auth.password')}
+                {tr("auth.password")}
               </label>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
@@ -121,18 +134,30 @@ export default function LoginPage() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
                 </button>
               </div>
             </div>
 
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2">
-                <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-primary-600" />
-                <span className="text-sm text-gray-600">{tr('auth.rememberMe')}</span>
+                <input
+                  type="checkbox"
+                  className="w-4 h-4 rounded border-gray-300 text-primary-600"
+                />
+                <span className="text-sm text-gray-600">
+                  {tr("auth.rememberMe")}
+                </span>
               </label>
-              <Link href="/esqueci-senha" className="text-sm text-primary-600 hover:text-primary-700 font-medium">
-                {tr('auth.forgotPassword')}
+              <Link
+                href="/esqueci-senha"
+                className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+              >
+                {tr("auth.forgotPassword")}
               </Link>
             </div>
 
@@ -144,11 +169,11 @@ export default function LoginPage() {
               {loading ? (
                 <span className="flex items-center gap-2">
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  {tr('auth.signingIn')}
+                  {tr("auth.signingIn")}
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
-                  {tr('auth.signIn')}
+                  {tr("auth.signIn")}
                   <ArrowRight className="w-5 h-5" />
                 </span>
               )}
@@ -156,9 +181,13 @@ export default function LoginPage() {
           </form>
 
           {/* Sign Up Link */}
-          <p className="mt-8 text-center text-gray-600">{tr('client.signUpPrompt')}{' '}
-            <Link href="/cadastro" className="text-primary-600 hover:text-primary-700 font-medium">
-              {tr('client.signUpCta')}
+          <p className="mt-8 text-center text-gray-600">
+            {tr("client.signUpPrompt")}{" "}
+            <Link
+              href="/cadastro"
+              className="text-primary-600 hover:text-primary-700 font-medium"
+            >
+              {tr("client.signUpCta")}
             </Link>
           </p>
         </div>
@@ -167,11 +196,9 @@ export default function LoginPage() {
       {/* Right Side - Features */}
       <div className="hidden lg:flex flex-1 bg-gradient-to-br from-primary-600 to-primary-800 p-12 items-center justify-center">
         <div className="max-w-md text-white">
-          <h2 className="text-3xl font-bold mb-6">
-            {tr('client.heroTitle')}
-          </h2>
+          <h2 className="text-3xl font-bold mb-6">{tr("client.heroTitle")}</h2>
           <p className="text-primary-100 mb-10 text-lg">
-            {tr('client.heroDescription')}
+            {tr("client.heroDescription")}
           </p>
 
           <div className="space-y-6">
@@ -180,9 +207,11 @@ export default function LoginPage() {
                 <Shield className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="font-semibold text-lg mb-1">{tr('client.features.verified')}</h3>
+                <h3 className="font-semibold text-lg mb-1">
+                  {tr("client.features.verified")}
+                </h3>
                 <p className="text-primary-100">
-                  {tr('client.features.verified')}
+                  {tr("client.features.verified")}
                 </p>
               </div>
             </div>
@@ -192,9 +221,11 @@ export default function LoginPage() {
                 <Clock className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="font-semibold text-lg mb-1">{tr('client.features.quotes')}</h3>
+                <h3 className="font-semibold text-lg mb-1">
+                  {tr("client.features.quotes")}
+                </h3>
                 <p className="text-primary-100">
-                  {tr('client.features.quotes')}
+                  {tr("client.features.quotes")}
                 </p>
               </div>
             </div>
@@ -204,9 +235,11 @@ export default function LoginPage() {
                 <Star className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="font-semibold text-lg mb-1">{tr('client.features.quality')}</h3>
+                <h3 className="font-semibold text-lg mb-1">
+                  {tr("client.features.quality")}
+                </h3>
                 <p className="text-primary-100">
-                  {tr('client.features.quality')}
+                  {tr("client.features.quality")}
                 </p>
               </div>
             </div>
@@ -216,15 +249,21 @@ export default function LoginPage() {
             <div className="flex items-center gap-8">
               <div>
                 <p className="text-3xl font-bold">50k+</p>
-                <p className="text-primary-200 text-sm">{tr('client.stats.customers')}</p>
+                <p className="text-primary-200 text-sm">
+                  {tr("client.stats.customers")}
+                </p>
               </div>
               <div>
                 <p className="text-3xl font-bold">500+</p>
-                <p className="text-primary-200 text-sm">{tr('client.stats.providers')}</p>
+                <p className="text-primary-200 text-sm">
+                  {tr("client.stats.providers")}
+                </p>
               </div>
               <div>
                 <p className="text-3xl font-bold">4.9</p>
-                <p className="text-primary-200 text-sm">{tr('client.stats.rating')}</p>
+                <p className="text-primary-200 text-sm">
+                  {tr("client.stats.rating")}
+                </p>
               </div>
             </div>
           </div>

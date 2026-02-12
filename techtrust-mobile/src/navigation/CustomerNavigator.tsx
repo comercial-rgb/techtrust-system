@@ -108,10 +108,19 @@ function DashboardStack() {
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="ArticleDetail" component={ArticleDetailScreen} />
       <Stack.Screen name="Appointments" component={AppointmentsScreen} />
-      <Stack.Screen name="AppointmentDetails" component={AppointmentDetailsScreen} />
-      <Stack.Screen name="ScheduleAppointment" component={ScheduleAppointmentScreen} />
+      <Stack.Screen
+        name="AppointmentDetails"
+        component={AppointmentDetailsScreen}
+      />
+      <Stack.Screen
+        name="ScheduleAppointment"
+        component={ScheduleAppointmentScreen}
+      />
       <Stack.Screen name="EstimateShares" component={EstimateSharesScreen} />
-      <Stack.Screen name="CompareEstimates" component={CompareEstimatesScreen} />
+      <Stack.Screen
+        name="CompareEstimates"
+        component={CompareEstimatesScreen}
+      />
     </Stack.Navigator>
   );
 }
@@ -143,12 +152,24 @@ function WorkOrdersStack() {
       <Stack.Screen name="ServiceApproval" component={ServiceApprovalScreen} />
       <Stack.Screen name="Rating" component={RatingScreen} />
       <Stack.Screen name="RepairInvoices" component={RepairInvoicesScreen} />
-      <Stack.Screen name="RepairInvoiceDetails" component={RepairInvoiceDetailsScreen} />
+      <Stack.Screen
+        name="RepairInvoiceDetails"
+        component={RepairInvoiceDetailsScreen}
+      />
       <Stack.Screen name="Appointments" component={AppointmentsScreen} />
-      <Stack.Screen name="AppointmentDetails" component={AppointmentDetailsScreen} />
-      <Stack.Screen name="ScheduleAppointment" component={ScheduleAppointmentScreen} />
+      <Stack.Screen
+        name="AppointmentDetails"
+        component={AppointmentDetailsScreen}
+      />
+      <Stack.Screen
+        name="ScheduleAppointment"
+        component={ScheduleAppointmentScreen}
+      />
       <Stack.Screen name="EstimateShares" component={EstimateSharesScreen} />
-      <Stack.Screen name="CompareEstimates" component={CompareEstimatesScreen} />
+      <Stack.Screen
+        name="CompareEstimates"
+        component={CompareEstimatesScreen}
+      />
     </Stack.Navigator>
   );
 }

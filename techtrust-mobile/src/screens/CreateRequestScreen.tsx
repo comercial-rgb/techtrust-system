@@ -173,12 +173,15 @@ export default function CreateRequestScreen({ navigation }: any) {
       try {
         const apiDefault = (await import("../services/api")).default;
         const response = await apiDefault.get("/users/me");
-        const raw = response.data?.data?.addressesJson || response.data?.addressesJson;
+        const raw =
+          response.data?.data?.addressesJson || response.data?.addressesJson;
         if (raw) {
-          addresses = typeof raw === 'string' ? JSON.parse(raw) : raw;
+          addresses = typeof raw === "string" ? JSON.parse(raw) : raw;
         }
       } catch {
-        const AsyncStorage = (await import("@react-native-async-storage/async-storage")).default;
+        const AsyncStorage = (
+          await import("@react-native-async-storage/async-storage")
+        ).default;
         const saved = await AsyncStorage.getItem("@TechTrust:addresses");
         if (saved) addresses = JSON.parse(saved);
       }
@@ -442,21 +445,33 @@ export default function CreateRequestScreen({ navigation }: any) {
           text: t.common?.allow || "Allow",
           onPress: async () => {
             try {
-              const Location = await import('expo-location');
-              const { status } = await Location.requestForegroundPermissionsAsync();
-              if (status !== 'granted') {
-                Alert.alert(t.common?.error || 'Error', t.createRequest?.locationPermissionDenied || 'Location permission denied');
+              const Location = await import("expo-location");
+              const { status } =
+                await Location.requestForegroundPermissionsAsync();
+              if (status !== "granted") {
+                Alert.alert(
+                  t.common?.error || "Error",
+                  t.createRequest?.locationPermissionDenied ||
+                    "Location permission denied",
+                );
                 return;
               }
               const location = await Location.getCurrentPositionAsync({});
-              setCurrentLocation({ lat: location.coords.latitude, lng: location.coords.longitude });
+              setCurrentLocation({
+                lat: location.coords.latitude,
+                lng: location.coords.longitude,
+              });
               setShareLocation(true);
               Alert.alert(
                 t.common?.success || "Success",
-                t.createRequest?.locationShared || "Your location will be shared with the provider",
+                t.createRequest?.locationShared ||
+                  "Your location will be shared with the provider",
               );
             } catch (err) {
-              Alert.alert(t.common?.error || 'Error', t.createRequest?.locationError || 'Could not get location');
+              Alert.alert(
+                t.common?.error || "Error",
+                t.createRequest?.locationError || "Could not get location",
+              );
             }
           },
         },
@@ -485,25 +500,39 @@ export default function CreateRequestScreen({ navigation }: any) {
     setSubmitting(true);
     try {
       const apiDefault = (await import("../services/api")).default;
-      
+
       // Build selected address for customerAddress field
       let customerAddress: string | undefined;
-      if (serviceLocation !== 'shop' && userAddresses.length > 0) {
-        const defaultAddr = userAddresses.find((a: any) => a.isDefault) || userAddresses[0];
+      if (serviceLocation !== "shop" && userAddresses.length > 0) {
+        const defaultAddr =
+          userAddresses.find((a: any) => a.isDefault) || userAddresses[0];
         if (defaultAddr) {
-          customerAddress = [defaultAddr.street, defaultAddr.city, defaultAddr.state, defaultAddr.zipCode].filter(Boolean).join(', ');
+          customerAddress = [
+            defaultAddr.street,
+            defaultAddr.city,
+            defaultAddr.state,
+            defaultAddr.zipCode,
+          ]
+            .filter(Boolean)
+            .join(", ");
         }
       }
-      
-      await apiDefault.post('/service-requests', {
+
+      await apiDefault.post("/service-requests", {
         vehicleId: selectedVehicle,
         serviceType: selectedService,
         title,
         description,
-        serviceLocationType: serviceLocation === 'mobile' ? 'MOBILE' : serviceLocation === 'roadside' ? 'REMOTE' : 'IN_SHOP',
+        serviceLocationType:
+          serviceLocation === "mobile"
+            ? "MOBILE"
+            : serviceLocation === "roadside"
+              ? "REMOTE"
+              : "IN_SHOP",
         customerAddress: customerAddress || undefined,
         providerId: selectedProvider?.id || preSelectedProviderId || undefined,
-        location: shareLocation && currentLocation ? currentLocation : undefined,
+        location:
+          shareLocation && currentLocation ? currentLocation : undefined,
         urgency: selectedUrgency || undefined,
         preferredDate: preferredDate || undefined,
       });
@@ -523,7 +552,9 @@ export default function CreateRequestScreen({ navigation }: any) {
     } catch (err: any) {
       Alert.alert(
         t.common.error,
-        err?.response?.data?.message || t.common?.tryAgain || "Could not submit request. Please try again.",
+        err?.response?.data?.message ||
+          t.common?.tryAgain ||
+          "Could not submit request. Please try again.",
       );
     } finally {
       setSubmitting(false);
@@ -919,15 +950,22 @@ export default function CreateRequestScreen({ navigation }: any) {
               ]}
               onPress={() => {
                 // Validate addresses for mobile/roadside
-                if ((option.id === 'mobile' || option.id === 'roadside') && addressesLoaded && userAddresses.length === 0) {
+                if (
+                  (option.id === "mobile" || option.id === "roadside") &&
+                  addressesLoaded &&
+                  userAddresses.length === 0
+                ) {
                   Alert.alert(
-                    'Address Required',
-                    'To request a mobile or roadside service, you need at least one registered address. Would you like to add one now?',
+                    "Address Required",
+                    "To request a mobile or roadside service, you need at least one registered address. Would you like to add one now?",
                     [
-                      { text: 'Cancel', style: 'cancel' },
+                      { text: "Cancel", style: "cancel" },
                       {
-                        text: 'Add Address',
-                        onPress: () => navigation.navigate('Profile', { screen: 'Addresses' }),
+                        text: "Add Address",
+                        onPress: () =>
+                          navigation.navigate("Profile", {
+                            screen: "Addresses",
+                          }),
                       },
                     ],
                   );

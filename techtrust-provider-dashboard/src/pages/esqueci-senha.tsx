@@ -1,98 +1,113 @@
-'use client'
+"use client";
 
-import React, { useState } from 'react'
-import { useRouter } from 'next/router'
-import Link from 'next/link'
-import { Wrench, Mail, Lock, Key, Eye, EyeOff, Loader2, ArrowLeft, CheckCircle } from 'lucide-react'
-import { useI18n } from '@/i18n'
-import api from '@/services/api'
+import React, { useState } from "react";
+import { useRouter } from "next/router";
+import Link from "next/link";
+import {
+  Wrench,
+  Mail,
+  Lock,
+  Key,
+  Eye,
+  EyeOff,
+  Loader2,
+  ArrowLeft,
+  CheckCircle,
+} from "lucide-react";
+import { useI18n } from "@/i18n";
+import api from "@/services/api";
 
-type Step = 'email' | 'code' | 'password' | 'success'
+type Step = "email" | "code" | "password" | "success";
 
 export default function EsqueciSenhaPage() {
-  const router = useRouter()
-  const { translate } = useI18n()
-  const tr = translate
+  const router = useRouter();
+  const { translate } = useI18n();
+  const tr = translate;
 
-  const [step, setStep] = useState<Step>('email')
-  const [email, setEmail] = useState('')
-  const [code, setCode] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [step, setStep] = useState<Step>("email");
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   // Step 1: Send reset code
   const handleSendCode = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
+    e.preventDefault();
+    setError("");
 
-    if (!email.trim() || !email.includes('@')) {
-      setError('Please enter a valid email address')
-      return
+    if (!email.trim() || !email.includes("@")) {
+      setError("Please enter a valid email address");
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
     try {
-      await api.post('/auth/forgot-password', { email: email.trim().toLowerCase() })
-      setStep('code')
+      await api.post("/auth/forgot-password", {
+        email: email.trim().toLowerCase(),
+      });
+      setStep("code");
     } catch (err: any) {
       // Always proceed to code step to prevent email enumeration
-      setStep('code')
+      setStep("code");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   // Step 2: Verify code
   const handleVerifyCode = (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
+    e.preventDefault();
+    setError("");
 
     if (code.trim().length !== 6) {
-      setError('Please enter the 6-digit code')
-      return
+      setError("Please enter the 6-digit code");
+      return;
     }
-    setStep('password')
-  }
+    setStep("password");
+  };
 
   // Step 3: Reset password
   const handleResetPassword = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
+    e.preventDefault();
+    setError("");
 
     if (newPassword.length < 8) {
-      setError('Password must be at least 8 characters')
-      return
+      setError("Password must be at least 8 characters");
+      return;
     }
     if (newPassword !== confirmPassword) {
-      setError('Passwords do not match')
-      return
+      setError("Passwords do not match");
+      return;
     }
     if (!/[a-zA-Z]/.test(newPassword) || !/\d/.test(newPassword)) {
-      setError('Password must contain at least 1 letter and 1 number')
-      return
+      setError("Password must contain at least 1 letter and 1 number");
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
     try {
-      await api.post('/auth/reset-password', {
+      await api.post("/auth/reset-password", {
         email: email.trim().toLowerCase(),
         token: code.trim(),
         newPassword,
-      })
-      setStep('success')
+      });
+      setStep("success");
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to reset password. Please try again.')
+      setError(
+        err.response?.data?.message ||
+          "Failed to reset password. Please try again.",
+      );
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   // Step indicators
-  const steps = ['email', 'code', 'password'] as const
-  const currentStepIndex = steps.indexOf(step as any)
+  const steps = ["email", "code", "password"] as const;
+  const currentStepIndex = steps.indexOf(step as any);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-8">
@@ -103,27 +118,35 @@ export default function EsqueciSenhaPage() {
             <Wrench className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">{tr('brand.name')}</h1>
-            <p className="text-sm text-gray-500">{tr('provider.subtitle')}</p>
+            <h1 className="text-xl font-bold text-gray-900">
+              {tr("brand.name")}
+            </h1>
+            <p className="text-sm text-gray-500">{tr("provider.subtitle")}</p>
           </div>
         </div>
 
         {/* Card */}
         <div className="bg-white rounded-2xl shadow-lg p-8">
           {/* Step Indicator */}
-          {step !== 'success' && (
+          {step !== "success" && (
             <div className="flex items-center justify-center gap-2 mb-8">
               {steps.map((s, i) => (
                 <React.Fragment key={s}>
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
-                    currentStepIndex > i ? 'bg-green-500 text-white' :
-                    currentStepIndex === i ? 'bg-primary-500 text-white' :
-                    'bg-gray-200 text-gray-500'
-                  }`}>
-                    {currentStepIndex > i ? '✓' : i + 1}
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                      currentStepIndex > i
+                        ? "bg-green-500 text-white"
+                        : currentStepIndex === i
+                          ? "bg-primary-500 text-white"
+                          : "bg-gray-200 text-gray-500"
+                    }`}
+                  >
+                    {currentStepIndex > i ? "✓" : i + 1}
                   </div>
                   {i < steps.length - 1 && (
-                    <div className={`w-12 h-0.5 ${currentStepIndex > i ? 'bg-green-500' : 'bg-gray-200'}`} />
+                    <div
+                      className={`w-12 h-0.5 ${currentStepIndex > i ? "bg-green-500" : "bg-gray-200"}`}
+                    />
                   )}
                 </React.Fragment>
               ))}
@@ -131,17 +154,18 @@ export default function EsqueciSenhaPage() {
           )}
 
           {/* STEP 1: Email */}
-          {step === 'email' && (
+          {step === "email" && (
             <>
               <div className="text-center mb-6">
                 <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Mail className="w-8 h-8 text-primary-500" />
                 </div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                  {tr('auth.forgotPassword')}
+                  {tr("auth.forgotPassword")}
                 </h2>
                 <p className="text-gray-600">
-                  Enter your email and we'll send a 6-digit code to reset your password.
+                  Enter your email and we'll send a 6-digit code to reset your
+                  password.
                 </p>
               </div>
 
@@ -153,7 +177,9 @@ export default function EsqueciSenhaPage() {
 
               <form onSubmit={handleSendCode} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Email
+                  </label>
                   <div className="relative">
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
@@ -172,20 +198,26 @@ export default function EsqueciSenhaPage() {
                   disabled={loading}
                   className="btn btn-primary w-full py-3 disabled:opacity-50"
                 >
-                  {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Send Code'}
+                  {loading ? (
+                    <Loader2 className="w-5 h-5 animate-spin mx-auto" />
+                  ) : (
+                    "Send Code"
+                  )}
                 </button>
               </form>
             </>
           )}
 
           {/* STEP 2: Code Verification */}
-          {step === 'code' && (
+          {step === "code" && (
             <>
               <div className="text-center mb-6">
                 <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Key className="w-8 h-8 text-primary-500" />
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">Enter Code</h2>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                  Enter Code
+                </h2>
                 <p className="text-gray-600">
                   We sent a 6-digit code to <strong>{email}</strong>
                 </p>
@@ -199,11 +231,15 @@ export default function EsqueciSenhaPage() {
 
               <form onSubmit={handleVerifyCode} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Verification Code</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Verification Code
+                  </label>
                   <input
                     type="text"
                     value={code}
-                    onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    onChange={(e) =>
+                      setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+                    }
                     placeholder="000000"
                     className="w-full text-center text-2xl tracking-[0.5em] font-bold py-4 rounded-xl border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none"
                     maxLength={6}
@@ -218,7 +254,10 @@ export default function EsqueciSenhaPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setLoading(true); handleSendCode({ preventDefault: () => {} } as any); }}
+                  onClick={() => {
+                    setLoading(true);
+                    handleSendCode({ preventDefault: () => {} } as any);
+                  }}
                   className="w-full text-center text-sm text-primary-600 hover:text-primary-700 font-medium py-2"
                 >
                   Resend Code
@@ -228,14 +267,18 @@ export default function EsqueciSenhaPage() {
           )}
 
           {/* STEP 3: New Password */}
-          {step === 'password' && (
+          {step === "password" && (
             <>
               <div className="text-center mb-6">
                 <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Lock className="w-8 h-8 text-primary-500" />
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">New Password</h2>
-                <p className="text-gray-600">Create a strong new password for your account.</p>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                  New Password
+                </h2>
+                <p className="text-gray-600">
+                  Create a strong new password for your account.
+                </p>
               </div>
 
               {error && (
@@ -246,30 +289,44 @@ export default function EsqueciSenhaPage() {
 
               <form onSubmit={handleResetPassword} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">New Password</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    New Password
+                  </label>
                   <div className="relative">
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
-                      type={showPassword ? 'text' : 'password'}
+                      type={showPassword ? "text" : "password"}
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       placeholder="••••••••"
                       className="w-full pl-12 pr-12 py-3 rounded-xl border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none"
                       disabled={loading}
                     />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
                     </button>
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">Min. 8 characters, 1 letter, 1 number</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Min. 8 characters, 1 letter, 1 number
+                  </p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Confirm Password
+                  </label>
                   <div className="relative">
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
-                      type={showPassword ? 'text' : 'password'}
+                      type={showPassword ? "text" : "password"}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="••••••••"
@@ -284,24 +341,31 @@ export default function EsqueciSenhaPage() {
                   disabled={loading}
                   className="btn btn-primary w-full py-3 disabled:opacity-50"
                 >
-                  {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Reset Password'}
+                  {loading ? (
+                    <Loader2 className="w-5 h-5 animate-spin mx-auto" />
+                  ) : (
+                    "Reset Password"
+                  )}
                 </button>
               </form>
             </>
           )}
 
           {/* SUCCESS */}
-          {step === 'success' && (
+          {step === "success" && (
             <div className="text-center">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckCircle className="w-8 h-8 text-green-600" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Password Reset!</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                Password Reset!
+              </h2>
               <p className="text-gray-600 mb-6">
-                Your password has been reset successfully. You can now log in with your new password.
+                Your password has been reset successfully. You can now log in
+                with your new password.
               </p>
               <button
-                onClick={() => router.push('/login')}
+                onClick={() => router.push("/login")}
                 className="btn btn-primary w-full py-3"
               >
                 Go to Login
@@ -310,9 +374,12 @@ export default function EsqueciSenhaPage() {
           )}
 
           {/* Back to login */}
-          {step !== 'success' && (
+          {step !== "success" && (
             <div className="mt-6 text-center">
-              <Link href="/login" className="inline-flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 font-medium">
+              <Link
+                href="/login"
+                className="inline-flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 font-medium"
+              >
                 <ArrowLeft className="w-4 h-4" />
                 Back to Login
               </Link>
@@ -321,5 +388,5 @@ export default function EsqueciSenhaPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

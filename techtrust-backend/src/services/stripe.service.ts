@@ -6,24 +6,24 @@
  * Connect e webhooks via Stripe API
  */
 
-import Stripe from 'stripe';
-import { logger } from '../config/logger';
+import Stripe from "stripe";
+import { logger } from "../config/logger";
 
 // ============================================
 // INICIALIZAÇÃO
 // ============================================
 
-const MOCK_STRIPE = process.env.MOCK_STRIPE === 'true';
+const MOCK_STRIPE = process.env.MOCK_STRIPE === "true";
 
 let stripe: Stripe | null = null;
 
 function getStripe(): Stripe {
   if (!stripe) {
     if (!process.env.STRIPE_SECRET_KEY) {
-      throw new Error('STRIPE_SECRET_KEY não configurada');
+      throw new Error("STRIPE_SECRET_KEY não configurada");
     }
     stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: '2024-12-18.acacia' as any,
+      apiVersion: "2024-12-18.acacia" as any,
       typescript: true,
     });
   }
@@ -55,7 +55,9 @@ export async function getOrCreateCustomer(params: {
       await s.customers.retrieve(params.existingStripeCustomerId);
       return params.existingStripeCustomerId;
     } catch {
-      logger.warn(`Stripe Customer ${params.existingStripeCustomerId} não encontrado, criando novo`);
+      logger.warn(
+        `Stripe Customer ${params.existingStripeCustomerId} não encontrado, criando novo`,
+      );
     }
   }
 
@@ -68,7 +70,9 @@ export async function getOrCreateCustomer(params: {
     },
   });
 
-  logger.info(`Stripe Customer criado: ${customer.id} para user ${params.userId}`);
+  logger.info(
+    `Stripe Customer criado: ${customer.id} para user ${params.userId}`,
+  );
   return customer.id;
 }
 
@@ -85,14 +89,14 @@ export interface CreatePaymentIntentParams {
   platformFeeAmount: number; // em centavos
   metadata?: Record<string, string>;
   description?: string;
-  captureMethod?: 'automatic' | 'manual'; // manual = pré-autorização
+  captureMethod?: "automatic" | "manual"; // manual = pré-autorização
 }
 
 /**
  * Criar PaymentIntent (com ou sem Stripe Connect)
  */
 export async function createPaymentIntent(
-  params: CreatePaymentIntentParams
+  params: CreatePaymentIntentParams,
 ): Promise<{
   paymentIntentId: string;
   clientSecret: string;
@@ -103,7 +107,7 @@ export async function createPaymentIntent(
     return {
       paymentIntentId: mockId,
       clientSecret: `${mockId}_secret_mock`,
-      status: 'requires_payment_method',
+      status: "requires_payment_method",
     };
   }
 
@@ -111,11 +115,11 @@ export async function createPaymentIntent(
 
   const intentParams: Stripe.PaymentIntentCreateParams = {
     amount: params.amount,
-    currency: params.currency || 'usd',
+    currency: params.currency || "usd",
     customer: params.customerId,
     description: params.description,
     metadata: params.metadata || {},
-    capture_method: params.captureMethod || 'manual', // Pré-autorização por padrão
+    capture_method: params.captureMethod || "manual", // Pré-autorização por padrão
     automatic_payment_methods: {
       enabled: true,
     },
@@ -136,7 +140,9 @@ export async function createPaymentIntent(
 
   const paymentIntent = await s.paymentIntents.create(intentParams);
 
-  logger.info(`PaymentIntent criado: ${paymentIntent.id} (${paymentIntent.status})`);
+  logger.info(
+    `PaymentIntent criado: ${paymentIntent.id} (${paymentIntent.status})`,
+  );
 
   return {
     paymentIntentId: paymentIntent.id,
@@ -154,7 +160,7 @@ export async function confirmPaymentIntent(paymentIntentId: string): Promise<{
 }> {
   if (MOCK_STRIPE) {
     return {
-      status: 'requires_capture',
+      status: "requires_capture",
       chargeId: `mock_ch_${Date.now()}`,
     };
   }
@@ -164,7 +170,10 @@ export async function confirmPaymentIntent(paymentIntentId: string): Promise<{
 
   return {
     status: intent.status,
-    chargeId: typeof intent.latest_charge === 'string' ? intent.latest_charge : intent.latest_charge?.id,
+    chargeId:
+      typeof intent.latest_charge === "string"
+        ? intent.latest_charge
+        : intent.latest_charge?.id,
   };
 }
 
@@ -172,13 +181,16 @@ export async function confirmPaymentIntent(paymentIntentId: string): Promise<{
  * Capturar PaymentIntent pré-autorizado
  * Converte o hold em cobrança real
  */
-export async function capturePaymentIntent(paymentIntentId: string, amountToCapture?: number): Promise<{
+export async function capturePaymentIntent(
+  paymentIntentId: string,
+  amountToCapture?: number,
+): Promise<{
   status: string;
   chargeId?: string;
 }> {
   if (MOCK_STRIPE) {
     return {
-      status: 'succeeded',
+      status: "succeeded",
       chargeId: `mock_ch_${Date.now()}`,
     };
   }
@@ -195,7 +207,10 @@ export async function capturePaymentIntent(paymentIntentId: string, amountToCapt
 
   return {
     status: intent.status,
-    chargeId: typeof intent.latest_charge === 'string' ? intent.latest_charge : intent.latest_charge?.id,
+    chargeId:
+      typeof intent.latest_charge === "string"
+        ? intent.latest_charge
+        : intent.latest_charge?.id,
   };
 }
 
@@ -211,7 +226,7 @@ export async function retrievePaymentIntent(paymentIntentId: string): Promise<{
   if (MOCK_STRIPE) {
     return {
       id: paymentIntentId,
-      status: 'succeeded',
+      status: "succeeded",
       amount: 0,
       chargeId: `mock_ch_${Date.now()}`,
     };
@@ -224,7 +239,10 @@ export async function retrievePaymentIntent(paymentIntentId: string): Promise<{
     id: intent.id,
     status: intent.status,
     amount: intent.amount,
-    chargeId: typeof intent.latest_charge === 'string' ? intent.latest_charge : intent.latest_charge?.id,
+    chargeId:
+      typeof intent.latest_charge === "string"
+        ? intent.latest_charge
+        : intent.latest_charge?.id,
   };
 }
 
@@ -283,7 +301,7 @@ export async function listPaymentMethods(stripeCustomerId: string): Promise<
   const s = getStripe();
   const methods = await s.paymentMethods.list({
     customer: stripeCustomerId,
-    type: 'card',
+    type: "card",
   });
 
   return methods.data.map((m) => ({
@@ -318,9 +336,9 @@ export async function retrievePaymentMethod(paymentMethodId: string): Promise<{
   if (MOCK_STRIPE) {
     return {
       id: paymentMethodId,
-      type: 'card',
-      card: { brand: 'visa', last4: '4242', expMonth: 12, expYear: 2030 },
-      billingName: 'Mock User',
+      type: "card",
+      card: { brand: "visa", last4: "4242", expMonth: 12, expYear: 2030 },
+      billingName: "Mock User",
     };
   }
 
@@ -346,7 +364,9 @@ export async function retrievePaymentMethod(paymentMethodId: string): Promise<{
 /**
  * Detach (remover) payment method do customer
  */
-export async function detachPaymentMethod(paymentMethodId: string): Promise<void> {
+export async function detachPaymentMethod(
+  paymentMethodId: string,
+): Promise<void> {
   if (MOCK_STRIPE) return;
 
   const s = getStripe();
@@ -364,7 +384,7 @@ export async function detachPaymentMethod(paymentMethodId: string): Promise<void
 export async function createRefund(params: {
   paymentIntentId: string;
   amount?: number; // centavos, se parcial
-  reason?: 'duplicate' | 'fraudulent' | 'requested_by_customer';
+  reason?: "duplicate" | "fraudulent" | "requested_by_customer";
 }): Promise<{
   refundId: string;
   status: string;
@@ -373,7 +393,7 @@ export async function createRefund(params: {
   if (MOCK_STRIPE) {
     return {
       refundId: `mock_re_${Date.now()}`,
-      status: 'succeeded',
+      status: "succeeded",
       amount: params.amount || 0,
     };
   }
@@ -398,7 +418,7 @@ export async function createRefund(params: {
 
   return {
     refundId: refund.id,
-    status: refund.status || 'succeeded',
+    status: refund.status || "succeeded",
     amount: refund.amount,
   };
 }
@@ -426,9 +446,9 @@ export async function createConnectAccount(params: {
   const s = getStripe();
 
   const account = await s.accounts.create({
-    type: 'express',
+    type: "express",
     email: params.email,
-    business_type: 'individual',
+    business_type: "individual",
     metadata: {
       userId: params.userId,
     },
@@ -438,11 +458,13 @@ export async function createConnectAccount(params: {
     },
     business_profile: {
       name: params.businessName || undefined,
-      mcc: '7538', // Auto repair shops
+      mcc: "7538", // Auto repair shops
     },
   });
 
-  logger.info(`Stripe Connect Account criado: ${account.id} para user ${params.userId}`);
+  logger.info(
+    `Stripe Connect Account criado: ${account.id} para user ${params.userId}`,
+  );
 
   return {
     accountId: account.id,
@@ -467,7 +489,7 @@ export async function createAccountLink(params: {
     account: params.accountId,
     refresh_url: params.refreshUrl,
     return_url: params.returnUrl,
-    type: 'account_onboarding',
+    type: "account_onboarding",
   });
 
   return accountLink.url;
@@ -541,7 +563,7 @@ export async function createSubscription(params: {
     return {
       subscriptionId: `mock_sub_${Date.now()}`,
       clientSecret: `mock_sub_secret_${Date.now()}`,
-      status: 'active',
+      status: "active",
       currentPeriodEnd: periodEnd,
     };
   }
@@ -551,11 +573,11 @@ export async function createSubscription(params: {
   const subParams: Stripe.SubscriptionCreateParams = {
     customer: params.customerId,
     items: [{ price: params.priceId }],
-    payment_behavior: 'default_incomplete',
+    payment_behavior: "default_incomplete",
     payment_settings: {
-      save_default_payment_method: 'on_subscription',
+      save_default_payment_method: "on_subscription",
     },
-    expand: ['latest_invoice.payment_intent'],
+    expand: ["latest_invoice.payment_intent"],
     metadata: params.metadata || {},
   };
 
@@ -568,7 +590,9 @@ export async function createSubscription(params: {
   const invoice = subscription.latest_invoice as Stripe.Invoice;
   const paymentIntent = invoice?.payment_intent as Stripe.PaymentIntent;
 
-  logger.info(`Subscription criada: ${subscription.id} (${subscription.status})`);
+  logger.info(
+    `Subscription criada: ${subscription.id} (${subscription.status})`,
+  );
 
   return {
     subscriptionId: subscription.id,
@@ -590,7 +614,7 @@ export async function cancelSubscription(params: {
 }> {
   if (MOCK_STRIPE) {
     return {
-      status: 'canceled',
+      status: "canceled",
     };
   }
 
@@ -627,7 +651,7 @@ export async function updateSubscription(params: {
   if (MOCK_STRIPE) {
     const periodEnd = new Date();
     periodEnd.setMonth(periodEnd.getMonth() + 1);
-    return { status: 'active', currentPeriodEnd: periodEnd };
+    return { status: "active", currentPeriodEnd: periodEnd };
   }
 
   const s = getStripe();
@@ -640,10 +664,12 @@ export async function updateSubscription(params: {
         price: params.newPriceId,
       },
     ],
-    proration_behavior: 'create_prorations',
+    proration_behavior: "create_prorations",
   });
 
-  logger.info(`Subscription atualizada: ${params.subscriptionId} → price ${params.newPriceId}`);
+  logger.info(
+    `Subscription atualizada: ${params.subscriptionId} → price ${params.newPriceId}`,
+  );
 
   return {
     status: updated.status,
@@ -660,13 +686,13 @@ export async function updateSubscription(params: {
  */
 export function constructWebhookEvent(
   payload: Buffer,
-  signature: string
+  signature: string,
 ): Stripe.Event {
   const s = getStripe();
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
   if (!webhookSecret) {
-    throw new Error('STRIPE_WEBHOOK_SECRET não configurada');
+    throw new Error("STRIPE_WEBHOOK_SECRET não configurada");
   }
 
   return s.webhooks.constructEvent(payload, signature, webhookSecret);

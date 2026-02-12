@@ -1459,14 +1459,16 @@ export default {
     appointments: "Agendamentos",
     appointment: "Agendamento",
     noAppointments: "Nenhum agendamento ainda",
-    schedulePrompt: "Agende uma visita diagnóstica com um prestador para começar.",
+    schedulePrompt:
+      "Agende uma visita diagnóstica com um prestador para começar.",
     onSiteVisit: "Visita no local",
     atProviderShop: "Na oficina do prestador",
     onSiteCustomer: "No local (endereço do cliente)",
     diagnosticFee: "Taxa de Diagnóstico",
     diagnosticFeeLabel: "Taxa de Diagnóstico:",
     waivedIfCompleted: "(isenta se o serviço for concluído)",
-    feeWaivedNote: "* Taxa de diagnóstico isenta se o serviço for concluído na TechTrust",
+    feeWaivedNote:
+      "* Taxa de diagnóstico isenta se o serviço for concluído na TechTrust",
     travelFee: "Taxa de Deslocamento",
     appointmentNotFound: "Agendamento não encontrado.",
 
@@ -1487,7 +1489,8 @@ export default {
     confirmMessage: "Marcar esta visita diagnóstica como concluída?",
     appointmentConfirmed: "Agendamento confirmado!",
     checkedIn: "Check-in realizado com sucesso!",
-    appointmentCompleted: "Agendamento concluído! Você pode criar um Orçamento Escrito agora.",
+    appointmentCompleted:
+      "Agendamento concluído! Você pode criar um Orçamento Escrito agora.",
     cancelTitle: "Cancelar Agendamento",
     cancelMessage: "Tem certeza que deseja cancelar este agendamento?",
     yesCancel: "Sim, Cancelar",
@@ -1501,16 +1504,20 @@ export default {
 
     scheduleAppointment: "Agendar Visita",
     serviceDescriptionRequired: "Descrição do Serviço *",
-    serviceDescriptionPlaceholder: "Descreva o que precisa ser inspecionado ou orçado...",
+    serviceDescriptionPlaceholder:
+      "Descreva o que precisa ser inspecionado ou orçado...",
     dateTime: "Data e Hora *",
     locationRequired: "Local *",
     locationPlaceholder: "Endereço ou local do agendamento",
     diagnosticFeeInput: "Taxa de Diagnóstico (R$)",
-    diagnosticFeePlaceholder: "0,00 (isenta se serviço concluído na plataforma)",
-    diagnosticFeeHint: "A taxa de diagnóstico será isenta se o cliente concluir o serviço pela TechTrust.",
+    diagnosticFeePlaceholder:
+      "0,00 (isenta se serviço concluído na plataforma)",
+    diagnosticFeeHint:
+      "A taxa de diagnóstico será isenta se o cliente concluir o serviço pela TechTrust.",
     additionalNotes: "Observações Adicionais",
     additionalNotesPlaceholder: "Instruções ou detalhes adicionais...",
-    fdacsScheduleInfo: "Após a visita diagnóstica, um Orçamento Escrito (OE) será gerado em conformidade com as regulamentações da FDACS da Florida. O cliente poderá então aprovar ou compartilhar o orçamento para cotações concorrentes.",
+    fdacsScheduleInfo:
+      "Após a visita diagnóstica, um Orçamento Escrito (OE) será gerado em conformidade com as regulamentações da FDACS da Florida. O cliente poderá então aprovar ou compartilhar o orçamento para cotações concorrentes.",
     pleaseDescribeService: "Por favor, descreva o serviço necessário.",
     pleaseProvideLocation: "Por favor, informe o local do agendamento.",
     appointmentScheduled: "Agendamento realizado com sucesso!",
@@ -1519,7 +1526,8 @@ export default {
     repairInvoices: "Faturas de Reparo",
     repairInvoice: "Fatura de Reparo",
     noInvoices: "Nenhuma fatura ainda",
-    noInvoicesHint: "As faturas de reparo são geradas automaticamente quando um Orçamento Escrito é aprovado.",
+    noInvoicesHint:
+      "As faturas de reparo são geradas automaticamente quando um Orçamento Escrito é aprovado.",
     original: "Original",
     supplements: "Suplementos",
     finalTotal: "Total Final",
@@ -1532,7 +1540,8 @@ export default {
     workPerformed: "Trabalho Realizado",
     disputeReason: "Motivo da Contestação",
     fdacsCompliance: "Conformidade FDACS",
-    fdacsComplianceText: "Esta Fatura de Reparo é gerada em conformidade com o Motor Vehicle Repair Act do Departamento de Agricultura e Serviços ao Consumidor da Florida (FDACS).",
+    fdacsComplianceText:
+      "Esta Fatura de Reparo é gerada em conformidade com o Motor Vehicle Repair Act do Departamento de Agricultura e Serviços ao Consumidor da Florida (FDACS).",
     writtenEstimateRef: "Orçamento Escrito",
     na: "N/D",
     markCompleted: "Marcar Concluído",
@@ -1540,10 +1549,12 @@ export default {
     disputeButton: "Contestar",
 
     completeInvoiceTitle: "Concluir Fatura",
-    completeInvoiceMessage: "Marcar este reparo como concluído? O cliente revisará e aprovará a fatura final.",
+    completeInvoiceMessage:
+      "Marcar este reparo como concluído? O cliente revisará e aprovará a fatura final.",
     failedToComplete: "Falha ao concluir fatura",
     acceptInvoiceTitle: "Aceitar Fatura",
-    acceptInvoiceMessage: "Você confirma que todo o trabalho foi concluído satisfatoriamente.",
+    acceptInvoiceMessage:
+      "Você confirma que todo o trabalho foi concluído satisfatoriamente.",
     failedToAccept: "Falha ao aceitar fatura",
     disputeInvoiceTitle: "Contestar Fatura",
     disputeInvoiceMessage: "Tem certeza que deseja contestar esta fatura?",
@@ -1556,15 +1567,18 @@ export default {
     available: "Disponíveis",
     noAvailableEstimates: "Nenhum orçamento disponível",
     noSharedEstimates: "Nenhum orçamento compartilhado",
-    availableHint: "Quando clientes compartilham orçamentos para cotações concorrentes, eles aparecerão aqui.",
-    sharedHint: "Compartilhe um Orçamento Escrito para obter cotações concorrentes de outros prestadores.",
+    availableHint:
+      "Quando clientes compartilham orçamentos para cotações concorrentes, eles aparecerão aqui.",
+    sharedHint:
+      "Compartilhe um Orçamento Escrito para obter cotações concorrentes de outros prestadores.",
     competingEstimate: "orçamento concorrente",
     competingEstimates: "orçamentos concorrentes",
     originalTotal: "Original",
     expires: "Expira",
     compareEstimates: "Comparar Orçamentos",
     closeSharingTitle: "Fechar Compartilhamento",
-    closeSharingMessage: "Nenhum prestador poderá mais enviar cotações concorrentes. Tem certeza?",
+    closeSharingMessage:
+      "Nenhum prestador poderá mais enviar cotações concorrentes. Tem certeza?",
     failedToClose: "Falha ao fechar compartilhamento",
     originalWrittenEstimate: "Orçamento Escrito Original",
     originalProvider: "Prestador Original",
@@ -1574,7 +1588,8 @@ export default {
     parts: "Peças",
     viewFullEstimate: "Ver Orçamento Completo",
     competingEstimatesTitle: "Orçamentos Concorrentes",
-    waitingForProviders: "Aguardando prestadores enviarem cotações concorrentes...",
+    waitingForProviders:
+      "Aguardando prestadores enviarem cotações concorrentes...",
     noCompetingReceived: "Nenhum orçamento concorrente foi recebido.",
     savePercent: "Economize {percent}%",
     youSave: "Você economiza ${amount} em comparação ao original",

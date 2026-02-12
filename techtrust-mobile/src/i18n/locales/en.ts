@@ -1446,14 +1446,16 @@ export default {
     appointments: "Appointments",
     appointment: "Appointment",
     noAppointments: "No appointments yet",
-    schedulePrompt: "Schedule a diagnostic visit with a provider to get started.",
+    schedulePrompt:
+      "Schedule a diagnostic visit with a provider to get started.",
     onSiteVisit: "On-site visit",
     atProviderShop: "At provider shop",
     onSiteCustomer: "On-site (customer location)",
     diagnosticFee: "Diagnostic Fee",
     diagnosticFeeLabel: "Diagnostic Fee:",
     waivedIfCompleted: "(waived if service completed)",
-    feeWaivedNote: "* Diagnostic fee waived if service is completed on TechTrust",
+    feeWaivedNote:
+      "* Diagnostic fee waived if service is completed on TechTrust",
     travelFee: "Travel Fee",
     appointmentNotFound: "Appointment not found.",
 
@@ -1476,7 +1478,8 @@ export default {
     confirmMessage: "Mark this diagnostic visit as completed?",
     appointmentConfirmed: "Appointment confirmed!",
     checkedIn: "Checked in successfully!",
-    appointmentCompleted: "Appointment completed! You can now create a Written Estimate.",
+    appointmentCompleted:
+      "Appointment completed! You can now create a Written Estimate.",
     cancelTitle: "Cancel Appointment",
     cancelMessage: "Are you sure you want to cancel this appointment?",
     yesCancel: "Yes, Cancel",
@@ -1491,16 +1494,19 @@ export default {
     // Schedule Appointment
     scheduleAppointment: "Schedule Appointment",
     serviceDescriptionRequired: "Service Description *",
-    serviceDescriptionPlaceholder: "Describe what needs to be inspected or estimated...",
+    serviceDescriptionPlaceholder:
+      "Describe what needs to be inspected or estimated...",
     dateTime: "Date & Time *",
     locationRequired: "Location *",
     locationPlaceholder: "Address or location for the appointment",
     diagnosticFeeInput: "Diagnostic Fee ($)",
     diagnosticFeePlaceholder: "0.00 (waived if service completed on platform)",
-    diagnosticFeeHint: "The diagnostic fee will be waived if the customer completes the service through TechTrust.",
+    diagnosticFeeHint:
+      "The diagnostic fee will be waived if the customer completes the service through TechTrust.",
     additionalNotes: "Additional Notes",
     additionalNotesPlaceholder: "Any additional instructions or details...",
-    fdacsScheduleInfo: "After the diagnostic visit, a Written Estimate (WE) will be generated in compliance with Florida FDACS regulations. The customer can then approve or share the estimate for competing quotes.",
+    fdacsScheduleInfo:
+      "After the diagnostic visit, a Written Estimate (WE) will be generated in compliance with Florida FDACS regulations. The customer can then approve or share the estimate for competing quotes.",
     pleaseDescribeService: "Please describe the service needed.",
     pleaseProvideLocation: "Please provide the appointment location.",
     appointmentScheduled: "Appointment scheduled successfully!",
@@ -1510,7 +1516,8 @@ export default {
     repairInvoices: "Repair Invoices",
     repairInvoice: "Repair Invoice",
     noInvoices: "No invoices yet",
-    noInvoicesHint: "Repair invoices are generated automatically when a Written Estimate is approved.",
+    noInvoicesHint:
+      "Repair invoices are generated automatically when a Written Estimate is approved.",
     original: "Original",
     supplements: "Supplements",
     finalTotal: "Final Total",
@@ -1524,7 +1531,8 @@ export default {
     workPerformed: "Work Performed",
     disputeReason: "Dispute Reason",
     fdacsCompliance: "FDACS Compliance",
-    fdacsComplianceText: "This Repair Invoice is generated in compliance with Florida Department of Agriculture and Consumer Services (FDACS) Motor Vehicle Repair Act.",
+    fdacsComplianceText:
+      "This Repair Invoice is generated in compliance with Florida Department of Agriculture and Consumer Services (FDACS) Motor Vehicle Repair Act.",
     writtenEstimateRef: "Written Estimate",
     na: "N/A",
     markCompleted: "Mark Completed",
@@ -1533,10 +1541,12 @@ export default {
 
     // Invoice Actions
     completeInvoiceTitle: "Complete Invoice",
-    completeInvoiceMessage: "Mark this repair as completed? The customer will review and approve the final invoice.",
+    completeInvoiceMessage:
+      "Mark this repair as completed? The customer will review and approve the final invoice.",
     failedToComplete: "Failed to complete invoice",
     acceptInvoiceTitle: "Accept Invoice",
-    acceptInvoiceMessage: "You confirm that all work has been satisfactorily completed.",
+    acceptInvoiceMessage:
+      "You confirm that all work has been satisfactorily completed.",
     failedToAccept: "Failed to accept invoice",
     disputeInvoiceTitle: "Dispute Invoice",
     disputeInvoiceMessage: "Are you sure you want to dispute this invoice?",
@@ -1550,15 +1560,18 @@ export default {
     available: "Available",
     noAvailableEstimates: "No available estimates",
     noSharedEstimates: "No shared estimates",
-    availableHint: "When customers share their estimates for competing quotes, they will appear here.",
-    sharedHint: "Share a Written Estimate to get competing quotes from other providers.",
+    availableHint:
+      "When customers share their estimates for competing quotes, they will appear here.",
+    sharedHint:
+      "Share a Written Estimate to get competing quotes from other providers.",
     competingEstimate: "competing estimate",
     competingEstimates: "competing estimates",
     originalTotal: "Original",
     expires: "Expires",
     compareEstimates: "Compare Estimates",
     closeSharingTitle: "Close Sharing",
-    closeSharingMessage: "No more providers will be able to submit competing quotes. Are you sure?",
+    closeSharingMessage:
+      "No more providers will be able to submit competing quotes. Are you sure?",
     failedToClose: "Failed to close sharing",
     originalWrittenEstimate: "Original Written Estimate",
     originalProvider: "Original Provider",

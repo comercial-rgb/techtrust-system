@@ -1449,14 +1449,16 @@ export default {
     appointments: "Citas",
     appointment: "Cita",
     noAppointments: "Aún no hay citas",
-    schedulePrompt: "Agenda una visita diagnóstica con un proveedor para comenzar.",
+    schedulePrompt:
+      "Agenda una visita diagnóstica con un proveedor para comenzar.",
     onSiteVisit: "Visita en sitio",
     atProviderShop: "En el taller del proveedor",
     onSiteCustomer: "En sitio (ubicación del cliente)",
     diagnosticFee: "Tarifa de Diagnóstico",
     diagnosticFeeLabel: "Tarifa de Diagnóstico:",
     waivedIfCompleted: "(exenta si se completa el servicio)",
-    feeWaivedNote: "* Tarifa de diagnóstico exenta si el servicio se completa en TechTrust",
+    feeWaivedNote:
+      "* Tarifa de diagnóstico exenta si el servicio se completa en TechTrust",
     travelFee: "Tarifa de Traslado",
     appointmentNotFound: "Cita no encontrada.",
 
@@ -1477,7 +1479,8 @@ export default {
     confirmMessage: "¿Marcar esta visita diagnóstica como completada?",
     appointmentConfirmed: "¡Cita confirmada!",
     checkedIn: "¡Registro exitoso!",
-    appointmentCompleted: "¡Cita completada! Ahora puede crear un Presupuesto Escrito.",
+    appointmentCompleted:
+      "¡Cita completada! Ahora puede crear un Presupuesto Escrito.",
     cancelTitle: "Cancelar Cita",
     cancelMessage: "¿Está seguro de que desea cancelar esta cita?",
     yesCancel: "Sí, Cancelar",
@@ -1491,16 +1494,20 @@ export default {
 
     scheduleAppointment: "Agendar Cita",
     serviceDescriptionRequired: "Descripción del Servicio *",
-    serviceDescriptionPlaceholder: "Describa lo que necesita ser inspeccionado o presupuestado...",
+    serviceDescriptionPlaceholder:
+      "Describa lo que necesita ser inspeccionado o presupuestado...",
     dateTime: "Fecha y Hora *",
     locationRequired: "Ubicación *",
     locationPlaceholder: "Dirección o ubicación de la cita",
     diagnosticFeeInput: "Tarifa de Diagnóstico ($)",
-    diagnosticFeePlaceholder: "0.00 (exenta si servicio completado en la plataforma)",
-    diagnosticFeeHint: "La tarifa de diagnóstico será exenta si el cliente completa el servicio a través de TechTrust.",
+    diagnosticFeePlaceholder:
+      "0.00 (exenta si servicio completado en la plataforma)",
+    diagnosticFeeHint:
+      "La tarifa de diagnóstico será exenta si el cliente completa el servicio a través de TechTrust.",
     additionalNotes: "Notas Adicionales",
     additionalNotesPlaceholder: "Instrucciones o detalles adicionales...",
-    fdacsScheduleInfo: "Después de la visita diagnóstica, se generará un Presupuesto Escrito (PE) en cumplimiento con las regulaciones de la FDACS de Florida. El cliente podrá entonces aprobar o compartir el presupuesto para cotizaciones competitivas.",
+    fdacsScheduleInfo:
+      "Después de la visita diagnóstica, se generará un Presupuesto Escrito (PE) en cumplimiento con las regulaciones de la FDACS de Florida. El cliente podrá entonces aprobar o compartir el presupuesto para cotizaciones competitivas.",
     pleaseDescribeService: "Por favor, describa el servicio necesario.",
     pleaseProvideLocation: "Por favor, proporcione la ubicación de la cita.",
     appointmentScheduled: "¡Cita agendada exitosamente!",
@@ -1509,7 +1516,8 @@ export default {
     repairInvoices: "Facturas de Reparación",
     repairInvoice: "Factura de Reparación",
     noInvoices: "Aún no hay facturas",
-    noInvoicesHint: "Las facturas de reparación se generan automáticamente cuando se aprueba un Presupuesto Escrito.",
+    noInvoicesHint:
+      "Las facturas de reparación se generan automáticamente cuando se aprueba un Presupuesto Escrito.",
     original: "Original",
     supplements: "Suplementos",
     finalTotal: "Total Final",
@@ -1522,7 +1530,8 @@ export default {
     workPerformed: "Trabajo Realizado",
     disputeReason: "Motivo de la Disputa",
     fdacsCompliance: "Cumplimiento FDACS",
-    fdacsComplianceText: "Esta Factura de Reparación se genera en cumplimiento con la Ley de Reparación de Vehículos Motorizados del Departamento de Agricultura y Servicios al Consumidor de Florida (FDACS).",
+    fdacsComplianceText:
+      "Esta Factura de Reparación se genera en cumplimiento con la Ley de Reparación de Vehículos Motorizados del Departamento de Agricultura y Servicios al Consumidor de Florida (FDACS).",
     writtenEstimateRef: "Presupuesto Escrito",
     na: "N/D",
     markCompleted: "Marcar Completado",
@@ -1530,10 +1539,12 @@ export default {
     disputeButton: "Disputar",
 
     completeInvoiceTitle: "Completar Factura",
-    completeInvoiceMessage: "¿Marcar esta reparación como completada? El cliente revisará y aprobará la factura final.",
+    completeInvoiceMessage:
+      "¿Marcar esta reparación como completada? El cliente revisará y aprobará la factura final.",
     failedToComplete: "Error al completar factura",
     acceptInvoiceTitle: "Aceptar Factura",
-    acceptInvoiceMessage: "Confirma que todo el trabajo ha sido completado satisfactoriamente.",
+    acceptInvoiceMessage:
+      "Confirma que todo el trabajo ha sido completado satisfactoriamente.",
     failedToAccept: "Error al aceptar factura",
     disputeInvoiceTitle: "Disputar Factura",
     disputeInvoiceMessage: "¿Está seguro de que desea disputar esta factura?",
@@ -1546,15 +1557,18 @@ export default {
     available: "Disponibles",
     noAvailableEstimates: "No hay presupuestos disponibles",
     noSharedEstimates: "No hay presupuestos compartidos",
-    availableHint: "Cuando los clientes comparten sus presupuestos para cotizaciones competitivas, aparecerán aquí.",
-    sharedHint: "Comparta un Presupuesto Escrito para obtener cotizaciones competitivas de otros proveedores.",
+    availableHint:
+      "Cuando los clientes comparten sus presupuestos para cotizaciones competitivas, aparecerán aquí.",
+    sharedHint:
+      "Comparta un Presupuesto Escrito para obtener cotizaciones competitivas de otros proveedores.",
     competingEstimate: "presupuesto competitivo",
     competingEstimates: "presupuestos competitivos",
     originalTotal: "Original",
     expires: "Expira",
     compareEstimates: "Comparar Presupuestos",
     closeSharingTitle: "Cerrar Compartir",
-    closeSharingMessage: "Ningún proveedor más podrá enviar cotizaciones competitivas. ¿Está seguro?",
+    closeSharingMessage:
+      "Ningún proveedor más podrá enviar cotizaciones competitivas. ¿Está seguro?",
     failedToClose: "Error al cerrar compartir",
     originalWrittenEstimate: "Presupuesto Escrito Original",
     originalProvider: "Proveedor Original",
@@ -1564,7 +1578,8 @@ export default {
     parts: "Piezas",
     viewFullEstimate: "Ver Presupuesto Completo",
     competingEstimatesTitle: "Presupuestos Competitivos",
-    waitingForProviders: "Esperando que proveedores envíen cotizaciones competitivas...",
+    waitingForProviders:
+      "Esperando que proveedores envíen cotizaciones competitivas...",
     noCompetingReceived: "No se recibieron presupuestos competitivos.",
     savePercent: "Ahorre {percent}%",
     youSave: "Ahorra ${amount} comparado con el original",

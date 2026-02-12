@@ -6,10 +6,12 @@
  * Suporta modo MOCK para testes locais
  */
 
-import nodemailer from 'nodemailer';
-import { logger } from '../config/logger';
+import nodemailer from "nodemailer";
+import { logger } from "../config/logger";
 
-const MOCK_MODE = process.env.MOCK_EMAIL === 'true' || (!process.env.SMTP_HOST && !process.env.SENDGRID_API_KEY);
+const MOCK_MODE =
+  process.env.MOCK_EMAIL === "true" ||
+  (!process.env.SMTP_HOST && !process.env.SENDGRID_API_KEY);
 
 // ============================================
 // TRANSPORTER SETUP
@@ -31,23 +33,23 @@ function getTransporter(): nodemailer.Transporter {
   // SendGrid SMTP (recommended for production)
   if (process.env.SENDGRID_API_KEY) {
     transporter = nodemailer.createTransport({
-      host: 'smtp.sendgrid.net',
+      host: "smtp.sendgrid.net",
       port: 587,
       secure: false,
       auth: {
-        user: 'apikey',
+        user: "apikey",
         pass: process.env.SENDGRID_API_KEY,
       },
     });
-    logger.info('Email service initialized with SendGrid SMTP');
+    logger.info("Email service initialized with SendGrid SMTP");
     return transporter;
   }
 
   // Generic SMTP configuration
   transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT || '587', 10),
-    secure: process.env.SMTP_SECURE === 'true',
+    port: parseInt(process.env.SMTP_PORT || "587", 10),
+    secure: process.env.SMTP_SECURE === "true",
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
@@ -58,7 +60,8 @@ function getTransporter(): nodemailer.Transporter {
   return transporter;
 }
 
-const EMAIL_FROM = process.env.EMAIL_FROM || 'TechTrust <noreply@techtrust.com>';
+const EMAIL_FROM =
+  process.env.EMAIL_FROM || "TechTrust <noreply@techtrust.com>";
 
 // ============================================
 // SEND EMAIL
@@ -71,14 +74,16 @@ interface EmailOptions {
   text?: string;
 }
 
-export const sendEmail = async (options: EmailOptions): Promise<{ success: boolean; messageId?: string }> => {
+export const sendEmail = async (
+  options: EmailOptions,
+): Promise<{ success: boolean; messageId?: string }> => {
   // MOCK MODE
   if (MOCK_MODE) {
     logger.info(`[MOCK EMAIL] To: ${options.to}, Subject: ${options.subject}`);
     logger.info(`[MOCK EMAIL] HTML: ${options.html.substring(0, 200)}...`);
     return {
       success: true,
-      messageId: 'mock-email-' + Date.now(),
+      messageId: "mock-email-" + Date.now(),
     };
   }
 
@@ -91,7 +96,7 @@ export const sendEmail = async (options: EmailOptions): Promise<{ success: boole
       to: options.to,
       subject: options.subject,
       html: options.html,
-      text: options.text || options.html.replace(/<[^>]*>/g, ''),
+      text: options.text || options.html.replace(/<[^>]*>/g, ""),
     });
 
     logger.info(`Email sent to ${options.to}. MessageId: ${result.messageId}`);
@@ -109,11 +114,15 @@ export const sendEmail = async (options: EmailOptions): Promise<{ success: boole
 // OTP EMAIL
 // ============================================
 
-export const sendOTPEmail = async (email: string, otp: string, language: string = 'EN'): Promise<void> => {
+export const sendOTPEmail = async (
+  email: string,
+  otp: string,
+  language: string = "EN",
+): Promise<void> => {
   const subjects: Record<string, string> = {
-    EN: 'Your TechTrust Verification Code',
-    PT: 'Seu Código de Verificação TechTrust',
-    ES: 'Tu Código de Verificación TechTrust',
+    EN: "Your TechTrust Verification Code",
+    PT: "Seu Código de Verificação TechTrust",
+    ES: "Tu Código de Verificación TechTrust",
   };
 
   const messages: Record<string, string> = {
@@ -136,9 +145,13 @@ export const sendOTPEmail = async (email: string, otp: string, language: string 
           ${otp}
         </div>
         <p style="color: #9CA3AF; font-size: 13px; margin: 20px 0 0;">
-          ${language === 'PT' ? 'Se você não solicitou este código, ignore este email.' : 
-            language === 'ES' ? 'Si no solicitaste este código, ignora este correo.' :
-            'If you did not request this code, please ignore this email.'}
+          ${
+            language === "PT"
+              ? "Se você não solicitou este código, ignore este email."
+              : language === "ES"
+                ? "Si no solicitaste este código, ignora este correo."
+                : "If you did not request this code, please ignore this email."
+          }
         </p>
       </div>
       <p style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 20px;">
@@ -154,7 +167,7 @@ export const sendOTPEmail = async (email: string, otp: string, language: string 
   });
 
   if (!result.success) {
-    throw new Error('Failed to send verification email');
+    throw new Error("Failed to send verification email");
   }
 };
 
@@ -162,23 +175,27 @@ export const sendOTPEmail = async (email: string, otp: string, language: string 
 // PASSWORD RESET EMAIL
 // ============================================
 
-export const sendPasswordResetEmail = async (email: string, resetCode: string, language: string = 'EN'): Promise<void> => {
+export const sendPasswordResetEmail = async (
+  email: string,
+  resetCode: string,
+  language: string = "EN",
+): Promise<void> => {
   const subjects: Record<string, string> = {
-    EN: 'Reset Your TechTrust Password',
-    PT: 'Redefinir Senha TechTrust',
-    ES: 'Restablecer Contraseña TechTrust',
+    EN: "Reset Your TechTrust Password",
+    PT: "Redefinir Senha TechTrust",
+    ES: "Restablecer Contraseña TechTrust",
   };
 
   const titles: Record<string, string> = {
-    EN: 'Password Reset',
-    PT: 'Redefinição de Senha',
-    ES: 'Restablecimiento de Contraseña',
+    EN: "Password Reset",
+    PT: "Redefinição de Senha",
+    ES: "Restablecimiento de Contraseña",
   };
 
   const messages: Record<string, string> = {
-    EN: 'Use the code below to reset your password. This code is valid for 1 hour.',
-    PT: 'Use o código abaixo para redefinir sua senha. Este código é válido por 1 hora.',
-    ES: 'Usa el código a continuación para restablecer tu contraseña. Este código es válido por 1 hora.',
+    EN: "Use the code below to reset your password. This code is valid for 1 hour.",
+    PT: "Use o código abaixo para redefinir sua senha. Este código é válido por 1 hora.",
+    ES: "Usa el código a continuación para restablecer tu contraseña. Este código es válido por 1 hora.",
   };
 
   const html = `
@@ -196,9 +213,13 @@ export const sendPasswordResetEmail = async (email: string, resetCode: string, l
           ${resetCode}
         </div>
         <p style="color: #9CA3AF; font-size: 13px; margin: 20px 0 0;">
-          ${language === 'PT' ? 'Se você não solicitou a redefinição de senha, ignore este email.' : 
-            language === 'ES' ? 'Si no solicitaste restablecer tu contraseña, ignora este correo.' :
-            'If you did not request a password reset, please ignore this email.'}
+          ${
+            language === "PT"
+              ? "Se você não solicitou a redefinição de senha, ignore este email."
+              : language === "ES"
+                ? "Si no solicitaste restablecer tu contraseña, ignora este correo."
+                : "If you did not request a password reset, please ignore this email."
+          }
         </p>
       </div>
       <p style="text-align: center; color: #9CA3AF; font-size: 12px; margin-top: 20px;">
@@ -214,7 +235,7 @@ export const sendPasswordResetEmail = async (email: string, resetCode: string, l
   });
 
   if (!result.success) {
-    throw new Error('Failed to send password reset email');
+    throw new Error("Failed to send password reset email");
   }
 };
 
@@ -222,11 +243,15 @@ export const sendPasswordResetEmail = async (email: string, resetCode: string, l
 // WELCOME EMAIL (after social login registration)
 // ============================================
 
-export const sendWelcomeEmail = async (email: string, fullName: string, language: string = 'EN'): Promise<void> => {
+export const sendWelcomeEmail = async (
+  email: string,
+  fullName: string,
+  language: string = "EN",
+): Promise<void> => {
   const subjects: Record<string, string> = {
-    EN: 'Welcome to TechTrust!',
-    PT: 'Bem-vindo ao TechTrust!',
-    ES: '¡Bienvenido a TechTrust!',
+    EN: "Welcome to TechTrust!",
+    PT: "Bem-vindo ao TechTrust!",
+    ES: "¡Bienvenido a TechTrust!",
   };
 
   const messages: Record<string, string> = {
@@ -257,8 +282,8 @@ export const sendWelcomeEmail = async (email: string, fullName: string, language
     to: email,
     subject: subjects[language] || subjects.EN,
     html,
-  }).catch(err => {
-    logger.error('Failed to send welcome email:', err);
+  }).catch((err) => {
+    logger.error("Failed to send welcome email:", err);
     // Don't throw - welcome email is not critical
   });
 };

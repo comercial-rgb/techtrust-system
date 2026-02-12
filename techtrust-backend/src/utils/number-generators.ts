@@ -9,14 +9,14 @@
  * - Estimate Shares (ES-XXXXXX)
  */
 
-import { prisma } from '../config/database';
+import { prisma } from "../config/database";
 
 /**
  * Generate a random alphanumeric string
  */
 const randomAlphaNum = (length: number): string => {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Removed ambiguous chars (0,O,1,I)
-  let result = '';
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // Removed ambiguous chars (0,O,1,I)
+  let result = "";
   for (let i = 0; i < length; i++) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }

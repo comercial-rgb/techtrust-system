@@ -14,11 +14,14 @@
  * - PATCH  /:id/close         → Close sharing (customer)
  */
 
-import { Request, Response } from 'express';
-import { prisma } from '../config/database';
-import { AppError } from '../middleware/error-handler';
-import { logger } from '../config/logger';
-import { generateShareNumber, generateEstimateNumber } from '../utils/number-generators';
+import { Request, Response } from "express";
+import { prisma } from "../config/database";
+import { AppError } from "../middleware/error-handler";
+import { logger } from "../config/logger";
+import {
+  generateShareNumber,
+  generateEstimateNumber,
+} from "../utils/number-generators";
 
 // ============================================
 // 1. SHARE ESTIMATE
@@ -27,7 +30,7 @@ export const shareEstimate = async (req: Request, res: Response) => {
   const customerId = req.user!.id;
   const {
     estimateId,
-    shareType = 'PUBLIC',
+    shareType = "PUBLIC",
     targetProviderIds = [],
     cityFilter,
     stateFilter,
@@ -41,7 +44,7 @@ export const shareEstimate = async (req: Request, res: Response) => {
     where: {
       id: estimateId,
       serviceRequest: { userId: customerId },
-      status: { in: ['PENDING', 'ACCEPTED'] },
+      status: { in: ["PENDING", "ACCEPTED"] },
     },
     include: {
       serviceRequest: {
@@ -58,7 +61,11 @@ export const shareEstimate = async (req: Request, res: Response) => {
   });
 
   if (!estimate) {
-    throw new AppError('Estimate not found or not available for sharing', 404, 'ESTIMATE_NOT_FOUND');
+    throw new AppError(
+      "Estimate not found or not available for sharing",
+      404,
+      "ESTIMATE_NOT_FOUND",
+    );
   }
 
   const shareNumber = await generateShareNumber();
@@ -72,7 +79,7 @@ export const shareEstimate = async (req: Request, res: Response) => {
       originalEstimateId: estimateId,
       customerId,
       shareType,
-      targetProviderIds: shareType === 'SPECIFIC' ? targetProviderIds : [],
+      targetProviderIds: shareType === "SPECIFIC" ? targetProviderIds : [],
       cityFilter,
       stateFilter,
       radiusKm,
@@ -83,14 +90,18 @@ export const shareEstimate = async (req: Request, res: Response) => {
   });
 
   // If SPECIFIC, notify target providers
-  if (shareType === 'SPECIFIC' && Array.isArray(targetProviderIds) && targetProviderIds.length > 0) {
+  if (
+    shareType === "SPECIFIC" &&
+    Array.isArray(targetProviderIds) &&
+    targetProviderIds.length > 0
+  ) {
     const vehicle = estimate.serviceRequest.vehicle;
     const vehicleInfo = `${vehicle.year} ${vehicle.make} ${vehicle.model}`;
 
     const notifications = targetProviderIds.map((targetId: string) => ({
       userId: targetId,
-      type: 'COMPETING_ESTIMATE_RECEIVED' as any,
-      title: 'Competing Estimate Opportunity',
+      type: "COMPETING_ESTIMATE_RECEIVED" as any,
+      title: "Competing Estimate Opportunity",
       message: `A customer is looking for competing quotes for ${estimate.serviceRequest.title} on a ${vehicleInfo}. Check it out!`,
       data: JSON.stringify({
         shareId: share.id,
@@ -103,13 +114,16 @@ export const shareEstimate = async (req: Request, res: Response) => {
     await prisma.notification.createMany({ data: notifications });
   }
 
-  logger.info(`Estimate shared: ${shareNumber} (${shareType}) by customer ${customerId}`);
+  logger.info(
+    `Estimate shared: ${shareNumber} (${shareType}) by customer ${customerId}`,
+  );
 
   return res.status(201).json({
     success: true,
-    message: shareType === 'SPECIFIC'
-      ? `Estimate shared with ${targetProviderIds.length} provider(s).`
-      : 'Estimate published for competing quotes.',
+    message:
+      shareType === "SPECIFIC"
+        ? `Estimate shared with ${targetProviderIds.length} provider(s).`
+        : "Estimate published for competing quotes.",
     data: { share },
   });
 };
@@ -122,8 +136,8 @@ export const getMySharedEstimates = async (req: Request, res: Response) => {
   const { active } = req.query;
 
   const where: any = { customerId };
-  if (active === 'true') where.isActive = true;
-  if (active === 'false') where.isActive = false;
+  if (active === "true") where.isActive = true;
+  if (active === "false") where.isActive = false;
 
   const shares = await prisma.estimateShare.findMany({
     where,
@@ -140,7 +154,7 @@ export const getMySharedEstimates = async (req: Request, res: Response) => {
         },
       },
     },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: "desc" },
   });
 
   return res.json({
@@ -152,9 +166,12 @@ export const getMySharedEstimates = async (req: Request, res: Response) => {
 // ============================================
 // 3. LIST AVAILABLE SHARED ESTIMATES (provider)
 // ============================================
-export const getAvailableSharedEstimates = async (req: Request, res: Response) => {
+export const getAvailableSharedEstimates = async (
+  req: Request,
+  res: Response,
+) => {
   const providerId = req.user!.id;
-  const { city, state, page = '1', limit = '20' } = req.query;
+  const { city, state, page = "1", limit = "20" } = req.query;
 
   const pageNum = parseInt(page as string) || 1;
   const limitNum = parseInt(limit as string) || 20;
@@ -192,7 +209,7 @@ export const getAvailableSharedEstimates = async (req: Request, res: Response) =
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       skip,
       take: limitNum,
     }),
@@ -203,7 +220,12 @@ export const getAvailableSharedEstimates = async (req: Request, res: Response) =
     success: true,
     data: {
       shares,
-      pagination: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) },
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum),
+      },
     },
   });
 };
@@ -248,22 +270,23 @@ export const getSharedEstimateDetail = async (req: Request, res: Response) => {
     },
   });
 
-  if (!share) throw new AppError('Shared estimate not found', 404, 'NOT_FOUND');
+  if (!share) throw new AppError("Shared estimate not found", 404, "NOT_FOUND");
 
   const isCustomer = share.customerId === userId;
   const isTargetedProvider =
-    share.shareType === 'PUBLIC' ||
-    (Array.isArray(share.targetProviderIds) && (share.targetProviderIds as string[]).includes(userId));
+    share.shareType === "PUBLIC" ||
+    (Array.isArray(share.targetProviderIds) &&
+      (share.targetProviderIds as string[]).includes(userId));
 
   if (!isCustomer && !isTargetedProvider) {
-    throw new AppError('Not authorized', 403, 'FORBIDDEN');
+    throw new AppError("Not authorized", 403, "FORBIDDEN");
   }
 
   // Redact identity if needed
   if (!share.shareOriginalProviderName && !isCustomer) {
     (share.originalEstimate as any).provider = {
       id: null,
-      fullName: 'Another Provider',
+      fullName: "Another Provider",
       providerProfile: { businessName: null },
     };
   }
@@ -311,10 +334,19 @@ export const submitCompetingQuote = async (req: Request, res: Response) => {
     },
   });
 
-  if (!share) throw new AppError('Shared estimate not found or expired', 404, 'NOT_FOUND');
+  if (!share)
+    throw new AppError(
+      "Shared estimate not found or expired",
+      404,
+      "NOT_FOUND",
+    );
 
   if (share.originalEstimate.providerId === providerId) {
-    throw new AppError('Cannot submit a competing quote on your own estimate', 400, 'OWN_ESTIMATE');
+    throw new AppError(
+      "Cannot submit a competing quote on your own estimate",
+      400,
+      "OWN_ESTIMATE",
+    );
   }
 
   const existingQuote = await prisma.quote.findFirst({
@@ -322,14 +354,19 @@ export const submitCompetingQuote = async (req: Request, res: Response) => {
     select: { id: true },
   });
   if (existingQuote) {
-    throw new AppError('You already submitted a competing quote for this estimate', 400, 'ALREADY_SUBMITTED');
+    throw new AppError(
+      "You already submitted a competing quote for this estimate",
+      400,
+      "ALREADY_SUBMITTED",
+    );
   }
 
   const serviceRequest = await prisma.serviceRequest.findUnique({
     where: { id: share.originalEstimate.serviceRequestId },
     select: { userId: true },
   });
-  if (!serviceRequest) throw new AppError('Service request not found', 404, 'NOT_FOUND');
+  if (!serviceRequest)
+    throw new AppError("Service request not found", 404, "NOT_FOUND");
 
   const quoteNumber = `Q-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
   const estimateNumber = await generateEstimateNumber();
@@ -342,7 +379,7 @@ export const submitCompetingQuote = async (req: Request, res: Response) => {
       data: {
         quoteNumber,
         estimateNumber,
-        estimateType: 'COMPETING',
+        estimateType: "COMPETING",
         serviceRequestId: share.originalEstimate.serviceRequestId,
         providerId,
         totalAmount,
@@ -356,7 +393,7 @@ export const submitCompetingQuote = async (req: Request, res: Response) => {
         warrantyMileage,
         notes,
         validUntil,
-        status: 'PENDING',
+        status: "PENDING",
         originalEstimateId: share.originalEstimateId,
       },
     });
@@ -372,8 +409,8 @@ export const submitCompetingQuote = async (req: Request, res: Response) => {
   await prisma.notification.create({
     data: {
       userId: serviceRequest.userId,
-      type: 'COMPETING_ESTIMATE_RECEIVED',
-      title: 'New Competing Estimate',
+      type: "COMPETING_ESTIMATE_RECEIVED",
+      title: "New Competing Estimate",
       message: `A provider submitted a competing quote of $${Number(totalAmount).toFixed(2)} for your shared estimate. Compare and choose the best option!`,
       data: JSON.stringify({
         shareId: share.id,
@@ -383,11 +420,13 @@ export const submitCompetingQuote = async (req: Request, res: Response) => {
     },
   });
 
-  logger.info(`Competing quote submitted: ${quoteNumber} for share ${share.shareNumber}`);
+  logger.info(
+    `Competing quote submitted: ${quoteNumber} for share ${share.shareNumber}`,
+  );
 
   return res.status(201).json({
     success: true,
-    message: 'Competing quote submitted successfully.',
+    message: "Competing quote submitted successfully.",
     data: { quote: result },
   });
 };
@@ -403,7 +442,12 @@ export const closeSharing = async (req: Request, res: Response) => {
     where: { id, customerId, isActive: true },
   });
 
-  if (!share) throw new AppError('Shared estimate not found or already closed', 404, 'NOT_FOUND');
+  if (!share)
+    throw new AppError(
+      "Shared estimate not found or already closed",
+      404,
+      "NOT_FOUND",
+    );
 
   await prisma.estimateShare.update({
     where: { id },
@@ -414,6 +458,6 @@ export const closeSharing = async (req: Request, res: Response) => {
 
   return res.json({
     success: true,
-    message: 'Estimate sharing closed.',
+    message: "Estimate sharing closed.",
   });
 };

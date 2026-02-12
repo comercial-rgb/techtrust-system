@@ -29,7 +29,7 @@ function calculateHaversineDistance(
   lat1: number,
   lon1: number,
   lat2: number,
-  lon2: number
+  lon2: number,
 ): number {
   const R = 6371;
   const dLat = toRadians(lat2 - lat1);
@@ -52,9 +52,12 @@ export function calculateDistance(
   lat1: number,
   lon1: number,
   lat2: number,
-  lon2: number
+  lon2: number,
 ): number {
-  return calculateHaversineDistance(lat1, lon1, lat2, lon2) * HAVERSINE_ROAD_CORRECTION_FACTOR;
+  return (
+    calculateHaversineDistance(lat1, lon1, lat2, lon2) *
+    HAVERSINE_ROAD_CORRECTION_FACTOR
+  );
 }
 
 /**
@@ -65,20 +68,24 @@ export async function calculateRoadDistance(
   lat1: number,
   lon1: number,
   lat2: number,
-  lon2: number
-): Promise<{ distanceKm: number; durationMinutes: number; isRoadDistance: boolean }> {
+  lon2: number,
+): Promise<{
+  distanceKm: number;
+  durationMinutes: number;
+  isRoadDistance: boolean;
+}> {
   try {
     const url = `https://router.project-osrm.org/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=false`;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
-    
+
     const response = await fetch(url, { signal: controller.signal });
     clearTimeout(timeout);
-    
+
     if (!response.ok) throw new Error(`OSRM HTTP ${response.status}`);
-    
+
     const data = await response.json();
-    if (data.code === 'Ok' && data.routes?.length > 0) {
+    if (data.code === "Ok" && data.routes?.length > 0) {
       const route = data.routes[0];
       return {
         distanceKm: route.distance / 1000,
@@ -88,7 +95,9 @@ export async function calculateRoadDistance(
     }
     throw new Error(`OSRM: ${data.code}`);
   } catch {
-    const corrected = calculateHaversineDistance(lat1, lon1, lat2, lon2) * HAVERSINE_ROAD_CORRECTION_FACTOR;
+    const corrected =
+      calculateHaversineDistance(lat1, lon1, lat2, lon2) *
+      HAVERSINE_ROAD_CORRECTION_FACTOR;
     return {
       distanceKm: corrected,
       durationMinutes: Math.round((corrected / 30) * 60),
@@ -105,13 +114,13 @@ export async function calculateRoadDistance(
  */
 export function getDistanceBetweenLocations(
   from: Location,
-  to: Location
+  to: Location,
 ): number {
   return calculateDistance(
     from.latitude,
     from.longitude,
     to.latitude,
-    to.longitude
+    to.longitude,
   );
 }
 
@@ -121,14 +130,15 @@ export function getDistanceBetweenLocations(
  * @param locale Language for formatting (default: 'en')
  * @returns Formatted distance string
  */
-export function formatDistance(distanceKm: number, locale: string = 'en'): string {
+export function formatDistance(
+  distanceKm: number,
+  locale: string = "en",
+): string {
   if (distanceKm < 1) {
     const meters = Math.round(distanceKm * 1000);
-    return locale === 'en' 
-      ? `${meters} m`
-      : `${meters} m`;
+    return locale === "en" ? `${meters} m` : `${meters} m`;
   }
-  
+
   return `${distanceKm.toFixed(1)} km`;
 }
 
@@ -142,12 +152,12 @@ export function formatDistance(distanceKm: number, locale: string = 'en'): strin
 export function calculateTravelFee(
   distanceKm: number,
   freeKm: number = 0,
-  feePerKm: number = 0
+  feePerKm: number = 0,
 ): number {
   if (distanceKm <= freeKm) {
     return 0;
   }
-  
+
   const extraKm = distanceKm - freeKm;
   return extraKm * feePerKm;
 }
@@ -162,9 +172,12 @@ export function calculateTravelFee(
 export function isWithinServiceRadius(
   providerLocation: Location,
   serviceLocation: Location,
-  serviceRadiusKm: number
+  serviceRadiusKm: number,
 ): boolean {
-  const distance = getDistanceBetweenLocations(providerLocation, serviceLocation);
+  const distance = getDistanceBetweenLocations(
+    providerLocation,
+    serviceLocation,
+  );
   return distance <= serviceRadiusKm;
 }
 
@@ -177,7 +190,7 @@ export function isWithinServiceRadius(
  */
 export function estimateTravelTime(
   distanceKm: number,
-  averageSpeedKmh: number = 30
+  averageSpeedKmh: number = 30,
 ): number {
   const hours = distanceKm / averageSpeedKmh;
   const minutes = Math.round(hours * 60);
@@ -190,23 +203,24 @@ export function estimateTravelTime(
  * @param locale Language for formatting
  * @returns Formatted time string
  */
-export function formatTravelTime(minutes: number, locale: string = 'en'): string {
+export function formatTravelTime(
+  minutes: number,
+  locale: string = "en",
+): string {
   if (minutes < 60) {
-    return locale === 'en'
-      ? `${minutes} min`
-      : `${minutes} min`;
+    return locale === "en" ? `${minutes} min` : `${minutes} min`;
   }
-  
+
   const hours = Math.floor(minutes / 60);
   const remainingMinutes = minutes % 60;
-  
+
   if (remainingMinutes === 0) {
-    return locale === 'en'
-      ? `${hours} ${hours === 1 ? 'hour' : 'hours'}`
-      : `${hours} ${hours === 1 ? 'hora' : 'horas'}`;
+    return locale === "en"
+      ? `${hours} ${hours === 1 ? "hour" : "hours"}`
+      : `${hours} ${hours === 1 ? "hora" : "horas"}`;
   }
-  
-  return locale === 'en'
+
+  return locale === "en"
     ? `${hours}h ${remainingMinutes}min`
     : `${hours}h ${remainingMinutes}min`;
 }
@@ -217,14 +231,14 @@ export function formatTravelTime(minutes: number, locale: string = 'en'): string
  * @returns Distance in kilometers
  */
 export function parseDistanceString(distanceStr: string): number {
-  const numStr = distanceStr.replace(/[^\d.]/g, '');
+  const numStr = distanceStr.replace(/[^\d.]/g, "");
   const distance = parseFloat(numStr) || 0;
-  
+
   // Convert miles to km if needed
-  if (distanceStr.toLowerCase().includes('mi')) {
+  if (distanceStr.toLowerCase().includes("mi")) {
     return distance * 1.60934;
   }
-  
+
   return distance;
 }
 
@@ -257,19 +271,19 @@ export function getCenterPoint(loc1: Location, loc2: Location): Location {
   const lon1 = toRadians(loc1.longitude);
   const lat2 = toRadians(loc2.latitude);
   const lon2 = toRadians(loc2.longitude);
-  
+
   const dLon = lon2 - lon1;
-  
+
   const Bx = Math.cos(lat2) * Math.cos(dLon);
   const By = Math.cos(lat2) * Math.sin(dLon);
-  
+
   const lat3 = Math.atan2(
     Math.sin(lat1) + Math.sin(lat2),
-    Math.sqrt((Math.cos(lat1) + Bx) * (Math.cos(lat1) + Bx) + By * By)
+    Math.sqrt((Math.cos(lat1) + Bx) * (Math.cos(lat1) + Bx) + By * By),
   );
-  
+
   const lon3 = lon1 + Math.atan2(By, Math.cos(lat1) + Bx);
-  
+
   return {
     latitude: lat3 * (180 / Math.PI),
     longitude: lon3 * (180 / Math.PI),
@@ -286,15 +300,15 @@ export function getBearing(from: Location, to: Location): number {
   const lat1 = toRadians(from.latitude);
   const lat2 = toRadians(to.latitude);
   const dLon = toRadians(to.longitude - from.longitude);
-  
+
   const y = Math.sin(dLon) * Math.cos(lat2);
   const x =
     Math.cos(lat1) * Math.sin(lat2) -
     Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
-  
+
   const bearing = Math.atan2(y, x);
   const degrees = bearing * (180 / Math.PI);
-  
+
   return (degrees + 360) % 360;
 }
 
@@ -304,11 +318,15 @@ export function getBearing(from: Location, to: Location): number {
  * @param locale Language for direction
  * @returns Direction string (N, NE, E, SE, S, SW, W, NW)
  */
-export function getCardinalDirection(bearing: number, locale: string = 'en'): string {
-  const directions = locale === 'en'
-    ? ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
-    : ['N', 'NE', 'L', 'SE', 'S', 'SO', 'O', 'NO'];
-  
+export function getCardinalDirection(
+  bearing: number,
+  locale: string = "en",
+): string {
+  const directions =
+    locale === "en"
+      ? ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+      : ["N", "NE", "L", "SE", "S", "SO", "O", "NO"];
+
   const index = Math.round(bearing / 45) % 8;
   return directions[index];
 }

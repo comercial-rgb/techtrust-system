@@ -3,7 +3,7 @@
  * Pedidos na região para o fornecedor orçar
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -12,11 +12,11 @@ import {
   TouchableOpacity,
   TextInput,
   RefreshControl,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { useFocusEffect } from '@react-navigation/native';
-import { useI18n } from '../../i18n';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { useFocusEffect } from "@react-navigation/native";
+import { useI18n } from "../../i18n";
 
 interface ServiceRequest {
   id: string;
@@ -43,17 +43,19 @@ interface ServiceRequest {
 export default function ProviderRequestsScreen({ navigation }: any) {
   const { t } = useI18n();
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
-  const [filteredRequests, setFilteredRequests] = useState<ServiceRequest[]>([]);
+  const [filteredRequests, setFilteredRequests] = useState<ServiceRequest[]>(
+    [],
+  );
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filter, setFilter] = useState<'all' | 'urgent'>('all');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filter, setFilter] = useState<"all" | "urgent">("all");
 
   // Reload data when screen gains focus
   useFocusEffect(
     useCallback(() => {
       loadRequests();
-    }, [])
+    }, []),
   );
 
   useEffect(() => {
@@ -64,27 +66,34 @@ export default function ProviderRequestsScreen({ navigation }: any) {
     setLoading(true);
     try {
       // Buscar solicitações reais da API
-      const response = await import('../../services/api').then(m => m.default.get('/providers/available-requests'));
+      const response = await import("../../services/api").then((m) =>
+        m.default.get("/providers/available-requests"),
+      );
       const apiRequests = response.data.data || [];
-      
+
       // Mapear para o formato esperado pela UI
       const mappedRequests: ServiceRequest[] = apiRequests.map((req: any) => ({
         id: req.id,
         requestNumber: req.requestNumber,
-        title: req.title || req.description?.substring(0, 50) || 'Solicitação de Serviço',
-        description: req.description || '',
-        serviceType: req.serviceType || 'REPAIR',
+        title:
+          req.title ||
+          req.description?.substring(0, 50) ||
+          "Solicitação de Serviço",
+        description: req.description || "",
+        serviceType: req.serviceType || "REPAIR",
         isUrgent: req.isUrgent || false,
         createdAt: req.createdAt,
-        expiresIn: req.expiresIn || '',
+        expiresIn: req.expiresIn || "",
         customer: {
-          name: req.customer?.name || req.user?.fullName || 'Cliente',
-          location: req.customer?.location || `${req.user?.city || ''}, ${req.user?.state || ''}`,
-          distance: req.distance || '',
+          name: req.customer?.name || req.user?.fullName || "Cliente",
+          location:
+            req.customer?.location ||
+            `${req.user?.city || ""}, ${req.user?.state || ""}`,
+          distance: req.distance || "",
         },
         vehicle: {
-          make: req.vehicle?.make || 'N/A',
-          model: req.vehicle?.model || 'N/A',
+          make: req.vehicle?.make || "N/A",
+          model: req.vehicle?.model || "N/A",
           year: req.vehicle?.year || 0,
         },
         quotesCount: req._count?.quotes || req.quotesCount || 0,
@@ -92,7 +101,7 @@ export default function ProviderRequestsScreen({ navigation }: any) {
 
       setRequests(mappedRequests);
     } catch (error) {
-      console.error('Erro ao carregar pedidos:', error);
+      console.error("Erro ao carregar pedidos:", error);
       setRequests([]);
     } finally {
       setLoading(false);
@@ -103,19 +112,19 @@ export default function ProviderRequestsScreen({ navigation }: any) {
     let filtered = [...requests];
 
     // Filtro por urgente
-    if (filter === 'urgent') {
-      filtered = filtered.filter(r => r.isUrgent);
+    if (filter === "urgent") {
+      filtered = filtered.filter((r) => r.isUrgent);
     }
 
     // Filtro por busca
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
-        r =>
+        (r) =>
           r.title.toLowerCase().includes(query) ||
           r.vehicle.make.toLowerCase().includes(query) ||
           r.vehicle.model.toLowerCase().includes(query) ||
-          r.requestNumber.toLowerCase().includes(query)
+          r.requestNumber.toLowerCase().includes(query),
       );
     }
 
@@ -129,34 +138,78 @@ export default function ProviderRequestsScreen({ navigation }: any) {
   };
 
   const getServiceTypeInfo = (type: string) => {
-    const types: Record<string, { icon: string; color: string; bg: string; label: string }> = {
-      SCHEDULED_MAINTENANCE: { icon: 'wrench', color: '#3b82f6', bg: '#dbeafe', label: t.common.maintenance || 'Maintenance' },
-      REPAIR: { icon: 'alert-circle', color: '#f97316', bg: '#ffedd5', label: t.common.repair || 'Repair' },
-      INSPECTION: { icon: 'shield-check', color: '#8b5cf6', bg: '#ede9fe', label: t.common.inspection || 'Inspection' },
-      DETAILING: { icon: 'car-wash', color: '#ec4899', bg: '#fce7f3', label: t.common.detailing || 'Detailing' },
-      ROADSIDE_SOS: { icon: 'car-emergency', color: '#ef4444', bg: '#fef2f2', label: t.common.sos || 'SOS' },
+    const types: Record<
+      string,
+      { icon: string; color: string; bg: string; label: string }
+    > = {
+      SCHEDULED_MAINTENANCE: {
+        icon: "wrench",
+        color: "#3b82f6",
+        bg: "#dbeafe",
+        label: t.common.maintenance || "Maintenance",
+      },
+      REPAIR: {
+        icon: "alert-circle",
+        color: "#f97316",
+        bg: "#ffedd5",
+        label: t.common.repair || "Repair",
+      },
+      INSPECTION: {
+        icon: "shield-check",
+        color: "#8b5cf6",
+        bg: "#ede9fe",
+        label: t.common.inspection || "Inspection",
+      },
+      DETAILING: {
+        icon: "car-wash",
+        color: "#ec4899",
+        bg: "#fce7f3",
+        label: t.common.detailing || "Detailing",
+      },
+      ROADSIDE_SOS: {
+        icon: "car-emergency",
+        color: "#ef4444",
+        bg: "#fef2f2",
+        label: t.common.sos || "SOS",
+      },
     };
-    return types[type] || { icon: 'car', color: '#6b7280', bg: '#f3f4f6', label: type };
+    return (
+      types[type] || {
+        icon: "car",
+        color: "#6b7280",
+        bg: "#f3f4f6",
+        label: type,
+      }
+    );
   };
 
   const renderRequest = ({ item }: { item: ServiceRequest }) => {
     const typeInfo = getServiceTypeInfo(item.serviceType);
-    const isExpiringSoon = item.expiresIn.includes('min') && parseInt(item.expiresIn) < 30;
+    const isExpiringSoon =
+      item.expiresIn.includes("min") && parseInt(item.expiresIn) < 30;
 
     return (
       <TouchableOpacity
         style={styles.requestCard}
-        onPress={() => navigation.navigate('ProviderRequestDetails', { requestId: item.id })}
+        onPress={() =>
+          navigation.navigate("ProviderRequestDetails", { requestId: item.id })
+        }
         activeOpacity={0.7}
       >
         {/* Header */}
         <View style={styles.cardHeader}>
           <View style={[styles.typeIcon, { backgroundColor: typeInfo.bg }]}>
-            <MaterialCommunityIcons name={typeInfo.icon as any} size={20} color={typeInfo.color} />
+            <MaterialCommunityIcons
+              name={typeInfo.icon as any}
+              size={20}
+              color={typeInfo.color}
+            />
           </View>
           <View style={styles.cardHeaderInfo}>
             <View style={styles.titleRow}>
-              <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
+              <Text style={styles.cardTitle} numberOfLines={1}>
+                {item.title}
+              </Text>
               {item.isUrgent && (
                 <View style={styles.urgentBadge}>
                   <Text style={styles.urgentText}>🚨</Text>
@@ -168,7 +221,12 @@ export default function ProviderRequestsScreen({ navigation }: any) {
             </Text>
           </View>
           <View style={styles.timeContainer}>
-            <Text style={[styles.expiresText, isExpiringSoon && styles.expiresUrgent]}>
+            <Text
+              style={[
+                styles.expiresText,
+                isExpiringSoon && styles.expiresUrgent,
+              ]}
+            >
               {item.expiresIn}
             </Text>
             <Text style={styles.expiresLabel}>{t.common.remaining}</Text>
@@ -176,34 +234,48 @@ export default function ProviderRequestsScreen({ navigation }: any) {
         </View>
 
         {/* Description */}
-        <Text style={styles.description} numberOfLines={2}>{item.description}</Text>
+        <Text style={styles.description} numberOfLines={2}>
+          {item.description}
+        </Text>
 
         {/* Footer */}
         <View style={styles.cardFooter}>
           <View style={styles.footerLeft}>
             <View style={styles.locationRow}>
-              <MaterialCommunityIcons name="map-marker" size={14} color="#6b7280" />
+              <MaterialCommunityIcons
+                name="map-marker"
+                size={14}
+                color="#6b7280"
+              />
               <Text style={styles.locationText}>
                 {item.customer.location} • {item.customer.distance}
               </Text>
             </View>
             <View style={[styles.typeBadge, { backgroundColor: typeInfo.bg }]}>
-              <Text style={[styles.typeBadgeText, { color: typeInfo.color }]}>{typeInfo.label}</Text>
+              <Text style={[styles.typeBadgeText, { color: typeInfo.color }]}>
+                {typeInfo.label}
+              </Text>
             </View>
           </View>
           <View style={styles.footerRight}>
-            <Text style={styles.quotesCount}>{item.quotesCount} {t.common.quotesCount}</Text>
-            <MaterialCommunityIcons name="chevron-right" size={20} color="#9ca3af" />
+            <Text style={styles.quotesCount}>
+              {item.quotesCount} {t.common.quotesCount}
+            </Text>
+            <MaterialCommunityIcons
+              name="chevron-right"
+              size={20}
+              color="#9ca3af"
+            />
           </View>
         </View>
       </TouchableOpacity>
     );
   };
 
-  const urgentCount = requests.filter(r => r.isUrgent).length;
+  const urgentCount = requests.filter((r) => r.isUrgent).length;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <View style={styles.searchInputContainer}>
@@ -216,8 +288,12 @@ export default function ProviderRequestsScreen({ navigation }: any) {
             placeholderTextColor="#9ca3af"
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <MaterialCommunityIcons name="close-circle" size={20} color="#9ca3af" />
+            <TouchableOpacity onPress={() => setSearchQuery("")}>
+              <MaterialCommunityIcons
+                name="close-circle"
+                size={20}
+                color="#9ca3af"
+              />
             </TouchableOpacity>
           )}
         </View>
@@ -226,18 +302,31 @@ export default function ProviderRequestsScreen({ navigation }: any) {
       {/* Filter Tabs */}
       <View style={styles.filterContainer}>
         <TouchableOpacity
-          style={[styles.filterTab, filter === 'all' && styles.filterTabActive]}
-          onPress={() => setFilter('all')}
+          style={[styles.filterTab, filter === "all" && styles.filterTabActive]}
+          onPress={() => setFilter("all")}
         >
-          <Text style={[styles.filterTabText, filter === 'all' && styles.filterTabTextActive]}>
+          <Text
+            style={[
+              styles.filterTabText,
+              filter === "all" && styles.filterTabTextActive,
+            ]}
+          >
             {t.common.all} ({requests.length})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.filterTab, filter === 'urgent' && styles.filterTabUrgent]}
-          onPress={() => setFilter('urgent')}
+          style={[
+            styles.filterTab,
+            filter === "urgent" && styles.filterTabUrgent,
+          ]}
+          onPress={() => setFilter("urgent")}
         >
-          <Text style={[styles.filterTabText, filter === 'urgent' && styles.filterTabTextUrgent]}>
+          <Text
+            style={[
+              styles.filterTabText,
+              filter === "urgent" && styles.filterTabTextUrgent,
+            ]}
+          >
             🚨 {t.common.urgent} ({urgentCount})
           </Text>
         </TouchableOpacity>
@@ -247,7 +336,7 @@ export default function ProviderRequestsScreen({ navigation }: any) {
       <FlatList
         data={filteredRequests}
         renderItem={renderRequest}
-        keyExtractor={item => item.id}
+        keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -255,10 +344,16 @@ export default function ProviderRequestsScreen({ navigation }: any) {
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <MaterialCommunityIcons name="clipboard-text-outline" size={64} color="#d1d5db" />
+            <MaterialCommunityIcons
+              name="clipboard-text-outline"
+              size={64}
+              color="#d1d5db"
+            />
             <Text style={styles.emptyTitle}>{t.common.noResults}</Text>
             <Text style={styles.emptySubtitle}>
-              {searchQuery ? (t.common as any).tryDifferentTerms || t.common.tryAgain : t.common.newItems}
+              {searchQuery
+                ? (t.common as any).tryDifferentTerms || t.common.tryAgain
+                : t.common.newItems}
             </Text>
           </View>
         }
@@ -270,19 +365,19 @@ export default function ProviderRequestsScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: "#f8fafc",
   },
   searchContainer: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    borderBottomColor: "#f1f5f9",
   },
   searchInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f8fafc",
     borderRadius: 12,
     paddingHorizontal: 12,
     height: 44,
@@ -290,11 +385,11 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: '#1f2937',
+    color: "#1f2937",
     marginLeft: 8,
   },
   filterContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     padding: 16,
     gap: 10,
   },
@@ -302,161 +397,161 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: "#e5e7eb",
   },
   filterTabActive: {
-    backgroundColor: '#1976d2',
-    borderColor: '#1976d2',
+    backgroundColor: "#1976d2",
+    borderColor: "#1976d2",
   },
   filterTabUrgent: {
-    backgroundColor: '#fef2f2',
-    borderColor: '#fecaca',
+    backgroundColor: "#fef2f2",
+    borderColor: "#fecaca",
   },
   filterTabText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#6b7280',
+    fontWeight: "600",
+    color: "#6b7280",
   },
   filterTabTextActive: {
-    color: '#fff',
+    color: "#fff",
   },
   filterTabTextUrgent: {
-    color: '#dc2626',
+    color: "#dc2626",
   },
   listContent: {
     padding: 16,
     paddingTop: 0,
   },
   requestCard: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
   },
   cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     marginBottom: 12,
   },
   typeIcon: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 12,
   },
   cardHeaderInfo: {
     flex: 1,
   },
   titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
     marginBottom: 4,
   },
   cardTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1f2937',
+    fontWeight: "600",
+    color: "#1f2937",
     flex: 1,
   },
   urgentBadge: {
     width: 24,
     height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   urgentText: {
     fontSize: 14,
   },
   vehicleText: {
     fontSize: 14,
-    color: '#6b7280',
+    color: "#6b7280",
   },
   timeContainer: {
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
   },
   expiresText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#1f2937',
+    fontWeight: "600",
+    color: "#1f2937",
   },
   expiresUrgent: {
-    color: '#dc2626',
+    color: "#dc2626",
   },
   expiresLabel: {
     fontSize: 11,
-    color: '#9ca3af',
+    color: "#9ca3af",
   },
   description: {
     fontSize: 14,
-    color: '#6b7280',
+    color: "#6b7280",
     lineHeight: 20,
     marginBottom: 12,
   },
   cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
+    borderTopColor: "#f3f4f6",
   },
   footerLeft: {
     flex: 1,
     gap: 8,
   },
   locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
   },
   locationText: {
     fontSize: 13,
-    color: '#6b7280',
+    color: "#6b7280",
   },
   typeBadge: {
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
   },
   typeBadgeText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   footerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
   },
   quotesCount: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: "#9ca3af",
   },
   emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 60,
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#374151',
+    fontWeight: "600",
+    color: "#374151",
     marginTop: 16,
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#9ca3af',
-    textAlign: 'center',
+    color: "#9ca3af",
+    textAlign: "center",
   },
 });

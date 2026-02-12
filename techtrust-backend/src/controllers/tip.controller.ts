@@ -5,10 +5,10 @@
  * Optional gratuity/tip system after service completion
  */
 
-import { Request, Response } from 'express';
-import { prisma } from '../config/database';
-import { AppError } from '../middleware/error-handler';
-import { logger } from '../config/logger';
+import { Request, Response } from "express";
+import { prisma } from "../config/database";
+import { AppError } from "../middleware/error-handler";
+import { logger } from "../config/logger";
 
 /**
  * POST /api/v1/tips
@@ -19,15 +19,23 @@ export const sendTip = async (req: Request, res: Response) => {
   const { workOrderId, amount, message, paymentMethod } = req.body;
 
   if (!workOrderId) {
-    throw new AppError('Work order ID is required', 400, 'MISSING_WORK_ORDER');
+    throw new AppError("Work order ID is required", 400, "MISSING_WORK_ORDER");
   }
 
   if (!amount || amount <= 0) {
-    throw new AppError('Tip amount must be greater than 0', 400, 'INVALID_AMOUNT');
+    throw new AppError(
+      "Tip amount must be greater than 0",
+      400,
+      "INVALID_AMOUNT",
+    );
   }
 
   if (amount > 500) {
-    throw new AppError('Maximum tip amount is $500.00', 400, 'MAX_TIP_EXCEEDED');
+    throw new AppError(
+      "Maximum tip amount is $500.00",
+      400,
+      "MAX_TIP_EXCEEDED",
+    );
   }
 
   // Verify the work order belongs to this customer and is completed
@@ -35,12 +43,16 @@ export const sendTip = async (req: Request, res: Response) => {
     where: {
       id: workOrderId,
       customerId,
-      status: 'COMPLETED',
+      status: "COMPLETED",
     },
   });
 
   if (!workOrder) {
-    throw new AppError('Completed work order not found', 404, 'ORDER_NOT_FOUND');
+    throw new AppError(
+      "Completed work order not found",
+      404,
+      "ORDER_NOT_FOUND",
+    );
   }
 
   // Check if already tipped this work order
@@ -48,19 +60,29 @@ export const sendTip = async (req: Request, res: Response) => {
     where: {
       workOrderId,
       customerId,
-      status: 'COMPLETED',
+      status: "COMPLETED",
     },
   });
 
   if (existingTip) {
-    throw new AppError('You have already tipped for this service', 409, 'ALREADY_TIPPED');
+    throw new AppError(
+      "You have already tipped for this service",
+      409,
+      "ALREADY_TIPPED",
+    );
   }
 
   // If paying from wallet, verify balance
-  if (paymentMethod === 'wallet') {
-    const wallet = await prisma.wallet.findUnique({ where: { userId: customerId } });
+  if (paymentMethod === "wallet") {
+    const wallet = await prisma.wallet.findUnique({
+      where: { userId: customerId },
+    });
     if (!wallet || Number(wallet.balance) < amount) {
-      throw new AppError('Insufficient wallet balance', 400, 'INSUFFICIENT_BALANCE');
+      throw new AppError(
+        "Insufficient wallet balance",
+        400,
+        "INSUFFICIENT_BALANCE",
+      );
     }
   }
 
@@ -73,14 +95,14 @@ export const sendTip = async (req: Request, res: Response) => {
         providerId: workOrder.providerId,
         workOrderId,
         amount,
-        paymentMethod: paymentMethod || 'card',
+        paymentMethod: paymentMethod || "card",
         message: message?.trim() || null,
-        status: 'COMPLETED',
+        status: "COMPLETED",
       },
     });
 
     // If wallet payment, deduct from customer wallet and add to provider wallet
-    if (paymentMethod === 'wallet') {
+    if (paymentMethod === "wallet") {
       // Deduct from customer
       await tx.wallet.update({
         where: { userId: customerId },
@@ -89,19 +111,25 @@ export const sendTip = async (req: Request, res: Response) => {
 
       await tx.walletTransaction.create({
         data: {
-          walletId: (await tx.wallet.findUnique({ where: { userId: customerId } }))!.id,
-          type: 'debit',
+          walletId: (await tx.wallet.findUnique({
+            where: { userId: customerId },
+          }))!.id,
+          type: "debit",
           amount,
           description: `Tip sent for service #${workOrder.orderNumber}`,
-          method: 'tip_sent',
+          method: "tip_sent",
           relatedTipId: newTip.id,
         },
       });
 
       // Add to provider wallet (create if not exists)
-      let providerWallet = await tx.wallet.findUnique({ where: { userId: workOrder.providerId } });
+      let providerWallet = await tx.wallet.findUnique({
+        where: { userId: workOrder.providerId },
+      });
       if (!providerWallet) {
-        providerWallet = await tx.wallet.create({ data: { userId: workOrder.providerId } });
+        providerWallet = await tx.wallet.create({
+          data: { userId: workOrder.providerId },
+        });
       }
 
       await tx.wallet.update({
@@ -112,10 +140,10 @@ export const sendTip = async (req: Request, res: Response) => {
       await tx.walletTransaction.create({
         data: {
           walletId: providerWallet.id,
-          type: 'credit',
+          type: "credit",
           amount,
           description: `Tip received for service #${workOrder.orderNumber}`,
-          method: 'tip_received',
+          method: "tip_received",
           relatedTipId: newTip.id,
         },
       });
@@ -129,18 +157,18 @@ export const sendTip = async (req: Request, res: Response) => {
     await prisma.notification.create({
       data: {
         userId: workOrder.providerId,
-        type: 'PAYMENT_RECEIVED',
-        title: 'Tip Received! 🎉',
-        message: `You received a $${Number(amount).toFixed(2)} tip${message ? `: "${message}"` : ''}`,
+        type: "PAYMENT_RECEIVED",
+        title: "Tip Received! 🎉",
+        message: `You received a $${Number(amount).toFixed(2)} tip${message ? `: "${message}"` : ""}`,
         relatedWorkOrderId: workOrderId,
         data: { tipId: tip.id, amount: Number(amount) },
       },
     });
 
     // Emit socket event
-    const io = req.app.get('io');
+    const io = req.app.get("io");
     if (io) {
-      io.to(`user:${workOrder.providerId}`).emit('tip_received', {
+      io.to(`user:${workOrder.providerId}`).emit("tip_received", {
         tipId: tip.id,
         amount: Number(amount),
         message,
@@ -148,14 +176,16 @@ export const sendTip = async (req: Request, res: Response) => {
       });
     }
   } catch (notifError) {
-    logger.warn('Failed to send tip notification:', notifError);
+    logger.warn("Failed to send tip notification:", notifError);
   }
 
-  logger.info(`Tip sent: $${amount} from ${customerId} to ${workOrder.providerId} for WO ${workOrder.orderNumber}`);
+  logger.info(
+    `Tip sent: $${amount} from ${customerId} to ${workOrder.providerId} for WO ${workOrder.orderNumber}`,
+  );
 
   res.status(201).json({
     success: true,
-    message: 'Tip sent successfully!',
+    message: "Tip sent successfully!",
     data: {
       id: tip.id,
       amount: Number(tip.amount),
@@ -171,15 +201,14 @@ export const sendTip = async (req: Request, res: Response) => {
  */
 export const getMyTips = async (req: Request, res: Response) => {
   const userId = req.user!.id;
-  const role = req.query.role as string || 'customer';
+  const role = (req.query.role as string) || "customer";
 
-  const where = role === 'provider'
-    ? { providerId: userId }
-    : { customerId: userId };
+  const where =
+    role === "provider" ? { providerId: userId } : { customerId: userId };
 
   const tips = await prisma.tip.findMany({
     where,
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: "desc" },
     include: {
       workOrder: {
         select: { orderNumber: true },

@@ -1,20 +1,20 @@
-import React from 'react';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useAuth } from '../contexts/AuthContext';
+import React from "react";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { useAuth } from "../contexts/AuthContext";
 
 // Landing Screen (Initial entry point)
-import LandingScreen from '../screens/LandingScreen';
+import LandingScreen from "../screens/LandingScreen";
 
 // Auth Screens (shared)
-import LoginScreen from '../screens/LoginScreen';
-import SignupScreen from '../screens/SignupScreen';
-import OTPScreen from '../screens/OTPScreen';
-import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
-import CompleteSocialSignupScreen from '../screens/CompleteSocialSignupScreen';
+import LoginScreen from "../screens/LoginScreen";
+import SignupScreen from "../screens/SignupScreen";
+import OTPScreen from "../screens/OTPScreen";
+import ForgotPasswordScreen from "../screens/ForgotPasswordScreen";
+import CompleteSocialSignupScreen from "../screens/CompleteSocialSignupScreen";
 
 // Navigators
-import CustomerNavigator from './CustomerNavigator';
-import ProviderNavigator from './ProviderNavigator';
+import CustomerNavigator from "./CustomerNavigator";
+import ProviderNavigator from "./ProviderNavigator";
 
 const Stack = createNativeStackNavigator();
 
@@ -27,7 +27,10 @@ function AuthStack() {
       <Stack.Screen name="Signup" component={SignupScreen} />
       <Stack.Screen name="OTP" component={OTPScreen} />
       <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-      <Stack.Screen name="CompleteSocialSignup" component={CompleteSocialSignupScreen} />
+      <Stack.Screen
+        name="CompleteSocialSignup"
+        component={CompleteSocialSignupScreen}
+      />
     </Stack.Navigator>
   );
 }
@@ -36,7 +39,7 @@ export default function RootNavigator() {
   const { user, isAuthenticated, loading } = useAuth();
 
   // Determine which navigator to show based on user role
-  const isProvider = user?.role === 'PROVIDER';
+  const isProvider = user?.role === "PROVIDER";
 
   if (loading) {
     return null; // Or a loading screen

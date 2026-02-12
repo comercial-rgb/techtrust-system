@@ -3,7 +3,7 @@
  * Serviço de Dashboard - Chamadas à API
  */
 
-import api from './api';
+import api from "./api";
 
 // ============================================
 // TIPOS
@@ -33,7 +33,12 @@ export interface ServiceRequest {
   id: string;
   requestNumber: string;
   title: string;
-  status: 'SEARCHING' | 'QUOTES_RECEIVED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+  status:
+    | "SEARCHING"
+    | "QUOTES_RECEIVED"
+    | "IN_PROGRESS"
+    | "COMPLETED"
+    | "CANCELLED";
   quotesCount: number;
   createdAt: string;
   vehicle: {
@@ -54,7 +59,11 @@ export interface ProviderStats {
 
 export interface RecentActivity {
   id: string;
-  type: 'new_request' | 'quote_accepted' | 'payment_received' | 'work_completed';
+  type:
+    | "new_request"
+    | "quote_accepted"
+    | "payment_received"
+    | "work_completed";
   title: string;
   description: string;
   time: string;
@@ -79,15 +88,17 @@ export interface PendingRequest {
  */
 export async function getCustomerDashboardStats(): Promise<DashboardStats> {
   try {
-    const response = await api.get('/users/dashboard-stats');
-    return response.data.data || {
-      activeServices: 0,
-      pendingQuotes: 0,
-      completedServices: 0,
-      totalSpent: 0,
-    };
+    const response = await api.get("/users/dashboard-stats");
+    return (
+      response.data.data || {
+        activeServices: 0,
+        pendingQuotes: 0,
+        completedServices: 0,
+        totalSpent: 0,
+      }
+    );
   } catch (error) {
-    console.error('Erro ao buscar stats do dashboard:', error);
+    console.error("Erro ao buscar stats do dashboard:", error);
     // Retornar dados vazios em caso de erro
     return {
       activeServices: 0,
@@ -103,10 +114,10 @@ export async function getCustomerDashboardStats(): Promise<DashboardStats> {
  */
 export async function getVehicles(): Promise<Vehicle[]> {
   try {
-    const response = await api.get('/vehicles');
+    const response = await api.get("/vehicles");
     return response.data.data || [];
   } catch (error) {
-    console.error('Erro ao buscar veículos:', error);
+    console.error("Erro ao buscar veículos:", error);
     return [];
   }
 }
@@ -116,17 +127,17 @@ export async function getVehicles(): Promise<Vehicle[]> {
  */
 export async function getServiceRequests(): Promise<ServiceRequest[]> {
   try {
-    const response = await api.get('/service-requests');
+    const response = await api.get("/service-requests");
     const raw = response.data.data || response.data || {};
     const requests = raw.requests || (Array.isArray(raw) ? raw : []);
-    
+
     // Mapear para formato esperado pela UI
     // Normalizar status do backend para o que a UI espera
     const normalizeStatus = (status: string) => {
       const map: Record<string, string> = {
-        'SEARCHING_PROVIDERS': 'SEARCHING',
-        'QUOTE_ACCEPTED': 'QUOTES_RECEIVED',
-        'DRAFT': 'SEARCHING',
+        SEARCHING_PROVIDERS: "SEARCHING",
+        QUOTE_ACCEPTED: "QUOTES_RECEIVED",
+        DRAFT: "SEARCHING",
       };
       return map[status] || status;
     };
@@ -134,18 +145,23 @@ export async function getServiceRequests(): Promise<ServiceRequest[]> {
     return requests.map((req: any) => ({
       id: req.id,
       requestNumber: req.requestNumber,
-      title: req.title || req.description?.substring(0, 50) || 'Solicitação de Serviço',
+      title:
+        req.title ||
+        req.description?.substring(0, 50) ||
+        "Solicitação de Serviço",
       status: normalizeStatus(req.status),
       quotesCount: req._count?.quotes || req.quotesCount || 0,
       createdAt: req.createdAt,
-      vehicle: req.vehicle ? {
-        make: req.vehicle.make,
-        model: req.vehicle.model,
-        year: req.vehicle.year,
-      } : { make: 'N/A', model: 'N/A', year: 0 },
+      vehicle: req.vehicle
+        ? {
+            make: req.vehicle.make,
+            model: req.vehicle.model,
+            year: req.vehicle.year,
+          }
+        : { make: "N/A", model: "N/A", year: 0 },
     }));
   } catch (error) {
-    console.error('Erro ao buscar solicitações:', error);
+    console.error("Erro ao buscar solicitações:", error);
     return [];
   }
 }
@@ -159,17 +175,19 @@ export async function getServiceRequests(): Promise<ServiceRequest[]> {
  */
 export async function getProviderDashboardStats(): Promise<ProviderStats> {
   try {
-    const response = await api.get('/providers/dashboard-stats');
-    return response.data.data || {
-      pendingRequests: 0,
-      activeWorkOrders: 0,
-      completedThisMonth: 0,
-      earningsThisMonth: 0,
-      rating: 0,
-      totalReviews: 0,
-    };
+    const response = await api.get("/providers/dashboard-stats");
+    return (
+      response.data.data || {
+        pendingRequests: 0,
+        activeWorkOrders: 0,
+        completedThisMonth: 0,
+        earningsThisMonth: 0,
+        rating: 0,
+        totalReviews: 0,
+      }
+    );
   } catch (error) {
-    console.error('Erro ao buscar stats do fornecedor:', error);
+    console.error("Erro ao buscar stats do fornecedor:", error);
     return {
       pendingRequests: 0,
       activeWorkOrders: 0,
@@ -186,10 +204,10 @@ export async function getProviderDashboardStats(): Promise<ProviderStats> {
  */
 export async function getProviderRecentActivity(): Promise<RecentActivity[]> {
   try {
-    const response = await api.get('/providers/recent-activity');
+    const response = await api.get("/providers/recent-activity");
     return response.data.data || [];
   } catch (error) {
-    console.error('Erro ao buscar atividade recente:', error);
+    console.error("Erro ao buscar atividade recente:", error);
     return [];
   }
 }
@@ -199,10 +217,10 @@ export async function getProviderRecentActivity(): Promise<RecentActivity[]> {
  */
 export async function getProviderPendingRequests(): Promise<PendingRequest[]> {
   try {
-    const response = await api.get('/providers/pending-requests');
+    const response = await api.get("/providers/pending-requests");
     return response.data.data || [];
   } catch (error) {
-    console.error('Erro ao buscar solicitações pendentes:', error);
+    console.error("Erro ao buscar solicitações pendentes:", error);
     return [];
   }
 }
@@ -213,10 +231,10 @@ export async function getProviderPendingRequests(): Promise<PendingRequest[]> {
 export async function getProviderQuotes(status?: string): Promise<any[]> {
   try {
     const params = status ? { status } : {};
-    const response = await api.get('/quotes', { params });
+    const response = await api.get("/quotes", { params });
     return response.data.data || [];
   } catch (error) {
-    console.error('Erro ao buscar orçamentos:', error);
+    console.error("Erro ao buscar orçamentos:", error);
     return [];
   }
 }
@@ -227,10 +245,10 @@ export async function getProviderQuotes(status?: string): Promise<any[]> {
 export async function getProviderWorkOrders(status?: string): Promise<any[]> {
   try {
     const params = status ? { status } : {};
-    const response = await api.get('/work-orders', { params });
+    const response = await api.get("/work-orders", { params });
     return response.data.data || [];
   } catch (error) {
-    console.error('Erro ao buscar ordens de serviço:', error);
+    console.error("Erro ao buscar ordens de serviço:", error);
     return [];
   }
 }
@@ -240,10 +258,10 @@ export async function getProviderWorkOrders(status?: string): Promise<any[]> {
  */
 export async function getProviderReviews(): Promise<any[]> {
   try {
-    const response = await api.get('/providers/reviews');
+    const response = await api.get("/providers/reviews");
     return response.data.data || [];
   } catch (error) {
-    console.error('Erro ao buscar avaliações:', error);
+    console.error("Erro ao buscar avaliações:", error);
     return [];
   }
 }
@@ -272,7 +290,7 @@ export interface WorkOrder {
 
 export interface PaymentMethod {
   id: string;
-  type: 'credit' | 'debit' | 'pix';
+  type: "credit" | "debit" | "pix";
   brand?: string;
   lastFour?: string;
   isDefault: boolean;
@@ -283,11 +301,11 @@ export interface PaymentMethod {
  */
 export async function getWorkOrders(): Promise<WorkOrder[]> {
   try {
-    const response = await api.get('/work-orders');
+    const response = await api.get("/work-orders");
     const raw = response.data.data || response.data || {};
     return raw.orders || (Array.isArray(raw) ? raw : []);
   } catch (error) {
-    console.error('Erro ao buscar ordens de serviço:', error);
+    console.error("Erro ao buscar ordens de serviço:", error);
     return [];
   }
 }
@@ -295,12 +313,14 @@ export async function getWorkOrders(): Promise<WorkOrder[]> {
 /**
  * Buscar detalhes de uma ordem de serviço
  */
-export async function getWorkOrderDetails(workOrderId: string): Promise<any | null> {
+export async function getWorkOrderDetails(
+  workOrderId: string,
+): Promise<any | null> {
   try {
     const response = await api.get(`/work-orders/${workOrderId}`);
     return response.data.data || null;
   } catch (error) {
-    console.error('Erro ao buscar detalhes da OS:', error);
+    console.error("Erro ao buscar detalhes da OS:", error);
     return null;
   }
 }
@@ -312,15 +332,19 @@ export async function getWorkOrderDetails(workOrderId: string): Promise<any | nu
 export async function getPaymentMethods(): Promise<PaymentMethod[]> {
   try {
     // First try to get from API
-    const response = await api.get('/payment-methods');
+    const response = await api.get("/payment-methods");
     const apiMethods = response.data.data || [];
     if (apiMethods.length > 0) {
       return apiMethods;
     }
-    
+
     // Fall back to AsyncStorage (local saved cards)
-    const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
-    const localMethods = await AsyncStorage.getItem('@TechTrust:paymentMethods');
+    const AsyncStorage = (
+      await import("@react-native-async-storage/async-storage")
+    ).default;
+    const localMethods = await AsyncStorage.getItem(
+      "@TechTrust:paymentMethods",
+    );
     if (localMethods) {
       const parsed = JSON.parse(localMethods);
       return parsed.map((m: any) => ({
@@ -333,15 +357,19 @@ export async function getPaymentMethods(): Promise<PaymentMethod[]> {
         isDefault: m.isDefault,
       }));
     }
-    
+
     return [];
   } catch (error) {
-    console.error('Erro ao buscar métodos de pagamento da API:', error);
-    
+    console.error("Erro ao buscar métodos de pagamento da API:", error);
+
     // Fall back to AsyncStorage on API error
     try {
-      const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
-      const localMethods = await AsyncStorage.getItem('@TechTrust:paymentMethods');
+      const AsyncStorage = (
+        await import("@react-native-async-storage/async-storage")
+      ).default;
+      const localMethods = await AsyncStorage.getItem(
+        "@TechTrust:paymentMethods",
+      );
       if (localMethods) {
         const parsed = JSON.parse(localMethods);
         return parsed.map((m: any) => ({
@@ -355,9 +383,12 @@ export async function getPaymentMethods(): Promise<PaymentMethod[]> {
         }));
       }
     } catch (localError) {
-      console.error('Erro ao buscar métodos de pagamento do AsyncStorage:', localError);
+      console.error(
+        "Erro ao buscar métodos de pagamento do AsyncStorage:",
+        localError,
+      );
     }
-    
+
     return [];
   }
 }
@@ -370,7 +401,7 @@ export async function getQuoteDetails(quoteId: string): Promise<any | null> {
     const response = await api.get(`/quotes/${quoteId}`);
     return response.data.data || null;
   } catch (error) {
-    console.error('Erro ao buscar detalhes do orçamento:', error);
+    console.error("Erro ao buscar detalhes do orçamento:", error);
     return null;
   }
 }
@@ -412,17 +443,31 @@ export async function getCustomerReports(period: string): Promise<{
   vehicleSpending: VehicleSpending[];
 }> {
   try {
-    const response = await api.get('/users/reports', { params: { period } });
-    return response.data.data || {
-      stats: { totalSpent: 0, servicesCompleted: 0, vehiclesServiced: 0, avgServiceCost: 0, savings: 0 },
-      monthlySpending: [],
-      serviceCategories: [],
-      vehicleSpending: [],
-    };
+    const response = await api.get("/users/reports", { params: { period } });
+    return (
+      response.data.data || {
+        stats: {
+          totalSpent: 0,
+          servicesCompleted: 0,
+          vehiclesServiced: 0,
+          avgServiceCost: 0,
+          savings: 0,
+        },
+        monthlySpending: [],
+        serviceCategories: [],
+        vehicleSpending: [],
+      }
+    );
   } catch (error) {
-    console.error('Erro ao buscar relatórios:', error);
+    console.error("Erro ao buscar relatórios:", error);
     return {
-      stats: { totalSpent: 0, servicesCompleted: 0, vehiclesServiced: 0, avgServiceCost: 0, savings: 0 },
+      stats: {
+        totalSpent: 0,
+        servicesCompleted: 0,
+        vehiclesServiced: 0,
+        avgServiceCost: 0,
+        savings: 0,
+      },
       monthlySpending: [],
       serviceCategories: [],
       vehicleSpending: [],

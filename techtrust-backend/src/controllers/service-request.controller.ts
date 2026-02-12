@@ -5,11 +5,11 @@
  * Solicitações de serviço do cliente
  */
 
-import { Request, Response } from 'express';
-import { prisma } from '../config/database';
-import { AppError } from '../middleware/error-handler';
-import { logger } from '../config/logger';
-import { geocodeAddress } from '../services/geocoding.service';
+import { Request, Response } from "express";
+import { prisma } from "../config/database";
+import { AppError } from "../middleware/error-handler";
+import { logger } from "../config/logger";
+import { geocodeAddress } from "../services/geocoding.service";
 
 /**
  * POST /api/v1/service-requests
@@ -42,29 +42,33 @@ export const createServiceRequest = async (req: Request, res: Response) => {
   });
 
   if (!vehicle) {
-    throw new AppError('Veículo não encontrado', 404, 'VEHICLE_NOT_FOUND');
+    throw new AppError("Veículo não encontrado", 404, "VEHICLE_NOT_FOUND");
   }
 
   // Verificar limites da assinatura
   const subscription = await prisma.subscription.findFirst({
     where: {
       userId: userId,
-      status: 'ACTIVE',
+      status: "ACTIVE",
     },
     orderBy: {
-      createdAt: 'desc',
+      createdAt: "desc",
     },
   });
 
   if (!subscription) {
-    throw new AppError('Assinatura não encontrada', 404, 'SUBSCRIPTION_NOT_FOUND');
+    throw new AppError(
+      "Assinatura não encontrada",
+      404,
+      "SUBSCRIPTION_NOT_FOUND",
+    );
   }
 
   // Se tem limite mensal, verificar
   if (subscription.maxServiceRequestsPerMonth) {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    
+
     const requestsThisMonth = await prisma.serviceRequest.count({
       where: {
         userId: userId,
@@ -78,7 +82,7 @@ export const createServiceRequest = async (req: Request, res: Response) => {
       throw new AppError(
         `Você atingiu o limite de ${subscription.maxServiceRequestsPerMonth} solicitações por mês do plano ${subscription.plan}`,
         403,
-        'REQUEST_LIMIT_REACHED'
+        "REQUEST_LIMIT_REACHED",
       );
     }
   }
@@ -88,7 +92,13 @@ export const createServiceRequest = async (req: Request, res: Response) => {
     where: {
       userId: userId,
       status: {
-        in: ['SEARCHING_PROVIDERS', 'QUOTES_RECEIVED', 'QUOTE_ACCEPTED', 'SCHEDULED', 'IN_PROGRESS'],
+        in: [
+          "SEARCHING_PROVIDERS",
+          "QUOTES_RECEIVED",
+          "QUOTE_ACCEPTED",
+          "SCHEDULED",
+          "IN_PROGRESS",
+        ],
       },
     },
   });
@@ -107,7 +117,7 @@ export const createServiceRequest = async (req: Request, res: Response) => {
     throw new AppError(
       `Você tem ${activeRequests} solicitações ativas. Limite do plano ${subscription.plan}: ${maxActive}`,
       403,
-      'ACTIVE_REQUESTS_LIMIT'
+      "ACTIVE_REQUESTS_LIMIT",
     );
   }
 
@@ -143,7 +153,9 @@ export const createServiceRequest = async (req: Request, res: Response) => {
       if (coords) {
         finalLatitude = coords.latitude;
         finalLongitude = coords.longitude;
-        logger.info(`Geocoded address "${customerAddress}" -> ${finalLatitude}, ${finalLongitude}`);
+        logger.info(
+          `Geocoded address "${customerAddress}" -> ${finalLatitude}, ${finalLongitude}`,
+        );
       }
     } catch (err) {
       logger.warn(`Failed to geocode address: ${customerAddress}`, err);
@@ -167,7 +179,7 @@ export const createServiceRequest = async (req: Request, res: Response) => {
       preferredDate: preferredDate ? new Date(preferredDate) : null,
       preferredTime: preferredTime ? new Date(preferredTime) : null,
       isUrgent: isUrgent || false,
-      status: 'SEARCHING_PROVIDERS',
+      status: "SEARCHING_PROVIDERS",
       maxQuotes: 5,
       quoteDeadline,
       expiresAt,
@@ -184,11 +196,13 @@ export const createServiceRequest = async (req: Request, res: Response) => {
     },
   });
 
-  logger.info(`Solicitação criada: ${serviceRequest.requestNumber} por ${userId}`);
+  logger.info(
+    `Solicitação criada: ${serviceRequest.requestNumber} por ${userId}`,
+  );
 
   res.status(201).json({
     success: true,
-    message: 'Solicitação criada! Buscando fornecedores...',
+    message: "Solicitação criada! Buscando fornecedores...",
     data: serviceRequest,
   });
 };
@@ -219,7 +233,7 @@ export const getServiceRequests = async (req: Request, res: Response) => {
       skip,
       take: Number(limit),
       orderBy: {
-        createdAt: 'desc',
+        createdAt: "desc",
       },
       include: {
         vehicle: {
@@ -274,7 +288,7 @@ export const getServiceRequest = async (req: Request, res: Response) => {
         { userId: userId },
         { quotes: { some: { providerId: userId } } },
         // Allow any provider to view open requests
-        { status: { in: ['SEARCHING_PROVIDERS', 'QUOTES_RECEIVED'] } },
+        { status: { in: ["SEARCHING_PROVIDERS", "QUOTES_RECEIVED"] } },
       ],
     },
     include: {
@@ -315,7 +329,7 @@ export const getServiceRequest = async (req: Request, res: Response) => {
           },
         },
         orderBy: {
-          totalAmount: 'asc',
+          totalAmount: "asc",
         },
       },
       workOrders: {
@@ -330,7 +344,7 @@ export const getServiceRequest = async (req: Request, res: Response) => {
   });
 
   if (!request) {
-    throw new AppError('Solicitação não encontrada', 404, 'REQUEST_NOT_FOUND');
+    throw new AppError("Solicitação não encontrada", 404, "REQUEST_NOT_FOUND");
   }
 
   res.json({
@@ -356,19 +370,23 @@ export const cancelServiceRequest = async (req: Request, res: Response) => {
   });
 
   if (!request) {
-    throw new AppError('Solicitação não encontrada', 404, 'REQUEST_NOT_FOUND');
+    throw new AppError("Solicitação não encontrada", 404, "REQUEST_NOT_FOUND");
   }
 
   // Verificar se pode cancelar
-  if (['COMPLETED', 'CANCELLED'].includes(request.status)) {
-    throw new AppError('Esta solicitação não pode ser cancelada', 400, 'CANNOT_CANCEL');
+  if (["COMPLETED", "CANCELLED"].includes(request.status)) {
+    throw new AppError(
+      "Esta solicitação não pode ser cancelada",
+      400,
+      "CANNOT_CANCEL",
+    );
   }
 
-  if (request.status === 'IN_PROGRESS') {
+  if (request.status === "IN_PROGRESS") {
     throw new AppError(
-      'Serviço em andamento não pode ser cancelado. Abra uma disputa se necessário.',
+      "Serviço em andamento não pode ser cancelado. Abra uma disputa se necessário.",
       400,
-      'SERVICE_IN_PROGRESS'
+      "SERVICE_IN_PROGRESS",
     );
   }
 
@@ -377,7 +395,8 @@ export const cancelServiceRequest = async (req: Request, res: Response) => {
 
   if (request.acceptedQuoteId) {
     const hoursUntilScheduled = request.scheduledFor
-      ? (new Date(request.scheduledFor).getTime() - Date.now()) / (1000 * 60 * 60)
+      ? (new Date(request.scheduledFor).getTime() - Date.now()) /
+        (1000 * 60 * 60)
       : 999;
 
     if (hoursUntilScheduled > 24) {
@@ -391,7 +410,7 @@ export const cancelServiceRequest = async (req: Request, res: Response) => {
   await prisma.serviceRequest.update({
     where: { id: requestId },
     data: {
-      status: 'CANCELLED',
+      status: "CANCELLED",
       cancelledAt: new Date(),
       cancellationReason: reason,
     },
@@ -401,12 +420,13 @@ export const cancelServiceRequest = async (req: Request, res: Response) => {
 
   res.json({
     success: true,
-    message: 'Solicitação cancelada',
+    message: "Solicitação cancelada",
     data: {
       cancellationFee: `${cancellationFee}%`,
-      note: cancellationFee > 0
-        ? 'Taxa de cancelamento será aplicada no pagamento'
-        : 'Sem taxa de cancelamento',
+      note:
+        cancellationFee > 0
+          ? "Taxa de cancelamento será aplicada no pagamento"
+          : "Sem taxa de cancelamento",
     },
   });
 };

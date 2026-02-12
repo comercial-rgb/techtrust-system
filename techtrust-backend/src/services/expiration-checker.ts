@@ -4,7 +4,7 @@
  * D-30, D-15, D-7, Expired
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -12,12 +12,12 @@ interface ExpirationAlert {
   providerProfileId: string;
   providerName: string;
   providerId: string;
-  entityType: 'COMPLIANCE' | 'INSURANCE';
+  entityType: "COMPLIANCE" | "INSURANCE";
   entityId: string;
   itemType: string;
   expirationDate: Date;
   daysUntilExpiry: number;
-  alertLevel: 'D30' | 'D15' | 'D7' | 'EXPIRED';
+  alertLevel: "D30" | "D15" | "D7" | "EXPIRED";
 }
 
 /**
@@ -31,16 +31,20 @@ export async function checkExpirations(): Promise<ExpirationAlert[]> {
   const complianceItems = await prisma.complianceItem.findMany({
     where: {
       expirationDate: { not: null },
-      status: { in: ['VERIFIED', 'PROVIDED_UNVERIFIED'] },
+      status: { in: ["VERIFIED", "PROVIDED_UNVERIFIED"] },
     },
     include: {
-      providerProfile: { select: { id: true, businessName: true, userId: true } },
+      providerProfile: {
+        select: { id: true, businessName: true, userId: true },
+      },
     },
   });
 
   for (const item of complianceItems) {
     if (!item.expirationDate) continue;
-    const daysUntilExpiry = Math.ceil((item.expirationDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    const daysUntilExpiry = Math.ceil(
+      (item.expirationDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+    );
     const alertLevel = getAlertLevel(daysUntilExpiry);
 
     if (alertLevel) {
@@ -48,7 +52,7 @@ export async function checkExpirations(): Promise<ExpirationAlert[]> {
         providerProfileId: item.providerProfileId,
         providerName: item.providerProfile.businessName,
         providerId: item.providerProfile.userId,
-        entityType: 'COMPLIANCE',
+        entityType: "COMPLIANCE",
         entityId: item.id,
         itemType: item.type,
         expirationDate: item.expirationDate,
@@ -60,7 +64,7 @@ export async function checkExpirations(): Promise<ExpirationAlert[]> {
       if (daysUntilExpiry <= 0) {
         await prisma.complianceItem.update({
           where: { id: item.id },
-          data: { status: 'EXPIRED' },
+          data: { status: "EXPIRED" },
         });
       }
     }
@@ -71,16 +75,20 @@ export async function checkExpirations(): Promise<ExpirationAlert[]> {
     where: {
       expirationDate: { not: null },
       hasCoverage: true,
-      status: { in: ['INS_VERIFIED', 'INS_PROVIDED_UNVERIFIED'] },
+      status: { in: ["INS_VERIFIED", "INS_PROVIDED_UNVERIFIED"] },
     },
     include: {
-      providerProfile: { select: { id: true, businessName: true, userId: true } },
+      providerProfile: {
+        select: { id: true, businessName: true, userId: true },
+      },
     },
   });
 
   for (const policy of insurancePolicies) {
     if (!policy.expirationDate) continue;
-    const daysUntilExpiry = Math.ceil((policy.expirationDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    const daysUntilExpiry = Math.ceil(
+      (policy.expirationDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+    );
     const alertLevel = getAlertLevel(daysUntilExpiry);
 
     if (alertLevel) {
@@ -88,7 +96,7 @@ export async function checkExpirations(): Promise<ExpirationAlert[]> {
         providerProfileId: policy.providerProfileId,
         providerName: policy.providerProfile.businessName,
         providerId: policy.providerProfile.userId,
-        entityType: 'INSURANCE',
+        entityType: "INSURANCE",
         entityId: policy.id,
         itemType: policy.type,
         expirationDate: policy.expirationDate,
@@ -100,7 +108,7 @@ export async function checkExpirations(): Promise<ExpirationAlert[]> {
       if (daysUntilExpiry <= 0) {
         await prisma.insurancePolicy.update({
           where: { id: policy.id },
-          data: { status: 'INS_EXPIRED' },
+          data: { status: "INS_EXPIRED" },
         });
 
         // Recalculate provider status
@@ -112,30 +120,36 @@ export async function checkExpirations(): Promise<ExpirationAlert[]> {
   return alerts;
 }
 
-function getAlertLevel(daysUntilExpiry: number): 'D30' | 'D15' | 'D7' | 'EXPIRED' | null {
-  if (daysUntilExpiry <= 0) return 'EXPIRED';
-  if (daysUntilExpiry <= 7) return 'D7';
-  if (daysUntilExpiry <= 15) return 'D15';
-  if (daysUntilExpiry <= 30) return 'D30';
+function getAlertLevel(
+  daysUntilExpiry: number,
+): "D30" | "D15" | "D7" | "EXPIRED" | null {
+  if (daysUntilExpiry <= 0) return "EXPIRED";
+  if (daysUntilExpiry <= 7) return "D7";
+  if (daysUntilExpiry <= 15) return "D15";
+  if (daysUntilExpiry <= 30) return "D30";
   return null;
 }
 
-async function recalculateProviderStatusOnExpiration(providerProfileId: string) {
+async function recalculateProviderStatusOnExpiration(
+  providerProfileId: string,
+) {
   try {
-    const hasExpired = await prisma.complianceItem.findFirst({
-      where: { providerProfileId, status: 'EXPIRED' },
-    }) || await prisma.insurancePolicy.findFirst({
-      where: { providerProfileId, status: 'INS_EXPIRED' },
-    });
+    const hasExpired =
+      (await prisma.complianceItem.findFirst({
+        where: { providerProfileId, status: "EXPIRED" },
+      })) ||
+      (await prisma.insurancePolicy.findFirst({
+        where: { providerProfileId, status: "INS_EXPIRED" },
+      }));
 
     if (hasExpired) {
       await prisma.providerProfile.update({
         where: { id: providerProfileId },
-        data: { providerPublicStatus: 'RESTRICTED' },
+        data: { providerPublicStatus: "RESTRICTED" },
       });
     }
   } catch (error) {
-    console.error('Error recalculating provider status on expiration:', error);
+    console.error("Error recalculating provider status on expiration:", error);
   }
 }
 
@@ -148,30 +162,36 @@ export function scheduleExpirationCheck() {
 
   // Run immediately on startup
   checkExpirations()
-    .then(alerts => {
+    .then((alerts) => {
       if (alerts.length > 0) {
-        console.log(`[ExpirationCheck] Found ${alerts.length} expiration alerts`);
-        alerts.forEach(a => {
-          console.log(`  - ${a.providerName}: ${a.entityType}/${a.itemType} → ${a.alertLevel} (${a.daysUntilExpiry} days)`);
+        console.log(
+          `[ExpirationCheck] Found ${alerts.length} expiration alerts`,
+        );
+        alerts.forEach((a) => {
+          console.log(
+            `  - ${a.providerName}: ${a.entityType}/${a.itemType} → ${a.alertLevel} (${a.daysUntilExpiry} days)`,
+          );
         });
       } else {
-        console.log('[ExpirationCheck] No expiration alerts');
+        console.log("[ExpirationCheck] No expiration alerts");
       }
     })
-    .catch(err => console.error('[ExpirationCheck] Error:', err));
+    .catch((err) => console.error("[ExpirationCheck] Error:", err));
 
   // Schedule recurring checks
   setInterval(async () => {
     try {
       const alerts = await checkExpirations();
       if (alerts.length > 0) {
-        console.log(`[ExpirationCheck] Found ${alerts.length} expiration alerts`);
+        console.log(
+          `[ExpirationCheck] Found ${alerts.length} expiration alerts`,
+        );
         // TODO: Send push notifications / emails to providers with upcoming expirations
       }
     } catch (err) {
-      console.error('[ExpirationCheck] Error:', err);
+      console.error("[ExpirationCheck] Error:", err);
     }
   }, SIX_HOURS);
 
-  console.log('[ExpirationCheck] Scheduled every 6 hours');
+  console.log("[ExpirationCheck] Scheduled every 6 hours");
 }

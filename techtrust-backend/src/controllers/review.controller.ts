@@ -5,10 +5,10 @@
  * Sistema de avaliações
  */
 
-import { Request, Response } from 'express';
-import { prisma } from '../config/database';
-import { AppError } from '../middleware/error-handler';
-import { logger } from '../config/logger';
+import { Request, Response } from "express";
+import { prisma } from "../config/database";
+import { AppError } from "../middleware/error-handler";
+import { logger } from "../config/logger";
 
 /**
  * POST /api/v1/reviews
@@ -32,12 +32,16 @@ export const createReview = async (req: Request, res: Response) => {
     where: {
       id: workOrderId,
       customerId: customerId,
-      status: 'COMPLETED',
+      status: "COMPLETED",
     },
   });
 
   if (!workOrder) {
-    throw new AppError('Ordem não encontrada ou não está completa', 404, 'ORDER_NOT_FOUND');
+    throw new AppError(
+      "Ordem não encontrada ou não está completa",
+      404,
+      "ORDER_NOT_FOUND",
+    );
   }
 
   // Verificar se já avaliou
@@ -48,7 +52,7 @@ export const createReview = async (req: Request, res: Response) => {
   });
 
   if (existingReview) {
-    throw new AppError('Você já avaliou este serviço', 409, 'ALREADY_REVIEWED');
+    throw new AppError("Você já avaliou este serviço", 409, "ALREADY_REVIEWED");
   }
 
   // Support both simple rating and detailed ratings
@@ -57,7 +61,8 @@ export const createReview = async (req: Request, res: Response) => {
   const tRating = Number(ratingTimeliness) || simpleRating;
   const cRating = Number(ratingCommunication) || simpleRating;
   const vRating = Number(ratingValue) || simpleRating;
-  const overallRating = simpleRating || (qRating + tRating + cRating + vRating) / 4;
+  const overallRating =
+    simpleRating || (qRating + tRating + cRating + vRating) / 4;
   const finalComment = customerComment || comment || null;
 
   // Criar avaliação
@@ -99,7 +104,7 @@ export const createReview = async (req: Request, res: Response) => {
 
   res.status(201).json({
     success: true,
-    message: 'Avaliação enviada com sucesso!',
+    message: "Avaliação enviada com sucesso!",
     data: review,
   });
 };
@@ -120,7 +125,7 @@ export const getProviderReviews = async (req: Request, res: Response) => {
       skip,
       take: Number(limit),
       orderBy: {
-        createdAt: 'desc',
+        createdAt: "desc",
       },
       include: {
         customer: {
@@ -188,11 +193,15 @@ export const respondToReview = async (req: Request, res: Response) => {
   });
 
   if (!review) {
-    throw new AppError('Avaliação não encontrada', 404, 'REVIEW_NOT_FOUND');
+    throw new AppError("Avaliação não encontrada", 404, "REVIEW_NOT_FOUND");
   }
 
   if (review.providerComment) {
-    throw new AppError('Você já respondeu esta avaliação', 400, 'ALREADY_RESPONDED');
+    throw new AppError(
+      "Você já respondeu esta avaliação",
+      400,
+      "ALREADY_RESPONDED",
+    );
   }
 
   const updatedReview = await prisma.review.update({
@@ -207,7 +216,7 @@ export const respondToReview = async (req: Request, res: Response) => {
 
   res.json({
     success: true,
-    message: 'Resposta enviada com sucesso!',
+    message: "Resposta enviada com sucesso!",
     data: updatedReview,
   });
 };
@@ -220,14 +229,13 @@ export const getMyReviews = async (req: Request, res: Response) => {
   const userId = req.user!.id;
   const userRole = req.user!.role;
 
-  const where = userRole === 'CLIENT'
-    ? { customerId: userId }
-    : { providerId: userId };
+  const where =
+    userRole === "CLIENT" ? { customerId: userId } : { providerId: userId };
 
   const reviews = await prisma.review.findMany({
     where,
     orderBy: {
-      createdAt: 'desc',
+      createdAt: "desc",
     },
     include: {
       customer: {

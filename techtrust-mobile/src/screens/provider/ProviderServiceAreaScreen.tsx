@@ -3,7 +3,7 @@
  * Connected to backend API
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -17,12 +17,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { useFocusEffect } from '@react-navigation/native';
-import { useI18n } from '../../i18n';
-import api from '../../services/api';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { useFocusEffect } from "@react-navigation/native";
+import { useI18n } from "../../i18n";
+import api from "../../services/api";
 
 interface CoverageZone {
   id: string;
@@ -35,28 +35,31 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
   const { t } = useI18n();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [baseAddress, setBaseAddress] = useState('');
+  const [baseAddress, setBaseAddress] = useState("");
   const [serviceRadius, setServiceRadius] = useState(25);
   const [mobileService, setMobileService] = useState(false);
   const [roadsideAssistance, setRoadsideAssistance] = useState(false);
-  const [extraFeePerKm, setExtraFeePerKm] = useState('0.00');
-  const [freeKm, setFreeKm] = useState('0');
+  const [extraFeePerKm, setExtraFeePerKm] = useState("0.00");
+  const [freeKm, setFreeKm] = useState("0");
   const [showAddZoneModal, setShowAddZoneModal] = useState(false);
-  const [newZoneName, setNewZoneName] = useState('');
-  const [newZoneRegion, setNewZoneRegion] = useState('');
+  const [newZoneName, setNewZoneName] = useState("");
+  const [newZoneRegion, setNewZoneRegion] = useState("");
   const [coverageZones, setCoverageZones] = useState<CoverageZone[]>([]);
 
   // Load provider profile from API
   const loadProfile = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/providers/profile');
-      const profile = response.data?.data?.providerProfile || response.data?.data || {};
+      const response = await api.get("/providers/profile");
+      const profile =
+        response.data?.data?.providerProfile || response.data?.data || {};
       const user = response.data?.data;
 
       // Build base address from profile
-      const addr = [profile.address, profile.city, profile.state].filter(Boolean).join(', ');
-      setBaseAddress(addr || user?.city || '');
+      const addr = [profile.address, profile.city, profile.state]
+        .filter(Boolean)
+        .join(", ");
+      setBaseAddress(addr || user?.city || "");
       setServiceRadius(profile.serviceRadiusKm || 25);
       setMobileService(profile.mobileService || false);
       setRoadsideAssistance(profile.roadsideAssistance || false);
@@ -65,15 +68,17 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
 
       // Load coverage zones if available
       if (profile.coverageZones && Array.isArray(profile.coverageZones)) {
-        setCoverageZones(profile.coverageZones.map((z: any) => ({
-          id: z.id,
-          name: z.name,
-          region: z.region || '',
-          active: z.active !== false,
-        })));
+        setCoverageZones(
+          profile.coverageZones.map((z: any) => ({
+            id: z.id,
+            name: z.name,
+            region: z.region || "",
+            active: z.active !== false,
+          })),
+        );
       }
     } catch (error) {
-      console.error('Error loading profile:', error);
+      console.error("Error loading profile:", error);
     } finally {
       setLoading(false);
     }
@@ -82,68 +87,78 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
   useFocusEffect(
     useCallback(() => {
       loadProfile();
-    }, [])
+    }, []),
   );
 
   const toggleZone = (id: string) => {
-    setCoverageZones(zones =>
-      zones.map(z => z.id === id ? { ...z, active: !z.active } : z)
+    setCoverageZones((zones) =>
+      zones.map((z) => (z.id === id ? { ...z, active: !z.active } : z)),
     );
   };
 
   const handleAddZone = () => {
     if (!newZoneName.trim()) {
-      Alert.alert(t.common?.error || 'Error', t.provider?.zoneNameRequired || 'Zone name is required');
+      Alert.alert(
+        t.common?.error || "Error",
+        t.provider?.zoneNameRequired || "Zone name is required",
+      );
       return;
     }
-    
+
     const newZone: CoverageZone = {
       id: Date.now().toString(),
       name: newZoneName.trim(),
-      region: newZoneRegion.trim() || 'N/A',
+      region: newZoneRegion.trim() || "N/A",
       active: true,
     };
-    
+
     setCoverageZones([...coverageZones, newZone]);
-    setNewZoneName('');
-    setNewZoneRegion('');
+    setNewZoneName("");
+    setNewZoneRegion("");
     setShowAddZoneModal(false);
-    Alert.alert(t.common?.success || 'Success', t.provider?.zoneAdded || 'Coverage zone added successfully!');
+    Alert.alert(
+      t.common?.success || "Success",
+      t.provider?.zoneAdded || "Coverage zone added successfully!",
+    );
   };
 
   const handleDeleteZone = (id: string, name: string) => {
     Alert.alert(
-      t.provider?.deleteZone || 'Delete Zone',
-      `${t.provider?.deleteZoneConfirm || 'Are you sure you want to delete'} ${name}?`,
+      t.provider?.deleteZone || "Delete Zone",
+      `${t.provider?.deleteZoneConfirm || "Are you sure you want to delete"} ${name}?`,
       [
-        { text: t.common?.cancel || 'Cancel', style: 'cancel' },
-        { 
-          text: t.common?.delete || 'Delete', 
-          style: 'destructive',
+        { text: t.common?.cancel || "Cancel", style: "cancel" },
+        {
+          text: t.common?.delete || "Delete",
+          style: "destructive",
           onPress: () => {
-            setCoverageZones(zones => zones.filter(z => z.id !== id));
-          }
+            setCoverageZones((zones) => zones.filter((z) => z.id !== id));
+          },
         },
-      ]
+      ],
     );
   };
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      await api.patch('/providers/profile', {
+      await api.patch("/providers/profile", {
         serviceRadiusKm: serviceRadius,
         mobileService,
         roadsideAssistance,
         freeKm: Number(freeKm) || 0,
         extraFeePerKm: Number(extraFeePerKm) || 0,
       });
-      Alert.alert(t.common?.success || 'Success', t.provider?.serviceAreaUpdated || 'Service area updated!');
+      Alert.alert(
+        t.common?.success || "Success",
+        t.provider?.serviceAreaUpdated || "Service area updated!",
+      );
       navigation.goBack();
     } catch (error: any) {
       Alert.alert(
-        t.common?.error || 'Error',
-        error?.response?.data?.message || 'Failed to save settings. Please try again.'
+        t.common?.error || "Error",
+        error?.response?.data?.message ||
+          "Failed to save settings. Please try again.",
       );
     } finally {
       setSaving(false);
@@ -156,15 +171,26 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <MaterialCommunityIcons name="arrow-left" size={24} color="#111827" />
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backBtn}
+          >
+            <MaterialCommunityIcons
+              name="arrow-left"
+              size={24}
+              color="#111827"
+            />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{t.provider?.serviceArea || 'Service Area'}</Text>
+          <Text style={styles.headerTitle}>
+            {t.provider?.serviceArea || "Service Area"}
+          </Text>
           <View style={styles.infoBtn} />
         </View>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <View
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        >
           <ActivityIndicator size="large" color="#1976d2" />
-          <Text style={{ marginTop: 12, color: '#6b7280' }}>Loading...</Text>
+          <Text style={{ marginTop: 12, color: "#6b7280" }}>Loading...</Text>
         </View>
       </SafeAreaView>
     );
@@ -174,24 +200,36 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backBtn}
+        >
           <MaterialCommunityIcons name="arrow-left" size={24} color="#111827" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t.provider?.serviceArea || 'Service Area'}</Text>
-        <TouchableOpacity onPress={() => {
-          Alert.alert(
-            t.provider?.howItWorks || 'How It Works',
-            t.provider?.serviceAreaExplanation || 
-            'Service Area calculates distance from your base address to the service location.\n\n' +
-            '• IN-SHOP: Customer comes to your location\n' +
-            '• ON-SITE (Mobile): You travel to customer home/business\n' +
-            '• ROADSIDE: Emergency assistance on highways\n\n' +
-            'Distance is calculated using GPS coordinates (straight line). ' +
-            'Extra fees apply for mobile services beyond free km range.',
-            [{ text: t.common?.ok || 'OK' }]
-          );
-        }} style={styles.infoBtn}>
-          <MaterialCommunityIcons name="information" size={24} color="#1976d2" />
+        <Text style={styles.headerTitle}>
+          {t.provider?.serviceArea || "Service Area"}
+        </Text>
+        <TouchableOpacity
+          onPress={() => {
+            Alert.alert(
+              t.provider?.howItWorks || "How It Works",
+              t.provider?.serviceAreaExplanation ||
+                "Service Area calculates distance from your base address to the service location.\n\n" +
+                  "• IN-SHOP: Customer comes to your location\n" +
+                  "• ON-SITE (Mobile): You travel to customer home/business\n" +
+                  "• ROADSIDE: Emergency assistance on highways\n\n" +
+                  "Distance is calculated using GPS coordinates (straight line). " +
+                  "Extra fees apply for mobile services beyond free km range.",
+              [{ text: t.common?.ok || "OK" }],
+            );
+          }}
+          style={styles.infoBtn}
+        >
+          <MaterialCommunityIcons
+            name="information"
+            size={24}
+            color="#1976d2"
+          />
         </TouchableOpacity>
       </View>
 
@@ -199,22 +237,40 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
         {/* Map Preview Placeholder */}
         <View style={styles.mapPreview}>
           <View style={styles.mapPlaceholder}>
-            <MaterialCommunityIcons name="map-marker-radius" size={60} color="#1976d2" />
-            <Text style={styles.mapText}>{t.provider?.serviceRadius || 'Service Radius'}: {serviceRadius} km</Text>
-            <Text style={styles.mapSubtext}>{coverageZones.filter(z => z.active).length} {t.provider?.activeZones || 'active zones'}</Text>
+            <MaterialCommunityIcons
+              name="map-marker-radius"
+              size={60}
+              color="#1976d2"
+            />
+            <Text style={styles.mapText}>
+              {t.provider?.serviceRadius || "Service Radius"}: {serviceRadius}{" "}
+              km
+            </Text>
+            <Text style={styles.mapSubtext}>
+              {coverageZones.filter((z) => z.active).length}{" "}
+              {t.provider?.activeZones || "active zones"}
+            </Text>
           </View>
         </View>
 
         {/* Base Address */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t.provider?.baseAddress || 'Base Address'}</Text>
+          <Text style={styles.sectionTitle}>
+            {t.provider?.baseAddress || "Base Address"}
+          </Text>
           <View style={styles.card}>
             <View style={styles.addressRow}>
-              <MaterialCommunityIcons name="map-marker" size={24} color="#1976d2" />
+              <MaterialCommunityIcons
+                name="map-marker"
+                size={24}
+                color="#1976d2"
+              />
               <View style={styles.addressInfo}>
                 <Text style={styles.addressText}>{baseAddress}</Text>
                 <TouchableOpacity style={styles.changeAddressBtn}>
-                  <Text style={styles.changeAddressText}>{t.provider?.changeAddress || 'Change address'}</Text>
+                  <Text style={styles.changeAddressText}>
+                    {t.provider?.changeAddress || "Change address"}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -223,11 +279,15 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
 
         {/* Service Radius */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t.provider?.serviceRadius || 'Service Radius'}</Text>
+          <Text style={styles.sectionTitle}>
+            {t.provider?.serviceRadius || "Service Radius"}
+          </Text>
           <View style={styles.card}>
-            <Text style={styles.radiusLabel}>{t.provider?.selectRadius || 'Select the maximum travel radius'}:</Text>
+            <Text style={styles.radiusLabel}>
+              {t.provider?.selectRadius || "Select the maximum travel radius"}:
+            </Text>
             <View style={styles.radiusOptions}>
-              {radiusOptions.map(r => (
+              {radiusOptions.map((r) => (
                 <TouchableOpacity
                   key={r}
                   style={[
@@ -236,10 +296,12 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
                   ]}
                   onPress={() => setServiceRadius(r)}
                 >
-                  <Text style={[
-                    styles.radiusOptionText,
-                    serviceRadius === r && styles.radiusOptionTextActive,
-                  ]}>
+                  <Text
+                    style={[
+                      styles.radiusOptionText,
+                      serviceRadius === r && styles.radiusOptionTextActive,
+                    ]}
+                  >
                     {r} km
                   </Text>
                 </TouchableOpacity>
@@ -250,43 +312,69 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
 
         {/* Mobile Service Settings */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t.provider?.serviceTypes || 'Service Types'}</Text>
+          <Text style={styles.sectionTitle}>
+            {t.provider?.serviceTypes || "Service Types"}
+          </Text>
           <View style={styles.card}>
             {/* On-Site Mobile Service */}
             <View style={styles.switchRow}>
               <View style={styles.switchInfo}>
-                <MaterialCommunityIcons name="truck" size={24} color="#374151" />
+                <MaterialCommunityIcons
+                  name="truck"
+                  size={24}
+                  color="#374151"
+                />
                 <View style={styles.switchTextContainer}>
-                  <Text style={styles.switchLabel}>{t.provider?.onSiteService || 'On-Site Service'}</Text>
+                  <Text style={styles.switchLabel}>
+                    {t.provider?.onSiteService || "On-Site Service"}
+                  </Text>
                   <Text style={styles.switchDescription}>
-                    {t.provider?.onSiteServiceDesc || 'I go to customer home/business'}
+                    {t.provider?.onSiteServiceDesc ||
+                      "I go to customer home/business"}
                   </Text>
                 </View>
               </View>
               <Switch
                 value={mobileService}
                 onValueChange={setMobileService}
-                trackColor={{ false: '#d1d5db', true: '#93c5fd' }}
-                thumbColor={mobileService ? '#1976d2' : '#fff'}
+                trackColor={{ false: "#d1d5db", true: "#93c5fd" }}
+                thumbColor={mobileService ? "#1976d2" : "#fff"}
               />
             </View>
 
             {/* Roadside Assistance */}
-            <View style={[styles.switchRow, { marginTop: 20, paddingTop: 20, borderTopWidth: 1, borderTopColor: '#f3f4f6' }]}>
+            <View
+              style={[
+                styles.switchRow,
+                {
+                  marginTop: 20,
+                  paddingTop: 20,
+                  borderTopWidth: 1,
+                  borderTopColor: "#f3f4f6",
+                },
+              ]}
+            >
               <View style={styles.switchInfo}>
-                <MaterialCommunityIcons name="car-emergency" size={24} color="#374151" />
+                <MaterialCommunityIcons
+                  name="car-emergency"
+                  size={24}
+                  color="#374151"
+                />
                 <View style={styles.switchTextContainer}>
-                  <Text style={styles.switchLabel}>{t.provider?.roadsideAssistance || 'Roadside Assistance'}</Text>
+                  <Text style={styles.switchLabel}>
+                    {t.provider?.roadsideAssistance || "Roadside Assistance"}
+                  </Text>
                   <Text style={styles.switchDescription}>
-                    {t.provider?.roadsideAssistanceDesc || 'Emergency service on highways'}
+                    {t.provider?.roadsideAssistanceDesc ||
+                      "Emergency service on highways"}
                   </Text>
                 </View>
               </View>
               <Switch
                 value={roadsideAssistance}
                 onValueChange={setRoadsideAssistance}
-                trackColor={{ false: '#d1d5db', true: '#93c5fd' }}
-                thumbColor={roadsideAssistance ? '#f59e0b' : '#fff'}
+                trackColor={{ false: "#d1d5db", true: "#93c5fd" }}
+                thumbColor={roadsideAssistance ? "#f59e0b" : "#fff"}
               />
             </View>
 
@@ -294,7 +382,9 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
               <View style={styles.mobileFeeSettings}>
                 <View style={styles.feeInputRow}>
                   <View style={styles.feeInputGroup}>
-                    <Text style={styles.feeInputLabel}>{t.provider?.freeKm || 'Free KM'}</Text>
+                    <Text style={styles.feeInputLabel}>
+                      {t.provider?.freeKm || "Free KM"}
+                    </Text>
                     <View style={styles.inputWithUnit}>
                       <TextInput
                         style={styles.feeInput}
@@ -306,7 +396,9 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
                     </View>
                   </View>
                   <View style={styles.feeInputGroup}>
-                    <Text style={styles.feeInputLabel}>{t.provider?.extraKmFee || 'Extra KM Fee'}</Text>
+                    <Text style={styles.feeInputLabel}>
+                      {t.provider?.extraKmFee || "Extra KM Fee"}
+                    </Text>
                     <View style={styles.inputWithUnit}>
                       <Text style={styles.inputPrefix}>$</Text>
                       <TextInput
@@ -319,12 +411,19 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
                   </View>
                 </View>
                 <Text style={styles.feeNote}>
-                  {t.provider?.firstKmFree || 'First'} {freeKm} {t.provider?.kmFree || 'km free, after'} ${extraFeePerKm}/{t.provider?.extraKm || 'km extra'}
+                  {t.provider?.firstKmFree || "First"} {freeKm}{" "}
+                  {t.provider?.kmFree || "km free, after"} ${extraFeePerKm}/
+                  {t.provider?.extraKm || "km extra"}
                 </Text>
                 <View style={styles.distanceInfo}>
-                  <MaterialCommunityIcons name="map-marker-distance" size={20} color="#6b7280" />
+                  <MaterialCommunityIcons
+                    name="map-marker-distance"
+                    size={20}
+                    color="#6b7280"
+                  />
                   <Text style={styles.distanceInfoText}>
-                    {t.provider?.distanceCalculation || 'Distance is calculated from your base address to service location using GPS coordinates (straight-line distance).'}
+                    {t.provider?.distanceCalculation ||
+                      "Distance is calculated from your base address to service location using GPS coordinates (straight-line distance)."}
                   </Text>
                 </View>
               </View>
@@ -335,38 +434,43 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
         {/* Coverage Zones */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>{t.provider?.coverageZones || 'Coverage Zones'}</Text>
-            <TouchableOpacity 
+            <Text style={styles.sectionTitle}>
+              {t.provider?.coverageZones || "Coverage Zones"}
+            </Text>
+            <TouchableOpacity
               style={styles.addZoneBtn}
               onPress={() => setShowAddZoneModal(true)}
             >
               <MaterialCommunityIcons name="plus" size={20} color="#1976d2" />
-              <Text style={styles.addZoneText}>{t.common?.add || 'Add'}</Text>
+              <Text style={styles.addZoneText}>{t.common?.add || "Add"}</Text>
             </TouchableOpacity>
           </View>
           <Text style={styles.zonesDescription}>
-            {t.provider?.coverageZonesDesc || 'Define specific neighborhoods or regions where you offer services. This helps customers find you more easily.'}
+            {t.provider?.coverageZonesDesc ||
+              "Define specific neighborhoods or regions where you offer services. This helps customers find you more easily."}
           </Text>
           <View style={styles.card}>
             {coverageZones.map((zone, index) => (
-              <View 
-                key={zone.id} 
+              <View
+                key={zone.id}
                 style={[
                   styles.zoneRow,
                   index < coverageZones.length - 1 && styles.zoneRowBorder,
                 ]}
               >
                 <View style={styles.zoneInfo}>
-                  <MaterialCommunityIcons 
-                    name={zone.active ? "map-marker-check" : "map-marker-off"} 
-                    size={22} 
-                    color={zone.active ? '#10b981' : '#9ca3af'} 
+                  <MaterialCommunityIcons
+                    name={zone.active ? "map-marker-check" : "map-marker-off"}
+                    size={22}
+                    color={zone.active ? "#10b981" : "#9ca3af"}
                   />
                   <View style={{ flex: 1 }}>
-                    <Text style={[
-                      styles.zoneName,
-                      !zone.active && styles.zoneNameInactive,
-                    ]}>
+                    <Text
+                      style={[
+                        styles.zoneName,
+                        !zone.active && styles.zoneNameInactive,
+                      ]}
+                    >
                       {zone.name}
                     </Text>
                     <Text style={styles.zoneRegion}>{zone.region}</Text>
@@ -376,14 +480,18 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
                   <Switch
                     value={zone.active}
                     onValueChange={() => toggleZone(zone.id)}
-                    trackColor={{ false: '#d1d5db', true: '#93c5fd' }}
-                    thumbColor={zone.active ? '#1976d2' : '#fff'}
+                    trackColor={{ false: "#d1d5db", true: "#93c5fd" }}
+                    thumbColor={zone.active ? "#1976d2" : "#fff"}
                   />
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     onPress={() => handleDeleteZone(zone.id, zone.name)}
                     style={styles.deleteZoneBtn}
                   >
-                    <MaterialCommunityIcons name="delete-outline" size={20} color="#ef4444" />
+                    <MaterialCommunityIcons
+                      name="delete-outline"
+                      size={20}
+                      color="#ef4444"
+                    />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -393,11 +501,16 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
 
         {/* Tips */}
         <View style={styles.tipsCard}>
-          <MaterialCommunityIcons name="lightbulb-outline" size={24} color="#f59e0b" />
+          <MaterialCommunityIcons
+            name="lightbulb-outline"
+            size={24}
+            color="#f59e0b"
+          />
           <View style={styles.tipsContent}>
-            <Text style={styles.tipsTitle}>{t.common?.tip || 'Tip'}</Text>
+            <Text style={styles.tipsTitle}>{t.common?.tip || "Tip"}</Text>
             <Text style={styles.tipsText}>
-              {t.provider?.serviceAreaTip || 'A larger service radius may increase your requests, but remember to consider travel time and costs.'}
+              {t.provider?.serviceAreaTip ||
+                "A larger service radius may increase your requests, but remember to consider travel time and costs."}
             </Text>
           </View>
         </View>
@@ -407,15 +520,17 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
 
       {/* Save Button */}
       <View style={styles.bottomContainer}>
-        <TouchableOpacity 
-          style={[styles.saveBtn, saving && { opacity: 0.6 }]} 
+        <TouchableOpacity
+          style={[styles.saveBtn, saving && { opacity: 0.6 }]}
           onPress={handleSave}
           disabled={saving}
         >
           {saving ? (
             <ActivityIndicator color="#fff" size="small" />
           ) : (
-            <Text style={styles.saveBtnText}>{t.common?.saveChanges || 'Save Changes'}</Text>
+            <Text style={styles.saveBtnText}>
+              {t.common?.saveChanges || "Save Changes"}
+            </Text>
           )}
         </TouchableOpacity>
       </View>
@@ -427,32 +542,43 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
         animationType="slide"
         onRequestClose={() => setShowAddZoneModal(false)}
       >
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.modalContainer}
         >
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.modalOverlay}
             activeOpacity={1}
             onPress={() => setShowAddZoneModal(false)}
           />
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t.provider?.addCoverageZone || 'Add Coverage Zone'}</Text>
-              <TouchableOpacity 
+              <Text style={styles.modalTitle}>
+                {t.provider?.addCoverageZone || "Add Coverage Zone"}
+              </Text>
+              <TouchableOpacity
                 onPress={() => setShowAddZoneModal(false)}
                 style={styles.modalCloseBtn}
               >
-                <MaterialCommunityIcons name="close" size={24} color="#6b7280" />
+                <MaterialCommunityIcons
+                  name="close"
+                  size={24}
+                  color="#6b7280"
+                />
               </TouchableOpacity>
             </View>
 
             <View style={styles.modalBody}>
               <View style={styles.modalInputGroup}>
-                <Text style={styles.modalLabel}>{t.provider?.zoneName || 'Zone Name'} *</Text>
+                <Text style={styles.modalLabel}>
+                  {t.provider?.zoneName || "Zone Name"} *
+                </Text>
                 <TextInput
                   style={styles.modalInput}
-                  placeholder={t.provider?.zoneNamePlaceholder || 'e.g., Downtown, North Zone'}
+                  placeholder={
+                    t.provider?.zoneNamePlaceholder ||
+                    "e.g., Downtown, North Zone"
+                  }
                   value={newZoneName}
                   onChangeText={setNewZoneName}
                   autoFocus
@@ -460,35 +586,48 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
               </View>
 
               <View style={styles.modalInputGroup}>
-                <Text style={styles.modalLabel}>{t.provider?.region || 'Region'}</Text>
+                <Text style={styles.modalLabel}>
+                  {t.provider?.region || "Region"}
+                </Text>
                 <TextInput
                   style={styles.modalInput}
-                  placeholder={t.provider?.regionPlaceholder || 'e.g., São Paulo - SP'}
+                  placeholder={
+                    t.provider?.regionPlaceholder || "e.g., São Paulo - SP"
+                  }
                   value={newZoneRegion}
                   onChangeText={setNewZoneRegion}
                 />
               </View>
 
               <View style={styles.modalInfo}>
-                <MaterialCommunityIcons name="information" size={20} color="#6b7280" />
+                <MaterialCommunityIcons
+                  name="information"
+                  size={20}
+                  color="#6b7280"
+                />
                 <Text style={styles.modalInfoText}>
-                  {t.provider?.zoneInfoText || 'Coverage zones help customers find you when searching for services in specific areas.'}
+                  {t.provider?.zoneInfoText ||
+                    "Coverage zones help customers find you when searching for services in specific areas."}
                 </Text>
               </View>
             </View>
 
             <View style={styles.modalFooter}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.modalCancelBtn}
                 onPress={() => setShowAddZoneModal(false)}
               >
-                <Text style={styles.modalCancelText}>{t.common?.cancel || 'Cancel'}</Text>
+                <Text style={styles.modalCancelText}>
+                  {t.common?.cancel || "Cancel"}
+                </Text>
               </TouchableOpacity>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.modalAddBtn}
                 onPress={handleAddZone}
               >
-                <Text style={styles.modalAddText}>{t.common?.add || 'Add'}</Text>
+                <Text style={styles.modalAddText}>
+                  {t.common?.add || "Add"}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -501,17 +640,17 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: "#f8fafc",
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: "#f3f4f6",
   },
   backBtn: {
     padding: 8,
@@ -521,31 +660,31 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
+    fontWeight: "600",
+    color: "#111827",
   },
   mapPreview: {
-    backgroundColor: '#e5e7eb',
+    backgroundColor: "#e5e7eb",
     height: 200,
     margin: 16,
     borderRadius: 16,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   mapPlaceholder: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#dbeafe',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#dbeafe",
   },
   mapText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1976d2',
+    fontWeight: "600",
+    color: "#1976d2",
     marginTop: 8,
   },
   mapSubtext: {
     fontSize: 14,
-    color: '#6b7280',
+    color: "#6b7280",
     marginTop: 4,
   },
   section: {
@@ -553,31 +692,31 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 8,
   },
   zonesDescription: {
     fontSize: 13,
-    color: '#6b7280',
+    color: "#6b7280",
     marginBottom: 12,
     lineHeight: 18,
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
+    fontWeight: "600",
+    color: "#111827",
     marginBottom: 12,
   },
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 12,
     padding: 16,
   },
   addressRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     gap: 12,
   },
   addressInfo: {
@@ -585,7 +724,7 @@ const styles = StyleSheet.create({
   },
   addressText: {
     fontSize: 14,
-    color: '#374151',
+    color: "#374151",
     lineHeight: 20,
   },
   changeAddressBtn: {
@@ -593,47 +732,47 @@ const styles = StyleSheet.create({
   },
   changeAddressText: {
     fontSize: 14,
-    color: '#1976d2',
-    fontWeight: '500',
+    color: "#1976d2",
+    fontWeight: "500",
   },
   radiusLabel: {
     fontSize: 14,
-    color: '#6b7280',
+    color: "#6b7280",
     marginBottom: 16,
   },
   radiusOptions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 10,
   },
   radiusOption: {
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: "#f3f4f6",
     borderWidth: 2,
-    borderColor: '#f3f4f6',
+    borderColor: "#f3f4f6",
   },
   radiusOptionActive: {
-    backgroundColor: '#dbeafe',
-    borderColor: '#1976d2',
+    backgroundColor: "#dbeafe",
+    borderColor: "#1976d2",
   },
   radiusOptionText: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#6b7280',
+    fontWeight: "500",
+    color: "#6b7280",
   },
   radiusOptionTextActive: {
-    color: '#1976d2',
+    color: "#1976d2",
   },
   switchRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   switchInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
     flex: 1,
   },
@@ -642,22 +781,22 @@ const styles = StyleSheet.create({
   },
   switchLabel: {
     fontSize: 15,
-    fontWeight: '500',
-    color: '#111827',
+    fontWeight: "500",
+    color: "#111827",
   },
   switchDescription: {
     fontSize: 13,
-    color: '#6b7280',
+    color: "#6b7280",
     marginTop: 2,
   },
   mobileFeeSettings: {
     marginTop: 20,
     paddingTop: 20,
     borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
+    borderTopColor: "#f3f4f6",
   },
   feeInputRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 16,
   },
   feeInputGroup: {
@@ -665,85 +804,85 @@ const styles = StyleSheet.create({
   },
   feeInputLabel: {
     fontSize: 13,
-    color: '#6b7280',
+    color: "#6b7280",
     marginBottom: 8,
   },
   inputWithUnit: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f9fafb',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f9fafb",
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: "#e5e7eb",
     paddingHorizontal: 12,
   },
   inputPrefix: {
     fontSize: 14,
-    color: '#6b7280',
+    color: "#6b7280",
   },
   inputUnit: {
     fontSize: 14,
-    color: '#6b7280',
+    color: "#6b7280",
     marginLeft: 4,
   },
   feeInput: {
     flex: 1,
     fontSize: 15,
-    color: '#111827',
+    color: "#111827",
     paddingVertical: 10,
   },
   feeNote: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: "#9ca3af",
     marginTop: 12,
-    fontStyle: 'italic',
+    fontStyle: "italic",
   },
   distanceInfo: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     gap: 8,
     marginTop: 16,
     padding: 12,
-    backgroundColor: '#f0f9ff',
+    backgroundColor: "#f0f9ff",
     borderRadius: 8,
     borderLeftWidth: 3,
-    borderLeftColor: '#1976d2',
+    borderLeftColor: "#1976d2",
   },
   distanceInfoText: {
     flex: 1,
     fontSize: 12,
-    color: '#1e40af',
+    color: "#1e40af",
     lineHeight: 18,
   },
   addZoneBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
   },
   addZoneText: {
     fontSize: 14,
-    color: '#1976d2',
-    fontWeight: '500',
+    color: "#1976d2",
+    fontWeight: "500",
   },
   zoneRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingVertical: 12,
   },
   zoneRowBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: "#f3f4f6",
   },
   zoneInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
     flex: 1,
   },
   zoneActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
   },
   deleteZoneBtn: {
@@ -751,20 +890,20 @@ const styles = StyleSheet.create({
   },
   zoneName: {
     fontSize: 15,
-    fontWeight: '500',
-    color: '#111827',
+    fontWeight: "500",
+    color: "#111827",
   },
   zoneNameInactive: {
-    color: '#9ca3af',
+    color: "#9ca3af",
   },
   zoneRegion: {
     fontSize: 13,
-    color: '#6b7280',
+    color: "#6b7280",
     marginTop: 2,
   },
   tipsCard: {
-    flexDirection: 'row',
-    backgroundColor: '#fef3c7',
+    flexDirection: "row",
+    backgroundColor: "#fef3c7",
     marginHorizontal: 16,
     padding: 16,
     borderRadius: 12,
@@ -775,64 +914,64 @@ const styles = StyleSheet.create({
   },
   tipsTitle: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#92400e',
+    fontWeight: "600",
+    color: "#92400e",
     marginBottom: 4,
   },
   tipsText: {
     fontSize: 13,
-    color: '#92400e',
+    color: "#92400e",
     lineHeight: 18,
   },
   bottomContainer: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     padding: 16,
     paddingBottom: 32,
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: "#e5e7eb",
   },
   saveBtn: {
-    backgroundColor: '#1976d2',
+    backgroundColor: "#1976d2",
     paddingVertical: 16,
     borderRadius: 12,
-    alignItems: 'center',
+    alignItems: "center",
   },
   saveBtnText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
+    fontWeight: "600",
+    color: "#fff",
   },
   // Modal styles
   modalContainer: {
     flex: 1,
-    justifyContent: 'flex-end',
+    justifyContent: "flex-end",
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   modalContent: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: '80%',
+    maxHeight: "80%",
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: "#f3f4f6",
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
+    fontWeight: "600",
+    color: "#111827",
   },
   modalCloseBtn: {
     padding: 4,
@@ -845,63 +984,63 @@ const styles = StyleSheet.create({
   },
   modalLabel: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#374151',
+    fontWeight: "500",
+    color: "#374151",
     marginBottom: 8,
   },
   modalInput: {
-    backgroundColor: '#f9fafb',
+    backgroundColor: "#f9fafb",
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: "#e5e7eb",
     borderRadius: 8,
     padding: 12,
     fontSize: 15,
-    color: '#111827',
+    color: "#111827",
   },
   modalInfo: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     gap: 8,
     padding: 12,
-    backgroundColor: '#f0f9ff',
+    backgroundColor: "#f0f9ff",
     borderRadius: 8,
   },
   modalInfoText: {
     flex: 1,
     fontSize: 13,
-    color: '#1e40af',
+    color: "#1e40af",
     lineHeight: 18,
   },
   modalFooter: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
     padding: 20,
     borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
+    borderTopColor: "#f3f4f6",
   },
   modalCancelBtn: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    alignItems: 'center',
+    borderColor: "#e5e7eb",
+    alignItems: "center",
   },
   modalCancelText: {
     fontSize: 15,
-    fontWeight: '500',
-    color: '#6b7280',
+    fontWeight: "500",
+    color: "#6b7280",
   },
   modalAddBtn: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 8,
-    backgroundColor: '#1976d2',
-    alignItems: 'center',
+    backgroundColor: "#1976d2",
+    alignItems: "center",
   },
   modalAddText: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#fff',
+    fontWeight: "600",
+    color: "#fff",
   },
 });
