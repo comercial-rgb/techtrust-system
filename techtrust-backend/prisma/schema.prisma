@@ -158,6 +158,90 @@ enum SupplementStatus {
   VOIDED
 }
 
+// ============================================
+// PROVIDER COMPLIANCE & INSURANCE ENUMS
+// ============================================
+
+enum EntityType {
+  LLC
+  CORP
+  SOLE_PROP
+  PARTNERSHIP
+  OTHER_ENTITY
+}
+
+enum ServiceOffered {
+  GENERAL_REPAIR
+  MAINTENANCE_LIGHT
+  DIAGNOSTICS
+  TIRES
+  BATTERY
+  BRAKES
+  ELECTRICAL_BASIC
+  AC_SERVICE
+  TOWING
+  ROADSIDE_ASSIST
+}
+
+enum ProviderPublicStatus {
+  VERIFIED
+  PENDING
+  RESTRICTED
+  NOT_ELIGIBLE
+}
+
+enum ComplianceType {
+  FDACS_MOTOR_VEHICLE_REPAIR
+  LOCAL_BTR_CITY
+  LOCAL_BTR_COUNTY
+  EPA_609_TECHNICIAN
+}
+
+enum ComplianceStatus {
+  NOT_PROVIDED
+  PROVIDED_UNVERIFIED
+  VERIFIED
+  COMPLIANCE_PENDING
+  EXPIRED
+  NOT_APPLICABLE
+}
+
+enum TechnicianRole {
+  TECH
+  LEAD_TECH
+  MANAGER
+  OTHER_ROLE
+}
+
+enum InsurancePolicyType {
+  GENERAL_LIABILITY
+  GARAGE_LIABILITY
+  GARAGEKEEPERS
+  COMMERCIAL_AUTO
+  ON_HOOK
+  WORKERS_COMP
+  UMBRELLA_EXCESS
+}
+
+enum InsurancePolicyStatus {
+  INS_NOT_PROVIDED
+  INS_PROVIDED_UNVERIFIED
+  INS_VERIFIED
+  INS_EXPIRED
+}
+
+enum VerificationMethod {
+  MANUAL_REVIEW
+  SELF_ATTESTATION
+  THIRD_PARTY
+}
+
+enum VerificationEntityType {
+  COMPLIANCE_ITEM
+  INSURANCE_POLICY
+  TECHNICIAN_CERT
+}
+
 enum CancellationRequestStatus {
   REQUESTED
   PENDING_PROVIDER_VALIDATION
@@ -250,6 +334,7 @@ model User {
   articles          Article[]
   appointmentsAsCustomer Appointment[] @relation("CustomerAppointments")
   appointmentsAsProvider Appointment[] @relation("ProviderAppointments")
+  riskAcceptanceLogs     UserRiskAcceptanceLog[]
 
   @@index([email])
   @@index([phone])
@@ -268,8 +353,12 @@ model ProviderProfile {
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   
-  // Informações do negócio
+  // ===== Legal / Business Identity =====
   businessName  String
+  legalName     String?    // Official registered legal name
+  dbaName       String?    // "Doing Business As" name
+  ein           String?    // Employer Identification Number (encrypted at-rest)
+  entityType    EntityType? // LLC, CORP, SOLE_PROP, PARTNERSHIP, OTHER_ENTITY
   businessType  String?
   businessLicense String?
   taxId         String?
@@ -277,16 +366,20 @@ model ProviderProfile {
   // FDACS Motor Vehicle Repair Shop Registration (Florida requirement)
   fdacsRegistrationNumber String?
   
-  // Contato
+  // ===== Contact =====
+  contactName   String?    // Primary contact person name
   businessPhone String?
   businessEmail String?
   website       String?
   
-  // Endereço
-  address String
-  city    String
-  state   String
-  zipCode String
+  // ===== Service Address =====
+  address       String       // service_address_line1
+  addressLine2  String?      // service_address_line2
+  city          String
+  state         String       @default("FL")
+  zipCode       String
+  county        String?      // Required for BTR compliance
+  insideCityLimits Boolean?  // For Local BTR City determination
   
   // Raio de atendimento (em km)
   serviceRadiusKm Int @default(25)
@@ -295,13 +388,16 @@ model ProviderProfile {
   baseLatitude  Decimal? @db.Decimal(10, 8)
   baseLongitude Decimal? @db.Decimal(11, 8)
   
-  // Tipos de serviço oferecidos
-  mobileService      Boolean @default(false)  // Atendimento no local do cliente
-  roadsideAssistance Boolean @default(false)  // Assistência em rodovia (SOS)
+  // ===== Services Offered (enum set) =====
+  servicesOffered Json @default("[]") // Array of ServiceOffered values
+  
+  // Tipos de serviço oferecidos (legacy)
+  mobileService      Boolean @default(false)
+  roadsideAssistance Boolean @default(false)
   
   // Configuração de taxa de deslocamento
-  freeKm        Int     @default(0)           // Km grátis inclusos
-  extraFeePerKm Decimal @default(0) @db.Decimal(6, 2) // Taxa por km adicional
+  freeKm        Int     @default(0)
+  extraFeePerKm Decimal @default(0) @db.Decimal(6, 2)
   
   // Especialidades (JSON array)
   specialties Json @default("[]")
@@ -317,7 +413,11 @@ model ProviderProfile {
   hasProSubscription Boolean @default(false)
   proSubscriptionExpiresAt DateTime?
   
-  // Verificação
+  // ===== Compliance & Insurance Status =====
+  providerPublicStatus ProviderPublicStatus @default(PENDING)
+  providerInternalNotes String?  @db.Text
+  
+  // Legacy verification flags (kept for backward compat)
   isVerified Boolean @default(false)
   verifiedAt DateTime?
   backgroundCheckCompleted Boolean @default(false)
@@ -327,9 +427,15 @@ model ProviderProfile {
   averageRating Decimal @default(0) @db.Decimal(3, 2)
   totalReviews  Int     @default(0)
   totalServicesCompleted Int @default(0)
+  
+  // ===== Relations =====
+  complianceItems   ComplianceItem[]
+  technicians       Technician[]
+  insurancePolicies InsurancePolicy[]
 
   @@index([userId])
   @@index([isVerified])
+  @@index([providerPublicStatus])
   @@map("provider_profiles")
 }
 
@@ -1660,4 +1766,189 @@ model Receipt {
   
   @@index([paymentId])
   @@map("receipts")
+}
+
+// ============================================
+// COMPLIANCE ITEM - Verifiable licensing/registration
+// (FDACS, City BTR, County BTR, EPA 609, etc.)
+// ============================================
+model ComplianceItem {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Provider
+  providerProfileId String
+  providerProfile   ProviderProfile @relation(fields: [providerProfileId], references: [id], onDelete: Cascade)
+  
+  // Type and status
+  type   ComplianceType
+  status ComplianceStatus @default(NOT_PROVIDED)
+  
+  // License/registration details
+  licenseNumber    String?
+  issuingAuthority String?    // e.g. "FDACS", "City of Miami", "Orange County Tax Collector"
+  issueDate        DateTime?
+  expirationDate   DateTime?
+  
+  // Document uploads (JSON array of {url, filename, uploadedAt})
+  documentUploads  Json @default("[]")
+  
+  // Verification
+  lastVerifiedAt     DateTime?
+  verifiedByUserId   String?
+  verificationMethod VerificationMethod?
+  verificationNotes  String?
+  
+  // For EPA_609_TECHNICIAN: link to technician
+  technicianId String?
+  technician   Technician? @relation(fields: [technicianId], references: [id], onDelete: SetNull)
+  
+  @@unique([providerProfileId, type, technicianId]) // One compliance item per type per provider (or per technician for EPA)
+  @@index([providerProfileId])
+  @@index([type])
+  @@index([status])
+  @@index([expirationDate])
+  @@map("compliance_items")
+}
+
+// ============================================
+// TECHNICIAN - Employees with federal certifications (EPA 609)
+// ============================================
+model Technician {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Provider
+  providerProfileId String
+  providerProfile   ProviderProfile @relation(fields: [providerProfileId], references: [id], onDelete: Cascade)
+  
+  // Personal info
+  fullName String
+  phone    String?
+  email    String?
+  role     TechnicianRole @default(TECH)
+  
+  // EPA Section 609 Certification
+  epa609Status        ComplianceStatus @default(NOT_PROVIDED)
+  epa609CertNumber    String?
+  epa609IssuingOrg    String?    // e.g. "ESCO Institute", "EPA"
+  epa609IssueDate     DateTime?
+  epa609ExpirationDate DateTime? // Some don't expire; allow null
+  epa609Uploads       Json @default("[]") // [{url, filename, uploadedAt}]
+  
+  // Active status
+  isActive Boolean @default(true)
+  
+  // Relations
+  complianceItems ComplianceItem[]
+  
+  @@index([providerProfileId])
+  @@index([epa609Status])
+  @@map("technicians")
+}
+
+// ============================================
+// INSURANCE POLICY - Provider insurance coverage
+// ============================================
+model InsurancePolicy {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Provider
+  providerProfileId String
+  providerProfile   ProviderProfile @relation(fields: [providerProfileId], references: [id], onDelete: Cascade)
+  
+  // Type
+  type InsurancePolicyType
+  
+  // Coverage declaration
+  hasCoverage Boolean @default(false)
+  
+  // Status
+  status InsurancePolicyStatus @default(INS_NOT_PROVIDED)
+  
+  // Policy details (required if hasCoverage = true)
+  carrierName    String?
+  policyNumber   String?
+  effectiveDate  DateTime?
+  expirationDate DateTime?
+  coverageLimit  String?   // e.g. "$1,000,000 / $2,000,000 agg"
+  deductible     String?
+  
+  // Certificate of Insurance uploads (JSON array of {url, filename, uploadedAt})
+  coiUploads Json @default("[]")
+  
+  // Verification
+  lastVerifiedAt     DateTime?
+  verifiedByUserId   String?
+  verificationNotes  String?
+  
+  @@unique([providerProfileId, type]) // One policy per type per provider
+  @@index([providerProfileId])
+  @@index([type])
+  @@index([status])
+  @@index([expirationDate])
+  @@map("insurance_policies")
+}
+
+// ============================================
+// USER RISK ACCEPTANCE LOG - Audit trail for insurance disclaimers
+// ============================================
+model UserRiskAcceptanceLog {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  
+  // Who accepted
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // About which provider
+  providerId String
+  
+  // Context
+  serviceType        String    // e.g. "GENERAL_REPAIR", "TOWING"
+  disclaimerVersion  String    // Version of the disclaimer text shown
+  
+  // Device/session info (security & legal)
+  ipAddress  String?
+  userAgent  String?
+  deviceInfo String?
+  
+  // The exact disclaimer text shown (for legal defensibility)
+  disclaimerTextShown String @db.Text
+  
+  @@index([userId])
+  @@index([providerId])
+  @@index([createdAt])
+  @@map("user_risk_acceptance_logs")
+}
+
+// ============================================
+// VERIFICATION LOG - Internal audit trail for all verifications
+// ============================================
+model VerificationLog {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  
+  // What was verified
+  entityType VerificationEntityType
+  entityId   String   // UUID of ComplianceItem, InsurancePolicy, or Technician
+  
+  // Status change
+  previousStatus String
+  newStatus      String
+  
+  // Who verified
+  verifiedByUserId String
+  
+  // Notes
+  notes String? @db.Text
+  
+  @@index([entityType, entityId])
+  @@index([verifiedByUserId])
+  @@index([createdAt])
+  @@map("verification_logs")
 }

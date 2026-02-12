@@ -29,6 +29,12 @@ import ProviderSecurityScreen from '../screens/provider/ProviderSecurityScreen';
 import ProviderHelpScreen from '../screens/provider/ProviderHelpScreen';
 import ProviderTermsAndPoliciesScreen from '../screens/provider/ProviderTermsAndPoliciesScreen';
 
+// Provider Compliance Screens
+import ProviderComplianceScreen from '../screens/provider/ProviderComplianceScreen';
+import ComplianceItemDetailScreen from '../screens/provider/ComplianceItemDetailScreen';
+import TechnicianManagementScreen from '../screens/provider/TechnicianManagementScreen';
+import InsuranceManagementScreen from '../screens/provider/InsuranceManagementScreen';
+
 // Common Screens
 import NotificationsScreen from '../screens/NotificationsScreen';
 import SupportChatScreen from '../screens/SupportChatScreen';
@@ -113,6 +119,10 @@ function ProfileStack() {
       <Stack.Screen name="Security" component={ProviderSecurityScreen} />
       <Stack.Screen name="Help" component={ProviderHelpScreen} />
       <Stack.Screen name="TermsAndPolicies" component={ProviderTermsAndPoliciesScreen} />
+      <Stack.Screen name="Compliance" component={ProviderComplianceScreen} />
+      <Stack.Screen name="ComplianceItemDetail" component={ComplianceItemDetailScreen} />
+      <Stack.Screen name="TechnicianManagement" component={TechnicianManagementScreen} />
+      <Stack.Screen name="InsuranceManagement" component={InsuranceManagementScreen} />
       <Stack.Screen name="SupportChat" component={SupportChatScreen} />
     </Stack.Navigator>
   );

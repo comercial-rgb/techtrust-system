@@ -20,3 +20,9 @@ export { default as ProviderPaymentHistoryScreen } from './ProviderPaymentHistor
 export { default as ProviderSecurityScreen } from './ProviderSecurityScreen';
 export { default as ProviderHelpScreen } from './ProviderHelpScreen';
 export { default as ProviderTermsAndPoliciesScreen } from './ProviderTermsAndPoliciesScreen';
+
+// Provider Compliance Screens
+export { default as ProviderComplianceScreen } from './ProviderComplianceScreen';
+export { default as ComplianceItemDetailScreen } from './ComplianceItemDetailScreen';
+export { default as TechnicianManagementScreen } from './TechnicianManagementScreen';
+export { default as InsuranceManagementScreen } from './InsuranceManagementScreen';

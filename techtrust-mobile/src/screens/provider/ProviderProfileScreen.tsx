@@ -240,6 +240,12 @@ export default function ProviderProfileScreen({ navigation }: any) {
             subtitle={`${t.common.radius || 'Radius'}: 25 km`}
             onPress={() => navigation.navigate('ServiceArea')}
           />
+          <MenuItem
+            icon="shield-check"
+            label="Compliance & Licensing"
+            subtitle="FDACS, Insurance, EPA 609"
+            onPress={() => navigation.navigate('Compliance')}
+          />
         </View>
 
         <View style={styles.section}>

@@ -48,6 +48,10 @@ import tipRoutes from "./routes/tip.routes";
 import appointmentRoutes from "./routes/appointment.routes";
 import estimateShareRoutes from "./routes/estimate-share.routes";
 import repairInvoiceRoutes from "./routes/repair-invoice.routes";
+import complianceRoutes from "./routes/compliance.routes";
+import technicianRoutes from "./routes/technician.routes";
+import insuranceRoutes from "./routes/insurance.routes";
+import verificationRoutes from "./routes/verification.routes";
 
 // Carregar variáveis de ambiente
 dotenv.config();
@@ -256,6 +260,10 @@ app.use(`/api/${API_VERSION}/tips`, tipRoutes); // Tips/gratuity system
 app.use(`/api/${API_VERSION}/appointments`, appointmentRoutes); // Diagnostic visit scheduling
 app.use(`/api/${API_VERSION}/estimate-shares`, estimateShareRoutes); // Share estimates for competing quotes
 app.use(`/api/${API_VERSION}/repair-invoices`, repairInvoiceRoutes); // FDACS Repair Invoices
+app.use(`/api/${API_VERSION}/compliance`, complianceRoutes); // Provider compliance (FDACS, BTR, EPA)
+app.use(`/api/${API_VERSION}/technicians`, technicianRoutes); // Technician management
+app.use(`/api/${API_VERSION}/insurance`, insuranceRoutes); // Insurance policies
+app.use(`/api/${API_VERSION}/verification`, verificationRoutes); // Verification & risk acceptance
 
 // ============================================
 // ERROR HANDLER (deve ser o último middleware)
@@ -274,6 +282,15 @@ httpServer.listen(PORT, async () => {
   } catch (error) {
     logger.error("❌ Erro ao conectar no PostgreSQL:", error);
     process.exit(1);
+  }
+
+  // Start compliance expiration checker
+  try {
+    const { scheduleExpirationCheck } = await import("./services/expiration-checker");
+    scheduleExpirationCheck();
+    logger.info("🔄 Compliance expiration checker: Ativo");
+  } catch (error) {
+    logger.warn("⚠️ Expiration checker failed to start:", error);
   }
 
   logger.info(`🚀 TechTrust API rodando em http://localhost:${PORT}`);
