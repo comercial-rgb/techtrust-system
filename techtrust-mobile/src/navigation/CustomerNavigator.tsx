@@ -144,6 +144,11 @@ function WorkOrdersStack() {
       <Stack.Screen name="Rating" component={RatingScreen} />
       <Stack.Screen name="RepairInvoices" component={RepairInvoicesScreen} />
       <Stack.Screen name="RepairInvoiceDetails" component={RepairInvoiceDetailsScreen} />
+      <Stack.Screen name="Appointments" component={AppointmentsScreen} />
+      <Stack.Screen name="AppointmentDetails" component={AppointmentDetailsScreen} />
+      <Stack.Screen name="ScheduleAppointment" component={ScheduleAppointmentScreen} />
+      <Stack.Screen name="EstimateShares" component={EstimateSharesScreen} />
+      <Stack.Screen name="CompareEstimates" component={CompareEstimatesScreen} />
     </Stack.Navigator>
   );
 }

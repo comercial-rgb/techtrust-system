@@ -318,6 +318,26 @@ export default function ProviderDashboardScreen({ navigation }: any) {
               </View>
               <Text style={styles.actionText}>{t.provider.settings}</Text>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => navigation.navigate('Appointments')}
+            >
+              <View style={[styles.actionIcon, { backgroundColor: '#dbeafe' }]}>
+                <MaterialCommunityIcons name="calendar-clock" size={24} color="#2563eb" />
+              </View>
+              <Text style={styles.actionText}>{t.fdacs?.appointments || 'Appointments'}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => navigation.navigate('ProviderWorkOrders', { screen: 'RepairInvoices' })}
+            >
+              <View style={[styles.actionIcon, { backgroundColor: '#fef3c7' }]}>
+                <MaterialCommunityIcons name="file-document-check" size={24} color="#d97706" />
+              </View>
+              <Text style={styles.actionText}>{t.fdacs?.repairInvoices || 'Invoices'}</Text>
+            </TouchableOpacity>
           </View>
         </View>
 

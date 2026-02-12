@@ -252,6 +252,23 @@ export default function ProviderQuotesScreen({ navigation }: any) {
         />
       </View>
 
+      {/* FDACS - Estimate Shares */}
+      <TouchableOpacity
+        style={{
+          flexDirection: 'row', alignItems: 'center', gap: 8,
+          backgroundColor: '#f0fdf4', marginHorizontal: 16, marginBottom: 8,
+          paddingHorizontal: 14, paddingVertical: 10,
+          borderRadius: 10, borderWidth: 1, borderColor: '#bbf7d0',
+        }}
+        onPress={() => navigation.navigate('EstimateShares')}
+      >
+        <MaterialCommunityIcons name="share-variant" size={20} color="#16a34a" />
+        <Text style={{ fontSize: 14, fontWeight: '600', color: '#166534' }}>
+          {t.fdacs?.writtenEstimates || 'Written Estimates'}
+        </Text>
+        <MaterialCommunityIcons name="chevron-right" size={20} color="#16a34a" style={{ marginLeft: 'auto' }} />
+      </TouchableOpacity>
+
       {/* List */}
       <FlatList
         data={filteredQuotes}

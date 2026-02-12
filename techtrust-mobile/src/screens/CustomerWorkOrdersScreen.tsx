@@ -349,6 +349,56 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
         </ScrollView>
       </FadeInView>
 
+      {/* FDACS Quick Actions */}
+      <FadeInView delay={80}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ paddingHorizontal: 16, marginBottom: 8 }}
+          contentContainerStyle={{ gap: 10 }}
+        >
+          <TouchableOpacity
+            style={{
+              flexDirection: 'row', alignItems: 'center', gap: 6,
+              backgroundColor: '#f0f9ff', paddingHorizontal: 14, paddingVertical: 10,
+              borderRadius: 10, borderWidth: 1, borderColor: '#bae6fd',
+            }}
+            onPress={() => navigation.navigate('Appointments')}
+          >
+            <Ionicons name="calendar" size={18} color="#0284c7" />
+            <Text style={{ fontSize: 13, fontWeight: '600', color: '#0284c7' }}>
+              {t.fdacs?.appointments || 'Appointments'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={{
+              flexDirection: 'row', alignItems: 'center', gap: 6,
+              backgroundColor: '#fef3c7', paddingHorizontal: 14, paddingVertical: 10,
+              borderRadius: 10, borderWidth: 1, borderColor: '#fde68a',
+            }}
+            onPress={() => navigation.navigate('RepairInvoices')}
+          >
+            <Ionicons name="receipt" size={18} color="#b45309" />
+            <Text style={{ fontSize: 13, fontWeight: '600', color: '#b45309' }}>
+              {t.fdacs?.repairInvoices || 'Invoices'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={{
+              flexDirection: 'row', alignItems: 'center', gap: 6,
+              backgroundColor: '#f0fdf4', paddingHorizontal: 14, paddingVertical: 10,
+              borderRadius: 10, borderWidth: 1, borderColor: '#bbf7d0',
+            }}
+            onPress={() => navigation.navigate('EstimateShares')}
+          >
+            <Ionicons name="share-social" size={18} color="#16a34a" />
+            <Text style={{ fontSize: 13, fontWeight: '600', color: '#16a34a' }}>
+              {t.fdacs?.estimateShares || 'Estimates'}
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </FadeInView>
+
       {/* Search */}
       <FadeInView delay={100}>
         <View style={styles.searchContainer}>

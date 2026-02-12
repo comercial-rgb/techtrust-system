@@ -262,6 +262,23 @@ export default function ProviderWorkOrdersScreen({ navigation }: any) {
         </TouchableOpacity>
       </View>
 
+      {/* FDACS Quick Action */}
+      <TouchableOpacity
+        style={{
+          flexDirection: 'row', alignItems: 'center', gap: 8,
+          backgroundColor: '#fef3c7', marginHorizontal: 16, marginBottom: 8,
+          paddingHorizontal: 14, paddingVertical: 10,
+          borderRadius: 10, borderWidth: 1, borderColor: '#fde68a',
+        }}
+        onPress={() => navigation.navigate('RepairInvoices')}
+      >
+        <MaterialCommunityIcons name="file-document-check" size={20} color="#d97706" />
+        <Text style={{ fontSize: 14, fontWeight: '600', color: '#92400e' }}>
+          {t.fdacs?.repairInvoices || 'Repair Invoices'}
+        </Text>
+        <MaterialCommunityIcons name="chevron-right" size={20} color="#d97706" style={{ marginLeft: 'auto' }} />
+      </TouchableOpacity>
+
       {/* List */}
       <FlatList
         data={filteredWorkOrders}
