@@ -117,7 +117,8 @@ export async function getVehicles(): Promise<Vehicle[]> {
 export async function getServiceRequests(): Promise<ServiceRequest[]> {
   try {
     const response = await api.get('/service-requests');
-    const requests = response.data.data || [];
+    const raw = response.data.data || response.data || {};
+    const requests = raw.requests || (Array.isArray(raw) ? raw : []);
     
     // Mapear para formato esperado pela UI
     return requests.map((req: any) => ({
@@ -273,7 +274,8 @@ export interface PaymentMethod {
 export async function getWorkOrders(): Promise<WorkOrder[]> {
   try {
     const response = await api.get('/work-orders');
-    return response.data.data || [];
+    const raw = response.data.data || response.data || {};
+    return raw.orders || (Array.isArray(raw) ? raw : []);
   } catch (error) {
     console.error('Erro ao buscar ordens de serviço:', error);
     return [];
