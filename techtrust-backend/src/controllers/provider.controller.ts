@@ -118,6 +118,20 @@ export const getAvailableRequests = async (req: Request, res: Response) => {
   const providerId = req.user!.id;
   const { serviceType, page = 1, limit = 10 } = req.query;
 
+  // Load provider profile for capability filtering
+  const providerProfile = await prisma.providerProfile.findUnique({
+    where: { userId: providerId },
+    select: { servicesOffered: true, vehicleTypesServed: true, sellsParts: true },
+  });
+
+  const providerServices: string[] = Array.isArray(providerProfile?.servicesOffered)
+    ? (providerProfile!.servicesOffered as string[]).map((s: string) => s.toUpperCase())
+    : [];
+  const providerVehicleTypes: string[] = Array.isArray(providerProfile?.vehicleTypesServed)
+    ? (providerProfile!.vehicleTypesServed as string[]).map((s: string) => s.toUpperCase())
+    : [];
+  const providerSellsParts = providerProfile?.sellsParts || false;
+
   // Verificar se fornecedor já enviou quote
   const myQuotes = await prisma.quote.findMany({
     where: { providerId },
@@ -144,40 +158,73 @@ export const getAvailableRequests = async (req: Request, res: Response) => {
     where.serviceType = serviceType;
   }
 
-  const skip = (Number(page) - 1) * Number(limit);
+  const allRequests = await prisma.serviceRequest.findMany({
+    where,
+    orderBy: {
+      createdAt: "desc",
+    },
+    include: {
+      vehicle: {
+        select: {
+          make: true,
+          model: true,
+          year: true,
+        },
+      },
+      user: {
+        select: {
+          fullName: true,
+          city: true,
+          state: true,
+        },
+      },
+    },
+  });
 
-  const [requests, total] = await Promise.all([
-    prisma.serviceRequest.findMany({
-      where,
-      skip,
-      take: Number(limit),
-      orderBy: {
-        createdAt: "desc",
-      },
-      include: {
-        vehicle: {
-          select: {
-            make: true,
-            model: true,
-            year: true,
-          },
-        },
-        user: {
-          select: {
-            fullName: true,
-            city: true,
-            state: true,
-          },
-        },
-      },
-    }),
-    prisma.serviceRequest.count({ where }),
-  ]);
+  // Same mapping as getPendingRequests
+  const RAW_TO_SERVICE_OFFERED: Record<string, string[]> = {
+    oil: ["OIL_CHANGE", "MAINTENANCE_LIGHT", "GENERAL_REPAIR"],
+    brake: ["BRAKES", "GENERAL_REPAIR"],
+    tire: ["TIRES", "GENERAL_REPAIR"],
+    engine: ["ENGINE", "GENERAL_REPAIR"],
+    electric: ["ELECTRICAL_BASIC", "GENERAL_REPAIR"],
+    ac: ["AC_SERVICE", "GENERAL_REPAIR"],
+    suspension: ["SUSPENSION", "GENERAL_REPAIR"],
+    transmission: ["TRANSMISSION", "GENERAL_REPAIR"],
+    inspection: ["INSPECTION", "DIAGNOSTICS"],
+    detailing: ["DETAILING"],
+    towing: ["TOWING", "ROADSIDE_ASSIST"],
+    roadside: ["ROADSIDE_ASSIST", "TOWING"],
+    battery: ["BATTERY", "ROADSIDE_ASSIST", "ELECTRICAL_BASIC"],
+    lockout: ["LOCKOUT", "ROADSIDE_ASSIST"],
+    diagnostic: ["DIAGNOSTICS"],
+    other: ["GENERAL_REPAIR"],
+  };
+
+  // Filter by provider capabilities
+  const filteredRequests = allRequests.filter((r) => {
+    if (providerServices.length === 0) return true;
+    const rawType = (r as any).rawServiceType?.toLowerCase() || "";
+    const matchingServices = RAW_TO_SERVICE_OFFERED[rawType] || ["GENERAL_REPAIR"];
+    const serviceMatch = matchingServices.some((s) => providerServices.includes(s));
+    if (!serviceMatch) return false;
+    const requestVehicleCategory = ((r as any).vehicleCategory || "").toUpperCase();
+    if (requestVehicleCategory && providerVehicleTypes.length > 0) {
+      if (!providerVehicleTypes.includes(requestVehicleCategory)) return false;
+    }
+    const requestScope = (r as any).serviceScope || "";
+    if (requestScope === "parts" && !providerSellsParts) return false;
+    return true;
+  });
+
+  const skip = (Number(page) - 1) * Number(limit);
+  const paginatedRequests = filteredRequests.slice(skip, skip + Number(limit));
+  const total = filteredRequests.length;
 
   res.json({
     success: true,
     data: {
-      requests,
+      requests: paginatedRequests,
       pagination: {
         page: Number(page),
         limit: Number(limit),
@@ -269,6 +316,9 @@ export const updateProfile = async (req: Request, res: Response) => {
     freeKm,
     extraFeePerKm,
     fdacsRegistrationNumber,
+    servicesOffered,
+    vehicleTypesServed,
+    sellsParts,
   } = req.body;
 
   // Se endereço foi fornecido, tenta fazer geocoding
@@ -311,6 +361,9 @@ export const updateProfile = async (req: Request, res: Response) => {
       specialties: specialties || [],
       businessHours: businessHours || {},
       fdacsRegistrationNumber: fdacsRegistrationNumber || null,
+      servicesOffered: servicesOffered || [],
+      vehicleTypesServed: vehicleTypesServed || [],
+      sellsParts: sellsParts || false,
       isVerified: false,
       averageRating: 0,
       totalReviews: 0,
@@ -338,6 +391,9 @@ export const updateProfile = async (req: Request, res: Response) => {
       ...(fdacsRegistrationNumber !== undefined && {
         fdacsRegistrationNumber: fdacsRegistrationNumber || null,
       }),
+      ...(servicesOffered !== undefined && { servicesOffered }),
+      ...(vehicleTypesServed !== undefined && { vehicleTypesServed }),
+      ...(sellsParts !== undefined && { sellsParts }),
     },
   });
 
@@ -636,9 +692,24 @@ export const getRecentActivity = async (req: Request, res: Response) => {
 /**
  * GET /api/v1/providers/pending-requests
  * Solicitações pendentes na área do fornecedor
+ * Filtered by provider's servicesOffered, vehicleTypesServed, and sellsParts
  */
 export const getPendingRequests = async (req: Request, res: Response) => {
   const providerId = req.user!.id;
+
+  // Load provider profile for capability filtering
+  const providerProfile = await prisma.providerProfile.findUnique({
+    where: { userId: providerId },
+    select: { servicesOffered: true, vehicleTypesServed: true, sellsParts: true },
+  });
+
+  const providerServices: string[] = Array.isArray(providerProfile?.servicesOffered)
+    ? (providerProfile!.servicesOffered as string[]).map((s: string) => s.toUpperCase())
+    : [];
+  const providerVehicleTypes: string[] = Array.isArray(providerProfile?.vehicleTypesServed)
+    ? (providerProfile!.vehicleTypesServed as string[]).map((s: string) => s.toUpperCase())
+    : [];
+  const providerSellsParts = providerProfile?.sellsParts || false;
 
   // Buscar IDs de solicitações já cotadas
   const myQuotes = await prisma.quote.findMany({
@@ -657,11 +728,55 @@ export const getPendingRequests = async (req: Request, res: Response) => {
       NOT: { id: { in: quotedRequestIds } },
     },
     orderBy: { createdAt: "desc" },
-    take: 10,
+    take: 50,
     include: {
       vehicle: { select: { make: true, model: true, year: true } },
       user: { select: { city: true, state: true } },
     },
+  });
+
+  // Mapping from raw mobile service type to ServiceOffered enum
+  const RAW_TO_SERVICE_OFFERED: Record<string, string[]> = {
+    oil: ["OIL_CHANGE", "MAINTENANCE_LIGHT", "GENERAL_REPAIR"],
+    brake: ["BRAKES", "GENERAL_REPAIR"],
+    tire: ["TIRES", "GENERAL_REPAIR"],
+    engine: ["ENGINE", "GENERAL_REPAIR"],
+    electric: ["ELECTRICAL_BASIC", "GENERAL_REPAIR"],
+    ac: ["AC_SERVICE", "GENERAL_REPAIR"],
+    suspension: ["SUSPENSION", "GENERAL_REPAIR"],
+    transmission: ["TRANSMISSION", "GENERAL_REPAIR"],
+    inspection: ["INSPECTION", "DIAGNOSTICS"],
+    detailing: ["DETAILING"],
+    towing: ["TOWING", "ROADSIDE_ASSIST"],
+    roadside: ["ROADSIDE_ASSIST", "TOWING"],
+    battery: ["BATTERY", "ROADSIDE_ASSIST", "ELECTRICAL_BASIC"],
+    lockout: ["LOCKOUT", "ROADSIDE_ASSIST"],
+    diagnostic: ["DIAGNOSTICS"],
+    other: ["GENERAL_REPAIR"],
+  };
+
+  // Filter requests by provider capabilities
+  const filteredRequests = requests.filter((r) => {
+    // If provider has no services configured, show all (backward compat)
+    if (providerServices.length === 0) return true;
+
+    // 1. Filter by service type
+    const rawType = (r as any).rawServiceType?.toLowerCase() || "";
+    const matchingServices = RAW_TO_SERVICE_OFFERED[rawType] || ["GENERAL_REPAIR"];
+    const serviceMatch = matchingServices.some((s) => providerServices.includes(s));
+    if (!serviceMatch) return false;
+
+    // 2. Filter by vehicle type (if the request specifies one)
+    const requestVehicleCategory = ((r as any).vehicleCategory || "").toUpperCase();
+    if (requestVehicleCategory && providerVehicleTypes.length > 0) {
+      if (!providerVehicleTypes.includes(requestVehicleCategory)) return false;
+    }
+
+    // 3. Filter parts-only requests (only show to providers that sell parts)
+    const requestScope = (r as any).serviceScope || "";
+    if (requestScope === "parts" && !providerSellsParts) return false;
+
+    return true;
   });
 
   const formatTimeAgo = (date: Date) => {
@@ -673,7 +788,7 @@ export const getPendingRequests = async (req: Request, res: Response) => {
     return `${Math.floor(hours / 24)} days`;
   };
 
-  const pendingRequests = requests.map((r) => ({
+  const pendingRequests = filteredRequests.slice(0, 10).map((r) => ({
     id: r.id,
     title:
       r.title || r.description?.substring(0, 50) || "Solicitação de Serviço",

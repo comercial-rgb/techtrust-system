@@ -1206,7 +1206,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
       {/* FAB */}
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => navigation.navigate("CreateRequest")}
+        onPress={() => navigation.navigate("ServiceChoice")}
       >
         <Ionicons name="add" size={28} color="#fff" />
       </TouchableOpacity>

@@ -19,6 +19,7 @@ import {
   Modal,
   FlatList,
   ActivityIndicator,
+  KeyboardAvoidingView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -101,6 +102,13 @@ export default function CreateRequestScreen({ navigation }: any) {
   const [serviceLocation, setServiceLocation] = useState<string>("shop");
   const [submitting, setSubmitting] = useState(false);
   const [shareLocation, setShareLocation] = useState(false);
+
+  // Vehicle type classification
+  const [vehicleType, setVehicleType] = useState<string>("");
+  // Service scope: service only, parts only, or both
+  const [serviceScope, setServiceScope] = useState<string>("both");
+  // Customer responsibility acknowledgment
+  const [responsibilityAccepted, setResponsibilityAccepted] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<{
     lat: number;
     lng: number;
@@ -151,6 +159,502 @@ export default function CreateRequestScreen({ navigation }: any) {
   const [appliedOffer, setAppliedOffer] = useState<SpecialOffer | null>(
     specialOfferFromLanding,
   );
+
+  // Smart Sub-options for service types
+  const [showSubOptionsModal, setShowSubOptionsModal] = useState(false);
+  const [subOptionSelections, setSubOptionSelections] = useState<Record<string, string[]>>({});
+  const [pendingServiceId, setPendingServiceId] = useState<string>("");
+
+  // Sub-options configuration per service type
+  const SERVICE_SUB_OPTIONS: Record<string, { title: string; sections: { id: string; label: string; type: "single" | "multi"; options: { id: string; label: string; icon?: string }[] }[] }> = {
+    oil: {
+      title: t.createRequest?.oilChangeOptions || "Oil Change Details",
+      sections: [
+        {
+          id: "oilType",
+          label: t.createRequest?.oilType || "Oil Type",
+          type: "single",
+          options: [
+            { id: "motor", label: t.createRequest?.motorOil || "Motor Oil (Engine)", icon: "cog" },
+            { id: "transmission", label: t.createRequest?.transmissionFluid || "Transmission Fluid", icon: "swap-horizontal" },
+            { id: "both", label: t.createRequest?.bothOils || "Both (Motor + Transmission)", icon: "layers" },
+          ],
+        },
+        {
+          id: "filters",
+          label: t.createRequest?.filtersToReplace || "Filters to Replace",
+          type: "multi",
+          options: [
+            { id: "oil_filter", label: t.createRequest?.oilFilter || "Oil Filter", icon: "funnel" },
+            { id: "air_filter", label: t.createRequest?.airFilter || "Air Filter", icon: "cloud" },
+            { id: "cabin_filter", label: t.createRequest?.cabinFilter || "Cabin Air Filter", icon: "car" },
+            { id: "fuel_filter", label: t.createRequest?.fuelFilter || "Fuel Filter", icon: "flame" },
+          ],
+        },
+        {
+          id: "oilGrade",
+          label: t.createRequest?.oilGrade || "Oil Grade (if known)",
+          type: "single",
+          options: [
+            { id: "conventional", label: t.createRequest?.conventional || "Conventional", icon: "water" },
+            { id: "synthetic_blend", label: t.createRequest?.syntheticBlend || "Synthetic Blend", icon: "beaker" },
+            { id: "full_synthetic", label: t.createRequest?.fullSynthetic || "Full Synthetic", icon: "diamond" },
+            { id: "high_mileage", label: t.createRequest?.highMileage || "High Mileage", icon: "speedometer" },
+            { id: "not_sure", label: t.createRequest?.notSure || "Not Sure / Let provider decide", icon: "help-circle" },
+          ],
+        },
+      ],
+    },
+    brake: {
+      title: t.createRequest?.brakeOptions || "Brake Service Details",
+      sections: [
+        {
+          id: "brakeLocation",
+          label: t.createRequest?.brakeLocation || "Which Brakes?",
+          type: "single",
+          options: [
+            { id: "front", label: t.createRequest?.frontBrakes || "Front Brakes", icon: "arrow-up" },
+            { id: "rear", label: t.createRequest?.rearBrakes || "Rear Brakes", icon: "arrow-down" },
+            { id: "all", label: t.createRequest?.allBrakes || "All Brakes (Front + Rear)", icon: "swap-vertical" },
+            { id: "not_sure", label: t.createRequest?.notSureBrakes || "Not Sure / Need Inspection", icon: "help-circle" },
+          ],
+        },
+        {
+          id: "brakeService",
+          label: t.createRequest?.brakeServiceType || "Service Needed",
+          type: "multi",
+          options: [
+            { id: "pads", label: t.createRequest?.brakePads || "Brake Pads", icon: "square" },
+            { id: "rotors", label: t.createRequest?.brakeRotors || "Rotors / Discs", icon: "ellipse" },
+            { id: "fluid", label: t.createRequest?.brakeFluid || "Brake Fluid Flush", icon: "water" },
+            { id: "calipers", label: t.createRequest?.brakeCalipers || "Calipers", icon: "build" },
+            { id: "lines", label: t.createRequest?.brakeLines || "Brake Lines / Hoses", icon: "git-branch" },
+            { id: "abs", label: t.createRequest?.absSystem || "ABS System", icon: "warning" },
+          ],
+        },
+        {
+          id: "brakeSymptoms",
+          label: t.createRequest?.brakeSymptoms || "Symptoms (optional)",
+          type: "multi",
+          options: [
+            { id: "squeaking", label: t.createRequest?.squeaking || "Squeaking / Squealing", icon: "volume-high" },
+            { id: "grinding", label: t.createRequest?.grinding || "Grinding Noise", icon: "alert-circle" },
+            { id: "vibration", label: t.createRequest?.vibrationBrake || "Vibration When Braking", icon: "pulse" },
+            { id: "pulling", label: t.createRequest?.pullingToSide || "Pulling to One Side", icon: "arrow-forward" },
+            { id: "soft_pedal", label: t.createRequest?.softPedal || "Soft / Spongy Pedal", icon: "arrow-down-circle" },
+          ],
+        },
+      ],
+    },
+    tire: {
+      title: t.createRequest?.tireOptions || "Tire Service Details",
+      sections: [
+        {
+          id: "tireService",
+          label: t.createRequest?.tireServiceType || "Service Needed",
+          type: "multi",
+          options: [
+            { id: "rotation", label: t.createRequest?.tireRotation || "Tire Rotation", icon: "refresh" },
+            { id: "balance", label: t.createRequest?.tireBalance || "Balancing", icon: "git-compare" },
+            { id: "alignment", label: t.createRequest?.tireAlignment || "Alignment", icon: "resize" },
+            { id: "replacement", label: t.createRequest?.tireReplacement || "Tire Replacement", icon: "swap-horizontal" },
+            { id: "repair", label: t.createRequest?.tireRepair || "Flat Tire / Puncture Repair", icon: "build" },
+            { id: "tpms", label: t.createRequest?.tpms || "TPMS Sensor", icon: "speedometer" },
+          ],
+        },
+        {
+          id: "tireCount",
+          label: t.createRequest?.howManyTires || "How Many Tires?",
+          type: "single",
+          options: [
+            { id: "1", label: "1", icon: "ellipse" },
+            { id: "2", label: "2", icon: "ellipse" },
+            { id: "4", label: "4 (Full Set)", icon: "apps" },
+            { id: "spare", label: t.createRequest?.spareTire || "Spare Tire", icon: "add-circle" },
+          ],
+        },
+      ],
+    },
+    engine: {
+      title: t.createRequest?.engineOptions || "Engine Service Details",
+      sections: [
+        {
+          id: "engineService",
+          label: t.createRequest?.engineServiceType || "Service Needed",
+          type: "multi",
+          options: [
+            { id: "diagnostic", label: t.createRequest?.engineDiagnostic || "Engine Diagnostic / Check Engine Light", icon: "search" },
+            { id: "tune_up", label: t.createRequest?.tuneUp || "Tune-Up", icon: "options" },
+            { id: "timing_belt", label: t.createRequest?.timingBelt || "Timing Belt / Chain", icon: "time" },
+            { id: "head_gasket", label: t.createRequest?.headGasket || "Head Gasket", icon: "layers" },
+            { id: "spark_plugs", label: t.createRequest?.sparkPlugs || "Spark Plugs", icon: "flash" },
+            { id: "valve_cover", label: t.createRequest?.valveCover || "Valve Cover Gasket", icon: "shield" },
+            { id: "motor_mount", label: t.createRequest?.motorMount || "Motor Mounts", icon: "cube" },
+            { id: "overheating", label: t.createRequest?.overheating || "Overheating Issue", icon: "thermometer" },
+          ],
+        },
+        {
+          id: "engineSymptoms",
+          label: t.createRequest?.engineSymptoms || "Symptoms (optional)",
+          type: "multi",
+          options: [
+            { id: "check_engine", label: t.createRequest?.checkEngineLight || "Check Engine Light On", icon: "warning" },
+            { id: "rough_idle", label: t.createRequest?.roughIdle || "Rough Idle / Vibration", icon: "pulse" },
+            { id: "loss_power", label: t.createRequest?.lossPower || "Loss of Power", icon: "trending-down" },
+            { id: "stalling", label: t.createRequest?.stalling || "Stalling / Won't Start", icon: "close-circle" },
+            { id: "smoke", label: t.createRequest?.smoke || "Smoke from Exhaust", icon: "cloud" },
+            { id: "noise", label: t.createRequest?.engineNoise || "Unusual Noise (Knocking / Ticking)", icon: "volume-high" },
+            { id: "oil_leak", label: t.createRequest?.oilLeak || "Oil Leak", icon: "water" },
+          ],
+        },
+      ],
+    },
+    electric: {
+      title: t.createRequest?.electricalOptions || "Electrical Service Details",
+      sections: [
+        {
+          id: "electricalService",
+          label: t.createRequest?.electricalServiceType || "Service Needed",
+          type: "multi",
+          options: [
+            { id: "alternator", label: t.createRequest?.alternator || "Alternator", icon: "flash" },
+            { id: "starter", label: t.createRequest?.starter || "Starter Motor", icon: "play" },
+            { id: "wiring", label: t.createRequest?.wiring || "Wiring / Short Circuit", icon: "git-branch" },
+            { id: "fuses", label: t.createRequest?.fuses || "Fuses / Relay", icon: "remove" },
+            { id: "lights", label: t.createRequest?.lights || "Lights (Headlights / Tail / Interior)", icon: "bulb" },
+            { id: "power_windows", label: t.createRequest?.powerWindows || "Power Windows / Locks", icon: "contract" },
+            { id: "dashboard", label: t.createRequest?.dashboardElectrical || "Dashboard / Gauges", icon: "speedometer" },
+            { id: "sensors", label: t.createRequest?.sensors || "Sensors (O2, MAF, MAP, etc.)", icon: "analytics" },
+          ],
+        },
+        {
+          id: "electricalSymptoms",
+          label: t.createRequest?.electricalSymptoms || "Symptoms (optional)",
+          type: "multi",
+          options: [
+            { id: "no_start", label: t.createRequest?.noStart || "Car Won't Start", icon: "close-circle" },
+            { id: "dim_lights", label: t.createRequest?.dimLights || "Dim or Flickering Lights", icon: "bulb" },
+            { id: "dead_battery", label: t.createRequest?.deadBattery || "Battery Keeps Dying", icon: "battery-dead" },
+            { id: "burning_smell", label: t.createRequest?.burningSmell || "Burning Smell", icon: "flame" },
+          ],
+        },
+      ],
+    },
+    ac: {
+      title: t.createRequest?.acOptions || "A/C & Heating Details",
+      sections: [
+        {
+          id: "acService",
+          label: t.createRequest?.acServiceType || "Service Needed",
+          type: "multi",
+          options: [
+            { id: "recharge", label: t.createRequest?.acRecharge || "A/C Recharge (Freon / R-134a)", icon: "snow" },
+            { id: "diagnostic", label: t.createRequest?.acDiagnostic || "A/C Diagnostic", icon: "search" },
+            { id: "compressor", label: t.createRequest?.acCompressor || "Compressor Repair / Replace", icon: "cog" },
+            { id: "condenser", label: t.createRequest?.acCondenser || "Condenser", icon: "grid" },
+            { id: "evaporator", label: t.createRequest?.acEvaporator || "Evaporator", icon: "swap-vertical" },
+            { id: "cabin_filter", label: t.createRequest?.cabinFilter || "Cabin Air Filter", icon: "car" },
+            { id: "heater_core", label: t.createRequest?.heaterCore || "Heater Core", icon: "flame" },
+            { id: "blower_motor", label: t.createRequest?.blowerMotor || "Blower Motor", icon: "aperture" },
+          ],
+        },
+        {
+          id: "acSymptoms",
+          label: t.createRequest?.acSymptoms || "What's happening?",
+          type: "multi",
+          options: [
+            { id: "no_cold", label: t.createRequest?.noColdAir || "No Cold Air", icon: "thermometer" },
+            { id: "no_heat", label: t.createRequest?.noHeat || "No Heat", icon: "snow" },
+            { id: "weak_flow", label: t.createRequest?.weakAirflow || "Weak Airflow", icon: "trending-down" },
+            { id: "bad_smell", label: t.createRequest?.badSmellAc || "Bad Smell from Vents", icon: "alert-circle" },
+            { id: "noise_ac", label: t.createRequest?.noiseAc || "Noise When A/C is On", icon: "volume-high" },
+          ],
+        },
+      ],
+    },
+    suspension: {
+      title: t.createRequest?.suspensionOptions || "Suspension Service Details",
+      sections: [
+        {
+          id: "suspensionService",
+          label: t.createRequest?.suspensionServiceType || "Service Needed",
+          type: "multi",
+          options: [
+            { id: "shocks", label: t.createRequest?.shocksStruts || "Shocks / Struts", icon: "resize" },
+            { id: "springs", label: t.createRequest?.springs || "Springs (Coil / Leaf)", icon: "contract" },
+            { id: "control_arms", label: t.createRequest?.controlArms || "Control Arms", icon: "git-branch" },
+            { id: "ball_joints", label: t.createRequest?.ballJoints || "Ball Joints", icon: "ellipse" },
+            { id: "tie_rods", label: t.createRequest?.tieRods || "Tie Rods (Inner / Outer)", icon: "remove" },
+            { id: "sway_bar", label: t.createRequest?.swayBar || "Sway Bar / Links", icon: "swap-horizontal" },
+            { id: "bushings", label: t.createRequest?.bushings || "Bushings", icon: "radio-button-on" },
+            { id: "wheel_bearing", label: t.createRequest?.wheelBearing || "Wheel Bearings / Hub", icon: "sync" },
+          ],
+        },
+        {
+          id: "suspensionLocation",
+          label: t.createRequest?.suspensionLocation || "Which Area?",
+          type: "single",
+          options: [
+            { id: "front", label: t.createRequest?.frontSuspension || "Front", icon: "arrow-up" },
+            { id: "rear", label: t.createRequest?.rearSuspension || "Rear", icon: "arrow-down" },
+            { id: "both", label: t.createRequest?.bothSuspension || "Both (Front + Rear)", icon: "swap-vertical" },
+            { id: "not_sure", label: t.createRequest?.notSure || "Not Sure", icon: "help-circle" },
+          ],
+        },
+        {
+          id: "suspensionSymptoms",
+          label: t.createRequest?.suspensionSymptoms || "Symptoms (optional)",
+          type: "multi",
+          options: [
+            { id: "bouncy", label: t.createRequest?.bouncyRide || "Bouncy / Rough Ride", icon: "pulse" },
+            { id: "clunking", label: t.createRequest?.clunking || "Clunking over Bumps", icon: "volume-high" },
+            { id: "pulling", label: t.createRequest?.pullingToSide || "Pulling to One Side", icon: "arrow-forward" },
+            { id: "uneven_wear", label: t.createRequest?.unevenTireWear || "Uneven Tire Wear", icon: "analytics" },
+            { id: "leaking", label: t.createRequest?.leakingShock || "Leaking Shock / Strut", icon: "water" },
+          ],
+        },
+      ],
+    },
+    transmission: {
+      title: t.createRequest?.transmissionOptions || "Transmission Service Details",
+      sections: [
+        {
+          id: "transType",
+          label: t.createRequest?.transmissionType || "Transmission Type",
+          type: "single",
+          options: [
+            { id: "automatic", label: t.createRequest?.automatic || "Automatic", icon: "car" },
+            { id: "manual", label: t.createRequest?.manual || "Manual / Stick Shift", icon: "hand-left" },
+            { id: "cvt", label: t.createRequest?.cvt || "CVT (Continuously Variable)", icon: "sync" },
+            { id: "not_sure", label: t.createRequest?.notSure || "Not Sure", icon: "help-circle" },
+          ],
+        },
+        {
+          id: "transService",
+          label: t.createRequest?.transmissionServiceType || "Service Needed",
+          type: "multi",
+          options: [
+            { id: "fluid_change", label: t.createRequest?.transFluidChange || "Transmission Fluid Change", icon: "water" },
+            { id: "flush", label: t.createRequest?.transFlush || "Transmission Flush", icon: "refresh" },
+            { id: "diagnostic", label: t.createRequest?.transDiagnostic || "Diagnostic / Inspection", icon: "search" },
+            { id: "rebuild", label: t.createRequest?.transRebuild || "Rebuild / Overhaul", icon: "construct" },
+            { id: "replace", label: t.createRequest?.transReplace || "Replacement", icon: "swap-horizontal" },
+            { id: "clutch", label: t.createRequest?.clutch || "Clutch Repair / Replace (Manual)", icon: "disc" },
+            { id: "torque_converter", label: t.createRequest?.torqueConverter || "Torque Converter", icon: "sync" },
+            { id: "solenoid", label: t.createRequest?.solenoid || "Shift Solenoid", icon: "flash" },
+          ],
+        },
+        {
+          id: "transSymptoms",
+          label: t.createRequest?.transSymptoms || "Symptoms (optional)",
+          type: "multi",
+          options: [
+            { id: "slipping", label: t.createRequest?.slipping || "Slipping Gears", icon: "alert-circle" },
+            { id: "hard_shift", label: t.createRequest?.hardShifting || "Hard / Delayed Shifting", icon: "chevron-forward" },
+            { id: "grinding", label: t.createRequest?.grindingTrans || "Grinding Noise", icon: "volume-high" },
+            { id: "leak", label: t.createRequest?.transLeak || "Fluid Leak (Red / Brown)", icon: "water" },
+            { id: "no_move", label: t.createRequest?.wontMove || "Won't Move / Engage", icon: "close-circle" },
+            { id: "check_light", label: t.createRequest?.transLight || "Transmission Warning Light", icon: "warning" },
+          ],
+        },
+      ],
+    },
+    inspection: {
+      title: t.createRequest?.inspectionOptions || "Inspection Details",
+      sections: [
+        {
+          id: "inspectionType",
+          label: t.createRequest?.inspectionType || "Inspection Type",
+          type: "single",
+          options: [
+            { id: "pre_purchase", label: t.createRequest?.prePurchase || "Pre-Purchase Inspection", icon: "cart" },
+            { id: "state_inspection", label: t.createRequest?.stateInspection || "State Safety Inspection", icon: "shield-checkmark" },
+            { id: "emissions", label: t.createRequest?.emissions || "Emissions Test", icon: "cloud" },
+            { id: "multi_point", label: t.createRequest?.multiPoint || "Multi-Point Inspection", icon: "clipboard" },
+            { id: "seasonal", label: t.createRequest?.seasonal || "Seasonal Check-Up (Winter / Summer)", icon: "sunny" },
+          ],
+        },
+        {
+          id: "inspectionFocus",
+          label: t.createRequest?.inspectionFocus || "Focus Areas (optional)",
+          type: "multi",
+          options: [
+            { id: "engine", label: t.createRequest?.serviceEngine || "Engine", icon: "cog" },
+            { id: "brakes", label: t.createRequest?.serviceBrakes || "Brakes", icon: "disc" },
+            { id: "suspension", label: t.createRequest?.serviceSuspension || "Suspension", icon: "resize" },
+            { id: "electrical", label: t.createRequest?.serviceElectrical || "Electrical", icon: "flash" },
+            { id: "fluids", label: t.createRequest?.fluids || "All Fluids", icon: "water" },
+            { id: "tires", label: t.createRequest?.serviceTires || "Tires", icon: "ellipse" },
+          ],
+        },
+      ],
+    },
+    battery: {
+      title: t.createRequest?.batteryOptions || "Battery Service Details",
+      sections: [
+        {
+          id: "batteryService",
+          label: t.createRequest?.batteryServiceType || "Service Needed",
+          type: "single",
+          options: [
+            { id: "test", label: t.createRequest?.batteryTest || "Battery Test / Diagnostic", icon: "speedometer" },
+            { id: "replacement", label: t.createRequest?.batteryReplacement || "Battery Replacement", icon: "swap-horizontal" },
+            { id: "jumpstart", label: t.createRequest?.jumpStart || "Jump Start", icon: "flash" },
+            { id: "terminals", label: t.createRequest?.batteryTerminals || "Clean / Replace Terminals & Cables", icon: "git-branch" },
+          ],
+        },
+        {
+          id: "batterySymptoms",
+          label: t.createRequest?.batterySymptoms || "Symptoms (optional)",
+          type: "multi",
+          options: [
+            { id: "slow_crank", label: t.createRequest?.slowCrank || "Slow Crank / Hard to Start", icon: "time" },
+            { id: "no_start", label: t.createRequest?.noStartBattery || "Won't Start at All", icon: "close-circle" },
+            { id: "warning_light", label: t.createRequest?.batteryLight || "Battery Warning Light", icon: "warning" },
+            { id: "corrosion", label: t.createRequest?.corrosion || "Corrosion on Terminals", icon: "alert-circle" },
+            { id: "old_battery", label: t.createRequest?.oldBattery || "Battery is 3+ Years Old", icon: "calendar" },
+          ],
+        },
+      ],
+    },
+    towing: {
+      title: t.createRequest?.towingOptions || "Towing Details",
+      sections: [
+        {
+          id: "towingReason",
+          label: t.createRequest?.towingReason || "Reason for Towing",
+          type: "single",
+          options: [
+            { id: "breakdown", label: t.createRequest?.breakdown || "Breakdown / Won't Start", icon: "close-circle" },
+            { id: "accident", label: t.createRequest?.accident || "Accident / Collision", icon: "alert-circle" },
+            { id: "flat_tire", label: t.createRequest?.flatTireTow || "Flat Tire (No Spare)", icon: "ellipse" },
+            { id: "transport", label: t.createRequest?.vehicleTransport || "Vehicle Transport / Relocation", icon: "navigate" },
+            { id: "impound", label: t.createRequest?.impound || "Pick Up from Impound", icon: "lock-closed" },
+          ],
+        },
+        {
+          id: "vehicleCondition",
+          label: t.createRequest?.vehicleCondition || "Vehicle Condition",
+          type: "single",
+          options: [
+            { id: "rolls", label: t.createRequest?.vehicleRolls || "Wheels Roll (Neutral OK)", icon: "checkmark-circle" },
+            { id: "no_roll", label: t.createRequest?.vehicleNoRoll || "Wheels Locked / Won't Roll", icon: "close-circle" },
+            { id: "not_sure", label: t.createRequest?.notSure || "Not Sure", icon: "help-circle" },
+          ],
+        },
+      ],
+    },
+    roadside: {
+      title: t.createRequest?.roadsideOptions || "Roadside Assistance Details",
+      sections: [
+        {
+          id: "roadsideNeed",
+          label: t.createRequest?.roadsideNeed || "What Do You Need?",
+          type: "single",
+          options: [
+            { id: "jumpstart", label: t.createRequest?.jumpStart || "Jump Start", icon: "flash" },
+            { id: "flat_tire", label: t.createRequest?.flatTireChange || "Flat Tire Change", icon: "ellipse" },
+            { id: "fuel", label: t.createRequest?.fuelDelivery || "Fuel Delivery", icon: "flame" },
+            { id: "lockout_road", label: t.createRequest?.lockedOut || "Locked Out", icon: "key" },
+            { id: "winch", label: t.createRequest?.winchOut || "Winch Out (Stuck / Ditch)", icon: "link" },
+            { id: "other_road", label: t.createRequest?.otherRoadside || "Other Roadside Help", icon: "help-circle" },
+          ],
+        },
+      ],
+    },
+    lockout: {
+      title: t.createRequest?.lockoutOptions || "Lockout Details",
+      sections: [
+        {
+          id: "lockoutType",
+          label: t.createRequest?.lockoutType || "Lockout Situation",
+          type: "single",
+          options: [
+            { id: "keys_inside", label: t.createRequest?.keysInside || "Keys Locked Inside Car", icon: "key" },
+            { id: "lost_keys", label: t.createRequest?.lostKeys || "Lost / Broken Keys", icon: "close-circle" },
+            { id: "key_fob", label: t.createRequest?.keyFob || "Key Fob Not Working", icon: "radio" },
+            { id: "trunk", label: t.createRequest?.trunkLockout || "Trunk Lockout", icon: "cube" },
+            { id: "ignition", label: t.createRequest?.ignitionKey || "Key Stuck in Ignition", icon: "lock-closed" },
+          ],
+        },
+      ],
+    },
+    other: {
+      title: t.createRequest?.otherOptions || "Service Details",
+      sections: [
+        {
+          id: "otherCategory",
+          label: t.createRequest?.otherCategory || "Category",
+          type: "single",
+          options: [
+            { id: "exhaust", label: t.createRequest?.exhaust || "Exhaust / Muffler", icon: "cloud" },
+            { id: "cooling", label: t.createRequest?.coolingSystem || "Cooling System (Radiator / Hoses)", icon: "water" },
+            { id: "steering", label: t.createRequest?.steering || "Power Steering", icon: "sync" },
+            { id: "fuel_system", label: t.createRequest?.fuelSystem || "Fuel System (Pump / Injectors)", icon: "flame" },
+            { id: "body_work", label: t.createRequest?.bodyWork || "Body Work / Dents / Paint", icon: "color-palette" },
+            { id: "glass", label: t.createRequest?.glass || "Windshield / Glass", icon: "expand" },
+            { id: "custom", label: t.createRequest?.customService || "Something Else", icon: "create" },
+          ],
+        },
+      ],
+    },
+  };
+
+  // Handle sub-option toggle
+  const handleSubOptionToggle = (sectionId: string, optionId: string, type: "single" | "multi") => {
+    setSubOptionSelections(prev => {
+      const current = prev[sectionId] || [];
+      if (type === "single") {
+        return { ...prev, [sectionId]: [optionId] };
+      }
+      // multi toggle
+      if (current.includes(optionId)) {
+        return { ...prev, [sectionId]: current.filter(id => id !== optionId) };
+      }
+      return { ...prev, [sectionId]: [...current, optionId] };
+    });
+  };
+
+  // Confirm sub-options and build description
+  const confirmSubOptions = () => {
+    const subOpts = SERVICE_SUB_OPTIONS[pendingServiceId];
+    if (!subOpts) return;
+    const details: string[] = [];
+    let primarySelection = "";
+    subOpts.sections.forEach(section => {
+      const selected = subOptionSelections[section.id] || [];
+      if (selected.length > 0) {
+        const labels = selected.map(id => {
+          const opt = section.options.find(o => o.id === id);
+          return opt?.label || id;
+        });
+        details.push(`${section.label}: ${labels.join(", ")}`);
+        // Use first single-select section's value for the title suffix
+        if (!primarySelection && section.type === "single" && selected[0] !== "not_sure") {
+          const opt = section.options.find(o => o.id === selected[0]);
+          if (opt) primarySelection = opt.label;
+        }
+      }
+    });
+    if (details.length > 0) {
+      const serviceLabel = serviceTypes.find(s => s.id === pendingServiceId)?.label || "";
+      const detailText = details.join(" | ");
+      setDescription(prev => prev ? `${prev}\n${detailText}` : detailText);
+      setTitle(primarySelection ? `${serviceLabel} - ${primarySelection}` : serviceLabel);
+    }
+    setShowSubOptionsModal(false);
+  };
+
+  // Handle service type selection with sub-options
+  const handleServiceSelect = (serviceId: string, serviceLabel: string) => {
+    setSelectedService(serviceId);
+    setTitle(serviceLabel);
+    if (SERVICE_SUB_OPTIONS[serviceId]) {
+      setPendingServiceId(serviceId);
+      setSubOptionSelections({});
+      setShowSubOptionsModal(true);
+    }
+  };
 
   // Favorite providers - fetched from API
   const [favoriteProviders, setFavoriteProviders] = useState<
@@ -490,10 +994,17 @@ export default function CreateRequestScreen({ navigation }: any) {
   }
 
   async function handleSubmit() {
-    if (!selectedVehicle || !selectedService || !title) {
+    if (!selectedVehicle || !selectedService || !title || !vehicleType) {
       Alert.alert(
         t.common.error,
-        t.createRequest?.fillRequired || "Please fill in all required fields",
+        t.createRequest?.fillRequired || "Please fill in all required fields (including vehicle type)",
+      );
+      return;
+    }
+    if (!responsibilityAccepted) {
+      Alert.alert(
+        t.createRequest?.disclaimerRequired || "Acknowledgment Required",
+        t.createRequest?.pleaseAcceptDisclaimer || "Please read and accept the responsibility notice before submitting.",
       );
       return;
     }
@@ -518,11 +1029,27 @@ export default function CreateRequestScreen({ navigation }: any) {
         }
       }
 
+      // Build enriched description with vehicle type, service scope, and sub-options
+      const vehicleTypeLabels: Record<string, string> = {
+        car: "Car / Sedan", suv: "SUV / Crossover", truck: "Pickup Truck",
+        van: "Van / Minivan", heavy_truck: "Heavy Truck / Semi", bus: "Bus / RV",
+      };
+      const scopeLabels: Record<string, string> = {
+        service: "Service / Labor Only", parts: "Parts Only", both: "Parts + Service",
+      };
+      const metaLines = [
+        `Vehicle Type: ${vehicleTypeLabels[vehicleType] || vehicleType}`,
+        `Scope: ${scopeLabels[serviceScope] || serviceScope}`,
+      ];
+      const enrichedDescription = description
+        ? `${description}\n---\n${metaLines.join(" | ")}`
+        : metaLines.join(" | ");
+
       await apiDefault.post("/service-requests", {
         vehicleId: selectedVehicle,
         serviceType: selectedService,
         title,
-        description,
+        description: enrichedDescription,
         serviceLocationType:
           serviceLocation === "mobile"
             ? "MOBILE"
@@ -534,6 +1061,8 @@ export default function CreateRequestScreen({ navigation }: any) {
         location:
           shareLocation && currentLocation ? currentLocation : undefined,
         urgency: urgency || undefined,
+        vehicleCategory: vehicleType || undefined,
+        serviceScope: serviceScope || undefined,
       });
 
       const providerName =
@@ -781,9 +1310,15 @@ export default function CreateRequestScreen({ navigation }: any) {
         <View style={{ width: 40 }} />
       </View>
 
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+      >
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
       >
         {/* Payment Method Indicator */}
         <View style={styles.paymentMethodCard}>
@@ -916,7 +1451,7 @@ export default function CreateRequestScreen({ navigation }: any) {
                 styles.serviceCard,
                 selectedService === service.id && styles.serviceCardSelected,
               ]}
-              onPress={() => setSelectedService(service.id)}
+              onPress={() => handleServiceSelect(service.id, service.label)}
             >
               <Ionicons
                 name={service.icon as any}
@@ -931,6 +1466,94 @@ export default function CreateRequestScreen({ navigation }: any) {
               >
                 {service.label}
               </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Vehicle Type */}
+        <Text style={styles.sectionTitle}>
+          {t.createRequest?.vehicleTypeLabel || "Vehicle Type"} *
+        </Text>
+        <View style={styles.servicesGrid}>
+          {[
+            { id: "car", label: t.createRequest?.vtCar || "Car / Sedan", icon: "car-sport" },
+            { id: "suv", label: t.createRequest?.vtSuv || "SUV / Crossover", icon: "car" },
+            { id: "truck", label: t.createRequest?.vtTruck || "Pickup Truck", icon: "trail-sign" },
+            { id: "van", label: t.createRequest?.vtVan || "Van / Minivan", icon: "bus" },
+            { id: "heavy_truck", label: t.createRequest?.vtHeavyTruck || "Heavy Truck / Semi", icon: "cube" },
+            { id: "bus", label: t.createRequest?.vtBus || "Bus / RV", icon: "git-compare" },
+          ].map((vt) => (
+            <TouchableOpacity
+              key={vt.id}
+              style={[
+                styles.serviceCard,
+                vehicleType === vt.id && styles.serviceCardSelected,
+              ]}
+              onPress={() => setVehicleType(vt.id)}
+            >
+              <Ionicons
+                name={vt.icon as any}
+                size={24}
+                color={vehicleType === vt.id ? "#1976d2" : "#6b7280"}
+              />
+              <Text
+                style={[
+                  styles.serviceLabel,
+                  vehicleType === vt.id && styles.serviceLabelSelected,
+                ]}
+              >
+                {vt.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Service Scope: Parts, Service, or Both */}
+        <Text style={styles.sectionTitle}>
+          {t.createRequest?.serviceScopeLabel || "What do you need?"} *
+        </Text>
+        <View style={styles.locationContainer}>
+          {[
+            { id: "service", label: t.createRequest?.serviceOnly || "Service / Labor Only", icon: "construct", desc: t.createRequest?.serviceOnlyDesc || "I already have the parts, just need installation" },
+            { id: "parts", label: t.createRequest?.partsOnly || "Parts Only", icon: "cube", desc: t.createRequest?.partsOnlyDesc || "I need the provider to supply the parts" },
+            { id: "both", label: t.createRequest?.partsAndService || "Parts + Service", icon: "layers", desc: t.createRequest?.partsAndServiceDesc || "Provider supplies parts and does the work" },
+          ].map((scope) => (
+            <TouchableOpacity
+              key={scope.id}
+              style={[
+                styles.locationCard,
+                serviceScope === scope.id && styles.locationCardSelected,
+              ]}
+              onPress={() => setServiceScope(scope.id)}
+            >
+              <View
+                style={[
+                  styles.locationIcon,
+                  serviceScope === scope.id && styles.locationIconSelected,
+                ]}
+              >
+                <Ionicons
+                  name={scope.icon as any}
+                  size={24}
+                  color={serviceScope === scope.id ? "#1976d2" : "#6b7280"}
+                />
+              </View>
+              <View style={styles.locationInfo}>
+                <Text
+                  style={[
+                    styles.locationLabel,
+                    serviceScope === scope.id && styles.locationLabelSelected,
+                  ]}
+                >
+                  {scope.label}
+                </Text>
+                <Text style={styles.locationDescription}>
+                  {scope.desc}
+                </Text>
+              </View>
+              {serviceScope === scope.id && (
+                <Ionicons name="checkmark-circle" size={24} color="#1976d2" />
+              )}
             </TouchableOpacity>
           ))}
         </View>
@@ -1094,6 +1717,35 @@ export default function CreateRequestScreen({ navigation }: any) {
           />
         </View>
 
+        {/* Customer Responsibility Disclaimer */}
+        <View style={styles.disclaimerCard}>
+          <View style={styles.disclaimerHeader}>
+            <Ionicons name="information-circle" size={22} color="#f59e0b" />
+            <Text style={styles.disclaimerTitle}>
+              {t.createRequest?.importantNotice || "Important Notice"}
+            </Text>
+          </View>
+          <Text style={styles.disclaimerText}>
+            {t.createRequest?.responsibilityText || "The service type you select is your best assessment. Our verified providers will perform a professional inspection to confirm the actual issue before starting any work. For obvious services (oil change, tire replacement, etc.), work will proceed as requested."}
+          </Text>
+          <Text style={styles.disclaimerText2}>
+            {t.createRequest?.estimateProtection || "You are protected by Florida's Written Estimate law — no work will exceed the approved estimate without your written consent."}
+          </Text>
+          <TouchableOpacity
+            style={styles.disclaimerCheckbox}
+            onPress={() => setResponsibilityAccepted(!responsibilityAccepted)}
+          >
+            <Ionicons
+              name={responsibilityAccepted ? "checkbox" : "square-outline"}
+              size={24}
+              color={responsibilityAccepted ? "#1976d2" : "#9ca3af"}
+            />
+            <Text style={styles.disclaimerCheckboxText}>
+              {t.createRequest?.iUnderstand || "I understand and agree to proceed"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         {/* Urgency */}
         <Text style={styles.sectionTitle}>
           {t.createRequest?.urgency || "Urgency"}
@@ -1204,8 +1856,9 @@ export default function CreateRequestScreen({ navigation }: any) {
 
         <View style={{ height: 100 }} />
       </ScrollView>
+      </KeyboardAvoidingView>
 
-      {/* Submit Button */}
+      {/* Submit Button */
       <View style={styles.footer}>
         <TouchableOpacity
           style={[styles.submitBtn, submitting && styles.submitBtnDisabled]}
@@ -1319,6 +1972,80 @@ export default function CreateRequestScreen({ navigation }: any) {
                 {t.createRequest?.sendToAll || "Send to all providers"}
               </Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Sub-Options Modal */}
+      <Modal visible={showSubOptionsModal} transparent animationType="slide">
+        <View style={styles.subOptionsOverlay}>
+          <View style={styles.subOptionsContainer}>
+            <View style={styles.subOptionsHeader}>
+              <Text style={styles.subOptionsTitle}>
+                {SERVICE_SUB_OPTIONS[pendingServiceId]?.title || "Service Details"}
+              </Text>
+              <TouchableOpacity onPress={() => setShowSubOptionsModal(false)}>
+                <Ionicons name="close" size={24} color="#6b7280" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ maxHeight: 400 }} showsVerticalScrollIndicator={false}>
+              {SERVICE_SUB_OPTIONS[pendingServiceId]?.sections.map((section) => (
+                <View key={section.id} style={styles.subOptionsSection}>
+                  <Text style={styles.subOptionsSectionLabel}>
+                    {section.label} {section.type === "single" ? "(select one)" : "(select all that apply)"}
+                  </Text>
+                  {section.options.map((option) => {
+                    const isSelected = (subOptionSelections[section.id] || []).includes(option.id);
+                    return (
+                      <TouchableOpacity
+                        key={option.id}
+                        style={[styles.subOptionItem, isSelected && styles.subOptionItemSelected]}
+                        onPress={() => handleSubOptionToggle(section.id, option.id, section.type)}
+                      >
+                        <View style={[styles.subOptionIcon, isSelected && styles.subOptionIconSelected]}>
+                          <Ionicons name={(option.icon || "ellipse") as any} size={20} color={isSelected ? "#fff" : "#6b7280"} />
+                        </View>
+                        <Text style={[styles.subOptionLabel, isSelected && styles.subOptionLabelSelected]}>
+                          {option.label}
+                        </Text>
+                        <Ionicons
+                          name={section.type === "single"
+                            ? (isSelected ? "radio-button-on" : "radio-button-off")
+                            : (isSelected ? "checkbox" : "square-outline")
+                          }
+                          size={22}
+                          color={isSelected ? "#1976d2" : "#d1d5db"}
+                        />
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              ))}
+              <Text style={styles.subOptionsHint}>
+                {t.createRequest?.subOptionsHint || "These details help providers give you a more accurate quote."}
+              </Text>
+            </ScrollView>
+
+            <View style={styles.subOptionsFooter}>
+              <TouchableOpacity
+                style={styles.subOptionsSkipBtn}
+                onPress={() => setShowSubOptionsModal(false)}
+              >
+                <Text style={styles.subOptionsSkipText}>
+                  {t.createRequest?.skipDetails || "Skip"}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.subOptionsConfirmBtn}
+                onPress={confirmSubOptions}
+              >
+                <Ionicons name="checkmark" size={20} color="#fff" />
+                <Text style={styles.subOptionsConfirmText}>
+                  {t.createRequest?.confirmDetails || "Confirm"}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -1806,5 +2533,164 @@ const styles = StyleSheet.create({
   },
   removeOfferButton: {
     padding: 4,
+  },
+  // Sub-Options Modal
+  subOptionsOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  subOptionsContainer: {
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: "80%",
+  },
+  subOptionsHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  subOptionsTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#111827",
+  },
+  subOptionsSection: {
+    marginBottom: 16,
+  },
+  subOptionsSectionLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#374151",
+    marginBottom: 8,
+  },
+  subOptionItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 6,
+    backgroundColor: "#f9fafb",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  subOptionItemSelected: {
+    backgroundColor: "#eff6ff",
+    borderColor: "#1976d2",
+  },
+  subOptionIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: "#f3f4f6",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  subOptionIconSelected: {
+    backgroundColor: "#1976d2",
+  },
+  subOptionLabel: {
+    flex: 1,
+    fontSize: 14,
+    color: "#374151",
+  },
+  subOptionLabelSelected: {
+    color: "#1976d2",
+    fontWeight: "600",
+  },
+  subOptionsHint: {
+    fontSize: 12,
+    color: "#9ca3af",
+    textAlign: "center",
+    marginTop: 8,
+    marginBottom: 16,
+    fontStyle: "italic",
+  },
+  subOptionsFooter: {
+    flexDirection: "row",
+    gap: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#e5e7eb",
+  },
+  subOptionsSkipBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    alignItems: "center",
+  },
+  subOptionsSkipText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#6b7280",
+  },
+  subOptionsConfirmBtn: {
+    flex: 2,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: "#1976d2",
+  },
+  subOptionsConfirmText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#fff",
+  },
+  // Disclaimer / Responsibility Card
+  disclaimerCard: {
+    backgroundColor: "#fffbeb",
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#fcd34d",
+  },
+  disclaimerHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 8,
+  },
+  disclaimerTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#92400e",
+  },
+  disclaimerText: {
+    fontSize: 13,
+    color: "#78350f",
+    lineHeight: 19,
+    marginBottom: 6,
+  },
+  disclaimerText2: {
+    fontSize: 13,
+    color: "#059669",
+    lineHeight: 19,
+    marginBottom: 12,
+    fontWeight: "500",
+  },
+  disclaimerCheckbox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#fde68a",
+  },
+  disclaimerCheckboxText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#374151",
   },
 });

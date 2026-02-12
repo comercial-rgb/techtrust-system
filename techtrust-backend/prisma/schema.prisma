@@ -181,6 +181,22 @@ enum ServiceOffered {
   AC_SERVICE
   TOWING
   ROADSIDE_ASSIST
+  OIL_CHANGE
+  ENGINE
+  TRANSMISSION
+  SUSPENSION
+  INSPECTION
+  DETAILING
+  LOCKOUT
+}
+
+enum VehicleTypeServed {
+  CAR
+  SUV
+  TRUCK
+  VAN
+  HEAVY_TRUCK
+  BUS
 }
 
 enum ProviderPublicStatus {
@@ -415,6 +431,12 @@ model ProviderProfile {
   // ===== Services Offered (enum set) =====
   servicesOffered Json @default("[]") // Array of ServiceOffered values
   
+  // Vehicle types this provider serves
+  vehicleTypesServed Json @default("[]") // Array of VehicleTypeServed values
+  
+  // Whether provider sells parts (for parts-only requests)
+  sellsParts Boolean @default(false)
+  
   // Tipos de serviço oferecidos (legacy)
   mobileService      Boolean @default(false)
   roadsideAssistance Boolean @default(false)
@@ -563,7 +585,10 @@ model ServiceRequest {
   vehicle   Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   
   // Tipo de serviço
-  serviceType ServiceType
+  serviceType    ServiceType
+  rawServiceType String?     // Original mobile service type ID (oil, brake, tire, etc.)
+  vehicleCategory String?    // Vehicle type: car, suv, truck, van, heavy_truck, bus
+  serviceScope   String?     // Service scope: service, parts, both
   title       String
   description String?
   

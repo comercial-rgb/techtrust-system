@@ -14,6 +14,7 @@ import {
   Alert,
   Platform,
   FlatList,
+  KeyboardAvoidingView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -396,9 +397,14 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
         ))}
       </View>
 
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
       <ScrollView
         contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         {/* ─── STEP 1: Vehicle ─── */}
         {step === 1 && (
@@ -892,6 +898,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
           </View>
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Footer with navigation buttons */}
       <View style={styles.footer}>

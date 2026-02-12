@@ -46,6 +46,9 @@ export const signup = async (req: Request, res: Response) => {
       businessCity,
       businessState,
       businessZipCode,
+      servicesOffered,
+      vehicleTypesServed,
+      sellsParts,
     } = req.body;
 
     // Validar role
@@ -117,7 +120,9 @@ export const signup = async (req: Request, res: Response) => {
           city: businessCity || "",
           state: businessState || "FL",
           zipCode: businessZipCode || "",
-          servicesOffered: [],
+          servicesOffered: servicesOffered || [],
+          vehicleTypesServed: vehicleTypesServed || [],
+          sellsParts: sellsParts || false,
           specialties: [],
         },
       });

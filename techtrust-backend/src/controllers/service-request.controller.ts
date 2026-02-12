@@ -77,6 +77,8 @@ export const createServiceRequest = async (req: Request, res: Response) => {
     location,
     serviceLatitude,
     serviceLongitude,
+    vehicleCategory,
+    serviceScope,
   } = req.body;
 
   // Resolve mobile service-type ID → Prisma enum value
@@ -223,6 +225,9 @@ export const createServiceRequest = async (req: Request, res: Response) => {
       userId,
       vehicleId,
       serviceType,
+      rawServiceType: rawServiceType?.toLowerCase() || null,
+      vehicleCategory: vehicleCategory || null,
+      serviceScope: serviceScope || null,
       title,
       description,
       serviceLocationType,
