@@ -258,7 +258,7 @@ export default function ProviderRequestsScreen({ navigation }: any) {
             <MaterialCommunityIcons name="clipboard-text-outline" size={64} color="#d1d5db" />
             <Text style={styles.emptyTitle}>{t.common.noResults}</Text>
             <Text style={styles.emptySubtitle}>
-              {searchQuery ? t.common.tryAgain : t.common.newItems}
+              {searchQuery ? (t.common as any).tryDifferentTerms || t.common.tryAgain : t.common.newItems}
             </Text>
           </View>
         }
