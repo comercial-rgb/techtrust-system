@@ -79,7 +79,7 @@ export default function SignupScreen({ navigation }: any) {
   const [businessName, setBusinessName] = useState("");
   const [businessAddress, setBusinessAddress] = useState("");
   const [businessCity, setBusinessCity] = useState("");
-  const [businessState, setBusinessState] = useState("FL");
+  const [businessState, setBusinessState] = useState("");
   const [businessZipCode, setBusinessZipCode] = useState("");
 
   // ✨ Toast hook
@@ -189,8 +189,8 @@ export default function SignupScreen({ navigation }: any) {
           ? {
               businessName,
               businessAddress,
-              businessCity: businessCity || "Miami",
-              businessState: businessState || "FL",
+              businessCity: businessCity,
+              businessState: businessState,
               businessZipCode,
             }
           : {}),

@@ -54,6 +54,7 @@ const pt = {
       reviews: 'Avaliações',
       subscriptions: 'Assinaturas',
       content: 'Conteúdo',
+      compliance: 'Compliance',
       reports: 'Relatórios',
       notifications: 'Notificações',
       support: 'Suporte',

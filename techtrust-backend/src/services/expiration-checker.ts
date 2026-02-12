@@ -5,6 +5,7 @@
  */
 
 import { PrismaClient } from "@prisma/client";
+import * as ruleEngine from "./rule-engine.service";
 
 const prisma = new PrismaClient();
 
@@ -134,6 +135,11 @@ async function recalculateProviderStatusOnExpiration(
   providerProfileId: string,
 ) {
   try {
+    // Use rule engine for service eligibility recalculation
+    await ruleEngine.calculateServiceEligibility(providerProfileId);
+    await ruleEngine.recalculateProviderStatus(providerProfileId);
+
+    // Fallback: also check for any expired items directly
     const hasExpired =
       (await prisma.complianceItem.findFirst({
         where: { providerProfileId, status: "EXPIRED" },

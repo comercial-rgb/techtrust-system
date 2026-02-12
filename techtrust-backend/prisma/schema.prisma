@@ -195,6 +195,30 @@ enum ComplianceType {
   LOCAL_BTR_CITY
   LOCAL_BTR_COUNTY
   EPA_609_TECHNICIAN
+  STATE_SHOP_REGISTRATION  // Generic for any state
+}
+
+// ============================================
+// MULTI-STATE COMPLIANCE ENUMS
+// ============================================
+
+enum RequirementScope {
+  FEDERAL
+  STATE
+  COUNTY
+  CITY
+}
+
+enum LocalLicenseModel {
+  COUNTY_ONLY
+  CITY_AND_COUNTY
+  VARIES
+}
+
+enum TowingRegulationLevel {
+  LOW
+  MEDIUM
+  HIGH
 }
 
 enum ComplianceStatus {
@@ -429,9 +453,10 @@ model ProviderProfile {
   totalServicesCompleted Int @default(0)
   
   // ===== Relations =====
-  complianceItems   ComplianceItem[]
-  technicians       Technician[]
-  insurancePolicies InsurancePolicy[]
+  complianceItems     ComplianceItem[]
+  technicians         Technician[]
+  insurancePolicies   InsurancePolicy[]
+  serviceEligibilities ServiceEligibility[]
 
   @@index([userId])
   @@index([isVerified])
@@ -1804,11 +1829,15 @@ model ComplianceItem {
   technicianId String?
   technician   Technician? @relation(fields: [technicianId], references: [id], onDelete: SetNull)
   
+  // Multi-state: links to dynamic ComplianceRequirement catalog
+  requirementKey String? // e.g. STATE_REPAIR_SHOP_REG, LOCAL_BUSINESS_LICENSE_COUNTY, EPA_609
+  
   @@unique([providerProfileId, type, technicianId]) // One compliance item per type per provider (or per technician for EPA)
   @@index([providerProfileId])
   @@index([type])
   @@index([status])
   @@index([expirationDate])
+  @@index([requirementKey])
   @@map("compliance_items")
 }
 
@@ -1951,4 +1980,167 @@ model VerificationLog {
   @@index([verifiedByUserId])
   @@index([createdAt])
   @@map("verification_logs")
+}
+
+// ============================================
+// MULTI-STATE COMPLIANCE ARCHITECTURE
+// ============================================
+
+// State-level configuration for marketplace expansion
+model StateProfile {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  stateCode     String @unique // "FL", "TX", "CA", etc.
+  stateName     String         // "Florida", "Texas", etc.
+  
+  // Feature flag: is marketplace active in this state?
+  isActive      Boolean @default(false)
+  
+  // State repair shop registration config
+  stateRepairShopRegRequired    Boolean @default(false)
+  stateRepairShopRegDisplayName String? // "FDACS Motor Vehicle Repair", "BAR License", etc.
+  stateRepairShopRegAuthority   String? // "FDACS", "Bureau of Automotive Repair", etc.
+  
+  // Local license model
+  defaultLocalLicenseModel LocalLicenseModel @default(COUNTY_ONLY)
+  
+  // Towing regulation level
+  towingRegulationLevel TowingRegulationLevel @default(MEDIUM)
+  
+  // Internal notes
+  notesInternal String? @db.Text
+  
+  // Relations
+  jurisdictionPolicies JurisdictionPolicy[]
+  
+  @@map("state_profiles")
+}
+
+// Catalog of all possible compliance requirements (data-driven, not hardcoded)
+model ComplianceRequirement {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Stable key used for programmatic reference
+  requirementKey String @unique // STATE_REPAIR_SHOP_REG, LOCAL_BUSINESS_LICENSE_COUNTY, EPA_609, etc.
+  
+  // Scope: federal, state, county, or city level
+  scope RequirementScope
+  
+  // Display
+  displayName String  // "State Repair Shop Registration"
+  description String? @db.Text
+  
+  // Which services does this requirement apply to? ["ALL"] or ["AC_SERVICE", "TOWING"]
+  appliesToServices Json @default("[\"ALL\"]")
+  
+  // How is this verified?
+  verificationMode String @default("UPLOAD_ONLY") // UPLOAD_ONLY, MANUAL_REVIEW, API_VERIFY, SELF_ATTESTATION
+  
+  // Schema for data collection (JSON schema)
+  fieldsSchema Json? // {number: true, issuer: true, dates: true, uploads: true}
+  
+  // Renewal information
+  renewalRule String? // "annual", "biennial", "varies", "none"
+  
+  // Display priority (lower = higher priority)
+  priority Int @default(100)
+  
+  // Active flag
+  isActive Boolean @default(true)
+  
+  // Relations
+  jurisdictionRequirements JurisdictionRequirement[]
+  
+  @@map("compliance_requirements")
+}
+
+// Policy that defines which requirements apply in a specific jurisdiction
+model JurisdictionPolicy {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Location scope
+  stateCode     String
+  stateProfile  StateProfile @relation(fields: [stateCode], references: [stateCode])
+  countyName    String? // null = statewide
+  cityName      String? // null = county-wide or statewide
+  insideCityLimitsRequired Boolean? // For city-level requirements
+  
+  // Active flag
+  isActive Boolean @default(true)
+  
+  // Internal notes
+  notesInternal String? @db.Text
+  
+  // Relations
+  requirements JurisdictionRequirement[]
+  
+  @@unique([stateCode, countyName, cityName])
+  @@index([stateCode])
+  @@map("jurisdiction_policies")
+}
+
+// Join: which requirements belong to which jurisdiction policy
+model JurisdictionRequirement {
+  id String @id @default(uuid())
+  
+  policyId String
+  policy   JurisdictionPolicy @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  
+  requirementKey String
+  requirement    ComplianceRequirement @relation(fields: [requirementKey], references: [requirementKey])
+  
+  // Override display name per jurisdiction (e.g. "FDACS Motor Vehicle Repair" for FL)
+  displayNameOverride      String?
+  issuingAuthorityOverride String?
+  
+  // Mandatory vs recommended
+  isMandatory Boolean @default(true)
+  
+  @@unique([policyId, requirementKey])
+  @@index([requirementKey])
+  @@map("jurisdiction_requirements")
+}
+
+// Calculated eligibility per service per provider (recalculated by rule engine)
+model ServiceEligibility {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  providerProfileId String
+  providerProfile   ProviderProfile @relation(fields: [providerProfileId], references: [id], onDelete: Cascade)
+  
+  serviceType      String  // ServiceOffered value (e.g. "AC_SERVICE", "TOWING", "GENERAL_REPAIR")
+  eligible         Boolean @default(false)
+  reasonCodes      Json    @default("[]") // ["EPA_609_MISSING", "TOW_INSURANCE_MISSING"]
+  lastCalculatedAt DateTime @default(now())
+  
+  @@unique([providerProfileId, serviceType])
+  @@index([providerProfileId])
+  @@index([serviceType])
+  @@map("service_eligibilities")
+}
+
+// Versioned disclaimer texts for legal audit trail
+model DisclaimerVersion {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  
+  serviceType   String? // null = ALL services
+  stateCode     String? // null = ALL states
+  version       String  // "v1.0", "v1.1", etc.
+  text          String  @db.Text
+  effectiveDate DateTime @default(now())
+  isActive      Boolean @default(true)
+  
+  @@unique([serviceType, stateCode, version])
+  @@index([serviceType])
+  @@index([isActive])
+  @@map("disclaimer_versions")
 }

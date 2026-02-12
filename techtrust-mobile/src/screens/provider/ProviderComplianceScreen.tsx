@@ -1,6 +1,6 @@
 /**
  * ProviderComplianceScreen - Main compliance dashboard for provider
- * Shows FDACS, BTR, EPA compliance items, insurance overview, service gating
+ * Dynamic multi-state compliance: shows requirements based on jurisdiction
  */
 
 import React, { useState, useCallback } from "react";
@@ -21,6 +21,7 @@ import {
   getComplianceSummary,
   getComplianceStatusLabel,
   getInsuranceStatusLabel,
+  getComplianceDisplayName,
   COMPLIANCE_TYPE_LABELS,
   INSURANCE_TYPE_LABELS,
   autoCreateComplianceItems,
@@ -41,6 +42,8 @@ export default function ProviderComplianceScreen({ navigation }: any) {
     Record<string, { allowed: boolean; reason?: string }>
   >({});
   const [overallStatus, setOverallStatus] = useState("PENDING");
+  const [jurisdiction, setJurisdiction] = useState<any>(null);
+  const [requiredItems, setRequiredItems] = useState<any[]>([]);
 
   const fetchData = useCallback(async () => {
     try {
@@ -50,7 +53,9 @@ export default function ProviderComplianceScreen({ navigation }: any) {
         setInsurancePolicies(res.data.insurancePolicies || []);
         setTechnicians(res.data.technicians || []);
         setServiceGating(res.data.serviceGating || {});
-        setOverallStatus(res.data.overallStatus || "PENDING");
+        setOverallStatus(res.data.overallStatus || res.data.providerPublicStatus || "PENDING");
+        setJurisdiction(res.data.jurisdiction || null);
+        setRequiredItems(res.data.requiredItems || []);
       }
     } catch (error: any) {
       console.error("Error fetching compliance:", error);
@@ -185,6 +190,12 @@ export default function ProviderComplianceScreen({ navigation }: any) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Overall Status</Text>
           {getOverallBadge()}
+          {jurisdiction && (
+            <Text style={{ fontSize: 12, color: '#6b7280', marginTop: 4, textAlign: 'center' }}>
+              {jurisdiction.stateName}{jurisdiction.countyName ? ` · ${jurisdiction.countyName} County` : ''}
+              {jurisdiction.isActiveState ? '' : ' (State not yet active)'}
+            </Text>
+          )}
         </View>
 
         {/* Compliance Items */}
@@ -226,7 +237,7 @@ export default function ProviderComplianceScreen({ navigation }: any) {
                 <View style={styles.cardHeader}>
                   <Ionicons
                     name={
-                      item.type === "FDACS_MOTOR_VEHICLE_REPAIR"
+                      item.type === "FDACS_MOTOR_VEHICLE_REPAIR" || item.type === "STATE_SHOP_REGISTRATION"
                         ? "shield"
                         : "document"
                     }
@@ -234,13 +245,13 @@ export default function ProviderComplianceScreen({ navigation }: any) {
                     color="#1976d2"
                   />
                   <Text style={styles.cardTitle}>
-                    {COMPLIANCE_TYPE_LABELS[item.type] || item.type}
+                    {getComplianceDisplayName(item, requiredItems)}
                   </Text>
                   {getStatusBadge(item.status)}
                 </View>
-                {item.registrationNumber && (
+                {(item.registrationNumber || item.licenseNumber) && (
                   <Text style={styles.cardDetail}>
-                    Reg #: {item.registrationNumber}
+                    Reg #: {item.registrationNumber || item.licenseNumber}
                   </Text>
                 )}
                 {item.expirationDate && (

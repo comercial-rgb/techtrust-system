@@ -1,10 +1,12 @@
 /**
  * Provider Compliance Controller
- * Manages ComplianceItems (FDACS, BTR City/County, EPA 609)
+ * Manages ComplianceItems — now data-driven via multi-state rule engine.
+ * Supports FDACS (Florida) and any future state registration requirements.
  */
 
 import { Request, Response } from "express";
 import { PrismaClient, ComplianceType, ComplianceStatus } from "@prisma/client";
+import * as ruleEngine from "../services/rule-engine.service";
 
 const prisma = new PrismaClient();
 
@@ -122,7 +124,7 @@ export const upsertComplianceItem = async (
 // ============================================
 // POST /compliance/:providerProfileId/auto-create
 // Auto-create required compliance items based on provider location/services
-// Called after provider profile setup or services update
+// NOW DATA-DRIVEN via rule engine (multi-state support)
 // ============================================
 export const autoCreateComplianceItems = async (
   req: Request,
@@ -141,78 +143,40 @@ export const autoCreateComplianceItems = async (
         .json({ success: false, message: "Provider profile not found" });
     }
 
-    const created: string[] = [];
+    // Use rule engine to auto-create items based on jurisdiction policies
+    const { created, jurisdiction } =
+      await ruleEngine.autoCreateComplianceItemsFromRules(providerProfileId);
 
-    // 1. FDACS - Always required in Florida
-    await prisma.complianceItem.upsert({
-      where: {
-        providerProfileId_type_technicianId: {
-          providerProfileId,
-          type: "FDACS_MOTOR_VEHICLE_REPAIR",
-          technicianId: null as unknown as string,
+    // If no jurisdiction policies found, fall back to minimal creation
+    if (created.length === 0) {
+      // Fallback: at minimum create county BTR
+      await prisma.complianceItem.upsert({
+        where: {
+          providerProfileId_type_technicianId: {
+            providerProfileId,
+            type: "LOCAL_BTR_COUNTY",
+            technicianId: null as unknown as string,
+          },
         },
-      },
-      update: {},
-      create: {
-        providerProfileId,
-        type: "FDACS_MOTOR_VEHICLE_REPAIR",
-        status: profile.fdacsRegistrationNumber
-          ? "PROVIDED_UNVERIFIED"
-          : "NOT_PROVIDED",
-        licenseNumber: profile.fdacsRegistrationNumber || undefined,
-        issuingAuthority: "FDACS",
-      },
-    });
-    created.push("FDACS_MOTOR_VEHICLE_REPAIR");
-
-    // 2. County BTR - Always required
-    await prisma.complianceItem.upsert({
-      where: {
-        providerProfileId_type_technicianId: {
+        update: {},
+        create: {
           providerProfileId,
           type: "LOCAL_BTR_COUNTY",
-          technicianId: null as unknown as string,
+          requirementKey: "LOCAL_BUSINESS_LICENSE_COUNTY",
+          status: "NOT_PROVIDED",
+          issuingAuthority: profile.county
+            ? `${profile.county} County`
+            : undefined,
         },
-      },
-      update: {},
-      create: {
-        providerProfileId,
-        type: "LOCAL_BTR_COUNTY",
-        status: "NOT_PROVIDED",
-        issuingAuthority: profile.county
-          ? `${profile.county} County Tax Collector`
-          : undefined,
-      },
-    });
-    created.push("LOCAL_BTR_COUNTY");
+      });
+      created.push("LOCAL_BUSINESS_LICENSE_COUNTY");
+    }
 
-    // 3. City BTR - Only if inside city limits
-    const cityStatus: ComplianceStatus =
-      profile.insideCityLimits === false ? "NOT_APPLICABLE" : "NOT_PROVIDED";
-    await prisma.complianceItem.upsert({
-      where: {
-        providerProfileId_type_technicianId: {
-          providerProfileId,
-          type: "LOCAL_BTR_CITY",
-          technicianId: null as unknown as string,
-        },
-      },
-      update: {
-        status:
-          profile.insideCityLimits === false ? "NOT_APPLICABLE" : undefined,
-      },
-      create: {
-        providerProfileId,
-        type: "LOCAL_BTR_CITY",
-        status: cityStatus,
-        issuingAuthority: profile.insideCityLimits
-          ? `City of ${profile.city}`
-          : undefined,
-      },
-    });
-    created.push("LOCAL_BTR_CITY");
+    // Recalculate eligibility after creating items
+    await ruleEngine.calculateServiceEligibility(providerProfileId);
+    await ruleEngine.recalculateProviderStatus(providerProfileId);
 
-    res.json({ success: true, data: { created } });
+    res.json({ success: true, data: { created, jurisdiction } });
   } catch (error: any) {
     console.error("Error auto-creating compliance items:", error);
     res
@@ -227,6 +191,7 @@ export const autoCreateComplianceItems = async (
 // ============================================
 // GET /compliance/:providerProfileId/summary
 // Get compliance summary with service gating info
+// NOW POWERED BY RULE ENGINE (multi-state)
 // ============================================
 export const getComplianceSummary = async (
   req: Request,
@@ -234,6 +199,9 @@ export const getComplianceSummary = async (
 ): Promise<any> => {
   try {
     const { providerProfileId } = req.params;
+
+    // Use rule engine for full summary
+    const summary = await ruleEngine.getFullComplianceSummary(providerProfileId);
 
     const profile = await prisma.providerProfile.findUnique({
       where: { id: providerProfileId },
@@ -252,9 +220,9 @@ export const getComplianceSummary = async (
 
     const servicesOffered = (profile.servicesOffered as string[]) || [];
 
-    // Build compliance summary
+    // Build backward-compatible licensing section
     const fdacs = profile.complianceItems.find(
-      (c) => c.type === "FDACS_MOTOR_VEHICLE_REPAIR",
+      (c) => c.type === "FDACS_MOTOR_VEHICLE_REPAIR" || c.type === "STATE_SHOP_REGISTRATION",
     );
     const countyBtr = profile.complianceItems.find(
       (c) => c.type === "LOCAL_BTR_COUNTY",
@@ -262,48 +230,6 @@ export const getComplianceSummary = async (
     const cityBtr = profile.complianceItems.find(
       (c) => c.type === "LOCAL_BTR_CITY",
     );
-
-    // Service gating checks
-    const serviceGating: Record<string, { allowed: boolean; reason?: string }> =
-      {};
-
-    // A/C Service gating: requires at least 1 technician with VERIFIED EPA 609
-    if (servicesOffered.includes("AC_SERVICE")) {
-      const verifiedTechs = profile.technicians.filter(
-        (t) => t.epa609Status === "VERIFIED" && t.isActive,
-      );
-      serviceGating["AC_SERVICE"] = {
-        allowed: verifiedTechs.length > 0,
-        reason:
-          verifiedTechs.length === 0
-            ? "Certification required (EPA 609)"
-            : undefined,
-      };
-    }
-
-    // Towing gating: requires COMMERCIAL_AUTO + ON_HOOK insurance verified & not expired
-    if (servicesOffered.includes("TOWING")) {
-      const commercialAuto = profile.insurancePolicies.find(
-        (p) => p.type === "COMMERCIAL_AUTO",
-      );
-      const onHook = profile.insurancePolicies.find(
-        (p) => p.type === "ON_HOOK",
-      );
-      const commercialOk =
-        commercialAuto?.status === "INS_VERIFIED" &&
-        (!commercialAuto.expirationDate ||
-          commercialAuto.expirationDate > new Date());
-      const onHookOk =
-        onHook?.status === "INS_VERIFIED" &&
-        (!onHook.expirationDate || onHook.expirationDate > new Date());
-      serviceGating["TOWING"] = {
-        allowed: commercialOk && onHookOk,
-        reason:
-          !commercialOk || !onHookOk
-            ? "Insurance required (Commercial Auto + On-Hook)"
-            : undefined,
-      };
-    }
 
     // Insurance summary
     const insuranceSummary = profile.insurancePolicies.map((p) => ({
@@ -314,7 +240,6 @@ export const getComplianceSummary = async (
       expirationDate: p.expirationDate,
     }));
 
-    // General liability check
     const generalLiability = profile.insurancePolicies.find(
       (p) => p.type === "GENERAL_LIABILITY",
     );
@@ -324,7 +249,22 @@ export const getComplianceSummary = async (
       success: true,
       data: {
         providerPublicStatus: profile.providerPublicStatus,
+        // Multi-state jurisdiction info
+        jurisdiction: summary.jurisdiction,
+        requiredItems: summary.requiredItems,
+        // Backward-compatible licensing section
         licensing: {
+          stateRegistration: fdacs
+            ? {
+                status: fdacs.status,
+                licenseNumber: fdacs.licenseNumber,
+                expirationDate: fdacs.expirationDate,
+                type: fdacs.type,
+                requirementKey: fdacs.requirementKey,
+                issuingAuthority: fdacs.issuingAuthority,
+              }
+            : null,
+          // Legacy aliases
           fdacs: fdacs
             ? {
                 status: fdacs.status,
@@ -355,8 +295,10 @@ export const getComplianceSummary = async (
         },
         insurance: insuranceSummary,
         hasVerifiedInsurance,
-        serviceGating,
+        serviceGating: summary.serviceGating,
+        serviceEligibilities: summary.serviceEligibilities,
         servicesOffered,
+        disclaimersNeeded: summary.disclaimersNeeded,
       },
     });
   } catch (error: any) {

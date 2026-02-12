@@ -54,6 +54,7 @@ const es = {
       reviews: 'Reseñas',
       subscriptions: 'Suscripciones',
       content: 'Contenido',
+      compliance: 'Compliance',
       reports: 'Reportes',
       notifications: 'Notificaciones',
       support: 'Soporte',

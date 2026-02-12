@@ -52,6 +52,7 @@ import complianceRoutes from "./routes/compliance.routes";
 import technicianRoutes from "./routes/technician.routes";
 import insuranceRoutes from "./routes/insurance.routes";
 import verificationRoutes from "./routes/verification.routes";
+import multiStateRoutes from "./routes/multi-state.routes";
 
 // Carregar variáveis de ambiente
 dotenv.config();
@@ -267,6 +268,7 @@ app.use(`/api/${API_VERSION}/compliance`, complianceRoutes); // Provider complia
 app.use(`/api/${API_VERSION}/technicians`, technicianRoutes); // Technician management
 app.use(`/api/${API_VERSION}/insurance`, insuranceRoutes); // Insurance policies
 app.use(`/api/${API_VERSION}/verification`, verificationRoutes); // Verification & risk acceptance
+app.use(`/api/${API_VERSION}/multi-state`, multiStateRoutes); // Multi-state compliance management
 
 // ============================================
 // ERROR HANDLER (deve ser o último middleware)

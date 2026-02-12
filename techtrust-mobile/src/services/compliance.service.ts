@@ -16,7 +16,10 @@ export interface ComplianceItem {
   providerProfileId: string;
   type: string;
   status: string;
+  requirementKey?: string; // Multi-state: links to dynamic catalog
   registrationNumber?: string;
+  licenseNumber?: string;
+  issuingAuthority?: string;
   expirationDate?: string;
   documentUploads: string[];
   lastVerifiedAt?: string;
@@ -67,7 +70,32 @@ export interface ComplianceSummary {
   insurancePolicies: InsurancePolicy[];
   technicians: Technician[];
   serviceGating: Record<string, { allowed: boolean; reason?: string }>;
+  serviceEligibilities?: Array<{
+    serviceType: string;
+    eligible: boolean;
+    reasonCodes: string[];
+  }>;
   overallStatus: string;
+  // Multi-state data
+  jurisdiction?: {
+    stateCode: string;
+    stateName: string;
+    countyName?: string;
+    cityName?: string;
+    insideCityLimits?: boolean;
+    isActiveState: boolean;
+  };
+  requiredItems?: Array<{
+    requirementKey: string;
+    displayName: string;
+    issuingAuthority?: string;
+    scope: string;
+    isMandatory: boolean;
+  }>;
+  disclaimersNeeded?: Array<{
+    serviceType: string;
+    disclaimerVersion?: any;
+  }>;
 }
 
 export interface RiskAcceptanceCheck {
@@ -296,7 +324,74 @@ export const INSURANCE_TYPE_LABELS: Record<string, string> = {
 
 export const COMPLIANCE_TYPE_LABELS: Record<string, string> = {
   FDACS_MOTOR_VEHICLE_REPAIR: "FDACS Motor Vehicle Repair",
+  STATE_SHOP_REGISTRATION: "State Repair Shop Registration",
   CITY_BTR: "City Business Tax Receipt",
+  LOCAL_BTR_CITY: "City Business Tax Receipt",
   COUNTY_BTR: "County Business Tax Receipt",
+  LOCAL_BTR_COUNTY: "County Business Tax Receipt",
   EPA_609_TECHNICIAN: "EPA 609 Certification",
+};
+
+/**
+ * Get a display label for a compliance item.
+ * Prefers the dynamic displayName from the catalog (via requiredItems)
+ * and falls back to the static map.
+ */
+export const getComplianceDisplayName = (
+  item: ComplianceItem,
+  requiredItems?: Array<{ requirementKey: string; displayName: string }>
+): string => {
+  // First try to find from the dynamic catalog
+  if (item.requirementKey && requiredItems) {
+    const catalogItem = requiredItems.find(
+      (r) => r.requirementKey === item.requirementKey
+    );
+    if (catalogItem) return catalogItem.displayName;
+  }
+  // Fall back to static labels
+  return (
+    COMPLIANCE_TYPE_LABELS[item.type] ||
+    item.issuingAuthority ||
+    item.type
+  );
+};
+
+// ============================================
+// MULTI-STATE API
+// ============================================
+
+/** Get list of active marketplace states */
+export const getActiveStates = async (): Promise<
+  Array<{ stateCode: string; stateName: string }>
+> => {
+  const response = await api.get("/multi-state/states/active");
+  return response.data?.data?.states || [];
+};
+
+/** Get state profile details */
+export const getStateProfile = async (stateCode: string) => {
+  const response = await api.get(
+    `/multi-state/state-profiles/${stateCode}`
+  );
+  return response.data?.data?.profile;
+};
+
+/** Resolve requirements for current provider (via rule engine) */
+export const resolveProviderRequirements = async (
+  providerProfileId: string
+) => {
+  const response = await api.post(
+    `/multi-state/rule-engine/resolve/${providerProfileId}`
+  );
+  return response.data?.data;
+};
+
+/** Recalculate eligibility for current provider */
+export const recalculateEligibility = async (
+  providerProfileId: string
+) => {
+  const response = await api.post(
+    `/multi-state/rule-engine/eligibility/${providerProfileId}`
+  );
+  return response.data?.data;
 };
