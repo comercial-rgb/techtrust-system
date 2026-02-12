@@ -20,14 +20,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { useI18n } from "../../i18n";
 import api from "../../services/api";
 import * as fdacsService from "../../services/fdacs.service";
+import { getMySubscription, type SubscriptionInfo } from "../../services/payment.service";
 
 let DateTimePicker: any = null;
 try {
   DateTimePicker = require("@react-native-community/datetimepicker").default;
 } catch (e) {}
 
-const APP_SERVICE_FEE = 2.99;
-const APP_SERVICE_FEE_FREE_PLAN = 5.00;
+const APP_FEE_FREE = 5.00;
+const APP_FEE_SUBSCRIBER = 0;
 const MAX_PROVIDER_DIAGNOSTIC_FEE = 50;
 const DEFAULT_RADIUS_MILES = 25;
 
@@ -56,6 +57,7 @@ interface ProviderResult {
 export default function ScheduleAppointmentScreen({ route, navigation }: any) {
   const { serviceRequestId, providerId, vehicleId } = route.params || {};
   const { t } = useI18n();
+  const sa: any = t.scheduleAppointment || {};
 
   // Step tracker: 1 = vehicle, 2 = service type, 3 = provider, 4 = date/time, 5 = confirm
   const [step, setStep] = useState(1);
@@ -148,10 +150,25 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
   // Submit
   const [submitting, setSubmitting] = useState(false);
 
-  // Load vehicles on mount
+  // Subscription / Plan
+  const [userPlan, setUserPlan] = useState<SubscriptionInfo | null>(null);
+  const isSubscriber = userPlan && userPlan.plan !== "FREE" && userPlan.status === "ACTIVE";
+  const appFee = isSubscriber ? APP_FEE_SUBSCRIBER : APP_FEE_FREE;
+
+  // Load vehicles + subscription on mount
   useEffect(() => {
     loadVehicles();
+    loadSubscription();
   }, []);
+
+  async function loadSubscription() {
+    try {
+      const sub = await getMySubscription();
+      setUserPlan(sub);
+    } catch {
+      // Defaults to free plan if can't load
+    }
+  }
 
   async function loadVehicles() {
     try {
@@ -173,7 +190,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
     } catch {
       Alert.alert(
         t.common?.error || "Error",
-        t.scheduleAppointment?.failedLoadVehicles ||
+        sa.failedLoadVehicles ||
           "Failed to load vehicles",
       );
     } finally {
@@ -193,7 +210,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
         if (status !== "granted") {
           Alert.alert(
             t.common?.error || "Error",
-            t.scheduleAppointment?.locationRequired ||
+            sa.locationRequired ||
               "Location permission is required to find nearby providers",
           );
           setLoadingProviders(false);
@@ -223,7 +240,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
     } catch {
       Alert.alert(
         t.common?.error || "Error",
-        t.scheduleAppointment?.searchFailed ||
+        sa.searchFailed ||
           "Failed to search providers. Please try again.",
       );
     } finally {
@@ -257,7 +274,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
     if (!selectedVehicle || !selectedProvider || !selectedServiceType) {
       Alert.alert(
         t.common?.required || "Required",
-        t.scheduleAppointment?.fillAllFields ||
+        sa.fillAllFields ||
           "Please complete all required fields",
       );
       return;
@@ -279,7 +296,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
       });
       Alert.alert(
         t.common?.success || "Success",
-        t.scheduleAppointment?.scheduled ||
+        sa.scheduled ||
           "Your diagnostic appointment has been scheduled! The provider will confirm shortly.",
         [{ text: t.common?.ok || "OK", onPress: () => navigation.goBack() }],
       );
@@ -287,7 +304,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
       Alert.alert(
         t.common?.error || "Error",
         error?.response?.data?.message ||
-          t.scheduleAppointment?.scheduleFailed ||
+          sa.scheduleFailed ||
           "Failed to schedule appointment. Please try again.",
       );
     } finally {
@@ -297,11 +314,11 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
 
   // Step labels
   const stepLabels = [
-    t.scheduleAppointment?.stepVehicle || "Vehicle",
-    t.scheduleAppointment?.stepService || "Service",
-    t.scheduleAppointment?.stepProvider || "Provider",
-    t.scheduleAppointment?.stepDateTime || "Date & Time",
-    t.scheduleAppointment?.stepConfirm || "Confirm",
+    sa.stepVehicle || "Vehicle",
+    sa.stepService || "Service",
+    sa.stepProvider || "Provider",
+    sa.stepDateTime || "Date & Time",
+    sa.stepConfirm || "Confirm",
   ];
 
   const canGoNext = () => {
@@ -338,7 +355,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
           <Ionicons name="arrow-back" size={24} color="#111827" />
         </TouchableOpacity>
         <Text style={styles.title}>
-          {t.scheduleAppointment?.title || "Schedule Diagnostic"}
+          {sa.title || "Schedule Diagnostic"}
         </Text>
         <View style={{ width: 24 }} />
       </View>
@@ -387,7 +404,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
         {step === 1 && (
           <View>
             <Text style={styles.sectionTitle}>
-              {t.scheduleAppointment?.selectVehicle ||
+              {sa.selectVehicle ||
                 "Select your vehicle"}
             </Text>
             {loadingVehicles ? (
@@ -400,7 +417,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
               <View style={styles.emptyBox}>
                 <Ionicons name="car-outline" size={48} color="#9ca3af" />
                 <Text style={styles.emptyText}>
-                  {t.scheduleAppointment?.noVehicles ||
+                  {sa.noVehicles ||
                     "No vehicles found. Please add a vehicle first."}
                 </Text>
               </View>
@@ -446,7 +463,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
         {step === 2 && (
           <View>
             <Text style={styles.sectionTitle}>
-              {t.scheduleAppointment?.selectServiceType ||
+              {sa.selectServiceType ||
                 "What needs to be diagnosed?"}
             </Text>
             <View style={styles.serviceGrid}>
@@ -488,14 +505,14 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
         {step === 3 && (
           <View>
             <Text style={styles.sectionTitle}>
-              {t.scheduleAppointment?.findProvider ||
+              {sa.findProvider ||
                 "Find a nearby provider"}
             </Text>
 
             {/* Radius selector */}
             <View style={styles.radiusRow}>
               <Text style={styles.radiusLabel}>
-                {t.scheduleAppointment?.searchRadius || "Search Radius:"}
+                {sa.searchRadius || "Search Radius:"}
               </Text>
               <View style={styles.radiusBtns}>
                 {[10, 25, 50, 100].map((r) => (
@@ -535,7 +552,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
                 <>
                   <Ionicons name="search" size={18} color="#fff" />
                   <Text style={styles.searchBtnText}>
-                    {t.scheduleAppointment?.searchProviders ||
+                    {sa.searchProviders ||
                       "Search Providers"}
                   </Text>
                 </>
@@ -551,7 +568,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
                   color="#9ca3af"
                 />
                 <Text style={styles.emptyText}>
-                  {t.scheduleAppointment?.noProvidersFound ||
+                  {sa.noProvidersFound ||
                     "No providers found in this area. Try a larger radius."}
                 </Text>
               </View>
@@ -626,7 +643,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
         {step === 4 && (
           <View>
             <Text style={styles.sectionTitle}>
-              {t.scheduleAppointment?.selectDateTime ||
+              {sa.selectDateTime ||
                 "Choose date and time"}
             </Text>
             <View style={styles.dateTimeRow}>
@@ -676,24 +693,53 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
                   color="#1976d2"
                 />
                 <Text style={styles.feeTitle}>
-                  {t.scheduleAppointment?.appServiceFee ||
+                  {sa.appServiceFee ||
                     "App Service Fee"}
                 </Text>
+                {isSubscriber && (
+                  <View style={styles.subscriberBadge}>
+                    <Ionicons name="star" size={12} color="#fff" />
+                    <Text style={styles.subscriberBadgeText}>
+                      {userPlan?.plan || "PRO"}
+                    </Text>
+                  </View>
+                )}
               </View>
-              <Text style={styles.feeAmount}>
-                ${APP_SERVICE_FEE.toFixed(2)}
-              </Text>
-              <View style={styles.feeDisclaimer}>
-                <Ionicons
-                  name="information-circle"
-                  size={16}
-                  color="#059669"
-                />
-                <Text style={styles.feeDisclaimerText}>
-                  {t.scheduleAppointment?.appFeeMessage ||
-                    "This is the TechTrust service fee for connecting you with verified providers. Subscribers pay no app fee!"}
-                </Text>
-              </View>
+              {isSubscriber ? (
+                <>
+                  <Text style={[styles.feeAmount, { color: "#059669" }]}>
+                    {sa.free || "FREE"}
+                  </Text>
+                  <View style={styles.feeDisclaimer}>
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={16}
+                      color="#059669"
+                    />
+                    <Text style={styles.feeDisclaimerText}>
+                      {sa.subscriberNoFee ||
+                        "As a subscriber, you pay no app service fee on estimates!"}
+                    </Text>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.feeAmount}>
+                    ${appFee.toFixed(2)}
+                  </Text>
+                  <View style={styles.feeDisclaimer}>
+                    <Ionicons
+                      name="information-circle"
+                      size={16}
+                      color="#059669"
+                    />
+                    <Text style={styles.feeDisclaimerText}>
+                      {sa.appFeeMessage ||
+                        "This is the TechTrust service fee for connecting you with verified providers. Subscribe monthly to eliminate this fee!"}
+                    </Text>
+                  </View>
+                </>
+              )}
               <View style={[styles.feeDisclaimer, { marginTop: 8, backgroundColor: "#fefce8", borderColor: "#fde68a" }]}>
                 <Ionicons
                   name="alert-circle"
@@ -701,7 +747,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
                   color="#b45309"
                 />
                 <Text style={[styles.feeDisclaimerText, { color: "#92400e" }]}>
-                  {t.scheduleAppointment?.providerFeeNote ||
+                  {sa.providerFeeNote ||
                     "The provider may optionally charge a diagnostic fee (up to $50) when accepting your appointment. You will be notified before any charge."}
                 </Text>
               </View>
@@ -715,7 +761,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
                 color="#1976d2"
               />
               <Text style={styles.fdacsText}>
-                {t.scheduleAppointment?.fdacsProtection ||
+                {sa.fdacsProtection ||
                   "Your diagnostic visit is protected under Florida FDACS regulations. You will receive a Written Estimate valid for 15 days before any work begins."}
               </Text>
             </View>
@@ -726,7 +772,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
         {step === 5 && (
           <View>
             <Text style={styles.sectionTitle}>
-              {t.scheduleAppointment?.reviewConfirm ||
+              {sa.reviewConfirm ||
                 "Review & Confirm"}
             </Text>
 
@@ -736,7 +782,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
                 <Ionicons name="car" size={20} color="#6b7280" />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.summaryLabel}>
-                    {t.scheduleAppointment?.stepVehicle || "Vehicle"}
+                    {sa.stepVehicle || "Vehicle"}
                   </Text>
                   <Text style={styles.summaryValue}>
                     {selectedVehicleObj?.name || "-"}
@@ -754,7 +800,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
                 />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.summaryLabel}>
-                    {t.scheduleAppointment?.stepService || "Service"}
+                    {sa.stepService || "Service"}
                   </Text>
                   <Text style={styles.summaryValue}>
                     {selectedServiceObj?.label || "-"}
@@ -768,7 +814,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
                 <Ionicons name="business" size={20} color="#6b7280" />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.summaryLabel}>
-                    {t.scheduleAppointment?.stepProvider || "Provider"}
+                    {sa.stepProvider || "Provider"}
                   </Text>
                   <Text style={styles.summaryValue}>
                     {selectedProviderObj?.businessName || "-"}
@@ -782,7 +828,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
                 <Ionicons name="calendar" size={20} color="#6b7280" />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.summaryLabel}>
-                    {t.scheduleAppointment?.stepDateTime || "Date & Time"}
+                    {sa.stepDateTime || "Date & Time"}
                   </Text>
                   <Text style={styles.summaryValue}>
                     {date.toLocaleDateString()} ·{" "}
@@ -800,28 +846,25 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
                 <Ionicons name="cash" size={20} color="#6b7280" />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.summaryLabel}>
-                    {t.scheduleAppointment?.appServiceFee ||
+                    {sa.appServiceFee ||
                       "App Service Fee"}
                   </Text>
-                  <Text style={styles.summaryValue}>
-                    ${APP_SERVICE_FEE.toFixed(2)}
+                  <Text style={[styles.summaryValue, isSubscriber && { color: "#059669" }]}>
+                    {isSubscriber
+                      ? (sa.free || "FREE")
+                      : `$${appFee.toFixed(2)}`
+                    }
                   </Text>
+                  {isSubscriber && (
+                    <Text style={{ fontSize: 11, color: "#059669", fontWeight: "500" }}>
+                      {userPlan?.plan} {sa.planBenefit || "plan benefit"}
+                    </Text>
+                  )}
                 </View>
               </View>
             </View>
 
-            {/* Fee info */}
-            <View style={styles.feeDisclaimer}>
-              <Ionicons
-                name="information-circle"
-                size={16}
-                color="#059669"
-              />
-              <Text style={styles.feeDisclaimerText}>
-                {t.scheduleAppointment?.appFeeMessage ||
-                  "This is the TechTrust service fee for connecting you with verified providers. Subscribers pay no app fee!"}
-              </Text>
-            </View>
+            {/* Provider fee info */}
             <View style={[styles.feeDisclaimer, { backgroundColor: "#fefce8", borderColor: "#fde68a" }]}>
               <Ionicons
                 name="alert-circle"
@@ -829,7 +872,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
                 color="#b45309"
               />
               <Text style={[styles.feeDisclaimerText, { color: "#92400e" }]}>
-                {t.scheduleAppointment?.providerFeeNote ||
+                {sa.providerFeeNote ||
                   "The provider may optionally charge a diagnostic fee (up to $50) when accepting your appointment. You will be notified before any charge."}
               </Text>
             </View>
@@ -842,7 +885,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
                 color="#1976d2"
               />
               <Text style={styles.securityText}>
-                {t.scheduleAppointment?.securityNote ||
+                {sa.securityNote ||
                   "Your payment is secured. Provider details shared only after confirmation. All transactions are FDACS compliant."}
               </Text>
             </View>
@@ -866,7 +909,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
           >
             <Text style={styles.nextBtnText}>
               {step === 3 && !searchedProviders
-                ? t.scheduleAppointment?.searchProviders ||
+                ? sa.searchProviders ||
                   "Search Providers"
                 : t.common?.next || "Next"}
             </Text>
@@ -884,7 +927,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
               <>
                 <Ionicons name="calendar-outline" size={20} color="#fff" />
                 <Text style={styles.submitBtnText}>
-                  {t.scheduleAppointment?.confirmSchedule ||
+                  {sa.confirmSchedule ||
                     "Confirm & Schedule"}
                 </Text>
               </>
@@ -1090,6 +1133,17 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   feeTitle: { fontSize: 15, fontWeight: "700", color: "#111827" },
+  subscriberBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#059669",
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    marginLeft: "auto",
+  },
+  subscriberBadgeText: { fontSize: 10, fontWeight: "800", color: "#fff" },
   feeAmount: {
     fontSize: 28,
     fontWeight: "800",

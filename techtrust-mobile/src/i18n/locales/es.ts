@@ -1622,7 +1622,11 @@ export default {
     diagnosticFee: "Tarifa de Diagnóstico",
     appServiceFee: "Tarifa de la App",
     appFeeMessage:
-      "Esta es la tarifa de servicio TechTrust para conectarte con proveedores verificados. ¡Los suscriptores no pagan tarifa de la app!",
+      "Esta es la tarifa de servicio TechTrust para conectarte con proveedores verificados. ¡Suscríbete mensualmente para eliminar esta tarifa!",
+    subscriberNoFee:
+      "¡Como suscriptor, no pagas tarifa de la app en estimaciones!",
+    free: "GRATIS",
+    planBenefit: "beneficio del plan",
     providerFeeNote:
       "El proveedor puede opcionalmente cobrar una tarifa de diagnóstico (hasta $50) al aceptar tu cita. Serás notificado antes de cualquier cobro.",
     feeWaivedMessage:

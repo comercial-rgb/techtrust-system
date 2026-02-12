@@ -1632,7 +1632,11 @@ export default {
     diagnosticFee: "Taxa de Diagnóstico",
     appServiceFee: "Taxa do App",
     appFeeMessage:
-      "Esta é a taxa de serviço TechTrust para conectar você com prestadores verificados. Assinantes não pagam taxa do app!",
+      "Esta é a taxa de serviço TechTrust para conectá-lo com prestadores verificados. Assine mensalmente para eliminar esta taxa!",
+    subscriberNoFee:
+      "Como assinante, você não paga taxa do app em estimativas!",
+    free: "GRÁTIS",
+    planBenefit: "benefício do plano",
     providerFeeNote:
       "O prestador pode opcionalmente cobrar uma taxa de diagnóstico (até $50) ao aceitar seu agendamento. Você será notificado antes de qualquer cobrança.",
     feeWaivedMessage:

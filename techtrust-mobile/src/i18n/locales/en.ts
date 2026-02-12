@@ -1625,7 +1625,11 @@ export default {
     diagnosticFee: "Diagnostic Fee",
     appServiceFee: "App Service Fee",
     appFeeMessage:
-      "This is the TechTrust service fee for connecting you with verified providers. Subscribers pay no app fee!",
+      "This is the TechTrust service fee for connecting you with verified providers. Subscribe monthly to eliminate this fee!",
+    subscriberNoFee:
+      "As a subscriber, you pay no app service fee on estimates!",
+    free: "FREE",
+    planBenefit: "plan benefit",
     providerFeeNote:
       "The provider may optionally charge a diagnostic fee (up to $50) when accepting your appointment. You will be notified before any charge.",
     feeWaivedMessage:
