@@ -534,7 +534,6 @@ export default function CreateRequestScreen({ navigation }: any) {
         location:
           shareLocation && currentLocation ? currentLocation : undefined,
         urgency: urgency || undefined,
-        preferredDate: preferredDate || undefined,
       });
 
       const providerName =
