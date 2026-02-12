@@ -99,8 +99,8 @@ export default function CompliancePage() {
         api.get('/multi-state/states/all'),
         api.get('/multi-state/compliance-requirements'),
       ]);
-      setStates(statesRes.data?.states || []);
-      setRequirements(reqsRes.data?.requirements || []);
+      setStates((statesRes.data as any)?.states || []);
+      setRequirements((reqsRes.data as any)?.requirements || []);
     } catch (err) {
       console.error('Error fetching compliance data:', err);
     } finally {
@@ -111,7 +111,7 @@ export default function CompliancePage() {
   const fetchPolicies = async (stateCode: string) => {
     try {
       const res = await api.get(`/multi-state/jurisdiction-policies/${stateCode}`);
-      setPolicies(res.data?.policies || []);
+      setPolicies((res.data as any)?.policies || []);
     } catch (err) {
       console.error('Error fetching policies:', err);
     }
