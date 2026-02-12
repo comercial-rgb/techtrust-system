@@ -1598,4 +1598,39 @@ export default {
       "¿No estás seguro del problema? Agenda una visita diagnóstica. Un técnico certificado inspeccionará tu vehículo y proporcionará un presupuesto escrito.",
     scheduleDiagnostic: "Agendar Visita",
   },
+
+  scheduleAppointment: {
+    title: "Agendar Diagnóstico",
+    stepVehicle: "Vehículo",
+    stepService: "Servicio",
+    stepProvider: "Proveedor",
+    stepDateTime: "Fecha y Hora",
+    stepConfirm: "Confirmar",
+    selectVehicle: "Selecciona tu vehículo",
+    noVehicles: "No se encontraron vehículos. Agrega uno primero.",
+    failedLoadVehicles: "Error al cargar vehículos.",
+    selectServiceType: "¿Qué necesita ser diagnosticado?",
+    findProvider: "Encontrar un proveedor cercano",
+    searchRadius: "Radio de Búsqueda:",
+    searchProviders: "Buscar Proveedores",
+    noProvidersFound:
+      "No se encontraron proveedores en esta área. Intenta con un radio mayor.",
+    searchFailed: "Error al buscar proveedores. Inténtalo de nuevo.",
+    locationRequired:
+      "Se requiere permiso de ubicación para encontrar proveedores cercanos.",
+    selectDateTime: "Elige fecha y hora",
+    diagnosticFee: "Tarifa de Diagnóstico",
+    feeWaivedMessage:
+      "Esta tarifa se acredita a tu reparación si procedes con el servicio. Si no procedes, el 50% va al proveedor como compensación por su tiempo.",
+    fdacsProtection:
+      "Tu visita diagnóstica está protegida bajo las regulaciones FDACS de Florida. Recibirás un Presupuesto Escrito válido por 15 días antes de cualquier trabajo.",
+    reviewConfirm: "Revisar y Confirmar",
+    confirmSchedule: "Confirmar y Agendar",
+    scheduled:
+      "¡Tu cita diagnóstica ha sido agendada! El proveedor confirmará pronto.",
+    scheduleFailed: "Error al agendar. Inténtalo de nuevo.",
+    fillAllFields: "Por favor, completa todos los campos requeridos.",
+    securityNote:
+      "Tu pago está seguro. Los datos del proveedor se comparten solo después de la confirmación. Todas las transacciones cumplen con FDACS.",
+  },
 };

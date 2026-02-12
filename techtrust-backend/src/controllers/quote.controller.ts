@@ -159,9 +159,9 @@ export const createQuote = async (req: Request, res: Response) => {
   // Gerar Written Estimate number (FDACS)
   const estimateNumber = await generateEstimateNumber();
 
-  // Validade do orçamento (48 horas)
+  // Validade do orçamento (15 dias conforme FDACS)
   const validUntil = new Date();
-  validUntil.setHours(validUntil.getHours() + 48);
+  validUntil.setDate(validUntil.getDate() + 15);
 
   // Criar orçamento
   const quote = await prisma.quote.create({
@@ -239,15 +239,12 @@ export const getQuotesForRequest = async (req: Request, res: Response) => {
         select: {
           id: true,
           fullName: true,
-          phone: true,
           providerProfile: {
             select: {
               businessName: true,
-              businessPhone: true,
               averageRating: true,
               totalReviews: true,
               totalServicesCompleted: true,
-              address: true,
               city: true,
               state: true,
             },
@@ -285,8 +282,18 @@ export const getQuote = async (req: Request, res: Response) => {
         select: {
           id: true,
           fullName: true,
-          phone: true,
-          providerProfile: true,
+          providerProfile: {
+            select: {
+              businessName: true,
+              averageRating: true,
+              totalReviews: true,
+              totalServicesCompleted: true,
+              city: true,
+              state: true,
+              fdacsLicense: true,
+              specialties: true,
+            },
+          },
         },
       },
     },

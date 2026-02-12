@@ -357,7 +357,7 @@ export const searchProvidersByLocation = async (
   req: Request,
   res: Response,
 ): Promise<void> => {
-  const { lat, lng, radius = 50 } = req.query;
+  const { lat, lng, radius = 50, serviceType } = req.query;
 
   if (!lat || !lng) {
     res.status(400).json({
@@ -386,15 +386,30 @@ export const searchProvidersByLocation = async (
         select: {
           id: true,
           fullName: true,
-          phone: true,
-          email: true,
         },
       },
     },
   });
 
+  // Filter by serviceType if provided (match against servicesOffered JSON array)
+  const filteredByService = serviceType
+    ? providers.filter((p) => {
+        try {
+          const services = Array.isArray(p.servicesOffered)
+            ? p.servicesOffered
+            : JSON.parse(String(p.servicesOffered || "[]"));
+          return services.some(
+            (s: string) =>
+              s.toUpperCase() === String(serviceType).toUpperCase(),
+          );
+        } catch {
+          return false;
+        }
+      })
+    : providers;
+
   // Transformar para formato esperado pela função
-  const mappedProviders = providers.map((p) => ({
+  const mappedProviders = filteredByService.map((p) => ({
     ...p,
     baseLocation: {
       latitude: Number(p.baseLatitude),
@@ -411,18 +426,17 @@ export const searchProvidersByLocation = async (
     mappedProviders,
   );
 
-  // Enriquecer resultado com dados adicionais
+  // Enriquecer resultado com dados adicionais (protect provider data - only business name)
   const enrichedProviders = providersWithDistance.map((item) => ({
     id: item.id,
     userId: item.userId,
     businessName: item.businessName,
-    address: item.address,
     city: item.city,
     state: item.state,
     serviceRadiusKm: item.serviceRadiusKm,
     averageRating: item.averageRating,
     totalReviews: item.totalReviews,
-    user: item.user,
+    servicesOffered: item.servicesOffered,
     distance: {
       distanceKm: item.distanceInfo.distanceKm,
       distanceMiles: item.distanceInfo.distanceMiles,

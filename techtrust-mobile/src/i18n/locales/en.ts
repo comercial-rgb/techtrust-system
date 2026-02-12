@@ -1600,4 +1600,40 @@ export default {
       "Not sure what's wrong? Schedule a diagnostic visit. A certified technician will inspect your vehicle and provide a written estimate.",
     scheduleDiagnostic: "Schedule Visit",
   },
+
+  // Schedule Appointment Screen (redesigned)
+  scheduleAppointment: {
+    title: "Schedule Diagnostic",
+    stepVehicle: "Vehicle",
+    stepService: "Service",
+    stepProvider: "Provider",
+    stepDateTime: "Date & Time",
+    stepConfirm: "Confirm",
+    selectVehicle: "Select your vehicle",
+    noVehicles: "No vehicles found. Please add a vehicle first.",
+    failedLoadVehicles: "Failed to load vehicles.",
+    selectServiceType: "What needs to be diagnosed?",
+    findProvider: "Find a nearby provider",
+    searchRadius: "Search Radius:",
+    searchProviders: "Search Providers",
+    noProvidersFound:
+      "No providers found in this area. Try a larger radius.",
+    searchFailed: "Failed to search providers. Please try again.",
+    locationRequired:
+      "Location permission is required to find nearby providers.",
+    selectDateTime: "Choose date and time",
+    diagnosticFee: "Diagnostic Fee",
+    feeWaivedMessage:
+      "This fee is credited toward your repair if you proceed with the service. If you choose not to proceed, 50% goes to the provider as compensation for their time.",
+    fdacsProtection:
+      "Your diagnostic visit is protected under Florida FDACS regulations. You will receive a Written Estimate valid for 15 days before any work begins.",
+    reviewConfirm: "Review & Confirm",
+    confirmSchedule: "Confirm & Schedule",
+    scheduled:
+      "Your diagnostic appointment has been scheduled! The provider will confirm shortly.",
+    scheduleFailed: "Failed to schedule appointment. Please try again.",
+    fillAllFields: "Please complete all required fields.",
+    securityNote:
+      "Your payment is secured. Provider details shared only after confirmation. All transactions are FDACS compliant.",
+  },
 };

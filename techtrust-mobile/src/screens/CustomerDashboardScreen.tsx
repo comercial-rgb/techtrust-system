@@ -330,7 +330,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
         <FadeInView delay={100}>
           <TouchableOpacity
             style={styles.actionBanner}
-            onPress={() => navigation.navigate("CreateRequest")}
+            onPress={() => navigation.navigate("ServiceChoice")}
           >
             <View style={styles.bannerContent}>
               <View style={styles.bannerIcon}>
@@ -619,7 +619,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
               </Text>
               <TouchableOpacity
                 style={styles.emptyButton}
-                onPress={() => navigation.navigate("CreateRequest")}
+                onPress={() => navigation.navigate("ServiceChoice")}
               >
                 <Ionicons name="add" size={20} color="#fff" />
                 <Text style={styles.emptyButtonText}>

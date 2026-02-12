@@ -1608,4 +1608,39 @@ export default {
       "Não tem certeza do problema? Agende uma visita diagnóstica. Um técnico certificado irá inspecionar seu veículo e fornecer uma estimativa escrita.",
     scheduleDiagnostic: "Agendar Visita",
   },
+
+  scheduleAppointment: {
+    title: "Agendar Diagnóstico",
+    stepVehicle: "Veículo",
+    stepService: "Serviço",
+    stepProvider: "Prestador",
+    stepDateTime: "Data e Hora",
+    stepConfirm: "Confirmar",
+    selectVehicle: "Selecione seu veículo",
+    noVehicles: "Nenhum veículo encontrado. Adicione um veículo primeiro.",
+    failedLoadVehicles: "Falha ao carregar veículos.",
+    selectServiceType: "O que precisa ser diagnosticado?",
+    findProvider: "Encontrar um prestador próximo",
+    searchRadius: "Raio de Busca:",
+    searchProviders: "Buscar Prestadores",
+    noProvidersFound:
+      "Nenhum prestador encontrado nesta área. Tente um raio maior.",
+    searchFailed: "Falha na busca de prestadores. Tente novamente.",
+    locationRequired:
+      "Permissão de localização é necessária para encontrar prestadores próximos.",
+    selectDateTime: "Escolha data e horário",
+    diagnosticFee: "Taxa de Diagnóstico",
+    feeWaivedMessage:
+      "Esta taxa é creditada no reparo se você prosseguir com o serviço. Se não prosseguir, 50% vai para o prestador como compensação pelo tempo.",
+    fdacsProtection:
+      "Sua visita diagnóstica é protegida pelas regulamentações FDACS da Flórida. Você receberá uma Estimativa Escrita válida por 15 dias antes de qualquer trabalho.",
+    reviewConfirm: "Revisar e Confirmar",
+    confirmSchedule: "Confirmar e Agendar",
+    scheduled:
+      "Seu agendamento diagnóstico foi realizado! O prestador confirmará em breve.",
+    scheduleFailed: "Falha ao agendar. Tente novamente.",
+    fillAllFields: "Por favor, preencha todos os campos obrigatórios.",
+    securityNote:
+      "Seu pagamento é seguro. Dados do prestador compartilhados somente após confirmação. Todas as transações são compatíveis com FDACS.",
+  },
 };
