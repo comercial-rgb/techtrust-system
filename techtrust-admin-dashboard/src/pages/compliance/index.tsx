@@ -295,7 +295,9 @@ export default function CompliancePage() {
                   </div>
                   <div className="flex items-center gap-2">
                     {state.stateRepairShopRegRequired && (
-                      <Shield className="w-3.5 h-3.5 text-blue-500" title="State registration required" />
+                      <span title="State registration required">
+                        <Shield className="w-3.5 h-3.5 text-blue-500" />
+                      </span>
                     )}
                     <span className="text-xs text-gray-400">
                       {state._count?.jurisdictionPolicies || 0}
