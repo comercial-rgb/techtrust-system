@@ -1858,7 +1858,7 @@ export default function CreateRequestScreen({ navigation }: any) {
       </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Submit Button */
+      {/* Submit Button */}
       <View style={styles.footer}>
         <TouchableOpacity
           style={[styles.submitBtn, submitting && styles.submitBtnDisabled]}
