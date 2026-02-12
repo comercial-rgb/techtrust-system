@@ -45,6 +45,7 @@ enum ServiceType {
   ROADSIDE_SOS
   INSPECTION
   DETAILING
+  DIAGNOSTIC
 }
 
 enum ServiceRequestStatus {
@@ -109,11 +110,42 @@ enum NotificationType {
   SERVICE_PHOTOS_UPLOADED
   TERMS_ACCEPTED
   RECEIPT_GENERATED
+  APPOINTMENT_SCHEDULED
+  APPOINTMENT_CONFIRMED
+  APPOINTMENT_CANCELLED
+  ESTIMATE_CREATED
+  ESTIMATE_SHARED
+  COMPETING_ESTIMATE_RECEIVED
+  REPAIR_INVOICE_GENERATED
 }
 
 enum PaymentProcessor {
   STRIPE
   CHASE
+}
+
+enum AppointmentStatus {
+  REQUESTED
+  CONFIRMED
+  PROVIDER_EN_ROUTE
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum EstimateType {
+  DIRECT          // Provider creates estimate from service request
+  DIAGNOSTIC      // Provider creates estimate after on-site diagnostic
+  COMPETING       // Provider creates estimate in response to a shared estimate
+}
+
+enum RepairInvoiceStatus {
+  DRAFT           // Auto-created from approved estimate
+  IN_PROGRESS     // Service is underway
+  COMPLETED       // Service done, awaiting customer approval
+  APPROVED        // Customer approved, payment captured
+  DISPUTED        // Customer disputes invoice
 }
 
 enum SupplementStatus {
@@ -216,6 +248,8 @@ model User {
   supportTickets    SupportTicket[]
   supportMessages   SupportMessage[]
   articles          Article[]
+  appointmentsAsCustomer Appointment[] @relation("CustomerAppointments")
+  appointmentsAsProvider Appointment[] @relation("ProviderAppointments")
 
   @@index([email])
   @@index([phone])
@@ -344,6 +378,7 @@ model Vehicle {
   serviceRequests ServiceRequest[]
   workOrders      WorkOrder[]
   maintenanceSchedule VehicleMaintenanceSchedule[]
+  appointments    Appointment[]
 
   @@index([userId])
   @@index([vin])
@@ -444,6 +479,11 @@ model ServiceRequest {
   quotes       Quote[]
   workOrders   WorkOrder[]
   chatMessages ChatMessage[] @relation("ServiceRequestChats")
+  appointments Appointment[]
+
+  // Customer responsibility for their request
+  customerResponsibilityAccepted Boolean @default(false)
+  customerResponsibilityAcceptedAt DateTime?
 
   @@index([userId])
   @@index([vehicleId])
@@ -460,11 +500,24 @@ model Quote {
   
   quoteNumber String @unique
   
+  // ===== FDACS Written Estimate Number (WE-XXXXXX) =====
+  estimateNumber String? @unique  // Unique Written Estimate ID (e.g., WE-2026-000001)
+  estimateType   EstimateType @default(DIRECT) // DIRECT, DIAGNOSTIC, COMPETING
+  
   // Relacionamentos
   serviceRequestId String
   serviceRequest   ServiceRequest @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
   providerId       String
   provider         User           @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  
+  // Appointment that originated this estimate (for diagnostic flow)
+  appointmentId String?
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
+  
+  // If this is a competing estimate, reference the original estimate being compared
+  originalEstimateId String?
+  originalEstimate   Quote?  @relation("CompetingEstimates", fields: [originalEstimateId], references: [id])
+  competingEstimates Quote[] @relation("CompetingEstimates")
   
   // Valores
   partsCost      Decimal @db.Decimal(10, 2)
@@ -473,9 +526,13 @@ model Quote {
   taxAmount      Decimal @default(0) @db.Decimal(10, 2)
   totalAmount    Decimal @db.Decimal(10, 2)
   
+  // Diagnostic fee (charged for the estimate visit itself)
+  diagnosticFee  Decimal @default(0) @db.Decimal(10, 2)
+  diagnosticFeeWaived Boolean @default(false) // Waived if service is completed on platform
+  
   // Distância e taxa de deslocamento
-  distanceKm  Decimal? @db.Decimal(7, 2)  // Distância calculada em km
-  travelFee   Decimal @default(0) @db.Decimal(10, 2)  // Taxa de deslocamento
+  distanceKm  Decimal? @db.Decimal(7, 2)
+  travelFee   Decimal @default(0) @db.Decimal(10, 2)
   
   // Detalhes (JSON)
   partsList         Json
@@ -498,6 +555,10 @@ model Quote {
   // Notas
   notes String?
   
+  // Customer responsibility disclaimer
+  customerResponsibilityAccepted Boolean @default(false)
+  customerResponsibilityAcceptedAt DateTime?
+  
   // Status
   status QuoteStatus @default(PENDING)
   
@@ -511,13 +572,224 @@ model Quote {
   expiredAt          DateTime?
   
   // Relacionamentos
-  workOrders WorkOrder[]
+  workOrders      WorkOrder[]
+  repairInvoice   RepairInvoice?
+  estimateShares  EstimateShare[]
 
   @@unique([serviceRequestId, providerId])
   @@index([serviceRequestId])
   @@index([providerId])
   @@index([status])
+  @@index([estimateNumber])
   @@map("quotes")
+}
+
+// ============================================
+// APPOINTMENT - Diagnostic/Estimate Visit Scheduling
+// ============================================
+model Appointment {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  appointmentNumber String @unique // APT-XXXXXX
+  
+  // Participants
+  customerId String
+  customer   User   @relation("CustomerAppointments", fields: [customerId], references: [id])
+  providerId String
+  provider   User   @relation("ProviderAppointments", fields: [providerId], references: [id])
+  
+  // Vehicle
+  vehicleId String
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id])
+  
+  // Service Request (optional - may be created from provider search)
+  serviceRequestId String?
+  serviceRequest   ServiceRequest? @relation(fields: [serviceRequestId], references: [id])
+  
+  // Scheduling
+  scheduledDate DateTime
+  scheduledTime String?   // "09:00", "14:30"
+  estimatedDuration String? // "30min", "1h", "2h"
+  
+  // Service description (what the customer wants diagnosed/checked)
+  serviceDescription String
+  serviceType        ServiceType @default(DIAGNOSTIC)
+  
+  // Location
+  locationType String // IN_SHOP, ON_SITE (at customer's location)
+  address      String?
+  latitude     Decimal? @db.Decimal(10, 8)
+  longitude    Decimal? @db.Decimal(11, 8)
+  
+  // Fees (defined at scheduling time)
+  diagnosticFee     Decimal @default(0) @db.Decimal(10, 2) // Fee for the diagnostic visit
+  travelFee         Decimal @default(0) @db.Decimal(10, 2) // Travel fee if on-site
+  feeWaivedOnService Boolean @default(true)  // Waive diagnostic fee if service completed on platform
+  
+  // Payment pre-authorization (verify funds/card before appointment)
+  stripePaymentIntentId String?
+  paymentMethodVerified Boolean @default(false)
+  
+  // Status
+  status AppointmentStatus @default(REQUESTED)
+  
+  // Provider check-in / Customer confirmation
+  providerCheckedInAt  DateTime?
+  customerConfirmedAt  DateTime?
+  
+  // Completion
+  completedAt DateTime?
+  cancelledAt DateTime?
+  cancellationReason String?
+  cancelledBy String? // CUSTOMER or PROVIDER
+  
+  // Notes
+  customerNotes String?
+  providerNotes String?
+  
+  // Resulting estimates from this appointment
+  quotes Quote[]
+  
+  @@index([customerId])
+  @@index([providerId])
+  @@index([vehicleId])
+  @@index([status])
+  @@index([scheduledDate])
+  @@map("appointments")
+}
+
+// ============================================
+// ESTIMATE SHARE - Share Written Estimates for competing quotes
+// ============================================
+model EstimateShare {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  shareNumber String @unique // ES-XXXXXX
+  
+  // The original estimate being shared
+  originalEstimateId String
+  originalEstimate   Quote  @relation(fields: [originalEstimateId], references: [id], onDelete: Cascade)
+  
+  // Who is sharing
+  customerId String
+  
+  // Share type
+  shareType  String // SPECIFIC (to selected providers), PUBLIC (open to all local providers)
+  
+  // For SPECIFIC shares: target provider IDs (JSON array)
+  targetProviderIds Json @default("[]")
+  
+  // For PUBLIC shares: visibility settings
+  cityFilter  String?  // Limit to providers in this city
+  stateFilter String?  // Limit to providers in this state
+  radiusKm    Int?     // Limit to providers within radius
+  
+  // What info is shared (redact original provider identity for fair competition)
+  shareOriginalProviderName Boolean @default(false) // Usually false for fair competition
+  
+  // Status
+  isActive   Boolean @default(true)
+  expiresAt  DateTime
+  closedAt   DateTime?
+  
+  // Resulting competing estimates count
+  competingEstimatesCount Int @default(0)
+  
+  @@index([originalEstimateId])
+  @@index([customerId])
+  @@index([shareType])
+  @@index([isActive])
+  @@map("estimate_shares")
+}
+
+// ============================================
+// REPAIR INVOICE - FDACS-compliant Repair Invoice
+// Generated automatically when Written Estimate is approved
+// ============================================
+model RepairInvoice {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  invoiceNumber String @unique // RI-2026-000001
+  
+  // Source: the approved Written Estimate
+  quoteId String @unique
+  quote   Quote  @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  
+  // Work Order
+  workOrderId String @unique
+  workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  
+  // Participants (denormalized for invoice document)
+  customerId   String
+  customerName String
+  customerContact String?
+  providerId   String
+  providerName String
+  providerBusinessName String?
+  fdacsRegistrationNumber String?
+  
+  // Vehicle info (denormalized)
+  vehicleInfo       String  // "2020 Toyota Camry (ABC1234)"
+  odometerReading   Int?
+  
+  // Original estimate amounts
+  originalPartsCost  Decimal @db.Decimal(10, 2)
+  originalLaborCost  Decimal @db.Decimal(10, 2)
+  originalTravelFee  Decimal @default(0) @db.Decimal(10, 2)
+  originalTaxAmount  Decimal @default(0) @db.Decimal(10, 2)
+  originalTotal      Decimal @db.Decimal(10, 2)
+  
+  // Line items from estimate (JSON - FDACS itemized)
+  lineItems Json @default("[]") // Full itemized list with part conditions
+
+  // Supplement tracking
+  approvedSupplements Json @default("[]") // [{supplementId, description, amount, approvedAt}]
+  rejectedSupplements Json @default("[]") // [{supplementId, description, amount, rejectedAt, reason}]
+  supplementsTotal    Decimal @default(0) @db.Decimal(10, 2)
+  
+  // Final amounts (original + approved supplements)
+  finalPartsCost  Decimal @db.Decimal(10, 2)
+  finalLaborCost  Decimal @db.Decimal(10, 2)
+  finalTotal      Decimal @db.Decimal(10, 2)
+  
+  // Service performed (FDACS Req #2)
+  servicePerformed String?
+  
+  // Warranty / Guarantee (FDACS Req #6)
+  warrantyStatement String?
+  warrantyMonths    Int?
+  warrantyMileage   Int?
+  
+  // Diagnostic fee (shown on invoice, may be waived)
+  diagnosticFee       Decimal @default(0) @db.Decimal(10, 2)
+  diagnosticFeeWaived Boolean @default(false)
+  
+  // Status
+  status RepairInvoiceStatus @default(DRAFT)
+  
+  // Customer acceptance
+  customerAcceptedAt  DateTime?
+  customerSignature   String?
+  
+  // Completion
+  completedAt DateTime?
+  
+  // PDF
+  pdfUrl String?
+  
+  @@index([quoteId])
+  @@index([workOrderId])
+  @@index([customerId])
+  @@index([providerId])
+  @@index([status])
+  @@index([invoiceNumber])
+  @@map("repair_invoices")
 }
 
 model WorkOrder {
@@ -598,6 +870,7 @@ model WorkOrder {
   supplements          PaymentSupplement[]
   cancellationRequests CancellationRequest[]
   tips                 Tip[]
+  repairInvoice        RepairInvoice?
 
   @@index([serviceRequestId])
   @@index([customerId])

@@ -15,3 +15,12 @@ export { default as SubscriptionPlanScreen } from './SubscriptionPlanScreen';
 export { default as CustomerQuoteDetailsScreen } from './CustomerQuoteDetailsScreen';
 export { default as CustomerReportsScreen } from './CustomerReportsScreen';
 export { default as ServiceApprovalScreen } from './ServiceApprovalScreen';
+
+// FDACS Compliance Screens
+export { default as AppointmentsScreen } from './AppointmentsScreen';
+export { default as AppointmentDetailsScreen } from './AppointmentDetailsScreen';
+export { default as ScheduleAppointmentScreen } from './ScheduleAppointmentScreen';
+export { default as RepairInvoicesScreen } from './RepairInvoicesScreen';
+export { default as RepairInvoiceDetailsScreen } from './RepairInvoiceDetailsScreen';
+export { default as EstimateSharesScreen } from './EstimateSharesScreen';
+export { default as CompareEstimatesScreen } from './CompareEstimatesScreen';

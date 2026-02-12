@@ -10,6 +10,7 @@ import { prisma } from '../config/database';
 import { AppError } from '../middleware/error-handler';
 import { logger } from '../config/logger';
 import { calculateRoadDistance } from '../utils/distance';
+import { generateEstimateNumber } from '../utils/number-generators';
 
 /**
  * POST /api/v1/quotes
@@ -122,6 +123,9 @@ export const createQuote = async (req: Request, res: Response) => {
   // Gerar número do orçamento
   const quoteNumber = `QT-${Date.now()}-${Math.random().toString(36).substring(7).toUpperCase()}`;
 
+  // Gerar Written Estimate number (FDACS)
+  const estimateNumber = await generateEstimateNumber();
+
   // Validade do orçamento (48 horas)
   const validUntil = new Date();
   validUntil.setHours(validUntil.getHours() + 48);
@@ -130,6 +134,8 @@ export const createQuote = async (req: Request, res: Response) => {
   const quote = await prisma.quote.create({
     data: {
       quoteNumber,
+      estimateNumber,
+      estimateType: 'DIRECT',
       serviceRequestId,
       providerId,
       partsCost,

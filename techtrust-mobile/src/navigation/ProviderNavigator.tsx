@@ -35,6 +35,15 @@ import SupportChatScreen from '../screens/SupportChatScreen';
 import ChatScreen from '../screens/ChatScreen';
 import ProviderReviewsScreen from '../screens/provider/ProviderReviewsScreen';
 
+// FDACS Screens (shared with customer)
+import AppointmentsScreen from '../screens/customer/AppointmentsScreen';
+import AppointmentDetailsScreen from '../screens/customer/AppointmentDetailsScreen';
+import ScheduleAppointmentScreen from '../screens/customer/ScheduleAppointmentScreen';
+import RepairInvoicesScreen from '../screens/customer/RepairInvoicesScreen';
+import RepairInvoiceDetailsScreen from '../screens/customer/RepairInvoiceDetailsScreen';
+import EstimateSharesScreen from '../screens/customer/EstimateSharesScreen';
+import CompareEstimatesScreen from '../screens/customer/CompareEstimatesScreen';
+
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
@@ -45,6 +54,9 @@ function DashboardStack() {
       <Stack.Screen name="ProviderDashboardMain" component={ProviderDashboardScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="ProviderReviews" component={ProviderReviewsScreen} />
+      <Stack.Screen name="Appointments" component={AppointmentsScreen} />
+      <Stack.Screen name="AppointmentDetails" component={AppointmentDetailsScreen} />
+      <Stack.Screen name="ScheduleAppointment" component={ScheduleAppointmentScreen} />
     </Stack.Navigator>
   );
 }
@@ -67,6 +79,8 @@ function QuotesStack() {
       <Stack.Screen name="ProviderQuotesList" component={ProviderQuotesScreen} />
       <Stack.Screen name="ProviderQuoteDetails" component={ProviderQuoteDetailsScreen} />
       <Stack.Screen name="QuoteWorkOrderDetails" component={ProviderWorkOrderDetailsScreen} />
+      <Stack.Screen name="EstimateShares" component={EstimateSharesScreen} />
+      <Stack.Screen name="CompareEstimates" component={CompareEstimatesScreen} />
     </Stack.Navigator>
   );
 }
@@ -78,6 +92,8 @@ function WorkOrdersStack() {
       <Stack.Screen name="ProviderWorkOrdersList" component={ProviderWorkOrdersScreen} />
       <Stack.Screen name="ProviderWorkOrderDetails" component={ProviderWorkOrderDetailsScreen} />
       <Stack.Screen name="Chat" component={ChatScreen} />
+      <Stack.Screen name="RepairInvoices" component={RepairInvoicesScreen} />
+      <Stack.Screen name="RepairInvoiceDetails" component={RepairInvoiceDetailsScreen} />
     </Stack.Navigator>
   );
 }

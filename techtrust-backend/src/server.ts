@@ -45,6 +45,9 @@ import serviceFlowRoutes from "./routes/service-flow.routes";
 import supportRoutes from "./routes/support.routes";
 import walletRoutes from "./routes/wallet.routes";
 import tipRoutes from "./routes/tip.routes";
+import appointmentRoutes from "./routes/appointment.routes";
+import estimateShareRoutes from "./routes/estimate-share.routes";
+import repairInvoiceRoutes from "./routes/repair-invoice.routes";
 
 // Carregar variáveis de ambiente
 dotenv.config();
@@ -250,6 +253,9 @@ app.use(`/api/${API_VERSION}/service-flow`, serviceFlowRoutes); // Fluxo complet
 app.use(`/api/${API_VERSION}/support`, supportRoutes); // Support tickets
 app.use(`/api/${API_VERSION}/wallet`, walletRoutes); // Wallet balance & transactions
 app.use(`/api/${API_VERSION}/tips`, tipRoutes); // Tips/gratuity system
+app.use(`/api/${API_VERSION}/appointments`, appointmentRoutes); // Diagnostic visit scheduling
+app.use(`/api/${API_VERSION}/estimate-shares`, estimateShareRoutes); // Share estimates for competing quotes
+app.use(`/api/${API_VERSION}/repair-invoices`, repairInvoiceRoutes); // FDACS Repair Invoices
 
 // ============================================
 // ERROR HANDLER (deve ser o último middleware)

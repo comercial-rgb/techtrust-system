@@ -19,6 +19,7 @@ import { AppError } from '../middleware/error-handler';
 import { logger } from '../config/logger';
 import * as stripeService from '../services/stripe.service';
 import * as receiptService from '../services/receipt.service';
+import { createRepairInvoiceFromQuote, updateInvoiceWithSupplement } from './repair-invoice.controller';
 import {
   PAYMENT_RULES,
   CANCELLATION_RULES,
@@ -216,6 +217,15 @@ export const approveQuoteWithPaymentHold = async (req: Request, res: Response) =
 
       return { workOrder, payment };
     });
+
+    // 9a. Auto-generate Repair Invoice (FDACS requirement)
+    try {
+      await createRepairInvoiceFromQuote(quoteId, result.workOrder.id);
+      logger.info(`Repair Invoice auto-generated for WO: ${orderNumber}`);
+    } catch (err: any) {
+      logger.error(`Failed to auto-generate Repair Invoice: ${err.message}`);
+      // Non-critical: don't fail the flow
+    }
 
     // 9. Notificar fornecedor
     await prisma.notification.create({
@@ -416,6 +426,20 @@ export const respondToSupplement = async (req: Request, res: Response) => {
       },
     });
 
+    // Track rejected supplement on Repair Invoice
+    try {
+      await updateInvoiceWithSupplement(supplement.workOrderId, {
+        supplementId,
+        description: supplement.description,
+        amount: Number(supplement.additionalAmount),
+        approved: false,
+        rejectedAt: new Date(),
+        reason: note,
+      });
+    } catch (err: any) {
+      logger.error(`Failed to update invoice with rejected supplement: ${err.message}`);
+    }
+
     return res.json({
       success: true,
       message: 'Suplemento rejeitado. Serviço continua com orçamento original.',
@@ -527,6 +551,19 @@ export const respondToSupplement = async (req: Request, res: Response) => {
     });
 
     logger.info(`Supplement approved and hold placed: ${supplement.supplementNumber}`);
+
+    // Track approved supplement on Repair Invoice
+    try {
+      await updateInvoiceWithSupplement(supplement.workOrderId, {
+        supplementId,
+        description: supplement.description,
+        amount: additionalAmount,
+        approved: true,
+        approvedAt: new Date(),
+      });
+    } catch (err: any) {
+      logger.error(`Failed to update invoice with approved supplement: ${err.message}`);
+    }
 
     return res.json({
       success: true,
