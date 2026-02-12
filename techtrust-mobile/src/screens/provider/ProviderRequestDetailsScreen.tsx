@@ -105,6 +105,7 @@ export default function ProviderRequestDetailsScreen({ route, navigation }: any)
   // Warranty state
   const [partsWarrantyMonths, setPartsWarrantyMonths] = useState('3');
   const [serviceWarrantyDays, setServiceWarrantyDays] = useState('90');
+  const [warrantyMileage, setWarrantyMileage] = useState('');
   const [warrantyTerms, setWarrantyTerms] = useState('');
   
   // Scheduling state
@@ -278,14 +279,20 @@ export default function ProviderRequestDetailsScreen({ route, navigation }: any)
       const partsCost = partItems.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
       const laborCost = laborItemsList.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
 
-      // Build partsList for backend
+      // Build partsList for backend (FDACS compliant)
       const partsList = validItems.map(item => ({
         type: item.type === 'part' ? 'PART' : 'LABOR',
         description: item.description,
         brand: item.brand || undefined,
+        partCode: item.partCode || undefined,
+        partCondition: item.type === 'part' ? (item.partCondition || 'NEW') : undefined,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
+        isNoCharge: item.isNoCharge || false,
       }));
+
+      // Get vehicle odometer from request data
+      const odometerReading = request?.vehicle?.mileage || undefined;
 
       await api.post('/quotes', {
         serviceRequestId: requestId,
@@ -300,8 +307,9 @@ export default function ProviderRequestDetailsScreen({ route, navigation }: any)
         availableDate: selectedDate || undefined,
         availableTime: selectedTime ? `${selectedDate}T${selectedTime}:00` : undefined,
         warrantyMonths: partsWarrantyMonths ? parseInt(partsWarrantyMonths) : undefined,
-        warrantyMileage: undefined,
+        warrantyMileage: warrantyMileage ? parseInt(warrantyMileage) : undefined,
         warrantyDescription: warrantyTerms || undefined,
+        odometerReading: odometerReading || undefined,
         notes: notes || undefined,
       });
 
@@ -963,7 +971,7 @@ export default function ProviderRequestDetailsScreen({ route, navigation }: any)
               </View>
 
               {/* Warranty Section */}
-              <Text style={styles.sectionTitle}>{t.quote?.warranty || 'Warranty'}</Text>
+              <Text style={styles.sectionTitle}>{t.quote?.warranty || 'Warranty / Guarantee'}</Text>
               <View style={styles.warrantyContainer}>
                 <View style={styles.warrantyRow}>
                   <View style={styles.warrantyField}>
@@ -992,6 +1000,18 @@ export default function ProviderRequestDetailsScreen({ route, navigation }: any)
                       <Text style={styles.warrantyUnit}>{t.quote?.days || 'days'}</Text>
                     </View>
                   </View>
+                </View>
+                {/* FDACS Req #6: Warranty Mileage */}
+                <Text style={styles.warrantySubLabel}>{t.quote?.warrantyMileage || 'Warranty Mileage'}</Text>
+                <View style={styles.warrantyInputRow}>
+                  <TextInput
+                    style={[styles.warrantyInput, { flex: 1 }]}
+                    value={warrantyMileage}
+                    onChangeText={setWarrantyMileage}
+                    keyboardType="numeric"
+                    placeholder="12000"
+                  />
+                  <Text style={styles.warrantyUnit}>{t.quote?.miles || 'miles'}</Text>
                 </View>
                 <Text style={styles.warrantySubLabel}>{t.quote?.warrantyTerms || 'Warranty Terms'} ({t.common?.optional || 'optional'})</Text>
                 <TextInput

@@ -32,6 +32,7 @@ export const createQuote = async (req: Request, res: Response) => {
     warrantyMonths,
     warrantyMileage,
     warrantyDescription,
+    odometerReading,
     notes,
   } = req.body;
 
@@ -147,6 +148,7 @@ export const createQuote = async (req: Request, res: Response) => {
       warrantyMonths: warrantyMonths ? Number(warrantyMonths) : null,
       warrantyMileage: warrantyMileage ? Number(warrantyMileage) : null,
       warrantyDescription,
+      odometerReading: odometerReading ? Number(odometerReading) : null,
       notes,
       status: 'PENDING',
       validUntil,
@@ -264,8 +266,10 @@ export const getQuote = async (req: Request, res: Response) => {
       type: item.type === 'LABOR' || item.type === 'service' ? 'LABOR' : 'PART',
       description: item.description || '',
       partCode: item.partCode || item.brand || undefined,
+      partCondition: item.partCondition || (item.type === 'PART' ? 'NEW' : undefined),
       quantity: Number(item.quantity) || 1,
       unitPrice: Number(item.unitPrice) || 0,
+      isNoCharge: item.isNoCharge || false,
     })) : [],
     partsTotal: Number(quote.partsCost),
     laborTotal: Number(quote.laborCost),

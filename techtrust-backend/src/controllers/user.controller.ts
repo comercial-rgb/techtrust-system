@@ -45,6 +45,23 @@ export const getMe = async (req: Request, res: Response) => {
       preferencesJson: true,
       createdAt: true,
       lastLoginAt: true,
+      providerProfile: {
+        select: {
+          businessName: true,
+          businessType: true,
+          address: true,
+          city: true,
+          state: true,
+          zipCode: true,
+          businessPhone: true,
+          businessEmail: true,
+          website: true,
+          averageRating: true,
+          totalReviews: true,
+          isVerified: true,
+          fdacsRegistrationNumber: true,
+        },
+      },
     },
   });
 

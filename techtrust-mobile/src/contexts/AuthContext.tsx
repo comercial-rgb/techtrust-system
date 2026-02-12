@@ -23,6 +23,11 @@ interface User {
     averageRating: number;
     totalReviews: number;
     isVerified: boolean;
+    description?: string;
+    website?: string;
+    address?: string;
+    cpfCnpj?: string;
+    fdacsRegistrationNumber?: string;
   };
 }
 

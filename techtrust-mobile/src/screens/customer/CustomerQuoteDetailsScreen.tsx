@@ -35,6 +35,8 @@ interface QuoteLineItem {
   partCode?: string;
   quantity: number;
   unitPrice: number;
+  partCondition?: 'NEW' | 'USED' | 'REBUILT' | 'RECONDITIONED';
+  isNoCharge?: boolean;
 }
 
 interface Quote {
@@ -124,6 +126,8 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
               partCode: item.partCode || item.brand || undefined,
               quantity: Number(item.quantity) || 1,
               unitPrice: Number(item.unitPrice) || 0,
+              partCondition: item.partCondition || undefined,
+              isNoCharge: !!item.isNoCharge,
             }))
           : [];
 
@@ -526,6 +530,8 @@ Valid until: ${formatDate(quote.validUntil)}
       quantity: item.quantity,
       unitPrice: item.unitPrice,
       type: item.type,
+      partCondition: item.partCondition,
+      isNoCharge: item.isNoCharge,
     })),
     partsSubtotal: quote.partsTotal,
     laborSubtotal: quote.laborTotal,

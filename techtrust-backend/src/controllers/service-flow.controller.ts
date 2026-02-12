@@ -978,13 +978,22 @@ export const approveServiceAndProcessPayment = async (req: Request, res: Respons
       provider: {
         select: {
           fullName: true,
-          providerProfile: { select: { businessName: true } },
+          providerProfile: { select: { businessName: true, fdacsRegistrationNumber: true } },
+        },
+      },
+      quote: {
+        select: {
+          partsList: true,
+          odometerReading: true,
+          warrantyMonths: true,
+          warrantyMileage: true,
+          warrantyDescription: true,
         },
       },
       serviceRequest: {
         select: {
           title: true,
-          vehicle: { select: { make: true, model: true, year: true, plateNumber: true } },
+          vehicle: { select: { make: true, model: true, year: true, plateNumber: true, currentMileage: true } },
         },
       },
       payments: {
@@ -1084,6 +1093,25 @@ export const approveServiceAndProcessPayment = async (req: Request, res: Respons
     const vehicle = workOrder.serviceRequest.vehicle;
     const vehicleInfo = `${vehicle.year} ${vehicle.make} ${vehicle.model}${vehicle.plateNumber ? ` (${vehicle.plateNumber})` : ''}`;
 
+    // Build FDACS-compliant data
+    const quote = workOrder.quote;
+    const lineItems = Array.isArray(quote?.partsList) ? quote.partsList : [];
+    const odometerReading = workOrder.endMileage || workOrder.startMileage || (quote?.odometerReading ? Number(quote.odometerReading) : undefined);
+    const fdacsNumber = workOrder.provider.providerProfile?.fdacsRegistrationNumber || undefined;
+    
+    // Build warranty statement (FDACS Req #6)
+    let warrantyStatement: string | undefined;
+    const wMonths = workOrder.warrantyMonths || quote?.warrantyMonths;
+    const wMileage = workOrder.warrantyMileage || quote?.warrantyMileage;
+    const wDesc = quote?.warrantyDescription;
+    if (wMonths || wMileage) {
+      const parts: string[] = [];
+      if (wMonths) parts.push(`${wMonths} month(s)`);
+      if (wMileage) parts.push(`${wMileage} miles`);
+      warrantyStatement = `Guarantee: ${parts.join(' / ')}`;
+      if (wDesc) warrantyStatement += ` — ${wDesc}`;
+    }
+
     receipt = await receiptService.generateReceipt({
       paymentId: mainPayment.id,
       customerName: workOrder.customer.fullName,
@@ -1102,6 +1130,12 @@ export const approveServiceAndProcessPayment = async (req: Request, res: Respons
       paymentMethodInfo: `${mainPayment.cardBrand || 'Card'} ending in ${mainPayment.cardLast4 || '****'}`,
       termsAcceptedAt: now,
       fraudDisclaimerAcceptedAt: now,
+      // FDACS Compliance
+      lineItems: lineItems as any[],
+      odometerReading,
+      fdacsNumber,
+      warrantyStatement,
+      servicePerformed: workOrder.servicePerformedDescription || workOrder.serviceCompletionNotes || workOrder.serviceRequest.title,
     });
   }
 

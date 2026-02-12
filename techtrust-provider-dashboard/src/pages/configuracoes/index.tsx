@@ -32,6 +32,7 @@ import {
 interface ProviderProfile {
   businessName: string
   businessType: string
+  fdacsRegistrationNumber: string
   description: string
   phone: string
   email: string
@@ -74,6 +75,7 @@ export default function ConfiguracoesPage() {
   const [profile, setProfile] = useState<ProviderProfile>({
     businessName: '',
     businessType: 'AUTO_REPAIR',
+    fdacsRegistrationNumber: '',
     description: '',
     phone: '',
     email: '',
@@ -130,6 +132,7 @@ export default function ConfiguracoesPage() {
       setProfile({
         businessName: p.businessName || user?.fullName || '',
         businessType: p.businessType || 'AUTO_REPAIR',
+        fdacsRegistrationNumber: p.fdacsRegistrationNumber || '',
         description: p.description || '',
         phone: p.businessPhone || user?.phone || '',
         email: p.businessEmail || user?.email || '',
@@ -180,6 +183,7 @@ export default function ConfiguracoesPage() {
         serviceRadiusKm: profile.serviceRadius,
         specialties: profile.services,
         businessHours: profile.workingHours,
+        fdacsRegistrationNumber: profile.fdacsRegistrationNumber || undefined,
       })
       
       setSuccessMessage(t('settings.messages.savedSuccess'))
@@ -350,6 +354,20 @@ export default function ConfiguracoesPage() {
                       <option key={type.id} value={type.id}>{type.label}</option>
                     ))}
                   </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    FDACS Registration #
+                  </label>
+                  <input
+                    type="text"
+                    value={profile.fdacsRegistrationNumber}
+                    onChange={(e) => setProfile({ ...profile, fdacsRegistrationNumber: e.target.value })}
+                    className="input"
+                    placeholder="MV-00000"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Required for FL motor vehicle repair shops</p>
                 </div>
 
                 <div className="md:col-span-2">

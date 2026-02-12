@@ -73,6 +73,9 @@ export default function PedidoDetalhesPage() {
   const [laborDescription, setLaborDescription] = useState('')
   const [estimatedDuration, setEstimatedDuration] = useState('')
   const [notes, setNotes] = useState('')
+  const [warrantyMonths, setWarrantyMonths] = useState('')
+  const [warrantyMileage, setWarrantyMileage] = useState('')
+  const [odometerReading, setOdometerReading] = useState('')
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -141,6 +144,9 @@ export default function PedidoDetalhesPage() {
         laborDescription,
         estimatedCompletionTime: estimatedDuration,
         notes: notes || undefined,
+        warrantyMonths: warrantyMonths ? parseInt(warrantyMonths) : undefined,
+        warrantyMileage: warrantyMileage ? parseInt(warrantyMileage) : undefined,
+        odometerReading: odometerReading ? parseInt(odometerReading) : undefined,
       })
       
       setQuoteSubmitted(true)
@@ -450,6 +456,49 @@ export default function PedidoDetalhesPage() {
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       placeholder={t('requests.quoteModal.notesPlaceholder')}
+                      className="input"
+                    />
+                  </div>
+                </div>
+
+                {/* FDACS Compliance Fields */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Warranty (months)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={warrantyMonths}
+                      onChange={(e) => setWarrantyMonths(e.target.value)}
+                      placeholder="0"
+                      className="input"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Warranty (miles)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={warrantyMileage}
+                      onChange={(e) => setWarrantyMileage(e.target.value)}
+                      placeholder="0"
+                      className="input"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Odometer Reading
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={odometerReading}
+                      onChange={(e) => setOdometerReading(e.target.value)}
+                      placeholder="Current mileage"
                       className="input"
                     />
                   </div>

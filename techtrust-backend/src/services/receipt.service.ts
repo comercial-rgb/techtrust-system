@@ -26,6 +26,12 @@ interface GenerateReceiptParams {
   paymentMethodInfo: string;
   termsAcceptedAt?: Date;
   fraudDisclaimerAcceptedAt?: Date;
+  // FDACS Compliance fields
+  lineItems?: any[];           // Itemized parts/labor/merchandise
+  odometerReading?: number;    // Vehicle odometer at time of service
+  fdacsNumber?: string;        // Provider FDACS registration number
+  warrantyStatement?: string;  // Guarantee with time and mileage
+  servicePerformed?: string;   // What was done to correct the problem
 }
 
 /**
@@ -54,6 +60,12 @@ export async function generateReceipt(params: GenerateReceiptParams) {
       paymentMethodInfo: params.paymentMethodInfo,
       termsAcceptedAt: params.termsAcceptedAt,
       fraudDisclaimerAcceptedAt: params.fraudDisclaimerAcceptedAt,
+      // FDACS Compliance
+      lineItems: params.lineItems || [],
+      odometerReading: params.odometerReading || null,
+      fdacsNumber: params.fdacsNumber || null,
+      warrantyStatement: params.warrantyStatement || null,
+      servicePerformed: params.servicePerformed || null,
     },
   });
 
@@ -84,6 +96,52 @@ export async function getReceiptByNumber(receiptNumber: string) {
  * Formatação HTML do recibo (para email/PDF futuro)
  */
 export function formatReceiptHtml(receipt: any): string {
+  // Build itemized line items table (FDACS Req #3, #4, #5)
+  const lineItems = Array.isArray(receipt.lineItems) ? receipt.lineItems : [];
+  const itemsTableRows = lineItems.map((item: any) => {
+    const conditionLabel = item.partCondition && item.type === 'PART' ? ` (${item.partCondition})` : '';
+    const noChargeLabel = item.isNoCharge ? ' <span style="color:#16a34a;font-weight:bold;">NO CHARGE</span>' : '';
+    const total = (Number(item.quantity) || 1) * (Number(item.unitPrice) || 0);
+    return `<tr>
+      <td>${item.type || 'PART'}</td>
+      <td>${item.description || ''}${conditionLabel}${noChargeLabel}</td>
+      <td style="text-align:center">${item.quantity || 1}</td>
+      <td style="text-align:right">$${Number(item.unitPrice || 0).toFixed(2)}</td>
+      <td style="text-align:right">$${total.toFixed(2)}</td>
+    </tr>`;
+  }).join('');
+
+  const itemsTable = lineItems.length > 0 ? `
+    <div class="section">
+      <h3>Itemized Services &amp; Parts</h3>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead>
+          <tr style="border-bottom:2px solid #333;text-align:left;">
+            <th style="padding:6px 4px;">Type</th>
+            <th style="padding:6px 4px;">Description</th>
+            <th style="padding:6px 4px;text-align:center;">Qty</th>
+            <th style="padding:6px 4px;text-align:right;">Unit Price</th>
+            <th style="padding:6px 4px;text-align:right;">Total</th>
+          </tr>
+        </thead>
+        <tbody>${itemsTableRows}</tbody>
+      </table>
+    </div>` : '';
+
+  // FDACS warranty statement (Req #6)
+  const warrantySection = receipt.warrantyStatement ? `
+    <div class="section">
+      <h3>Guarantee / Warranty</h3>
+      <p>${receipt.warrantyStatement}</p>
+    </div>` : '';
+
+  // FDACS service performed description (Req #2)
+  const servicePerformedSection = receipt.servicePerformed ? `
+    <div class="section">
+      <h3>Service Performed</h3>
+      <p>${receipt.servicePerformed}</p>
+    </div>` : '';
+
   return `
     <!DOCTYPE html>
     <html>
@@ -99,6 +157,9 @@ export function formatReceiptHtml(receipt: any): string {
         .row.total { border-top: 2px solid #333; font-weight: bold; font-size: 18px; padding-top: 10px; }
         .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666; text-align: center; }
         .legal { background: #f8f9fa; padding: 15px; border-radius: 8px; font-size: 11px; color: #666; margin-top: 20px; }
+        .fdacs { background: #eff6ff; padding: 12px; border-radius: 8px; font-size: 12px; color: #1e40af; margin-top: 15px; border: 1px solid #bfdbfe; }
+        table td, table th { padding: 4px; }
+        table tbody tr { border-bottom: 1px solid #eee; }
       </style>
     </head>
     <body>
@@ -114,7 +175,11 @@ export function formatReceiptHtml(receipt: any): string {
         <div class="row"><span>Service:</span><span>${receipt.serviceDescription}</span></div>
         <div class="row"><span>Vehicle:</span><span>${receipt.vehicleInfo}</span></div>
         <div class="row"><span>Provider:</span><span>${receipt.providerBusinessName || receipt.providerName}</span></div>
+        ${receipt.odometerReading ? `<div class="row"><span>Odometer Reading:</span><span>${receipt.odometerReading.toLocaleString()} mi</span></div>` : ''}
       </div>
+      
+      ${servicePerformedSection}
+      ${itemsTable}
       
       <div class="section">
         <h3>Payment Breakdown</h3>
@@ -125,12 +190,16 @@ export function formatReceiptHtml(receipt: any): string {
         <div class="row total"><span>Total Charged:</span><span>$${Number(receipt.totalAmount).toFixed(2)}</span></div>
       </div>
       
+      ${warrantySection}
+      
       <div class="section">
         <h3>Payment Information</h3>
         <div class="row"><span>Method:</span><span>${receipt.paymentMethodInfo}</span></div>
         <div class="row"><span>Processor:</span><span>${receipt.paymentProcessor}</span></div>
         <div class="row"><span>Customer:</span><span>${receipt.customerName}</span></div>
       </div>
+      
+      ${receipt.fdacsNumber ? `<div class="fdacs"><strong>FDACS Registration #:</strong> ${receipt.fdacsNumber}</div>` : ''}
       
       <div class="legal">
         <p><strong>Terms Accepted:</strong> ${receipt.termsAcceptedAt ? new Date(receipt.termsAcceptedAt).toISOString() : 'N/A'}</p>

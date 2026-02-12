@@ -240,6 +240,9 @@ model ProviderProfile {
   businessLicense String?
   taxId         String?
   
+  // FDACS Motor Vehicle Repair Shop Registration (Florida requirement)
+  fdacsRegistrationNumber String?
+  
   // Contato
   businessPhone String?
   businessEmail String?
@@ -484,10 +487,13 @@ model Quote {
   availableDate           DateTime?
   availableTime           DateTime?
   
-  // Garantia
+  // Garantia (FDACS Req #6: guarantee with time AND mileage)
   warrantyMonths      Int?
   warrantyMileage     Int?
   warrantyDescription String?
+  
+  // FDACS Req #1: Odometer reading at time of estimate
+  odometerReading Int?
   
   // Notas
   notes String?
@@ -571,6 +577,9 @@ model WorkOrder {
   // Finalização pelo fornecedor
   serviceCompletedByProvider Boolean @default(false)
   serviceCompletionNotes     String?
+  
+  // FDACS Req #2: Statement of what was done to correct the problem
+  servicePerformedDescription String?
   
   // Aprovação do cliente com termos legais
   termsAcceptedAt           DateTime?
@@ -1357,6 +1366,13 @@ model Receipt {
   processingFee Decimal @db.Decimal(10, 2)
   totalAmount   Decimal @db.Decimal(10, 2)
   supplementsTotal Decimal @default(0) @db.Decimal(10, 2)
+  
+  // FDACS Compliance fields
+  lineItems          Json    @default("[]")  // Itemized parts/labor/merchandise with costs
+  odometerReading    Int?                     // Odometer at time of service
+  fdacsNumber        String?                  // Provider FDACS registration number
+  warrantyStatement  String?                  // Guarantee with time and mileage period
+  servicePerformed   String?                  // What was done to correct the problem
   
   // Processador
   paymentProcessor  PaymentProcessor

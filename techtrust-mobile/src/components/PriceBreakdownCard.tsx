@@ -24,6 +24,8 @@ export interface PriceLineItem {
   quantity: number;
   unitPrice: number;
   type: 'PART' | 'LABOR';
+  partCondition?: 'NEW' | 'USED' | 'REBUILT' | 'RECONDITIONED';
+  isNoCharge?: boolean;
 }
 
 export interface PriceBreakdownData {
@@ -133,17 +135,28 @@ export default function PriceBreakdownCard({
                 <View key={idx} style={styles.lineItem}>
                   <View style={styles.lineItemLeft}>
                     <Text style={styles.lineItemName} numberOfLines={1}>{item.description}</Text>
-                    {item.partCode && (
-                      <Text style={styles.lineItemCode}>#{item.partCode}</Text>
-                    )}
+                    <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+                      {item.partCode && (
+                        <Text style={styles.lineItemCode}>#{item.partCode}</Text>
+                      )}
+                      {item.partCondition && (
+                        <Text style={[styles.lineItemCode, { color: '#1976d2' }]}>{item.partCondition}</Text>
+                      )}
+                    </View>
                   </View>
                   <View style={styles.lineItemRight}>
-                    <Text style={styles.lineItemQty}>
-                      {item.quantity} × ${item.unitPrice.toFixed(2)}
-                    </Text>
-                    <Text style={styles.lineItemAmount}>
-                      ${(item.quantity * item.unitPrice).toFixed(2)}
-                    </Text>
+                    {item.isNoCharge ? (
+                      <Text style={[styles.lineItemAmount, { color: '#16a34a' }]}>NO CHARGE</Text>
+                    ) : (
+                      <>
+                        <Text style={styles.lineItemQty}>
+                          {item.quantity} × ${item.unitPrice.toFixed(2)}
+                        </Text>
+                        <Text style={styles.lineItemAmount}>
+                          ${(item.quantity * item.unitPrice).toFixed(2)}
+                        </Text>
+                      </>
+                    )}
                   </View>
                 </View>
               ))}

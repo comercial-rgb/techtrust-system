@@ -262,6 +262,7 @@ export const updateProfile = async (req: Request, res: Response) => {
     roadsideAssistance,
     freeKm,
     extraFeePerKm,
+    fdacsRegistrationNumber,
   } = req.body;
 
   // Se endereço foi fornecido, tenta fazer geocoding
@@ -301,6 +302,7 @@ export const updateProfile = async (req: Request, res: Response) => {
       extraFeePerKm: extraFeePerKm || 0,
       specialties: specialties || [],
       businessHours: businessHours || {},
+      fdacsRegistrationNumber: fdacsRegistrationNumber || null,
       isVerified: false,
       averageRating: 0,
       totalReviews: 0,
@@ -323,6 +325,7 @@ export const updateProfile = async (req: Request, res: Response) => {
       ...(extraFeePerKm !== undefined && { extraFeePerKm: Number(extraFeePerKm) }),
       ...(specialties && { specialties }),
       ...(businessHours && { businessHours }),
+      ...(fdacsRegistrationNumber !== undefined && { fdacsRegistrationNumber: fdacsRegistrationNumber || null }),
     },
   });
 

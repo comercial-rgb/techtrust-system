@@ -3,14 +3,18 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useI18n } from '../../i18n';
 
+export type PartCondition = 'NEW' | 'USED' | 'REBUILT' | 'RECONDITIONED';
+
 export type QuoteLineItem = {
   id: string;
   type: 'PART' | 'LABOR';
   description: string;
   brand?: string; // Brand/Manufacturer
   partCode?: string; // Part code/reference number
+  partCondition?: PartCondition; // FDACS Req #5: identify parts as new/used/rebuilt/reconditioned
   quantity: string; // store as string for controlled input
   unitPrice: string; // store as string for controlled input
+  isNoCharge?: boolean; // FDACS Req #4: items provided at no cost
 };
 
 interface Props {
@@ -27,8 +31,10 @@ export default function QuoteLineItemsEditor({ items, onChange }: Props) {
       description: '',
       brand: '',
       partCode: '',
+      partCondition: 'NEW',
       quantity: '1',
       unitPrice: '0.00',
+      isNoCharge: false,
     };
     onChange([...items, newItem]);
   };
@@ -111,8 +117,40 @@ export default function QuoteLineItemsEditor({ items, onChange }: Props) {
                   value={item.partCode || ''}
                   onChangeText={text => updateItem(item.id, { partCode: text })}
                 />
+                {/* FDACS Req #5: Part Condition */}
+                <Text style={styles.smallLabel}>{t.quote?.partCondition || 'Part Condition'} *</Text>
+                <View style={styles.conditionRow}>
+                  {(['NEW', 'USED', 'REBUILT', 'RECONDITIONED'] as PartCondition[]).map(cond => (
+                    <TouchableOpacity
+                      key={cond}
+                      style={[styles.conditionOption, item.partCondition === cond && styles.conditionOptionActive]}
+                      onPress={() => updateItem(item.id, { partCondition: cond })}
+                    >
+                      <Text style={[styles.conditionText, item.partCondition === cond && styles.conditionTextActive]}>
+                        {cond === 'NEW' ? (t.quote?.condNew || 'New')
+                          : cond === 'USED' ? (t.quote?.condUsed || 'Used')
+                          : cond === 'REBUILT' ? (t.quote?.condRebuilt || 'Rebuilt')
+                          : (t.quote?.condRecond || 'Recond.')}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </>
             )}
+            {/* FDACS Req #4: No Charge toggle */}
+            <TouchableOpacity
+              style={styles.noChargeRow}
+              onPress={() => updateItem(item.id, { isNoCharge: !item.isNoCharge, unitPrice: !item.isNoCharge ? '0.00' : item.unitPrice })}
+            >
+              <MaterialCommunityIcons
+                name={item.isNoCharge ? 'checkbox-marked' : 'checkbox-blank-outline'}
+                size={20}
+                color={item.isNoCharge ? '#16a34a' : '#9ca3af'}
+              />
+              <Text style={[styles.noChargeText, item.isNoCharge && { color: '#16a34a' }]}>
+                {t.quote?.noCharge || 'No charge (provided at no cost)'}
+              </Text>
+            </TouchableOpacity>
             <View style={styles.inlineRow}>
               <View style={styles.inlineField}>
                 <Text style={styles.smallLabel}>{t.quote?.qty || 'Qty'}</Text>
@@ -251,6 +289,42 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#1f2937',
     marginBottom: 10,
+  },
+  conditionRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginBottom: 10,
+    flexWrap: 'wrap',
+  },
+  conditionOption: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: '#f3f4f6',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  conditionOptionActive: {
+    backgroundColor: '#dbeafe',
+    borderColor: '#3b82f6',
+  },
+  conditionText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
+  conditionTextActive: {
+    color: '#1d4ed8',
+  },
+  noChargeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  noChargeText: {
+    fontSize: 12,
+    color: '#6b7280',
   },
   inlineRow: {
     flexDirection: 'row',

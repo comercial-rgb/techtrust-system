@@ -29,6 +29,7 @@ export default function ProviderEditProfileScreen({ navigation }: any) {
   const [website, setWebsite] = useState(user?.providerProfile?.website || '');
   const [address, setAddress] = useState(user?.providerProfile?.address || '');
   const [cnpj, setCnpj] = useState(user?.providerProfile?.cpfCnpj || '');
+  const [fdacsNumber, setFdacsNumber] = useState(user?.providerProfile?.fdacsRegistrationNumber || '');
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
@@ -47,6 +48,7 @@ export default function ProviderEditProfileScreen({ navigation }: any) {
         email: email.trim(),
         website: website.trim(),
         address: address.trim(),
+        fdacsRegistrationNumber: fdacsNumber.trim() || undefined,
       });
       Alert.alert(t.common?.success || 'Success', t.provider?.profileUpdated || 'Profile updated successfully!');
       navigation.goBack();
@@ -122,6 +124,18 @@ export default function ProviderEditProfileScreen({ navigation }: any) {
               placeholder="00.000.000/0000-00"
               keyboardType="numeric"
             />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>{'FDACS Registration #'}</Text>
+            <TextInput
+              style={styles.input}
+              value={fdacsNumber}
+              onChangeText={setFdacsNumber}
+              placeholder="MV-00000"
+              autoCapitalize="characters"
+            />
+            <Text style={styles.helperText}>{'Required for FL motor vehicle repair shops'}</Text>
           </View>
         </View>
 
@@ -306,6 +320,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#9ca3af',
     textAlign: 'right',
+    marginTop: 4,
+  },
+  helperText: {
+    fontSize: 11,
+    color: '#9ca3af',
     marginTop: 4,
   },
   inputWithIcon: {
