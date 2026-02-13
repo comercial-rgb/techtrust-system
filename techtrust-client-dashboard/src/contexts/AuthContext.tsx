@@ -132,14 +132,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function register(data: RegisterData) {
+  async function register(data: RegisterData): Promise<void> {
     const response = await api.register(data);
 
     if (response.error) {
       throw new Error(response.error);
     }
-
-    return response.data;
   }
 
   function logout() {
