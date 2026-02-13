@@ -26,6 +26,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>
   logout: () => void
   isAuthenticated: boolean
+  hasCompletedOnboarding: boolean
+  completeOnboarding: () => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -33,6 +35,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(true)
   const router = useRouter()
 
   useEffect(() => {
@@ -47,6 +50,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
 
+    // Check onboarding status from localStorage
+    const onboardingDone = localStorage.getItem('tt_provider_onboarding_done')
+    setHasCompletedOnboarding(onboardingDone === 'true')
+
     try {
       const response = await api.get('/users/me')
       const userData = response.data.data
@@ -56,6 +63,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       setUser(userData)
+
+      // If user has compliance items, consider onboarding done
+      if (!onboardingDone) {
+        try {
+          const complianceRes = await api.get('/compliance/summary')
+          const summary = complianceRes.data?.data || complianceRes.data
+          const hasUploads = summary?.complianceItems?.some((c: any) => c.documentUploads?.length > 0) ||
+                            summary?.insurancePolicies?.some((i: any) => i.coiUploads?.length > 0)
+          if (hasUploads) {
+            localStorage.setItem('tt_provider_onboarding_done', 'true')
+            setHasCompletedOnboarding(true)
+          }
+        } catch {}
+      }
     } catch (error) {
       console.error('Erro ao verificar auth:', error)
       Cookies.remove('token')
@@ -82,7 +103,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       Cookies.set('refreshToken', refreshToken, { expires: 30 })
       
       setUser(userData)
-      router.push('/dashboard')
+
+      // Check if provider needs onboarding
+      const onboardingDone = localStorage.getItem('tt_provider_onboarding_done')
+      if (onboardingDone === 'true') {
+        setHasCompletedOnboarding(true)
+        router.push('/dashboard')
+      } else {
+        // Check if they have any compliance uploads already
+        try {
+          const complianceRes = await api.get('/compliance/summary')
+          const summary = complianceRes.data?.data || complianceRes.data
+          const hasUploads = summary?.complianceItems?.some((c: any) => c.documentUploads?.length > 0) ||
+                            summary?.insurancePolicies?.some((i: any) => i.coiUploads?.length > 0)
+          if (hasUploads) {
+            localStorage.setItem('tt_provider_onboarding_done', 'true')
+            setHasCompletedOnboarding(true)
+            router.push('/dashboard')
+          } else {
+            setHasCompletedOnboarding(false)
+            router.push('/onboarding')
+          }
+        } catch {
+          // If compliance check fails, go to onboarding
+          setHasCompletedOnboarding(false)
+          router.push('/onboarding')
+        }
+      }
     } catch (error: any) {
       throw new Error(error.response?.data?.message || error.message || 'Erro ao fazer login')
     }
@@ -91,8 +138,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   function logout() {
     Cookies.remove('token')
     Cookies.remove('refreshToken')
+    localStorage.removeItem('tt_provider_onboarding_done')
     setUser(null)
     router.push('/login')
+  }
+
+  function completeOnboarding() {
+    localStorage.setItem('tt_provider_onboarding_done', 'true')
+    setHasCompletedOnboarding(true)
   }
 
   return (
@@ -102,6 +155,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       login,
       logout,
       isAuthenticated: !!user,
+      hasCompletedOnboarding,
+      completeOnboarding,
     }}>
       {children}
     </AuthContext.Provider>

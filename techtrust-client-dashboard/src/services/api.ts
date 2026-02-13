@@ -66,17 +66,25 @@ class ApiService {
     email: string;
     phone: string;
     password: string;
+    language?: string;
   }) {
-    return this.request("/auth/register", {
+    return this.request("/auth/signup", {
       method: "POST",
-      body: JSON.stringify({ ...data, role: "CUSTOMER" }),
+      body: JSON.stringify({ ...data, role: "CLIENT" }),
     });
   }
 
-  async verifyOTP(phone: string, otp: string) {
+  async verifyOTP(userId: string, otpCode: string) {
     return this.request<{ token: string; user: any }>("/auth/verify-otp", {
       method: "POST",
-      body: JSON.stringify({ phone, otp }),
+      body: JSON.stringify({ userId, otpCode, method: "sms" }),
+    });
+  }
+
+  async resendOTP(userId: string) {
+    return this.request("/auth/resend-otp", {
+      method: "POST",
+      body: JSON.stringify({ userId, method: "sms" }),
     });
   }
 
