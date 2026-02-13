@@ -45,25 +45,45 @@ export default function LoginPage() {
 
     setLoading(true)
     try {
+      // Call API directly to get the raw response (AuthContext re-formats errors)
+      const response = await api.post('/auth/login', { email, password })
+      // Success — now let AuthContext handle cookies/state/redirect
       await login(email, password)
     } catch (err: any) {
-      // Check if it's a phone verification error
-      const responseData = err.response?.data
-      const errorCode = responseData?.code || responseData?.error
+      const data = err.response?.data
+      const errorCode = data?.code || data?.error
+
       if (errorCode === 'PHONE_NOT_VERIFIED') {
-        const userId = responseData?.data?.userId
+        // Backend returns userId in data.data (new) or we need to extract it
+        const userId = data?.data?.userId
+        const phone = data?.data?.phone || data?.data?.otpSentTo || ''
+
         if (userId) {
           setNeedsVerification(true)
           setVerifyUserId(userId)
-          setVerifyPhone(responseData.data.phone || '')
+          setVerifyPhone(phone)
           setError('')
         } else {
-          // Backend hasn't returned userId - show message with instructions
-          setError(tr('auth.phoneNotVerifiedRetry') || 'Your phone is not verified. Please register again to receive a new verification code.')
+          // Old backend format without userId — re-call login to trigger OTP send
+          try {
+            await api.post('/auth/login', { email, password })
+          } catch (retryErr: any) {
+            const retryData = retryErr.response?.data
+            const retryUserId = retryData?.data?.userId
+            if (retryUserId) {
+              setNeedsVerification(true)
+              setVerifyUserId(retryUserId)
+              setVerifyPhone(retryData.data.phone || retryData.data.otpSentTo || '')
+              setError('')
+              return
+            }
+          }
+          // If still no userId, show a helpful message
+          setError(tr('auth.phoneNotVerifiedRetry') || 'Your phone is not verified. Please try again in a moment.')
         }
         return
       }
-      setError(responseData?.message || err.message || tr('auth.loginError'))
+      setError(data?.message || err.message || tr('auth.loginError'))
     } finally {
       setLoading(false)
     }
@@ -84,7 +104,7 @@ export default function LoginPage() {
         otpCode: otpCode.trim(),
         method: 'sms',
       })
-      // After verification, login again
+      // After verification, login through AuthContext (handles cookies/redirect)
       await login(email, password)
     } catch (err: any) {
       setError(err.response?.data?.message || err.message || 'Invalid code')
@@ -96,7 +116,20 @@ export default function LoginPage() {
   async function handleResendOTP() {
     setResending(true)
     try {
-      await api.post('/auth/resend-otp', { userId: verifyUserId, method: 'sms' })
+      if (verifyUserId) {
+        await api.post('/auth/resend-otp', { userId: verifyUserId, method: 'sms' })
+      } else {
+        // Trigger login again which generates new OTP
+        try {
+          await api.post('/auth/login', { email, password })
+        } catch (err: any) {
+          const data = err.response?.data
+          if (data?.data?.userId) {
+            setVerifyUserId(data.data.userId)
+            setVerifyPhone(data.data.phone || data.data.otpSentTo || '')
+          }
+        }
+      }
     } catch {}
     setTimeout(() => setResending(false), 30000)
   }
