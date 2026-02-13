@@ -222,7 +222,7 @@ export const signup = async (req: Request, res: Response) => {
 
     logger.info(`Novo usuário cadastrado: ${email} (OTP sent: ${otpSent})`);
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: otpSent
         ? "Conta criada! Verifique seu telefone."
@@ -1021,7 +1021,7 @@ export const login = async (req: Request, res: Response) => {
 
     logger.info(`Login realizado: ${user.email}`);
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         token: tokens.accessToken,

@@ -216,6 +216,7 @@ export default function LoginPage() {
             </>
           ) : (
           /* Login Form */
+          <>
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
