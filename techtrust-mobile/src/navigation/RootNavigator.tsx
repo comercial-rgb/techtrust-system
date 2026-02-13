@@ -16,6 +16,9 @@ import CompleteSocialSignupScreen from "../screens/CompleteSocialSignupScreen";
 import CustomerNavigator from "./CustomerNavigator";
 import ProviderNavigator from "./ProviderNavigator";
 
+// Onboarding
+import ProviderOnboardingScreen from "../screens/provider/ProviderOnboardingScreen";
+
 const Stack = createNativeStackNavigator();
 
 // Auth Stack Component
@@ -35,8 +38,18 @@ function AuthStack() {
   );
 }
 
+// Wrapper that shows onboarding before provider tabs
+function ProviderWithOnboarding() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="ProviderOnboarding" component={ProviderOnboardingScreen} />
+      <Stack.Screen name="ProviderMain" component={ProviderNavigator} />
+    </Stack.Navigator>
+  );
+}
+
 export default function RootNavigator() {
-  const { user, isAuthenticated, loading } = useAuth();
+  const { user, isAuthenticated, loading, hasCompletedOnboarding } = useAuth();
 
   // Determine which navigator to show based on user role
   const isProvider = user?.role === "PROVIDER";
@@ -46,9 +59,12 @@ export default function RootNavigator() {
   }
 
   // When authenticated, show the appropriate navigator directly
-  // The tab navigator will handle all navigation including Landing
   if (isAuthenticated) {
     if (isProvider) {
+      // Show onboarding for new providers who haven't completed it
+      if (!hasCompletedOnboarding) {
+        return <ProviderWithOnboarding />;
+      }
       return <ProviderNavigator />;
     }
     return <CustomerNavigator />;

@@ -49,6 +49,8 @@ interface SocialLoginResult {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  hasCompletedOnboarding: boolean;
+  completeOnboarding: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   loginAsProvider: (email: string, password: string) => Promise<void>;
   signup: (data: SignupData) => Promise<{ userId: string }>;
@@ -95,6 +97,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(true); // default true to avoid flash
 
   useEffect(() => {
     checkAuth();
@@ -124,12 +127,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             fullName: apiUser.fullName,
             phone: apiUser.phone || "",
             role: apiUser.role === "CLIENT" ? "CUSTOMER" : apiUser.role,
+            providerProfile: apiUser.providerProfile
+              ? {
+                  businessName: apiUser.providerProfile.businessName || "",
+                  businessType: apiUser.providerProfile.businessType || "",
+                  averageRating: apiUser.providerProfile.averageRating || 0,
+                  totalReviews: apiUser.providerProfile.totalReviews || 0,
+                  isVerified: apiUser.providerProfile.isVerified || false,
+                  description: apiUser.providerProfile.description,
+                  website: apiUser.providerProfile.website,
+                  address: apiUser.providerProfile.address,
+                  cpfCnpj: apiUser.providerProfile.cpfCnpj,
+                  fdacsRegistrationNumber: apiUser.providerProfile.fdacsRegistrationNumber,
+                }
+              : undefined,
           };
           setUser(normalizedUser);
           await AsyncStorage.setItem(
             "@TechTrust:user",
             JSON.stringify(normalizedUser),
           );
+
+          // Check onboarding status for providers
+          if (normalizedUser.role === "PROVIDER") {
+            const onboardingDone = await AsyncStorage.getItem(
+              `@TechTrust:onboarding:${normalizedUser.id}`,
+            );
+            setHasCompletedOnboarding(onboardingDone === "true");
+          }
         }
       } catch (apiError: any) {
         // Token inválido ou expirado - limpar dados
@@ -154,9 +179,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         "@TechTrust:pendingUser",
       ]);
       setUser(null);
+      setHasCompletedOnboarding(true);
     } catch (error) {
       console.error("Erro ao limpar dados:", error);
     }
+  };
+
+  // Marcar onboarding como concluído
+  const completeOnboarding = async () => {
+    if (user?.id) {
+      await AsyncStorage.setItem(`@TechTrust:onboarding:${user.id}`, "true");
+    }
+    setHasCompletedOnboarding(true);
   };
 
   // Login como CLIENTE (padrão)
@@ -216,6 +250,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         fullName: apiUser.fullName,
         phone: apiUser.phone || "",
         role: "PROVIDER",
+        providerProfile: apiUser.providerProfile
+          ? {
+              businessName: apiUser.providerProfile.businessName || "",
+              businessType: apiUser.providerProfile.businessType || "",
+              averageRating: apiUser.providerProfile.averageRating || 0,
+              totalReviews: apiUser.providerProfile.totalReviews || 0,
+              isVerified: apiUser.providerProfile.isVerified || false,
+              description: apiUser.providerProfile.description,
+              website: apiUser.providerProfile.website,
+              address: apiUser.providerProfile.address,
+              cpfCnpj: apiUser.providerProfile.cpfCnpj,
+              fdacsRegistrationNumber: apiUser.providerProfile.fdacsRegistrationNumber,
+            }
+          : undefined,
       };
 
       await AsyncStorage.setItem(
@@ -226,6 +274,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (refreshToken) {
         await AsyncStorage.setItem("@TechTrust:refreshToken", refreshToken);
       }
+
+      // Check onboarding status
+      const onboardingDone = await AsyncStorage.getItem(
+        `@TechTrust:onboarding:${normalizedUser.id}`,
+      );
+      setHasCompletedOnboarding(onboardingDone === "true");
 
       setUser(normalizedUser);
     } catch (error: any) {
@@ -456,6 +510,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         loading,
+        hasCompletedOnboarding,
+        completeOnboarding,
         login,
         loginAsProvider,
         signup,

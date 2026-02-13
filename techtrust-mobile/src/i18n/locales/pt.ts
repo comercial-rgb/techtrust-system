@@ -15,6 +15,7 @@ export default {
     back: "Voltar",
     next: "Próximo",
     done: "Concluído",
+    skip: "Pular",
     loading: "Carregando...",
     processing: "Processando...",
     error: "Erro",
@@ -797,6 +798,22 @@ export default {
     paymentInfo:
       "Os pagamentos são transferidos automaticamente para a conta principal em até 2 dias úteis após a conclusão do serviço.",
     bankCode: "Código",
+
+    // Onboarding
+    documentUploaded: "Documento enviado com sucesso!",
+    uploadFailed: "Falha ao enviar documento. Tente novamente.",
+    skipOnboarding: "Pular Configuração?",
+    skipOnboardingMessage: "Você pode enviar documentos depois em Perfil → Conformidade. Sua conta pode ter funcionalidades limitadas até que os documentos sejam verificados.",
+    skipAnyway: "Pular",
+    uploadAnother: "Enviar Outro Documento",
+    tapToUpload: "Toque para Enviar Documento",
+    acceptedFormats: "Aceita imagens (JPG, PNG) e arquivos PDF",
+    requiredDocument: "Este documento é obrigatório",
+    reviewServices: "Revisar Meus Serviços",
+    reviewed: "Revisado",
+    whatHappensNext: "O Que Acontece Agora?",
+    goToDashboard: "Ir para o Dashboard",
+    uploadToContinue: "Envie para Continuar",
   },
 
   // Customer Dashboard

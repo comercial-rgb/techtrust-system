@@ -132,6 +132,7 @@ const pt = {
       requests: 'Pedidos',
       quotes: 'Orçamentos',
       services: 'Serviços',
+      compliance: 'Conformidade',
       settings: 'Configurações',
     },
     layout: {

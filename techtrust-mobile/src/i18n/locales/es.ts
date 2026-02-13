@@ -15,6 +15,7 @@ export default {
     back: "Volver",
     next: "Siguiente",
     done: "Hecho",
+    skip: "Omitir",
     loading: "Cargando...",
     processing: "Procesando...",
     error: "Error",
@@ -801,6 +802,22 @@ export default {
     paymentInfo:
       "Los pagos se transfieren automáticamente a la cuenta principal dentro de 2 días hábiles después de la finalización del servicio.",
     bankCode: "Código",
+
+    // Onboarding
+    documentUploaded: "¡Documento subido exitosamente!",
+    uploadFailed: "Error al subir documento. Inténtalo de nuevo.",
+    skipOnboarding: "¿Omitir Configuración?",
+    skipOnboardingMessage: "Puedes subir documentos después desde Perfil → Cumplimiento. Tu cuenta puede tener funcionalidades limitadas hasta que los documentos sean verificados.",
+    skipAnyway: "Omitir",
+    uploadAnother: "Subir Otro Documento",
+    tapToUpload: "Toca para Subir Documento",
+    acceptedFormats: "Acepta imágenes (JPG, PNG) y archivos PDF",
+    requiredDocument: "Este documento es obligatorio",
+    reviewServices: "Revisar Mis Servicios",
+    reviewed: "Revisado",
+    whatHappensNext: "¿Qué Pasa Ahora?",
+    goToDashboard: "Ir al Dashboard",
+    uploadToContinue: "Sube para Continuar",
   },
 
   // Customer Dashboard

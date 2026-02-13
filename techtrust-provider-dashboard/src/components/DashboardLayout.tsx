@@ -19,6 +19,7 @@ import {
   User,
   Star,
   Wrench,
+  Shield,
 } from 'lucide-react'
 
 interface DashboardLayoutProps {
@@ -31,6 +32,7 @@ const menuItems = [
   { href: '/pedidos', icon: ClipboardList, key: 'provider.nav.requests' },
   { href: '/orcamentos', icon: FileText, key: 'provider.nav.quotes' },
   { href: '/servicos', icon: Briefcase, key: 'provider.nav.services' },
+  { href: '/compliance', icon: Shield, key: 'provider.nav.compliance' },
   { href: '/configuracoes', icon: Settings, key: 'provider.nav.settings' },
 ]
 
@@ -41,7 +43,7 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
 
-  const isActive = (href: string) => router.pathname === href
+  const isActive = (href: string) => router.pathname === href || router.pathname.startsWith(href + '/')
   const tr = translate
 
   return (

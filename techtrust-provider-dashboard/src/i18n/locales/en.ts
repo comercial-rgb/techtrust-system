@@ -132,6 +132,7 @@ const en = {
       requests: 'Requests',
       quotes: 'Quotes',
       services: 'Services',
+      compliance: 'Compliance',
       settings: 'Settings',
     },
     layout: {

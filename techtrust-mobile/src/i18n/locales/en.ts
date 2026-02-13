@@ -15,6 +15,7 @@ export default {
     back: "Back",
     next: "Next",
     done: "Done",
+    skip: "Skip",
     loading: "Loading...",
     processing: "Processing...",
     error: "Error",
@@ -781,6 +782,22 @@ export default {
     paymentInfo:
       "Payments are automatically transferred to the primary account within 2 business days after service completion.",
     bankCode: "Code",
+
+    // Onboarding
+    documentUploaded: "Document uploaded successfully!",
+    uploadFailed: "Failed to upload document. Please try again.",
+    skipOnboarding: "Skip Setup?",
+    skipOnboardingMessage: "You can complete document uploads later from Profile → Compliance. Your account may have limited functionality until documents are verified.",
+    skipAnyway: "Skip",
+    uploadAnother: "Upload Another Document",
+    tapToUpload: "Tap to Upload Document",
+    acceptedFormats: "Accepts images (JPG, PNG) and PDF files",
+    requiredDocument: "This document is required",
+    reviewServices: "Review My Services",
+    reviewed: "Reviewed",
+    whatHappensNext: "What Happens Next?",
+    goToDashboard: "Go to Dashboard",
+    uploadToContinue: "Upload to Continue",
   },
 
   // Customer Dashboard

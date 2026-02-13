@@ -132,6 +132,7 @@ const es = {
       requests: 'Pedidos',
       quotes: 'Cotizaciones',
       services: 'Servicios',
+      compliance: 'Cumplimiento',
       settings: 'Configuración',
     },
     layout: {

@@ -51,7 +51,7 @@ const storage = useCloudinary
       },
     });
 
-// File filter - accept only images
+// File filter - accept images and PDF documents
 const fileFilter = (_req: any, file: any, cb: any) => {
   const allowedMimes = [
     "image/jpeg",
@@ -59,6 +59,7 @@ const fileFilter = (_req: any, file: any, cb: any) => {
     "image/png",
     "image/gif",
     "image/webp",
+    "application/pdf",
   ];
 
   if (allowedMimes.includes(file.mimetype)) {
@@ -66,7 +67,7 @@ const fileFilter = (_req: any, file: any, cb: any) => {
   } else {
     cb(
       new Error(
-        "Invalid file type. Only JPEG, PNG, GIF and WebP images are allowed.",
+        "Invalid file type. Only JPEG, PNG, GIF, WebP images and PDF documents are allowed.",
       ),
     );
   }
@@ -77,7 +78,7 @@ const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB max file size
+    fileSize: 10 * 1024 * 1024, // 10MB max file size (for PDFs)
   },
 });
 
@@ -95,8 +96,8 @@ const uploadToCloudinary = (
         {
           public_id: publicId,
           folder: "techtrust",
-          resource_type: "image",
-          transformation: [{ quality: "auto:good" }, { fetch_format: "auto" }],
+        resource_type: "auto",
+        transformation: [],  // No transformation for PDFs
         },
         (error, result) => {
           if (error) {
@@ -110,11 +111,17 @@ const uploadToCloudinary = (
   });
 };
 
-// POST /api/upload - Upload single image
+// POST /api/upload - Upload single file (image or PDF)
+// Accept both "image" and "file" field names for compatibility
 router.post(
   "/",
   authenticate,
   upload.single("image"),
+  // Fallback: if no file found under "image", try "file" field
+  (req: any, res: Response, next: any) => {
+    if (req.file) return next();
+    upload.single("file")(req, res, next);
+  },
   async (req: any, res: Response) => {
     try {
       if (!req.file) {
@@ -149,6 +156,7 @@ router.post(
       return res.json({
         success: true,
         imageUrl,
+        url: imageUrl,  // Alias for mobile compatibility
         filename,
         originalName: req.file.originalname,
         size: req.file.size,
