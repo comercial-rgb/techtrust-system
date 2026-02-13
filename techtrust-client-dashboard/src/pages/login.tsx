@@ -44,12 +44,21 @@ export default function LoginPage() {
     try {
       await login(email, password);
     } catch (err: any) {
-      // Check for phone verification error
-      if (err.code === "PHONE_NOT_VERIFIED" && err.responseData?.userId) {
-        setNeedsVerification(true);
-        setVerifyUserId(err.responseData.userId);
-        setVerifyPhone(err.responseData.phone || "");
-        setError("");
+      // Check for phone verification error (code comes from api response)
+      const errorCode = err.code || err.responseData?.code;
+      if (errorCode === "PHONE_NOT_VERIFIED") {
+        const userId = err.responseData?.userId;
+        if (userId) {
+          setNeedsVerification(true);
+          setVerifyUserId(userId);
+          setVerifyPhone(err.responseData.phone || "");
+          setError("");
+        } else {
+          setError(
+            tr("auth.phoneNotVerifiedRetry") ||
+              "Your phone is not verified. Please register again to receive a new verification code."
+          );
+        }
         return;
       }
       setError(err.message || tr("auth.loginError"));

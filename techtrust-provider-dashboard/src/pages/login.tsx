@@ -49,14 +49,21 @@ export default function LoginPage() {
     } catch (err: any) {
       // Check if it's a phone verification error
       const responseData = err.response?.data
-      if (responseData?.code === 'PHONE_NOT_VERIFIED' && responseData?.data?.userId) {
-        setNeedsVerification(true)
-        setVerifyUserId(responseData.data.userId)
-        setVerifyPhone(responseData.data.phone || '')
-        setError('')
+      const errorCode = responseData?.code || responseData?.error
+      if (errorCode === 'PHONE_NOT_VERIFIED') {
+        const userId = responseData?.data?.userId
+        if (userId) {
+          setNeedsVerification(true)
+          setVerifyUserId(userId)
+          setVerifyPhone(responseData.data.phone || '')
+          setError('')
+        } else {
+          // Backend hasn't returned userId - show message with instructions
+          setError(tr('auth.phoneNotVerifiedRetry') || 'Your phone is not verified. Please register again to receive a new verification code.')
+        }
         return
       }
-      setError(err.response?.data?.message || err.message || tr('auth.loginError'))
+      setError(responseData?.message || err.message || tr('auth.loginError'))
     } finally {
       setLoading(false)
     }
