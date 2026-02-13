@@ -200,6 +200,12 @@ export default function CadastroPage() {
       if (data?.userId) {
         setUserId(data.userId)
         setStep('otp')
+        // If OTP was not sent during signup, auto-trigger resend
+        if (data.otpSent === false) {
+          try {
+            await api.post('/auth/resend-otp', { userId: data.userId, method: 'sms' })
+          } catch {}
+        }
       } else {
         throw new Error('Unexpected response')
       }

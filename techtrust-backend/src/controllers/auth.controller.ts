@@ -142,27 +142,28 @@ export const signup = async (req: Request, res: Response) => {
     });
 
     // Enviar SMS com OTP
+    let otpSent = false;
     try {
-      // Não bloquear o cadastro aguardando o provedor de SMS.
-      // Se o envio falhar (ou travar), o usuário ainda consegue solicitar reenvio.
-      sendOTP(phone, otpCode).catch((err) => {
-        logger.error("Erro ao enviar OTP:", err);
-      });
+      await sendOTP(phone, otpCode);
+      otpSent = true;
     } catch (error) {
       logger.error("Erro ao enviar OTP:", error);
-      // Não falha o cadastro, mas avisa
+      // Não falha o cadastro, mas sinaliza que o envio falhou
     }
 
-    logger.info(`Novo usuário cadastrado: ${email}`);
+    logger.info(`Novo usuário cadastrado: ${email} (OTP sent: ${otpSent})`);
 
     res.status(201).json({
       success: true,
-      message: "Conta criada! Verifique seu telefone.",
+      message: otpSent
+        ? "Conta criada! Verifique seu telefone."
+        : "Conta criada! Não foi possível enviar o código. Use 'Reenviar código'.",
       data: {
         userId: user.id,
         email: user.email,
         phone: user.phone,
         otpSentTo: user.phone,
+        otpSent,
       },
     });
   } catch (error) {

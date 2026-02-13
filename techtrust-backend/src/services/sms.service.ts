@@ -11,7 +11,7 @@ import { logger } from '../config/logger';
 const MOCK_MODE = process.env.MOCK_TWILIO === 'true';
 
 const DEFAULT_SMS_TIMEOUT_MS = parseInt(
-  process.env.SMS_TIMEOUT_MS || '8000',
+  process.env.SMS_TIMEOUT_MS || '15000',
   10
 );
 
