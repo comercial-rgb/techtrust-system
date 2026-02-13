@@ -102,7 +102,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const response = await api.login(email, password);
 
     if (response.error) {
-      throw new Error(response.error);
+      // Preserve error code and response data for PHONE_NOT_VERIFIED handling
+      const err = new Error(response.error) as any;
+      err.code = response.code;
+      err.responseData = response.responseData;
+      throw err;
     }
 
     if (response.data) {

@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '@/contexts/AuthContext'
-import { Wrench, Mail, Lock, Eye, EyeOff, Loader2, Globe2 } from 'lucide-react'
+import api from '@/services/api'
+import { Wrench, Mail, Lock, Eye, EyeOff, Loader2, Globe2, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { useI18n, languages, Language } from '@/i18n'
 
@@ -17,6 +18,13 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  // OTP verification state (for unverified accounts)
+  const [needsVerification, setNeedsVerification] = useState(false)
+  const [verifyUserId, setVerifyUserId] = useState('')
+  const [verifyPhone, setVerifyPhone] = useState('')
+  const [otpCode, setOtpCode] = useState('')
+  const [resending, setResending] = useState(false)
 
   const tr = translate
 
@@ -39,10 +47,51 @@ export default function LoginPage() {
     try {
       await login(email, password)
     } catch (err: any) {
-      setError(err.message || tr('auth.loginError'))
+      // Check if it's a phone verification error
+      const responseData = err.response?.data
+      if (responseData?.code === 'PHONE_NOT_VERIFIED' && responseData?.data?.userId) {
+        setNeedsVerification(true)
+        setVerifyUserId(responseData.data.userId)
+        setVerifyPhone(responseData.data.phone || '')
+        setError('')
+        return
+      }
+      setError(err.response?.data?.message || err.message || tr('auth.loginError'))
     } finally {
       setLoading(false)
     }
+  }
+
+  async function handleVerifyOTP(e: React.FormEvent) {
+    e.preventDefault()
+    if (!otpCode.trim() || otpCode.trim().length < 4) {
+      setError(tr('signup.otpRequired') || 'Enter the verification code')
+      return
+    }
+    setError('')
+    setLoading(true)
+
+    try {
+      await api.post('/auth/verify-otp', {
+        userId: verifyUserId,
+        otpCode: otpCode.trim(),
+        method: 'sms',
+      })
+      // After verification, login again
+      await login(email, password)
+    } catch (err: any) {
+      setError(err.response?.data?.message || err.message || 'Invalid code')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleResendOTP() {
+    setResending(true)
+    try {
+      await api.post('/auth/resend-otp', { userId: verifyUserId, method: 'sms' })
+    } catch {}
+    setTimeout(() => setResending(false), 30000)
   }
 
   if (authLoading) {
@@ -104,7 +153,69 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Form */}
+          {needsVerification ? (
+            /* OTP Verification Form */
+            <>
+              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl text-blue-700 text-sm">
+                {tr('signup.otpSent') || 'A verification code was sent to your phone'}
+                {verifyPhone && <span className="font-medium"> ({verifyPhone.replace(/(\d{2})\d+(\d{2})/, '$1****$2')})</span>}
+              </div>
+
+              <form onSubmit={handleVerifyOTP} className="space-y-5">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {tr('signup.otpCode') || 'Verification Code'}
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                    placeholder="000000"
+                    className="input text-center text-2xl tracking-[0.5em] font-mono"
+                    disabled={loading}
+                    autoFocus
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading || otpCode.length < 4}
+                  className="btn btn-primary w-full py-3 text-base disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      {tr('common.loading') || 'Verifying...'}
+                    </span>
+                  ) : (
+                    tr('signup.verify') || 'Verify'
+                  )}
+                </button>
+
+                <div className="flex items-center justify-between text-sm">
+                  <button
+                    type="button"
+                    onClick={handleResendOTP}
+                    disabled={resending}
+                    className="text-primary-600 hover:text-primary-700 font-medium disabled:text-gray-400"
+                  >
+                    {resending ? (tr('signup.otpResent') || 'Code sent!') : (tr('signup.resendOtp') || 'Resend code')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setNeedsVerification(false); setOtpCode(''); setError(''); }}
+                    className="text-gray-500 hover:text-gray-700 flex items-center gap-1"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    {tr('auth.signIn') || 'Back to login'}
+                  </button>
+                </div>
+              </form>
+            </>
+          ) : (
+          /* Login Form */
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -190,6 +301,8 @@ export default function LoginPage() {
           >
             {tr('provider.registerCta')}
           </Link>
+          </>
+          )}
 
           {/* Help */}
           <p className="mt-8 text-center text-sm text-gray-500">

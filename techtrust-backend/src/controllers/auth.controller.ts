@@ -972,11 +972,38 @@ export const login = async (req: Request, res: Response) => {
     // Verificar se telefone foi verificado (usuário precisa completar cadastro)
     if (user.status === "PENDING_VERIFICATION" || !user.phoneVerified) {
       console.log("⚠️ Telefone não verificado para:", email);
-      throw new AppError(
-        "Verifique seu telefone para continuar",
-        403,
-        "PHONE_NOT_VERIFIED",
-      );
+
+      // Gerar e enviar novo OTP para que o usuário possa verificar
+      const otpCode = generateOTP();
+      const otpExpiresAt = getOTPExpiration();
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { otpCode, otpExpiresAt },
+      });
+
+      let otpSent = false;
+      try {
+        await sendOTP(user.phone, otpCode);
+        otpSent = true;
+      } catch (err) {
+        logger.error("Erro ao enviar OTP no login:", err);
+      }
+
+      return res.status(403).json({
+        success: false,
+        message: otpSent
+          ? "Verifique seu telefone para continuar. Código enviado!"
+          : "Verifique seu telefone para continuar.",
+        code: "PHONE_NOT_VERIFIED",
+        data: {
+          userId: user.id,
+          phone: user.phone,
+          otpSentTo: user.phone,
+          otpSent,
+          needsVerification: true,
+        },
+      });
     }
 
     // Atualizar último login

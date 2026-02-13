@@ -12,6 +12,8 @@ interface ApiResponse<T = any> {
   data?: T;
   error?: string;
   message?: string;
+  code?: string;
+  responseData?: any;
 }
 
 class ApiService {
@@ -40,7 +42,7 @@ class ApiService {
       const data = await response.json();
 
       if (!response.ok) {
-        return { error: data.error || data.message || "Erro na requisição" };
+        return { error: data.error || data.message || "Erro na requisição", code: data.code, responseData: data.data };
       }
 
       return { data };

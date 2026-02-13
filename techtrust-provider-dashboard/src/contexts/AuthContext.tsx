@@ -131,7 +131,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || error.message || 'Erro ao fazer login')
+      // Re-throw the original axios error so login page can inspect response data (e.g. PHONE_NOT_VERIFIED)
+      if (error.response) {
+        throw error
+      }
+      throw new Error(error.message || 'Erro ao fazer login')
     }
   }
 
