@@ -66,9 +66,44 @@ export const signup = async (req: Request, res: Response) => {
     });
 
     if (existingEmail) {
-      logger.warn(`Tentativa de cadastro com email duplicado: ${email}`);
+      // Se o usuário existe mas NÃO verificou o telefone → reenviar OTP
+      if (!existingEmail.phoneVerified) {
+        logger.info(`Reenvio de OTP para usuário não verificado: ${email}`);
+        const otpCode = generateOTP();
+        const otpExpiresAt = getOTPExpiration();
+
+        await prisma.user.update({
+          where: { id: existingEmail.id },
+          data: { otpCode, otpExpiresAt },
+        });
+
+        let otpSent = false;
+        try {
+          await sendOTP(existingEmail.phone, otpCode);
+          otpSent = true;
+        } catch (error) {
+          logger.error("Erro ao reenviar OTP:", error);
+        }
+
+        return res.status(200).json({
+          success: true,
+          message: otpSent
+            ? "Código de verificação reenviado!"
+            : "Conta encontrada. Use 'Reenviar código' para receber o OTP.",
+          data: {
+            userId: existingEmail.id,
+            email: existingEmail.email,
+            phone: existingEmail.phone,
+            otpSentTo: existingEmail.phone,
+            otpSent,
+            existing: true,
+          },
+        });
+      }
+
+      // Se já está verificado → redirecionar para login
       throw new AppError(
-        "Este email já está cadastrado",
+        "Este email já está cadastrado. Faça login.",
         409,
         "EMAIL_ALREADY_EXISTS",
       );
@@ -80,9 +115,43 @@ export const signup = async (req: Request, res: Response) => {
     });
 
     if (existingPhone) {
-      logger.warn(`Tentativa de cadastro com telefone duplicado: ${phone}`);
+      // Se o usuário existe mas NÃO verificou → reenviar OTP
+      if (!existingPhone.phoneVerified) {
+        logger.info(`Reenvio de OTP para telefone não verificado: ${phone}`);
+        const otpCode = generateOTP();
+        const otpExpiresAt = getOTPExpiration();
+
+        await prisma.user.update({
+          where: { id: existingPhone.id },
+          data: { otpCode, otpExpiresAt },
+        });
+
+        let otpSent = false;
+        try {
+          await sendOTP(phone, otpCode);
+          otpSent = true;
+        } catch (error) {
+          logger.error("Erro ao reenviar OTP:", error);
+        }
+
+        return res.status(200).json({
+          success: true,
+          message: otpSent
+            ? "Código de verificação reenviado!"
+            : "Conta encontrada. Use 'Reenviar código' para receber o OTP.",
+          data: {
+            userId: existingPhone.id,
+            email: existingPhone.email,
+            phone: existingPhone.phone,
+            otpSentTo: existingPhone.phone,
+            otpSent,
+            existing: true,
+          },
+        });
+      }
+
       throw new AppError(
-        "Este telefone já está cadastrado",
+        "Este telefone já está cadastrado. Faça login.",
         409,
         "PHONE_ALREADY_EXISTS",
       );

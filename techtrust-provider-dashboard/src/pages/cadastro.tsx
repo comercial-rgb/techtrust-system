@@ -97,6 +97,7 @@ export default function CadastroPage() {
   const [userId, setUserId] = useState('')
   const [otpCode, setOtpCode] = useState('')
   const [resending, setResending] = useState(false)
+  const [showLoginLink, setShowLoginLink] = useState(false)
 
   // ─── Validation ───
   const validateStep1 = () => {
@@ -210,7 +211,13 @@ export default function CadastroPage() {
         throw new Error('Unexpected response')
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || err.message || 'Registration failed')
+      const errorCode = err.response?.data?.code
+      if (errorCode === 'EMAIL_ALREADY_EXISTS' || errorCode === 'PHONE_ALREADY_EXISTS') {
+        setError(err.response?.data?.message + ' ')
+        setShowLoginLink(true)
+      } else {
+        setError(err.response?.data?.message || err.message || 'Registration failed')
+      }
     } finally {
       setLoading(false)
     }
@@ -325,6 +332,11 @@ export default function CadastroPage() {
           {error && (
             <div className="mb-5 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
               {error}
+              {showLoginLink && (
+                <Link href="/login" className="block mt-2 text-primary-600 hover:text-primary-700 font-semibold underline">
+                  {tr('auth.signIn') || 'Sign in'} →
+                </Link>
+              )}
             </div>
           )}
 

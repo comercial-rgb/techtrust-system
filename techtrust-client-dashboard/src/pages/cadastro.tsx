@@ -49,6 +49,8 @@ export default function CadastroPage() {
   const [resending, setResending] = useState(false)
   const [resendCooldown, setResendCooldown] = useState(0)
 
+  const [showLoginLink, setShowLoginLink] = useState(false)
+
   // ─── Phone formatting ───
   function formatPhoneDisplay(value: string) {
     const digits = value.replace(/\D/g, '').slice(0, 10)
@@ -111,11 +113,27 @@ export default function CadastroPage() {
       const data = await res.json()
 
       if (!res.ok) {
+        const errorCode = data.code
+        if (errorCode === 'EMAIL_ALREADY_EXISTS' || errorCode === 'PHONE_ALREADY_EXISTS') {
+          setError(data.message || 'Account already exists. Please log in.')
+          setShowLoginLink(true)
+          return
+        }
         throw new Error(data.message || data.error || 'Registration failed')
       }
 
       setUserId(data.data.userId)
       setStep('otp')
+      // If OTP was not sent, auto-trigger resend
+      if (data.data.otpSent === false) {
+        try {
+          await fetch(`${API_BASE_URL}/auth/resend-otp`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: data.data.userId, method: 'sms' }),
+          })
+        } catch {}
+      }
     } catch (err: any) {
       setError(err.message || 'Error creating account')
     } finally {
@@ -268,7 +286,14 @@ export default function CadastroPage() {
               <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
                 <span className="text-red-600 text-lg">!</span>
               </div>
-              <p className="text-red-600 text-sm">{error}</p>
+              <div>
+                <p className="text-red-600 text-sm">{error}</p>
+                {showLoginLink && (
+                  <Link href="/login" className="text-primary-600 hover:text-primary-700 font-semibold text-sm underline mt-1 inline-block">
+                    {tr('auth.signIn')} →
+                  </Link>
+                )}
+              </div>
             </div>
           )}
 
