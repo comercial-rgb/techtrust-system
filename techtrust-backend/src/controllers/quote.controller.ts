@@ -35,6 +35,21 @@ export const createQuote = async (req: Request, res: Response) => {
     warrantyDescription,
     odometerReading,
     notes,
+    // FDACS Compliance Fields
+    proposedCompletionDate,
+    laborChargeType,
+    hourlyRate,
+    shopSuppliesFee = 0,
+    newTireCount = 0,
+    newBatteryCount = 0,
+    intendedPaymentMethod,
+    authorizedPersonName,
+    authorizedPersonPhone,
+    saveReplacedParts = false,
+    dailyStorageCharge = 0,
+    estimateConsentType,
+    maxAmountWithoutEstimate,
+    consentSignature,
   } = req.body;
 
   // Verificar se é fornecedor
@@ -145,12 +160,19 @@ export const createQuote = async (req: Request, res: Response) => {
     );
   }
 
-  // Calcular total (incluindo taxa de deslocamento)
+  // Calculate mandated fees (FDACS)
+  const tireFee = Number(newTireCount) * 1.00;   // FS 403.718: $1.00 per new tire
+  const batteryFee = Number(newBatteryCount) * 1.50; // FS 403.7185: $1.50 per new/reman battery
+
+  // Calcular total (incluindo taxa de deslocamento + FDACS fees)
   const totalAmount =
     Number(partsCost) +
     Number(laborCost) +
     Number(additionalFees) +
     Number(taxAmount) +
+    Number(shopSuppliesFee) +
+    tireFee +
+    batteryFee +
     travelFee;
 
   // Gerar número do orçamento
@@ -188,6 +210,24 @@ export const createQuote = async (req: Request, res: Response) => {
       warrantyMileage: warrantyMileage ? Number(warrantyMileage) : null,
       warrantyDescription,
       odometerReading: odometerReading ? Number(odometerReading) : null,
+      // FDACS Compliance
+      proposedCompletionDate: proposedCompletionDate ? new Date(proposedCompletionDate) : null,
+      laborChargeType: laborChargeType || null,
+      hourlyRate: hourlyRate ? Number(hourlyRate) : null,
+      shopSuppliesFee: Number(shopSuppliesFee) || 0,
+      newTireCount: Number(newTireCount) || 0,
+      tireFee,
+      newBatteryCount: Number(newBatteryCount) || 0,
+      batteryFee,
+      intendedPaymentMethod: intendedPaymentMethod || null,
+      authorizedPersonName: authorizedPersonName || null,
+      authorizedPersonPhone: authorizedPersonPhone || null,
+      saveReplacedParts: saveReplacedParts === true || saveReplacedParts === 'true',
+      dailyStorageCharge: Number(dailyStorageCharge) || 0,
+      estimateConsentType: estimateConsentType || null,
+      maxAmountWithoutEstimate: maxAmountWithoutEstimate ? Number(maxAmountWithoutEstimate) : null,
+      consentSignature: consentSignature || null,
+      consentSignedAt: consentSignature ? new Date() : null,
       notes,
       status: "PENDING",
       validUntil,

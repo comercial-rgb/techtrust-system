@@ -110,6 +110,13 @@ export const createRepairInvoiceFromQuote = async (
       warrantyMileage: quote.warrantyMileage,
       diagnosticFee: quote.diagnosticFee || 0,
       diagnosticFeeWaived: quote.diagnosticFeeWaived || false,
+      // FDACS Compliance Fields
+      laborChargeType: quote.laborChargeType || null,
+      hourlyRate: quote.hourlyRate || null,
+      shopSuppliesFee: quote.shopSuppliesFee || 0,
+      tireFee: quote.tireFee || 0,
+      batteryFee: quote.batteryFee || 0,
+      dailyStorageCharge: quote.dailyStorageCharge || 0,
       status: "DRAFT",
     },
   });

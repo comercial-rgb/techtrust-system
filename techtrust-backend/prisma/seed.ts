@@ -154,52 +154,50 @@ async function main() {
   // ===========================================
   console.log('\n4️⃣ Criando veículo de teste...');
   
-  const vehicle = await prisma.vehicle.upsert({
-    where: {
-      userId_plateNumber: {
+  let vehicle = await prisma.vehicle.findFirst({
+    where: { userId: client.id, plateNumber: 'ABC1234' },
+  });
+  if (!vehicle) {
+    vehicle = await prisma.vehicle.create({
+      data: {
         userId: client.id,
         plateNumber: 'ABC1234',
+        vin: '1HGCM82633A123456',
+        make: 'Honda',
+        model: 'Civic',
+        year: 2020,
+        color: 'Prata',
+        currentMileage: 45000,
+        isPrimary: true,
+        isActive: true,
       },
-    },
-    update: {},
-    create: {
-      userId: client.id,
-      plateNumber: 'ABC1234',
-      vin: '1HGCM82633A123456',
-      make: 'Honda',
-      model: 'Civic',
-      year: 2020,
-      color: 'Prata',
-      currentMileage: 45000,
-      isPrimary: true,
-      isActive: true,
-    },
-  });
-  console.log(`   ✅ Veículo criado: ${vehicle.make} ${vehicle.model} - ${vehicle.plateNumber}`);
+    });
+    console.log(`   ✅ Veículo criado: ${vehicle.make} ${vehicle.model} - ${vehicle.plateNumber}`);
+  } else {
+    console.log(`   ⚠️ Veículo já existe: ${vehicle.make} ${vehicle.model}`);
+  }
 
   // ===========================================
   // 5. Criar segundo veículo (opcional)
   // ===========================================
-  const vehicle2 = await prisma.vehicle.upsert({
-    where: {
-      userId_plateNumber: {
+  let vehicle2 = await prisma.vehicle.findFirst({
+    where: { userId: client.id, plateNumber: 'XYZ5678' },
+  });
+  if (!vehicle2) {
+    vehicle2 = await prisma.vehicle.create({
+      data: {
         userId: client.id,
         plateNumber: 'XYZ5678',
+        make: 'Toyota',
+        model: 'Corolla',
+        year: 2022,
+        color: 'Branco',
+        currentMileage: 15000,
+        isPrimary: false,
+        isActive: true,
       },
-    },
-    update: {},
-    create: {
-      userId: client.id,
-      plateNumber: 'XYZ5678',
-      make: 'Toyota',
-      model: 'Corolla',
-      year: 2022,
-      color: 'Branco',
-      currentMileage: 15000,
-      isPrimary: false,
-      isActive: true,
-    },
-  });
+    });
+  }
   console.log(`   ✅ Veículo 2 criado: ${vehicle2.make} ${vehicle2.model}`);
 
   // ===========================================

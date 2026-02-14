@@ -13,6 +13,11 @@ export interface VehicleData {
   fuelType?: string;
   bodyType?: string;
   trim?: string;
+  driveType?: string;
+  numberOfRows?: number;
+  seatingCapacity?: number;
+  countryOfManufacturer?: string;
+  category?: string;
   vin: string;
 }
 

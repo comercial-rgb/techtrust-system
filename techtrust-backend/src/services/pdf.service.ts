@@ -320,6 +320,39 @@ export async function generateRepairInvoicePdf(
                       ],
                     ]
                   : []),
+                ...(Number(invoice.shopSuppliesFee) > 0
+                  ? [
+                      [
+                        "Shop Supplies*:",
+                        {
+                          text: `$${Number(invoice.shopSuppliesFee).toFixed(2)}`,
+                          alignment: "right",
+                        },
+                      ],
+                    ]
+                  : []),
+                ...(Number(invoice.tireFee) > 0
+                  ? [
+                      [
+                        "Tire Fee (FS 403.718):",
+                        {
+                          text: `$${Number(invoice.tireFee).toFixed(2)}`,
+                          alignment: "right",
+                        },
+                      ],
+                    ]
+                  : []),
+                ...(Number(invoice.batteryFee) > 0
+                  ? [
+                      [
+                        "Battery Fee (FS 403.7185):",
+                        {
+                          text: `$${Number(invoice.batteryFee).toFixed(2)}`,
+                          alignment: "right",
+                        },
+                      ],
+                    ]
+                  : []),
                 ...(Number(invoice.supplementsTotal) > 0
                   ? [
                       [
@@ -386,6 +419,75 @@ export async function generateRepairInvoicePdf(
                     color: "#555",
                   }
                 : {},
+            ],
+            margin: [0, 0, 0, 15],
+          }
+        : {},
+
+      // Labor charge basis (FDACS §559.905(1)(g))
+      invoice.laborChargeType
+        ? {
+            stack: [
+              { text: "LABOR CHARGES BASED ON", style: "sectionTitle" },
+              {
+                text: `${invoice.laborChargeType === 'FLAT_RATE' ? 'Flat Rate' : invoice.laborChargeType === 'HOURLY' ? 'Hourly Rate' : 'Both Flat Rate and Hourly Rate'}${invoice.hourlyRate ? ` — $${Number(invoice.hourlyRate).toFixed(2)}/hour` : ''}`,
+                fontSize: 10,
+              },
+            ],
+            margin: [0, 0, 0, 10],
+          }
+        : {},
+
+      // Storage charge (FDACS §559.905(1)(n))
+      Number(invoice.dailyStorageCharge) > 0
+        ? {
+            stack: [
+              { text: "STORAGE CHARGE", style: "sectionTitle" },
+              {
+                text: `A storage fee of $${Number(invoice.dailyStorageCharge).toFixed(2)} per day may be applied to vehicles which are not claimed within 3 working days of notification of completion.`,
+                fontSize: 9,
+                color: "#555",
+              },
+            ],
+            margin: [0, 0, 0, 10],
+          }
+        : {},
+
+      // FDACS mandatory statements (§559.905(1)(h))
+      (Number(invoice.shopSuppliesFee) > 0 || Number(invoice.tireFee) > 0 || Number(invoice.batteryFee) > 0)
+        ? {
+            stack: [
+              { text: "REGULATORY NOTICES", style: "sectionTitle" },
+              ...(Number(invoice.shopSuppliesFee) > 0
+                ? [
+                    {
+                      text: "*This charge represents costs and profits to the motor vehicle repair facility for miscellaneous shop supplies or waste disposal.",
+                      fontSize: 8,
+                      color: "#555",
+                      margin: [0, 0, 0, 4] as [number, number, number, number],
+                    },
+                  ]
+                : []),
+              ...(Number(invoice.tireFee) > 0
+                ? [
+                    {
+                      text: "F.S. 403.718 mandates a $1.00 fee for each new tire sold in the State of Florida.",
+                      fontSize: 8,
+                      color: "#555",
+                      margin: [0, 0, 0, 4] as [number, number, number, number],
+                    },
+                  ]
+                : []),
+              ...(Number(invoice.batteryFee) > 0
+                ? [
+                    {
+                      text: "F.S. 403.7185 mandates a $1.50 fee for each new or remanufactured battery sold in the State of Florida.",
+                      fontSize: 8,
+                      color: "#555",
+                      margin: [0, 0, 0, 4] as [number, number, number, number],
+                    },
+                  ]
+                : []),
             ],
             margin: [0, 0, 0, 15],
           }

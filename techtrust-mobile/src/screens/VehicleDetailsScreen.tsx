@@ -206,9 +206,24 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
               <Ionicons name="car-sport" size={64} color="#1976d2" />
             </View>
             <Text style={styles.vehicleTitle}>
-              {vehicle.year} {vehicle.make} {vehicle.model}
+              {vehicle.year} {vehicle.make} {vehicle.model} {vehicle.trim || ''}
             </Text>
-            <Text style={styles.vehicleTrim}>{vehicle.trim}</Text>
+            {vehicle.fuelType ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 8 }}>
+                {vehicle.fuelType && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#eff6ff', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
+                    <Ionicons name="flash" size={12} color="#1976d2" />
+                    <Text style={{ fontSize: 12, color: '#1976d2', fontWeight: '600', marginLeft: 4 }}>{vehicle.fuelType}</Text>
+                  </View>
+                )}
+                {vehicle.vehicleType ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#f0fdf4', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
+                    <Ionicons name="car" size={12} color="#059669" />
+                    <Text style={{ fontSize: 12, color: '#059669', fontWeight: '600', marginLeft: 4 }}>{vehicle.vehicleType}</Text>
+                  </View>
+                ) : null}
+              </View>
+            ) : null}
             {vehicle.isDefault && (
               <View style={styles.defaultBadge}>
                 <Ionicons name="star" size={12} color="#f59e0b" />
@@ -284,6 +299,62 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
                 </Text>
                 <Text style={styles.infoValue}>{vehicle.vehicleType}</Text>
               </View>
+              {vehicle.driveType && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>
+                    {t.vehicle?.driveType || "Drive Type"}
+                  </Text>
+                  <Text style={styles.infoValue}>{vehicle.driveType}</Text>
+                </View>
+              )}
+              {vehicle.bodyType && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>
+                    {t.vehicle?.bodyType || "Body Style"}
+                  </Text>
+                  <Text style={styles.infoValue}>{vehicle.bodyType}</Text>
+                </View>
+              )}
+              {vehicle.category && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>
+                    {t.vehicle?.category || "Category"}
+                  </Text>
+                  <Text style={styles.infoValue}>{vehicle.category}</Text>
+                </View>
+              )}
+              {vehicle.seatingCapacity && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>
+                    {t.vehicle?.seatingCapacity || "Seating Capacity"}
+                  </Text>
+                  <Text style={styles.infoValue}>{vehicle.seatingCapacity}</Text>
+                </View>
+              )}
+              {vehicle.numberOfRows && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>
+                    {t.vehicle?.numberOfRows || "Seat Rows"}
+                  </Text>
+                  <Text style={styles.infoValue}>{vehicle.numberOfRows}</Text>
+                </View>
+              )}
+              {vehicle.countryOfManufacturer && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>
+                    {t.vehicle?.countryOfManufacturer || "Country of Manufacture"}
+                  </Text>
+                  <Text style={styles.infoValue}>{vehicle.countryOfManufacturer}</Text>
+                </View>
+              )}
+              {vehicle.engineType && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>
+                    {t.vehicle?.engine || "Engine"}
+                  </Text>
+                  <Text style={styles.infoValue}>{vehicle.engineType}</Text>
+                </View>
+              )}
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>
                   {t.vehicle?.primaryDriver || "Primary Driver"}

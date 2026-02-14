@@ -20,6 +20,7 @@ import {
   Star,
   Wrench,
   Shield,
+  Receipt,
 } from 'lucide-react'
 
 interface DashboardLayoutProps {
@@ -31,6 +32,7 @@ const menuItems = [
   { href: '/dashboard', icon: LayoutDashboard, key: 'provider.nav.dashboard' },
   { href: '/pedidos', icon: ClipboardList, key: 'provider.nav.requests' },
   { href: '/orcamentos', icon: FileText, key: 'provider.nav.quotes' },
+  { href: '/faturas', icon: Receipt, key: 'provider.nav.invoices' },
   { href: '/servicos', icon: Briefcase, key: 'provider.nav.services' },
   { href: '/compliance', icon: Shield, key: 'provider.nav.compliance' },
   { href: '/configuracoes', icon: Settings, key: 'provider.nav.settings' },

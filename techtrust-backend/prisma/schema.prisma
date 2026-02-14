@@ -511,6 +511,11 @@ model Vehicle {
   fuelType   String? // Tipo de combustível
   bodyType   String? // Tipo de carroceria
   trim       String? // Versão/acabamento
+  driveType  String? // Tração (FWD, RWD, AWD, 4WD)
+  numberOfRows     Int?    // Número de fileiras de assentos
+  seatingCapacity  Int?    // Capacidade de passageiros
+  countryOfManufacturer String? // País de fabricação
+  category   String? // Categoria do veículo (Passenger, Truck, MPV, etc.)
   
   // Hodômetro
   currentMileage       Int?
@@ -707,6 +712,39 @@ model Quote {
   
   // FDACS Req #1: Odometer reading at time of estimate
   odometerReading Int?
+  
+  // ===== FDACS §559.905(1)(e) - Proposed Completion Date =====
+  proposedCompletionDate DateTime?
+  
+  // ===== FDACS §559.905(1)(g) - Labor Charge Basis =====
+  laborChargeType String?   // FLAT_RATE, HOURLY, BOTH
+  hourlyRate      Decimal?  @db.Decimal(10, 2)
+  
+  // ===== FDACS §559.905(1)(h) - Mandated Fees & Statements =====
+  shopSuppliesFee    Decimal  @default(0) @db.Decimal(10, 2)
+  newTireCount       Int      @default(0)
+  tireFee            Decimal  @default(0) @db.Decimal(10, 2)  // $1.00 per new tire (FS 403.718)
+  newBatteryCount    Int      @default(0)
+  batteryFee         Decimal  @default(0) @db.Decimal(10, 2)  // $1.50 per new/reman battery (FS 403.7185)
+  
+  // ===== FDACS §559.905(1)(j) - Intended Payment Method =====
+  intendedPaymentMethod String?  // CASH, CHECK, VISA, MC, AMEX, OTHER
+  
+  // ===== FDACS §559.905(1)(k) - Authorized Person =====
+  authorizedPersonName  String?
+  authorizedPersonPhone String?
+  
+  // ===== FDACS §559.905(1)(m) - Save Replaced Parts =====
+  saveReplacedParts Boolean @default(false)
+  
+  // ===== FDACS §559.905(1)(n) - Daily Storage Charge =====
+  dailyStorageCharge Decimal @default(0) @db.Decimal(10, 2)
+  
+  // ===== FDACS §559.905(2) - Written Estimate Consent (>$150) =====
+  estimateConsentType        String?   // REQUEST_ESTIMATE, NO_ESTIMATE_LIMIT, NO_ESTIMATE
+  maxAmountWithoutEstimate   Decimal?  @db.Decimal(10, 2)
+  consentSignature           String?
+  consentSignedAt            DateTime?
   
   // Notas
   notes String?
@@ -925,6 +963,18 @@ model RepairInvoice {
   // Diagnostic fee (shown on invoice, may be waived)
   diagnosticFee       Decimal @default(0) @db.Decimal(10, 2)
   diagnosticFeeWaived Boolean @default(false)
+  
+  // ===== FDACS §559.905(1)(g) - Labor Charge Basis (from estimate) =====
+  laborChargeType String?   // FLAT_RATE, HOURLY, BOTH
+  hourlyRate      Decimal?  @db.Decimal(10, 2)
+  
+  // ===== FDACS §559.905(1)(h) - Mandated Fees =====
+  shopSuppliesFee    Decimal  @default(0) @db.Decimal(10, 2)
+  tireFee            Decimal  @default(0) @db.Decimal(10, 2)
+  batteryFee         Decimal  @default(0) @db.Decimal(10, 2)
+  
+  // ===== FDACS §559.905(1)(n) - Storage Charge =====
+  dailyStorageCharge Decimal @default(0) @db.Decimal(10, 2)
   
   // Status
   status RepairInvoiceStatus @default(DRAFT)

@@ -72,6 +72,63 @@ export const createQuoteValidation = [
     .optional()
     .trim()
     .isLength({ max: 500 }).withMessage('Notas devem ter no máximo 500 caracteres'),
+
+  // ===== FDACS Compliance Fields =====
+  body('proposedCompletionDate')
+    .optional()
+    .isISO8601().withMessage('Proposed completion date must be a valid date'),
+
+  body('laborChargeType')
+    .optional()
+    .isIn(['FLAT_RATE', 'HOURLY', 'BOTH']).withMessage('Labor charge type must be FLAT_RATE, HOURLY, or BOTH'),
+
+  body('hourlyRate')
+    .optional()
+    .isFloat({ min: 0 }).withMessage('Hourly rate must be a positive number'),
+
+  body('shopSuppliesFee')
+    .optional()
+    .isFloat({ min: 0 }).withMessage('Shop supplies fee must be a positive number'),
+
+  body('newTireCount')
+    .optional()
+    .isInt({ min: 0 }).withMessage('New tire count must be a non-negative integer'),
+
+  body('newBatteryCount')
+    .optional()
+    .isInt({ min: 0 }).withMessage('New battery count must be a non-negative integer'),
+
+  body('intendedPaymentMethod')
+    .optional()
+    .isIn(['CASH', 'CHECK', 'VISA', 'MC', 'AMEX', 'OTHER']).withMessage('Invalid payment method'),
+
+  body('authorizedPersonName')
+    .optional()
+    .trim(),
+
+  body('authorizedPersonPhone')
+    .optional()
+    .trim(),
+
+  body('saveReplacedParts')
+    .optional()
+    .isBoolean().withMessage('Save replaced parts must be true or false'),
+
+  body('dailyStorageCharge')
+    .optional()
+    .isFloat({ min: 0 }).withMessage('Daily storage charge must be a positive number'),
+
+  body('estimateConsentType')
+    .optional()
+    .isIn(['REQUEST_ESTIMATE', 'NO_ESTIMATE_LIMIT', 'NO_ESTIMATE']).withMessage('Invalid consent type'),
+
+  body('maxAmountWithoutEstimate')
+    .optional()
+    .isFloat({ min: 0 }).withMessage('Max amount must be a positive number'),
+
+  body('consentSignature')
+    .optional()
+    .trim(),
 ];
 
 /**

@@ -44,6 +44,11 @@ export default function AddVehicleScreen({ navigation }: any) {
   const [fuelType, setFuelType] = useState(editVehicle?.fuelType || '');
   const [bodyType, setBodyType] = useState(editVehicle?.bodyType || '');
   const [trim, setTrim] = useState(editVehicle?.trim || '');
+  const [driveType, setDriveType] = useState(editVehicle?.driveType || '');
+  const [numberOfRows, setNumberOfRows] = useState(editVehicle?.numberOfRows?.toString() || '');
+  const [seatingCapacity, setSeatingCapacity] = useState(editVehicle?.seatingCapacity?.toString() || '');
+  const [countryOfManufacturer, setCountryOfManufacturer] = useState(editVehicle?.countryOfManufacturer || '');
+  const [category, setCategory] = useState(editVehicle?.category || '');
   
   const [mileage, setMileage] = useState(editVehicle?.currentMileage?.toString() || '');
   const [vehicleType, setVehicleType] = useState(editVehicle?.vehicleType || '');
@@ -121,6 +126,11 @@ export default function AddVehicleScreen({ navigation }: any) {
         setFuelType(result.data.fuelType || '');
         setBodyType(result.data.bodyType || '');
         setTrim(result.data.trim || '');
+        setDriveType(result.data.driveType || '');
+        if (result.data.numberOfRows) setNumberOfRows(result.data.numberOfRows.toString());
+        if (result.data.seatingCapacity) setSeatingCapacity(result.data.seatingCapacity.toString());
+        setCountryOfManufacturer(result.data.countryOfManufacturer || '');
+        setCategory(result.data.category || '');
         setVinDecoded(true);
         setManualEntry(false);
         
@@ -354,6 +364,11 @@ export default function AddVehicleScreen({ navigation }: any) {
         fuelType,
         bodyType,
         trim,
+        driveType: driveType || undefined,
+        numberOfRows: numberOfRows ? parseInt(numberOfRows) : undefined,
+        seatingCapacity: seatingCapacity ? parseInt(seatingCapacity) : undefined,
+        countryOfManufacturer: countryOfManufacturer || undefined,
+        category: category || undefined,
         vinDecoded,
         photos: photos.map(p => p.uri),
       };
@@ -386,9 +401,9 @@ export default function AddVehicleScreen({ navigation }: any) {
     }
   }
 
-  const popularMakes = ['Honda', 'Toyota', 'Ford', 'Chevrolet', 'BMW', 'Mercedes', 'Nissan', 'Hyundai'];
-  const fuelTypes = ['Gasoline', 'Diesel', 'Hybrid', 'Electric'];
-  const vehicleTypes = ['Car', 'SUV', 'Pickup', 'Van', 'Light Truck'];
+  const popularMakes = ['Honda', 'Toyota', 'Ford', 'Chevrolet', 'BMW', 'Mercedes', 'Nissan', 'Hyundai', 'Kia', 'GMC', 'Jeep', 'Ram', 'Dodge', 'Subaru', 'Volkswagen', 'Mazda', 'Lexus', 'Audi', 'Tesla', 'Volvo'];
+  const fuelTypes = ['Gasoline', 'Diesel', 'Hybrid', 'Plug-in Hybrid', 'Electric', 'E85 / Flex Fuel', 'Natural Gas (CNG)', 'Hydrogen'];
+  const vehicleTypes = ['Car', 'SUV', 'Pickup Truck', 'Van / Minivan', 'Light Truck', 'Heavy Truck / Semi', 'Bus / RV', 'Motorcycle', 'Convertible', 'Coupe', 'Wagon'];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -586,6 +601,68 @@ export default function AddVehicleScreen({ navigation }: any) {
                 />
               </View>
             )}
+
+            {/* Drive Type */}
+            {driveType ? (
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>{t.vehicle?.driveType || 'Drive Type'}</Text>
+                <TextInput 
+                  style={[styles.input, vinDecoded && styles.inputReadOnly]} 
+                  value={driveType}
+                  onChangeText={setDriveType}
+                  editable={!vinDecoded}
+                  placeholder="e.g., FWD, RWD, AWD, 4WD"
+                />
+              </View>
+            ) : null}
+
+            {/* Category */}
+            {category ? (
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>{t.vehicle?.category || 'Category'}</Text>
+                <TextInput 
+                  style={[styles.input, styles.inputReadOnly]} 
+                  value={category}
+                  editable={false}
+                />
+              </View>
+            ) : null}
+
+            {/* Seating Capacity */}
+            {seatingCapacity ? (
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>{t.vehicle?.seatingCapacity || 'Seating Capacity'}</Text>
+                <TextInput 
+                  style={[styles.input, styles.inputReadOnly]} 
+                  value={seatingCapacity}
+                  editable={false}
+                />
+              </View>
+            ) : null}
+
+            {/* Number of Rows */}
+            {numberOfRows ? (
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>{t.vehicle?.numberOfRows || 'Seat Rows'}</Text>
+                <TextInput 
+                  style={[styles.input, styles.inputReadOnly]} 
+                  value={numberOfRows}
+                  editable={false}
+                />
+              </View>
+            ) : null}
+
+            {/* Country of Manufacturer */}
+            {countryOfManufacturer ? (
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>{t.vehicle?.countryOfManufacturer || 'Country of Manufacture'}</Text>
+                <TextInput 
+                  style={[styles.input, styles.inputReadOnly]} 
+                  value={countryOfManufacturer}
+                  editable={false}
+                />
+              </View>
+            ) : null}
           </>
         )}
 

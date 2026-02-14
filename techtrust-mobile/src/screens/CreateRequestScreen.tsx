@@ -22,7 +22,7 @@ import {
   KeyboardAvoidingView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useI18n } from "../i18n";
 import {
   useRoute,
@@ -105,6 +105,7 @@ export default function CreateRequestScreen({ navigation }: any) {
 
   // Vehicle type classification
   const [vehicleType, setVehicleType] = useState<string>("");
+  const [vehicleTypeLocked, setVehicleTypeLocked] = useState(false);
   // Service scope: service only, parts only, or both
   const [serviceScope, setServiceScope] = useState<string>("both");
   // Customer responsibility acknowledgment
@@ -460,31 +461,66 @@ export default function CreateRequestScreen({ navigation }: any) {
       ],
     },
     inspection: {
-      title: t.createRequest?.inspectionOptions || "Inspection Details",
+      title: t.createRequest?.inspectionOptions || "Diagnostic & Inspection Details",
       sections: [
         {
           id: "inspectionType",
-          label: t.createRequest?.inspectionType || "Inspection Type",
+          label: t.createRequest?.inspectionType || "What type of inspection do you need?",
           type: "single",
           options: [
-            { id: "pre_purchase", label: t.createRequest?.prePurchase || "Pre-Purchase Inspection", icon: "cart" },
+            { id: "general_diagnostic", label: t.createRequest?.generalDiagnostic || "General Diagnostic (Warning Lights / Unknown Issue)", icon: "search" },
+            { id: "pre_purchase", label: t.createRequest?.prePurchase || "Pre-Purchase Inspection (Buying a Used Car)", icon: "cart" },
             { id: "state_inspection", label: t.createRequest?.stateInspection || "State Safety Inspection", icon: "shield-checkmark" },
             { id: "emissions", label: t.createRequest?.emissions || "Emissions Test", icon: "cloud" },
-            { id: "multi_point", label: t.createRequest?.multiPoint || "Multi-Point Inspection", icon: "clipboard" },
-            { id: "seasonal", label: t.createRequest?.seasonal || "Seasonal Check-Up (Winter / Summer)", icon: "sunny" },
+            { id: "multi_point", label: t.createRequest?.multiPoint || "Multi-Point / Full Vehicle Inspection", icon: "clipboard" },
+            { id: "seasonal", label: t.createRequest?.seasonal || "Seasonal Check-Up (Winter / Summer Prep)", icon: "sunny" },
+            { id: "road_test", label: t.createRequest?.roadTest || "Road Test / Drive Evaluation", icon: "car" },
+            { id: "second_opinion", label: t.createRequest?.secondOpinion || "Second Opinion on Previous Diagnosis", icon: "eye" },
           ],
         },
         {
-          id: "inspectionFocus",
-          label: t.createRequest?.inspectionFocus || "Focus Areas (optional)",
+          id: "diagnosticFocus",
+          label: t.createRequest?.whatDiagnosed || "What needs to be diagnosed? (select all that apply)",
           type: "multi",
           options: [
-            { id: "engine", label: t.createRequest?.serviceEngine || "Engine", icon: "cog" },
-            { id: "brakes", label: t.createRequest?.serviceBrakes || "Brakes", icon: "disc" },
-            { id: "suspension", label: t.createRequest?.serviceSuspension || "Suspension", icon: "resize" },
-            { id: "electrical", label: t.createRequest?.serviceElectrical || "Electrical", icon: "flash" },
-            { id: "fluids", label: t.createRequest?.fluids || "All Fluids", icon: "water" },
-            { id: "tires", label: t.createRequest?.serviceTires || "Tires", icon: "ellipse" },
+            { id: "engine", label: t.createRequest?.diagEngine || "Engine / Check Engine Light", icon: "cog" },
+            { id: "transmission", label: t.createRequest?.diagTransmission || "Transmission / Shifting Issues", icon: "sync" },
+            { id: "brakes", label: t.createRequest?.diagBrakes || "Brakes / Noise / Vibration", icon: "disc" },
+            { id: "suspension", label: t.createRequest?.diagSuspension || "Suspension / Steering / Alignment", icon: "resize" },
+            { id: "electrical", label: t.createRequest?.diagElectrical || "Electrical System / Battery / Lights", icon: "flash" },
+            { id: "ac_heating", label: t.createRequest?.diagAcHeating || "A/C or Heating Not Working", icon: "thermometer" },
+            { id: "exhaust", label: t.createRequest?.diagExhaust || "Exhaust / Catalytic Converter / Emissions", icon: "cloud" },
+            { id: "fluids_leaks", label: t.createRequest?.diagFluids || "Fluid Leaks (Oil, Coolant, Transmission)", icon: "water" },
+            { id: "tires_wheels", label: t.createRequest?.diagTires || "Tires / Wheels / TPMS", icon: "ellipse" },
+            { id: "noises", label: t.createRequest?.diagNoises || "Strange Noises (Identify Source)", icon: "volume-high" },
+            { id: "performance", label: t.createRequest?.diagPerformance || "Performance Loss / Stalling / Rough Idle", icon: "trending-down" },
+            { id: "body_interior", label: t.createRequest?.diagBodyInterior || "Body / Interior / Paint / Rust", icon: "car" },
+            { id: "cooling_system", label: t.createRequest?.diagCooling || "Cooling System / Radiator / Hoses", icon: "snow" },
+            { id: "fuel_system", label: t.createRequest?.diagFuelSystem || "Fuel System / Injectors / Fuel Pump", icon: "speedometer" },
+            { id: "drivetrain", label: t.createRequest?.diagDrivetrain || "Drivetrain / 4WD / AWD / Differential", icon: "git-branch" },
+            { id: "power_steering", label: t.createRequest?.diagPowerSteering || "Power Steering / Steering Rack", icon: "move" },
+            { id: "starting_charging", label: t.createRequest?.diagStartingCharging || "Starting & Charging System (Alternator / Starter)", icon: "battery-charging" },
+            { id: "abs_traction", label: t.createRequest?.diagAbsTraction || "ABS / Traction Control / Stability", icon: "shield" },
+            { id: "infotainment", label: t.createRequest?.diagInfotainment || "Infotainment / Audio / Navigation / Cameras", icon: "tv" },
+            { id: "windows_locks", label: t.createRequest?.diagWindowsLocks || "Power Windows / Doors / Locks / Mirrors", icon: "contract" },
+            { id: "not_sure", label: t.createRequest?.diagNotSure || "Not Sure — Full Diagnostic Needed", icon: "help-circle" },
+          ],
+        },
+        {
+          id: "diagnosticSymptoms",
+          label: t.createRequest?.diagnosticSymptoms || "Describe any symptoms (optional)",
+          type: "multi",
+          options: [
+            { id: "warning_light", label: t.createRequest?.warningLight || "Dashboard Warning Light On", icon: "warning" },
+            { id: "odd_smell", label: t.createRequest?.oddSmell || "Unusual Smell (Burning, Fuel, Sweet)", icon: "flame" },
+            { id: "vibration", label: t.createRequest?.vibrationSymptom || "Vibration / Shaking", icon: "pulse" },
+            { id: "starting_issue", label: t.createRequest?.startingIssue || "Difficulty Starting / Won't Start", icon: "close-circle" },
+            { id: "overheating", label: t.createRequest?.overheatingSymptom || "Overheating", icon: "thermometer" },
+            { id: "poor_fuel", label: t.createRequest?.poorFuel || "Poor Fuel Economy", icon: "speedometer" },
+            { id: "pulling", label: t.createRequest?.pullingSide || "Pulling to One Side", icon: "arrow-forward" },
+            { id: "battery_drain", label: t.createRequest?.batteryDrain || "Battery Keeps Dying / Parasitic Drain", icon: "battery-dead" },
+            { id: "smoke_exhaust", label: t.createRequest?.smokeExhaust || "Smoke from Exhaust (White / Blue / Black)", icon: "cloud" },
+            { id: "fluid_under_car", label: t.createRequest?.fluidUnderCar || "Fluid Puddle Under Vehicle", icon: "water" },
           ],
         },
       ],
@@ -780,8 +816,38 @@ export default function CreateRequestScreen({ navigation }: any) {
 
   // Vehicles - loaded from API
   const [vehicles, setVehicles] = useState<
-    { id: string; name: string; plate: string }[]
+    { id: string; name: string; plate: string; fuelType?: string; bodyType?: string }[]
   >([]);
+
+  // Map NHTSA body class to vehicle type
+  function mapBodyTypeToVehicleType(body?: string): string {
+    if (!body) return '';
+    const b = body.toLowerCase();
+    if (b.includes('sedan') || b.includes('coupe') || b.includes('convertible') || b.includes('hatchback') || b.includes('wagon')) return 'car';
+    if (b.includes('suv') || b.includes('sport utility') || b.includes('crossover')) return 'suv';
+    if (b.includes('pickup')) return 'truck';
+    if (b.includes('van') || b.includes('minivan') || b.includes('mpv') || b.includes('multi')) return 'van';
+    if (b.includes('heavy') || b.includes('semi') || b.includes('medium') || b.includes('cab chassis') || b.includes('tractor')) return 'heavy_truck';
+    if (b.includes('bus') || b.includes('rv') || b.includes('motorhome') || b.includes('coach') || b.includes('motor home')) return 'bus';
+    if (b.includes('truck')) return 'truck';
+    return '';
+  }
+
+  function handleVehicleSelect(vehicleId: string) {
+    setSelectedVehicle(vehicleId);
+    const vehicle = vehicles.find(v => v.id === vehicleId);
+    if (vehicle?.bodyType) {
+      const mapped = mapBodyTypeToVehicleType(vehicle.bodyType);
+      if (mapped) {
+        setVehicleType(mapped);
+        setVehicleTypeLocked(true);
+      } else {
+        setVehicleTypeLocked(false);
+      }
+    } else {
+      setVehicleTypeLocked(false);
+    }
+  }
 
   // Load vehicles from API
   useEffect(() => {
@@ -795,12 +861,23 @@ export default function CreateRequestScreen({ navigation }: any) {
       setVehicles(
         vehicleData.map((v) => ({
           id: v.id,
-          name: `${v.make} ${v.model} ${v.year}`,
+          name: [v.year, v.make, v.model, v.trim].filter(Boolean).join(' '),
           plate: v.plateNumber,
+          fuelType: v.fuelType,
+          bodyType: v.bodyType,
         })),
       );
       if (vehicleData.length > 0) {
         setSelectedVehicle(vehicleData[0].id);
+        // Auto-select vehicle type based on bodyType
+        const firstBody = vehicleData[0].bodyType;
+        if (firstBody) {
+          const mapped = mapBodyTypeToVehicleType(firstBody);
+          if (mapped) {
+            setVehicleType(mapped);
+            setVehicleTypeLocked(true);
+          }
+        }
       }
     } catch (error) {
       console.error("Error loading vehicles:", error);
@@ -1413,7 +1490,7 @@ export default function CreateRequestScreen({ navigation }: any) {
                 styles.vehicleCard,
                 selectedVehicle === vehicle.id && styles.vehicleCardSelected,
               ]}
-              onPress={() => setSelectedVehicle(vehicle.id)}
+              onPress={() => handleVehicleSelect(vehicle.id)}
             >
               <Ionicons
                 name="car"
@@ -1430,7 +1507,9 @@ export default function CreateRequestScreen({ navigation }: any) {
                 >
                   {vehicle.name}
                 </Text>
-                <Text style={styles.vehiclePlate}>{vehicle.plate}</Text>
+                <Text style={styles.vehiclePlate}>
+                  {[vehicle.plate, vehicle.fuelType].filter(Boolean).join(' • ')}
+                </Text>
               </View>
               {selectedVehicle === vehicle.id && (
                 <Ionicons name="checkmark-circle" size={24} color="#1976d2" />
@@ -1440,9 +1519,20 @@ export default function CreateRequestScreen({ navigation }: any) {
         </View>
 
         {/* Service Type */}
-        <Text style={styles.sectionTitle}>
-          {t.createRequest?.serviceType || "Service Type"} *
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+          <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>
+            {t.createRequest?.serviceType || "Service Type"} *
+          </Text>
+          <TouchableOpacity
+            style={{ marginLeft: 6, padding: 2 }}
+            onPress={() => Alert.alert(
+              t.createRequest?.serviceTypeInfoTitle || "About Service Type",
+              t.createRequest?.serviceTypeInfoMessage || "Select the service that best matches your needs. If you need a full diagnostic or estimate, choose \"Inspection\" as the service type.\n\nOur verified providers will perform a professional diagnostic to confirm the actual issue before starting any work. You will receive a detailed estimate for approval before any service begins."
+            )}
+          >
+            <Ionicons name="information-circle-outline" size={20} color="#1976d2" />
+          </TouchableOpacity>
+        </View>
         <View style={styles.servicesGrid}>
           {availableServices.map((service) => (
             <TouchableOpacity
@@ -1471,29 +1561,49 @@ export default function CreateRequestScreen({ navigation }: any) {
         </View>
 
         {/* Vehicle Type */}
-        <Text style={styles.sectionTitle}>
-          {t.createRequest?.vehicleTypeLabel || "Vehicle Type"} *
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+          <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>
+            {t.createRequest?.vehicleTypeLabel || "Vehicle Type"} *
+          </Text>
+          {vehicleTypeLocked && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 8, backgroundColor: '#d1fae5', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 }}>
+              <Ionicons name="lock-closed" size={12} color="#059669" />
+              <Text style={{ fontSize: 11, color: '#059669', fontWeight: '600', marginLeft: 4 }}>
+                {t.createRequest?.autoSelected || "Auto"}
+              </Text>
+            </View>
+          )}
+        </View>
         <View style={styles.servicesGrid}>
           {[
-            { id: "car", label: t.createRequest?.vtCar || "Car / Sedan", icon: "car-sport" },
-            { id: "suv", label: t.createRequest?.vtSuv || "SUV / Crossover", icon: "car" },
-            { id: "truck", label: t.createRequest?.vtTruck || "Pickup Truck", icon: "trail-sign" },
-            { id: "van", label: t.createRequest?.vtVan || "Van / Minivan", icon: "bus" },
-            { id: "heavy_truck", label: t.createRequest?.vtHeavyTruck || "Heavy Truck / Semi", icon: "cube" },
-            { id: "bus", label: t.createRequest?.vtBus || "Bus / RV", icon: "git-compare" },
+            { id: "car", label: t.createRequest?.vtCar || "Car / Sedan", mciIcon: "car-side" },
+            { id: "suv", label: t.createRequest?.vtSuv || "SUV / Crossover", mciIcon: "car-estate" },
+            { id: "truck", label: t.createRequest?.vtTruck || "Pickup Truck", mciIcon: "truck-outline" },
+            { id: "van", label: t.createRequest?.vtVan || "Van / Minivan", mciIcon: "van-passenger" },
+            { id: "heavy_truck", label: t.createRequest?.vtHeavyTruck || "Heavy Truck / Semi", mciIcon: "truck-trailer" },
+            { id: "bus", label: t.createRequest?.vtBus || "Bus / RV", mciIcon: "rv-truck" },
           ].map((vt) => (
             <TouchableOpacity
               key={vt.id}
               style={[
                 styles.serviceCard,
                 vehicleType === vt.id && styles.serviceCardSelected,
+                vehicleTypeLocked && vehicleType !== vt.id && { opacity: 0.4 },
               ]}
-              onPress={() => setVehicleType(vt.id)}
+              onPress={() => {
+                if (vehicleTypeLocked) {
+                  Alert.alert(
+                    t.createRequest?.vehicleTypeLocked || "Vehicle Type Locked",
+                    t.createRequest?.vehicleTypeLockedMsg || "Vehicle type is automatically selected based on your vehicle. To change it, select a different vehicle."
+                  );
+                  return;
+                }
+                setVehicleType(vt.id);
+              }}
             >
-              <Ionicons
-                name={vt.icon as any}
-                size={24}
+              <MaterialCommunityIcons
+                name={vt.mciIcon as any}
+                size={26}
                 color={vehicleType === vt.id ? "#1976d2" : "#6b7280"}
               />
               <Text
@@ -1571,15 +1681,15 @@ export default function CreateRequestScreen({ navigation }: any) {
                 serviceLocation === option.id && styles.locationCardSelected,
               ]}
               onPress={() => {
-                // Validate addresses for mobile/roadside
+                // For mobile service, validate address
                 if (
-                  (option.id === "mobile" || option.id === "roadside") &&
+                  option.id === "mobile" &&
                   addressesLoaded &&
                   userAddresses.length === 0
                 ) {
                   Alert.alert(
                     "Address Required",
-                    "To request a mobile or roadside service, you need at least one registered address. Would you like to add one now?",
+                    "To request a mobile service, you need at least one registered address. Would you like to add one now?",
                     [
                       { text: "Cancel", style: "cancel" },
                       {
@@ -1594,6 +1704,10 @@ export default function CreateRequestScreen({ navigation }: any) {
                   return;
                 }
                 setServiceLocation(option.id);
+                // For roadside, automatically request GPS location
+                if (option.id === "roadside" && !shareLocation) {
+                  handleGetLocation();
+                }
               }}
             >
               <View
@@ -2105,7 +2219,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
-    marginBottom: 24,
+    marginBottom: 4,
   },
   serviceCard: {
     width: "31%",

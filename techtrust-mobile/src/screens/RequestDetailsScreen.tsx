@@ -130,6 +130,42 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
     return minIndex;
   }, [quotes]);
 
+  // Status helpers
+  function getStatusColor(status?: string): string {
+    const colors: Record<string, string> = {
+      SEARCHING_PROVIDERS: '#f59e0b', QUOTES_RECEIVED: '#3b82f6', 
+      QUOTE_ACCEPTED: '#10b981', SCHEDULED: '#8b5cf6', IN_PROGRESS: '#f59e0b',
+      COMPLETED: '#10b981', CANCELLED: '#ef4444', DRAFT: '#9ca3af',
+    };
+    return colors[status || ''] || '#6b7280';
+  }
+  function getStatusBg(status?: string): string {
+    const bgs: Record<string, string> = {
+      SEARCHING_PROVIDERS: '#fef3c7', QUOTES_RECEIVED: '#dbeafe',
+      QUOTE_ACCEPTED: '#d1fae5', SCHEDULED: '#ede9fe', IN_PROGRESS: '#fef3c7',
+      COMPLETED: '#d1fae5', CANCELLED: '#fee2e2', DRAFT: '#f3f4f6',
+    };
+    return bgs[status || ''] || '#f3f4f6';
+  }
+  function getStatusLabel(status?: string): string {
+    const labels: Record<string, string> = {
+      SEARCHING_PROVIDERS: t.common?.searching || 'Searching',
+      QUOTES_RECEIVED: t.common?.quotesReceived || 'Quotes Received',
+      QUOTE_ACCEPTED: t.common?.accepted || 'Accepted',
+      SCHEDULED: t.common?.scheduled || 'Scheduled',
+      IN_PROGRESS: t.common?.inProgress || 'In Progress',
+      COMPLETED: t.common?.completed || 'Completed',
+      CANCELLED: t.common?.cancelled || 'Cancelled',
+    };
+    return labels[status || ''] || status || '';
+  }
+  function getUrgencyColor(urgency?: string): string {
+    const colors: Record<string, string> = {
+      low: '#10b981', normal: '#3b82f6', high: '#f59e0b', urgent: '#ef4444',
+    };
+    return colors[urgency || ''] || '#374151';
+  }
+
   if (loading) {
     return <SafeAreaView style={styles.container}><View style={styles.loading}><Text>{t.common?.loading || 'Loading...'}</Text></View></SafeAreaView>;
   }
@@ -145,13 +181,142 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Professional Header Card */}
         <View style={styles.card}>
-          <Text style={styles.requestNumber}>#{request?.requestNumber}</Text>
+          {/* Request Number & Status */}
+          <View style={styles.headerRow}>
+            <Text style={styles.requestNumber}>#{request?.requestNumber}</Text>
+            <View style={[styles.statusChip, { backgroundColor: getStatusBg(request?.status) }]}>
+              <View style={[styles.statusDot, { backgroundColor: getStatusColor(request?.status) }]} />
+              <Text style={[styles.statusChipText, { color: getStatusColor(request?.status) }]}>
+                {getStatusLabel(request?.status)}
+              </Text>
+            </View>
+          </View>
+
+          {/* Title */}
           <Text style={styles.title}>{request?.title}</Text>
-          <Text style={styles.description}>{request?.description}</Text>
-          <View style={styles.vehicleRow}>
-            <Ionicons name="car" size={18} color="#6b7280" />
-            <Text style={styles.vehicleText}>{request?.vehicle?.make} {request?.vehicle?.model} {request?.vehicle?.year}</Text>
+          
+          {/* Description */}
+          {request?.description && (
+            <Text style={styles.description}>{request?.description}</Text>
+          )}
+          
+          {/* Divider */}
+          <View style={styles.divider} />
+
+          {/* Info Grid */}
+          <View style={styles.infoGrid}>
+            <View style={styles.infoItem}>
+              <View style={styles.infoIconContainer}>
+                <Ionicons name="car" size={18} color="#1976d2" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.infoLabel}>{t.common?.vehicle || 'Vehicle'}</Text>
+                <Text style={styles.infoValue}>
+                  {request?.vehicle?.year} {request?.vehicle?.make} {request?.vehicle?.model} {request?.vehicle?.trim || ''}
+                </Text>
+                {(request?.vehicle?.fuelType || request?.vehicle?.vehicleType) && (
+                  <View style={{ flexDirection: 'row', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
+                    {request?.vehicle?.fuelType && (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#eff6ff', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }}>
+                        <Ionicons name="flash" size={10} color="#1976d2" />
+                        <Text style={{ fontSize: 11, color: '#1976d2', fontWeight: '500', marginLeft: 3 }}>{request.vehicle.fuelType}</Text>
+                      </View>
+                    )}
+                    {request?.vehicle?.vehicleType && (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#f0fdf4', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }}>
+                        <Ionicons name="car" size={10} color="#059669" />
+                        <Text style={{ fontSize: 11, color: '#059669', fontWeight: '500', marginLeft: 3 }}>{request.vehicle.vehicleType}</Text>
+                      </View>
+                    )}
+                  </View>
+                )}
+              </View>
+            </View>
+
+            {request?.serviceType && (
+              <View style={styles.infoItem}>
+                <View style={styles.infoIconContainer}>
+                  <Ionicons name="construct" size={18} color="#1976d2" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.infoLabel}>{t.common?.serviceType || 'Service Type'}</Text>
+                  <Text style={styles.infoValue}>{request?.serviceType?.replace(/_/g, ' ')}</Text>
+                </View>
+              </View>
+            )}
+
+            {request?.serviceLocationType && (
+              <View style={styles.infoItem}>
+                <View style={styles.infoIconContainer}>
+                  <Ionicons name="location" size={18} color="#1976d2" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.infoLabel}>{t.common?.location || 'Location'}</Text>
+                  <Text style={styles.infoValue}>
+                    {request?.serviceLocationType === 'IN_SHOP' ? (t.common?.inShop || 'In Shop') : 
+                     request?.serviceLocationType === 'MOBILE' ? (t.common?.mobile || 'Mobile') : 
+                     (t.common?.roadside || 'Roadside')}
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            {request?.urgency && (
+              <View style={styles.infoItem}>
+                <View style={styles.infoIconContainer}>
+                  <Ionicons name="time" size={18} color="#1976d2" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.infoLabel}>{t.common?.urgency || 'Urgency'}</Text>
+                  <Text style={[styles.infoValue, { color: getUrgencyColor(request?.urgency), textTransform: 'capitalize' }]}>{request?.urgency}</Text>
+                </View>
+              </View>
+            )}
+
+            {request?.vehicleCategory && (
+              <View style={styles.infoItem}>
+                <View style={styles.infoIconContainer}>
+                  <Ionicons name="options" size={18} color="#1976d2" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.infoLabel}>{t.common?.vehicleCategory || 'Vehicle Category'}</Text>
+                  <Text style={styles.infoValue}>{request.vehicleCategory.replace(/_/g, ' ')}</Text>
+                </View>
+              </View>
+            )}
+
+            {request?.serviceScope && (
+              <View style={styles.infoItem}>
+                <View style={styles.infoIconContainer}>
+                  <Ionicons name="layers" size={18} color="#1976d2" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.infoLabel}>{t.common?.scope || 'Scope'}</Text>
+                  <Text style={styles.infoValue}>
+                    {request.serviceScope === 'service' ? 'Service / Labor Only' :
+                     request.serviceScope === 'parts' ? 'Parts Only' :
+                     request.serviceScope === 'both' ? 'Parts + Service' :
+                     request.serviceScope}
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            <View style={styles.infoItem}>
+              <View style={styles.infoIconContainer}>
+                <Ionicons name="calendar" size={18} color="#1976d2" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.infoLabel}>{t.common?.date || 'Date'}</Text>
+                <Text style={styles.infoValue}>
+                  {request?.createdAt ? new Date(request.createdAt).toLocaleDateString('en-US', { 
+                    month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                  }) : '-'}
+                </Text>
+              </View>
+            </View>
           </View>
         </View>
 
@@ -203,14 +368,24 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
   backBtn: { padding: 8 },
   headerTitle: { fontSize: 18, fontWeight: '600', color: '#111827' },
-  card: { backgroundColor: '#fff', margin: 16, padding: 16, borderRadius: 16 },
-  requestNumber: { fontSize: 14, color: '#6b7280', marginBottom: 8 },
+  card: { backgroundColor: '#fff', margin: 16, padding: 20, borderRadius: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  requestNumber: { fontSize: 14, color: '#6b7280', fontWeight: '500' },
+  statusChip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, gap: 6 },
+  statusDot: { width: 8, height: 8, borderRadius: 4 },
+  statusChipText: { fontSize: 12, fontWeight: '600' },
   title: { fontSize: 20, fontWeight: '700', color: '#111827', marginBottom: 8 },
-  description: { fontSize: 14, color: '#6b7280', marginBottom: 16 },
+  description: { fontSize: 14, color: '#6b7280', marginBottom: 16, lineHeight: 20 },
+  divider: { height: 1, backgroundColor: '#f3f4f6', marginBottom: 16 },
+  infoGrid: { gap: 14 },
+  infoItem: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  infoIconContainer: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#eff6ff', justifyContent: 'center', alignItems: 'center' },
+  infoLabel: { fontSize: 12, color: '#9ca3af', marginBottom: 2 },
+  infoValue: { fontSize: 14, fontWeight: '500', color: '#374151' },
   vehicleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#f3f4f6' },
   vehicleText: { fontSize: 14, color: '#374151' },
   sectionTitle: { fontSize: 18, fontWeight: '700', color: '#111827', marginHorizontal: 16, marginBottom: 12 },
-  quoteCard: { backgroundColor: '#fff', marginHorizontal: 16, marginBottom: 12, padding: 16, borderRadius: 16 },
+  quoteCard: { backgroundColor: '#fff', marginHorizontal: 16, marginBottom: 12, padding: 16, borderRadius: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.03, shadowRadius: 4, elevation: 1 },
   providerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   avatar: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#dbeafe', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   providerName: { fontSize: 16, fontWeight: '600', color: '#111827' },

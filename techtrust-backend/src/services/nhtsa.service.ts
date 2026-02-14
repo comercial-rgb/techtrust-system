@@ -31,6 +31,11 @@ export interface DecodedVehicleData {
     fuelType?: string;
     bodyType?: string;
     trim?: string;
+    driveType?: string;
+    numberOfRows?: number;
+    seatingCapacity?: number;
+    countryOfManufacturer?: string;
+    category?: string;
     vin: string;
   };
   error?: string;
@@ -82,6 +87,11 @@ export async function decodeVIN(vin: string): Promise<DecodedVehicleData> {
     const fuelType = getValue('Fuel Type - Primary');
     const bodyType = getValue('Body Class');
     const trim = getValue('Trim') || getValue('Series');
+    const driveType = getValue('Drive Type');
+    const numberOfRowsStr = getValue('Number of Seat Rows');
+    const seatingCapacityStr = getValue('Number of Seats');
+    const countryOfManufacturer = getValue('Plant Country');
+    const category = getValue('Vehicle Type');
 
     // Verificar se pelo menos Make, Model e Year foram encontrados
     if (!make || !model || !yearStr) {
@@ -109,6 +119,11 @@ export async function decodeVIN(vin: string): Promise<DecodedVehicleData> {
         fuelType: fuelType || undefined,
         bodyType: bodyType || undefined,
         trim: trim || undefined,
+        driveType: driveType || undefined,
+        numberOfRows: numberOfRowsStr ? parseInt(numberOfRowsStr, 10) || undefined : undefined,
+        seatingCapacity: seatingCapacityStr ? parseInt(seatingCapacityStr, 10) || undefined : undefined,
+        countryOfManufacturer: countryOfManufacturer || undefined,
+        category: category || undefined,
         vin: cleanVIN,
       },
     };

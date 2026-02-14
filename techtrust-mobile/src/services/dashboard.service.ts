@@ -27,6 +27,16 @@ export interface Vehicle {
   lastService?: string;
   nextServiceDue?: string;
   isDefault: boolean;
+  engineType?: string;
+  fuelType?: string;
+  bodyType?: string;
+  trim?: string;
+  driveType?: string;
+  numberOfRows?: number;
+  seatingCapacity?: number;
+  countryOfManufacturer?: string;
+  category?: string;
+  vin?: string;
 }
 
 export interface ServiceRequest {

@@ -226,6 +226,31 @@ class ApiService {
   }
 
   // ============================================
+  // REPAIR INVOICES (Faturas FDACS)
+  // ============================================
+
+  async getRepairInvoices() {
+    return this.request<any>("/repair-invoices/my");
+  }
+
+  async getRepairInvoice(id: string) {
+    return this.request<any>(`/repair-invoices/${id}`);
+  }
+
+  async acceptRepairInvoice(id: string) {
+    return this.request(`/repair-invoices/${id}/accept`, {
+      method: "PATCH",
+    });
+  }
+
+  async disputeRepairInvoice(id: string, reason: string) {
+    return this.request(`/repair-invoices/${id}/dispute`, {
+      method: "PATCH",
+      body: JSON.stringify({ reason }),
+    });
+  }
+
+  // ============================================
   // WORK ORDERS (Ordens de Serviço)
   // ============================================
 

@@ -76,6 +76,19 @@ export default function PedidoDetalhesPage() {
   const [warrantyMonths, setWarrantyMonths] = useState("");
   const [warrantyMileage, setWarrantyMileage] = useState("");
   const [odometerReading, setOdometerReading] = useState("");
+  // FDACS Compliance Fields
+  const [proposedCompletionDate, setProposedCompletionDate] = useState("");
+  const [laborChargeType, setLaborChargeType] = useState("");
+  const [hourlyRate, setHourlyRate] = useState("");
+  const [shopSuppliesFee, setShopSuppliesFee] = useState("");
+  const [newTireCount, setNewTireCount] = useState("");
+  const [newBatteryCount, setNewBatteryCount] = useState("");
+  const [intendedPaymentMethod, setIntendedPaymentMethod] = useState("");
+  const [authorizedPersonName, setAuthorizedPersonName] = useState("");
+  const [authorizedPersonPhone, setAuthorizedPersonPhone] = useState("");
+  const [saveReplacedParts, setSaveReplacedParts] = useState(false);
+  const [dailyStorageCharge, setDailyStorageCharge] = useState("");
+  const [warrantyDescription, setWarrantyDescription] = useState("");
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -154,9 +167,22 @@ export default function PedidoDetalhesPage() {
         warrantyMileage: warrantyMileage
           ? parseInt(warrantyMileage)
           : undefined,
+        warrantyDescription: warrantyDescription || undefined,
         odometerReading: odometerReading
           ? parseInt(odometerReading)
           : undefined,
+        // FDACS Compliance
+        proposedCompletionDate: proposedCompletionDate || undefined,
+        laborChargeType: laborChargeType || undefined,
+        hourlyRate: hourlyRate ? parseFloat(hourlyRate) : undefined,
+        shopSuppliesFee: shopSuppliesFee ? parseFloat(shopSuppliesFee) : undefined,
+        newTireCount: newTireCount ? parseInt(newTireCount) : undefined,
+        newBatteryCount: newBatteryCount ? parseInt(newBatteryCount) : undefined,
+        intendedPaymentMethod: intendedPaymentMethod || undefined,
+        authorizedPersonName: authorizedPersonName || undefined,
+        authorizedPersonPhone: authorizedPersonPhone || undefined,
+        saveReplacedParts,
+        dailyStorageCharge: dailyStorageCharge ? parseFloat(dailyStorageCharge) : undefined,
       });
 
       setQuoteSubmitted(true);
@@ -234,7 +260,10 @@ export default function PedidoDetalhesPage() {
   const calculateTotal = () => {
     const parts = parseFloat(partsCost) || 0;
     const labor = parseFloat(laborCost) || 0;
-    return parts + labor;
+    const supplies = parseFloat(shopSuppliesFee) || 0;
+    const tires = (parseInt(newTireCount) || 0) * 1.00;
+    const batteries = (parseInt(newBatteryCount) || 0) * 1.50;
+    return parts + labor + supplies + tires + batteries;
   };
 
   if (authLoading || !isAuthenticated) {
@@ -565,6 +594,207 @@ export default function PedidoDetalhesPage() {
                 </div>
 
                 {/* FDACS Compliance Fields */}
+                <div className="border-t border-gray-200 pt-6 mt-6">
+                  <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <Shield className="w-5 h-5 text-primary-500" />
+                    FDACS Compliance (Florida)
+                  </h4>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Proposed Completion Date
+                      </label>
+                      <input
+                        type="date"
+                        value={proposedCompletionDate}
+                        onChange={(e) => setProposedCompletionDate(e.target.value)}
+                        className="input"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Labor Charges Based On *
+                      </label>
+                      <select
+                        value={laborChargeType}
+                        onChange={(e) => setLaborChargeType(e.target.value)}
+                        className="input"
+                      >
+                        <option value="">Select...</option>
+                        <option value="FLAT_RATE">Flat Rate</option>
+                        <option value="HOURLY">Hourly Rate</option>
+                        <option value="BOTH">Both Apply</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {(laborChargeType === 'HOURLY' || laborChargeType === 'BOTH') && (
+                    <div className="mb-6">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Hourly Rate ($/hour)
+                      </label>
+                      <div className="relative w-48">
+                        <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={hourlyRate}
+                          onChange={(e) => setHourlyRate(e.target.value)}
+                          placeholder="0.00"
+                          className="input pl-12"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Shop Supplies Fee
+                      </label>
+                      <div className="relative">
+                        <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={shopSuppliesFee}
+                          onChange={(e) => setShopSuppliesFee(e.target.value)}
+                          placeholder="0.00"
+                          className="input pl-12"
+                        />
+                      </div>
+                      <p className="text-xs text-gray-400 mt-1">Miscellaneous shop supplies or waste disposal</p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        New Tires (qty)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={newTireCount}
+                        onChange={(e) => setNewTireCount(e.target.value)}
+                        placeholder="0"
+                        className="input"
+                      />
+                      <p className="text-xs text-gray-400 mt-1">$1.00/tire fee (FS 403.718)</p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        New/Reman Batteries (qty)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={newBatteryCount}
+                        onChange={(e) => setNewBatteryCount(e.target.value)}
+                        placeholder="0"
+                        className="input"
+                      />
+                      <p className="text-xs text-gray-400 mt-1">$1.50/battery fee (FS 403.7185)</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Intended Payment Method
+                      </label>
+                      <select
+                        value={intendedPaymentMethod}
+                        onChange={(e) => setIntendedPaymentMethod(e.target.value)}
+                        className="input"
+                      >
+                        <option value="">Select...</option>
+                        <option value="CASH">Cash</option>
+                        <option value="CHECK">Check</option>
+                        <option value="VISA">Visa</option>
+                        <option value="MC">MasterCard</option>
+                        <option value="AMEX">American Express</option>
+                        <option value="OTHER">Other</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Daily Storage Charge
+                      </label>
+                      <div className="relative">
+                        <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={dailyStorageCharge}
+                          onChange={(e) => setDailyStorageCharge(e.target.value)}
+                          placeholder="0.00"
+                          className="input pl-12"
+                        />
+                      </div>
+                      <p className="text-xs text-gray-400 mt-1">Per day, after 3 working days of completion notice</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Other Authorized Person (Name)
+                      </label>
+                      <input
+                        type="text"
+                        value={authorizedPersonName}
+                        onChange={(e) => setAuthorizedPersonName(e.target.value)}
+                        placeholder="Name"
+                        className="input"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Authorized Person Phone
+                      </label>
+                      <input
+                        type="tel"
+                        value={authorizedPersonPhone}
+                        onChange={(e) => setAuthorizedPersonPhone(e.target.value)}
+                        placeholder="Phone number"
+                        className="input"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 mb-6">
+                    <input
+                      type="checkbox"
+                      id="saveReplacedParts"
+                      checked={saveReplacedParts}
+                      onChange={(e) => setSaveReplacedParts(e.target.checked)}
+                      className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    />
+                    <label htmlFor="saveReplacedParts" className="text-sm text-gray-700">
+                      Customer requests replaced parts to be saved for inspection/return
+                    </label>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Warranty Description
+                    </label>
+                    <textarea
+                      value={warrantyDescription}
+                      onChange={(e) => setWarrantyDescription(e.target.value)}
+                      rows={2}
+                      className="input resize-none"
+                      placeholder="Describe what is guaranteed and conditions"
+                    />
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">

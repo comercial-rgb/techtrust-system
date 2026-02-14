@@ -552,10 +552,11 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                     <Ionicons name="car-sport" size={32} color="#1976d2" />
                   </View>
                   <Text style={styles.vehicleName}>
-                    {vehicle.make} {vehicle.model}
+                    {vehicle.year} {vehicle.make} {vehicle.model} {vehicle.trim || ''}
                   </Text>
-                  <Text style={styles.vehicleYear}>{vehicle.year}</Text>
-                  <Text style={styles.vehiclePlate}>{vehicle.plateNumber}</Text>
+                  <Text style={styles.vehiclePlate}>
+                    {[vehicle.plateNumber, vehicle.fuelType].filter(Boolean).join(' • ')}
+                  </Text>
                 </View>
               </ScalePress>
             ))}
@@ -659,8 +660,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                               {request.title}
                             </Text>
                             <Text style={styles.requestVehicle}>
-                              {request.vehicle.make} {request.vehicle.model}{" "}
-                              {request.vehicle.year}
+                              {request.vehicle.year} {request.vehicle.make} {request.vehicle.model}
                             </Text>
                           </View>
                           <View

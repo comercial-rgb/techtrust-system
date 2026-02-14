@@ -27,6 +27,8 @@ const menuItems = [
   { href: '/dashboard', labelKey: 'client.nav.home', icon: Home },
   { href: '/veiculos', labelKey: 'client.nav.vehicles', icon: Car },
   { href: '/solicitacoes', labelKey: 'client.nav.requests', icon: FileText },
+  { href: '/orcamentos', labelKey: 'client.nav.estimates', icon: FileText },
+  { href: '/faturas', labelKey: 'client.nav.invoices', icon: Receipt },
   { href: '/servicos', labelKey: 'client.nav.services', icon: Briefcase },
   { href: '/pagamentos', labelKey: 'client.nav.payments', icon: CreditCard },
   { href: '/recibos', labelKey: 'client.nav.receipts', icon: Receipt },
