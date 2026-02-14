@@ -3,8 +3,9 @@
  * SMS SERVICE
  * ============================================
  * Serviço para envio de SMS via Twilio
- * Suporta modo MOCK para testes locais
- * Suporta Messaging Service SID para melhor entrega nos EUA (A2P 10DLC)
+ * - OTP: Usa Twilio Verify API (melhor entrega, sem A2P 10DLC)
+ * - Notificações: Usa Twilio Messages API
+ * - Suporta modo MOCK para testes locais
  */
 
 import { logger } from '../config/logger';
@@ -58,8 +59,7 @@ export const normalizePhone = (phone: string): string => {
     return '+' + digits;
   }
 
-  // Se tem 11 dígitos e começa com 55 (Brasil fixo com DDD), adiciona +
-  // Se tem 13 dígitos e começa com 55 (Brasil celular com +55), já é E.164
+  // Se tem 12+ dígitos e começa com 55 (Brasil), adiciona +
   if (digits.length >= 12 && digits.startsWith('55')) {
     return '+' + digits;
   }
@@ -69,103 +69,189 @@ export const normalizePhone = (phone: string): string => {
 };
 
 /**
- * Detecta se o número é dos EUA (+1)
+ * Retorna o Twilio client (singleton lazy)
  */
-const isUSNumber = (phone: string): boolean => {
-  const normalized = normalizePhone(phone);
-  return normalized.startsWith('+1') && normalized.length === 12;
+let _twilioClient: any = null;
+const getTwilioClient = () => {
+  if (_twilioClient) return _twilioClient;
+  if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
+    throw new Error('Twilio env vars ausentes (TWILIO_ACCOUNT_SID/TWILIO_AUTH_TOKEN)');
+  }
+  const twilio = require('twilio');
+  _twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+  return _twilioClient;
+};
+
+// ============================================
+// TWILIO VERIFY API (para OTP)
+// ============================================
+
+/**
+ * Envia código OTP via Twilio Verify API
+ * O Twilio gera e gerencia o código automaticamente
+ * Suporta SMS, WhatsApp, e-mail como canais
+ */
+export const sendVerifyOTP = async (phone: string, channel: 'sms' | 'email' | 'whatsapp' = 'sms', emailAddress?: string): Promise<{ success: boolean; sid?: string }> => {
+  const normalizedPhone = normalizePhone(phone);
+
+  // MODO MOCK
+  if (MOCK_MODE) {
+    logger.info(`[MOCK VERIFY] Para: ${normalizedPhone}, Canal: ${channel}`);
+    return { success: true, sid: 'mock-verify-' + Date.now() };
+  }
+
+  const verifySid = process.env.TWILIO_VERIFY_SERVICE_SID;
+  if (!verifySid) {
+    throw new Error('TWILIO_VERIFY_SERVICE_SID não configurado. Crie um Verify Service no Twilio Console.');
+  }
+
+  try {
+    const client = getTwilioClient();
+
+    const verifyParams: any = {
+      to: channel === 'email' ? emailAddress : normalizedPhone,
+      channel,
+    };
+
+    logger.info(`📱 Enviando OTP via Verify (${channel}) para: ${channel === 'email' ? emailAddress : normalizedPhone}`);
+
+    const verification: any = await withTimeout(
+      client.verify.v2.services(verifySid).verifications.create(verifyParams),
+      DEFAULT_SMS_TIMEOUT_MS,
+      'Twilio Verify send'
+    );
+
+    logger.info(`✅ Verify OTP enviado. SID: ${verification.sid}, Status: ${verification.status}, Canal: ${verification.channel}`);
+
+    return { success: true, sid: verification.sid };
+  } catch (error: any) {
+    logger.error(`❌ Erro ao enviar Verify OTP para ${normalizedPhone}:`, {
+      message: error.message,
+      code: error.code,
+      status: error.status,
+      moreInfo: error.moreInfo,
+    });
+    throw new Error(`Falha ao enviar código: ${error.message} (code: ${error.code || 'N/A'})`);
+  }
 };
 
 /**
- * Envia SMS (real ou mock)
+ * Verifica código OTP via Twilio Verify API
+ * O Twilio valida o código automaticamente
+ */
+export const checkVerifyOTP = async (phone: string, code: string): Promise<{ valid: boolean; status?: string }> => {
+  const normalizedPhone = normalizePhone(phone);
+
+  // MODO MOCK - aceita qualquer código de 6 dígitos
+  if (MOCK_MODE) {
+    logger.info(`[MOCK VERIFY CHECK] Para: ${normalizedPhone}, Code: ${code}`);
+    return { valid: true, status: 'approved' };
+  }
+
+  const verifySid = process.env.TWILIO_VERIFY_SERVICE_SID;
+  if (!verifySid) {
+    throw new Error('TWILIO_VERIFY_SERVICE_SID não configurado');
+  }
+
+  try {
+    const client = getTwilioClient();
+
+    const check: any = await withTimeout(
+      client.verify.v2.services(verifySid).verificationChecks.create({
+        to: normalizedPhone,
+        code,
+      }),
+      DEFAULT_SMS_TIMEOUT_MS,
+      'Twilio Verify check'
+    );
+
+    logger.info(`🔍 Verify check para ${normalizedPhone}: status=${check.status}, valid=${check.valid}`);
+
+    return {
+      valid: check.status === 'approved',
+      status: check.status,
+    };
+  } catch (error: any) {
+    logger.error(`❌ Erro ao verificar código para ${normalizedPhone}:`, {
+      message: error.message,
+      code: error.code,
+    });
+    // Se o erro é "resource not found", o código expirou ou nunca foi enviado
+    if (error.code === 20404) {
+      return { valid: false, status: 'expired' };
+    }
+    throw error;
+  }
+};
+
+// ============================================
+// LEGACY: Twilio Messages API (para notificações)
+// ============================================
+
+/**
+ * Envia SMS direto via Messages API (para notificações, NÃO para OTP)
  */
 export const sendSMS = async (
   to: string,
   message: string
 ): Promise<{ success: boolean; messageId?: string }> => {
   
-  // Normalizar o número de destino
   const normalizedTo = normalizePhone(to);
   
-  // MODO MOCK (para testes sem Twilio)
   if (MOCK_MODE) {
     logger.info(`[MOCK SMS] Para: ${normalizedTo}, Mensagem: ${message}`);
-    return {
-      success: true,
-      messageId: 'mock-' + Date.now(),
-    };
+    return { success: true, messageId: 'mock-' + Date.now() };
   }
 
-  // MODO REAL (Twilio)
   try {
-    const hasMessagingService = !!process.env.TWILIO_MESSAGING_SERVICE_SID;
+    const client = getTwilioClient();
     const hasPhoneNumber = !!process.env.TWILIO_PHONE_NUMBER;
 
-    if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
-      throw new Error('Twilio env vars ausentes (TWILIO_ACCOUNT_SID/TWILIO_AUTH_TOKEN)');
+    if (!hasPhoneNumber) {
+      throw new Error('TWILIO_PHONE_NUMBER não configurado para envio de SMS');
     }
-
-    if (!hasMessagingService && !hasPhoneNumber) {
-      throw new Error('Necessário TWILIO_MESSAGING_SERVICE_SID ou TWILIO_PHONE_NUMBER');
-    }
-
-    const twilio = require('twilio');
-    const client = twilio(
-      process.env.TWILIO_ACCOUNT_SID,
-      process.env.TWILIO_AUTH_TOKEN
-    );
-
-    // Preferir Messaging Service SID (melhor entrega nos EUA com A2P 10DLC)
-    // Fallback para número direto
-    const fromConfig = hasMessagingService
-      ? { messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID }
-      : { from: process.env.TWILIO_PHONE_NUMBER };
-
-    logger.info(`📱 Enviando SMS para ${normalizedTo} via ${hasMessagingService ? 'Messaging Service' : 'Phone Number'} (US: ${isUSNumber(normalizedTo)})`);
 
     const result: any = await withTimeout<any>(
       client.messages.create({
         body: message,
-        ...fromConfig,
+        from: process.env.TWILIO_PHONE_NUMBER,
         to: normalizedTo,
       }),
       DEFAULT_SMS_TIMEOUT_MS,
       'Twilio sendSMS'
     );
 
-    logger.info(`✅ SMS enviado com sucesso para ${normalizedTo}. SID: ${result.sid}, Status: ${result.status}`);
-
-    return {
-      success: true,
-      messageId: result.sid,
-    };
+    logger.info(`✅ SMS enviado para ${normalizedTo}. SID: ${result.sid}`);
+    return { success: true, messageId: result.sid };
   } catch (error: any) {
-    // Log detalhado do erro Twilio para diagnóstico
     logger.error(`❌ Erro ao enviar SMS para ${normalizedTo}:`, {
       message: error.message,
       code: error.code,
-      status: error.status,
-      moreInfo: error.moreInfo,
-      isUSNumber: isUSNumber(normalizedTo),
-      from: process.env.TWILIO_PHONE_NUMBER ? '***' + process.env.TWILIO_PHONE_NUMBER.slice(-4) : 'N/A',
-      hasMessagingService: !!process.env.TWILIO_MESSAGING_SERVICE_SID,
     });
-    throw new Error(`Falha ao enviar SMS: ${error.message} (code: ${error.code || 'N/A'})`);
+    throw new Error(`Falha ao enviar SMS: ${error.message}`);
   }
 };
 
 /**
- * Envia código OTP via SMS
- * Mensagem bilíngue para melhor experiência
+ * @deprecated Use sendVerifyOTP() em vez disso. Mantido para compatibilidade.
+ * Envia código OTP via SMS (Messages API) - fallback se Verify não estiver configurado
  */
 export const sendOTP = async (phone: string, otp: string, language?: string): Promise<void> => {
-  // Mensagem bilíngue - mais confiável com operadoras dos EUA
+  // Se Verify está configurado, usar Verify
+  if (process.env.TWILIO_VERIFY_SERVICE_SID) {
+    const result = await sendVerifyOTP(phone, 'sms');
+    if (!result.success) {
+      throw new Error('Falha ao enviar código de verificação via Verify');
+    }
+    return;
+  }
+
+  // Fallback: enviar via Messages API (legacy)
   const message = language === 'PT' || language === 'ES'
     ? `TechTrust: ${otp} é seu código de verificação. Válido por 10 minutos.`
     : `TechTrust: ${otp} is your verification code. Valid for 10 minutes.`;
   
   const result = await sendSMS(phone, message);
-  
   if (!result.success) {
     throw new Error('Falha ao enviar código de verificação');
   }
