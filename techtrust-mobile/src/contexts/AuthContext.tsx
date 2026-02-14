@@ -54,7 +54,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   loginAsProvider: (email: string, password: string) => Promise<void>;
   signup: (data: SignupData) => Promise<{ userId: string }>;
-  signUp: (data: SignupData) => Promise<{ userId: string }>;
+  signUp: (data: SignupData) => Promise<{ userId: string; otpMethod?: string; email?: string }>;
   socialLogin: (
     provider: string,
     token: string,
@@ -297,18 +297,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signup = async (data: SignupData): Promise<{ userId: string }> => {
+  const signup = async (data: SignupData): Promise<{ userId: string; otpMethod?: string; email?: string }> => {
     try {
       const response = await api.post("/auth/signup", data);
 
-      const { userId } = response.data.data;
+      const { userId, otpMethod, email: responseEmail } = response.data.data;
 
       await AsyncStorage.setItem(
         "@TechTrust:pendingUser",
-        JSON.stringify({ userId, email: data.email, phone: data.phone }),
+        JSON.stringify({ userId, email: data.email, phone: data.phone, otpMethod }),
       );
 
-      return { userId };
+      return { userId, otpMethod, email: responseEmail || data.email };
     } catch (error: any) {
       const message =
         error?.response?.data?.message ||

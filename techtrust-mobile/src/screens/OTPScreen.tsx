@@ -30,9 +30,13 @@ export default function OTPScreen({ route, navigation }: any) {
 
   const routeUserId = route?.params?.userId as string | undefined;
   const routePhone = route?.params?.phone as string | undefined;
+  const routeOtpMethod = route?.params?.otpMethod as 'sms' | 'email' | undefined;
+  const routeEmail = route?.params?.email as string | undefined;
 
   const [userId, setUserId] = useState<string | null>(routeUserId ?? null);
   const [phone, setPhone] = useState<string | null>(routePhone ?? null);
+  const [otpMethod, setOtpMethod] = useState<'sms' | 'email'>(routeOtpMethod || 'sms');
+  const [email, setEmail] = useState<string | null>(routeEmail ?? null);
 
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
@@ -67,6 +71,8 @@ export default function OTPScreen({ route, navigation }: any) {
         const pending = JSON.parse(pendingRaw);
         if (pending?.userId) setUserId(pending.userId);
         if (pending?.phone) setPhone(pending.phone);
+        if (pending?.otpMethod) setOtpMethod(pending.otpMethod);
+        if (pending?.email) setEmail(pending.email);
       } catch {
         // ignore
       }
@@ -135,7 +141,7 @@ export default function OTPScreen({ route, navigation }: any) {
 
     setLoading(true);
     try {
-      await verifyOTP(userId, otpCode);
+      await verifyOTP(userId, otpCode, otpMethod);
       success(t.auth?.verificationComplete || 'Verification complete!');
     } catch (err: any) {
       setHasError(true);
@@ -157,7 +163,7 @@ export default function OTPScreen({ route, navigation }: any) {
     }
 
     setLoading(true);
-    resendOTP(userId)
+    resendOTP(userId, otpMethod)
       .then(() => {
         success(t.auth?.codeSent || 'Code sent!');
         setResendTimer(60);
@@ -190,11 +196,18 @@ export default function OTPScreen({ route, navigation }: any) {
               {t.auth?.verification || 'Verification'}
             </Text>
             <Text variant="bodyMedium" style={styles.subtitle}>
-              {t.auth?.enterCodeSentTo || 'Enter the code sent to'}
+              {otpMethod === 'email'
+                ? (t.auth?.enterCodeSentToEmail || 'Enter the code sent to your email')
+                : (t.auth?.enterCodeSentTo || 'Enter the code sent to')}
             </Text>
             <Text variant="bodyLarge" style={[styles.phone, { color: theme.colors.primary }]}>
-              {phone}
+              {otpMethod === 'email' ? email : phone}
             </Text>
+            {otpMethod === 'email' && (
+              <Text variant="bodySmall" style={{ color: '#f59e0b', marginTop: 4, textAlign: 'center' }}>
+                {t.auth?.smsFallbackNotice || 'SMS was unavailable. Code sent via email instead.'}
+              </Text>
+            )}
           </View>
         </FadeInView>
 

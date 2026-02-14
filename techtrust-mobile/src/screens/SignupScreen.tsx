@@ -257,7 +257,7 @@ export default function SignupScreen({ navigation }: any) {
         );
       }
 
-      const { userId } = await signUp({
+      const { userId, otpMethod, email: responseEmail } = await signUp({
         fullName,
         email,
         phone: normalizedPhone,
@@ -278,7 +278,12 @@ export default function SignupScreen({ navigation }: any) {
           : {}),
       });
 
-      navigation.navigate("OTP", { userId, phone: normalizedPhone });
+      navigation.navigate("OTP", { 
+        userId, 
+        phone: normalizedPhone,
+        otpMethod: otpMethod || 'sms',
+        email: responseEmail || email,
+      });
     } catch (err: any) {
       error(
         err.message || t.auth?.errorCreatingAccount || "Error creating account",
