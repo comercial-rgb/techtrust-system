@@ -228,6 +228,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Criar erro com código para tratamento específico
       const loginError = new Error(message) as any;
       loginError.code = errorCode;
+      loginError.data = error?.response?.data?.data;
       throw loginError;
     }
   };
@@ -293,6 +294,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Criar erro com código para tratamento específico
       const loginError = new Error(message) as any;
       loginError.code = errorCode;
+      loginError.data = error?.response?.data?.data;
       throw loginError;
     }
   };

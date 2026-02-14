@@ -223,6 +223,8 @@ export default function LoginScreen({ navigation }: any) {
 
       // Verificar se é erro de telefone não verificado
       if (error.code === "PHONE_NOT_VERIFIED") {
+        const userId = error.data?.userId;
+        const phone = error.data?.phone;
         Alert.alert(
           t.auth.verificationRequired || "Verificação necessária",
           t.auth.phoneNotVerifiedMessage ||
@@ -232,8 +234,13 @@ export default function LoginScreen({ navigation }: any) {
             {
               text: t.auth.resendCode || "Reenviar código",
               onPress: () => {
-                // Navegar para tela de signup para reenviar OTP
-                navigation.navigate("Signup", { email });
+                // Navegar para tela de OTP para verificar telefone
+                navigation.navigate("OTP", {
+                  userId,
+                  phone,
+                  otpMethod: "sms",
+                  email,
+                });
               },
             },
           ],
