@@ -354,6 +354,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         fullName: apiUser.fullName,
         phone: apiUser.phone || "",
         role: apiUser.role === "CLIENT" ? "CUSTOMER" : apiUser.role,
+        providerProfile: apiUser.providerProfile
+          ? {
+              id: apiUser.providerProfile.id,
+              businessName: apiUser.providerProfile.businessName,
+              servicesOffered: apiUser.providerProfile.servicesOffered,
+              vehicleTypesServed: apiUser.providerProfile.vehicleTypesServed,
+              sellsParts: apiUser.providerProfile.sellsParts,
+            }
+          : undefined,
       };
 
       await AsyncStorage.setItem(
@@ -365,6 +374,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await AsyncStorage.setItem("@TechTrust:refreshToken", refreshToken);
       }
       await AsyncStorage.removeItem("@TechTrust:pendingUser");
+
+      // Check onboarding status for providers
+      if (normalizedUser.role === "PROVIDER") {
+        const onboardingDone = await AsyncStorage.getItem(
+          `@TechTrust:onboarding:${normalizedUser.id}`,
+        );
+        setHasCompletedOnboarding(onboardingDone === "true");
+      }
 
       setUser(normalizedUser);
     } catch (error: any) {

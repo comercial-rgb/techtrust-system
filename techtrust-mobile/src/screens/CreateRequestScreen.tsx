@@ -483,44 +483,76 @@ export default function CreateRequestScreen({ navigation }: any) {
           label: t.createRequest?.whatDiagnosed || "What needs to be diagnosed? (select all that apply)",
           type: "multi",
           options: [
+            // Engine & Drivetrain
             { id: "engine", label: t.createRequest?.diagEngine || "Engine / Check Engine Light", icon: "cog" },
             { id: "transmission", label: t.createRequest?.diagTransmission || "Transmission / Shifting Issues", icon: "sync" },
-            { id: "brakes", label: t.createRequest?.diagBrakes || "Brakes / Noise / Vibration", icon: "disc" },
-            { id: "suspension", label: t.createRequest?.diagSuspension || "Suspension / Steering / Alignment", icon: "resize" },
-            { id: "electrical", label: t.createRequest?.diagElectrical || "Electrical System / Battery / Lights", icon: "flash" },
-            { id: "ac_heating", label: t.createRequest?.diagAcHeating || "A/C or Heating Not Working", icon: "thermometer" },
-            { id: "exhaust", label: t.createRequest?.diagExhaust || "Exhaust / Catalytic Converter / Emissions", icon: "cloud" },
-            { id: "fluids_leaks", label: t.createRequest?.diagFluids || "Fluid Leaks (Oil, Coolant, Transmission)", icon: "water" },
-            { id: "tires_wheels", label: t.createRequest?.diagTires || "Tires / Wheels / TPMS", icon: "ellipse" },
-            { id: "noises", label: t.createRequest?.diagNoises || "Strange Noises (Identify Source)", icon: "volume-high" },
-            { id: "performance", label: t.createRequest?.diagPerformance || "Performance Loss / Stalling / Rough Idle", icon: "trending-down" },
-            { id: "body_interior", label: t.createRequest?.diagBodyInterior || "Body / Interior / Paint / Rust", icon: "car" },
-            { id: "cooling_system", label: t.createRequest?.diagCooling || "Cooling System / Radiator / Hoses", icon: "snow" },
-            { id: "fuel_system", label: t.createRequest?.diagFuelSystem || "Fuel System / Injectors / Fuel Pump", icon: "speedometer" },
             { id: "drivetrain", label: t.createRequest?.diagDrivetrain || "Drivetrain / 4WD / AWD / Differential", icon: "git-branch" },
+            { id: "turbo_supercharger", label: t.createRequest?.diagTurbo || "Turbo / Supercharger / Boost Issues", icon: "rocket" },
+            { id: "timing_belt_chain", label: t.createRequest?.diagTiming || "Timing Belt / Chain / Tensioner", icon: "time" },
+            // Brakes & Suspension
+            { id: "brakes", label: t.createRequest?.diagBrakes || "Brakes / Noise / Vibration / Pedal Feel", icon: "disc" },
+            { id: "suspension", label: t.createRequest?.diagSuspension || "Suspension / Steering / Alignment", icon: "resize" },
             { id: "power_steering", label: t.createRequest?.diagPowerSteering || "Power Steering / Steering Rack", icon: "move" },
-            { id: "starting_charging", label: t.createRequest?.diagStartingCharging || "Starting & Charging System (Alternator / Starter)", icon: "battery-charging" },
+            { id: "wheel_bearing", label: t.createRequest?.diagWheelBearing || "Wheel Bearing / Hub Assembly", icon: "radio-button-on" },
+            // Electrical & Electronics
+            { id: "electrical", label: t.createRequest?.diagElectrical || "Electrical System / Battery / Lights", icon: "flash" },
+            { id: "starting_charging", label: t.createRequest?.diagStartingCharging || "Starting & Charging (Alternator / Starter)", icon: "battery-charging" },
             { id: "abs_traction", label: t.createRequest?.diagAbsTraction || "ABS / Traction Control / Stability", icon: "shield" },
+            { id: "sensors", label: t.createRequest?.diagSensors || "Sensors (O2, MAF, MAP, Knock, Camshaft)", icon: "analytics" },
             { id: "infotainment", label: t.createRequest?.diagInfotainment || "Infotainment / Audio / Navigation / Cameras", icon: "tv" },
             { id: "windows_locks", label: t.createRequest?.diagWindowsLocks || "Power Windows / Doors / Locks / Mirrors", icon: "contract" },
+            { id: "wiring_harness", label: t.createRequest?.diagWiring || "Wiring Harness / Connectors / Fuses", icon: "git-network" },
+            // Climate & Comfort
+            { id: "ac_heating", label: t.createRequest?.diagAcHeating || "A/C or Heating Not Working", icon: "thermometer" },
+            { id: "blower_motor", label: t.createRequest?.diagBlower || "Blower Motor / Climate Control", icon: "snow" },
+            // Exhaust & Emissions
+            { id: "exhaust", label: t.createRequest?.diagExhaust || "Exhaust / Catalytic Converter / Emissions", icon: "cloud" },
+            { id: "egr_evap", label: t.createRequest?.diagEgrEvap || "EGR / EVAP System / Purge Valve", icon: "swap-vertical" },
+            // Fluids & Cooling
+            { id: "fluids_leaks", label: t.createRequest?.diagFluids || "Fluid Leaks (Oil, Coolant, Transmission)", icon: "water" },
+            { id: "cooling_system", label: t.createRequest?.diagCooling || "Cooling System / Radiator / Hoses / Thermostat", icon: "snow" },
+            { id: "fuel_system", label: t.createRequest?.diagFuelSystem || "Fuel System / Injectors / Fuel Pump / Filter", icon: "speedometer" },
+            // Tires & Wheels
+            { id: "tires_wheels", label: t.createRequest?.diagTires || "Tires / Wheels / TPMS", icon: "ellipse" },
+            // Noises & Performance
+            { id: "noises", label: t.createRequest?.diagNoises || "Strange Noises (Identify Source)", icon: "volume-high" },
+            { id: "performance", label: t.createRequest?.diagPerformance || "Performance Loss / Stalling / Rough Idle", icon: "trending-down" },
+            { id: "vibration_diagnosis", label: t.createRequest?.diagVibration || "Vibration / Shaking at Speed", icon: "pulse" },
+            // Body & Interior
+            { id: "body_interior", label: t.createRequest?.diagBodyInterior || "Body / Interior / Paint / Rust", icon: "car" },
+            { id: "suspension_noise", label: t.createRequest?.diagSuspNoise || "Clunks / Rattles Over Bumps", icon: "volume-medium" },
+            // Advanced / Computer
+            { id: "computer_module", label: t.createRequest?.diagComputer || "ECU / PCM / BCM Module Diagnosis", icon: "hardware-chip" },
+            { id: "hybrid_ev", label: t.createRequest?.diagHybridEV || "Hybrid / EV Battery & Drive System", icon: "battery-half" },
+            // Other
             { id: "not_sure", label: t.createRequest?.diagNotSure || "Not Sure — Full Diagnostic Needed", icon: "help-circle" },
           ],
         },
         {
           id: "diagnosticSymptoms",
-          label: t.createRequest?.diagnosticSymptoms || "Describe any symptoms (optional)",
+          label: t.createRequest?.diagnosticSymptoms || "Describe any symptoms (optional, select all that apply)",
           type: "multi",
           options: [
             { id: "warning_light", label: t.createRequest?.warningLight || "Dashboard Warning Light On", icon: "warning" },
+            { id: "check_engine", label: t.createRequest?.checkEngine || "Check Engine Light Specifically", icon: "alert-circle" },
             { id: "odd_smell", label: t.createRequest?.oddSmell || "Unusual Smell (Burning, Fuel, Sweet)", icon: "flame" },
             { id: "vibration", label: t.createRequest?.vibrationSymptom || "Vibration / Shaking", icon: "pulse" },
             { id: "starting_issue", label: t.createRequest?.startingIssue || "Difficulty Starting / Won't Start", icon: "close-circle" },
-            { id: "overheating", label: t.createRequest?.overheatingSymptom || "Overheating", icon: "thermometer" },
+            { id: "stalling", label: t.createRequest?.stallingSymptom || "Stalling / Engine Cuts Off", icon: "stop-circle" },
+            { id: "overheating", label: t.createRequest?.overheatingSymptom || "Overheating / Temperature High", icon: "thermometer" },
             { id: "poor_fuel", label: t.createRequest?.poorFuel || "Poor Fuel Economy", icon: "speedometer" },
             { id: "pulling", label: t.createRequest?.pullingSide || "Pulling to One Side", icon: "arrow-forward" },
             { id: "battery_drain", label: t.createRequest?.batteryDrain || "Battery Keeps Dying / Parasitic Drain", icon: "battery-dead" },
             { id: "smoke_exhaust", label: t.createRequest?.smokeExhaust || "Smoke from Exhaust (White / Blue / Black)", icon: "cloud" },
             { id: "fluid_under_car", label: t.createRequest?.fluidUnderCar || "Fluid Puddle Under Vehicle", icon: "water" },
+            { id: "grinding_noise", label: t.createRequest?.grindingNoise || "Grinding or Squealing Noise", icon: "volume-high" },
+            { id: "clicking_noise", label: t.createRequest?.clickingNoise || "Clicking / Ticking Noise", icon: "volume-medium" },
+            { id: "rough_idle", label: t.createRequest?.roughIdle || "Rough Idle / Engine Misfires", icon: "pulse" },
+            { id: "loss_of_power", label: t.createRequest?.lossOfPower || "Loss of Power / Acceleration", icon: "trending-down" },
+            { id: "transmission_slip", label: t.createRequest?.transSlip || "Transmission Slipping / Delayed Shift", icon: "swap-horizontal" },
+            { id: "steering_difficulty", label: t.createRequest?.steeringDifficulty || "Steering Feels Stiff or Loose", icon: "move" },
+            { id: "brake_issue", label: t.createRequest?.brakeIssue || "Brakes Soft / Spongy / Grinding", icon: "disc" },
+            { id: "electrical_issue", label: t.createRequest?.electricalIssue || "Lights Flickering / Electrical Glitches", icon: "flash" },
           ],
         },
       ],
@@ -1561,7 +1593,7 @@ export default function CreateRequestScreen({ navigation }: any) {
         </View>
 
         {/* Vehicle Type */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, marginTop: 4 }}>
           <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>
             {t.createRequest?.vehicleTypeLabel || "Vehicle Type"} *
           </Text>
@@ -1578,9 +1610,9 @@ export default function CreateRequestScreen({ navigation }: any) {
           {[
             { id: "car", label: t.createRequest?.vtCar || "Car / Sedan", mciIcon: "car-side" },
             { id: "suv", label: t.createRequest?.vtSuv || "SUV / Crossover", mciIcon: "car-estate" },
-            { id: "truck", label: t.createRequest?.vtTruck || "Pickup Truck", mciIcon: "truck-outline" },
+            { id: "truck", label: t.createRequest?.vtTruck || "Pickup Truck", mciIcon: "truck-pickup" },
             { id: "van", label: t.createRequest?.vtVan || "Van / Minivan", mciIcon: "van-passenger" },
-            { id: "heavy_truck", label: t.createRequest?.vtHeavyTruck || "Heavy Truck / Semi", mciIcon: "truck-trailer" },
+            { id: "heavy_truck", label: t.createRequest?.vtHeavyTruck || "Heavy Truck / Semi", mciIcon: "truck-cargo-container" },
             { id: "bus", label: t.createRequest?.vtBus || "Bus / RV", mciIcon: "rv-truck" },
           ].map((vt) => (
             <TouchableOpacity

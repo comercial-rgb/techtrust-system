@@ -73,6 +73,43 @@ export const signup = async (req: Request, res: Response) => {
       if (!existingEmail.phoneVerified) {
         logger.info(`Reenvio de OTP para usuário não verificado: ${email}`);
 
+        // Update role if re-signing up as a different role (e.g., CLIENT → PROVIDER)
+        if (existingEmail.role !== userRole) {
+          await prisma.user.update({
+            where: { id: existingEmail.id },
+            data: {
+              role: userRole,
+              fullName: fullName || existingEmail.fullName,
+              passwordHash: await hashPassword(password),
+            },
+          });
+          logger.info(`Role atualizado de ${existingEmail.role} para ${userRole} para: ${email}`);
+        }
+
+        // Create ProviderProfile if signing up as PROVIDER and it doesn't exist yet
+        if (userRole === "PROVIDER" && businessName) {
+          const existingProfile = await prisma.providerProfile.findUnique({
+            where: { userId: existingEmail.id },
+          });
+          if (!existingProfile) {
+            await prisma.providerProfile.create({
+              data: {
+                userId: existingEmail.id,
+                businessName,
+                address: businessAddress || "",
+                city: businessCity || "",
+                state: businessState || "FL",
+                zipCode: businessZipCode || "",
+                servicesOffered: servicesOffered || [],
+                vehicleTypesServed: vehicleTypesServed || [],
+                sellsParts: sellsParts || false,
+                specialties: [],
+              },
+            });
+            logger.info(`ProviderProfile criado para usuário existente: ${email}`);
+          }
+        }
+
         let otpSent = false;
         let otpMethod: 'sms' | 'email' = 'sms';
 
@@ -162,6 +199,43 @@ export const signup = async (req: Request, res: Response) => {
       // Se o usuário existe mas NÃO verificou → reenviar OTP
       if (!existingPhone.phoneVerified) {
         logger.info(`Reenvio de OTP para telefone não verificado: ${phone}`);
+
+        // Update role if re-signing up as a different role
+        if (existingPhone.role !== userRole) {
+          await prisma.user.update({
+            where: { id: existingPhone.id },
+            data: {
+              role: userRole,
+              fullName: fullName || existingPhone.fullName,
+              passwordHash: await hashPassword(password),
+            },
+          });
+          logger.info(`Role atualizado de ${existingPhone.role} para ${userRole} para phone: ${phone}`);
+        }
+
+        // Create ProviderProfile if signing up as PROVIDER and it doesn't exist yet
+        if (userRole === "PROVIDER" && businessName) {
+          const existingProfile = await prisma.providerProfile.findUnique({
+            where: { userId: existingPhone.id },
+          });
+          if (!existingProfile) {
+            await prisma.providerProfile.create({
+              data: {
+                userId: existingPhone.id,
+                businessName,
+                address: businessAddress || "",
+                city: businessCity || "",
+                state: businessState || "FL",
+                zipCode: businessZipCode || "",
+                servicesOffered: servicesOffered || [],
+                vehicleTypesServed: vehicleTypesServed || [],
+                sellsParts: sellsParts || false,
+                specialties: [],
+              },
+            });
+            logger.info(`ProviderProfile criado para phone existente: ${phone}`);
+          }
+        }
 
         let otpSent = false;
         let otpMethod: 'sms' | 'email' = 'sms';
@@ -944,6 +1018,9 @@ export const verifyOTP = async (req: Request, res: Response) => {
         otpCode: null,
         otpExpiresAt: null,
       },
+      include: {
+        providerProfile: true,
+      },
     });
 
     // Gerar tokens
@@ -971,6 +1048,13 @@ export const verifyOTP = async (req: Request, res: Response) => {
           language: updatedUser.language,
           phoneVerified: updatedUser.phoneVerified,
           emailVerified: updatedUser.emailVerified,
+          providerProfile: updatedUser.providerProfile ? {
+            id: updatedUser.providerProfile.id,
+            businessName: updatedUser.providerProfile.businessName,
+            servicesOffered: updatedUser.providerProfile.servicesOffered,
+            vehicleTypesServed: updatedUser.providerProfile.vehicleTypesServed,
+            sellsParts: updatedUser.providerProfile.sellsParts,
+          } : undefined,
         },
       },
     });

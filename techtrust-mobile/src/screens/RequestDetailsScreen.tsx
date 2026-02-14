@@ -197,10 +197,29 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
           {/* Title */}
           <Text style={styles.title}>{request?.title}</Text>
           
-          {/* Description */}
-          {request?.description && (
-            <Text style={styles.description}>{request?.description}</Text>
-          )}
+          {/* Description - strip duplicated title and meta lines */}
+          {request?.description && (() => {
+            let desc = request.description;
+            // Remove enriched meta lines (Vehicle Type: ... | Scope: ...) appended during creation
+            const metaSeparator = desc.indexOf('\n---\n');
+            if (metaSeparator !== -1) {
+              desc = desc.substring(0, metaSeparator).trim();
+            }
+            // If description is just the meta lines (no separator, but starts with "Vehicle Type:")
+            if (desc.startsWith('Vehicle Type:') || desc.startsWith('Scope:')) {
+              return null;
+            }
+            // Remove if description duplicates the title
+            if (desc === request?.title) {
+              return null;
+            }
+            return desc ? (
+              <View style={styles.descriptionBox}>
+                <Ionicons name="document-text-outline" size={16} color="#6b7280" style={{ marginTop: 2 }} />
+                <Text style={styles.description}>{desc}</Text>
+              </View>
+            ) : null;
+          })()}
           
           {/* Divider */}
           <View style={styles.divider} />
@@ -356,6 +375,38 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
             </View>
           </TouchableOpacity>
         ))}
+
+        {/* Renew Request Button - for requests that can receive more quotes */}
+        {request?.status && !['IN_PROGRESS', 'COMPLETED'].includes(request.status) && (
+          <TouchableOpacity 
+            style={styles.renewBtn}
+            onPress={() => {
+              Alert.alert(
+                t.common?.renewRequest || 'Renew Request',
+                t.common?.renewRequestConfirm || 'This will reopen your request to receive more quotes from providers. Continue?',
+                [
+                  { text: t.common?.cancel || 'Cancel', style: 'cancel' },
+                  { text: t.common?.renew || 'Renew', onPress: async () => {
+                    try {
+                      await api.post(`/service-requests/${requestId}/renew`);
+                      Alert.alert(
+                        t.common?.success || 'Success!', 
+                        t.common?.renewSuccess || 'Your request has been renewed. You will receive new quotes soon.'
+                      );
+                      loadDetails(); // Refresh
+                    } catch (err: any) {
+                      Alert.alert(t.common?.error || 'Error', err?.response?.data?.message || 'Could not renew request');
+                    }
+                  }},
+                ]
+              );
+            }}
+          >
+            <Ionicons name="refresh" size={20} color="#1976d2" />
+            <Text style={styles.renewBtnText}>{t.common?.renewForMoreQuotes || 'Renew Request for More Quotes'}</Text>
+          </TouchableOpacity>
+        )}
+
         <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
@@ -375,7 +426,8 @@ const styles = StyleSheet.create({
   statusDot: { width: 8, height: 8, borderRadius: 4 },
   statusChipText: { fontSize: 12, fontWeight: '600' },
   title: { fontSize: 20, fontWeight: '700', color: '#111827', marginBottom: 8 },
-  description: { fontSize: 14, color: '#6b7280', marginBottom: 16, lineHeight: 20 },
+  descriptionBox: { flexDirection: 'row', gap: 8, backgroundColor: '#f8fafc', borderRadius: 10, padding: 12, marginBottom: 16 },
+  description: { fontSize: 14, color: '#6b7280', flex: 1, lineHeight: 20 },
   divider: { height: 1, backgroundColor: '#f3f4f6', marginBottom: 16 },
   infoGrid: { gap: 14 },
   infoItem: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -407,4 +459,6 @@ const styles = StyleSheet.create({
   acceptText: { fontSize: 14, fontWeight: '600', color: '#fff' },
   viewDetailsHint: { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#f3f4f6', alignItems: 'center' },
   viewDetailsText: { fontSize: 12, color: '#9ca3af', fontStyle: 'italic' },
+  renewBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginHorizontal: 16, marginTop: 8, marginBottom: 8, paddingVertical: 14, backgroundColor: '#eff6ff', borderRadius: 12, borderWidth: 1, borderColor: '#bfdbfe' },
+  renewBtnText: { fontSize: 15, fontWeight: '600', color: '#1976d2' },
 });

@@ -489,3 +489,50 @@ export const cancelServiceRequest = async (req: Request, res: Response) => {
     },
   });
 };
+
+/**
+ * POST /api/v1/service-requests/:requestId/renew
+ * Renew (reopen) a request to receive more quotes
+ */
+export const renewServiceRequest = async (req: Request, res: Response) => {
+  const userId = req.user!.id;
+  const { requestId } = req.params;
+
+  const request = await prisma.serviceRequest.findFirst({
+    where: {
+      id: requestId,
+      userId: userId,
+    },
+  });
+
+  if (!request) {
+    throw new AppError("Request not found", 404, "REQUEST_NOT_FOUND");
+  }
+
+  // Only allow renewal for requests that are not in-progress or completed
+  if (["IN_PROGRESS", "COMPLETED"].includes(request.status)) {
+    throw new AppError(
+      "This request cannot be renewed",
+      400,
+      "CANNOT_RENEW",
+    );
+  }
+
+  // Reopen the request
+  await prisma.serviceRequest.update({
+    where: { id: requestId },
+    data: {
+      status: "SEARCHING_PROVIDERS",
+      cancelledAt: null,
+      cancellationReason: null,
+      acceptedQuoteId: null,
+    },
+  });
+
+  logger.info(`Request renewed by client: ${request.requestNumber}`);
+
+  res.json({
+    success: true,
+    message: "Request renewed successfully. You will receive new quotes.",
+  });
+};

@@ -55,4 +55,14 @@ router.post(
   asyncHandler(serviceRequestController.cancelServiceRequest)
 );
 
+/**
+ * POST /api/v1/service-requests/:requestId/renew
+ * Renew request to receive more quotes
+ */
+router.post(
+  '/:requestId/renew',
+  validate(requestIdValidation),
+  asyncHandler(serviceRequestController.renewServiceRequest)
+);
+
 export default router;
