@@ -142,19 +142,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 }
               : undefined,
           };
-          setUser(normalizedUser);
           await AsyncStorage.setItem(
             "@TechTrust:user",
             JSON.stringify(normalizedUser),
           );
 
-          // Check onboarding status for providers
+          // Check onboarding status for providers BEFORE setting user
+          // to prevent a flash of ProviderNavigator before switching to onboarding
           if (normalizedUser.role === "PROVIDER") {
             const onboardingDone = await AsyncStorage.getItem(
               `@TechTrust:onboarding:${normalizedUser.id}`,
             );
             setHasCompletedOnboarding(onboardingDone === "true");
           }
+          setUser(normalizedUser);
         }
       } catch (apiError: any) {
         // Token inválido ou expirado - limpar dados
@@ -193,7 +194,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setHasCompletedOnboarding(true);
   };
 
-  // Login como CLIENTE (padrão)
+  // Login como CLIENTE (padrão) — also handles providers correctly
   const login = async (email: string, password: string) => {
     try {
       const response = await api.post("/auth/login", { email, password });
@@ -205,6 +206,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         fullName: apiUser.fullName,
         phone: apiUser.phone || "",
         role: apiUser.role === "CLIENT" ? "CUSTOMER" : apiUser.role,
+        providerProfile: apiUser.providerProfile
+          ? {
+              businessName: apiUser.providerProfile.businessName || "",
+              businessType: apiUser.providerProfile.businessType || "",
+              averageRating: apiUser.providerProfile.averageRating || 0,
+              totalReviews: apiUser.providerProfile.totalReviews || 0,
+              isVerified: apiUser.providerProfile.isVerified || false,
+              description: apiUser.providerProfile.description,
+              website: apiUser.providerProfile.website,
+              address: apiUser.providerProfile.address,
+              cpfCnpj: apiUser.providerProfile.cpfCnpj,
+              fdacsRegistrationNumber: apiUser.providerProfile.fdacsRegistrationNumber,
+            }
+          : undefined,
       };
 
       await AsyncStorage.setItem(
@@ -214,6 +229,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await AsyncStorage.setItem("@TechTrust:token", token);
       if (refreshToken) {
         await AsyncStorage.setItem("@TechTrust:refreshToken", refreshToken);
+      }
+
+      // Check onboarding status for providers
+      if (normalizedUser.role === "PROVIDER") {
+        const onboardingDone = await AsyncStorage.getItem(
+          `@TechTrust:onboarding:${normalizedUser.id}`,
+        );
+        setHasCompletedOnboarding(onboardingDone === "true");
       }
 
       setUser(normalizedUser);
@@ -403,6 +426,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         "@TechTrust:pendingUser",
       ]);
       setUser(null);
+      setHasCompletedOnboarding(true);
       console.log("✅ Logout realizado com sucesso");
     } catch (error) {
       console.error("Erro ao fazer logout:", error);
@@ -437,6 +461,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           phone: data.user.phone || "",
           role: data.user.role === "CLIENT" ? "CUSTOMER" : data.user.role,
           avatarUrl: data.user.avatarUrl,
+          providerProfile: data.user.providerProfile
+            ? {
+                businessName: data.user.providerProfile.businessName || "",
+                businessType: data.user.providerProfile.businessType || "",
+                averageRating: data.user.providerProfile.averageRating || 0,
+                totalReviews: data.user.providerProfile.totalReviews || 0,
+                isVerified: data.user.providerProfile.isVerified || false,
+              }
+            : undefined,
         };
 
         await AsyncStorage.setItem(
@@ -449,6 +482,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             "@TechTrust:refreshToken",
             data.refreshToken,
           );
+        }
+
+        // Check onboarding for providers
+        if (normalizedUser.role === "PROVIDER") {
+          const onboardingDone = await AsyncStorage.getItem(
+            `@TechTrust:onboarding:${normalizedUser.id}`,
+          );
+          setHasCompletedOnboarding(onboardingDone === "true");
         }
 
         setUser(normalizedUser);
@@ -493,6 +534,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           phone: data.user.phone || "",
           role: data.user.role === "CLIENT" ? "CUSTOMER" : data.user.role,
           avatarUrl: data.user.avatarUrl,
+          providerProfile: data.user.providerProfile
+            ? {
+                businessName: data.user.providerProfile.businessName || "",
+                businessType: data.user.providerProfile.businessType || "",
+                averageRating: data.user.providerProfile.averageRating || 0,
+                totalReviews: data.user.providerProfile.totalReviews || 0,
+                isVerified: data.user.providerProfile.isVerified || false,
+              }
+            : undefined,
         };
 
         await AsyncStorage.setItem(
@@ -505,6 +555,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             "@TechTrust:refreshToken",
             data.refreshToken,
           );
+        }
+
+        // Check onboarding for providers
+        if (normalizedUser.role === "PROVIDER") {
+          const onboardingDone = await AsyncStorage.getItem(
+            `@TechTrust:onboarding:${normalizedUser.id}`,
+          );
+          setHasCompletedOnboarding(onboardingDone === "true");
         }
 
         setUser(normalizedUser);

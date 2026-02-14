@@ -1,4 +1,5 @@
 import React from "react";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -21,6 +22,63 @@ import ProviderOnboardingScreen from "../screens/provider/ProviderOnboardingScre
 import ProviderServicesScreen from "../screens/provider/ProviderServicesScreen";
 
 const Stack = createNativeStackNavigator();
+
+// ─── Error Boundary to prevent white screens ───
+class ProviderErrorBoundary extends React.Component<
+  { children: React.ReactNode; onLogout: () => void },
+  { hasError: boolean }
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: any, errorInfo: any) {
+    console.error("Provider view crashed:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={ebStyles.container}>
+          <Text style={ebStyles.emoji}>⚠️</Text>
+          <Text style={ebStyles.title}>Something went wrong</Text>
+          <Text style={ebStyles.subtitle}>
+            The provider dashboard encountered an error. Please try again.
+          </Text>
+          <TouchableOpacity
+            style={ebStyles.retryBtn}
+            onPress={() => this.setState({ hasError: false })}
+          >
+            <Text style={ebStyles.retryText}>Try Again</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={ebStyles.logoutBtn}
+            onPress={this.props.onLogout}
+          >
+            <Text style={ebStyles.logoutText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+const ebStyles = StyleSheet.create({
+  container: { flex: 1, justifyContent: "center", alignItems: "center", padding: 32, backgroundColor: "#f8fafc" },
+  emoji: { fontSize: 48, marginBottom: 16 },
+  title: { fontSize: 20, fontWeight: "700", color: "#111827", marginBottom: 8 },
+  subtitle: { fontSize: 14, color: "#6b7280", textAlign: "center", marginBottom: 24, lineHeight: 20 },
+  retryBtn: { backgroundColor: "#1976d2", paddingHorizontal: 32, paddingVertical: 14, borderRadius: 12, marginBottom: 12 },
+  retryText: { color: "#fff", fontWeight: "600", fontSize: 16 },
+  logoutBtn: { paddingHorizontal: 32, paddingVertical: 14 },
+  logoutText: { color: "#ef4444", fontWeight: "600", fontSize: 14 },
+});
 
 // Auth Stack Component
 function AuthStack() {
@@ -51,7 +109,7 @@ function ProviderWithOnboarding() {
 }
 
 export default function RootNavigator() {
-  const { user, isAuthenticated, loading, hasCompletedOnboarding } = useAuth();
+  const { user, isAuthenticated, loading, hasCompletedOnboarding, logout } = useAuth();
 
   // Determine which navigator to show based on user role
   const isProvider = user?.role === "PROVIDER";
@@ -65,9 +123,17 @@ export default function RootNavigator() {
     if (isProvider) {
       // Show onboarding for new providers who haven't completed it
       if (!hasCompletedOnboarding) {
-        return <ProviderWithOnboarding />;
+        return (
+          <ProviderErrorBoundary onLogout={logout}>
+            <ProviderWithOnboarding />
+          </ProviderErrorBoundary>
+        );
       }
-      return <ProviderNavigator />;
+      return (
+        <ProviderErrorBoundary onLogout={logout}>
+          <ProviderNavigator />
+        </ProviderErrorBoundary>
+      );
     }
     return <CustomerNavigator />;
   }

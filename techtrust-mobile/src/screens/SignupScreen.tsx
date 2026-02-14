@@ -170,9 +170,9 @@ export default function SignupScreen({ navigation }: any) {
   const SIGNUP_VEHICLE_TYPES = [
     { key: 'CAR', label: 'Car / Sedan', icon: 'car-side' },
     { key: 'SUV', label: 'SUV', icon: 'car-estate' },
-    { key: 'TRUCK', label: 'Pickup Truck', icon: 'truck' },
+    { key: 'TRUCK', label: 'Pickup Truck', icon: 'car-pickup' },
     { key: 'VAN', label: 'Van / Minivan', icon: 'van-utility' },
-    { key: 'HEAVY_TRUCK', label: 'Heavy Truck', icon: 'truck-trailer' },
+    { key: 'HEAVY_TRUCK', label: 'Heavy Truck', icon: 'truck' },
     { key: 'BUS', label: 'Bus / RV', icon: 'bus' },
   ];
 

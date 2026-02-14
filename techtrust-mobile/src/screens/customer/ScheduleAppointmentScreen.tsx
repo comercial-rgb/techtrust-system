@@ -89,7 +89,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
     },
     {
       id: "ac",
-      label: t.createRequest?.serviceAC || "A/C",
+      label: t.createRequest?.serviceAC || "A/C & Heating",
       icon: "snow" as const,
     },
     {
@@ -100,7 +100,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
     {
       id: "transmission",
       label: t.createRequest?.serviceTransmission || "Transmission",
-      icon: "cog" as const,
+      icon: "settings" as const,
     },
     {
       id: "oil",
@@ -113,14 +113,59 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
       icon: "ellipse" as const,
     },
     {
+      id: "steering",
+      label: "Steering",
+      icon: "sync" as const,
+    },
+    {
+      id: "exhaust",
+      label: "Exhaust / Emissions",
+      icon: "cloud" as const,
+    },
+    {
+      id: "cooling",
+      label: "Cooling System",
+      icon: "thermometer" as const,
+    },
+    {
+      id: "fuel_system",
+      label: "Fuel System",
+      icon: "flame" as const,
+    },
+    {
+      id: "check_engine_light",
+      label: "Check Engine Light",
+      icon: "warning" as const,
+    },
+    {
+      id: "noise_vibration",
+      label: "Noise / Vibration",
+      icon: "volume-high" as const,
+    },
+    {
+      id: "starting_issues",
+      label: "Starting Issues",
+      icon: "key" as const,
+    },
+    {
+      id: "drivetrain",
+      label: "Drivetrain / 4WD",
+      icon: "git-merge" as const,
+    },
+    {
+      id: "battery",
+      label: t.createRequest?.serviceBattery || "Battery / Charging",
+      icon: "battery-charging" as const,
+    },
+    {
       id: "inspection",
       label: t.createRequest?.serviceInspection || "Full Inspection",
       icon: "clipboard" as const,
     },
     {
-      id: "battery",
-      label: t.createRequest?.serviceBattery || "Battery",
-      icon: "battery-charging" as const,
+      id: "pre_purchase",
+      label: "Pre-Purchase Inspection",
+      icon: "cart" as const,
     },
     {
       id: "other",
