@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { useAuth } from '../contexts/AuthContext';
-import { useI18n } from '../i18n';
-import DashboardLayout from '../components/DashboardLayout';
-import { api } from '../services/api';
+import { useAuth } from '../../contexts/AuthContext';
+import { useI18n } from '../../i18n';
+import DashboardLayout from '../../components/DashboardLayout';
+import { api } from '../../services/api';
 import {
   Search,
   Clock,

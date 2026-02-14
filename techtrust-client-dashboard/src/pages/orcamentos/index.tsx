@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { useAuth } from '../contexts/AuthContext';
-import { useI18n } from '../i18n';
-import DashboardLayout from '../components/DashboardLayout';
-import { api } from '../services/api';
+import { useAuth } from '../../contexts/AuthContext';
+import { useI18n } from '../../i18n';
+import DashboardLayout from '../../components/DashboardLayout';
+import { api } from '../../services/api';
 import {
   Search,
   Clock,
@@ -42,7 +42,8 @@ export default function EstimatesPage() {
     try {
       // Get all service requests that have quotes
       const srRes = await api.getServiceRequests();
-      const requests = srRes.data?.data?.serviceRequests || srRes.data?.data || [];
+      const srData = srRes.data as any;
+      const requests = srData?.data?.serviceRequests || srData?.data || srData || [];
       setServiceRequests(requests);
 
       // Get quotes from each service request that has them
@@ -51,7 +52,8 @@ export default function EstimatesPage() {
         .map(async (sr: any) => {
           try {
             const qRes = await api.getQuotesForRequest(sr.id);
-            const quotes = qRes.data?.data || [];
+            const qData = qRes.data as any;
+            const quotes = qData?.data || qData || [];
             return quotes.map((q: any) => ({
               ...q,
               serviceRequestTitle: sr.title,
