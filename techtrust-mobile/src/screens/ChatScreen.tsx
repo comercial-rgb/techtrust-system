@@ -239,9 +239,9 @@ export default function ChatScreen({ navigation, route }: any) {
     yesterday.setDate(yesterday.getDate() - 1);
 
     if (date.toDateString() === today.toDateString()) {
-      return t.common.today || 'Today';
+      return t.common?.today || 'Today';
     } else if (date.toDateString() === yesterday.toDateString()) {
-      return t.common.yesterday || 'Yesterday';
+      return t.common?.yesterday || 'Yesterday';
     }
     return date.toLocaleDateString('en-US', {
       month: 'short',
@@ -404,7 +404,7 @@ export default function ChatScreen({ navigation, route }: any) {
         >
           <Ionicons name="document-text-outline" size={18} color="#1976d2" />
           <Text style={styles.requestBannerText}>
-            {t.chat.relatedToRequest || 'Related to: Service Request'} #{requestId}
+            {t.chat?.relatedToRequest || 'Related to: Service Request'} #{requestId}
           </Text>
           <Ionicons name="chevron-forward" size={18} color="#1976d2" />
         </TouchableOpacity>

@@ -107,9 +107,9 @@ export default function ProviderProfileScreen({ navigation }: any) {
   };
 
   const handleLogout = () => {
-    Alert.alert(t.provider.logout, t.profile.logoutConfirm, [
-      { text: t.common.cancel, style: "cancel" },
-      { text: t.provider.logout, style: "destructive", onPress: logout },
+    Alert.alert(t.provider?.logout || 'Logout', t.profile?.logoutConfirm || 'Are you sure you want to logout?', [
+      { text: t.common?.cancel || 'Cancel', style: "cancel" },
+      { text: t.provider?.logout || 'Logout', style: "destructive", onPress: logout },
     ]);
   };
 
@@ -123,13 +123,13 @@ export default function ProviderProfileScreen({ navigation }: any) {
 
   const getBusinessTypeLabel = (type: string) => {
     const types: Record<string, string> = {
-      AUTO_REPAIR: t.common.autoRepair || "Auto Repair",
-      TIRE_SHOP: t.common.tireShop || "Tire Shop",
-      AUTO_ELECTRIC: t.common.autoElectric || "Auto Electric",
-      BODY_SHOP: t.common.bodyShop || "Body Shop",
-      DETAILING: t.common.detailing,
-      TOWING: t.common.towing || "Towing",
-      MULTI_SERVICE: t.common.multiService || "Multi-Service",
+      AUTO_REPAIR: t.common?.autoRepair || "Auto Repair",
+      TIRE_SHOP: t.common?.tireShop || "Tire Shop",
+      AUTO_ELECTRIC: t.common?.autoElectric || "Auto Electric",
+      BODY_SHOP: t.common?.bodyShop || "Body Shop",
+      DETAILING: t.common?.detailing || "Detailing",
+      TOWING: t.common?.towing || "Towing",
+      MULTI_SERVICE: t.common?.multiService || "Multi-Service",
     };
     return types[type] || type;
   };
@@ -191,7 +191,7 @@ export default function ProviderProfileScreen({ navigation }: any) {
             </View>
             <Text style={styles.ratingText}>
               {stats?.rating?.toFixed(1)} • {stats?.totalReviews}{" "}
-              {t.provider.reviews}
+              {t.provider?.reviews || 'reviews'}
             </Text>
           </View>
 
@@ -205,7 +205,7 @@ export default function ProviderProfileScreen({ navigation }: any) {
                 ]}
               />
               <Text style={styles.availabilityText}>
-                {isAvailable ? t.provider.available : t.provider.unavailable}
+                {isAvailable ? (t.provider?.available || 'Available') : (t.provider?.unavailable || 'Unavailable')}
               </Text>
             </View>
             <Switch
@@ -221,18 +221,18 @@ export default function ProviderProfileScreen({ navigation }: any) {
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
             <Text style={styles.statValue}>{stats?.totalServices || 0}</Text>
-            <Text style={styles.statLabel}>{t.nav.services}</Text>
+            <Text style={styles.statLabel}>{t.nav?.services || 'Services'}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Text style={styles.statValue}>{stats?.responseRate || 0}%</Text>
-            <Text style={styles.statLabel}>{t.provider.responseRate}</Text>
+            <Text style={styles.statLabel}>{t.provider?.responseRate || 'Response Rate'}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Text style={styles.statValue}>{stats?.acceptanceRate || 0}%</Text>
             <Text style={styles.statLabel}>
-              {t.common.acceptance || "Acceptance"}
+              {t.common?.acceptance || "Acceptance"}
             </Text>
           </View>
           <View style={styles.statDivider} />
@@ -240,36 +240,36 @@ export default function ProviderProfileScreen({ navigation }: any) {
             <Text style={[styles.statValue, { color: "#10b981" }]}>
               ${((stats?.totalEarnings || 0) / 1000).toFixed(1)}k
             </Text>
-            <Text style={styles.statLabel}>{t.provider.earnings}</Text>
+            <Text style={styles.statLabel}>{t.provider?.earnings || 'Earnings'}</Text>
           </View>
         </View>
 
         {/* Menu Sections */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t.provider.myBusiness}</Text>
+          <Text style={styles.sectionTitle}>{t.provider?.myBusiness || 'My Business'}</Text>
 
           <MenuItem
             icon="store-edit"
-            label={t.provider.editProfile}
-            subtitle={t.common.nameDescContact || "Name, description, contact"}
+            label={t.provider?.editProfile || 'Edit Profile'}
+            subtitle={t.common?.nameDescContact || "Name, description, contact"}
             onPress={() => navigation.navigate("EditProfile")}
           />
           <MenuItem
             icon="wrench"
-            label={t.provider.servicesOffered}
-            subtitle={t.common.serviceTypes || "Service types, specialties"}
+            label={t.provider?.servicesOffered || 'Services Offered'}
+            subtitle={t.common?.serviceTypes || "Service types, specialties"}
             onPress={() => navigation.navigate("Services")}
           />
           <MenuItem
             icon="clock-outline"
-            label={t.provider.workingHours}
-            subtitle={t.common.setAvailability || "Set when you are available"}
+            label={t.provider?.workingHours || 'Working Hours'}
+            subtitle={t.common?.setAvailability || "Set when you are available"}
             onPress={() => navigation.navigate("WorkingHours")}
           />
           <MenuItem
             icon="map-marker-radius"
-            label={t.provider.serviceArea}
-            subtitle={`${t.common.radius || "Radius"}: 25 km`}
+            label={t.provider?.serviceArea || 'Service Area'}
+            subtitle={`${t.common?.radius || "Radius"}: 25 km`}
             onPress={() => navigation.navigate("ServiceArea")}
           />
           <MenuItem
@@ -281,13 +281,13 @@ export default function ProviderProfileScreen({ navigation }: any) {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t.provider.notifications}</Text>
+          <Text style={styles.sectionTitle}>{t.provider?.notifications || 'Notifications'}</Text>
 
           <NotificationItem
             icon="bell-ring"
-            label={t.provider.newRequest}
+            label={t.provider?.newRequest || 'New Request'}
             subtitle={
-              t.common.newRequestAlerts || "Alerts for requests in your area"
+              t.common?.newRequestAlerts || "Alerts for requests in your area"
             }
             value={notifications.newRequests}
             onToggle={(value) =>
@@ -296,9 +296,9 @@ export default function ProviderProfileScreen({ navigation }: any) {
           />
           <NotificationItem
             icon="check-circle"
-            label={t.provider.quoteAccepted}
+            label={t.provider?.quoteAccepted || 'Quote Accepted'}
             subtitle={
-              t.common.quoteAcceptedAlerts || "When customer accepts a quote"
+              t.common?.quoteAcceptedAlerts || "When customer accepts a quote"
             }
             value={notifications.quoteAccepted}
             onToggle={(value) =>
@@ -307,8 +307,8 @@ export default function ProviderProfileScreen({ navigation }: any) {
           />
           <NotificationItem
             icon="cash"
-            label={t.common.payments || "Payments"}
-            subtitle={t.common.paymentConfirmation || "Payment confirmations"}
+            label={t.common?.payments || "Payments"}
+            subtitle={t.common?.paymentConfirmation || "Payment confirmations"}
             value={notifications.payments}
             onToggle={(value) =>
               setNotifications({ ...notifications, payments: value })
@@ -316,8 +316,8 @@ export default function ProviderProfileScreen({ navigation }: any) {
           />
           <NotificationItem
             icon="star"
-            label={t.common.reviews || "Reviews"}
-            subtitle={t.common.newReviewsReceived || "New reviews received"}
+            label={t.common?.reviews || "Reviews"}
+            subtitle={t.common?.newReviewsReceived || "New reviews received"}
             value={notifications.reviews}
             onToggle={(value) =>
               setNotifications({ ...notifications, reviews: value })
@@ -327,58 +327,58 @@ export default function ProviderProfileScreen({ navigation }: any) {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            {t.common.financial || "Financial"}
+            {t.common?.financial || "Financial"}
           </Text>
 
           <MenuItem
             icon="chart-line"
-            label={t.provider.reports}
+            label={t.provider?.reports || 'Reports'}
             subtitle={
-              t.common.earningsPerformance || "Earnings, services, performance"
+              t.common?.earningsPerformance || "Earnings, services, performance"
             }
             onPress={() => navigation.navigate("Reports")}
           />
           <MenuItem
             icon="bank"
-            label={t.provider.bankDetails}
+            label={t.provider?.bankDetails || 'Bank Details'}
             subtitle={
-              t.common.accountForReceiving || "Account for receiving payments"
+              t.common?.accountForReceiving || "Account for receiving payments"
             }
             onPress={() => navigation.navigate("BankDetails")}
           />
           <MenuItem
             icon="receipt"
-            label={t.provider.paymentHistory}
-            subtitle={t.common.allPaymentsReceived || "All payments received"}
+            label={t.provider?.paymentHistory || 'Payment History'}
+            subtitle={t.common?.allPaymentsReceived || "All payments received"}
             onPress={() => navigation.navigate("PaymentHistory")}
           />
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            {t.common.account || "Account"}
+            {t.common?.account || "Account"}
           </Text>
 
           <MenuItem
             icon="lock"
-            label={t.provider.security}
-            subtitle={t.common.passwordAuth || "Password, authentication"}
+            label={t.provider?.security || 'Security'}
+            subtitle={t.common?.passwordAuth || "Password, authentication"}
             onPress={() => navigation.navigate("Security")}
           />
           <MenuItem
             icon="help-circle"
-            label={t.provider.help}
-            subtitle={t.common.faqContact || "FAQ, contact"}
+            label={t.provider?.help || 'Help'}
+            subtitle={t.common?.faqContact || "FAQ, contact"}
             onPress={() => navigation.navigate("Help")}
           />
           <MenuItem
             icon="file-document"
-            label={t.provider.terms}
+            label={t.provider?.terms || 'Terms & Policies'}
             onPress={() => navigation.navigate("TermsAndPolicies")}
           />
           <MenuItem
             icon="translate"
-            label={t.settings.language}
+            label={t.settings?.language || 'Language'}
             subtitle={`${currentLanguage.flag} ${currentLanguage.nativeName}`}
             onPress={() => setShowLanguageModal(true)}
           />
@@ -387,7 +387,7 @@ export default function ProviderProfileScreen({ navigation }: any) {
         {/* Logout */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <MaterialCommunityIcons name="logout" size={22} color="#ef4444" />
-          <Text style={styles.logoutText}>{t.provider.logout}</Text>
+          <Text style={styles.logoutText}>{t.provider?.logout || 'Logout'}</Text>
         </TouchableOpacity>
 
         {/* Version */}
@@ -410,7 +410,7 @@ export default function ProviderProfileScreen({ navigation }: any) {
         >
           <View style={styles.languageModalContent}>
             <Text style={styles.languageModalTitle}>
-              {t.settings.selectLanguage}
+              {t.settings?.selectLanguage || 'Select Language'}
             </Text>
             {languages.map((lang) => (
               <TouchableOpacity

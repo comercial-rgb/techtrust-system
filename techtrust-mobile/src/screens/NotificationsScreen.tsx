@@ -139,10 +139,10 @@ export default function NotificationsScreen({ navigation, userType = 'customer' 
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color="#111827" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t.notifications.notifications}</Text>
+        <Text style={styles.headerTitle}>{t.notifications?.notifications || 'Notifications'}</Text>
         {unreadCount > 0 && (
           <TouchableOpacity onPress={markAllAsRead} style={styles.markReadBtn}>
-            <Text style={styles.markReadText}>{t.notifications.markAllRead}</Text>
+            <Text style={styles.markReadText}>{t.notifications?.markAllRead || 'Mark all read'}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -152,8 +152,8 @@ export default function NotificationsScreen({ navigation, userType = 'customer' 
         <View style={styles.badgeContainer}>
           <Text style={styles.badgeText}>
             {unreadCount} {unreadCount === 1 
-              ? (t.notifications.newNotification || 'new notification') 
-              : (t.notifications.newNotifications || 'new notifications')}
+              ? (t.notifications?.newNotification || 'new notification') 
+              : (t.notifications?.newNotifications || 'new notifications')}
           </Text>
         </View>
       )}
@@ -171,9 +171,9 @@ export default function NotificationsScreen({ navigation, userType = 'customer' 
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Ionicons name="notifications-off-outline" size={60} color="#d1d5db" />
-            <Text style={styles.emptyTitle}>{t.notifications.noNotifications}</Text>
+            <Text style={styles.emptyTitle}>{t.notifications?.noNotifications || 'No notifications'}</Text>
             <Text style={styles.emptySubtitle}>
-              {t.notifications.emptyMessage || 'You will be notified about important updates here'}
+              {t.notifications?.emptyMessage || 'You will be notified about important updates here'}
             </Text>
           </View>
         }

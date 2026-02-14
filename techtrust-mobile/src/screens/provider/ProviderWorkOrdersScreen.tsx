@@ -146,25 +146,25 @@ export default function ProviderWorkOrdersScreen({ navigation }: any) {
         icon: "clock-outline",
         color: "#f59e0b",
         bg: "#fef3c7",
-        label: t.workOrder.waiting || "Waiting",
+        label: t.workOrder?.waiting || "Waiting",
       },
       IN_PROGRESS: {
         icon: "progress-wrench",
         color: "#3b82f6",
         bg: "#dbeafe",
-        label: t.workOrder.inProgress,
+        label: t.workOrder?.inProgress || "In Progress",
       },
       AWAITING_APPROVAL: {
         icon: "clock-check-outline",
         color: "#8b5cf6",
         bg: "#ede9fe",
-        label: t.workOrder.awaitingApproval || "Awaiting Approval",
+        label: t.workOrder?.awaitingApproval || "Awaiting Approval",
       },
       COMPLETED: {
         icon: "check-circle",
         color: "#10b981",
         bg: "#d1fae5",
-        label: t.workOrder.completed,
+        label: t.workOrder?.completed || "Completed",
       },
     };
     return (
@@ -264,7 +264,7 @@ export default function ProviderWorkOrdersScreen({ navigation }: any) {
               color="#f59e0b"
             />
             <Text style={styles.scheduledText}>
-              {t.workOrder.scheduled}: {formatDate(item.scheduledDate)}
+              {t.workOrder?.scheduled || 'Scheduled'}: {formatDate(item.scheduledDate)}
             </Text>
           </View>
         )}
@@ -289,8 +289,8 @@ export default function ProviderWorkOrdersScreen({ navigation }: any) {
               ]}
             >
               {item.status === "PENDING_START"
-                ? t.workOrder.tapToStart
-                : t.workOrder.tapToComplete}
+                ? t.workOrder?.tapToStart || 'Tap to start'
+                : t.workOrder?.tapToComplete || 'Tap to complete'}
             </Text>
           </View>
         )}
@@ -306,25 +306,25 @@ export default function ProviderWorkOrdersScreen({ navigation }: any) {
           <Text style={[styles.statValue, { color: "#92400e" }]}>
             {stats.pendingStart}
           </Text>
-          <Text style={styles.statLabel}>{t.workOrder.waiting}</Text>
+          <Text style={styles.statLabel}>{t.workOrder?.waiting || 'Waiting'}</Text>
         </View>
         <View style={[styles.statItem, { backgroundColor: "#dbeafe" }]}>
           <Text style={[styles.statValue, { color: "#1e40af" }]}>
             {stats.inProgress}
           </Text>
-          <Text style={styles.statLabel}>{t.workOrder.inProgress}</Text>
+          <Text style={styles.statLabel}>{t.workOrder?.inProgress || 'In Progress'}</Text>
         </View>
         <View style={[styles.statItem, { backgroundColor: "#ede9fe" }]}>
           <Text style={[styles.statValue, { color: "#5b21b6" }]}>
             {stats.awaitingApproval}
           </Text>
-          <Text style={styles.statLabel}>{t.workOrder.approval}</Text>
+          <Text style={styles.statLabel}>{t.workOrder?.approval || 'Approval'}</Text>
         </View>
         <View style={[styles.statItem, { backgroundColor: "#d1fae5" }]}>
           <Text style={[styles.statValue, { color: "#065f46" }]}>
             {stats.completed}
           </Text>
-          <Text style={styles.statLabel}>{t.workOrder.completed}</Text>
+          <Text style={styles.statLabel}>{t.workOrder?.completed || 'Completed'}</Text>
         </View>
       </View>
 
@@ -340,7 +340,7 @@ export default function ProviderWorkOrdersScreen({ navigation }: any) {
               filter === "all" && styles.filterTabTextActive,
             ]}
           >
-            {t.common.all}
+            {t.common?.all || 'All'}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -356,7 +356,7 @@ export default function ProviderWorkOrdersScreen({ navigation }: any) {
               filter === "active" && styles.filterTabTextActive,
             ]}
           >
-            {t.workOrder.active}
+            {t.workOrder?.active || 'Active'}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -372,7 +372,7 @@ export default function ProviderWorkOrdersScreen({ navigation }: any) {
               filter === "completed" && styles.filterTabTextActive,
             ]}
           >
-            {t.workOrder.completed}
+            {t.workOrder?.completed || 'Completed'}
           </Text>
         </TouchableOpacity>
       </View>

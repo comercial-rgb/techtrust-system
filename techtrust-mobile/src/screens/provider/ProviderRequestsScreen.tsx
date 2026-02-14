@@ -146,31 +146,31 @@ export default function ProviderRequestsScreen({ navigation }: any) {
         icon: "wrench",
         color: "#3b82f6",
         bg: "#dbeafe",
-        label: t.common.maintenance || "Maintenance",
+        label: t.common?.maintenance || "Maintenance",
       },
       REPAIR: {
         icon: "alert-circle",
         color: "#f97316",
         bg: "#ffedd5",
-        label: t.common.repair || "Repair",
+        label: t.common?.repair || "Repair",
       },
       INSPECTION: {
         icon: "shield-check",
         color: "#8b5cf6",
         bg: "#ede9fe",
-        label: t.common.inspection || "Inspection",
+        label: t.common?.inspection || "Inspection",
       },
       DETAILING: {
         icon: "car-wash",
         color: "#ec4899",
         bg: "#fce7f3",
-        label: t.common.detailing || "Detailing",
+        label: t.common?.detailing || "Detailing",
       },
       ROADSIDE_SOS: {
         icon: "car-emergency",
         color: "#ef4444",
         bg: "#fef2f2",
-        label: t.common.sos || "SOS",
+        label: t.common?.sos || "SOS",
       },
     };
     return (
@@ -229,7 +229,7 @@ export default function ProviderRequestsScreen({ navigation }: any) {
             >
               {item.expiresIn}
             </Text>
-            <Text style={styles.expiresLabel}>{t.common.remaining}</Text>
+            <Text style={styles.expiresLabel}>{t.common?.remaining || 'remaining'}</Text>
           </View>
         </View>
 
@@ -259,7 +259,7 @@ export default function ProviderRequestsScreen({ navigation }: any) {
           </View>
           <View style={styles.footerRight}>
             <Text style={styles.quotesCount}>
-              {item.quotesCount} {t.common.quotesCount}
+              {item.quotesCount} {t.common?.quotesCount || 'quotes'}
             </Text>
             <MaterialCommunityIcons
               name="chevron-right"
@@ -282,7 +282,7 @@ export default function ProviderRequestsScreen({ navigation }: any) {
           <MaterialCommunityIcons name="magnify" size={20} color="#9ca3af" />
           <TextInput
             style={styles.searchInput}
-            placeholder={t.common.searchPlaceholder}
+            placeholder={t.common?.searchPlaceholder || 'Search...'}
             value={searchQuery}
             onChangeText={setSearchQuery}
             placeholderTextColor="#9ca3af"
@@ -311,7 +311,7 @@ export default function ProviderRequestsScreen({ navigation }: any) {
               filter === "all" && styles.filterTabTextActive,
             ]}
           >
-            {t.common.all} ({requests.length})
+            {t.common?.all || 'All'} ({requests.length})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -327,7 +327,7 @@ export default function ProviderRequestsScreen({ navigation }: any) {
               filter === "urgent" && styles.filterTabTextUrgent,
             ]}
           >
-            🚨 {t.common.urgent} ({urgentCount})
+            🚨 {t.common?.urgent || 'Urgent'} ({urgentCount})
           </Text>
         </TouchableOpacity>
       </View>
@@ -349,11 +349,11 @@ export default function ProviderRequestsScreen({ navigation }: any) {
               size={64}
               color="#d1d5db"
             />
-            <Text style={styles.emptyTitle}>{t.common.noResults}</Text>
+            <Text style={styles.emptyTitle}>{t.common?.noResults || 'No results'}</Text>
             <Text style={styles.emptySubtitle}>
               {searchQuery
-                ? (t.common as any).tryDifferentTerms || t.common.tryAgain
-                : t.common.newItems}
+                ? (t.common as any)?.tryDifferentTerms || t.common?.tryAgain || 'Try again'
+                : t.common?.newItems || 'New items will appear here'}
             </Text>
           </View>
         }

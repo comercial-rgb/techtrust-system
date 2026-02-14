@@ -307,7 +307,7 @@ export default function ProviderReviewsScreen({ navigation }: any) {
                 <MaterialCommunityIcons name="close" size={24} color="#6b7280" />
               </TouchableOpacity>
               <Text style={styles.modalTitle}>
-                {selectedReview?.reply ? t.reviews.editYourReply : t.reviews.writeReply}
+                {selectedReview?.reply ? (t.reviews?.editYourReply || 'Edit Reply') : (t.reviews?.writeReply || 'Write Reply')}
               </Text>
               <View style={{ width: 40 }} />
             </View>
@@ -332,10 +332,10 @@ export default function ProviderReviewsScreen({ navigation }: any) {
 
             {/* Reply Input */}
             <View style={styles.replyInputContainer}>
-              <Text style={styles.replyInputLabel}>{t.reviews.yourResponse}</Text>
+              <Text style={styles.replyInputLabel}>{t.reviews?.yourResponse || 'Your Response'}</Text>
               <TextInput
                 style={styles.replyInput}
-                placeholder={t.reviews.replyPlaceholder}
+                placeholder={t.reviews?.replyPlaceholder || 'Write your response...'}
                 placeholderTextColor="#9ca3af"
                 value={replyText}
                 onChangeText={setReplyText}
@@ -351,7 +351,7 @@ export default function ProviderReviewsScreen({ navigation }: any) {
                 style={styles.cancelButton}
                 onPress={() => setShowReplyModal(false)}
               >
-                <Text style={styles.cancelButtonText}>{t.common.cancel}</Text>
+                <Text style={styles.cancelButtonText}>{t.common?.cancel || 'Cancel'}</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={[styles.submitButton, !replyText.trim() && styles.submitButtonDisabled]}
@@ -359,10 +359,10 @@ export default function ProviderReviewsScreen({ navigation }: any) {
                 disabled={submittingReply || !replyText.trim()}
               >
                 {submittingReply ? (
-                  <Text style={styles.submitButtonText}>{t.common.loading || 'Sending...'}</Text>
+                  <Text style={styles.submitButtonText}>{t.common?.loading || 'Sending...'}</Text>
                 ) : (
                   <Text style={styles.submitButtonText}>
-                    {selectedReview?.reply ? t.common.save : t.common.send}
+                    {selectedReview?.reply ? (t.common?.save || 'Save') : (t.common?.send || 'Send')}
                   </Text>
                 )}
               </TouchableOpacity>
