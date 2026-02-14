@@ -81,17 +81,25 @@ export async function decodeVIN(vin: string): Promise<DecodedVehicleData> {
 
     // Extrair informações principais
     const make = getValue('Make');
-    const model = getValue('Model');
+    const rawModel = getValue('Model');
+    const series = getValue('Series');
     const yearStr = getValue('Model Year');
     const engineType = getValue('Engine Model') || getValue('Engine Number of Cylinders');
     const fuelType = getValue('Fuel Type - Primary');
     const bodyType = getValue('Body Class');
-    const trim = getValue('Trim') || getValue('Series');
+    const trim = getValue('Trim');
     const driveType = getValue('Drive Type');
     const numberOfRowsStr = getValue('Number of Seat Rows');
     const seatingCapacityStr = getValue('Number of Seats');
     const countryOfManufacturer = getValue('Plant Country');
     const category = getValue('Vehicle Type');
+
+    // Combine model with series for full model name (e.g., "Sierra" + "1500" = "Sierra 1500")
+    // Only append series if it's different from trim and not already in the model name
+    let model = rawModel;
+    if (model && series && series !== trim && !model.includes(series)) {
+      model = `${model} ${series}`;
+    }
 
     // Verificar se pelo menos Make, Model e Year foram encontrados
     if (!make || !model || !yearStr) {

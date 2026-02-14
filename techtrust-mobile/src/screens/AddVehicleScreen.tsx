@@ -123,7 +123,6 @@ export default function AddVehicleScreen({ navigation }: any) {
         setModel(result.data.model);
         setYear(result.data.year.toString());
         setEngineType(result.data.engineType || '');
-        setFuelType(result.data.fuelType || '');
         setBodyType(result.data.bodyType || '');
         setTrim(result.data.trim || '');
         setDriveType(result.data.driveType || '');
@@ -133,6 +132,58 @@ export default function AddVehicleScreen({ navigation }: any) {
         setCategory(result.data.category || '');
         setVinDecoded(true);
         setManualEntry(false);
+
+        // Auto-fill Fuel Type - map NHTSA values to app chip labels
+        const nfuel = (result.data.fuelType || '').toLowerCase();
+        if (nfuel.includes('gasoline') || nfuel === 'gas') {
+          setFuelType('Gasoline');
+        } else if (nfuel.includes('diesel')) {
+          setFuelType('Diesel');
+        } else if (nfuel.includes('plug-in') || nfuel.includes('plugin')) {
+          setFuelType('Plug-in Hybrid');
+        } else if (nfuel.includes('hybrid') || nfuel.includes('electric/gas')) {
+          setFuelType('Hybrid');
+        } else if (nfuel.includes('electric') || nfuel.includes('bev')) {
+          setFuelType('Electric');
+        } else if (nfuel.includes('flex') || nfuel.includes('ffv') || nfuel.includes('e85') || nfuel.includes('ethanol')) {
+          setFuelType('E85 / Flex Fuel');
+        } else if (nfuel.includes('cng') || nfuel.includes('natural gas') || nfuel.includes('compressed')) {
+          setFuelType('Natural Gas (CNG)');
+        } else if (nfuel.includes('hydrogen') || nfuel.includes('fuel cell')) {
+          setFuelType('Hydrogen');
+        } else {
+          setFuelType(result.data.fuelType || '');
+        }
+
+        // Auto-fill Vehicle Type - map NHTSA bodyType/category to app chip labels
+        const bodyLower = (result.data.bodyType || '').toLowerCase();
+        const catLower = (result.data.category || '').toLowerCase();
+        if (bodyLower.includes('pickup') || (catLower.includes('truck') && !catLower.includes('multipurpose'))) {
+          setVehicleType('Pickup Truck');
+        } else if (bodyLower.includes('sedan') || bodyLower.includes('hatchback') || bodyLower.includes('liftback')) {
+          setVehicleType('Car');
+        } else if (bodyLower.includes('suv') || bodyLower.includes('sport utility') || catLower.includes('multipurpose')) {
+          setVehicleType('SUV');
+        } else if (bodyLower.includes('van') || bodyLower.includes('minivan')) {
+          setVehicleType('Van / Minivan');
+        } else if (bodyLower.includes('convertible') || bodyLower.includes('cabriolet') || bodyLower.includes('roadster')) {
+          setVehicleType('Convertible');
+        } else if (bodyLower.includes('coupe')) {
+          setVehicleType('Coupe');
+        } else if (bodyLower.includes('wagon') || bodyLower.includes('estate')) {
+          setVehicleType('Wagon');
+        } else if (bodyLower.includes('bus') || bodyLower.includes('motorhome') || catLower.includes('bus')) {
+          setVehicleType('Bus / RV');
+        } else if (bodyLower.includes('motorcycle') || catLower.includes('motorcycle')) {
+          setVehicleType('Motorcycle');
+        } else if (catLower.includes('truck') || bodyLower.includes('truck') || bodyLower.includes('cab chassis') || bodyLower.includes('incomplete')) {
+          setVehicleType('Light Truck');
+        } else if (bodyLower.includes('crossover')) {
+          setVehicleType('SUV');
+        } else {
+          // Fallback: try to match category text
+          if (catLower.includes('passenger')) setVehicleType('Car');
+        }
         
         Alert.alert(
           t.vehicle?.success || 'Sucesso!',
@@ -369,6 +420,7 @@ export default function AddVehicleScreen({ navigation }: any) {
         seatingCapacity: seatingCapacity ? parseInt(seatingCapacity) : undefined,
         countryOfManufacturer: countryOfManufacturer || undefined,
         category: category || undefined,
+        vehicleType: vehicleType || undefined,
         vinDecoded,
         photos: photos.map(p => p.uri),
       };
