@@ -1593,7 +1593,7 @@ export default function CreateRequestScreen({ navigation }: any) {
         </View>
 
         {/* Vehicle Type */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, marginTop: 4 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, marginTop: 0 }}>
           <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>
             {t.createRequest?.vehicleTypeLabel || "Vehicle Type"} *
           </Text>
@@ -1610,9 +1610,9 @@ export default function CreateRequestScreen({ navigation }: any) {
           {[
             { id: "car", label: t.createRequest?.vtCar || "Car / Sedan", mciIcon: "car-side" },
             { id: "suv", label: t.createRequest?.vtSuv || "SUV / Crossover", mciIcon: "car-estate" },
-            { id: "truck", label: t.createRequest?.vtTruck || "Pickup Truck", mciIcon: "truck-pickup" },
+            { id: "truck", label: t.createRequest?.vtTruck || "Pickup Truck", mciIcon: "truck" },
             { id: "van", label: t.createRequest?.vtVan || "Van / Minivan", mciIcon: "van-passenger" },
-            { id: "heavy_truck", label: t.createRequest?.vtHeavyTruck || "Heavy Truck / Semi", mciIcon: "truck-cargo-container" },
+            { id: "heavy_truck", label: t.createRequest?.vtHeavyTruck || "Heavy Truck / Semi", mciIcon: "truck-trailer" },
             { id: "bus", label: t.createRequest?.vtBus || "Bus / RV", mciIcon: "rv-truck" },
           ].map((vt) => (
             <TouchableOpacity
@@ -2251,7 +2251,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
-    marginBottom: 4,
+    marginBottom: 0,
   },
   serviceCard: {
     width: "31%",

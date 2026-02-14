@@ -14,10 +14,13 @@ import {
   ActivityIndicator,
   Animated,
   Dimensions,
+  Image,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
+import * as ImagePicker from 'expo-image-picker';
 import { useI18n } from '../../i18n';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
@@ -89,6 +92,9 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
   const [uploading, setUploading] = useState(false);
   const [uploadedDocs, setUploadedDocs] = useState<Record<string, string[]>>({});
   const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set(['welcome']));
+  const [previewUri, setPreviewUri] = useState<string | null>(null);
+  const [previewMime, setPreviewMime] = useState<string>('image/jpeg');
+  const [previewName, setPreviewName] = useState<string>('photo.jpg');
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
 
@@ -125,7 +131,57 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
   };
 
   // ─── Upload document ───
-  const handleUpload = async () => {
+  const handleUpload = () => {
+    Alert.alert(
+      t.provider?.uploadDocument || 'Upload Document',
+      t.provider?.chooseSource || 'How would you like to add your document?',
+      [
+        {
+          text: t.provider?.takePhoto || 'Take Photo',
+          onPress: handleCameraCapture,
+        },
+        {
+          text: t.provider?.chooseFile || 'Choose File',
+          onPress: handleFilePicker,
+        },
+        { text: t.common?.cancel || 'Cancel', style: 'cancel' },
+      ],
+    );
+  };
+
+  // ─── Camera capture ───
+  const handleCameraCapture = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          t.common?.error || 'Error',
+          t.provider?.cameraPermissionRequired || 'Camera permission is required to take photos.',
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        quality: 0.8,
+        allowsEditing: false,
+      });
+
+      if (result.canceled || !result.assets?.[0]) return;
+
+      const photo = result.assets[0];
+      // Show photo review before uploading
+      setPreviewUri(photo.uri);
+      setPreviewMime(photo.mimeType || 'image/jpeg');
+      setPreviewName(photo.fileName || `photo_${Date.now()}.jpg`);
+    } catch (error) {
+      console.error('Camera error:', error);
+      Alert.alert(t.common?.error || 'Error', t.provider?.cameraFailed || 'Could not open camera. Please try again.');
+    }
+  };
+
+  // ─── File picker ───
+  const handleFilePicker = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: ['image/*', 'application/pdf'],
@@ -135,13 +191,47 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
       if (result.canceled || !result.assets?.[0]) return;
 
       const file = result.assets[0];
+      const isPDF = file.mimeType === 'application/pdf';
+      
+      if (isPDF) {
+        // PDFs go straight to upload (can't preview)
+        await uploadFile(file.uri, file.mimeType || 'application/pdf', file.name || 'document.pdf');
+      } else {
+        // Images get a preview
+        setPreviewUri(file.uri);
+        setPreviewMime(file.mimeType || 'image/jpeg');
+        setPreviewName(file.name || 'document.jpg');
+      }
+    } catch (error) {
+      console.error('File picker error:', error);
+      Alert.alert(t.common?.error || 'Error', t.provider?.uploadFailed || 'Failed to upload document. Please try again.');
+    }
+  };
+
+  // ─── Confirm photo from preview ───
+  const handleConfirmPhoto = async () => {
+    if (previewUri) {
+      await uploadFile(previewUri, previewMime, previewName);
+      setPreviewUri(null);
+    }
+  };
+
+  // ─── Retake photo ───
+  const handleRetakePhoto = () => {
+    setPreviewUri(null);
+    handleCameraCapture();
+  };
+
+  // ─── Upload file to server ───
+  const uploadFile = async (uri: string, mimeType: string, fileName: string) => {
+    try {
       setUploading(true);
 
       const formData = new FormData();
       formData.append('image', {
-        uri: file.uri,
-        type: file.mimeType || 'image/jpeg',
-        name: file.name || 'document.jpg',
+        uri: uri,
+        type: mimeType || 'image/jpeg',
+        name: fileName || 'document.jpg',
       } as any);
 
       const uploadRes = await api.post('/upload', formData, {
@@ -198,12 +288,12 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
     }
   };
 
-  // ─── Handle action step (navigate to another screen) ───
+  // ─── Handle action step (navigate to services screen) ───
   const handleAction = () => {
     if (step.actionRoute) {
       setCompletedSteps(prev => new Set([...prev, step.id]));
-      // Navigate to the screen within the profile stack
-      navigation.navigate('ProfileTab', { screen: step.actionRoute });
+      // Navigate to standalone services screen within the onboarding stack
+      navigation.navigate('OnboardingServices');
     }
   };
 
@@ -216,12 +306,11 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
       } catch (e) {
         console.log('Auto-create compliance deferred:', e);
       }
-      // Mark onboarding as done and navigate to main app
+      // Mark onboarding as done — RootNavigator will automatically
+      // switch from ProviderWithOnboarding to ProviderNavigator
       await completeOnboarding();
-      navigation.replace('ProviderMain');
     } catch (error) {
       await completeOnboarding();
-      navigation.replace('ProviderMain');
     }
   };
 
@@ -237,7 +326,6 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
           style: 'destructive',
           onPress: async () => {
             await completeOnboarding();
-            navigation.replace('ProviderMain');
           },
         },
       ],
@@ -332,14 +420,17 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
                   <ActivityIndicator size="small" color="#1976d2" />
                 ) : (
                   <>
-                    <MaterialCommunityIcons name="cloud-upload" size={32} color="#1976d2" />
+                    <View style={{ flexDirection: 'row', gap: 16, alignItems: 'center' }}>
+                      <MaterialCommunityIcons name="camera" size={28} color="#1976d2" />
+                      <MaterialCommunityIcons name="folder-open" size={28} color="#1976d2" />
+                    </View>
                     <Text style={styles.uploadBtnTitle}>
                       {docsForCurrentStep.length > 0
                         ? (t.provider?.uploadAnother || 'Upload Another Document')
                         : (t.provider?.tapToUpload || 'Tap to Upload Document')}
                     </Text>
                     <Text style={styles.uploadBtnHint}>
-                      {t.provider?.acceptedFormats || 'Accepts images (JPG, PNG) and PDF files'}
+                      {t.provider?.cameraOrFile || 'Take a photo or choose from files (JPG, PNG, PDF)'}
                     </Text>
                   </>
                 )}
@@ -451,6 +542,69 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
           </TouchableOpacity>
         )}
       </View>
+
+      {/* Photo Review Modal */}
+      <Modal
+        visible={!!previewUri}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={() => setPreviewUri(null)}
+      >
+        <SafeAreaView style={styles.previewContainer}>
+          <View style={styles.previewHeader}>
+            <TouchableOpacity onPress={() => setPreviewUri(null)} style={styles.previewCloseBtn}>
+              <MaterialCommunityIcons name="close" size={24} color="#111827" />
+            </TouchableOpacity>
+            <Text style={styles.previewTitle}>
+              {t.provider?.reviewPhoto || 'Review Photo'}
+            </Text>
+            <View style={{ width: 40 }} />
+          </View>
+
+          <View style={styles.previewImageContainer}>
+            {previewUri && (
+              <Image
+                source={{ uri: previewUri }}
+                style={styles.previewImage}
+                resizeMode="contain"
+              />
+            )}
+          </View>
+
+          <Text style={styles.previewHint}>
+            {t.provider?.photoReviewHint || 'Make sure the document is clear and all text is readable.'}
+          </Text>
+
+          <View style={styles.previewActions}>
+            <TouchableOpacity
+              style={styles.previewRetakeBtn}
+              onPress={handleRetakePhoto}
+            >
+              <MaterialCommunityIcons name="camera-retake" size={20} color="#1976d2" />
+              <Text style={styles.previewRetakeText}>
+                {t.provider?.retake || 'Retake'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.previewConfirmBtn}
+              onPress={handleConfirmPhoto}
+              disabled={uploading}
+            >
+              {uploading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <>
+                  <MaterialCommunityIcons name="check" size={20} color="#fff" />
+                  <Text style={styles.previewConfirmText}>
+                    {t.provider?.usePhoto || 'Use Photo'}
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -701,6 +855,87 @@ const styles = StyleSheet.create({
   primaryBtnText: {
     fontSize: 16,
     fontWeight: '700',
+    color: '#fff',
+  },
+  // Photo Review Modal
+  previewContainer: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  previewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#111',
+  },
+  previewCloseBtn: {
+    padding: 8,
+    backgroundColor: '#374151',
+    borderRadius: 20,
+  },
+  previewTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  previewImageContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  previewImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 8,
+  },
+  previewHint: {
+    textAlign: 'center',
+    color: '#9ca3af',
+    fontSize: 13,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+  },
+  previewActions: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    paddingBottom: 24,
+    backgroundColor: '#111',
+  },
+  previewRetakeBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#1976d2',
+    backgroundColor: 'transparent',
+  },
+  previewRetakeText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1976d2',
+  },
+  previewConfirmBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#10b981',
+  },
+  previewConfirmText: {
+    fontSize: 15,
+    fontWeight: '600',
     color: '#fff',
   },
 });

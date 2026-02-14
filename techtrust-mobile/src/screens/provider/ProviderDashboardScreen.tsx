@@ -142,12 +142,12 @@ export default function ProviderDashboardScreen({ navigation }: any) {
             <Image source={logos.noText} style={styles.headerLogo} />
             <View style={styles.headerText}>
               <Text style={styles.greeting}>
-                {t.provider.hello}, {providerName}! 👋
+                {t.provider?.hello || 'Hello'}, {providerName}! 👋
               </Text>
               <Text style={styles.subGreeting}>
                 {stats?.pendingRequests
-                  ? `${stats.pendingRequests} ${t.provider.newRequestsWaiting}`
-                  : t.provider.allCaughtUp}
+                  ? `${stats.pendingRequests} ${t.provider?.newRequestsWaiting || 'new requests waiting'}`
+                  : t.provider?.allCaughtUp || 'All caught up!'}
               </Text>
             </View>
             <TouchableOpacity
@@ -183,7 +183,7 @@ export default function ProviderDashboardScreen({ navigation }: any) {
             </View>
             <Text style={styles.ratingText}>
               {stats?.rating?.toFixed(1)} • {stats?.totalReviews}{" "}
-              {t.provider.reviews}
+              {t.provider?.reviews || 'reviews'}
             </Text>
             <MaterialCommunityIcons
               name="chevron-right"
@@ -201,14 +201,14 @@ export default function ProviderDashboardScreen({ navigation }: any) {
               icon="clipboard-text-outline"
               iconBg="#dbeafe"
               iconColor="#3b82f6"
-              label={t.provider.requests}
+              label={t.provider?.requests || 'Requests'}
               value={stats?.pendingRequests || 0}
             />
             <StatCard
               icon="progress-wrench"
               iconBg="#fef3c7"
               iconColor="#f59e0b"
-              label={t.provider.inProgress}
+              label={t.provider?.inProgress || 'In Progress'}
               value={stats?.activeWorkOrders || 0}
             />
           </View>
@@ -217,14 +217,14 @@ export default function ProviderDashboardScreen({ navigation }: any) {
               icon="check-circle-outline"
               iconBg="#d1fae5"
               iconColor="#10b981"
-              label={t.provider.completed}
+              label={t.provider?.completed || 'Completed'}
               value={stats?.completedThisMonth || 0}
             />
             <StatCard
               icon="cash"
               iconBg="#d1fae5"
               iconColor="#10b981"
-              label={t.provider.earnings}
+              label={t.provider?.earnings || 'Earnings (month)'}
               value={formatCurrency(stats?.earningsThisMonth || 0)}
             />
           </View>
@@ -234,12 +234,12 @@ export default function ProviderDashboardScreen({ navigation }: any) {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>
-              🔔 {t.provider.pendingRequests}
+              🔔 {t.provider?.pendingRequests || 'Pending Requests'}
             </Text>
             <TouchableOpacity
               onPress={() => navigation.navigate("ProviderRequests")}
             >
-              <Text style={styles.seeAll}>{t.provider.seeAll}</Text>
+              <Text style={styles.seeAll}>{t.provider?.seeAll || 'See all'}</Text>
             </TouchableOpacity>
           </View>
 
@@ -261,7 +261,7 @@ export default function ProviderDashboardScreen({ navigation }: any) {
                     {request.isUrgent && (
                       <View style={styles.urgentBadge}>
                         <Text style={styles.urgentText}>
-                          🚨 {t.provider.urgent}
+                          🚨 {t.provider?.urgent || 'Urgent'}
                         </Text>
                       </View>
                     )}
@@ -292,7 +292,7 @@ export default function ProviderDashboardScreen({ navigation }: any) {
         {/* Recent Activity */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            📊 {t.provider.recentActivity}
+            📊 {t.provider?.recentActivity || 'Recent Activity'}
           </Text>
 
           {recentActivity.map((activity) => {
@@ -332,7 +332,7 @@ export default function ProviderDashboardScreen({ navigation }: any) {
 
         {/* Quick Actions */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>⚡ {t.provider.quickActions}</Text>
+          <Text style={styles.sectionTitle}>⚡ {t.provider?.quickActions || 'Quick Actions'}</Text>
           <View style={styles.actionsGrid}>
             <TouchableOpacity
               style={styles.actionButton}
@@ -345,7 +345,7 @@ export default function ProviderDashboardScreen({ navigation }: any) {
                   color="#3b82f6"
                 />
               </View>
-              <Text style={styles.actionText}>{t.provider.viewRequests}</Text>
+              <Text style={styles.actionText}>{t.provider?.viewRequests || 'View Requests'}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -359,7 +359,7 @@ export default function ProviderDashboardScreen({ navigation }: any) {
                   color="#f59e0b"
                 />
               </View>
-              <Text style={styles.actionText}>{t.provider.myServices}</Text>
+              <Text style={styles.actionText}>{t.provider?.myServices || 'My Services'}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -373,7 +373,7 @@ export default function ProviderDashboardScreen({ navigation }: any) {
                   color="#8b5cf6"
                 />
               </View>
-              <Text style={styles.actionText}>{t.provider.quotes}</Text>
+              <Text style={styles.actionText}>{t.provider?.quotes || 'Quotes'}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -383,7 +383,7 @@ export default function ProviderDashboardScreen({ navigation }: any) {
               <View style={[styles.actionIcon, { backgroundColor: "#f3f4f6" }]}>
                 <MaterialCommunityIcons name="cog" size={24} color="#6b7280" />
               </View>
-              <Text style={styles.actionText}>{t.provider.settings}</Text>
+              <Text style={styles.actionText}>{t.provider?.settings || 'Settings'}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity

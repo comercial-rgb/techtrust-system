@@ -814,6 +814,18 @@ export default {
     whatHappensNext: "O Que Acontece Agora?",
     goToDashboard: "Ir para o Dashboard",
     uploadToContinue: "Envie para Continuar",
+    // Camera & document upload
+    uploadDocument: "Enviar Documento",
+    chooseSource: "Como você gostaria de adicionar seu documento?",
+    takePhoto: "Tirar Foto",
+    chooseFile: "Escolher Arquivo",
+    cameraPermissionRequired: "Permissão da câmera é necessária para tirar fotos.",
+    cameraFailed: "Não foi possível abrir a câmera. Tente novamente.",
+    cameraOrFile: "Tire uma foto ou escolha dos arquivos (JPG, PNG, PDF)",
+    reviewPhoto: "Revisar Foto",
+    photoReviewHint: "Certifique-se de que o documento está claro e todo o texto é legível.",
+    retake: "Tirar Outra",
+    usePhoto: "Usar Foto",
   },
 
   // Customer Dashboard

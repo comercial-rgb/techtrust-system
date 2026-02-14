@@ -197,7 +197,7 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
           {/* Title */}
           <Text style={styles.title}>{request?.title}</Text>
           
-          {/* Description - strip duplicated title and meta lines */}
+          {/* Description - clean formatting, no meta duplication */}
           {request?.description && (() => {
             let desc = request.description;
             // Remove enriched meta lines (Vehicle Type: ... | Scope: ...) appended during creation
@@ -206,19 +206,66 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
               desc = desc.substring(0, metaSeparator).trim();
             }
             // If description is just the meta lines (no separator, but starts with "Vehicle Type:")
-            if (desc.startsWith('Vehicle Type:') || desc.startsWith('Scope:')) {
+            if (/^(Vehicle Type:|Scope:)/i.test(desc)) {
               return null;
             }
-            // Remove if description duplicates the title
+            // Remove if description duplicates the title exactly
             if (desc === request?.title) {
               return null;
             }
-            return desc ? (
+            if (!desc) return null;
+
+            // Parse pipe-separated sub-option details into clean lines
+            // Format: "Section Label: Value1, Value2 | Section Label: Value3"
+            const parts = desc.split(' | ').map(p => p.trim()).filter(Boolean);
+            const cleanLines: { label: string; value: string }[] = [];
+            for (const part of parts) {
+              const colonIdx = part.indexOf(': ');
+              if (colonIdx !== -1) {
+                let label = part.substring(0, colonIdx).trim();
+                const value = part.substring(colonIdx + 2).trim();
+                // Shorten verbose question labels
+                label = label
+                  .replace(/\s*\(optional,?\s*select all that apply\)/i, '')
+                  .replace(/\s*\(select all that apply\)/i, '')
+                  .replace(/\s*\(optional\)/i, '')
+                  .replace(/^What type of /i, '')
+                  .replace(/^What needs to be /i, '')
+                  .replace(/^Describe any /i, '')
+                  .replace(/\?$/, '')
+                  .trim();
+                // Skip if the value already appears in the title
+                if (request?.title?.includes(value)) continue;
+                if (value) cleanLines.push({ label, value });
+              } else {
+                // Plain text line
+                if (!request?.title?.includes(part)) {
+                  cleanLines.push({ label: '', value: part });
+                }
+              }
+            }
+
+            if (cleanLines.length === 0) return null;
+
+            return (
               <View style={styles.descriptionBox}>
                 <Ionicons name="document-text-outline" size={16} color="#6b7280" style={{ marginTop: 2 }} />
-                <Text style={styles.description}>{desc}</Text>
+                <View style={{ flex: 1, gap: 6 }}>
+                  {cleanLines.map((line, i) => (
+                    <View key={i}>
+                      {line.label ? (
+                        <>
+                          <Text style={{ fontSize: 12, color: '#9ca3af', fontWeight: '600', marginBottom: 2 }}>{line.label}</Text>
+                          <Text style={styles.description}>{line.value}</Text>
+                        </>
+                      ) : (
+                        <Text style={styles.description}>{line.value}</Text>
+                      )}
+                    </View>
+                  ))}
+                </View>
               </View>
-            ) : null;
+            );
           })()}
           
           {/* Divider */}
@@ -376,9 +423,15 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
           </TouchableOpacity>
         ))}
 
-        {/* Renew Request Button - for requests that can receive more quotes */}
-        {request?.status && !['IN_PROGRESS', 'COMPLETED'].includes(request.status) && (
-          <TouchableOpacity 
+        {/* Renew Request Button - only for cancelled/expired requests */}
+        {request?.status && (() => {
+          const isCancelled = request.status === 'CANCELLED';
+          // Consider a request "expired" if searching for providers for more than 48 hours
+          const isStale = request.status === 'SEARCHING_PROVIDERS' && request.createdAt &&
+            (Date.now() - new Date(request.createdAt).getTime()) > 48 * 60 * 60 * 1000;
+          if (!isCancelled && !isStale) return null;
+          return (
+            <TouchableOpacity 
             style={styles.renewBtn}
             onPress={() => {
               Alert.alert(
@@ -405,7 +458,8 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
             <Ionicons name="refresh" size={20} color="#1976d2" />
             <Text style={styles.renewBtnText}>{t.common?.renewForMoreQuotes || 'Renew Request for More Quotes'}</Text>
           </TouchableOpacity>
-        )}
+          );
+        })()}
 
         <View style={{ height: 40 }} />
       </ScrollView>

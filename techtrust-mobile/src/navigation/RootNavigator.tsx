@@ -18,6 +18,7 @@ import ProviderNavigator from "./ProviderNavigator";
 
 // Onboarding
 import ProviderOnboardingScreen from "../screens/provider/ProviderOnboardingScreen";
+import ProviderServicesScreen from "../screens/provider/ProviderServicesScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -44,6 +45,7 @@ function ProviderWithOnboarding() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="ProviderOnboarding" component={ProviderOnboardingScreen} />
       <Stack.Screen name="ProviderMain" component={ProviderNavigator} />
+      <Stack.Screen name="OnboardingServices" component={ProviderServicesScreen} />
     </Stack.Navigator>
   );
 }
