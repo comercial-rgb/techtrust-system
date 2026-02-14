@@ -1936,8 +1936,8 @@ export default function CreateRequestScreen({ navigation }: any) {
     }
   }
 
-  // Service types - In production, these would be filtered based on available providers in the area
-  // The 'hasProviders' field indicates if there are active providers offering this service
+  // Service types — aligned with provider ServiceOffered enum for proper matching
+  // Icons use Ionicons library
   const serviceTypes = [
     {
       id: "oil",
@@ -1984,9 +1984,15 @@ export default function CreateRequestScreen({ navigation }: any) {
     {
       id: "transmission",
       label: t.createRequest?.serviceTransmission || "Transmission",
-      icon: "cog",
-      hasProviders: false,
-    }, // No providers currently
+      icon: "settings",
+      hasProviders: true,
+    },
+    {
+      id: "battery",
+      label: t.createRequest?.serviceBattery || "Battery",
+      icon: "battery-charging",
+      hasProviders: true,
+    },
     {
       id: "inspection",
       label: t.createRequest?.serviceInspection || "Inspection",
@@ -1994,15 +2000,27 @@ export default function CreateRequestScreen({ navigation }: any) {
       hasProviders: true,
     },
     {
+      id: "diagnostic",
+      label: t.serviceTypes?.diagnostics || "Diagnostics",
+      icon: "pulse",
+      hasProviders: true,
+    },
+    {
+      id: "maintenance",
+      label: t.serviceTypes?.scheduledMaintenance || "Maintenance",
+      icon: "build",
+      hasProviders: true,
+    },
+    {
       id: "detailing",
       label: t.createRequest?.serviceDetailing || "Detailing",
       icon: "sparkles",
-      hasProviders: false,
-    }, // No providers currently
+      hasProviders: true,
+    },
     {
       id: "towing",
       label: t.createRequest?.serviceTowing || "Towing",
-      icon: "car",
+      icon: "car-sport",
       hasProviders: true,
     },
     {
@@ -2015,15 +2033,15 @@ export default function CreateRequestScreen({ navigation }: any) {
       hasProviders: true,
     },
     {
-      id: "battery",
-      label: t.createRequest?.serviceBattery || "Battery",
-      icon: "battery-charging",
-      hasProviders: true,
-    },
-    {
       id: "lockout",
       label: t.createRequest?.serviceLockout || "Lockout",
       icon: "key",
+      hasProviders: true,
+    },
+    {
+      id: "general_repair",
+      label: t.serviceTypes?.generalRepair || "General Repair",
+      icon: "construct",
       hasProviders: true,
     },
     {

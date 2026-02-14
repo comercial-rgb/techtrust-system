@@ -73,7 +73,8 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
   );
   const [loadingVehicles, setLoadingVehicles] = useState(true);
 
-  // Service type
+  // Diagnostic service types — vehicle areas/systems to diagnose
+  // Icons use Ionicons library
   const diagnosticServiceTypes = [
     {
       id: "engine",
@@ -107,7 +108,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
     },
     {
       id: "oil",
-      label: t.createRequest?.serviceOilChange || "Oil Change",
+      label: t.createRequest?.serviceOilChange || "Oil / Fluids",
       icon: "water" as const,
     },
     {
@@ -118,7 +119,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
     {
       id: "steering",
       label: "Steering",
-      icon: "sync" as const,
+      icon: "navigate" as const,
     },
     {
       id: "exhaust",
@@ -138,7 +139,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
     {
       id: "check_engine_light",
       label: "Check Engine Light",
-      icon: "warning" as const,
+      icon: "alert-circle" as const,
     },
     {
       id: "noise_vibration",
@@ -148,12 +149,12 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
     {
       id: "starting_issues",
       label: "Starting Issues",
-      icon: "key" as const,
+      icon: "power" as const,
     },
     {
       id: "drivetrain",
       label: "Drivetrain / 4WD",
-      icon: "git-merge" as const,
+      icon: "speedometer" as const,
     },
     {
       id: "battery",
@@ -168,7 +169,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
     {
       id: "pre_purchase",
       label: "Pre-Purchase Inspection",
-      icon: "cart" as const,
+      icon: "search" as const,
     },
     {
       id: "other",

@@ -11,29 +11,7 @@ import { prisma } from "../config/database";
 import { AppError } from "../middleware/error-handler";
 import { logger } from "../config/logger";
 import { geocodeAddress } from "../services/geocoding.service";
-
-/**
- * Map mobile app service-type IDs to Prisma ServiceType enum values.
- * The mobile sends short IDs like "oil", "brake", etc.
- */
-const SERVICE_TYPE_MAP: Record<string, string> = {
-  oil: "SCHEDULED_MAINTENANCE",
-  brake: "REPAIR",
-  tire: "REPAIR",
-  engine: "REPAIR",
-  electric: "REPAIR",
-  ac: "REPAIR",
-  suspension: "REPAIR",
-  transmission: "REPAIR",
-  inspection: "INSPECTION",
-  detailing: "DETAILING",
-  towing: "ROADSIDE_SOS",
-  roadside: "ROADSIDE_SOS",
-  battery: "ROADSIDE_SOS",
-  lockout: "ROADSIDE_SOS",
-  diagnostic: "DIAGNOSTIC",
-  other: "REPAIR",
-};
+import { SERVICE_TYPE_MAP } from "../config/service-type-mapping";
 
 function resolveServiceType(raw: string): ServiceType {
   // If it already matches a Prisma enum value, use it directly

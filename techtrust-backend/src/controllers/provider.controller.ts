@@ -9,6 +9,7 @@ import { Request, Response } from "express";
 import { prisma } from "../config/database";
 import { geocodeAddress, formatAddress } from "../services/geocoding.service";
 import { findProvidersWithinRadius } from "../utils/distance";
+import { RAW_TO_SERVICE_OFFERED } from "../config/service-type-mapping";
 
 /**
  * GET /api/v1/providers/dashboard
@@ -182,25 +183,6 @@ export const getAvailableRequests = async (req: Request, res: Response) => {
   });
 
   // Same mapping as getPendingRequests
-  const RAW_TO_SERVICE_OFFERED: Record<string, string[]> = {
-    oil: ["OIL_CHANGE", "MAINTENANCE_LIGHT", "GENERAL_REPAIR"],
-    brake: ["BRAKES", "GENERAL_REPAIR"],
-    tire: ["TIRES", "GENERAL_REPAIR"],
-    engine: ["ENGINE", "GENERAL_REPAIR"],
-    electric: ["ELECTRICAL_BASIC", "GENERAL_REPAIR"],
-    ac: ["AC_SERVICE", "GENERAL_REPAIR"],
-    suspension: ["SUSPENSION", "GENERAL_REPAIR"],
-    transmission: ["TRANSMISSION", "GENERAL_REPAIR"],
-    inspection: ["INSPECTION", "DIAGNOSTICS"],
-    detailing: ["DETAILING"],
-    towing: ["TOWING", "ROADSIDE_ASSIST"],
-    roadside: ["ROADSIDE_ASSIST", "TOWING"],
-    battery: ["BATTERY", "ROADSIDE_ASSIST", "ELECTRICAL_BASIC"],
-    lockout: ["LOCKOUT", "ROADSIDE_ASSIST"],
-    diagnostic: ["DIAGNOSTICS"],
-    other: ["GENERAL_REPAIR"],
-  };
-
   // Filter by provider capabilities
   const filteredRequests = allRequests.filter((r) => {
     if (providerServices.length === 0) return true;
@@ -734,26 +716,6 @@ export const getPendingRequests = async (req: Request, res: Response) => {
       user: { select: { city: true, state: true } },
     },
   });
-
-  // Mapping from raw mobile service type to ServiceOffered enum
-  const RAW_TO_SERVICE_OFFERED: Record<string, string[]> = {
-    oil: ["OIL_CHANGE", "MAINTENANCE_LIGHT", "GENERAL_REPAIR"],
-    brake: ["BRAKES", "GENERAL_REPAIR"],
-    tire: ["TIRES", "GENERAL_REPAIR"],
-    engine: ["ENGINE", "GENERAL_REPAIR"],
-    electric: ["ELECTRICAL_BASIC", "GENERAL_REPAIR"],
-    ac: ["AC_SERVICE", "GENERAL_REPAIR"],
-    suspension: ["SUSPENSION", "GENERAL_REPAIR"],
-    transmission: ["TRANSMISSION", "GENERAL_REPAIR"],
-    inspection: ["INSPECTION", "DIAGNOSTICS"],
-    detailing: ["DETAILING"],
-    towing: ["TOWING", "ROADSIDE_ASSIST"],
-    roadside: ["ROADSIDE_ASSIST", "TOWING"],
-    battery: ["BATTERY", "ROADSIDE_ASSIST", "ELECTRICAL_BASIC"],
-    lockout: ["LOCKOUT", "ROADSIDE_ASSIST"],
-    diagnostic: ["DIAGNOSTICS"],
-    other: ["GENERAL_REPAIR"],
-  };
 
   // Filter requests by provider capabilities
   const filteredRequests = requests.filter((r) => {
