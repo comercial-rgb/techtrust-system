@@ -1118,10 +1118,18 @@ export const verifyOTP = async (req: Request, res: Response) => {
             ? {
                 id: updatedUser.providerProfile.id,
                 businessName: updatedUser.providerProfile.businessName,
+                businessType: updatedUser.providerProfile.businessType,
                 servicesOffered: updatedUser.providerProfile.servicesOffered,
                 vehicleTypesServed:
                   updatedUser.providerProfile.vehicleTypesServed,
                 sellsParts: updatedUser.providerProfile.sellsParts,
+                isVerified: updatedUser.providerProfile.isVerified,
+                averageRating: Number(updatedUser.providerProfile.averageRating || 0),
+                totalReviews: updatedUser.providerProfile.totalReviews,
+                description: updatedUser.providerProfile.description,
+                website: updatedUser.providerProfile.website,
+                address: updatedUser.providerProfile.address,
+                fdacsRegistrationNumber: updatedUser.providerProfile.fdacsRegistrationNumber,
               }
             : undefined,
         },
@@ -1391,6 +1399,23 @@ export const login = async (req: Request, res: Response) => {
           role: user.role,
           language: user.language,
           phoneVerified: user.phoneVerified,
+          providerProfile: user.providerProfile
+            ? {
+                id: user.providerProfile.id,
+                businessName: user.providerProfile.businessName,
+                businessType: user.providerProfile.businessType,
+                servicesOffered: user.providerProfile.servicesOffered,
+                vehicleTypesServed: user.providerProfile.vehicleTypesServed,
+                sellsParts: user.providerProfile.sellsParts,
+                isVerified: user.providerProfile.isVerified,
+                averageRating: Number(user.providerProfile.averageRating || 0),
+                totalReviews: user.providerProfile.totalReviews,
+                description: user.providerProfile.description,
+                website: user.providerProfile.website,
+                address: user.providerProfile.address,
+                fdacsRegistrationNumber: user.providerProfile.fdacsRegistrationNumber,
+              }
+            : undefined,
         },
       },
     });

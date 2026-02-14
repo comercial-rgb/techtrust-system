@@ -122,7 +122,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const response = await api.get("/users/me");
         if (response.data?.data) {
           // Token válido, atualizar dados do usuário
-          const apiUser = response.data.data;
+          // /users/me returns { data: { user: {...}, subscription: {...} } }
+          const rawData = response.data.data;
+          const apiUser = rawData.user || rawData; // support both nested and flat formats
           const normalizedUser: User = {
             id: apiUser.id,
             email: apiUser.email,
@@ -133,9 +135,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               ? {
                   businessName: apiUser.providerProfile.businessName || "",
                   businessType: apiUser.providerProfile.businessType || "",
-                  averageRating: apiUser.providerProfile.averageRating || 0,
+                  averageRating: Number(apiUser.providerProfile.averageRating || 0),
                   totalReviews: apiUser.providerProfile.totalReviews || 0,
-                  isVerified: apiUser.providerProfile.isVerified || false,
+                  isVerified: apiUser.providerProfile.isVerified === true,
                   description: apiUser.providerProfile.description,
                   website: apiUser.providerProfile.website,
                   address: apiUser.providerProfile.address,
@@ -213,9 +215,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ? {
               businessName: apiUser.providerProfile.businessName || "",
               businessType: apiUser.providerProfile.businessType || "",
-              averageRating: apiUser.providerProfile.averageRating || 0,
+              averageRating: Number(apiUser.providerProfile.averageRating || 0),
               totalReviews: apiUser.providerProfile.totalReviews || 0,
-              isVerified: apiUser.providerProfile.isVerified || false,
+              isVerified: apiUser.providerProfile.isVerified === true,
               description: apiUser.providerProfile.description,
               website: apiUser.providerProfile.website,
               address: apiUser.providerProfile.address,
@@ -282,9 +284,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ? {
               businessName: apiUser.providerProfile.businessName || "",
               businessType: apiUser.providerProfile.businessType || "",
-              averageRating: apiUser.providerProfile.averageRating || 0,
+              averageRating: Number(apiUser.providerProfile.averageRating || 0),
               totalReviews: apiUser.providerProfile.totalReviews || 0,
-              isVerified: apiUser.providerProfile.isVerified || false,
+              isVerified: apiUser.providerProfile.isVerified === true,
               description: apiUser.providerProfile.description,
               website: apiUser.providerProfile.website,
               address: apiUser.providerProfile.address,
@@ -477,9 +479,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             ? {
                 businessName: data.user.providerProfile.businessName || "",
                 businessType: data.user.providerProfile.businessType || "",
-                averageRating: data.user.providerProfile.averageRating || 0,
+                averageRating: Number(data.user.providerProfile.averageRating || 0),
                 totalReviews: data.user.providerProfile.totalReviews || 0,
-                isVerified: data.user.providerProfile.isVerified || false,
+                isVerified: data.user.providerProfile.isVerified === true,
               }
             : undefined,
         };
@@ -550,9 +552,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             ? {
                 businessName: data.user.providerProfile.businessName || "",
                 businessType: data.user.providerProfile.businessType || "",
-                averageRating: data.user.providerProfile.averageRating || 0,
+                averageRating: Number(data.user.providerProfile.averageRating || 0),
                 totalReviews: data.user.providerProfile.totalReviews || 0,
-                isVerified: data.user.providerProfile.isVerified || false,
+                isVerified: data.user.providerProfile.isVerified === true,
               }
             : undefined,
         };

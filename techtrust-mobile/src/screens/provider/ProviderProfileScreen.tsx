@@ -95,8 +95,8 @@ export default function ProviderProfileScreen({ navigation }: any) {
       setStats({
         totalServices: data.totalServices || 0,
         completedThisMonth: data.completedThisMonth || 0,
-        totalEarnings: data.totalEarnings || 0,
-        rating: data.rating || 0,
+        totalEarnings: Number(data.totalEarnings || 0),
+        rating: Number(data.rating || 0),
         totalReviews: data.totalReviews || 0,
         responseRate: data.responseRate || 0,
         acceptanceRate: data.acceptanceRate || 0,
@@ -198,7 +198,7 @@ export default function ProviderProfileScreen({ navigation }: any) {
               ))}
             </View>
             <Text style={styles.ratingText}>
-              {stats?.rating?.toFixed(1)} • {stats?.totalReviews}{" "}
+              {Number(stats?.rating || 0).toFixed(1)} • {stats?.totalReviews}{" "}
               {t.provider?.reviews || "reviews"}
             </Text>
           </View>
@@ -252,7 +252,7 @@ export default function ProviderProfileScreen({ navigation }: any) {
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Text style={[styles.statValue, { color: "#10b981" }]}>
-              ${((stats?.totalEarnings || 0) / 1000).toFixed(1)}k
+              ${(Number(stats?.totalEarnings || 0) / 1000).toFixed(1)}k
             </Text>
             <Text style={styles.statLabel}>
               {t.provider?.earnings || "Earnings"}

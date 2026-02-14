@@ -100,10 +100,10 @@ export const getDashboard = async (req: Request, res: Response) => {
         activeQuotes,
         activeWorkOrders,
         completedServices,
-        averageRating: profile?.averageRating || 0,
+        averageRating: Number(profile?.averageRating || 0),
         totalReviews: profile?.totalReviews || 0,
-        pendingPayments: pendingPayments._sum.providerAmount || 0,
-        totalRevenue: totalRevenue._sum?.providerAmount || 0,
+        pendingPayments: Number(pendingPayments._sum.providerAmount || 0),
+        totalRevenue: Number(totalRevenue._sum?.providerAmount || 0),
       },
       recentWorkOrders,
     },
@@ -584,8 +584,8 @@ export const getDashboardStats = async (req: Request, res: Response) => {
       pendingRequests,
       activeWorkOrders,
       completedThisMonth,
-      earningsThisMonth: earningsThisMonth._sum.providerAmount || 0,
-      rating: profile?.averageRating || 0,
+      earningsThisMonth: Number(earningsThisMonth._sum.providerAmount || 0),
+      rating: Number(profile?.averageRating || 0),
       totalReviews: profile?.totalReviews || 0,
     },
   });
@@ -655,7 +655,7 @@ export const getRecentActivity = async (req: Request, res: Response) => {
       title: q.status === "ACCEPTED" ? "Quote accepted!" : "Quote sent",
       description: `${q.serviceRequest.title} - ${q.serviceRequest.vehicle?.make} ${q.serviceRequest.vehicle?.model}`,
       time: formatTimeAgo(q.createdAt),
-      amount: q.status === "ACCEPTED" ? q.totalAmount : undefined,
+      amount: q.status === "ACCEPTED" ? Number(q.totalAmount) : undefined,
     });
   });
 
@@ -666,7 +666,7 @@ export const getRecentActivity = async (req: Request, res: Response) => {
       title: "Payment received",
       description: p.workOrder?.serviceRequest?.title || "Service",
       time: formatTimeAgo(p.capturedAt || p.createdAt),
-      amount: p.providerAmount,
+      amount: Number(p.providerAmount),
     });
   });
 

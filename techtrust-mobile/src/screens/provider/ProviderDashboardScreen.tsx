@@ -56,12 +56,7 @@ interface PendingRequest {
 
 export default function ProviderDashboardScreen({ navigation }: any) {
   const { user } = useAuth();
-  const i18n = useI18n();
-  // Safety guards — prevent "undefined is not a function"
-  const t = i18n?.t || ({} as any);
-  const formatCurrency = typeof i18n?.formatCurrency === 'function'
-    ? i18n.formatCurrency
-    : (n: number) => `$${Number(n || 0).toFixed(2)}`;
+  const { t, formatCurrency } = useI18n();
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -133,8 +128,6 @@ export default function ProviderDashboardScreen({ navigation }: any) {
   const providerName =
     user?.providerProfile?.businessName || user?.fullName || "Fornecedor";
 
-  // Defensive try-catch — catch ANY render error and show diagnostic instead of crashing
-  try {
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <ScrollView
@@ -179,7 +172,7 @@ export default function ProviderDashboardScreen({ navigation }: any) {
                 <MaterialCommunityIcons
                   key={star}
                   name={
-                    star <= Math.floor(stats?.rating || 0)
+                    star <= Math.floor(Number(stats?.rating || 0))
                       ? "star"
                       : "star-outline"
                   }
@@ -189,7 +182,7 @@ export default function ProviderDashboardScreen({ navigation }: any) {
               ))}
             </View>
             <Text style={styles.ratingText}>
-              {stats?.rating?.toFixed(1)} • {stats?.totalReviews}{" "}
+              {Number(stats?.rating || 0).toFixed(1)} • {stats?.totalReviews}{" "}
               {t.provider?.reviews || "reviews"}
             </Text>
             <MaterialCommunityIcons
@@ -232,7 +225,7 @@ export default function ProviderDashboardScreen({ navigation }: any) {
               iconBg="#d1fae5"
               iconColor="#10b981"
               label={t.provider?.earnings || "Earnings (month)"}
-              value={formatCurrency(stats?.earningsThisMonth || 0)}
+              value={formatCurrency(Number(stats?.earningsThisMonth || 0))}
             />
           </View>
         </View>
@@ -447,27 +440,6 @@ export default function ProviderDashboardScreen({ navigation }: any) {
       </ScrollView>
     </SafeAreaView>
   );
-  } catch (renderError: any) {
-    // Fallback UI — shows which expression crashed
-    return (
-      <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
-        <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 12 }}>Dashboard Render Error</Text>
-        <Text style={{ fontSize: 13, color: '#ef4444', textAlign: 'center', marginBottom: 16 }} selectable>
-          {String(renderError?.message || renderError)}
-        </Text>
-        <Text style={{ fontSize: 11, color: '#6b7280', textAlign: 'center' }} selectable>
-          formatCurrency type: {typeof formatCurrency}{'\n'}
-          t type: {typeof t}{'\n'}
-          t.provider type: {typeof t?.provider}{'\n'}
-          t.fdacs type: {typeof t?.fdacs}{'\n'}
-          user role: {user?.role}{'\n'}
-          stats: {stats ? 'loaded' : 'null'}{'\n'}
-          recentActivity: {recentActivity?.length ?? 'null'}{'\n'}
-          pendingRequests: {pendingRequests?.length ?? 'null'}
-        </Text>
-      </SafeAreaView>
-    );
-  }
 }
 
 // Componente StatCard
