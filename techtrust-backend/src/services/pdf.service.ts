@@ -430,7 +430,7 @@ export async function generateRepairInvoicePdf(
             stack: [
               { text: "LABOR CHARGES BASED ON", style: "sectionTitle" },
               {
-                text: `${invoice.laborChargeType === 'FLAT_RATE' ? 'Flat Rate' : invoice.laborChargeType === 'HOURLY' ? 'Hourly Rate' : 'Both Flat Rate and Hourly Rate'}${invoice.hourlyRate ? ` — $${Number(invoice.hourlyRate).toFixed(2)}/hour` : ''}`,
+                text: `${invoice.laborChargeType === "FLAT_RATE" ? "Flat Rate" : invoice.laborChargeType === "HOURLY" ? "Hourly Rate" : "Both Flat Rate and Hourly Rate"}${invoice.hourlyRate ? ` — $${Number(invoice.hourlyRate).toFixed(2)}/hour` : ""}`,
                 fontSize: 10,
               },
             ],
@@ -454,7 +454,9 @@ export async function generateRepairInvoicePdf(
         : {},
 
       // FDACS mandatory statements (§559.905(1)(h))
-      (Number(invoice.shopSuppliesFee) > 0 || Number(invoice.tireFee) > 0 || Number(invoice.batteryFee) > 0)
+      Number(invoice.shopSuppliesFee) > 0 ||
+      Number(invoice.tireFee) > 0 ||
+      Number(invoice.batteryFee) > 0
         ? {
             stack: [
               { text: "REGULATORY NOTICES", style: "sectionTitle" },

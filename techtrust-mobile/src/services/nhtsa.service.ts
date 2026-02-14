@@ -3,7 +3,7 @@
  * Serviço para decodificar VIN via backend
  */
 
-import api from './api';
+import api from "./api";
 
 export interface VehicleData {
   make: string;
@@ -32,24 +32,25 @@ export interface DecodeVINResponse {
  */
 export async function decodeVIN(vin: string): Promise<DecodeVINResponse> {
   try {
-    const response = await api.post('/vehicles/decode-vin', { vin });
-    
+    const response = await api.post("/vehicles/decode-vin", { vin });
+
     if (response.data.success && response.data.data) {
       return {
         success: true,
         data: response.data.data,
       };
     }
-    
+
     return {
       success: false,
-      error: 'Erro ao decodificar VIN',
+      error: "Erro ao decodificar VIN",
     };
   } catch (error: any) {
-    console.error('Erro ao decodificar VIN:', error);
-    
-    const errorMessage = error.response?.data?.message || 'Erro ao decodificar VIN';
-    
+    console.error("Erro ao decodificar VIN:", error);
+
+    const errorMessage =
+      error.response?.data?.message || "Erro ao decodificar VIN";
+
     return {
       success: false,
       error: errorMessage,

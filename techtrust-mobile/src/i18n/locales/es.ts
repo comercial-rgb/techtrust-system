@@ -807,7 +807,8 @@ export default {
     documentUploaded: "¡Documento subido exitosamente!",
     uploadFailed: "Error al subir documento. Inténtalo de nuevo.",
     skipOnboarding: "¿Omitir Configuración?",
-    skipOnboardingMessage: "Puedes subir documentos después desde Perfil → Cumplimiento. Tu cuenta puede tener funcionalidades limitadas hasta que los documentos sean verificados.",
+    skipOnboardingMessage:
+      "Puedes subir documentos después desde Perfil → Cumplimiento. Tu cuenta puede tener funcionalidades limitadas hasta que los documentos sean verificados.",
     skipAnyway: "Omitir",
     uploadAnother: "Subir Otro Documento",
     tapToUpload: "Toca para Subir Documento",
@@ -827,7 +828,8 @@ export default {
     cameraFailed: "No se pudo abrir la cámara. Inténtalo de nuevo.",
     cameraOrFile: "Toma una foto o elige de archivos (JPG, PNG, PDF)",
     reviewPhoto: "Revisar Foto",
-    photoReviewHint: "Asegúrate de que el documento sea claro y todo el texto sea legible.",
+    photoReviewHint:
+      "Asegúrate de que el documento sea claro y todo el texto sea legible.",
     retake: "Retomar",
     usePhoto: "Usar Foto",
   },

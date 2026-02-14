@@ -20,7 +20,7 @@ import { TextInput, Text, useTheme } from "react-native-paper";
 import { useAuth } from "../contexts/AuthContext";
 import { useI18n } from "../i18n";
 import { Ionicons } from "@expo/vector-icons";
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
 // ✨ Importando componentes de UI
 import {
@@ -83,9 +83,11 @@ export default function SignupScreen({ navigation }: any) {
   const [businessCity, setBusinessCity] = useState("");
   const [businessState, setBusinessState] = useState("");
   const [businessZipCode, setBusinessZipCode] = useState("");
-  const [providerServices, setProviderServices] = useState<Set<string>>(new Set());
+  const [providerServices, setProviderServices] = useState<Set<string>>(
+    new Set(),
+  );
   const [providerVehicleTypes, setProviderVehicleTypes] = useState<Set<string>>(
-    new Set(['CAR', 'SUV', 'TRUCK', 'VAN']), // common defaults
+    new Set(["CAR", "SUV", "TRUCK", "VAN"]), // common defaults
   );
   const [providerSellsParts, setProviderSellsParts] = useState(false);
 
@@ -140,44 +142,56 @@ export default function SignupScreen({ navigation }: any) {
 
   // ─── Provider Service & Vehicle Type definitions for signup ───
   const SIGNUP_SERVICES = [
-    { key: 'OIL_CHANGE', label: 'Oil Change', icon: 'oil' },
-    { key: 'BRAKES', label: 'Brakes', icon: 'car-brake-abs' },
-    { key: 'TIRES', label: 'Tires', icon: 'tire' },
-    { key: 'ENGINE', label: 'Engine', icon: 'engine' },
-    { key: 'TRANSMISSION', label: 'Transmission', icon: 'car-shift-pattern' },
-    { key: 'ELECTRICAL_BASIC', label: 'Electrical', icon: 'flash' },
-    { key: 'AC_SERVICE', label: 'A/C & Heating', icon: 'air-conditioner' },
-    { key: 'SUSPENSION', label: 'Suspension', icon: 'car-traction-control' },
-    { key: 'BATTERY', label: 'Battery', icon: 'car-battery' },
-    { key: 'EXHAUST', label: 'Exhaust', icon: 'pipe' },
-    { key: 'COOLING_SYSTEM', label: 'Cooling System', icon: 'coolant-temperature' },
-    { key: 'FUEL_SYSTEM', label: 'Fuel System', icon: 'gas-station' },
-    { key: 'STEERING', label: 'Steering', icon: 'steering' },
-    { key: 'DRIVETRAIN', label: 'Drivetrain / 4WD', icon: 'car-traction-control' },
-    { key: 'INSPECTION', label: 'Inspection', icon: 'clipboard-check' },
-    { key: 'DIAGNOSTICS', label: 'Diagnostics', icon: 'stethoscope' },
-    { key: 'EMISSIONS', label: 'Emissions Test', icon: 'cloud-check' },
-    { key: 'HYBRID_EV', label: 'Hybrid / EV', icon: 'car-electric' },
-    { key: 'BODY_WORK', label: 'Body Work', icon: 'car-wrench' },
-    { key: 'DETAILING', label: 'Detailing', icon: 'car-wash' },
-    { key: 'TOWING', label: 'Towing', icon: 'tow-truck' },
-    { key: 'ROADSIDE_ASSIST', label: 'Roadside', icon: 'tow-truck' },
-    { key: 'LOCKOUT', label: 'Lockout', icon: 'key-variant' },
-    { key: 'MAINTENANCE_LIGHT', label: 'Warning Light', icon: 'car-light-alert' },
-    { key: 'GENERAL_REPAIR', label: 'General Repair', icon: 'wrench' },
+    { key: "OIL_CHANGE", label: "Oil Change", icon: "oil" },
+    { key: "BRAKES", label: "Brakes", icon: "car-brake-abs" },
+    { key: "TIRES", label: "Tires", icon: "tire" },
+    { key: "ENGINE", label: "Engine", icon: "engine" },
+    { key: "TRANSMISSION", label: "Transmission", icon: "car-shift-pattern" },
+    { key: "ELECTRICAL_BASIC", label: "Electrical", icon: "flash" },
+    { key: "AC_SERVICE", label: "A/C & Heating", icon: "air-conditioner" },
+    { key: "SUSPENSION", label: "Suspension", icon: "car-traction-control" },
+    { key: "BATTERY", label: "Battery", icon: "car-battery" },
+    { key: "EXHAUST", label: "Exhaust", icon: "pipe" },
+    {
+      key: "COOLING_SYSTEM",
+      label: "Cooling System",
+      icon: "coolant-temperature",
+    },
+    { key: "FUEL_SYSTEM", label: "Fuel System", icon: "gas-station" },
+    { key: "STEERING", label: "Steering", icon: "steering" },
+    {
+      key: "DRIVETRAIN",
+      label: "Drivetrain / 4WD",
+      icon: "car-traction-control",
+    },
+    { key: "INSPECTION", label: "Inspection", icon: "clipboard-check" },
+    { key: "DIAGNOSTICS", label: "Diagnostics", icon: "stethoscope" },
+    { key: "EMISSIONS", label: "Emissions Test", icon: "cloud-check" },
+    { key: "HYBRID_EV", label: "Hybrid / EV", icon: "car-electric" },
+    { key: "BODY_WORK", label: "Body Work", icon: "car-wrench" },
+    { key: "DETAILING", label: "Detailing", icon: "car-wash" },
+    { key: "TOWING", label: "Towing", icon: "tow-truck" },
+    { key: "ROADSIDE_ASSIST", label: "Roadside", icon: "tow-truck" },
+    { key: "LOCKOUT", label: "Lockout", icon: "key-variant" },
+    {
+      key: "MAINTENANCE_LIGHT",
+      label: "Warning Light",
+      icon: "car-light-alert",
+    },
+    { key: "GENERAL_REPAIR", label: "General Repair", icon: "wrench" },
   ];
 
   const SIGNUP_VEHICLE_TYPES = [
-    { key: 'CAR', label: 'Car / Sedan', icon: 'car-side' },
-    { key: 'SUV', label: 'SUV', icon: 'car-estate' },
-    { key: 'TRUCK', label: 'Pickup Truck', icon: 'car-pickup' },
-    { key: 'VAN', label: 'Van / Minivan', icon: 'van-utility' },
-    { key: 'HEAVY_TRUCK', label: 'Heavy Truck', icon: 'truck' },
-    { key: 'BUS', label: 'Bus / RV', icon: 'bus' },
+    { key: "CAR", label: "Car / Sedan", icon: "car-side" },
+    { key: "SUV", label: "SUV", icon: "car-estate" },
+    { key: "TRUCK", label: "Pickup Truck", icon: "car-pickup" },
+    { key: "VAN", label: "Van / Minivan", icon: "van-utility" },
+    { key: "HEAVY_TRUCK", label: "Heavy Truck", icon: "truck" },
+    { key: "BUS", label: "Bus / RV", icon: "bus" },
   ];
 
   const toggleProviderService = (key: string) => {
-    setProviderServices(prev => {
+    setProviderServices((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
@@ -186,7 +200,7 @@ export default function SignupScreen({ navigation }: any) {
   };
 
   const toggleProviderVehicleType = (key: string) => {
-    setProviderVehicleTypes(prev => {
+    setProviderVehicleTypes((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
@@ -223,7 +237,10 @@ export default function SignupScreen({ navigation }: any) {
 
     if (selectedRole === "PROVIDER" && providerServices.size === 0) {
       setHasError(true);
-      error(t.auth?.selectServices || "Please select at least one service you offer");
+      error(
+        t.auth?.selectServices ||
+          "Please select at least one service you offer",
+      );
       setTimeout(() => setHasError(false), 500);
       return;
     }
@@ -231,7 +248,9 @@ export default function SignupScreen({ navigation }: any) {
     // Full name validation (at least first and last name)
     if (fullName.trim().split(/\s+/).length < 2) {
       setHasError(true);
-      error(t.auth?.fullNameRequired || "Please enter your first and last name");
+      error(
+        t.auth?.fullNameRequired || "Please enter your first and last name",
+      );
       setTimeout(() => setHasError(false), 500);
       return;
     }
@@ -265,7 +284,11 @@ export default function SignupScreen({ navigation }: any) {
         );
       }
 
-      const { userId, otpMethod, email: responseEmail } = await signUp({
+      const {
+        userId,
+        otpMethod,
+        email: responseEmail,
+      } = await signUp({
         fullName,
         email,
         phone: normalizedPhone,
@@ -286,10 +309,10 @@ export default function SignupScreen({ navigation }: any) {
           : {}),
       });
 
-      navigation.navigate("OTP", { 
-        userId, 
+      navigation.navigate("OTP", {
+        userId,
         phone: normalizedPhone,
-        otpMethod: otpMethod || 'sms',
+        otpMethod: otpMethod || "sms",
         email: responseEmail || email,
       });
     } catch (err: any) {
@@ -696,26 +719,43 @@ export default function SignupScreen({ navigation }: any) {
                       🔧 {t.auth?.servicesYouOffer || "Services You Offer"}
                     </Text>
                     <Text style={signupCapStyles.sectionHint}>
-                      {t.auth?.selectServicesHint || "Select all services your business provides"}
+                      {t.auth?.selectServicesHint ||
+                        "Select all services your business provides"}
                     </Text>
                     <View style={signupCapStyles.chipGrid}>
-                      {SIGNUP_SERVICES.map(svc => {
+                      {SIGNUP_SERVICES.map((svc) => {
                         const active = providerServices.has(svc.key);
                         return (
                           <TouchableOpacity
                             key={svc.key}
-                            style={[signupCapStyles.chip, active && signupCapStyles.chipActive]}
+                            style={[
+                              signupCapStyles.chip,
+                              active && signupCapStyles.chipActive,
+                            ]}
                             onPress={() => toggleProviderService(svc.key)}
                             activeOpacity={0.7}
                           >
-                            <MaterialCommunityIcons name={svc.icon as any} size={16} color={active ? '#fff' : '#6b7280'} />
-                            <Text style={[signupCapStyles.chipText, active && signupCapStyles.chipTextActive]}>{svc.label}</Text>
+                            <MaterialCommunityIcons
+                              name={svc.icon as any}
+                              size={16}
+                              color={active ? "#fff" : "#6b7280"}
+                            />
+                            <Text
+                              style={[
+                                signupCapStyles.chipText,
+                                active && signupCapStyles.chipTextActive,
+                              ]}
+                            >
+                              {svc.label}
+                            </Text>
                           </TouchableOpacity>
                         );
                       })}
                     </View>
                     {hasError && providerServices.size === 0 && (
-                      <Text style={signupCapStyles.errorText}>Select at least one service</Text>
+                      <Text style={signupCapStyles.errorText}>
+                        Select at least one service
+                      </Text>
                     )}
                   </View>
                 </SlideInView>
@@ -724,20 +764,36 @@ export default function SignupScreen({ navigation }: any) {
                 <SlideInView direction="right" delay={350}>
                   <View style={signupCapStyles.sectionContainer}>
                     <Text style={signupCapStyles.sectionLabel}>
-                      🚗 {t.auth?.vehicleTypesYouServe || "Vehicle Types You Serve"}
+                      🚗{" "}
+                      {t.auth?.vehicleTypesYouServe ||
+                        "Vehicle Types You Serve"}
                     </Text>
                     <View style={signupCapStyles.chipGrid}>
-                      {SIGNUP_VEHICLE_TYPES.map(vt => {
+                      {SIGNUP_VEHICLE_TYPES.map((vt) => {
                         const active = providerVehicleTypes.has(vt.key);
                         return (
                           <TouchableOpacity
                             key={vt.key}
-                            style={[signupCapStyles.chip, active && signupCapStyles.chipActive]}
+                            style={[
+                              signupCapStyles.chip,
+                              active && signupCapStyles.chipActive,
+                            ]}
                             onPress={() => toggleProviderVehicleType(vt.key)}
                             activeOpacity={0.7}
                           >
-                            <MaterialCommunityIcons name={vt.icon as any} size={16} color={active ? '#fff' : '#6b7280'} />
-                            <Text style={[signupCapStyles.chipText, active && signupCapStyles.chipTextActive]}>{vt.label}</Text>
+                            <MaterialCommunityIcons
+                              name={vt.icon as any}
+                              size={16}
+                              color={active ? "#fff" : "#6b7280"}
+                            />
+                            <Text
+                              style={[
+                                signupCapStyles.chipText,
+                                active && signupCapStyles.chipTextActive,
+                              ]}
+                            >
+                              {vt.label}
+                            </Text>
                           </TouchableOpacity>
                         );
                       })}
@@ -753,14 +809,15 @@ export default function SignupScreen({ navigation }: any) {
                         📦 {t.auth?.sellParts || "I also sell auto parts"}
                       </Text>
                       <Text style={signupCapStyles.partsHint}>
-                        {t.auth?.sellPartsHint || "Enable if you sell parts directly to customers"}
+                        {t.auth?.sellPartsHint ||
+                          "Enable if you sell parts directly to customers"}
                       </Text>
                     </View>
                     <Switch
                       value={providerSellsParts}
                       onValueChange={setProviderSellsParts}
-                      trackColor={{ false: '#e5e7eb', true: '#93c5fd' }}
-                      thumbColor={providerSellsParts ? '#1976d2' : '#9ca3af'}
+                      trackColor={{ false: "#e5e7eb", true: "#93c5fd" }}
+                      thumbColor={providerSellsParts ? "#1976d2" : "#9ca3af"}
                     />
                   </View>
                 </SlideInView>
@@ -1102,59 +1159,59 @@ const styles = StyleSheet.create({
 // Additional styles for provider capabilities in signup
 const signupCapStyles = StyleSheet.create({
   sectionContainer: {
-    backgroundColor: '#f0f9ff',
+    backgroundColor: "#f0f9ff",
     padding: 12,
     borderRadius: 12,
     marginBottom: 8,
   },
   sectionLabel: {
     fontSize: 15,
-    fontWeight: '700',
-    color: '#1976d2',
+    fontWeight: "700",
+    color: "#1976d2",
     marginBottom: 4,
   },
   sectionHint: {
     fontSize: 12,
-    color: '#6b7280',
+    color: "#6b7280",
     marginBottom: 10,
   },
   chipGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 6,
   },
   chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 10,
     paddingVertical: 7,
     borderRadius: 20,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: "#f3f4f6",
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: "#e5e7eb",
     gap: 4,
   },
   chipActive: {
-    backgroundColor: '#1976d2',
-    borderColor: '#1976d2',
+    backgroundColor: "#1976d2",
+    borderColor: "#1976d2",
   },
   chipText: {
     fontSize: 12,
-    fontWeight: '500',
-    color: '#374151',
+    fontWeight: "500",
+    color: "#374151",
   },
   chipTextActive: {
-    color: '#fff',
+    color: "#fff",
   },
   errorText: {
     fontSize: 12,
-    color: '#ef4444',
+    color: "#ef4444",
     marginTop: 6,
   },
   partsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f0f9ff',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f0f9ff",
     padding: 14,
     borderRadius: 12,
     marginBottom: 8,
@@ -1162,12 +1219,12 @@ const signupCapStyles = StyleSheet.create({
   },
   partsLabel: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#111827',
+    fontWeight: "600",
+    color: "#111827",
   },
   partsHint: {
     fontSize: 12,
-    color: '#6b7280',
+    color: "#6b7280",
     marginTop: 2,
   },
 });

@@ -229,7 +229,9 @@ export default function ProviderRequestsScreen({ navigation }: any) {
             >
               {item.expiresIn}
             </Text>
-            <Text style={styles.expiresLabel}>{t.common?.remaining || 'remaining'}</Text>
+            <Text style={styles.expiresLabel}>
+              {t.common?.remaining || "remaining"}
+            </Text>
           </View>
         </View>
 
@@ -259,7 +261,7 @@ export default function ProviderRequestsScreen({ navigation }: any) {
           </View>
           <View style={styles.footerRight}>
             <Text style={styles.quotesCount}>
-              {item.quotesCount} {t.common?.quotesCount || 'quotes'}
+              {item.quotesCount} {t.common?.quotesCount || "quotes"}
             </Text>
             <MaterialCommunityIcons
               name="chevron-right"
@@ -282,7 +284,7 @@ export default function ProviderRequestsScreen({ navigation }: any) {
           <MaterialCommunityIcons name="magnify" size={20} color="#9ca3af" />
           <TextInput
             style={styles.searchInput}
-            placeholder={t.common?.searchPlaceholder || 'Search...'}
+            placeholder={t.common?.searchPlaceholder || "Search..."}
             value={searchQuery}
             onChangeText={setSearchQuery}
             placeholderTextColor="#9ca3af"
@@ -311,7 +313,7 @@ export default function ProviderRequestsScreen({ navigation }: any) {
               filter === "all" && styles.filterTabTextActive,
             ]}
           >
-            {t.common?.all || 'All'} ({requests.length})
+            {t.common?.all || "All"} ({requests.length})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -327,7 +329,7 @@ export default function ProviderRequestsScreen({ navigation }: any) {
               filter === "urgent" && styles.filterTabTextUrgent,
             ]}
           >
-            🚨 {t.common?.urgent || 'Urgent'} ({urgentCount})
+            🚨 {t.common?.urgent || "Urgent"} ({urgentCount})
           </Text>
         </TouchableOpacity>
       </View>
@@ -349,11 +351,15 @@ export default function ProviderRequestsScreen({ navigation }: any) {
               size={64}
               color="#d1d5db"
             />
-            <Text style={styles.emptyTitle}>{t.common?.noResults || 'No results'}</Text>
+            <Text style={styles.emptyTitle}>
+              {t.common?.noResults || "No results"}
+            </Text>
             <Text style={styles.emptySubtitle}>
               {searchQuery
-                ? (t.common as any)?.tryDifferentTerms || t.common?.tryAgain || 'Try again'
-                : t.common?.newItems || 'New items will appear here'}
+                ? (t.common as any)?.tryDifferentTerms ||
+                  t.common?.tryAgain ||
+                  "Try again"
+                : t.common?.newItems || "New items will appear here"}
             </Text>
           </View>
         }

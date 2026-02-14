@@ -1,5 +1,13 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Platform } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  Alert,
+  Platform,
+} from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -46,7 +54,8 @@ class ProviderErrorBoundary extends React.Component<
     // Include component stack for debugging
     if (errorInfo?.componentStack) {
       this.setState((prev) => ({
-        errorStack: prev.errorStack + "\n\nComponent Stack:" + errorInfo.componentStack,
+        errorStack:
+          prev.errorStack + "\n\nComponent Stack:" + errorInfo.componentStack,
       }));
     }
   }
@@ -65,7 +74,10 @@ class ProviderErrorBoundary extends React.Component<
           <Text style={ebStyles.subtitle}>
             The provider dashboard encountered an error. Please try again.
           </Text>
-          <ScrollView style={ebStyles.errorScroll} contentContainerStyle={{ paddingBottom: 8 }}>
+          <ScrollView
+            style={ebStyles.errorScroll}
+            contentContainerStyle={{ paddingBottom: 8 }}
+          >
             <Text style={ebStyles.errorDetail} selectable>
               {this.state.errorMessage}
             </Text>
@@ -83,7 +95,13 @@ class ProviderErrorBoundary extends React.Component<
           </TouchableOpacity>
           <TouchableOpacity
             style={ebStyles.retryBtn}
-            onPress={() => this.setState({ hasError: false, errorMessage: "", errorStack: "" })}
+            onPress={() =>
+              this.setState({
+                hasError: false,
+                errorMessage: "",
+                errorStack: "",
+              })
+            }
           >
             <Text style={ebStyles.retryText}>Try Again</Text>
           </TouchableOpacity>
@@ -101,16 +119,53 @@ class ProviderErrorBoundary extends React.Component<
 }
 
 const ebStyles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", alignItems: "center", padding: 32, backgroundColor: "#f8fafc" },
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 32,
+    backgroundColor: "#f8fafc",
+  },
   emoji: { fontSize: 48, marginBottom: 16 },
   title: { fontSize: 20, fontWeight: "700", color: "#111827", marginBottom: 8 },
-  subtitle: { fontSize: 14, color: "#6b7280", textAlign: "center", marginBottom: 16, lineHeight: 20 },
+  subtitle: {
+    fontSize: 14,
+    color: "#6b7280",
+    textAlign: "center",
+    marginBottom: 16,
+    lineHeight: 20,
+  },
   errorScroll: { maxHeight: 120, width: "100%", marginBottom: 12 },
-  errorDetail: { fontSize: 12, color: "#ef4444", textAlign: "center", fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace", paddingHorizontal: 8 },
-  errorStack: { fontSize: 9, color: "#9ca3af", textAlign: "left", fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace", paddingHorizontal: 8, marginTop: 4 },
-  copyBtn: { backgroundColor: "#f3f4f6", paddingHorizontal: 24, paddingVertical: 10, borderRadius: 8, marginBottom: 12 },
+  errorDetail: {
+    fontSize: 12,
+    color: "#ef4444",
+    textAlign: "center",
+    fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+    paddingHorizontal: 8,
+  },
+  errorStack: {
+    fontSize: 9,
+    color: "#9ca3af",
+    textAlign: "left",
+    fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+    paddingHorizontal: 8,
+    marginTop: 4,
+  },
+  copyBtn: {
+    backgroundColor: "#f3f4f6",
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
   copyText: { color: "#374151", fontWeight: "500", fontSize: 13 },
-  retryBtn: { backgroundColor: "#1976d2", paddingHorizontal: 32, paddingVertical: 14, borderRadius: 12, marginBottom: 12 },
+  retryBtn: {
+    backgroundColor: "#1976d2",
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
   retryText: { color: "#fff", fontWeight: "600", fontSize: 16 },
   logoutBtn: { paddingHorizontal: 32, paddingVertical: 14 },
   logoutText: { color: "#ef4444", fontWeight: "600", fontSize: 14 },
@@ -137,15 +192,22 @@ function AuthStack() {
 function ProviderWithOnboarding() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="ProviderOnboarding" component={ProviderOnboardingScreen} />
+      <Stack.Screen
+        name="ProviderOnboarding"
+        component={ProviderOnboardingScreen}
+      />
       <Stack.Screen name="ProviderMain" component={ProviderNavigator} />
-      <Stack.Screen name="OnboardingServices" component={ProviderServicesScreen} />
+      <Stack.Screen
+        name="OnboardingServices"
+        component={ProviderServicesScreen}
+      />
     </Stack.Navigator>
   );
 }
 
 export default function RootNavigator() {
-  const { user, isAuthenticated, loading, hasCompletedOnboarding, logout } = useAuth();
+  const { user, isAuthenticated, loading, hasCompletedOnboarding, logout } =
+    useAuth();
 
   // Determine which navigator to show based on user role
   const isProvider = user?.role === "PROVIDER";

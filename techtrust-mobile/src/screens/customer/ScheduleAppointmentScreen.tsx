@@ -21,14 +21,17 @@ import { Ionicons } from "@expo/vector-icons";
 import { useI18n } from "../../i18n";
 import api from "../../services/api";
 import * as fdacsService from "../../services/fdacs.service";
-import { getMySubscription, type SubscriptionInfo } from "../../services/payment.service";
+import {
+  getMySubscription,
+  type SubscriptionInfo,
+} from "../../services/payment.service";
 
 let DateTimePicker: any = null;
 try {
   DateTimePicker = require("@react-native-community/datetimepicker").default;
 } catch (e) {}
 
-const APP_FEE_FREE = 5.00;
+const APP_FEE_FREE = 5.0;
 const APP_FEE_SUBSCRIBER = 0;
 const MAX_PROVIDER_DIAGNOSTIC_FEE = 50;
 const DEFAULT_RADIUS_MILES = 25;
@@ -198,7 +201,8 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
 
   // Subscription / Plan
   const [userPlan, setUserPlan] = useState<SubscriptionInfo | null>(null);
-  const isSubscriber = userPlan && userPlan.plan !== "FREE" && userPlan.status === "ACTIVE";
+  const isSubscriber =
+    userPlan && userPlan.plan !== "FREE" && userPlan.status === "ACTIVE";
   const appFee = isSubscriber ? APP_FEE_SUBSCRIBER : APP_FEE_FREE;
 
   // Load vehicles + subscription on mount
@@ -218,9 +222,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
 
   async function loadVehicles() {
     try {
-      const { getVehicles } = await import(
-        "../../services/dashboard.service"
-      );
+      const { getVehicles } = await import("../../services/dashboard.service");
       const vehicleData = await getVehicles();
       const mapped = vehicleData.map((v: any) => ({
         id: v.id,
@@ -236,8 +238,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
     } catch {
       Alert.alert(
         t.common?.error || "Error",
-        sa.failedLoadVehicles ||
-          "Failed to load vehicles",
+        sa.failedLoadVehicles || "Failed to load vehicles",
       );
     } finally {
       setLoadingVehicles(false);
@@ -286,8 +287,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
     } catch {
       Alert.alert(
         t.common?.error || "Error",
-        sa.searchFailed ||
-          "Failed to search providers. Please try again.",
+        sa.searchFailed || "Failed to search providers. Please try again.",
       );
     } finally {
       setLoadingProviders(false);
@@ -320,8 +320,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
     if (!selectedVehicle || !selectedProvider || !selectedServiceType) {
       Alert.alert(
         t.common?.required || "Required",
-        sa.fillAllFields ||
-          "Please complete all required fields",
+        sa.fillAllFields || "Please complete all required fields",
       );
       return;
     }
@@ -400,9 +399,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
         >
           <Ionicons name="arrow-back" size={24} color="#111827" />
         </TouchableOpacity>
-        <Text style={styles.title}>
-          {sa.title || "Schedule Diagnostic"}
-        </Text>
+        <Text style={styles.title}>{sa.title || "Schedule Diagnostic"}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -446,58 +443,227 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-      <ScrollView
-        contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        {/* ─── STEP 1: Vehicle ─── */}
-        {step === 1 && (
-          <View>
-            <Text style={styles.sectionTitle}>
-              {sa.selectVehicle ||
-                "Select your vehicle"}
-            </Text>
-            {loadingVehicles ? (
-              <ActivityIndicator
-                size="large"
-                color="#1976d2"
-                style={{ marginTop: 40 }}
-              />
-            ) : vehicles.length === 0 ? (
-              <View style={styles.emptyBox}>
-                <Ionicons name="car-outline" size={48} color="#9ca3af" />
-                <Text style={styles.emptyText}>
-                  {sa.noVehicles ||
-                    "No vehicles found. Please add a vehicle first."}
-                </Text>
+        <ScrollView
+          contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* ─── STEP 1: Vehicle ─── */}
+          {step === 1 && (
+            <View>
+              <Text style={styles.sectionTitle}>
+                {sa.selectVehicle || "Select your vehicle"}
+              </Text>
+              {loadingVehicles ? (
+                <ActivityIndicator
+                  size="large"
+                  color="#1976d2"
+                  style={{ marginTop: 40 }}
+                />
+              ) : vehicles.length === 0 ? (
+                <View style={styles.emptyBox}>
+                  <Ionicons name="car-outline" size={48} color="#9ca3af" />
+                  <Text style={styles.emptyText}>
+                    {sa.noVehicles ||
+                      "No vehicles found. Please add a vehicle first."}
+                  </Text>
+                </View>
+              ) : (
+                vehicles.map((v) => (
+                  <TouchableOpacity
+                    key={v.id}
+                    style={[
+                      styles.selectionCard,
+                      selectedVehicle === v.id && styles.selectionCardActive,
+                    ]}
+                    onPress={() => setSelectedVehicle(v.id)}
+                  >
+                    <View style={styles.selectionIcon}>
+                      <Ionicons
+                        name="car"
+                        size={24}
+                        color={selectedVehicle === v.id ? "#1976d2" : "#6b7280"}
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.selectionTitle}>{v.name}</Text>
+                      {v.plate && (
+                        <Text style={styles.selectionSub}>{v.plate}</Text>
+                      )}
+                    </View>
+                    {selectedVehicle === v.id && (
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={24}
+                        color="#1976d2"
+                      />
+                    )}
+                  </TouchableOpacity>
+                ))
+              )}
+            </View>
+          )}
+
+          {/* ─── STEP 2: Service Type ─── */}
+          {step === 2 && (
+            <View>
+              <Text style={styles.sectionTitle}>
+                {sa.selectServiceType || "What needs to be diagnosed?"}
+              </Text>
+              <View style={styles.serviceGrid}>
+                {diagnosticServiceTypes.map((svc) => (
+                  <TouchableOpacity
+                    key={svc.id}
+                    style={[
+                      styles.serviceChip,
+                      selectedServiceType === svc.id &&
+                        styles.serviceChipActive,
+                    ]}
+                    onPress={() => setSelectedServiceType(svc.id)}
+                  >
+                    <Ionicons
+                      name={svc.icon as any}
+                      size={22}
+                      color={
+                        selectedServiceType === svc.id ? "#1976d2" : "#6b7280"
+                      }
+                    />
+                    <Text
+                      style={[
+                        styles.serviceChipText,
+                        selectedServiceType === svc.id &&
+                          styles.serviceChipTextActive,
+                      ]}
+                    >
+                      {svc.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
-            ) : (
-              vehicles.map((v) => (
+            </View>
+          )}
+
+          {/* ─── STEP 3: Provider Search ─── */}
+          {step === 3 && (
+            <View>
+              <Text style={styles.sectionTitle}>
+                {sa.findProvider || "Find a nearby provider"}
+              </Text>
+
+              {/* Radius selector */}
+              <View style={styles.radiusRow}>
+                <Text style={styles.radiusLabel}>
+                  {sa.searchRadius || "Search Radius:"}
+                </Text>
+                <View style={styles.radiusBtns}>
+                  {[10, 25, 50, 100].map((r) => (
+                    <TouchableOpacity
+                      key={r}
+                      style={[
+                        styles.radiusBtn,
+                        radiusMiles === r && styles.radiusBtnActive,
+                      ]}
+                      onPress={() => {
+                        setRadiusMiles(r);
+                        setSearchedProviders(false);
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.radiusBtnText,
+                          radiusMiles === r && styles.radiusBtnTextActive,
+                        ]}
+                      >
+                        {r} mi
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Search button */}
+              <TouchableOpacity
+                style={styles.searchBtn}
+                onPress={searchProviders}
+                disabled={loadingProviders}
+              >
+                {loadingProviders ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <Ionicons name="search" size={18} color="#fff" />
+                    <Text style={styles.searchBtnText}>
+                      {sa.searchProviders || "Search Providers"}
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+
+              {/* Results */}
+              {searchedProviders && providers.length === 0 && (
+                <View style={styles.emptyBox}>
+                  <Ionicons name="location-outline" size={48} color="#9ca3af" />
+                  <Text style={styles.emptyText}>
+                    {sa.noProvidersFound ||
+                      "No providers found in this area. Try a larger radius."}
+                  </Text>
+                </View>
+              )}
+
+              {providers.map((prov) => (
                 <TouchableOpacity
-                  key={v.id}
+                  key={prov.id}
                   style={[
                     styles.selectionCard,
-                    selectedVehicle === v.id && styles.selectionCardActive,
+                    (selectedProvider === prov.id ||
+                      selectedProvider === prov.userId) &&
+                      styles.selectionCardActive,
                   ]}
-                  onPress={() => setSelectedVehicle(v.id)}
+                  onPress={() => setSelectedProvider(prov.userId || prov.id)}
                 >
                   <View style={styles.selectionIcon}>
                     <Ionicons
-                      name="car"
+                      name="business"
                       size={24}
                       color={
-                        selectedVehicle === v.id ? "#1976d2" : "#6b7280"
+                        selectedProvider === prov.id ||
+                        selectedProvider === prov.userId
+                          ? "#1976d2"
+                          : "#6b7280"
                       }
                     />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.selectionTitle}>{v.name}</Text>
-                    {v.plate && (
-                      <Text style={styles.selectionSub}>{v.plate}</Text>
+                    <Text style={styles.selectionTitle}>
+                      {prov.businessName}
+                    </Text>
+                    <View style={styles.providerMeta}>
+                      {prov.averageRating > 0 && (
+                        <View style={styles.ratingRow}>
+                          <Ionicons name="star" size={14} color="#f59e0b" />
+                          <Text style={styles.ratingText}>
+                            {Number(prov.averageRating).toFixed(1)} (
+                            {prov.totalReviews})
+                          </Text>
+                        </View>
+                      )}
+                      {prov.distance && (
+                        <Text style={styles.distanceText}>
+                          {Number(prov.distance.distanceMiles).toFixed(1)} mi
+                          {prov.distance.estimatedTimeMinutes
+                            ? ` · ~${Math.round(prov.distance.estimatedTimeMinutes)} min`
+                            : ""}
+                        </Text>
+                      )}
+                    </View>
+                    {prov.city && prov.state && (
+                      <Text style={styles.selectionSub}>
+                        {prov.city}, {prov.state}
+                      </Text>
                     )}
                   </View>
-                  {selectedVehicle === v.id && (
+                  {(selectedProvider === prov.id ||
+                    selectedProvider === prov.userId) && (
                     <Ionicons
                       name="checkmark-circle"
                       size={24}
@@ -505,444 +671,259 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
                     />
                   )}
                 </TouchableOpacity>
-              ))
-            )}
-          </View>
-        )}
-
-        {/* ─── STEP 2: Service Type ─── */}
-        {step === 2 && (
-          <View>
-            <Text style={styles.sectionTitle}>
-              {sa.selectServiceType ||
-                "What needs to be diagnosed?"}
-            </Text>
-            <View style={styles.serviceGrid}>
-              {diagnosticServiceTypes.map((svc) => (
-                <TouchableOpacity
-                  key={svc.id}
-                  style={[
-                    styles.serviceChip,
-                    selectedServiceType === svc.id &&
-                      styles.serviceChipActive,
-                  ]}
-                  onPress={() => setSelectedServiceType(svc.id)}
-                >
-                  <Ionicons
-                    name={svc.icon as any}
-                    size={22}
-                    color={
-                      selectedServiceType === svc.id
-                        ? "#1976d2"
-                        : "#6b7280"
-                    }
-                  />
-                  <Text
-                    style={[
-                      styles.serviceChipText,
-                      selectedServiceType === svc.id &&
-                        styles.serviceChipTextActive,
-                    ]}
-                  >
-                    {svc.label}
-                  </Text>
-                </TouchableOpacity>
               ))}
             </View>
-          </View>
-        )}
+          )}
 
-        {/* ─── STEP 3: Provider Search ─── */}
-        {step === 3 && (
-          <View>
-            <Text style={styles.sectionTitle}>
-              {sa.findProvider ||
-                "Find a nearby provider"}
-            </Text>
-
-            {/* Radius selector */}
-            <View style={styles.radiusRow}>
-              <Text style={styles.radiusLabel}>
-                {sa.searchRadius || "Search Radius:"}
+          {/* ─── STEP 4: Date & Time ─── */}
+          {step === 4 && (
+            <View>
+              <Text style={styles.sectionTitle}>
+                {sa.selectDateTime || "Choose date and time"}
               </Text>
-              <View style={styles.radiusBtns}>
-                {[10, 25, 50, 100].map((r) => (
-                  <TouchableOpacity
-                    key={r}
-                    style={[
-                      styles.radiusBtn,
-                      radiusMiles === r && styles.radiusBtnActive,
-                    ]}
-                    onPress={() => {
-                      setRadiusMiles(r);
-                      setSearchedProviders(false);
-                    }}
-                  >
-                    <Text
-                      style={[
-                        styles.radiusBtnText,
-                        radiusMiles === r && styles.radiusBtnTextActive,
-                      ]}
-                    >
-                      {r} mi
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            {/* Search button */}
-            <TouchableOpacity
-              style={styles.searchBtn}
-              onPress={searchProviders}
-              disabled={loadingProviders}
-            >
-              {loadingProviders ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <>
-                  <Ionicons name="search" size={18} color="#fff" />
-                  <Text style={styles.searchBtnText}>
-                    {sa.searchProviders ||
-                      "Search Providers"}
+              <View style={styles.dateTimeRow}>
+                <TouchableOpacity
+                  style={[styles.dateBtn, { flex: 1 }]}
+                  onPress={() => setShowDatePicker(true)}
+                >
+                  <Ionicons name="calendar-outline" size={18} color="#1976d2" />
+                  <Text style={styles.dateBtnText}>
+                    {date.toLocaleDateString()}
                   </Text>
-                </>
-              )}
-            </TouchableOpacity>
-
-            {/* Results */}
-            {searchedProviders && providers.length === 0 && (
-              <View style={styles.emptyBox}>
-                <Ionicons
-                  name="location-outline"
-                  size={48}
-                  color="#9ca3af"
-                />
-                <Text style={styles.emptyText}>
-                  {sa.noProvidersFound ||
-                    "No providers found in this area. Try a larger radius."}
-                </Text>
-              </View>
-            )}
-
-            {providers.map((prov) => (
-              <TouchableOpacity
-                key={prov.id}
-                style={[
-                  styles.selectionCard,
-                  (selectedProvider === prov.id ||
-                    selectedProvider === prov.userId) &&
-                    styles.selectionCardActive,
-                ]}
-                onPress={() => setSelectedProvider(prov.userId || prov.id)}
-              >
-                <View style={styles.selectionIcon}>
-                  <Ionicons
-                    name="business"
-                    size={24}
-                    color={
-                      selectedProvider === prov.id ||
-                      selectedProvider === prov.userId
-                        ? "#1976d2"
-                        : "#6b7280"
-                    }
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.selectionTitle}>
-                    {prov.businessName}
-                  </Text>
-                  <View style={styles.providerMeta}>
-                    {prov.averageRating > 0 && (
-                      <View style={styles.ratingRow}>
-                        <Ionicons name="star" size={14} color="#f59e0b" />
-                        <Text style={styles.ratingText}>
-                          {Number(prov.averageRating).toFixed(1)} (
-                          {prov.totalReviews})
-                        </Text>
-                      </View>
-                    )}
-                    {prov.distance && (
-                      <Text style={styles.distanceText}>
-                        {Number(prov.distance.distanceMiles).toFixed(1)} mi
-                        {prov.distance.estimatedTimeMinutes
-                          ? ` · ~${Math.round(prov.distance.estimatedTimeMinutes)} min`
-                          : ""}
-                      </Text>
-                    )}
-                  </View>
-                  {prov.city && prov.state && (
-                    <Text style={styles.selectionSub}>
-                      {prov.city}, {prov.state}
-                    </Text>
-                  )}
-                </View>
-                {(selectedProvider === prov.id ||
-                  selectedProvider === prov.userId) && (
-                  <Ionicons
-                    name="checkmark-circle"
-                    size={24}
-                    color="#1976d2"
-                  />
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-
-        {/* ─── STEP 4: Date & Time ─── */}
-        {step === 4 && (
-          <View>
-            <Text style={styles.sectionTitle}>
-              {sa.selectDateTime ||
-                "Choose date and time"}
-            </Text>
-            <View style={styles.dateTimeRow}>
-              <TouchableOpacity
-                style={[styles.dateBtn, { flex: 1 }]}
-                onPress={() => setShowDatePicker(true)}
-              >
-                <Ionicons
-                  name="calendar-outline"
-                  size={18}
-                  color="#1976d2"
-                />
-                <Text style={styles.dateBtnText}>
-                  {date.toLocaleDateString()}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.dateBtn, { flex: 1 }]}
-                onPress={() => setShowTimePicker(true)}
-              >
-                <Ionicons name="time-outline" size={18} color="#1976d2" />
-                <Text style={styles.dateBtnText}>
-                  {date.toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {DateTimePicker && (showDatePicker || showTimePicker) && (
-              <DateTimePicker
-                value={date}
-                mode={showDatePicker ? "date" : "time"}
-                display={Platform.OS === "ios" ? "spinner" : "default"}
-                onChange={showDatePicker ? onDateChange : onTimeChange}
-                minimumDate={new Date()}
-              />
-            )}
-
-            {/* App Service Fee Card */}
-            <View style={styles.feeCard}>
-              <View style={styles.feeHeader}>
-                <Ionicons
-                  name="cash-outline"
-                  size={22}
-                  color="#1976d2"
-                />
-                <Text style={styles.feeTitle}>
-                  {sa.appServiceFee ||
-                    "App Service Fee"}
-                </Text>
-                {isSubscriber && (
-                  <View style={styles.subscriberBadge}>
-                    <Ionicons name="star" size={12} color="#fff" />
-                    <Text style={styles.subscriberBadgeText}>
-                      {userPlan?.plan || "PRO"}
-                    </Text>
-                  </View>
-                )}
-              </View>
-              {isSubscriber ? (
-                <>
-                  <Text style={[styles.feeAmount, { color: "#059669" }]}>
-                    {sa.free || "FREE"}
-                  </Text>
-                  <View style={styles.feeDisclaimer}>
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={16}
-                      color="#059669"
-                    />
-                    <Text style={styles.feeDisclaimerText}>
-                      {sa.subscriberNoFee ||
-                        "As a subscriber, you pay no app service fee on estimates!"}
-                    </Text>
-                  </View>
-                </>
-              ) : (
-                <>
-                  <Text style={styles.feeAmount}>
-                    ${appFee.toFixed(2)}
-                  </Text>
-                  <View style={styles.feeDisclaimer}>
-                    <Ionicons
-                      name="information-circle"
-                      size={16}
-                      color="#059669"
-                    />
-                    <Text style={styles.feeDisclaimerText}>
-                      {sa.appFeeMessage ||
-                        "This is the TechTrust service fee for connecting you with verified providers. Subscribe monthly to eliminate this fee!"}
-                    </Text>
-                  </View>
-                </>
-              )}
-              <View style={[styles.feeDisclaimer, { marginTop: 8, backgroundColor: "#fefce8", borderColor: "#fde68a" }]}>
-                <Ionicons
-                  name="alert-circle"
-                  size={16}
-                  color="#b45309"
-                />
-                <Text style={[styles.feeDisclaimerText, { color: "#92400e" }]}>
-                  {sa.providerFeeNote ||
-                    "The provider may optionally charge a diagnostic fee (up to $50) when accepting your appointment. You will be notified before any charge."}
-                </Text>
-              </View>
-            </View>
-
-            {/* FDACS Info */}
-            <View style={styles.fdacsInfo}>
-              <Ionicons
-                name="shield-checkmark"
-                size={20}
-                color="#1976d2"
-              />
-              <Text style={styles.fdacsText}>
-                {sa.fdacsProtection ||
-                  "Your diagnostic visit is protected under Florida FDACS regulations. You will receive a Written Estimate valid for 15 days before any work begins."}
-              </Text>
-            </View>
-          </View>
-        )}
-
-        {/* ─── STEP 5: Confirmation ─── */}
-        {step === 5 && (
-          <View>
-            <Text style={styles.sectionTitle}>
-              {sa.reviewConfirm ||
-                "Review & Confirm"}
-            </Text>
-
-            {/* Summary */}
-            <View style={styles.summaryCard}>
-              <View style={styles.summaryRow}>
-                <Ionicons name="car" size={20} color="#6b7280" />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.summaryLabel}>
-                    {sa.stepVehicle || "Vehicle"}
-                  </Text>
-                  <Text style={styles.summaryValue}>
-                    {selectedVehicleObj?.name || "-"}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.summaryDivider} />
-
-              <View style={styles.summaryRow}>
-                <Ionicons
-                  name={(selectedServiceObj?.icon as any) || "build"}
-                  size={20}
-                  color="#6b7280"
-                />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.summaryLabel}>
-                    {sa.stepService || "Service"}
-                  </Text>
-                  <Text style={styles.summaryValue}>
-                    {selectedServiceObj?.label || "-"}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.summaryDivider} />
-
-              <View style={styles.summaryRow}>
-                <Ionicons name="business" size={20} color="#6b7280" />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.summaryLabel}>
-                    {sa.stepProvider || "Provider"}
-                  </Text>
-                  <Text style={styles.summaryValue}>
-                    {selectedProviderObj?.businessName || "-"}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.summaryDivider} />
-
-              <View style={styles.summaryRow}>
-                <Ionicons name="calendar" size={20} color="#6b7280" />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.summaryLabel}>
-                    {sa.stepDateTime || "Date & Time"}
-                  </Text>
-                  <Text style={styles.summaryValue}>
-                    {date.toLocaleDateString()} ·{" "}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.dateBtn, { flex: 1 }]}
+                  onPress={() => setShowTimePicker(true)}
+                >
+                  <Ionicons name="time-outline" size={18} color="#1976d2" />
+                  <Text style={styles.dateBtnText}>
                     {date.toLocaleTimeString([], {
                       hour: "2-digit",
                       minute: "2-digit",
                     })}
                   </Text>
-                </View>
+                </TouchableOpacity>
               </View>
 
-              <View style={styles.summaryDivider} />
+              {DateTimePicker && (showDatePicker || showTimePicker) && (
+                <DateTimePicker
+                  value={date}
+                  mode={showDatePicker ? "date" : "time"}
+                  display={Platform.OS === "ios" ? "spinner" : "default"}
+                  onChange={showDatePicker ? onDateChange : onTimeChange}
+                  minimumDate={new Date()}
+                />
+              )}
 
-              <View style={styles.summaryRow}>
-                <Ionicons name="cash" size={20} color="#6b7280" />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.summaryLabel}>
-                    {sa.appServiceFee ||
-                      "App Service Fee"}
-                  </Text>
-                  <Text style={[styles.summaryValue, isSubscriber && { color: "#059669" }]}>
-                    {isSubscriber
-                      ? (sa.free || "FREE")
-                      : `$${appFee.toFixed(2)}`
-                    }
+              {/* App Service Fee Card */}
+              <View style={styles.feeCard}>
+                <View style={styles.feeHeader}>
+                  <Ionicons name="cash-outline" size={22} color="#1976d2" />
+                  <Text style={styles.feeTitle}>
+                    {sa.appServiceFee || "App Service Fee"}
                   </Text>
                   {isSubscriber && (
-                    <Text style={{ fontSize: 11, color: "#059669", fontWeight: "500" }}>
-                      {userPlan?.plan} {sa.planBenefit || "plan benefit"}
-                    </Text>
+                    <View style={styles.subscriberBadge}>
+                      <Ionicons name="star" size={12} color="#fff" />
+                      <Text style={styles.subscriberBadgeText}>
+                        {userPlan?.plan || "PRO"}
+                      </Text>
+                    </View>
                   )}
                 </View>
+                {isSubscriber ? (
+                  <>
+                    <Text style={[styles.feeAmount, { color: "#059669" }]}>
+                      {sa.free || "FREE"}
+                    </Text>
+                    <View style={styles.feeDisclaimer}>
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={16}
+                        color="#059669"
+                      />
+                      <Text style={styles.feeDisclaimerText}>
+                        {sa.subscriberNoFee ||
+                          "As a subscriber, you pay no app service fee on estimates!"}
+                      </Text>
+                    </View>
+                  </>
+                ) : (
+                  <>
+                    <Text style={styles.feeAmount}>${appFee.toFixed(2)}</Text>
+                    <View style={styles.feeDisclaimer}>
+                      <Ionicons
+                        name="information-circle"
+                        size={16}
+                        color="#059669"
+                      />
+                      <Text style={styles.feeDisclaimerText}>
+                        {sa.appFeeMessage ||
+                          "This is the TechTrust service fee for connecting you with verified providers. Subscribe monthly to eliminate this fee!"}
+                      </Text>
+                    </View>
+                  </>
+                )}
+                <View
+                  style={[
+                    styles.feeDisclaimer,
+                    {
+                      marginTop: 8,
+                      backgroundColor: "#fefce8",
+                      borderColor: "#fde68a",
+                    },
+                  ]}
+                >
+                  <Ionicons name="alert-circle" size={16} color="#b45309" />
+                  <Text
+                    style={[styles.feeDisclaimerText, { color: "#92400e" }]}
+                  >
+                    {sa.providerFeeNote ||
+                      "The provider may optionally charge a diagnostic fee (up to $50) when accepting your appointment. You will be notified before any charge."}
+                  </Text>
+                </View>
+              </View>
+
+              {/* FDACS Info */}
+              <View style={styles.fdacsInfo}>
+                <Ionicons name="shield-checkmark" size={20} color="#1976d2" />
+                <Text style={styles.fdacsText}>
+                  {sa.fdacsProtection ||
+                    "Your diagnostic visit is protected under Florida FDACS regulations. You will receive a Written Estimate valid for 15 days before any work begins."}
+                </Text>
               </View>
             </View>
+          )}
 
-            {/* Provider fee info */}
-            <View style={[styles.feeDisclaimer, { backgroundColor: "#fefce8", borderColor: "#fde68a" }]}>
-              <Ionicons
-                name="alert-circle"
-                size={16}
-                color="#b45309"
-              />
-              <Text style={[styles.feeDisclaimerText, { color: "#92400e" }]}>
-                {sa.providerFeeNote ||
-                  "The provider may optionally charge a diagnostic fee (up to $50) when accepting your appointment. You will be notified before any charge."}
+          {/* ─── STEP 5: Confirmation ─── */}
+          {step === 5 && (
+            <View>
+              <Text style={styles.sectionTitle}>
+                {sa.reviewConfirm || "Review & Confirm"}
               </Text>
-            </View>
 
-            {/* Security badge */}
-            <View style={styles.securityBadge}>
-              <Ionicons
-                name="lock-closed"
-                size={18}
-                color="#1976d2"
-              />
-              <Text style={styles.securityText}>
-                {sa.securityNote ||
-                  "Your payment is secured. Provider details shared only after confirmation. All transactions are FDACS compliant."}
-              </Text>
+              {/* Summary */}
+              <View style={styles.summaryCard}>
+                <View style={styles.summaryRow}>
+                  <Ionicons name="car" size={20} color="#6b7280" />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.summaryLabel}>
+                      {sa.stepVehicle || "Vehicle"}
+                    </Text>
+                    <Text style={styles.summaryValue}>
+                      {selectedVehicleObj?.name || "-"}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.summaryDivider} />
+
+                <View style={styles.summaryRow}>
+                  <Ionicons
+                    name={(selectedServiceObj?.icon as any) || "build"}
+                    size={20}
+                    color="#6b7280"
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.summaryLabel}>
+                      {sa.stepService || "Service"}
+                    </Text>
+                    <Text style={styles.summaryValue}>
+                      {selectedServiceObj?.label || "-"}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.summaryDivider} />
+
+                <View style={styles.summaryRow}>
+                  <Ionicons name="business" size={20} color="#6b7280" />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.summaryLabel}>
+                      {sa.stepProvider || "Provider"}
+                    </Text>
+                    <Text style={styles.summaryValue}>
+                      {selectedProviderObj?.businessName || "-"}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.summaryDivider} />
+
+                <View style={styles.summaryRow}>
+                  <Ionicons name="calendar" size={20} color="#6b7280" />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.summaryLabel}>
+                      {sa.stepDateTime || "Date & Time"}
+                    </Text>
+                    <Text style={styles.summaryValue}>
+                      {date.toLocaleDateString()} ·{" "}
+                      {date.toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.summaryDivider} />
+
+                <View style={styles.summaryRow}>
+                  <Ionicons name="cash" size={20} color="#6b7280" />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.summaryLabel}>
+                      {sa.appServiceFee || "App Service Fee"}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.summaryValue,
+                        isSubscriber && { color: "#059669" },
+                      ]}
+                    >
+                      {isSubscriber
+                        ? sa.free || "FREE"
+                        : `$${appFee.toFixed(2)}`}
+                    </Text>
+                    {isSubscriber && (
+                      <Text
+                        style={{
+                          fontSize: 11,
+                          color: "#059669",
+                          fontWeight: "500",
+                        }}
+                      >
+                        {userPlan?.plan} {sa.planBenefit || "plan benefit"}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              </View>
+
+              {/* Provider fee info */}
+              <View
+                style={[
+                  styles.feeDisclaimer,
+                  { backgroundColor: "#fefce8", borderColor: "#fde68a" },
+                ]}
+              >
+                <Ionicons name="alert-circle" size={16} color="#b45309" />
+                <Text style={[styles.feeDisclaimerText, { color: "#92400e" }]}>
+                  {sa.providerFeeNote ||
+                    "The provider may optionally charge a diagnostic fee (up to $50) when accepting your appointment. You will be notified before any charge."}
+                </Text>
+              </View>
+
+              {/* Security badge */}
+              <View style={styles.securityBadge}>
+                <Ionicons name="lock-closed" size={18} color="#1976d2" />
+                <Text style={styles.securityText}>
+                  {sa.securityNote ||
+                    "Your payment is secured. Provider details shared only after confirmation. All transactions are FDACS compliant."}
+                </Text>
+              </View>
             </View>
-          </View>
-        )}
-      </ScrollView>
+          )}
+        </ScrollView>
       </KeyboardAvoidingView>
 
       {/* Footer with navigation buttons */}
@@ -961,8 +942,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
           >
             <Text style={styles.nextBtnText}>
               {step === 3 && !searchedProviders
-                ? sa.searchProviders ||
-                  "Search Providers"
+                ? sa.searchProviders || "Search Providers"
                 : t.common?.next || "Next"}
             </Text>
             <Ionicons name="arrow-forward" size={20} color="#fff" />
@@ -979,8 +959,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
               <>
                 <Ionicons name="calendar-outline" size={20} color="#fff" />
                 <Text style={styles.submitBtnText}>
-                  {sa.confirmSchedule ||
-                    "Confirm & Schedule"}
+                  {sa.confirmSchedule || "Confirm & Schedule"}
                 </Text>
               </>
             )}

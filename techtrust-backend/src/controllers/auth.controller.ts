@@ -20,7 +20,11 @@ import {
   isOTPExpired,
   validateOTPFormat,
 } from "../utils/otp";
-import { sendOTP, sendVerifyOTP, checkVerifyOTP } from "../services/sms.service";
+import {
+  sendOTP,
+  sendVerifyOTP,
+  checkVerifyOTP,
+} from "../services/sms.service";
 import {
   sendOTPEmail,
   sendPasswordResetEmail,
@@ -83,7 +87,9 @@ export const signup = async (req: Request, res: Response) => {
               passwordHash: await hashPassword(password),
             },
           });
-          logger.info(`Role atualizado de ${existingEmail.role} para ${userRole} para: ${email}`);
+          logger.info(
+            `Role atualizado de ${existingEmail.role} para ${userRole} para: ${email}`,
+          );
         }
 
         // Create ProviderProfile if signing up as PROVIDER and it doesn't exist yet
@@ -106,17 +112,19 @@ export const signup = async (req: Request, res: Response) => {
                 specialties: [],
               },
             });
-            logger.info(`ProviderProfile criado para usuário existente: ${email}`);
+            logger.info(
+              `ProviderProfile criado para usuário existente: ${email}`,
+            );
           }
         }
 
         let otpSent = false;
-        let otpMethod: 'sms' | 'email' = 'sms';
+        let otpMethod: "sms" | "email" = "sms";
 
         if (isVerifyEnabled()) {
           // Twilio Verify: não precisa gerar/salvar OTP no DB
           try {
-            await sendVerifyOTP(existingEmail.phone, 'sms');
+            await sendVerifyOTP(existingEmail.phone, "sms");
             otpSent = true;
           } catch (smsError: any) {
             logger.error("Erro ao enviar Verify OTP:", smsError.message);
@@ -126,13 +134,23 @@ export const signup = async (req: Request, res: Response) => {
               const otpExpiresAt = getOTPExpiration();
               await prisma.user.update({
                 where: { id: existingEmail.id },
-                data: { emailOtpCode: otpCode, emailOtpExpiresAt: otpExpiresAt },
+                data: {
+                  emailOtpCode: otpCode,
+                  emailOtpExpiresAt: otpExpiresAt,
+                },
               });
-              await sendOTPEmail(existingEmail.email, otpCode, existingEmail.language);
+              await sendOTPEmail(
+                existingEmail.email,
+                otpCode,
+                existingEmail.language,
+              );
               otpSent = true;
-              otpMethod = 'email';
+              otpMethod = "email";
             } catch (emailError: any) {
-              logger.error("Erro ao enviar OTP via email (fallback):", emailError.message);
+              logger.error(
+                "Erro ao enviar OTP via email (fallback):",
+                emailError.message,
+              );
             }
           }
         } else {
@@ -151,13 +169,23 @@ export const signup = async (req: Request, res: Response) => {
             try {
               await prisma.user.update({
                 where: { id: existingEmail.id },
-                data: { emailOtpCode: otpCode, emailOtpExpiresAt: otpExpiresAt },
+                data: {
+                  emailOtpCode: otpCode,
+                  emailOtpExpiresAt: otpExpiresAt,
+                },
               });
-              await sendOTPEmail(existingEmail.email, otpCode, existingEmail.language);
+              await sendOTPEmail(
+                existingEmail.email,
+                otpCode,
+                existingEmail.language,
+              );
               otpSent = true;
-              otpMethod = 'email';
+              otpMethod = "email";
             } catch (emailError: any) {
-              logger.error("Erro ao enviar OTP via email (fallback):", emailError.message);
+              logger.error(
+                "Erro ao enviar OTP via email (fallback):",
+                emailError.message,
+              );
             }
           }
         }
@@ -165,7 +193,7 @@ export const signup = async (req: Request, res: Response) => {
         return res.status(200).json({
           success: true,
           message: otpSent
-            ? otpMethod === 'email'
+            ? otpMethod === "email"
               ? "Código reenviado por email (SMS indisponível)!"
               : "Código de verificação reenviado!"
             : "Conta encontrada. Use 'Reenviar código' para receber o OTP.",
@@ -173,7 +201,8 @@ export const signup = async (req: Request, res: Response) => {
             userId: existingEmail.id,
             email: existingEmail.email,
             phone: existingEmail.phone,
-            otpSentTo: otpMethod === 'email' ? existingEmail.email : existingEmail.phone,
+            otpSentTo:
+              otpMethod === "email" ? existingEmail.email : existingEmail.phone,
             otpMethod,
             otpSent,
             useVerify: isVerifyEnabled(),
@@ -210,7 +239,9 @@ export const signup = async (req: Request, res: Response) => {
               passwordHash: await hashPassword(password),
             },
           });
-          logger.info(`Role atualizado de ${existingPhone.role} para ${userRole} para phone: ${phone}`);
+          logger.info(
+            `Role atualizado de ${existingPhone.role} para ${userRole} para phone: ${phone}`,
+          );
         }
 
         // Create ProviderProfile if signing up as PROVIDER and it doesn't exist yet
@@ -233,16 +264,18 @@ export const signup = async (req: Request, res: Response) => {
                 specialties: [],
               },
             });
-            logger.info(`ProviderProfile criado para phone existente: ${phone}`);
+            logger.info(
+              `ProviderProfile criado para phone existente: ${phone}`,
+            );
           }
         }
 
         let otpSent = false;
-        let otpMethod: 'sms' | 'email' = 'sms';
+        let otpMethod: "sms" | "email" = "sms";
 
         if (isVerifyEnabled()) {
           try {
-            await sendVerifyOTP(phone, 'sms');
+            await sendVerifyOTP(phone, "sms");
             otpSent = true;
           } catch (smsError: any) {
             logger.error("Erro ao enviar Verify OTP:", smsError.message);
@@ -251,13 +284,23 @@ export const signup = async (req: Request, res: Response) => {
               const otpExpiresAt = getOTPExpiration();
               await prisma.user.update({
                 where: { id: existingPhone.id },
-                data: { emailOtpCode: otpCode, emailOtpExpiresAt: otpExpiresAt },
+                data: {
+                  emailOtpCode: otpCode,
+                  emailOtpExpiresAt: otpExpiresAt,
+                },
               });
-              await sendOTPEmail(existingPhone.email, otpCode, existingPhone.language);
+              await sendOTPEmail(
+                existingPhone.email,
+                otpCode,
+                existingPhone.language,
+              );
               otpSent = true;
-              otpMethod = 'email';
+              otpMethod = "email";
             } catch (emailError: any) {
-              logger.error("Erro ao enviar OTP via email (fallback):", emailError.message);
+              logger.error(
+                "Erro ao enviar OTP via email (fallback):",
+                emailError.message,
+              );
             }
           }
         } else {
@@ -275,13 +318,23 @@ export const signup = async (req: Request, res: Response) => {
             try {
               await prisma.user.update({
                 where: { id: existingPhone.id },
-                data: { emailOtpCode: otpCode, emailOtpExpiresAt: otpExpiresAt },
+                data: {
+                  emailOtpCode: otpCode,
+                  emailOtpExpiresAt: otpExpiresAt,
+                },
               });
-              await sendOTPEmail(existingPhone.email, otpCode, existingPhone.language);
+              await sendOTPEmail(
+                existingPhone.email,
+                otpCode,
+                existingPhone.language,
+              );
               otpSent = true;
-              otpMethod = 'email';
+              otpMethod = "email";
             } catch (emailError: any) {
-              logger.error("Erro ao enviar OTP via email (fallback):", emailError.message);
+              logger.error(
+                "Erro ao enviar OTP via email (fallback):",
+                emailError.message,
+              );
             }
           }
         }
@@ -289,7 +342,7 @@ export const signup = async (req: Request, res: Response) => {
         return res.status(200).json({
           success: true,
           message: otpSent
-            ? otpMethod === 'email'
+            ? otpMethod === "email"
               ? "Código reenviado por email (SMS indisponível)!"
               : "Código de verificação reenviado!"
             : "Conta encontrada. Use 'Reenviar código' para receber o OTP.",
@@ -297,7 +350,8 @@ export const signup = async (req: Request, res: Response) => {
             userId: existingPhone.id,
             email: existingPhone.email,
             phone: existingPhone.phone,
-            otpSentTo: otpMethod === 'email' ? existingPhone.email : existingPhone.phone,
+            otpSentTo:
+              otpMethod === "email" ? existingPhone.email : existingPhone.phone,
             otpMethod,
             otpSent,
             useVerify: isVerifyEnabled(),
@@ -369,12 +423,12 @@ export const signup = async (req: Request, res: Response) => {
 
     // Enviar OTP
     let otpSent = false;
-    let otpMethod: 'sms' | 'email' = 'sms';
+    let otpMethod: "sms" | "email" = "sms";
 
     if (isVerifyEnabled()) {
       // Twilio Verify: envia e gerencia o código automaticamente
       try {
-        await sendVerifyOTP(phone, 'sms');
+        await sendVerifyOTP(phone, "sms");
         otpSent = true;
       } catch (smsError: any) {
         logger.error("Erro ao enviar Verify OTP:", smsError.message);
@@ -386,12 +440,15 @@ export const signup = async (req: Request, res: Response) => {
             where: { id: user.id },
             data: { emailOtpCode, emailOtpExpiresAt },
           });
-          await sendOTPEmail(email, emailOtpCode, language || 'EN');
+          await sendOTPEmail(email, emailOtpCode, language || "EN");
           otpSent = true;
-          otpMethod = 'email';
+          otpMethod = "email";
           logger.info(`OTP enviado por EMAIL (fallback Verify) para: ${email}`);
         } catch (emailError: any) {
-          logger.error("Erro ao enviar OTP via email (fallback):", emailError.message);
+          logger.error(
+            "Erro ao enviar OTP via email (fallback):",
+            emailError.message,
+          );
         }
       }
     } else {
@@ -406,21 +463,26 @@ export const signup = async (req: Request, res: Response) => {
             where: { id: user.id },
             data: { emailOtpCode: otpCode, emailOtpExpiresAt: otpExpiresAt },
           });
-          await sendOTPEmail(email, otpCode, language || 'EN');
+          await sendOTPEmail(email, otpCode, language || "EN");
           otpSent = true;
-          otpMethod = 'email';
+          otpMethod = "email";
         } catch (emailError: any) {
-          logger.error("Erro ao enviar OTP via email (fallback):", emailError.message);
+          logger.error(
+            "Erro ao enviar OTP via email (fallback):",
+            emailError.message,
+          );
         }
       }
     }
 
-    logger.info(`Novo usuário cadastrado: ${email} (OTP sent: ${otpSent}, method: ${otpMethod}, verify: ${isVerifyEnabled()})`);
+    logger.info(
+      `Novo usuário cadastrado: ${email} (OTP sent: ${otpSent}, method: ${otpMethod}, verify: ${isVerifyEnabled()})`,
+    );
 
     return res.status(201).json({
       success: true,
       message: otpSent
-        ? otpMethod === 'email'
+        ? otpMethod === "email"
           ? "Conta criada! Código enviado por email (SMS indisponível)."
           : "Conta criada! Verifique seu telefone."
         : "Conta criada! Não foi possível enviar o código. Use 'Reenviar código'.",
@@ -428,7 +490,7 @@ export const signup = async (req: Request, res: Response) => {
         userId: user.id,
         email: user.email,
         phone: user.phone,
-        otpSentTo: otpMethod === 'email' ? user.email : user.phone,
+        otpSentTo: otpMethod === "email" ? user.email : user.phone,
         otpMethod,
         otpSent,
         useVerify: isVerifyEnabled(),
@@ -798,7 +860,7 @@ export const completeSocialSignup = async (req: Request, res: Response) => {
 
       if (isVerifyEnabled()) {
         // Twilio Verify: send OTP via Verify API (no DB storage needed)
-        sendVerifyOTP(phone, 'sms').catch((err) => {
+        sendVerifyOTP(phone, "sms").catch((err) => {
           logger.error("Error sending Verify OTP after social signup:", err);
         });
       } else {
@@ -990,8 +1052,12 @@ export const verifyOTP = async (req: Request, res: Response) => {
       // Twilio Verify: validação é feita pela API do Twilio
       const verifyResult = await checkVerifyOTP(user.phone, cleanOtpCode);
       if (!verifyResult.valid) {
-        if (verifyResult.status === 'expired') {
-          throw new AppError("Código expirado. Solicite um novo.", 400, "OTP_EXPIRED");
+        if (verifyResult.status === "expired") {
+          throw new AppError(
+            "Código expirado. Solicite um novo.",
+            400,
+            "OTP_EXPIRED",
+          );
         }
         throw new AppError("Código incorreto", 400, "INVALID_OTP");
       }
@@ -1048,13 +1114,16 @@ export const verifyOTP = async (req: Request, res: Response) => {
           language: updatedUser.language,
           phoneVerified: updatedUser.phoneVerified,
           emailVerified: updatedUser.emailVerified,
-          providerProfile: updatedUser.providerProfile ? {
-            id: updatedUser.providerProfile.id,
-            businessName: updatedUser.providerProfile.businessName,
-            servicesOffered: updatedUser.providerProfile.servicesOffered,
-            vehicleTypesServed: updatedUser.providerProfile.vehicleTypesServed,
-            sellsParts: updatedUser.providerProfile.sellsParts,
-          } : undefined,
+          providerProfile: updatedUser.providerProfile
+            ? {
+                id: updatedUser.providerProfile.id,
+                businessName: updatedUser.providerProfile.businessName,
+                servicesOffered: updatedUser.providerProfile.servicesOffered,
+                vehicleTypesServed:
+                  updatedUser.providerProfile.vehicleTypesServed,
+                sellsParts: updatedUser.providerProfile.sellsParts,
+              }
+            : undefined,
         },
       },
     });
@@ -1109,12 +1178,12 @@ export const resendOTP = async (req: Request, res: Response) => {
       });
     } else {
       // SMS OTP
-      let actualMethod: 'sms' | 'email' = 'sms';
+      let actualMethod: "sms" | "email" = "sms";
 
       if (isVerifyEnabled()) {
         // Twilio Verify: reenvia automaticamente
         try {
-          await sendVerifyOTP(user.phone, 'sms');
+          await sendVerifyOTP(user.phone, "sms");
           logger.info(`Verify OTP reenviado para: ${user.phone}`);
         } catch (smsError: any) {
           logger.error("Erro ao reenviar Verify OTP:", smsError.message);
@@ -1127,11 +1196,17 @@ export const resendOTP = async (req: Request, res: Response) => {
               data: { emailOtpCode: otpCode, emailOtpExpiresAt: otpExpiresAt },
             });
             await sendOTPEmail(user.email, otpCode, user.language);
-            actualMethod = 'email';
-            logger.info(`OTP reenviado por EMAIL (fallback Verify) para: ${user.email}`);
+            actualMethod = "email";
+            logger.info(
+              `OTP reenviado por EMAIL (fallback Verify) para: ${user.email}`,
+            );
           } catch (emailError: any) {
             logger.error("Erro ao reenviar OTP via email:", emailError.message);
-            throw new AppError("Não foi possível enviar o código", 500, "OTP_SEND_FAILED");
+            throw new AppError(
+              "Não foi possível enviar o código",
+              500,
+              "OTP_SEND_FAILED",
+            );
           }
         }
       } else {
@@ -1153,22 +1228,27 @@ export const resendOTP = async (req: Request, res: Response) => {
               data: { emailOtpCode: otpCode, emailOtpExpiresAt: otpExpiresAt },
             });
             await sendOTPEmail(user.email, otpCode, user.language);
-            actualMethod = 'email';
+            actualMethod = "email";
           } catch (emailError: any) {
             logger.error("Erro ao reenviar OTP via email:", emailError.message);
-            throw new AppError("Não foi possível enviar o código", 500, "OTP_SEND_FAILED");
+            throw new AppError(
+              "Não foi possível enviar o código",
+              500,
+              "OTP_SEND_FAILED",
+            );
           }
         }
       }
 
       return res.json({
         success: true,
-        message: actualMethod === 'email'
-          ? "Código enviado por email (SMS indisponível)"
-          : "Novo código enviado por SMS",
+        message:
+          actualMethod === "email"
+            ? "Código enviado por email (SMS indisponível)"
+            : "Novo código enviado por SMS",
         data: {
           method: actualMethod,
-          otpSentTo: actualMethod === 'email' ? user.email : user.phone,
+          otpSentTo: actualMethod === "email" ? user.email : user.phone,
           expiresIn: 600,
         },
       });
@@ -1244,7 +1324,7 @@ export const login = async (req: Request, res: Response) => {
       if (isVerifyEnabled()) {
         // Twilio Verify: envia automaticamente
         try {
-          await sendVerifyOTP(user.phone, 'sms');
+          await sendVerifyOTP(user.phone, "sms");
           otpSent = true;
         } catch (err) {
           logger.error("Erro ao enviar Verify OTP no login:", err);

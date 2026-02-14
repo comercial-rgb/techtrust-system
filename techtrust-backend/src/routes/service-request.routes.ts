@@ -1,14 +1,14 @@
-import { Router } from 'express';
-import * as serviceRequestController from '../controllers/service-request.controller';
-import { authenticate } from '../middleware/auth';
-import { validate } from '../middleware/validation';
-import { asyncHandler } from '../utils/async-handler';
+import { Router } from "express";
+import * as serviceRequestController from "../controllers/service-request.controller";
+import { authenticate } from "../middleware/auth";
+import { validate } from "../middleware/validation";
+import { asyncHandler } from "../utils/async-handler";
 import {
   createServiceRequestValidation,
   listServiceRequestsValidation,
   requestIdValidation,
   cancelServiceRequestValidation,
-} from '../validators/service-request.validator';
+} from "../validators/service-request.validator";
 
 const router = Router();
 
@@ -20,9 +20,9 @@ router.use(authenticate);
  * Criar nova solicitação
  */
 router.post(
-  '/',
+  "/",
   validate(createServiceRequestValidation),
-  asyncHandler(serviceRequestController.createServiceRequest)
+  asyncHandler(serviceRequestController.createServiceRequest),
 );
 
 /**
@@ -30,9 +30,9 @@ router.post(
  * Listar solicitações
  */
 router.get(
-  '/',
+  "/",
   validate(listServiceRequestsValidation),
-  asyncHandler(serviceRequestController.getServiceRequests)
+  asyncHandler(serviceRequestController.getServiceRequests),
 );
 
 /**
@@ -40,9 +40,9 @@ router.get(
  * Ver detalhes
  */
 router.get(
-  '/:requestId',
+  "/:requestId",
   validate(requestIdValidation),
-  asyncHandler(serviceRequestController.getServiceRequest)
+  asyncHandler(serviceRequestController.getServiceRequest),
 );
 
 /**
@@ -50,9 +50,9 @@ router.get(
  * Cancelar solicitação
  */
 router.post(
-  '/:requestId/cancel',
+  "/:requestId/cancel",
   validate(cancelServiceRequestValidation),
-  asyncHandler(serviceRequestController.cancelServiceRequest)
+  asyncHandler(serviceRequestController.cancelServiceRequest),
 );
 
 /**
@@ -60,9 +60,9 @@ router.post(
  * Renew request to receive more quotes
  */
 router.post(
-  '/:requestId/renew',
+  "/:requestId/renew",
   validate(requestIdValidation),
-  asyncHandler(serviceRequestController.renewServiceRequest)
+  asyncHandler(serviceRequestController.renewServiceRequest),
 );
 
 export default router;

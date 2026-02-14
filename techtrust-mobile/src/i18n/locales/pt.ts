@@ -803,7 +803,8 @@ export default {
     documentUploaded: "Documento enviado com sucesso!",
     uploadFailed: "Falha ao enviar documento. Tente novamente.",
     skipOnboarding: "Pular Configuração?",
-    skipOnboardingMessage: "Você pode enviar documentos depois em Perfil → Conformidade. Sua conta pode ter funcionalidades limitadas até que os documentos sejam verificados.",
+    skipOnboardingMessage:
+      "Você pode enviar documentos depois em Perfil → Conformidade. Sua conta pode ter funcionalidades limitadas até que os documentos sejam verificados.",
     skipAnyway: "Pular",
     uploadAnother: "Enviar Outro Documento",
     tapToUpload: "Toque para Enviar Documento",
@@ -819,11 +820,13 @@ export default {
     chooseSource: "Como você gostaria de adicionar seu documento?",
     takePhoto: "Tirar Foto",
     chooseFile: "Escolher Arquivo",
-    cameraPermissionRequired: "Permissão da câmera é necessária para tirar fotos.",
+    cameraPermissionRequired:
+      "Permissão da câmera é necessária para tirar fotos.",
     cameraFailed: "Não foi possível abrir a câmera. Tente novamente.",
     cameraOrFile: "Tire uma foto ou escolha dos arquivos (JPG, PNG, PDF)",
     reviewPhoto: "Revisar Foto",
-    photoReviewHint: "Certifique-se de que o documento está claro e todo o texto é legível.",
+    photoReviewHint:
+      "Certifique-se de que o documento está claro e todo o texto é legível.",
     retake: "Tirar Outra",
     usePhoto: "Usar Foto",
   },

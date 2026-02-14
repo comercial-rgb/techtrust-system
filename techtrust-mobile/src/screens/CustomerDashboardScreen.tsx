@@ -39,7 +39,11 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_WIDTH = (SCREEN_WIDTH - 48) / 2; // 16 padding on each side + 16 gap
 
 // Estados e cidades para filtro - Multi-state support
-import { US_STATES, CITIES_BY_STATE, STATE_CODES } from '../constants/us-states';
+import {
+  US_STATES,
+  CITIES_BY_STATE,
+  STATE_CODES,
+} from "../constants/us-states";
 const STATES = STATE_CODES;
 const CITIES: Record<string, string[]> = CITIES_BY_STATE;
 
@@ -552,10 +556,13 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                     <Ionicons name="car-sport" size={32} color="#1976d2" />
                   </View>
                   <Text style={styles.vehicleName}>
-                    {vehicle.year} {vehicle.make} {vehicle.model} {vehicle.trim || ''}
+                    {vehicle.year} {vehicle.make} {vehicle.model}{" "}
+                    {vehicle.trim || ""}
                   </Text>
                   <Text style={styles.vehiclePlate}>
-                    {[vehicle.plateNumber, vehicle.fuelType].filter(Boolean).join(' • ')}
+                    {[vehicle.plateNumber, vehicle.fuelType]
+                      .filter(Boolean)
+                      .join(" • ")}
                   </Text>
                 </View>
               </ScalePress>
@@ -660,7 +667,8 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                               {request.title}
                             </Text>
                             <Text style={styles.requestVehicle}>
-                              {request.vehicle.year} {request.vehicle.make} {request.vehicle.model}
+                              {request.vehicle.year} {request.vehicle.make}{" "}
+                              {request.vehicle.model}
                             </Text>
                           </View>
                           <View

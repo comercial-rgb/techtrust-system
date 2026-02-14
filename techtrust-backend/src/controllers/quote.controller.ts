@@ -161,8 +161,8 @@ export const createQuote = async (req: Request, res: Response) => {
   }
 
   // Calculate mandated fees (FDACS)
-  const tireFee = Number(newTireCount) * 1.00;   // FS 403.718: $1.00 per new tire
-  const batteryFee = Number(newBatteryCount) * 1.50; // FS 403.7185: $1.50 per new/reman battery
+  const tireFee = Number(newTireCount) * 1.0; // FS 403.718: $1.00 per new tire
+  const batteryFee = Number(newBatteryCount) * 1.5; // FS 403.7185: $1.50 per new/reman battery
 
   // Calcular total (incluindo taxa de deslocamento + FDACS fees)
   const totalAmount =
@@ -211,7 +211,9 @@ export const createQuote = async (req: Request, res: Response) => {
       warrantyDescription,
       odometerReading: odometerReading ? Number(odometerReading) : null,
       // FDACS Compliance
-      proposedCompletionDate: proposedCompletionDate ? new Date(proposedCompletionDate) : null,
+      proposedCompletionDate: proposedCompletionDate
+        ? new Date(proposedCompletionDate)
+        : null,
       laborChargeType: laborChargeType || null,
       hourlyRate: hourlyRate ? Number(hourlyRate) : null,
       shopSuppliesFee: Number(shopSuppliesFee) || 0,
@@ -222,10 +224,13 @@ export const createQuote = async (req: Request, res: Response) => {
       intendedPaymentMethod: intendedPaymentMethod || null,
       authorizedPersonName: authorizedPersonName || null,
       authorizedPersonPhone: authorizedPersonPhone || null,
-      saveReplacedParts: saveReplacedParts === true || saveReplacedParts === 'true',
+      saveReplacedParts:
+        saveReplacedParts === true || saveReplacedParts === "true",
       dailyStorageCharge: Number(dailyStorageCharge) || 0,
       estimateConsentType: estimateConsentType || null,
-      maxAmountWithoutEstimate: maxAmountWithoutEstimate ? Number(maxAmountWithoutEstimate) : null,
+      maxAmountWithoutEstimate: maxAmountWithoutEstimate
+        ? Number(maxAmountWithoutEstimate)
+        : null,
       consentSignature: consentSignature || null,
       consentSignedAt: consentSignature ? new Date() : null,
       notes,

@@ -264,7 +264,8 @@ export default function ProviderWorkOrdersScreen({ navigation }: any) {
               color="#f59e0b"
             />
             <Text style={styles.scheduledText}>
-              {t.workOrder?.scheduled || 'Scheduled'}: {formatDate(item.scheduledDate)}
+              {t.workOrder?.scheduled || "Scheduled"}:{" "}
+              {formatDate(item.scheduledDate)}
             </Text>
           </View>
         )}
@@ -289,8 +290,8 @@ export default function ProviderWorkOrdersScreen({ navigation }: any) {
               ]}
             >
               {item.status === "PENDING_START"
-                ? t.workOrder?.tapToStart || 'Tap to start'
-                : t.workOrder?.tapToComplete || 'Tap to complete'}
+                ? t.workOrder?.tapToStart || "Tap to start"
+                : t.workOrder?.tapToComplete || "Tap to complete"}
             </Text>
           </View>
         )}
@@ -306,25 +307,33 @@ export default function ProviderWorkOrdersScreen({ navigation }: any) {
           <Text style={[styles.statValue, { color: "#92400e" }]}>
             {stats.pendingStart}
           </Text>
-          <Text style={styles.statLabel}>{t.workOrder?.waiting || 'Waiting'}</Text>
+          <Text style={styles.statLabel}>
+            {t.workOrder?.waiting || "Waiting"}
+          </Text>
         </View>
         <View style={[styles.statItem, { backgroundColor: "#dbeafe" }]}>
           <Text style={[styles.statValue, { color: "#1e40af" }]}>
             {stats.inProgress}
           </Text>
-          <Text style={styles.statLabel}>{t.workOrder?.inProgress || 'In Progress'}</Text>
+          <Text style={styles.statLabel}>
+            {t.workOrder?.inProgress || "In Progress"}
+          </Text>
         </View>
         <View style={[styles.statItem, { backgroundColor: "#ede9fe" }]}>
           <Text style={[styles.statValue, { color: "#5b21b6" }]}>
             {stats.awaitingApproval}
           </Text>
-          <Text style={styles.statLabel}>{t.workOrder?.approval || 'Approval'}</Text>
+          <Text style={styles.statLabel}>
+            {t.workOrder?.approval || "Approval"}
+          </Text>
         </View>
         <View style={[styles.statItem, { backgroundColor: "#d1fae5" }]}>
           <Text style={[styles.statValue, { color: "#065f46" }]}>
             {stats.completed}
           </Text>
-          <Text style={styles.statLabel}>{t.workOrder?.completed || 'Completed'}</Text>
+          <Text style={styles.statLabel}>
+            {t.workOrder?.completed || "Completed"}
+          </Text>
         </View>
       </View>
 
@@ -340,7 +349,7 @@ export default function ProviderWorkOrdersScreen({ navigation }: any) {
               filter === "all" && styles.filterTabTextActive,
             ]}
           >
-            {t.common?.all || 'All'}
+            {t.common?.all || "All"}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -356,7 +365,7 @@ export default function ProviderWorkOrdersScreen({ navigation }: any) {
               filter === "active" && styles.filterTabTextActive,
             ]}
           >
-            {t.workOrder?.active || 'Active'}
+            {t.workOrder?.active || "Active"}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -372,7 +381,7 @@ export default function ProviderWorkOrdersScreen({ navigation }: any) {
               filter === "completed" && styles.filterTabTextActive,
             ]}
           >
-            {t.workOrder?.completed || 'Completed'}
+            {t.workOrder?.completed || "Completed"}
           </Text>
         </TouchableOpacity>
       </View>

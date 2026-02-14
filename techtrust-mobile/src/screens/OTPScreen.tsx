@@ -3,12 +3,17 @@
  * ✨ Atualizada com animações e UI melhorada
  */
 
-import React, { useState, useRef, useEffect } from 'react';
-import { View, StyleSheet, TextInput as RNTextInput, Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Text, useTheme } from 'react-native-paper';
-import { useAuth } from '../contexts/AuthContext';
-import { useI18n } from '../i18n';
+import React, { useState, useRef, useEffect } from "react";
+import {
+  View,
+  StyleSheet,
+  TextInput as RNTextInput,
+  Alert,
+} from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Text, useTheme } from "react-native-paper";
+import { useAuth } from "../contexts/AuthContext";
+import { useI18n } from "../i18n";
 
 // ✨ Importando componentes de UI
 import {
@@ -21,7 +26,7 @@ import {
   useToast,
   LoadingOverlay,
   EnhancedButton,
-} from '../components';
+} from "../components";
 
 export default function OTPScreen({ route, navigation }: any) {
   const theme = useTheme();
@@ -30,15 +35,20 @@ export default function OTPScreen({ route, navigation }: any) {
 
   const routeUserId = route?.params?.userId as string | undefined;
   const routePhone = route?.params?.phone as string | undefined;
-  const routeOtpMethod = route?.params?.otpMethod as 'sms' | 'email' | undefined;
+  const routeOtpMethod = route?.params?.otpMethod as
+    | "sms"
+    | "email"
+    | undefined;
   const routeEmail = route?.params?.email as string | undefined;
 
   const [userId, setUserId] = useState<string | null>(routeUserId ?? null);
   const [phone, setPhone] = useState<string | null>(routePhone ?? null);
-  const [otpMethod, setOtpMethod] = useState<'sms' | 'email'>(routeOtpMethod || 'sms');
+  const [otpMethod, setOtpMethod] = useState<"sms" | "email">(
+    routeOtpMethod || "sms",
+  );
   const [email, setEmail] = useState<string | null>(routeEmail ?? null);
 
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [resendTimer, setResendTimer] = useState(60);
@@ -65,7 +75,7 @@ export default function OTPScreen({ route, navigation }: any) {
 
     (async () => {
       try {
-        const pendingRaw = await AsyncStorage.getItem('@TechTrust:pendingUser');
+        const pendingRaw = await AsyncStorage.getItem("@TechTrust:pendingUser");
         if (!pendingRaw) return;
 
         const pending = JSON.parse(pendingRaw);
@@ -82,7 +92,7 @@ export default function OTPScreen({ route, navigation }: any) {
   const handleOtpChange = (value: string, index: number) => {
     if (value.length > 1) {
       // Handle paste
-      const pastedCode = value.slice(0, 6).split('');
+      const pastedCode = value.slice(0, 6).split("");
       const newOtp = [...otp];
       pastedCode.forEach((digit, i) => {
         if (i < 6) newOtp[i] = digit;
@@ -105,27 +115,28 @@ export default function OTPScreen({ route, navigation }: any) {
   };
 
   const handleKeyPress = (e: any, index: number) => {
-    if (e.nativeEvent.key === 'Backspace' && !otp[index] && index > 0) {
+    if (e.nativeEvent.key === "Backspace" && !otp[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
     }
   };
 
   async function handleVerify() {
     // Limpa e valida o código
-    const otpCode = otp.join('').replace(/\s/g, ''); // Remove todos os espaços
-    
-
+    const otpCode = otp.join("").replace(/\s/g, ""); // Remove todos os espaços
 
     if (!userId) {
       setHasError(true);
-      error(t.auth?.errorCreatingAccount || 'Missing signup data. Please sign up again.');
+      error(
+        t.auth?.errorCreatingAccount ||
+          "Missing signup data. Please sign up again.",
+      );
       setTimeout(() => setHasError(false), 500);
       return;
     }
-    
+
     if (!otpCode || otpCode.length !== 6) {
       setHasError(true);
-      error(t.auth?.enterOtpCode || 'Digite o código de 6 dígitos');
+      error(t.auth?.enterOtpCode || "Digite o código de 6 dígitos");
       setTimeout(() => setHasError(false), 500);
       return;
     }
@@ -133,21 +144,20 @@ export default function OTPScreen({ route, navigation }: any) {
     // Valida se são apenas números
     if (!/^\d{6}$/.test(otpCode)) {
       setHasError(true);
-      error('Código deve conter apenas números');
+      error("Código deve conter apenas números");
       setTimeout(() => setHasError(false), 500);
       return;
     }
 
-
     setLoading(true);
     try {
       await verifyOTP(userId, otpCode, otpMethod);
-      success(t.auth?.verificationComplete || 'Verification complete!');
+      success(t.auth?.verificationComplete || "Verification complete!");
     } catch (err: any) {
       setHasError(true);
-      error(err.message || t.auth?.invalidCode || 'Invalid code');
+      error(err.message || t.auth?.invalidCode || "Invalid code");
       setTimeout(() => setHasError(false), 500);
-      setOtp(['', '', '', '', '', '']);
+      setOtp(["", "", "", "", "", ""]);
       inputRefs.current[0]?.focus();
     } finally {
       setLoading(false);
@@ -158,28 +168,31 @@ export default function OTPScreen({ route, navigation }: any) {
     if (!canResend) return;
 
     if (!userId) {
-      error(t.auth?.errorCreatingAccount || 'Missing signup data. Please sign up again.');
+      error(
+        t.auth?.errorCreatingAccount ||
+          "Missing signup data. Please sign up again.",
+      );
       return;
     }
 
     setLoading(true);
     resendOTP(userId, otpMethod)
       .then(() => {
-        success(t.auth?.codeSent || 'Code sent!');
+        success(t.auth?.codeSent || "Code sent!");
         setResendTimer(60);
         setCanResend(false);
-        setOtp(['', '', '', '', '', '']);
+        setOtp(["", "", "", "", "", ""]);
         inputRefs.current[0]?.focus();
       })
       .catch((err: any) => {
-        error(err.message || 'Erro ao reenviar código');
+        error(err.message || "Erro ao reenviar código");
       })
       .finally(() => {
         setLoading(false);
       });
   };
 
-  const isComplete = otp.every(digit => digit !== '');
+  const isComplete = otp.every((digit) => digit !== "");
 
   return (
     <View style={styles.container}>
@@ -188,24 +201,40 @@ export default function OTPScreen({ route, navigation }: any) {
         <FadeInView delay={0}>
           <View style={styles.header}>
             <PulseView>
-              <View style={[styles.iconContainer, { backgroundColor: theme.colors.primary }]}>
+              <View
+                style={[
+                  styles.iconContainer,
+                  { backgroundColor: theme.colors.primary },
+                ]}
+              >
                 <Text style={styles.headerIcon}>🔐</Text>
               </View>
             </PulseView>
-            <Text variant="headlineMedium" style={[styles.title, { color: theme.colors.primary }]}>
-              {t.auth?.verification || 'Verification'}
+            <Text
+              variant="headlineMedium"
+              style={[styles.title, { color: theme.colors.primary }]}
+            >
+              {t.auth?.verification || "Verification"}
             </Text>
             <Text variant="bodyMedium" style={styles.subtitle}>
-              {otpMethod === 'email'
-                ? (t.auth?.enterCodeSentToEmail || 'Enter the code sent to your email')
-                : (t.auth?.enterCodeSentTo || 'Enter the code sent to')}
+              {otpMethod === "email"
+                ? t.auth?.enterCodeSentToEmail ||
+                  "Enter the code sent to your email"
+                : t.auth?.enterCodeSentTo || "Enter the code sent to"}
             </Text>
-            <Text variant="bodyLarge" style={[styles.phone, { color: theme.colors.primary }]}>
-              {otpMethod === 'email' ? email : phone}
+            <Text
+              variant="bodyLarge"
+              style={[styles.phone, { color: theme.colors.primary }]}
+            >
+              {otpMethod === "email" ? email : phone}
             </Text>
-            {otpMethod === 'email' && (
-              <Text variant="bodySmall" style={{ color: '#f59e0b', marginTop: 4, textAlign: 'center' }}>
-                {t.auth?.smsFallbackNotice || 'SMS was unavailable. Code sent via email instead.'}
+            {otpMethod === "email" && (
+              <Text
+                variant="bodySmall"
+                style={{ color: "#f59e0b", marginTop: 4, textAlign: "center" }}
+              >
+                {t.auth?.smsFallbackNotice ||
+                  "SMS was unavailable. Code sent via email instead."}
               </Text>
             )}
           </View>
@@ -223,10 +252,12 @@ export default function OTPScreen({ route, navigation }: any) {
                     styles.otpInput,
                     digit && styles.otpInputFilled,
                     hasError && styles.otpInputError,
-                    { borderColor: digit ? theme.colors.primary : '#e5e7eb' },
+                    { borderColor: digit ? theme.colors.primary : "#e5e7eb" },
                   ]}
                   value={digit}
-                  onChangeText={(value) => handleOtpChange(value.replace(/[^0-9]/g, ''), index)}
+                  onChangeText={(value) =>
+                    handleOtpChange(value.replace(/[^0-9]/g, ""), index)
+                  }
                   onKeyPress={(e) => handleKeyPress(e, index)}
                   keyboardType="number-pad"
                   maxLength={index === 0 ? 6 : 1}
@@ -243,7 +274,7 @@ export default function OTPScreen({ route, navigation }: any) {
         <FadeInView delay={200}>
           <View style={styles.buttonsContainer}>
             <EnhancedButton
-              title={t.auth?.verify || 'Verify'}
+              title={t.auth?.verify || "Verify"}
               onPress={handleVerify}
               variant="primary"
               size="large"
@@ -260,13 +291,16 @@ export default function OTPScreen({ route, navigation }: any) {
           <View style={styles.resendContainer}>
             {canResend ? (
               <ScalePress onPress={handleResend}>
-                <Text style={[styles.resendText, { color: theme.colors.primary }]}>
-                  {t.auth?.resendCode || 'Resend code'}
+                <Text
+                  style={[styles.resendText, { color: theme.colors.primary }]}
+                >
+                  {t.auth?.resendCode || "Resend code"}
                 </Text>
               </ScalePress>
             ) : (
               <Text style={styles.timerText}>
-                {t.auth?.resendIn || 'Resend in'} <Text style={styles.timerNumber}>{resendTimer}s</Text>
+                {t.auth?.resendIn || "Resend in"}{" "}
+                <Text style={styles.timerNumber}>{resendTimer}s</Text>
               </Text>
             )}
           </View>
@@ -277,14 +311,17 @@ export default function OTPScreen({ route, navigation }: any) {
           <ScalePress onPress={() => navigation.goBack()}>
             <View style={styles.backButton}>
               <Text style={styles.backIcon}>←</Text>
-              <Text style={styles.backText}>{t.common?.back || 'Back'}</Text>
+              <Text style={styles.backText}>{t.common?.back || "Back"}</Text>
             </View>
           </ScalePress>
         </FadeInView>
       </View>
 
       {/* ✨ Loading Overlay */}
-      <LoadingOverlay visible={loading} message={t.auth?.verifying || 'Verifying...'} />
+      <LoadingOverlay
+        visible={loading}
+        message={t.auth?.verifying || "Verifying..."}
+      />
 
       {/* ✨ Toast */}
       <Toast
@@ -300,23 +337,23 @@ export default function OTPScreen({ route, navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   content: {
     flex: 1,
     padding: 24,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   header: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 40,
   },
   iconContainer: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 20,
     elevation: 4,
   },
@@ -324,7 +361,7 @@ const styles = StyleSheet.create({
     fontSize: 36,
   },
   title: {
-    fontWeight: '700',
+    fontWeight: "700",
     marginBottom: 12,
   },
   subtitle: {
@@ -332,12 +369,12 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   phone: {
-    fontWeight: '700',
+    fontWeight: "700",
     fontSize: 18,
   },
   otpContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
     gap: 10,
     marginBottom: 20,
   },
@@ -347,23 +384,23 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderRadius: 14,
     fontSize: 24,
-    fontWeight: '700',
-    textAlign: 'center',
-    backgroundColor: '#f9fafb',
-    color: '#1f2937',
+    fontWeight: "700",
+    textAlign: "center",
+    backgroundColor: "#f9fafb",
+    color: "#1f2937",
   },
   otpInputFilled: {
-    backgroundColor: '#e3f2fd',
+    backgroundColor: "#e3f2fd",
   },
   otpInputError: {
-    borderColor: '#ef4444',
-    backgroundColor: '#fef2f2',
+    borderColor: "#ef4444",
+    backgroundColor: "#fef2f2",
   },
   hintContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fffbeb',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fffbeb",
     padding: 12,
     borderRadius: 12,
     marginBottom: 24,
@@ -374,42 +411,42 @@ const styles = StyleSheet.create({
   },
   hintText: {
     fontSize: 13,
-    color: '#92400e',
-    fontWeight: '500',
+    color: "#92400e",
+    fontWeight: "500",
   },
   buttonsContainer: {
     marginBottom: 20,
   },
   resendContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 20,
   },
   resendText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   timerText: {
     fontSize: 14,
-    color: '#9ca3af',
+    color: "#9ca3af",
   },
   timerNumber: {
-    fontWeight: '700',
-    color: '#374151',
+    fontWeight: "700",
+    color: "#374151",
   },
   backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     padding: 12,
   },
   backIcon: {
     fontSize: 18,
     marginRight: 8,
-    color: '#6b7280',
+    color: "#6b7280",
   },
   backText: {
     fontSize: 15,
-    color: '#6b7280',
-    fontWeight: '500',
+    color: "#6b7280",
+    fontWeight: "500",
   },
 });

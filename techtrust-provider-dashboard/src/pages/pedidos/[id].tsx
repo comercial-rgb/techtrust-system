@@ -175,14 +175,20 @@ export default function PedidoDetalhesPage() {
         proposedCompletionDate: proposedCompletionDate || undefined,
         laborChargeType: laborChargeType || undefined,
         hourlyRate: hourlyRate ? parseFloat(hourlyRate) : undefined,
-        shopSuppliesFee: shopSuppliesFee ? parseFloat(shopSuppliesFee) : undefined,
+        shopSuppliesFee: shopSuppliesFee
+          ? parseFloat(shopSuppliesFee)
+          : undefined,
         newTireCount: newTireCount ? parseInt(newTireCount) : undefined,
-        newBatteryCount: newBatteryCount ? parseInt(newBatteryCount) : undefined,
+        newBatteryCount: newBatteryCount
+          ? parseInt(newBatteryCount)
+          : undefined,
         intendedPaymentMethod: intendedPaymentMethod || undefined,
         authorizedPersonName: authorizedPersonName || undefined,
         authorizedPersonPhone: authorizedPersonPhone || undefined,
         saveReplacedParts,
-        dailyStorageCharge: dailyStorageCharge ? parseFloat(dailyStorageCharge) : undefined,
+        dailyStorageCharge: dailyStorageCharge
+          ? parseFloat(dailyStorageCharge)
+          : undefined,
       });
 
       setQuoteSubmitted(true);
@@ -261,8 +267,8 @@ export default function PedidoDetalhesPage() {
     const parts = parseFloat(partsCost) || 0;
     const labor = parseFloat(laborCost) || 0;
     const supplies = parseFloat(shopSuppliesFee) || 0;
-    const tires = (parseInt(newTireCount) || 0) * 1.00;
-    const batteries = (parseInt(newBatteryCount) || 0) * 1.50;
+    const tires = (parseInt(newTireCount) || 0) * 1.0;
+    const batteries = (parseInt(newBatteryCount) || 0) * 1.5;
     return parts + labor + supplies + tires + batteries;
   };
 
@@ -608,7 +614,9 @@ export default function PedidoDetalhesPage() {
                       <input
                         type="date"
                         value={proposedCompletionDate}
-                        onChange={(e) => setProposedCompletionDate(e.target.value)}
+                        onChange={(e) =>
+                          setProposedCompletionDate(e.target.value)
+                        }
                         className="input"
                       />
                     </div>
@@ -630,7 +638,8 @@ export default function PedidoDetalhesPage() {
                     </div>
                   </div>
 
-                  {(laborChargeType === 'HOURLY' || laborChargeType === 'BOTH') && (
+                  {(laborChargeType === "HOURLY" ||
+                    laborChargeType === "BOTH") && (
                     <div className="mb-6">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Hourly Rate ($/hour)
@@ -667,7 +676,9 @@ export default function PedidoDetalhesPage() {
                           className="input pl-12"
                         />
                       </div>
-                      <p className="text-xs text-gray-400 mt-1">Miscellaneous shop supplies or waste disposal</p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Miscellaneous shop supplies or waste disposal
+                      </p>
                     </div>
 
                     <div>
@@ -682,7 +693,9 @@ export default function PedidoDetalhesPage() {
                         placeholder="0"
                         className="input"
                       />
-                      <p className="text-xs text-gray-400 mt-1">$1.00/tire fee (FS 403.718)</p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        $1.00/tire fee (FS 403.718)
+                      </p>
                     </div>
 
                     <div>
@@ -697,7 +710,9 @@ export default function PedidoDetalhesPage() {
                         placeholder="0"
                         className="input"
                       />
-                      <p className="text-xs text-gray-400 mt-1">$1.50/battery fee (FS 403.7185)</p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        $1.50/battery fee (FS 403.7185)
+                      </p>
                     </div>
                   </div>
 
@@ -708,7 +723,9 @@ export default function PedidoDetalhesPage() {
                       </label>
                       <select
                         value={intendedPaymentMethod}
-                        onChange={(e) => setIntendedPaymentMethod(e.target.value)}
+                        onChange={(e) =>
+                          setIntendedPaymentMethod(e.target.value)
+                        }
                         className="input"
                       >
                         <option value="">Select...</option>
@@ -732,12 +749,16 @@ export default function PedidoDetalhesPage() {
                           step="0.01"
                           min="0"
                           value={dailyStorageCharge}
-                          onChange={(e) => setDailyStorageCharge(e.target.value)}
+                          onChange={(e) =>
+                            setDailyStorageCharge(e.target.value)
+                          }
                           placeholder="0.00"
                           className="input pl-12"
                         />
                       </div>
-                      <p className="text-xs text-gray-400 mt-1">Per day, after 3 working days of completion notice</p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Per day, after 3 working days of completion notice
+                      </p>
                     </div>
                   </div>
 
@@ -749,7 +770,9 @@ export default function PedidoDetalhesPage() {
                       <input
                         type="text"
                         value={authorizedPersonName}
-                        onChange={(e) => setAuthorizedPersonName(e.target.value)}
+                        onChange={(e) =>
+                          setAuthorizedPersonName(e.target.value)
+                        }
                         placeholder="Name"
                         className="input"
                       />
@@ -761,7 +784,9 @@ export default function PedidoDetalhesPage() {
                       <input
                         type="tel"
                         value={authorizedPersonPhone}
-                        onChange={(e) => setAuthorizedPersonPhone(e.target.value)}
+                        onChange={(e) =>
+                          setAuthorizedPersonPhone(e.target.value)
+                        }
                         placeholder="Phone number"
                         className="input"
                       />
@@ -776,8 +801,12 @@ export default function PedidoDetalhesPage() {
                       onChange={(e) => setSaveReplacedParts(e.target.checked)}
                       className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                     />
-                    <label htmlFor="saveReplacedParts" className="text-sm text-gray-700">
-                      Customer requests replaced parts to be saved for inspection/return
+                    <label
+                      htmlFor="saveReplacedParts"
+                      className="text-sm text-gray-700"
+                    >
+                      Customer requests replaced parts to be saved for
+                      inspection/return
                     </label>
                   </div>
 

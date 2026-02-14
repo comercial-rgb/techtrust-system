@@ -511,11 +511,7 @@ export const renewServiceRequest = async (req: Request, res: Response) => {
 
   // Only allow renewal for requests that are not in-progress or completed
   if (["IN_PROGRESS", "COMPLETED"].includes(request.status)) {
-    throw new AppError(
-      "This request cannot be renewed",
-      400,
-      "CANNOT_RENEW",
-    );
+    throw new AppError("This request cannot be renewed", 400, "CANNOT_RENEW");
   }
 
   // Reopen the request

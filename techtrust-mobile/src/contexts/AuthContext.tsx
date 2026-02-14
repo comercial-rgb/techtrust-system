@@ -54,7 +54,9 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   loginAsProvider: (email: string, password: string) => Promise<void>;
   signup: (data: SignupData) => Promise<{ userId: string }>;
-  signUp: (data: SignupData) => Promise<{ userId: string; otpMethod?: string; email?: string }>;
+  signUp: (
+    data: SignupData,
+  ) => Promise<{ userId: string; otpMethod?: string; email?: string }>;
   socialLogin: (
     provider: string,
     token: string,
@@ -138,7 +140,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   website: apiUser.providerProfile.website,
                   address: apiUser.providerProfile.address,
                   cpfCnpj: apiUser.providerProfile.cpfCnpj,
-                  fdacsRegistrationNumber: apiUser.providerProfile.fdacsRegistrationNumber,
+                  fdacsRegistrationNumber:
+                    apiUser.providerProfile.fdacsRegistrationNumber,
                 }
               : undefined,
           };
@@ -217,7 +220,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               website: apiUser.providerProfile.website,
               address: apiUser.providerProfile.address,
               cpfCnpj: apiUser.providerProfile.cpfCnpj,
-              fdacsRegistrationNumber: apiUser.providerProfile.fdacsRegistrationNumber,
+              fdacsRegistrationNumber:
+                apiUser.providerProfile.fdacsRegistrationNumber,
             }
           : undefined,
       };
@@ -285,7 +289,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               website: apiUser.providerProfile.website,
               address: apiUser.providerProfile.address,
               cpfCnpj: apiUser.providerProfile.cpfCnpj,
-              fdacsRegistrationNumber: apiUser.providerProfile.fdacsRegistrationNumber,
+              fdacsRegistrationNumber:
+                apiUser.providerProfile.fdacsRegistrationNumber,
             }
           : undefined,
       };
@@ -322,7 +327,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signup = async (data: SignupData): Promise<{ userId: string; otpMethod?: string; email?: string }> => {
+  const signup = async (
+    data: SignupData,
+  ): Promise<{ userId: string; otpMethod?: string; email?: string }> => {
     try {
       const response = await api.post("/auth/signup", data);
 
@@ -330,7 +337,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       await AsyncStorage.setItem(
         "@TechTrust:pendingUser",
-        JSON.stringify({ userId, email: data.email, phone: data.phone, otpMethod }),
+        JSON.stringify({
+          userId,
+          email: data.email,
+          phone: data.phone,
+          otpMethod,
+        }),
       );
 
       return { userId, otpMethod, email: responseEmail || data.email };

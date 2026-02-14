@@ -1,11 +1,11 @@
-'use client'
+"use client";
 
-import React, { useState, useEffect } from 'react'
-import { useRouter } from 'next/router'
-import { useAuth } from '@/contexts/AuthContext'
-import { useI18n } from '@/i18n'
-import DashboardLayout from '@/components/DashboardLayout'
-import api from '@/services/api'
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/router";
+import { useAuth } from "@/contexts/AuthContext";
+import { useI18n } from "@/i18n";
+import DashboardLayout from "@/components/DashboardLayout";
+import api from "@/services/api";
 import {
   Search,
   Clock,
@@ -20,153 +20,196 @@ import {
   Download,
   Eye,
   Filter,
-} from 'lucide-react'
+} from "lucide-react";
 
 interface Invoice {
-  id: string
-  invoiceNumber: string
-  customerName: string
-  providerName: string
-  providerBusinessName: string
-  vehicleInfo: string
-  originalTotal: number
-  finalTotal: number
-  supplementsTotal: number
-  status: string
-  createdAt: string
-  completedAt: string | null
-  pdfUrl: string | null
+  id: string;
+  invoiceNumber: string;
+  customerName: string;
+  providerName: string;
+  providerBusinessName: string;
+  vehicleInfo: string;
+  originalTotal: number;
+  finalTotal: number;
+  supplementsTotal: number;
+  status: string;
+  createdAt: string;
+  completedAt: string | null;
+  pdfUrl: string | null;
 }
 
 export default function FaturasPage() {
-  const { isAuthenticated, loading: authLoading } = useAuth()
-  const { translate: t } = useI18n()
-  const router = useRouter()
-  const [loading, setLoading] = useState(true)
-  const [invoices, setInvoices] = useState<Invoice[]>([])
-  const [filter, setFilter] = useState('all')
-  const [searchQuery, setSearchQuery] = useState('')
+  const { isAuthenticated, loading: authLoading } = useAuth();
+  const { translate: t } = useI18n();
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [filter, setFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      router.push('/login')
+      router.push("/login");
     }
-  }, [authLoading, isAuthenticated, router])
+  }, [authLoading, isAuthenticated, router]);
 
   useEffect(() => {
     if (isAuthenticated) {
-      loadInvoices()
+      loadInvoices();
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated]);
 
   async function loadInvoices() {
-    setLoading(true)
+    setLoading(true);
     try {
-      const response = await api.get('/repair-invoices/my')
-      const data = response.data.data
+      const response = await api.get("/repair-invoices/my");
+      const data = response.data.data;
       setInvoices(
         (data.invoices || []).map((inv: any) => ({
           id: inv.id,
-          invoiceNumber: inv.invoiceNumber || '',
-          customerName: inv.customerName || '',
-          providerName: inv.providerName || '',
-          providerBusinessName: inv.providerBusinessName || '',
-          vehicleInfo: inv.vehicleInfo || '',
+          invoiceNumber: inv.invoiceNumber || "",
+          customerName: inv.customerName || "",
+          providerName: inv.providerName || "",
+          providerBusinessName: inv.providerBusinessName || "",
+          vehicleInfo: inv.vehicleInfo || "",
           originalTotal: Number(inv.originalTotal) || 0,
           finalTotal: Number(inv.finalTotal) || 0,
           supplementsTotal: Number(inv.supplementsTotal) || 0,
-          status: inv.status || 'DRAFT',
+          status: inv.status || "DRAFT",
           createdAt: inv.createdAt,
           completedAt: inv.completedAt,
           pdfUrl: inv.pdfUrl || null,
-        }))
-      )
+        })),
+      );
     } catch (error) {
-      console.error('Error loading invoices:', error)
+      console.error("Error loading invoices:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   const getStatusInfo = (status: string) => {
-    const statuses: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-      DRAFT: { label: t('invoices.status.draft'), color: 'bg-gray-100 text-gray-700', icon: <FileText className="w-4 h-4" /> },
-      IN_PROGRESS: { label: t('common.status.inProgress'), color: 'bg-blue-100 text-blue-700', icon: <Clock className="w-4 h-4" /> },
-      COMPLETED: { label: t('common.status.completed'), color: 'bg-yellow-100 text-yellow-700', icon: <CheckCircle className="w-4 h-4" /> },
-      APPROVED: { label: t('invoices.status.approved'), color: 'bg-green-100 text-green-700', icon: <CheckCircle className="w-4 h-4" /> },
-      DISPUTED: { label: t('common.status.disputed'), color: 'bg-red-100 text-red-700', icon: <XCircle className="w-4 h-4" /> },
-    }
-    return statuses[status] || { label: status, color: 'bg-gray-100 text-gray-700', icon: <Clock className="w-4 h-4" /> }
-  }
+    const statuses: Record<
+      string,
+      { label: string; color: string; icon: React.ReactNode }
+    > = {
+      DRAFT: {
+        label: t("invoices.status.draft"),
+        color: "bg-gray-100 text-gray-700",
+        icon: <FileText className="w-4 h-4" />,
+      },
+      IN_PROGRESS: {
+        label: t("common.status.inProgress"),
+        color: "bg-blue-100 text-blue-700",
+        icon: <Clock className="w-4 h-4" />,
+      },
+      COMPLETED: {
+        label: t("common.status.completed"),
+        color: "bg-yellow-100 text-yellow-700",
+        icon: <CheckCircle className="w-4 h-4" />,
+      },
+      APPROVED: {
+        label: t("invoices.status.approved"),
+        color: "bg-green-100 text-green-700",
+        icon: <CheckCircle className="w-4 h-4" />,
+      },
+      DISPUTED: {
+        label: t("common.status.disputed"),
+        color: "bg-red-100 text-red-700",
+        icon: <XCircle className="w-4 h-4" />,
+      },
+    };
+    return (
+      statuses[status] || {
+        label: status,
+        color: "bg-gray-100 text-gray-700",
+        icon: <Clock className="w-4 h-4" />,
+      }
+    );
+  };
 
   const filterOptions = [
-    { value: 'all', label: t('quotes.filters.all') },
-    { value: 'DRAFT', label: t('invoices.status.draft') },
-    { value: 'IN_PROGRESS', label: t('common.status.inProgress') },
-    { value: 'COMPLETED', label: t('common.status.completed') },
-    { value: 'APPROVED', label: t('invoices.status.approved') },
-    { value: 'DISPUTED', label: t('common.status.disputed') },
-  ]
+    { value: "all", label: t("quotes.filters.all") },
+    { value: "DRAFT", label: t("invoices.status.draft") },
+    { value: "IN_PROGRESS", label: t("common.status.inProgress") },
+    { value: "COMPLETED", label: t("common.status.completed") },
+    { value: "APPROVED", label: t("invoices.status.approved") },
+    { value: "DISPUTED", label: t("common.status.disputed") },
+  ];
 
-  const filteredInvoices = invoices.filter(inv => {
-    if (filter !== 'all' && inv.status !== filter) return false
+  const filteredInvoices = invoices.filter((inv) => {
+    if (filter !== "all" && inv.status !== filter) return false;
     if (searchQuery) {
-      const query = searchQuery.toLowerCase()
+      const query = searchQuery.toLowerCase();
       return (
         inv.invoiceNumber.toLowerCase().includes(query) ||
         inv.customerName.toLowerCase().includes(query) ||
         inv.vehicleInfo.toLowerCase().includes(query)
-      )
+      );
     }
-    return true
-  })
+    return true;
+  });
 
   const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    })
-  }
+    return new Date(date).toLocaleDateString("en-US", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
 
   const stats = {
     total: invoices.length,
-    draft: invoices.filter(i => i.status === 'DRAFT').length,
-    inProgress: invoices.filter(i => i.status === 'IN_PROGRESS').length,
-    completed: invoices.filter(i => i.status === 'COMPLETED').length,
-    approved: invoices.filter(i => i.status === 'APPROVED').length,
-    disputed: invoices.filter(i => i.status === 'DISPUTED').length,
-    totalRevenue: invoices.filter(i => i.status === 'APPROVED').reduce((sum, i) => sum + i.finalTotal, 0),
-  }
+    draft: invoices.filter((i) => i.status === "DRAFT").length,
+    inProgress: invoices.filter((i) => i.status === "IN_PROGRESS").length,
+    completed: invoices.filter((i) => i.status === "COMPLETED").length,
+    approved: invoices.filter((i) => i.status === "APPROVED").length,
+    disputed: invoices.filter((i) => i.status === "DISPUTED").length,
+    totalRevenue: invoices
+      .filter((i) => i.status === "APPROVED")
+      .reduce((sum, i) => sum + i.finalTotal, 0),
+  };
 
   if (authLoading || !isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
       </div>
-    )
+    );
   }
 
   return (
-    <DashboardLayout title={t('invoices.title')}>
+    <DashboardLayout title={t("invoices.title")}>
       <div className="space-y-6 animate-fade-in">
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-white rounded-xl p-4 shadow-soft">
             <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-            <p className="text-sm text-gray-500">{t('invoices.stats.total')}</p>
+            <p className="text-sm text-gray-500">{t("invoices.stats.total")}</p>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-soft">
-            <p className="text-2xl font-bold text-blue-600">{stats.inProgress}</p>
-            <p className="text-sm text-gray-500">{t('common.status.inProgress')}</p>
+            <p className="text-2xl font-bold text-blue-600">
+              {stats.inProgress}
+            </p>
+            <p className="text-sm text-gray-500">
+              {t("common.status.inProgress")}
+            </p>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-soft">
-            <p className="text-2xl font-bold text-green-600">{stats.approved}</p>
-            <p className="text-sm text-gray-500">{t('invoices.status.approved')}</p>
+            <p className="text-2xl font-bold text-green-600">
+              {stats.approved}
+            </p>
+            <p className="text-sm text-gray-500">
+              {t("invoices.status.approved")}
+            </p>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-soft">
-            <p className="text-2xl font-bold text-primary-600">${stats.totalRevenue.toFixed(2)}</p>
-            <p className="text-sm text-gray-500">{t('invoices.stats.revenue')}</p>
+            <p className="text-2xl font-bold text-primary-600">
+              ${stats.totalRevenue.toFixed(2)}
+            </p>
+            <p className="text-sm text-gray-500">
+              {t("invoices.stats.revenue")}
+            </p>
           </div>
         </div>
 
@@ -176,7 +219,7 @@ export default function FaturasPage() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
-              placeholder={t('invoices.searchPlaceholder')}
+              placeholder={t("invoices.searchPlaceholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="input pl-12"
@@ -187,8 +230,10 @@ export default function FaturasPage() {
             onChange={(e) => setFilter(e.target.value)}
             className="input w-auto min-w-[160px]"
           >
-            {filterOptions.map(opt => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            {filterOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
             ))}
           </select>
         </div>
@@ -218,16 +263,18 @@ export default function FaturasPage() {
               <AlertCircle className="w-8 h-8 text-gray-400" />
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              {t('invoices.empty.title')}
+              {t("invoices.empty.title")}
             </h3>
             <p className="text-gray-500">
-              {searchQuery ? t('invoices.empty.searchHint') : t('invoices.empty.description')}
+              {searchQuery
+                ? t("invoices.empty.searchHint")
+                : t("invoices.empty.description")}
             </p>
           </div>
         ) : (
           <div className="space-y-4">
             {filteredInvoices.map((invoice) => {
-              const statusInfo = getStatusInfo(invoice.status)
+              const statusInfo = getStatusInfo(invoice.status);
 
               return (
                 <div
@@ -235,8 +282,10 @@ export default function FaturasPage() {
                   className="bg-white rounded-2xl p-6 shadow-soft card-hover"
                 >
                   <div className="flex items-start gap-4">
-                    <div className={`w-12 h-12 rounded-xl ${statusInfo.color.split(' ')[0]} flex items-center justify-center flex-shrink-0`}>
-                      <div className={statusInfo.color.split(' ')[1]}>
+                    <div
+                      className={`w-12 h-12 rounded-xl ${statusInfo.color.split(" ")[0]} flex items-center justify-center flex-shrink-0`}
+                    >
+                      <div className={statusInfo.color.split(" ")[1]}>
                         {statusInfo.icon}
                       </div>
                     </div>
@@ -245,7 +294,9 @@ export default function FaturasPage() {
                       <div className="flex items-start justify-between gap-4 mb-2">
                         <div>
                           <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold text-gray-900">{invoice.invoiceNumber}</h3>
+                            <h3 className="font-semibold text-gray-900">
+                              {invoice.invoiceNumber}
+                            </h3>
                             <span className={`badge ${statusInfo.color}`}>
                               {statusInfo.label}
                             </span>
@@ -255,10 +306,13 @@ export default function FaturasPage() {
                           </p>
                         </div>
                         <div className="text-right flex-shrink-0">
-                          <p className="text-xl font-bold text-gray-900">${invoice.finalTotal.toFixed(2)}</p>
+                          <p className="text-xl font-bold text-gray-900">
+                            ${invoice.finalTotal.toFixed(2)}
+                          </p>
                           {Number(invoice.supplementsTotal) > 0 && (
                             <p className="text-xs text-blue-600">
-                              +${invoice.supplementsTotal.toFixed(2)} supplements
+                              +${invoice.supplementsTotal.toFixed(2)}{" "}
+                              supplements
                             </p>
                           )}
                         </div>
@@ -267,7 +321,8 @@ export default function FaturasPage() {
                       <div className="flex flex-wrap items-center gap-4 mt-4 text-sm text-gray-600">
                         <div className="flex items-center gap-1.5">
                           <DollarSign className="w-4 h-4 text-gray-400" />
-                          {t('invoices.originalTotal')}: ${invoice.originalTotal.toFixed(2)}
+                          {t("invoices.originalTotal")}: $
+                          {invoice.originalTotal.toFixed(2)}
                         </div>
                         <div className="flex items-center gap-1.5">
                           <Calendar className="w-4 h-4 text-gray-400" />
@@ -276,7 +331,8 @@ export default function FaturasPage() {
                         {invoice.completedAt && (
                           <div className="flex items-center gap-1.5">
                             <CheckCircle className="w-4 h-4 text-green-400" />
-                            {t('invoices.completedOn')}: {formatDate(invoice.completedAt)}
+                            {t("invoices.completedOn")}:{" "}
+                            {formatDate(invoice.completedAt)}
                           </div>
                         )}
                       </div>
@@ -298,11 +354,13 @@ export default function FaturasPage() {
                             </a>
                           )}
                           <button
-                            onClick={() => router.push(`/faturas/${invoice.id}`)}
+                            onClick={() =>
+                              router.push(`/faturas/${invoice.id}`)
+                            }
                             className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1"
                           >
                             <Eye className="w-4 h-4" />
-                            {t('invoices.viewDetail')}
+                            {t("invoices.viewDetail")}
                             <ChevronRight className="w-4 h-4" />
                           </button>
                         </div>
@@ -310,11 +368,11 @@ export default function FaturasPage() {
                     </div>
                   </div>
                 </div>
-              )
+              );
             })}
           </div>
         )}
       </div>
     </DashboardLayout>
-  )
+  );
 }

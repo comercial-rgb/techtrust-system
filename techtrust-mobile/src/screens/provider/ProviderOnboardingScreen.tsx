@@ -3,7 +3,7 @@
  * Walks new providers through required document uploads step-by-step
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -16,16 +16,16 @@ import {
   Dimensions,
   Image,
   Modal,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import * as DocumentPicker from 'expo-document-picker';
-import * as ImagePicker from 'expo-image-picker';
-import { useI18n } from '../../i18n';
-import { useAuth } from '../../contexts/AuthContext';
-import api from '../../services/api';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import * as DocumentPicker from "expo-document-picker";
+import * as ImagePicker from "expo-image-picker";
+import { useI18n } from "../../i18n";
+import { useAuth } from "../../contexts/AuthContext";
+import api from "../../services/api";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
 // ─── Onboarding Steps ───
 interface OnboardingStep {
@@ -34,54 +34,59 @@ interface OnboardingStep {
   subtitle: string;
   icon: string;
   required: boolean;
-  type: 'upload' | 'info' | 'action';
-  uploadCategory?: string;   // compliance type key
-  actionRoute?: string;       // navigation route for action type
+  type: "upload" | "info" | "action";
+  uploadCategory?: string; // compliance type key
+  actionRoute?: string; // navigation route for action type
 }
 
 const ONBOARDING_STEPS: OnboardingStep[] = [
   {
-    id: 'welcome',
-    title: 'Welcome to TechTrust!',
-    subtitle: 'Let\'s get your business set up. We\'ll guide you through the required documents to start receiving service requests.',
-    icon: 'hand-wave',
+    id: "welcome",
+    title: "Welcome to TechTrust!",
+    subtitle:
+      "Let's get your business set up. We'll guide you through the required documents to start receiving service requests.",
+    icon: "hand-wave",
     required: false,
-    type: 'info',
+    type: "info",
   },
   {
-    id: 'business_license',
-    title: 'Business License',
-    subtitle: 'Upload your state business license or registration certificate. This is required to operate as a service provider.',
-    icon: 'certificate',
+    id: "business_license",
+    title: "Business License",
+    subtitle:
+      "Upload your state business license or registration certificate. This is required to operate as a service provider.",
+    icon: "certificate",
     required: true,
-    type: 'upload',
-    uploadCategory: 'STATE_SHOP_REGISTRATION',
+    type: "upload",
+    uploadCategory: "STATE_SHOP_REGISTRATION",
   },
   {
-    id: 'insurance',
-    title: 'Insurance Certificate',
-    subtitle: 'Upload your Certificate of Insurance (COI) showing at minimum General Liability coverage.',
-    icon: 'shield-check',
+    id: "insurance",
+    title: "Insurance Certificate",
+    subtitle:
+      "Upload your Certificate of Insurance (COI) showing at minimum General Liability coverage.",
+    icon: "shield-check",
     required: true,
-    type: 'upload',
-    uploadCategory: 'GENERAL_LIABILITY',
+    type: "upload",
+    uploadCategory: "GENERAL_LIABILITY",
   },
   {
-    id: 'services',
-    title: 'Your Services & Capabilities',
-    subtitle: 'Review and adjust the services you offer, vehicle types you serve, and whether you sell parts. You can change these anytime.',
-    icon: 'wrench',
+    id: "services",
+    title: "Your Services & Capabilities",
+    subtitle:
+      "Review and adjust the services you offer, vehicle types you serve, and whether you sell parts. You can change these anytime.",
+    icon: "wrench",
     required: false,
-    type: 'action',
-    actionRoute: 'Services',
+    type: "action",
+    actionRoute: "Services",
   },
   {
-    id: 'complete',
-    title: 'You\'re All Set!',
-    subtitle: 'Your documents are being reviewed. You\'ll start receiving matching service requests once approved. You can manage all documents from Profile → Compliance.',
-    icon: 'check-circle',
+    id: "complete",
+    title: "You're All Set!",
+    subtitle:
+      "Your documents are being reviewed. You'll start receiving matching service requests once approved. You can manage all documents from Profile → Compliance.",
+    icon: "check-circle",
     required: false,
-    type: 'info',
+    type: "info",
   },
 ];
 
@@ -90,11 +95,15 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
   const { completeOnboarding } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [uploading, setUploading] = useState(false);
-  const [uploadedDocs, setUploadedDocs] = useState<Record<string, string[]>>({});
-  const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set(['welcome']));
+  const [uploadedDocs, setUploadedDocs] = useState<Record<string, string[]>>(
+    {},
+  );
+  const [completedSteps, setCompletedSteps] = useState<Set<string>>(
+    new Set(["welcome"]),
+  );
   const [previewUri, setPreviewUri] = useState<string | null>(null);
-  const [previewMime, setPreviewMime] = useState<string>('image/jpeg');
-  const [previewName, setPreviewName] = useState<string>('photo.jpg');
+  const [previewMime, setPreviewMime] = useState<string>("image/jpeg");
+  const [previewName, setPreviewName] = useState<string>("photo.jpg");
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
 
@@ -103,48 +112,67 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
   const progress = (currentStep + 1) / totalSteps;
 
   // ─── Animate step transitions ───
-  const animateTransition = (direction: 'next' | 'prev', callback: () => void) => {
-    const toValue = direction === 'next' ? -width : width;
+  const animateTransition = (
+    direction: "next" | "prev",
+    callback: () => void,
+  ) => {
+    const toValue = direction === "next" ? -width : width;
     Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 0, duration: 150, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue, duration: 150, useNativeDriver: true }),
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue,
+        duration: 150,
+        useNativeDriver: true,
+      }),
     ]).start(() => {
       callback();
-      slideAnim.setValue(direction === 'next' ? width / 3 : -width / 3);
+      slideAnim.setValue(direction === "next" ? width / 3 : -width / 3);
       Animated.parallel([
-        Animated.timing(fadeAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
-        Animated.timing(slideAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
       ]).start();
     });
   };
 
   const goNext = () => {
     if (currentStep < totalSteps - 1) {
-      animateTransition('next', () => setCurrentStep(currentStep + 1));
+      animateTransition("next", () => setCurrentStep(currentStep + 1));
     }
   };
 
   const goPrev = () => {
     if (currentStep > 0) {
-      animateTransition('prev', () => setCurrentStep(currentStep - 1));
+      animateTransition("prev", () => setCurrentStep(currentStep - 1));
     }
   };
 
   // ─── Upload document ───
   const handleUpload = () => {
     Alert.alert(
-      t.provider?.uploadDocument || 'Upload Document',
-      t.provider?.chooseSource || 'How would you like to add your document?',
+      t.provider?.uploadDocument || "Upload Document",
+      t.provider?.chooseSource || "How would you like to add your document?",
       [
         {
-          text: t.provider?.takePhoto || 'Take Photo',
+          text: t.provider?.takePhoto || "Take Photo",
           onPress: handleCameraCapture,
         },
         {
-          text: t.provider?.chooseFile || 'Choose File',
+          text: t.provider?.chooseFile || "Choose File",
           onPress: handleFilePicker,
         },
-        { text: t.common?.cancel || 'Cancel', style: 'cancel' },
+        { text: t.common?.cancel || "Cancel", style: "cancel" },
       ],
     );
   };
@@ -153,16 +181,17 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
   const handleCameraCapture = async () => {
     try {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      if (status !== 'granted') {
+      if (status !== "granted") {
         Alert.alert(
-          t.common?.error || 'Error',
-          t.provider?.cameraPermissionRequired || 'Camera permission is required to take photos.',
+          t.common?.error || "Error",
+          t.provider?.cameraPermissionRequired ||
+            "Camera permission is required to take photos.",
         );
         return;
       }
 
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ['images'],
+        mediaTypes: ["images"],
         quality: 0.8,
         allowsEditing: false,
       });
@@ -172,11 +201,14 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
       const photo = result.assets[0];
       // Show photo review before uploading
       setPreviewUri(photo.uri);
-      setPreviewMime(photo.mimeType || 'image/jpeg');
+      setPreviewMime(photo.mimeType || "image/jpeg");
       setPreviewName(photo.fileName || `photo_${Date.now()}.jpg`);
     } catch (error) {
-      console.error('Camera error:', error);
-      Alert.alert(t.common?.error || 'Error', t.provider?.cameraFailed || 'Could not open camera. Please try again.');
+      console.error("Camera error:", error);
+      Alert.alert(
+        t.common?.error || "Error",
+        t.provider?.cameraFailed || "Could not open camera. Please try again.",
+      );
     }
   };
 
@@ -184,27 +216,35 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
   const handleFilePicker = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
-        type: ['image/*', 'application/pdf'],
+        type: ["image/*", "application/pdf"],
         copyToCacheDirectory: true,
       });
 
       if (result.canceled || !result.assets?.[0]) return;
 
       const file = result.assets[0];
-      const isPDF = file.mimeType === 'application/pdf';
-      
+      const isPDF = file.mimeType === "application/pdf";
+
       if (isPDF) {
         // PDFs go straight to upload (can't preview)
-        await uploadFile(file.uri, file.mimeType || 'application/pdf', file.name || 'document.pdf');
+        await uploadFile(
+          file.uri,
+          file.mimeType || "application/pdf",
+          file.name || "document.pdf",
+        );
       } else {
         // Images get a preview
         setPreviewUri(file.uri);
-        setPreviewMime(file.mimeType || 'image/jpeg');
-        setPreviewName(file.name || 'document.jpg');
+        setPreviewMime(file.mimeType || "image/jpeg");
+        setPreviewName(file.name || "document.jpg");
       }
     } catch (error) {
-      console.error('File picker error:', error);
-      Alert.alert(t.common?.error || 'Error', t.provider?.uploadFailed || 'Failed to upload document. Please try again.');
+      console.error("File picker error:", error);
+      Alert.alert(
+        t.common?.error || "Error",
+        t.provider?.uploadFailed ||
+          "Failed to upload document. Please try again.",
+      );
     }
   };
 
@@ -223,65 +263,70 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
   };
 
   // ─── Upload file to server ───
-  const uploadFile = async (uri: string, mimeType: string, fileName: string) => {
+  const uploadFile = async (
+    uri: string,
+    mimeType: string,
+    fileName: string,
+  ) => {
     try {
       setUploading(true);
 
       const formData = new FormData();
-      formData.append('image', {
+      formData.append("image", {
         uri: uri,
-        type: mimeType || 'image/jpeg',
-        name: fileName || 'document.jpg',
+        type: mimeType || "image/jpeg",
+        name: fileName || "document.jpg",
       } as any);
 
-      const uploadRes = await api.post('/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+      const uploadRes = await api.post("/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
 
       const url = uploadRes.data?.imageUrl || uploadRes.data?.url;
       if (url) {
         const category = step.uploadCategory || step.id;
-        setUploadedDocs(prev => ({
+        setUploadedDocs((prev) => ({
           ...prev,
           [category]: [...(prev[category] || []), url],
         }));
-        setCompletedSteps(prev => new Set([...prev, step.id]));
+        setCompletedSteps((prev) => new Set([...prev, step.id]));
 
         // Save to compliance API
         if (step.uploadCategory) {
           try {
-            await api.post('/compliance', {
+            await api.post("/compliance", {
               type: step.uploadCategory,
               documentUploads: [...(uploadedDocs[category] || []), url],
             });
           } catch (e) {
-            console.log('Compliance upsert deferred:', e);
+            console.log("Compliance upsert deferred:", e);
           }
         }
 
         // Save to insurance API if it's insurance type
-        if (step.id === 'insurance') {
+        if (step.id === "insurance") {
           try {
-            await api.post('/insurance', {
-              type: 'GENERAL_LIABILITY',
+            await api.post("/insurance", {
+              type: "GENERAL_LIABILITY",
               hasCoverage: true,
               coiUploads: [...(uploadedDocs[category] || []), url],
             });
           } catch (e) {
-            console.log('Insurance upsert deferred:', e);
+            console.log("Insurance upsert deferred:", e);
           }
         }
 
         Alert.alert(
-          t.common?.success || 'Success',
-          t.provider?.documentUploaded || 'Document uploaded successfully!',
+          t.common?.success || "Success",
+          t.provider?.documentUploaded || "Document uploaded successfully!",
         );
       }
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error("Upload error:", error);
       Alert.alert(
-        t.common?.error || 'Error',
-        t.provider?.uploadFailed || 'Failed to upload document. Please try again.',
+        t.common?.error || "Error",
+        t.provider?.uploadFailed ||
+          "Failed to upload document. Please try again.",
       );
     } finally {
       setUploading(false);
@@ -291,9 +336,9 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
   // ─── Handle action step (navigate to services screen) ───
   const handleAction = () => {
     if (step.actionRoute) {
-      setCompletedSteps(prev => new Set([...prev, step.id]));
+      setCompletedSteps((prev) => new Set([...prev, step.id]));
       // Navigate to standalone services screen within the onboarding stack
-      navigation.navigate('OnboardingServices');
+      navigation.navigate("OnboardingServices");
     }
   };
 
@@ -302,9 +347,9 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
     try {
       // Auto-create compliance items for provider's state
       try {
-        await api.post('/compliance/auto-create');
+        await api.post("/compliance/auto-create");
       } catch (e) {
-        console.log('Auto-create compliance deferred:', e);
+        console.log("Auto-create compliance deferred:", e);
       }
       // Mark onboarding as done — RootNavigator will automatically
       // switch from ProviderWithOnboarding to ProviderNavigator
@@ -317,13 +362,14 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
   // ─── Skip onboarding ───
   const skipOnboarding = () => {
     Alert.alert(
-      t.provider?.skipOnboarding || 'Skip Setup?',
-      t.provider?.skipOnboardingMessage || 'You can complete document uploads later from Profile → Compliance. Your account may have limited functionality until documents are verified.',
+      t.provider?.skipOnboarding || "Skip Setup?",
+      t.provider?.skipOnboardingMessage ||
+        "You can complete document uploads later from Profile → Compliance. Your account may have limited functionality until documents are verified.",
       [
-        { text: t.common?.cancel || 'Cancel', style: 'cancel' },
+        { text: t.common?.cancel || "Cancel", style: "cancel" },
         {
-          text: t.provider?.skipAnyway || 'Skip',
-          style: 'destructive',
+          text: t.provider?.skipAnyway || "Skip",
+          style: "destructive",
           onPress: async () => {
             await completeOnboarding();
           },
@@ -346,7 +392,11 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
         <View style={styles.headerLeft}>
           {currentStep > 0 ? (
             <TouchableOpacity onPress={goPrev} style={styles.backBtn}>
-              <MaterialCommunityIcons name="arrow-left" size={24} color="#111827" />
+              <MaterialCommunityIcons
+                name="arrow-left"
+                size={24}
+                color="#111827"
+              />
             </TouchableOpacity>
           ) : (
             <View style={styles.backBtn} />
@@ -358,13 +408,15 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
           </Text>
         </View>
         <TouchableOpacity onPress={skipOnboarding} style={styles.skipBtn}>
-          <Text style={styles.skipText}>{t.common?.skip || 'Skip'}</Text>
+          <Text style={styles.skipText}>{t.common?.skip || "Skip"}</Text>
         </TouchableOpacity>
       </View>
 
       {/* Progress bar */}
       <View style={styles.progressBarBg}>
-        <View style={[styles.progressBarFill, { width: `${progress * 100}%` }]} />
+        <View
+          style={[styles.progressBarFill, { width: `${progress * 100}%` }]}
+        />
       </View>
 
       {/* Step Content */}
@@ -392,18 +444,26 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
           <Text style={styles.stepSubtitle}>{step.subtitle}</Text>
 
           {/* Upload Area (for upload-type steps) */}
-          {step.type === 'upload' && (
+          {step.type === "upload" && (
             <View style={styles.uploadSection}>
               {/* Uploaded documents */}
               {docsForCurrentStep.length > 0 && (
                 <View style={styles.uploadedList}>
                   {docsForCurrentStep.map((url, idx) => (
                     <View key={idx} style={styles.uploadedItem}>
-                      <MaterialCommunityIcons name="file-check" size={20} color="#10b981" />
+                      <MaterialCommunityIcons
+                        name="file-check"
+                        size={20}
+                        color="#10b981"
+                      />
                       <Text style={styles.uploadedText} numberOfLines={1}>
                         Document {idx + 1} uploaded
                       </Text>
-                      <MaterialCommunityIcons name="check-circle" size={18} color="#10b981" />
+                      <MaterialCommunityIcons
+                        name="check-circle"
+                        size={18}
+                        color="#10b981"
+                      />
                     </View>
                   ))}
                 </View>
@@ -420,17 +480,32 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
                   <ActivityIndicator size="small" color="#1976d2" />
                 ) : (
                   <>
-                    <View style={{ flexDirection: 'row', gap: 16, alignItems: 'center' }}>
-                      <MaterialCommunityIcons name="camera" size={28} color="#1976d2" />
-                      <MaterialCommunityIcons name="folder-open" size={28} color="#1976d2" />
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        gap: 16,
+                        alignItems: "center",
+                      }}
+                    >
+                      <MaterialCommunityIcons
+                        name="camera"
+                        size={28}
+                        color="#1976d2"
+                      />
+                      <MaterialCommunityIcons
+                        name="folder-open"
+                        size={28}
+                        color="#1976d2"
+                      />
                     </View>
                     <Text style={styles.uploadBtnTitle}>
                       {docsForCurrentStep.length > 0
-                        ? (t.provider?.uploadAnother || 'Upload Another Document')
-                        : (t.provider?.tapToUpload || 'Tap to Upload Document')}
+                        ? t.provider?.uploadAnother || "Upload Another Document"
+                        : t.provider?.tapToUpload || "Tap to Upload Document"}
                     </Text>
                     <Text style={styles.uploadBtnHint}>
-                      {t.provider?.cameraOrFile || 'Take a photo or choose from files (JPG, PNG, PDF)'}
+                      {t.provider?.cameraOrFile ||
+                        "Take a photo or choose from files (JPG, PNG, PDF)"}
                     </Text>
                   </>
                 )}
@@ -438,9 +513,14 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
 
               {step.required && docsForCurrentStep.length === 0 && (
                 <View style={styles.requiredBadge}>
-                  <MaterialCommunityIcons name="alert-circle" size={16} color="#f59e0b" />
+                  <MaterialCommunityIcons
+                    name="alert-circle"
+                    size={16}
+                    color="#f59e0b"
+                  />
                   <Text style={styles.requiredText}>
-                    {t.provider?.requiredDocument || 'This document is required'}
+                    {t.provider?.requiredDocument ||
+                      "This document is required"}
                   </Text>
                 </View>
               )}
@@ -448,25 +528,37 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
           )}
 
           {/* Action button (for action-type steps like Services) */}
-          {step.type === 'action' && (
+          {step.type === "action" && (
             <View style={styles.actionSection}>
               <TouchableOpacity
                 style={styles.actionBtn}
                 onPress={handleAction}
                 activeOpacity={0.7}
               >
-                <MaterialCommunityIcons name={step.icon as any} size={24} color="#fff" />
+                <MaterialCommunityIcons
+                  name={step.icon as any}
+                  size={24}
+                  color="#fff"
+                />
                 <Text style={styles.actionBtnText}>
-                  {t.provider?.reviewServices || 'Review My Services'}
+                  {t.provider?.reviewServices || "Review My Services"}
                 </Text>
-                <MaterialCommunityIcons name="chevron-right" size={20} color="#fff" />
+                <MaterialCommunityIcons
+                  name="chevron-right"
+                  size={20}
+                  color="#fff"
+                />
               </TouchableOpacity>
 
               {completedSteps.has(step.id) && (
                 <View style={styles.completedBadge}>
-                  <MaterialCommunityIcons name="check-circle" size={18} color="#10b981" />
+                  <MaterialCommunityIcons
+                    name="check-circle"
+                    size={18}
+                    color="#10b981"
+                  />
                   <Text style={styles.completedText}>
-                    {t.provider?.reviewed || 'Reviewed'}
+                    {t.provider?.reviewed || "Reviewed"}
                   </Text>
                 </View>
               )}
@@ -474,7 +566,7 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
           )}
 
           {/* Completion celebration (last step) */}
-          {step.id === 'complete' && (
+          {step.id === "complete" && (
             <View style={styles.completionSection}>
               <View style={styles.completionStats}>
                 <View style={styles.statItem}>
@@ -492,24 +584,38 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
 
               <View style={styles.nextStepsCard}>
                 <Text style={styles.nextStepsTitle}>
-                  {t.provider?.whatHappensNext || 'What Happens Next?'}
+                  {t.provider?.whatHappensNext || "What Happens Next?"}
                 </Text>
                 <View style={styles.nextStepItem}>
-                  <MaterialCommunityIcons name="magnify-scan" size={20} color="#1976d2" />
+                  <MaterialCommunityIcons
+                    name="magnify-scan"
+                    size={20}
+                    color="#1976d2"
+                  />
                   <Text style={styles.nextStepText}>
-                    Our team reviews your documents (typically 1-2 business days)
+                    Our team reviews your documents (typically 1-2 business
+                    days)
                   </Text>
                 </View>
                 <View style={styles.nextStepItem}>
-                  <MaterialCommunityIcons name="bell-ring" size={20} color="#1976d2" />
+                  <MaterialCommunityIcons
+                    name="bell-ring"
+                    size={20}
+                    color="#1976d2"
+                  />
                   <Text style={styles.nextStepText}>
                     You'll receive a notification once approved
                   </Text>
                 </View>
                 <View style={styles.nextStepItem}>
-                  <MaterialCommunityIcons name="clipboard-text" size={20} color="#1976d2" />
+                  <MaterialCommunityIcons
+                    name="clipboard-text"
+                    size={20}
+                    color="#1976d2"
+                  />
                   <Text style={styles.nextStepText}>
-                    Service requests matching your capabilities will appear automatically
+                    Service requests matching your capabilities will appear
+                    automatically
                   </Text>
                 </View>
               </View>
@@ -520,23 +626,29 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
 
       {/* Bottom buttons */}
       <View style={styles.footer}>
-        {step.id === 'complete' ? (
-          <TouchableOpacity style={styles.primaryBtn} onPress={finishOnboarding}>
+        {step.id === "complete" ? (
+          <TouchableOpacity
+            style={styles.primaryBtn}
+            onPress={finishOnboarding}
+          >
             <Text style={styles.primaryBtnText}>
-              {t.provider?.goToDashboard || 'Go to Dashboard'}
+              {t.provider?.goToDashboard || "Go to Dashboard"}
             </Text>
             <MaterialCommunityIcons name="arrow-right" size={20} color="#fff" />
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
-            style={[styles.primaryBtn, !canProceed() && styles.primaryBtnDisabled]}
+            style={[
+              styles.primaryBtn,
+              !canProceed() && styles.primaryBtnDisabled,
+            ]}
             onPress={goNext}
             disabled={!canProceed()}
           >
             <Text style={styles.primaryBtnText}>
               {step.required && !completedSteps.has(step.id)
-                ? (t.provider?.uploadToContinue || 'Upload to Continue')
-                : (t.common?.next || 'Next')}
+                ? t.provider?.uploadToContinue || "Upload to Continue"
+                : t.common?.next || "Next"}
             </Text>
             <MaterialCommunityIcons name="arrow-right" size={20} color="#fff" />
           </TouchableOpacity>
@@ -552,11 +664,14 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
       >
         <SafeAreaView style={styles.previewContainer}>
           <View style={styles.previewHeader}>
-            <TouchableOpacity onPress={() => setPreviewUri(null)} style={styles.previewCloseBtn}>
+            <TouchableOpacity
+              onPress={() => setPreviewUri(null)}
+              style={styles.previewCloseBtn}
+            >
               <MaterialCommunityIcons name="close" size={24} color="#111827" />
             </TouchableOpacity>
             <Text style={styles.previewTitle}>
-              {t.provider?.reviewPhoto || 'Review Photo'}
+              {t.provider?.reviewPhoto || "Review Photo"}
             </Text>
             <View style={{ width: 40 }} />
           </View>
@@ -572,7 +687,8 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
           </View>
 
           <Text style={styles.previewHint}>
-            {t.provider?.photoReviewHint || 'Make sure the document is clear and all text is readable.'}
+            {t.provider?.photoReviewHint ||
+              "Make sure the document is clear and all text is readable."}
           </Text>
 
           <View style={styles.previewActions}>
@@ -580,9 +696,13 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
               style={styles.previewRetakeBtn}
               onPress={handleRetakePhoto}
             >
-              <MaterialCommunityIcons name="camera-retake" size={20} color="#1976d2" />
+              <MaterialCommunityIcons
+                name="camera-retake"
+                size={20}
+                color="#1976d2"
+              />
               <Text style={styles.previewRetakeText}>
-                {t.provider?.retake || 'Retake'}
+                {t.provider?.retake || "Retake"}
               </Text>
             </TouchableOpacity>
 
@@ -597,7 +717,7 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
                 <>
                   <MaterialCommunityIcons name="check" size={20} color="#fff" />
                   <Text style={styles.previewConfirmText}>
-                    {t.provider?.usePhoto || 'Use Photo'}
+                    {t.provider?.usePhoto || "Use Photo"}
                   </Text>
                 </>
               )}
@@ -612,12 +732,12 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
@@ -626,7 +746,7 @@ const styles = StyleSheet.create({
   },
   headerCenter: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
   },
   backBtn: {
     padding: 8,
@@ -634,28 +754,28 @@ const styles = StyleSheet.create({
   },
   stepCounter: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#6b7280',
+    fontWeight: "600",
+    color: "#6b7280",
   },
   skipBtn: {
     width: 60,
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
     padding: 8,
   },
   skipText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#9ca3af',
+    fontWeight: "600",
+    color: "#9ca3af",
   },
   progressBarBg: {
     height: 4,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: "#e5e7eb",
     marginHorizontal: 16,
     borderRadius: 2,
   },
   progressBarFill: {
     height: 4,
-    backgroundColor: '#1976d2',
+    backgroundColor: "#1976d2",
     borderRadius: 2,
   },
   content: {
@@ -665,44 +785,44 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 32,
     paddingBottom: 24,
-    alignItems: 'center',
+    alignItems: "center",
   },
   iconCircle: {
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: '#eff6ff',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#eff6ff",
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 24,
   },
   stepTitle: {
     fontSize: 24,
-    fontWeight: '700',
-    color: '#111827',
-    textAlign: 'center',
+    fontWeight: "700",
+    color: "#111827",
+    textAlign: "center",
     marginBottom: 12,
   },
   stepSubtitle: {
     fontSize: 15,
     lineHeight: 22,
-    color: '#6b7280',
-    textAlign: 'center',
+    color: "#6b7280",
+    textAlign: "center",
     marginBottom: 32,
     paddingHorizontal: 8,
   },
   // Upload
   uploadSection: {
-    width: '100%',
+    width: "100%",
     gap: 16,
   },
   uploadedList: {
     gap: 8,
   },
   uploadedItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f0fdf4',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f0fdf4",
     padding: 12,
     borderRadius: 12,
     gap: 10,
@@ -710,51 +830,51 @@ const styles = StyleSheet.create({
   uploadedText: {
     flex: 1,
     fontSize: 14,
-    color: '#065f46',
-    fontWeight: '500',
+    color: "#065f46",
+    fontWeight: "500",
   },
   uploadBtn: {
     borderWidth: 2,
-    borderColor: '#1976d2',
-    borderStyle: 'dashed',
+    borderColor: "#1976d2",
+    borderStyle: "dashed",
     borderRadius: 16,
     padding: 28,
-    alignItems: 'center',
+    alignItems: "center",
     gap: 8,
-    backgroundColor: '#fafbff',
+    backgroundColor: "#fafbff",
   },
   uploadBtnTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1976d2',
+    fontWeight: "600",
+    color: "#1976d2",
   },
   uploadBtnHint: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: "#9ca3af",
   },
   requiredBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
-    backgroundColor: '#fffbeb',
+    backgroundColor: "#fffbeb",
     padding: 10,
     borderRadius: 8,
   },
   requiredText: {
     fontSize: 13,
-    color: '#92400e',
-    fontWeight: '500',
+    color: "#92400e",
+    fontWeight: "500",
   },
   // Action
   actionSection: {
-    width: '100%',
+    width: "100%",
     gap: 12,
   },
   actionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#1976d2',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#1976d2",
     paddingVertical: 16,
     paddingHorizontal: 24,
     borderRadius: 14,
@@ -762,75 +882,75 @@ const styles = StyleSheet.create({
   },
   actionBtnText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
+    fontWeight: "600",
+    color: "#fff",
   },
   completedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 6,
   },
   completedText: {
     fontSize: 14,
-    color: '#10b981',
-    fontWeight: '600',
+    color: "#10b981",
+    fontWeight: "600",
   },
   // Completion
   completionSection: {
-    width: '100%',
+    width: "100%",
     gap: 20,
   },
   completionStats: {
-    flexDirection: 'row',
-    backgroundColor: '#f0f9ff',
+    flexDirection: "row",
+    backgroundColor: "#f0f9ff",
     borderRadius: 16,
     padding: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   statItem: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
   },
   statNumber: {
     fontSize: 28,
-    fontWeight: '700',
-    color: '#1976d2',
+    fontWeight: "700",
+    color: "#1976d2",
   },
   statLabel: {
     fontSize: 12,
-    color: '#6b7280',
+    color: "#6b7280",
     marginTop: 4,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   statDivider: {
     width: 1,
     height: 40,
-    backgroundColor: '#d1d5db',
+    backgroundColor: "#d1d5db",
     marginHorizontal: 16,
   },
   nextStepsCard: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: "#f8fafc",
     borderRadius: 16,
     padding: 20,
     gap: 14,
   },
   nextStepsTitle: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#111827',
+    fontWeight: "700",
+    color: "#111827",
     marginBottom: 4,
   },
   nextStepItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     gap: 10,
   },
   nextStepText: {
     flex: 1,
     fontSize: 14,
-    color: '#374151',
+    color: "#374151",
     lineHeight: 20,
   },
   // Footer
@@ -838,104 +958,104 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
+    borderTopColor: "#f3f4f6",
   },
   primaryBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#1976d2',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#1976d2",
     paddingVertical: 16,
     borderRadius: 14,
     gap: 8,
   },
   primaryBtnDisabled: {
-    backgroundColor: '#93c5fd',
+    backgroundColor: "#93c5fd",
   },
   primaryBtnText: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
+    fontWeight: "700",
+    color: "#fff",
   },
   // Photo Review Modal
   previewContainer: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: "#000",
   },
   previewHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#111',
+    backgroundColor: "#111",
   },
   previewCloseBtn: {
     padding: 8,
-    backgroundColor: '#374151',
+    backgroundColor: "#374151",
     borderRadius: 20,
   },
   previewTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
+    fontWeight: "600",
+    color: "#fff",
   },
   previewImageContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: 16,
   },
   previewImage: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
     borderRadius: 8,
   },
   previewHint: {
-    textAlign: 'center',
-    color: '#9ca3af',
+    textAlign: "center",
+    color: "#9ca3af",
     fontSize: 13,
     paddingHorizontal: 24,
     paddingVertical: 12,
   },
   previewActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
     paddingHorizontal: 24,
     paddingVertical: 16,
     paddingBottom: 24,
-    backgroundColor: '#111',
+    backgroundColor: "#111",
   },
   previewRetakeBtn: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 8,
     paddingVertical: 14,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#1976d2',
-    backgroundColor: 'transparent',
+    borderColor: "#1976d2",
+    backgroundColor: "transparent",
   },
   previewRetakeText: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#1976d2',
+    fontWeight: "600",
+    color: "#1976d2",
   },
   previewConfirmBtn: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 8,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: '#10b981',
+    backgroundColor: "#10b981",
   },
   previewConfirmText: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#fff',
+    fontWeight: "600",
+    color: "#fff",
   },
 });

@@ -1,8 +1,8 @@
-import React, { useState, ReactNode } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/router';
-import { useAuth } from '../contexts/AuthContext';
-import { useI18n, languages, Language } from '../i18n';
+import React, { useState, ReactNode } from "react";
+import Link from "next/link";
+import { useRouter } from "next/router";
+import { useAuth } from "../contexts/AuthContext";
+import { useI18n, languages, Language } from "../i18n";
 import {
   Home,
   Car,
@@ -16,7 +16,7 @@ import {
   ChevronDown,
   CreditCard,
   Receipt,
-} from 'lucide-react';
+} from "lucide-react";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -24,18 +24,21 @@ interface DashboardLayoutProps {
 }
 
 const menuItems = [
-  { href: '/dashboard', labelKey: 'client.nav.home', icon: Home },
-  { href: '/veiculos', labelKey: 'client.nav.vehicles', icon: Car },
-  { href: '/solicitacoes', labelKey: 'client.nav.requests', icon: FileText },
-  { href: '/orcamentos', labelKey: 'client.nav.estimates', icon: FileText },
-  { href: '/faturas', labelKey: 'client.nav.invoices', icon: Receipt },
-  { href: '/servicos', labelKey: 'client.nav.services', icon: Briefcase },
-  { href: '/pagamentos', labelKey: 'client.nav.payments', icon: CreditCard },
-  { href: '/recibos', labelKey: 'client.nav.receipts', icon: Receipt },
-  { href: '/perfil', labelKey: 'client.nav.profile', icon: User },
+  { href: "/dashboard", labelKey: "client.nav.home", icon: Home },
+  { href: "/veiculos", labelKey: "client.nav.vehicles", icon: Car },
+  { href: "/solicitacoes", labelKey: "client.nav.requests", icon: FileText },
+  { href: "/orcamentos", labelKey: "client.nav.estimates", icon: FileText },
+  { href: "/faturas", labelKey: "client.nav.invoices", icon: Receipt },
+  { href: "/servicos", labelKey: "client.nav.services", icon: Briefcase },
+  { href: "/pagamentos", labelKey: "client.nav.payments", icon: CreditCard },
+  { href: "/recibos", labelKey: "client.nav.receipts", icon: Receipt },
+  { href: "/perfil", labelKey: "client.nav.profile", icon: User },
 ];
 
-export default function DashboardLayout({ children, title }: DashboardLayoutProps) {
+export default function DashboardLayout({
+  children,
+  title,
+}: DashboardLayoutProps) {
   const { user, logout } = useAuth();
   const router = useRouter();
   const { translate, language, setLanguage } = useI18n();
@@ -45,8 +48,8 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
   const tr = translate;
 
   const isActive = (href: string) => {
-    if (href === '/dashboard') {
-      return router.pathname === '/dashboard';
+    if (href === "/dashboard") {
+      return router.pathname === "/dashboard";
     }
     return router.pathname.startsWith(href);
   };
@@ -64,7 +67,7 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
       {/* Sidebar */}
       <aside
         className={`fixed top-0 left-0 z-50 h-full w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         {/* Logo */}
@@ -73,7 +76,9 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
             <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
               <Car className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-gray-900">{tr('brand.name')}</span>
+            <span className="text-xl font-bold text-gray-900">
+              {tr("brand.name")}
+            </span>
           </Link>
           <button
             onClick={() => setSidebarOpen(false)}
@@ -88,12 +93,12 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
               <span className="text-primary-600 font-semibold">
-                {user?.fullName?.charAt(0) || 'U'}
+                {user?.fullName?.charAt(0) || "U"}
               </span>
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-gray-900 truncate">
-                {user?.fullName || tr('client.layout.profile')}
+                {user?.fullName || tr("client.layout.profile")}
               </p>
               <p className="text-xs text-gray-500 truncate">{user?.email}</p>
             </div>
@@ -111,11 +116,13 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
                 href={item.href}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
                   active
-                    ? 'bg-primary-50 text-primary-600'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    ? "bg-primary-50 text-primary-600"
+                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                 }`}
               >
-                <Icon className={`w-5 h-5 ${active ? 'text-primary-600' : 'text-gray-400'}`} />
+                <Icon
+                  className={`w-5 h-5 ${active ? "text-primary-600" : "text-gray-400"}`}
+                />
                 <span className="font-medium">{tr(item.labelKey)}</span>
               </Link>
             );
@@ -129,7 +136,7 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
             className="flex items-center gap-3 w-full px-3 py-2.5 text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors"
           >
             <LogOut className="w-5 h-5" />
-            <span className="font-medium">{tr('client.nav.logout')}</span>
+            <span className="font-medium">{tr("client.nav.logout")}</span>
           </button>
         </div>
       </aside>
@@ -151,7 +158,9 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
 
             <div className="flex items-center gap-3">
               <div className="hidden sm:flex items-center gap-2 text-sm text-gray-600">
-                <label className="sr-only" htmlFor="lang-select">{tr('common.language')}</label>
+                <label className="sr-only" htmlFor="lang-select">
+                  {tr("common.language")}
+                </label>
                 <select
                   id="lang-select"
                   value={language}
@@ -179,7 +188,7 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
                 >
                   <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
                     <span className="text-primary-600 font-semibold text-sm">
-                      {user?.fullName?.charAt(0) || 'U'}
+                      {user?.fullName?.charAt(0) || "U"}
                     </span>
                   </div>
                   <ChevronDown className="w-4 h-4 text-gray-500" />
@@ -197,21 +206,21 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                         onClick={() => setUserMenuOpen(false)}
                       >
-                        {tr('client.layout.profile')}
+                        {tr("client.layout.profile")}
                       </Link>
                       <Link
                         href="/configuracoes"
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                         onClick={() => setUserMenuOpen(false)}
                       >
-                        {tr('client.layout.settings')}
+                        {tr("client.layout.settings")}
                       </Link>
                       <hr className="my-1" />
                       <button
                         onClick={logout}
                         className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                       >
-                        {tr('client.layout.logout')}
+                        {tr("client.layout.logout")}
                       </button>
                     </div>
                   </>

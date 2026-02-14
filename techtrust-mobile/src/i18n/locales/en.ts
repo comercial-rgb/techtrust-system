@@ -787,7 +787,8 @@ export default {
     documentUploaded: "Document uploaded successfully!",
     uploadFailed: "Failed to upload document. Please try again.",
     skipOnboarding: "Skip Setup?",
-    skipOnboardingMessage: "You can complete document uploads later from Profile → Compliance. Your account may have limited functionality until documents are verified.",
+    skipOnboardingMessage:
+      "You can complete document uploads later from Profile → Compliance. Your account may have limited functionality until documents are verified.",
     skipAnyway: "Skip",
     uploadAnother: "Upload Another Document",
     tapToUpload: "Tap to Upload Document",
@@ -807,7 +808,8 @@ export default {
     cameraFailed: "Could not open camera. Please try again.",
     cameraOrFile: "Take a photo or choose from files (JPG, PNG, PDF)",
     reviewPhoto: "Review Photo",
-    photoReviewHint: "Make sure the document is clear and all text is readable.",
+    photoReviewHint:
+      "Make sure the document is clear and all text is readable.",
     retake: "Retake",
     usePhoto: "Use Photo",
   },
@@ -1645,8 +1647,7 @@ export default {
     findProvider: "Find a nearby provider",
     searchRadius: "Search Radius:",
     searchProviders: "Search Providers",
-    noProvidersFound:
-      "No providers found in this area. Try a larger radius.",
+    noProvidersFound: "No providers found in this area. Try a larger radius.",
     searchFailed: "Failed to search providers. Please try again.",
     locationRequired:
       "Location permission is required to find nearby providers.",
