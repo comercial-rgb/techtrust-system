@@ -33,24 +33,10 @@ export default function ProviderSecurityScreen({ navigation }: any) {
   const connectedDevices = [
     {
       id: '1',
-      name: 'iPhone 14 Pro',
-      location: 'São Paulo, SP',
-      lastActive: 'Agora',
+      name: 'Current Device',
+      location: '',
+      lastActive: t.provider?.now || 'Now',
       isCurrent: true,
-    },
-    {
-      id: '2',
-      name: 'Chrome - Windows',
-      location: 'São Paulo, SP',
-      lastActive: 'Há 2 horas',
-      isCurrent: false,
-    },
-    {
-      id: '3',
-      name: 'Safari - MacBook',
-      location: 'Santos, SP',
-      lastActive: 'Há 3 dias',
-      isCurrent: false,
     },
   ];
 

@@ -1,5 +1,5 @@
 /**
- * ProviderBankDetailsScreen - Dados Bancários
+ * ProviderBankDetailsScreen - Bank Details (US Model)
  */
 
 import React, { useState } from 'react';
@@ -19,12 +19,11 @@ import { useI18n } from '../../i18n';
 interface BankAccount {
   id: string;
   bankName: string;
-  bankCode: string;
-  agency: string;
-  account: string;
+  routingNumber: string;
+  accountNumber: string;
   accountType: 'checking' | 'savings';
   holderName: string;
-  cpfCnpj: string;
+  taxId: string;
   isPrimary: boolean;
 }
 
@@ -35,12 +34,11 @@ export default function ProviderBankDetailsScreen({ navigation }: any) {
   const [isAdding, setIsAdding] = useState(false);
   const [newAccount, setNewAccount] = useState({
     bankName: '',
-    bankCode: '',
-    agency: '',
-    account: '',
+    routingNumber: '',
+    accountNumber: '',
     accountType: 'checking' as 'checking' | 'savings',
     holderName: '',
-    cpfCnpj: '',
+    taxId: '',
   });
 
   const handleSetPrimary = (id: string) => {
@@ -65,8 +63,13 @@ export default function ProviderBankDetailsScreen({ navigation }: any) {
   };
 
   const handleAddAccount = () => {
-    if (!newAccount.bankName || !newAccount.agency || !newAccount.account) {
+    if (!newAccount.bankName || !newAccount.routingNumber || !newAccount.accountNumber) {
       Alert.alert(t.common?.error || 'Error', t.common?.fillRequiredFields || 'Please fill in all required fields');
+      return;
+    }
+
+    if (newAccount.routingNumber.length !== 9) {
+      Alert.alert(t.common?.error || 'Error', 'Routing number must be 9 digits');
       return;
     }
 
@@ -79,25 +82,24 @@ export default function ProviderBankDetailsScreen({ navigation }: any) {
     setAccounts([...accounts, account]);
     setNewAccount({
       bankName: '',
-      bankCode: '',
-      agency: '',
-      account: '',
+      routingNumber: '',
+      accountNumber: '',
       accountType: 'checking',
       holderName: '',
-      cpfCnpj: '',
+      taxId: '',
     });
     setIsAdding(false);
   };
 
   const popularBanks = [
-    { name: 'Nubank', code: '260' },
-    { name: 'Banco do Brasil', code: '001' },
-    { name: 'Bradesco', code: '237' },
-    { name: 'Itaú', code: '341' },
-    { name: 'Santander', code: '033' },
-    { name: 'Caixa Econômica', code: '104' },
-    { name: 'Inter', code: '077' },
-    { name: 'C6 Bank', code: '336' },
+    { name: 'Chase', routingNumber: '021000021' },
+    { name: 'Bank of America', routingNumber: '026009593' },
+    { name: 'Wells Fargo', routingNumber: '121000248' },
+    { name: 'Citibank', routingNumber: '021000089' },
+    { name: 'Capital One', routingNumber: '051405515' },
+    { name: 'PNC Bank', routingNumber: '043000096' },
+    { name: 'US Bank', routingNumber: '122105155' },
+    { name: 'TD Bank', routingNumber: '031101266' },
   ];
 
   return (
@@ -130,7 +132,7 @@ export default function ProviderBankDetailsScreen({ navigation }: any) {
                 </View>
                 <View>
                   <Text style={styles.bankName}>{account.bankName}</Text>
-                  <Text style={styles.bankCode}>{t.provider?.bankCode || 'Code'}: {account.bankCode}</Text>
+                  <Text style={styles.bankCode}>Routing: ****{account.routingNumber.slice(-4)}</Text>
                 </View>
               </View>
               {account.isPrimary && (
@@ -143,13 +145,13 @@ export default function ProviderBankDetailsScreen({ navigation }: any) {
 
             <View style={styles.accountDetails}>
               <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>{t.provider?.agency || 'Agency'}</Text>
-                <Text style={styles.detailValue}>{account.agency}</Text>
+                <Text style={styles.detailLabel}>{'Routing Number'}</Text>
+                <Text style={styles.detailValue}>{account.routingNumber}</Text>
               </View>
               <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>{t.provider?.account || 'Account'}</Text>
+                <Text style={styles.detailLabel}>{'Account Number'}</Text>
                 <Text style={styles.detailValue}>
-                  {account.account} ({account.accountType === 'checking' ? (t.provider?.checking || 'Checking') : (t.provider?.savings || 'Savings')})
+                  ****{account.accountNumber.slice(-4)} ({account.accountType === 'checking' ? (t.provider?.checking || 'Checking') : (t.provider?.savings || 'Savings')})
                 </Text>
               </View>
               <View style={styles.detailRow}>
@@ -157,8 +159,8 @@ export default function ProviderBankDetailsScreen({ navigation }: any) {
                 <Text style={styles.detailValue}>{account.holderName}</Text>
               </View>
               <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>{t.provider?.taxId || 'Tax ID'}</Text>
-                <Text style={styles.detailValue}>{account.cpfCnpj}</Text>
+                <Text style={styles.detailLabel}>{'Tax ID (EIN/SSN)'}</Text>
+                <Text style={styles.detailValue}>***-**-{account.taxId.slice(-4)}</Text>
               </View>
             </View>
 
@@ -197,20 +199,20 @@ export default function ProviderBankDetailsScreen({ navigation }: any) {
             >
               {popularBanks.map(bank => (
                 <TouchableOpacity
-                  key={bank.code}
+                  key={bank.routingNumber}
                   style={[
                     styles.bankChip,
-                    newAccount.bankCode === bank.code && styles.bankChipActive,
+                    newAccount.bankName === bank.name && styles.bankChipActive,
                   ]}
                   onPress={() => setNewAccount({
                     ...newAccount,
                     bankName: bank.name,
-                    bankCode: bank.code,
+                    routingNumber: bank.routingNumber,
                   })}
                 >
                   <Text style={[
                     styles.bankChipText,
-                    newAccount.bankCode === bank.code && styles.bankChipTextActive,
+                    newAccount.bankName === bank.name && styles.bankChipTextActive,
                   ]}>
                     {bank.name}
                   </Text>
@@ -218,29 +220,25 @@ export default function ProviderBankDetailsScreen({ navigation }: any) {
               ))}
             </ScrollView>
 
-            {/* Agency & Account */}
-            <View style={styles.inputRow}>
-              <View style={styles.inputGroupHalf}>
-                <Text style={styles.inputLabel}>{t.provider?.agency || 'Agency'} *</Text>
-                <TextInput
-                  style={styles.input}
-                  value={newAccount.agency}
-                  onChangeText={t => setNewAccount({ ...newAccount, agency: t })}
-                  placeholder="0001"
-                  keyboardType="numeric"
-                />
-              </View>
-              <View style={styles.inputGroupHalf}>
-                <Text style={styles.inputLabel}>{t.provider?.account || 'Account'} *</Text>
-                <TextInput
-                  style={styles.input}
-                  value={newAccount.account}
-                  onChangeText={t => setNewAccount({ ...newAccount, account: t })}
-                  placeholder="12345678-9"
-                  keyboardType="numeric"
-                />
-              </View>
-            </View>
+            {/* Routing & Account Number */}
+            <Text style={styles.inputLabel}>{'Routing Number'} *</Text>
+            <TextInput
+              style={styles.input}
+              value={newAccount.routingNumber}
+              onChangeText={val => setNewAccount({ ...newAccount, routingNumber: val })}
+              placeholder="9-digit routing number"
+              keyboardType="numeric"
+              maxLength={9}
+            />
+
+            <Text style={styles.inputLabel}>{'Account Number'} *</Text>
+            <TextInput
+              style={styles.input}
+              value={newAccount.accountNumber}
+              onChangeText={val => setNewAccount({ ...newAccount, accountNumber: val })}
+              placeholder="Account number"
+              keyboardType="numeric"
+            />
 
             {/* Account Type */}
             <Text style={styles.inputLabel}>{t.provider?.accountType || 'Account Type'} *</Text>
@@ -284,12 +282,12 @@ export default function ProviderBankDetailsScreen({ navigation }: any) {
               placeholder={t.provider?.accountHolderPlaceholder || 'Full name or business name'}
             />
 
-            <Text style={styles.inputLabel}>{t.provider?.taxId || 'Tax ID'} *</Text>
+            <Text style={styles.inputLabel}>{'Tax ID (EIN or SSN)'} *</Text>
             <TextInput
               style={styles.input}
-              value={newAccount.cpfCnpj}
-              onChangeText={t => setNewAccount({ ...newAccount, cpfCnpj: t })}
-              placeholder="000.000.000-00"
+              value={newAccount.taxId}
+              onChangeText={val => setNewAccount({ ...newAccount, taxId: val })}
+              placeholder="XX-XXXXXXX or XXX-XX-XXXX"
               keyboardType="numeric"
             />
 

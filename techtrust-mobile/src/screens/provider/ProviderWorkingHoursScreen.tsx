@@ -30,13 +30,13 @@ interface DaySchedule {
 export default function ProviderWorkingHoursScreen({ navigation }: any) {
   const { t } = useI18n();
   const [schedule, setSchedule] = useState<DaySchedule[]>([
-    { day: 'Segunda-feira', dayShort: 'Seg', enabled: true, openTime: '08:00', closeTime: '18:00', hasLunchBreak: true, lunchStart: '12:00', lunchEnd: '13:00' },
-    { day: 'Terça-feira', dayShort: 'Ter', enabled: true, openTime: '08:00', closeTime: '18:00', hasLunchBreak: true, lunchStart: '12:00', lunchEnd: '13:00' },
-    { day: 'Quarta-feira', dayShort: 'Qua', enabled: true, openTime: '08:00', closeTime: '18:00', hasLunchBreak: true, lunchStart: '12:00', lunchEnd: '13:00' },
-    { day: 'Quinta-feira', dayShort: 'Qui', enabled: true, openTime: '08:00', closeTime: '18:00', hasLunchBreak: true, lunchStart: '12:00', lunchEnd: '13:00' },
-    { day: 'Sexta-feira', dayShort: 'Sex', enabled: true, openTime: '08:00', closeTime: '18:00', hasLunchBreak: true, lunchStart: '12:00', lunchEnd: '13:00' },
-    { day: 'Sábado', dayShort: 'Sáb', enabled: true, openTime: '08:00', closeTime: '12:00', hasLunchBreak: false },
-    { day: 'Domingo', dayShort: 'Dom', enabled: false, openTime: '09:00', closeTime: '13:00', hasLunchBreak: false },
+    { day: 'Monday', dayShort: 'Mon', enabled: true, openTime: '08:00', closeTime: '18:00', hasLunchBreak: true, lunchStart: '12:00', lunchEnd: '13:00' },
+    { day: 'Tuesday', dayShort: 'Tue', enabled: true, openTime: '08:00', closeTime: '18:00', hasLunchBreak: true, lunchStart: '12:00', lunchEnd: '13:00' },
+    { day: 'Wednesday', dayShort: 'Wed', enabled: true, openTime: '08:00', closeTime: '18:00', hasLunchBreak: true, lunchStart: '12:00', lunchEnd: '13:00' },
+    { day: 'Thursday', dayShort: 'Thu', enabled: true, openTime: '08:00', closeTime: '18:00', hasLunchBreak: true, lunchStart: '12:00', lunchEnd: '13:00' },
+    { day: 'Friday', dayShort: 'Fri', enabled: true, openTime: '08:00', closeTime: '18:00', hasLunchBreak: true, lunchStart: '12:00', lunchEnd: '13:00' },
+    { day: 'Saturday', dayShort: 'Sat', enabled: true, openTime: '08:00', closeTime: '12:00', hasLunchBreak: false },
+    { day: 'Sunday', dayShort: 'Sun', enabled: false, openTime: '09:00', closeTime: '13:00', hasLunchBreak: false },
   ]);
 
   const [is24Hours, setIs24Hours] = useState(false);

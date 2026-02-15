@@ -1,8 +1,9 @@
 /**
- * ProviderReportsScreen - Relatórios Financeiros
+ * ProviderReportsScreen - Financial Reports
+ * Fetches real data from API
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,10 +11,12 @@ import {
   ScrollView,
   TouchableOpacity,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useI18n } from '../../i18n';
+import api from '../../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -33,31 +36,49 @@ interface ServiceStats {
 export default function ProviderReportsScreen({ navigation }: any) {
   const { t } = useI18n();
   const [period, setPeriod] = useState<'week' | 'month' | 'year'>('month');
+  const [loading, setLoading] = useState(true);
+  const [earnings, setEarnings] = useState<EarningsData[]>([]);
+  const [serviceStats, setServiceStats] = useState<ServiceStats[]>([]);
+  const [totalRevenue, setTotalRevenue] = useState(0);
+  const [totalServices, setTotalServices] = useState(0);
+  const [avgRating, setAvgRating] = useState(0);
+  const [acceptanceRate, setAcceptanceRate] = useState(0);
 
-  const earnings: EarningsData[] = [
-    { month: 'Jan', amount: 2100 },
-    { month: 'Fev', amount: 2800 },
-    { month: 'Mar', amount: 2400 },
-    { month: 'Abr', amount: 3100 },
-    { month: 'Mai', amount: 2900 },
-    { month: 'Jun', amount: 3500 },
-  ];
+  useEffect(() => {
+    loadReports();
+  }, [period]);
 
-  const serviceStats: ServiceStats[] = [
-    { name: 'Troca de Óleo', count: 45, revenue: 3375, percentage: 35, color: '#3b82f6' },
-    { name: 'Freios', count: 28, revenue: 5600, percentage: 25, color: '#10b981' },
-    { name: 'Alinhamento', count: 32, revenue: 2560, percentage: 20, color: '#f59e0b' },
-    { name: 'Diagnóstico', count: 18, revenue: 1800, percentage: 12, color: '#8b5cf6' },
-    { name: 'Outros', count: 12, revenue: 960, percentage: 8, color: '#6b7280' },
-  ];
+  const loadReports = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get('/providers/reports', { params: { period } });
+      const data = response.data?.data;
+      if (data) {
+        setEarnings(data.earnings || []);
+        setServiceStats(data.serviceStats || []);
+        setTotalRevenue(data.totalRevenue || 0);
+        setTotalServices(data.totalServices || 0);
+        setAvgRating(data.avgRating || 0);
+        setAcceptanceRate(data.acceptanceRate || 0);
+      }
+    } catch (error) {
+      console.error('Error loading reports:', error);
+      // Set empty state - no mock data
+      setEarnings([]);
+      setServiceStats([]);
+      setTotalRevenue(0);
+      setTotalServices(0);
+      setAvgRating(0);
+      setAcceptanceRate(0);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const totalRevenue = 14295;
-  const totalServices = 135;
-  const avgTicket = totalRevenue / totalServices;
+  const avgTicket = totalServices > 0 ? totalRevenue / totalServices : 0;
   const platformFee = totalRevenue * 0.1;
   const netRevenue = totalRevenue - platformFee;
-
-  const maxAmount = Math.max(...earnings.map(e => e.amount));
+  const maxAmount = earnings.length > 0 ? Math.max(...earnings.map(e => e.amount)) : 1;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -100,12 +121,8 @@ export default function ProviderReportsScreen({ navigation }: any) {
 
         {/* Revenue Summary */}
         <View style={styles.summaryCard}>
-          <Text style={styles.summaryLabel}>{t.provider?.totalRevenue || 'Total Revenue'} ({t.common?.monthJune || 'June'})</Text>
+          <Text style={styles.summaryLabel}>{t.provider?.totalRevenue || 'Total Revenue'}</Text>
           <Text style={styles.summaryValue}>${totalRevenue.toLocaleString()}</Text>
-          <View style={styles.summaryChange}>
-            <MaterialCommunityIcons name="trending-up" size={16} color="#10b981" />
-            <Text style={styles.changeText}>+12% {t.provider?.vsPreviousMonth || 'vs previous month'}</Text>
-          </View>
         </View>
 
         {/* Stats Grid */}
@@ -128,15 +145,15 @@ export default function ProviderReportsScreen({ navigation }: any) {
             <View style={[styles.statIcon, { backgroundColor: '#fef3c7' }]}>
               <MaterialCommunityIcons name="star" size={22} color="#f59e0b" />
             </View>
-            <Text style={styles.statValue}>4.8</Text>
+            <Text style={styles.statValue}>{avgRating > 0 ? avgRating.toFixed(1) : '—'}</Text>
             <Text style={styles.statLabel}>{t.provider?.rating || 'Rating'}</Text>
           </View>
           <View style={styles.statCard}>
             <View style={[styles.statIcon, { backgroundColor: '#fce7f3' }]}>
               <MaterialCommunityIcons name="percent" size={22} color="#ec4899" />
             </View>
-            <Text style={styles.statValue}>82%</Text>
-            <Text style={styles.statLabel}>{t.provider?.acceptance || 'Acceptance'}</Text>
+            <Text style={styles.statValue}>{acceptanceRate > 0 ? `${acceptanceRate}%` : '—'}</Text>
+            <Text style={styles.statLabel}>{t.common?.acceptance || 'Acceptance'}</Text>
           </View>
         </View>
 

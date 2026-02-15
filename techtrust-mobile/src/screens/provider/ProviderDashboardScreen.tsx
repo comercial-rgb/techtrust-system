@@ -50,6 +50,8 @@ interface PendingRequest {
   title: string;
   vehicle: string;
   location: string;
+  serviceLocationType?: string;
+  serviceAddress?: string;
   timeAgo: string;
   isUrgent: boolean;
 }
@@ -275,11 +277,18 @@ export default function ProviderDashboardScreen({ navigation }: any) {
               <View style={styles.requestFooter}>
                 <View style={styles.locationRow}>
                   <MaterialCommunityIcons
-                    name="map-marker"
+                    name={request.serviceLocationType === 'MOBILE' ? 'home-map-marker' : request.serviceLocationType === 'REMOTE' ? 'car-emergency' : 'store'}
                     size={14}
-                    color="#6b7280"
+                    color={request.serviceLocationType === 'MOBILE' ? '#10b981' : request.serviceLocationType === 'REMOTE' ? '#f59e0b' : '#1976d2'}
                   />
-                  <Text style={styles.locationText}>{request.location}</Text>
+                  <Text style={styles.locationText}>
+                    {request.serviceLocationType === 'MOBILE'
+                      ? (request.serviceAddress || t.provider?.mobileService || 'Mobile Service')
+                      : request.serviceLocationType === 'REMOTE'
+                        ? (request.serviceAddress || t.provider?.roadsideAssist || 'Roadside')
+                        : (t.provider?.atShop || 'At Shop')}
+                    {request.location ? `, ${request.location}` : ''}
+                  </Text>
                 </View>
                 <MaterialCommunityIcons
                   name="chevron-right"
@@ -383,6 +392,22 @@ export default function ProviderDashboardScreen({ navigation }: any) {
               </View>
               <Text style={styles.actionText}>
                 {t.provider?.quotes || "Quotes"}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => navigation.navigate("ChatList")}
+            >
+              <View style={[styles.actionIcon, { backgroundColor: "#dcfce7" }]}>
+                <MaterialCommunityIcons
+                  name="chat"
+                  size={24}
+                  color="#16a34a"
+                />
+              </View>
+              <Text style={styles.actionText}>
+                {"Messages"}
               </Text>
             </TouchableOpacity>
 

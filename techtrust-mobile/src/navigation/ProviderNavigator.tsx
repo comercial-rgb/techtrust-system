@@ -39,6 +39,7 @@ import InsuranceManagementScreen from "../screens/provider/InsuranceManagementSc
 import NotificationsScreen from "../screens/NotificationsScreen";
 import SupportChatScreen from "../screens/SupportChatScreen";
 import ChatScreen from "../screens/ChatScreen";
+import ChatListScreen from "../screens/ChatListScreen";
 import ProviderReviewsScreen from "../screens/provider/ProviderReviewsScreen";
 
 // FDACS Screens (shared with customer)
@@ -62,6 +63,8 @@ function DashboardStack() {
         component={ProviderDashboardScreen}
       />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
+      <Stack.Screen name="ChatList" component={ChatListScreen} />
+      <Stack.Screen name="Chat" component={ChatScreen} />
       <Stack.Screen name="ProviderReviews" component={ProviderReviewsScreen} />
       <Stack.Screen name="Appointments" component={AppointmentsScreen} />
       <Stack.Screen

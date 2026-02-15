@@ -444,22 +444,32 @@ export default function ProviderRequestDetailsScreen({
 
   const durationOptions = [
     { value: "30min", label: "30 min" },
-    { value: "1h", label: "1 hora" },
-    { value: "2h", label: "2 horas" },
-    { value: "3h", label: "3 horas" },
-    { value: "4h", label: "4 horas" },
-    { value: "1d", label: "1 dia" },
-    { value: "2d", label: "2 dias" },
-    { value: "3d", label: "3+ dias" },
+    { value: "1h", label: `1 ${t.common?.hour || "hour"}` },
+    { value: "2h", label: `2 ${t.common?.hours || "hours"}` },
+    { value: "3h", label: `3 ${t.common?.hours || "hours"}` },
+    { value: "4h", label: `4 ${t.common?.hours || "hours"}` },
+    { value: "1d", label: `1 ${t.common?.day || "day"}` },
+    { value: "2d", label: `2 ${t.common?.days || "days"}` },
+    { value: "3d", label: `3+ ${t.common?.days || "days"}` },
   ];
 
-  const availableDates = [
-    { value: "2024-02-15", label: "Qui, 15 Fev" },
-    { value: "2024-02-16", label: "Sex, 16 Fev" },
-    { value: "2024-02-17", label: "Sáb, 17 Fev" },
-    { value: "2024-02-19", label: "Seg, 19 Fev" },
-    { value: "2024-02-20", label: "Ter, 20 Fev" },
-  ];
+  // Generate next 7 available dates dynamically
+  const generateAvailableDates = () => {
+    const dates = [];
+    const today = new Date();
+    for (let i = 1; i <= 7; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + i);
+      const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+      const monthDay = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      dates.push({
+        value: date.toISOString().split('T')[0],
+        label: `${dayName}, ${monthDay}`,
+      });
+    }
+    return dates;
+  };
+  const availableDates = generateAvailableDates();
 
   const availableTimes = [
     { value: "08:00", label: "08:00" },
@@ -473,7 +483,7 @@ export default function ProviderRequestDetailsScreen({
   ];
 
   const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString("pt-BR", {
+    return new Date(date).toLocaleDateString("en-US", {
       day: "2-digit",
       month: "short",
       year: "numeric",
@@ -503,7 +513,18 @@ export default function ProviderRequestDetailsScreen({
   const isQuoteAccepted = request.status === "accepted";
 
   return (
-    <SafeAreaView style={styles.container} edges={["bottom"]}>
+    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
+      {/* Header with Back Button */}
+      <View style={styles.detailHeader}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <MaterialCommunityIcons name="arrow-left" size={24} color="#111827" />
+        </TouchableOpacity>
+        <Text style={styles.detailHeaderTitle} numberOfLines={1}>
+          {request.title}
+        </Text>
+        <View style={{ width: 40 }} />
+      </View>
+
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Success Banner */}
         {quoteSubmitted && (
@@ -538,7 +559,7 @@ export default function ProviderRequestDetailsScreen({
                 </View>
                 {request.isUrgent && (
                   <View style={styles.urgentBadge}>
-                    <Text style={styles.urgentBadgeText}>🚨 Urgente</Text>
+                    <Text style={styles.urgentBadgeText}>🚨 {t.common?.urgent || "Urgent"}</Text>
                   </View>
                 )}
               </View>
@@ -546,7 +567,7 @@ export default function ProviderRequestDetailsScreen({
             </View>
             <View style={styles.timeBox}>
               <Text style={styles.timeValue}>{request.expiresIn}</Text>
-              <Text style={styles.timeLabel}>restantes</Text>
+              <Text style={styles.timeLabel}>{t.common?.remaining || "remaining"}</Text>
             </View>
           </View>
 
@@ -562,9 +583,9 @@ export default function ProviderRequestDetailsScreen({
                 color="#1976d2"
               />
               <Text style={styles.preferredScheduleText}>
-                Preferência:{" "}
+                {t.provider?.preference || "Preferred"}:{" "}
                 {request.preferredDate && formatDate(request.preferredDate)}
-                {request.preferredTime && ` às ${request.preferredTime}`}
+                {request.preferredTime && ` ${t.common?.at || "at"} ${request.preferredTime}`}
               </Text>
             </View>
           )}
@@ -840,7 +861,7 @@ export default function ProviderRequestDetailsScreen({
                 {t.vehicle?.mileage || "Mileage"}
               </Text>
               <Text style={styles.vehicleGridValue}>
-                {request.vehicle.mileage.toLocaleString()} km
+                {request.vehicle.mileage > 0 ? `${request.vehicle.mileage.toLocaleString()} mi` : "N/A"}
               </Text>
             </View>
             <View style={styles.vehicleGridItem}>
@@ -866,7 +887,7 @@ export default function ProviderRequestDetailsScreen({
                 {t.vehicle?.transmission || "Transmission"}
               </Text>
               <Text style={styles.vehicleGridValue}>
-                {request.vehicle.transmission}
+                {request.vehicle.transmission || "N/A"}
               </Text>
             </View>
             <View style={styles.vehicleGridItem}>
@@ -875,7 +896,7 @@ export default function ProviderRequestDetailsScreen({
                 {t.vehicle?.engine || "Engine"}
               </Text>
               <Text style={styles.vehicleGridValue}>
-                {request.vehicle.engine}
+                {request.vehicle.engine || "N/A"}
               </Text>
             </View>
             <View style={styles.vehicleGridItem}>
@@ -908,7 +929,7 @@ export default function ProviderRequestDetailsScreen({
                 </Text>
                 <Text style={styles.lastServiceText}>
                   {formatDate(request.vehicle.lastServiceDate)} •{" "}
-                  {request.vehicle.lastServiceMileage?.toLocaleString()} km
+                  {request.vehicle.lastServiceMileage?.toLocaleString()} mi
                 </Text>
               </View>
             </View>
@@ -983,6 +1004,45 @@ export default function ProviderRequestDetailsScreen({
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
+              {/* Customer's Requested Services Summary */}
+              {request && request.description && (
+                <View style={styles.customerRequestSummary}>
+                  <View style={styles.customerRequestHeader}>
+                    <MaterialCommunityIcons name="clipboard-text" size={18} color="#1976d2" />
+                    <Text style={styles.customerRequestTitle}>
+                      {t.quote?.customerRequest || "Customer's Request"}
+                    </Text>
+                  </View>
+                  <View style={styles.customerRequestBody}>
+                    <Text style={styles.customerRequestServiceTitle}>
+                      {request.title}
+                    </Text>
+                    <Text style={styles.customerRequestDesc} numberOfLines={6}>
+                      {request.description}
+                    </Text>
+                    <View style={styles.customerRequestVehicle}>
+                      <MaterialCommunityIcons name="car-side" size={14} color="#6b7280" />
+                      <Text style={styles.customerRequestVehicleText}>
+                        {request.vehicle.make} {request.vehicle.model} {request.vehicle.year}
+                      </Text>
+                    </View>
+                    {request.serviceLocation && (
+                      <View style={styles.customerRequestVehicle}>
+                        <MaterialCommunityIcons name="map-marker" size={14} color="#6b7280" />
+                        <Text style={styles.customerRequestVehicleText}>
+                          {request.serviceLocation.type === "shop"
+                            ? t.provider?.atShop || "At Shop"
+                            : request.serviceLocation.type === "mobile"
+                              ? t.provider?.mobileService || "Mobile Service"
+                              : t.provider?.roadsideAssist || "Roadside Assist"}
+                          {request.serviceLocation.address ? ` - ${request.serviceLocation.address}` : ""}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              )}
+
               {/* Line Items Section */}
               <Text style={styles.sectionTitle}>
                 {t.quote?.quoteItems || "Quote Items"}
@@ -1551,6 +1611,27 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f8fafc",
+  },
+  detailHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
+  },
+  backBtn: {
+    padding: 8,
+  },
+  detailHeaderTitle: {
+    fontSize: 17,
+    fontWeight: "600",
+    color: "#111827",
+    flex: 1,
+    textAlign: "center",
+    marginHorizontal: 8,
   },
   loadingContainer: {
     flex: 1,
@@ -2495,5 +2576,48 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 14,
     fontWeight: "600",
+  },
+  // Customer Request Summary in Quote Modal
+  customerRequestSummary: {
+    backgroundColor: "#eff6ff",
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#bfdbfe",
+  },
+  customerRequestHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 10,
+  },
+  customerRequestTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1976d2",
+  },
+  customerRequestBody: {
+    gap: 6,
+  },
+  customerRequestServiceTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#1f2937",
+  },
+  customerRequestDesc: {
+    fontSize: 13,
+    color: "#4b5563",
+    lineHeight: 18,
+  },
+  customerRequestVehicle: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 4,
+  },
+  customerRequestVehicleText: {
+    fontSize: 12,
+    color: "#6b7280",
   },
 });
