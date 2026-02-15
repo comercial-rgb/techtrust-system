@@ -46,17 +46,28 @@ const BANNERS: Banner[] = [
 const SPECIAL_OFFERS: SpecialOffer[] = [];
 
 // Service types used in Home search/provider cards
+// Updated per Mobile App Service & Diagnostic Tree — Feb 2026
 const SERVICE_TYPE_IDS = [
   "oilChange",
+  "airFilter",
+  "fuelSystem",
   "brakes",
+  "coolingSystem",
   "tires",
+  "beltsHoses",
+  "ac",
+  "steeringSuspension",
+  "electrical",
+  "exhaust",
+  "drivetrain",
   "engine",
   "transmission",
-  "ac",
-  "electrical",
-  "suspension",
+  "battery",
+  "fluidServices",
+  "preventiveMaintenance",
   "diagnostics",
   "inspection",
+  "detailing",
 ] as const;
 
 // Provider type for search results - data from API only

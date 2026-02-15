@@ -141,44 +141,38 @@ export default function SignupScreen({ navigation }: any) {
   };
 
   // ─── Provider Service & Vehicle Type definitions for signup ───
+  // Updated per Mobile App Service & Diagnostic Tree — Feb 2026
   const SIGNUP_SERVICES = [
+    // Maintenance
     { key: "OIL_CHANGE", label: "Oil Change", icon: "oil" },
-    { key: "BRAKES", label: "Brakes", icon: "car-brake-abs" },
-    { key: "TIRES", label: "Tires", icon: "tire" },
+    { key: "AIR_FILTER", label: "Air Filter Service", icon: "air-filter" },
+    { key: "FUEL_SYSTEM", label: "Fuel System", icon: "gas-station" },
+    { key: "BRAKES", label: "Brakes", icon: "car-brake-alert" },
+    { key: "COOLING_SYSTEM", label: "Cooling System", icon: "coolant-temperature" },
+    { key: "TIRES", label: "Tires & Wheels", icon: "tire" },
+    { key: "BELTS_HOSES", label: "Belts & Hoses", icon: "connection" },
+    // Repairs
+    { key: "AC_SERVICE", label: "A/C & Heating", icon: "air-conditioner" },
+    { key: "STEERING", label: "Steering & Suspension", icon: "steering" },
+    { key: "ELECTRICAL_BASIC", label: "Electrical System", icon: "flash" },
+    { key: "EXHAUST", label: "Exhaust System", icon: "pipe-leak" },
+    { key: "DRIVETRAIN", label: "Drivetrain", icon: "cog-transfer" },
     { key: "ENGINE", label: "Engine", icon: "engine" },
     { key: "TRANSMISSION", label: "Transmission", icon: "car-shift-pattern" },
-    { key: "ELECTRICAL_BASIC", label: "Electrical", icon: "flash" },
-    { key: "AC_SERVICE", label: "A/C & Heating", icon: "air-conditioner" },
-    { key: "SUSPENSION", label: "Suspension", icon: "car-traction-control" },
     { key: "BATTERY", label: "Battery", icon: "car-battery" },
-    { key: "EXHAUST", label: "Exhaust", icon: "pipe" },
-    {
-      key: "COOLING_SYSTEM",
-      label: "Cooling System",
-      icon: "coolant-temperature",
-    },
-    { key: "FUEL_SYSTEM", label: "Fuel System", icon: "gas-station" },
-    { key: "STEERING", label: "Steering", icon: "steering" },
-    {
-      key: "DRIVETRAIN",
-      label: "Drivetrain / 4WD",
-      icon: "car-traction-control",
-    },
+    { key: "GENERAL_REPAIR", label: "General Repair", icon: "wrench" },
+    // Fluid Services & Packages
+    { key: "FLUID_SERVICES", label: "Fluid Services", icon: "water" },
+    { key: "PREVENTIVE_PACKAGES", label: "Preventive Maintenance", icon: "package-variant-closed-check" },
+    // Inspection & Diagnostics
     { key: "INSPECTION", label: "Inspection", icon: "clipboard-check" },
     { key: "DIAGNOSTICS", label: "Diagnostics", icon: "stethoscope" },
-    { key: "EMISSIONS", label: "Emissions Test", icon: "cloud-check" },
-    { key: "HYBRID_EV", label: "Hybrid / EV", icon: "car-electric" },
-    { key: "BODY_WORK", label: "Body Work", icon: "car-wrench" },
+    // Detailing
     { key: "DETAILING", label: "Detailing", icon: "car-wash" },
+    // SOS / Roadside
     { key: "TOWING", label: "Towing", icon: "tow-truck" },
-    { key: "ROADSIDE_ASSIST", label: "Roadside", icon: "tow-truck" },
+    { key: "ROADSIDE_ASSIST", label: "Roadside Assist", icon: "tow-truck" },
     { key: "LOCKOUT", label: "Lockout", icon: "key-variant" },
-    {
-      key: "MAINTENANCE_LIGHT",
-      label: "Warning Light",
-      icon: "car-light-alert",
-    },
-    { key: "GENERAL_REPAIR", label: "General Repair", icon: "wrench" },
   ];
 
   const SIGNUP_VEHICLE_TYPES = [

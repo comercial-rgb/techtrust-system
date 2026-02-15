@@ -73,108 +73,63 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
   );
   const [loadingVehicles, setLoadingVehicles] = useState(true);
 
-  // Diagnostic service types — vehicle areas/systems to diagnose
+  // Diagnostic service types — 11 diagnostic categories per Service & Diagnostic Tree (Feb 2026)
   // Icons use Ionicons library
   const diagnosticServiceTypes = [
     {
-      id: "engine",
-      label: t.createRequest?.serviceEngine || "Engine",
+      id: "engine_diag",
+      label: "Engine Diagnostics",
       icon: "cog" as const,
     },
     {
-      id: "brake",
-      label: t.createRequest?.serviceBrakes || "Brakes",
-      icon: "disc" as const,
-    },
-    {
-      id: "electric",
-      label: t.createRequest?.serviceElectrical || "Electrical",
-      icon: "flash" as const,
-    },
-    {
-      id: "ac",
-      label: t.createRequest?.serviceAC || "A/C & Heating",
-      icon: "snow" as const,
-    },
-    {
-      id: "suspension",
-      label: t.createRequest?.serviceSuspension || "Suspension",
-      icon: "resize" as const,
-    },
-    {
-      id: "transmission",
-      label: t.createRequest?.serviceTransmission || "Transmission",
+      id: "transmission_diag",
+      label: "Transmission Diagnostics",
       icon: "settings" as const,
     },
     {
-      id: "oil",
-      label: t.createRequest?.serviceOilChange || "Oil / Fluids",
-      icon: "water" as const,
+      id: "brake_diag",
+      label: "Brake System Diagnostics",
+      icon: "disc" as const,
     },
     {
-      id: "tire",
-      label: t.createRequest?.serviceTires || "Tires",
-      icon: "ellipse" as const,
+      id: "electrical_diag",
+      label: "Electrical Diagnostics",
+      icon: "flash" as const,
     },
     {
-      id: "steering",
-      label: "Steering",
+      id: "ac_diag",
+      label: "A/C & HVAC Diagnostics",
+      icon: "snow" as const,
+    },
+    {
+      id: "steering_diag",
+      label: "Steering & Suspension Diag.",
       icon: "navigate" as const,
     },
     {
-      id: "exhaust",
-      label: "Exhaust / Emissions",
+      id: "diesel_emissions",
+      label: "Diesel Emissions Diagnostics",
       icon: "cloud" as const,
     },
     {
-      id: "cooling",
-      label: "Cooling System",
-      icon: "thermometer" as const,
-    },
-    {
-      id: "fuel_system",
-      label: "Fuel System",
-      icon: "flame" as const,
-    },
-    {
-      id: "check_engine_light",
-      label: "Check Engine Light",
-      icon: "alert-circle" as const,
-    },
-    {
-      id: "noise_vibration",
-      label: "Noise / Vibration",
+      id: "nvh",
+      label: "NVH Diagnostics (Noise/Vibration)",
       icon: "volume-high" as const,
     },
     {
-      id: "starting_issues",
-      label: "Starting Issues",
-      icon: "power" as const,
+      id: "cooling_diag",
+      label: "Cooling System Diagnostics",
+      icon: "thermometer" as const,
     },
     {
-      id: "drivetrain",
-      label: "Drivetrain / 4WD",
-      icon: "speedometer" as const,
-    },
-    {
-      id: "battery",
-      label: t.createRequest?.serviceBattery || "Battery / Charging",
-      icon: "battery-charging" as const,
-    },
-    {
-      id: "inspection",
-      label: t.createRequest?.serviceInspection || "Full Inspection",
-      icon: "clipboard" as const,
+      id: "fuel_diag",
+      label: "Fuel System Diagnostics",
+      icon: "flame" as const,
     },
     {
       id: "pre_purchase",
-      label: "Pre-Purchase Inspection",
+      label: "Pre-Purchase / Safety Inspection",
       icon: "search" as const,
-    },
-    {
-      id: "other",
-      label: t.createRequest?.serviceOther || "Other",
-      icon: "ellipsis-horizontal" as const,
     },
   ];
   const [selectedServiceType, setSelectedServiceType] = useState("");

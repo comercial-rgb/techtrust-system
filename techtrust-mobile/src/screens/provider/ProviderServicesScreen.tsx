@@ -20,28 +20,38 @@ import { useI18n } from '../../i18n';
 import api from '../../services/api';
 
 // ─── Service definitions aligned with ServiceOffered enum ───
+// Updated per Mobile App Service & Diagnostic Tree — Feb 2026
 interface ServiceDef {
   key: string;       // matches ServiceOffered enum value
   nameKey: string;
   icon: string;
-  category: 'maintenance' | 'repairs' | 'inspection' | 'detailing' | 'sos';
+  category: 'maintenance' | 'repairs' | 'fluids' | 'packages' | 'inspection' | 'detailing' | 'sos';
   descriptionKey?: string;
 }
 
 const SERVICE_DEFINITIONS: ServiceDef[] = [
   // Maintenance
   { key: 'OIL_CHANGE', nameKey: 'oilChange', icon: 'oil', category: 'maintenance' },
-  { key: 'BRAKES', nameKey: 'brakes', icon: 'car-brake-abs', category: 'maintenance' },
+  { key: 'AIR_FILTER', nameKey: 'airFilter', icon: 'air-filter', category: 'maintenance' },
+  { key: 'FUEL_SYSTEM', nameKey: 'fuelSystem', icon: 'gas-station', category: 'maintenance' },
+  { key: 'BRAKES', nameKey: 'brakes', icon: 'car-brake-alert', category: 'maintenance' },
+  { key: 'COOLING_SYSTEM', nameKey: 'coolingSystem', icon: 'coolant-temperature', category: 'maintenance' },
   { key: 'TIRES', nameKey: 'tires', icon: 'tire', category: 'maintenance' },
-  { key: 'SUSPENSION', nameKey: 'suspension', icon: 'car-traction-control', category: 'maintenance' },
-  { key: 'MAINTENANCE_LIGHT', nameKey: 'maintenanceLight', icon: 'car-light-alert', category: 'maintenance' },
+  { key: 'BELTS_HOSES', nameKey: 'beltsHoses', icon: 'connection', category: 'maintenance' },
   // Repairs
+  { key: 'AC_SERVICE', nameKey: 'airConditioning', icon: 'air-conditioner', category: 'repairs' },
+  { key: 'STEERING', nameKey: 'steeringSuspension', icon: 'steering', category: 'repairs' },
+  { key: 'ELECTRICAL_BASIC', nameKey: 'electricalSystem', icon: 'flash', category: 'repairs' },
+  { key: 'EXHAUST', nameKey: 'exhaust', icon: 'pipe-leak', category: 'repairs' },
+  { key: 'DRIVETRAIN', nameKey: 'drivetrain', icon: 'cog-transfer', category: 'repairs' },
   { key: 'ENGINE', nameKey: 'engine', icon: 'engine', category: 'repairs' },
   { key: 'TRANSMISSION', nameKey: 'transmission', icon: 'car-shift-pattern', category: 'repairs' },
-  { key: 'ELECTRICAL_BASIC', nameKey: 'electricalSystem', icon: 'flash', category: 'repairs' },
-  { key: 'AC_SERVICE', nameKey: 'airConditioning', icon: 'air-conditioner', category: 'repairs' },
-  { key: 'GENERAL_REPAIR', nameKey: 'generalRepair', icon: 'wrench', category: 'repairs' },
   { key: 'BATTERY', nameKey: 'battery', icon: 'car-battery', category: 'repairs' },
+  { key: 'GENERAL_REPAIR', nameKey: 'generalRepair', icon: 'wrench', category: 'repairs' },
+  // Fluid Services
+  { key: 'FLUID_SERVICES', nameKey: 'fluidServices', icon: 'water', category: 'fluids' },
+  // Preventive Packages
+  { key: 'PREVENTIVE_PACKAGES', nameKey: 'preventiveMaintenance', icon: 'package-variant-closed-check', category: 'packages' },
   // Inspection & Diagnostics
   { key: 'INSPECTION', nameKey: 'vehicleInspection', icon: 'clipboard-check', category: 'inspection' },
   { key: 'DIAGNOSTICS', nameKey: 'diagnostics', icon: 'stethoscope', category: 'inspection' },
@@ -72,6 +82,8 @@ const VEHICLE_TYPES: VehicleTypeDef[] = [
 const CATEGORIES = [
   { key: 'maintenance', label: 'Maintenance' },
   { key: 'repairs', label: 'Repairs' },
+  { key: 'fluids', label: 'Fluid Services' },
+  { key: 'packages', label: 'Preventive Packages' },
   { key: 'inspection', label: 'Inspection & Diagnostics' },
   { key: 'detailing', label: 'Detailing' },
   { key: 'sos', label: 'Roadside / SOS' },

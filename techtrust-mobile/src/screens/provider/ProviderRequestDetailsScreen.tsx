@@ -26,6 +26,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useI18n } from "../../i18n";
 import { useNotifications } from "../../contexts/NotificationsContext";
 import api from "../../services/api";
+import { getServiceTypeInfo as getServiceTypeInfoFromTree } from "../../constants/serviceTree";
 
 interface QuoteLineItem {
   id: string;
@@ -416,51 +417,8 @@ export default function ProviderRequestDetailsScreen({
     return calculateSubtotal() + calculateDisplacementCost();
   };
 
-  const getServiceTypeInfo = (type: string) => {
-    const types: Record<
-      string,
-      { icon: string; color: string; bg: string; label: string }
-    > = {
-      SCHEDULED_MAINTENANCE: {
-        icon: "wrench",
-        color: "#3b82f6",
-        bg: "#dbeafe",
-        label: t.common?.maintenance || "Maintenance",
-      },
-      REPAIR: {
-        icon: "alert-circle",
-        color: "#f97316",
-        bg: "#ffedd5",
-        label: t.common?.repair || "Repair",
-      },
-      INSPECTION: {
-        icon: "shield-check",
-        color: "#8b5cf6",
-        bg: "#ede9fe",
-        label: t.common?.inspection || "Inspection",
-      },
-      DETAILING: {
-        icon: "car-wash",
-        color: "#ec4899",
-        bg: "#fce7f3",
-        label: t.common?.detailing || "Detailing",
-      },
-      ROADSIDE_SOS: {
-        icon: "car-emergency",
-        color: "#ef4444",
-        bg: "#fef2f2",
-        label: t.common?.sos || "SOS",
-      },
-    };
-    return (
-      types[type] || {
-        icon: "car",
-        color: "#6b7280",
-        bg: "#f3f4f6",
-        label: type,
-      }
-    );
-  };
+  // Uses centralized service type info from serviceTree.ts
+  const getServiceTypeInfo = (type: string) => getServiceTypeInfoFromTree(type);
 
   const durationOptions = [
     { value: "30min", label: "30 min" },

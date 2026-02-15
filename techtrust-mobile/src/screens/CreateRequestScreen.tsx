@@ -701,8 +701,8 @@ export default function CreateRequestScreen({ navigation }: any) {
         },
       ],
     },
-    suspension: {
-      title: t.createRequest?.suspensionOptions || "Suspension Service Details",
+    steering: {
+      title: t.createRequest?.suspensionOptions || "Steering & Suspension Service Details",
       sections: [
         {
           id: "suspensionService",
@@ -1636,6 +1636,226 @@ export default function CreateRequestScreen({ navigation }: any) {
         },
       ],
     },
+    // ─── Air Filter Service ───
+    air_filter: {
+      title: "Air Filter Service Details",
+      sections: [
+        {
+          id: "filterType",
+          label: "Filter Type",
+          type: "multi",
+          options: [
+            { id: "engine_air", label: "Engine Air Filter", icon: "cloud" },
+            { id: "cabin_air", label: "Cabin Air Filter", icon: "car" },
+            { id: "secondary_air", label: "Secondary (Safety) Air Filter", icon: "shield" },
+          ],
+        },
+      ],
+    },
+    // ─── Fuel System ───
+    fuel_system: {
+      title: "Fuel System Service Details",
+      sections: [
+        {
+          id: "fuelService",
+          label: "Service Needed",
+          type: "multi",
+          options: [
+            { id: "fuel_filter", label: "Fuel Filter Replacement", icon: "funnel" },
+            { id: "fuel_pump", label: "Fuel Pump", icon: "flash" },
+            { id: "injector_cleaning", label: "Injector Cleaning / Flush", icon: "water" },
+            { id: "injector_replace", label: "Injector Replacement", icon: "swap-horizontal" },
+            { id: "throttle_body", label: "Throttle Body Cleaning", icon: "options" },
+            { id: "water_separator", label: "Water Separator Drain (Diesel)", icon: "funnel" },
+            { id: "fuel_line", label: "Fuel Line Repair / Replace", icon: "git-branch" },
+            { id: "fuel_pressure", label: "Fuel Pressure Regulator", icon: "speedometer" },
+          ],
+        },
+      ],
+    },
+    // ─── Cooling System ───
+    cooling: {
+      title: "Cooling System Service Details",
+      sections: [
+        {
+          id: "coolingService",
+          label: "Service Needed",
+          type: "multi",
+          options: [
+            { id: "coolant_flush", label: "Coolant Flush / Exchange", icon: "water" },
+            { id: "radiator", label: "Radiator Repair / Replace", icon: "grid" },
+            { id: "thermostat", label: "Thermostat Replacement", icon: "thermometer" },
+            { id: "water_pump", label: "Water Pump", icon: "refresh" },
+            { id: "hoses", label: "Radiator Hoses (Upper / Lower)", icon: "git-branch" },
+            { id: "fan_clutch", label: "Fan / Fan Clutch", icon: "aperture" },
+            { id: "heater_core", label: "Heater Core", icon: "flame" },
+            { id: "coolant_leak", label: "Coolant Leak Diagnosis", icon: "search" },
+          ],
+        },
+        {
+          id: "coolingSymptoms",
+          label: "Symptoms (optional)",
+          type: "multi",
+          options: [
+            { id: "overheating", label: "Engine Overheating", icon: "thermometer" },
+            { id: "low_coolant", label: "Low Coolant Warning", icon: "warning" },
+            { id: "leak_visible", label: "Visible Coolant Leak", icon: "water" },
+            { id: "no_heat_cabin", label: "No Heat in Cabin", icon: "snow" },
+          ],
+        },
+      ],
+    },
+    // ─── Exhaust System ───
+    exhaust: {
+      title: "Exhaust System Service Details",
+      sections: [
+        {
+          id: "exhaustService",
+          label: "Service Needed",
+          type: "multi",
+          options: [
+            { id: "muffler", label: "Muffler Repair / Replace", icon: "volume-medium" },
+            { id: "catalytic_converter", label: "Catalytic Converter", icon: "flash" },
+            { id: "exhaust_pipe", label: "Exhaust Pipe / Sections", icon: "git-branch" },
+            { id: "exhaust_manifold", label: "Exhaust Manifold / Gasket", icon: "layers" },
+            { id: "resonator", label: "Resonator", icon: "radio" },
+            { id: "flex_pipe", label: "Flex Pipe", icon: "swap-horizontal" },
+            { id: "oxygen_sensor", label: "O2 Sensor Replacement", icon: "analytics" },
+            { id: "dpf", label: "DPF Service (Diesel)", icon: "funnel" },
+            { id: "def_scr", label: "DEF / SCR Service (Diesel)", icon: "beaker" },
+            { id: "egr", label: "EGR Valve / System", icon: "sync" },
+          ],
+        },
+        {
+          id: "exhaustSymptoms",
+          label: "Symptoms (optional)",
+          type: "multi",
+          options: [
+            { id: "loud_exhaust", label: "Loud Exhaust Noise", icon: "volume-high" },
+            { id: "exhaust_smell", label: "Exhaust Smell Inside Cabin", icon: "alert-circle" },
+            { id: "rattling", label: "Rattling / Hanging Components", icon: "pulse" },
+            { id: "check_engine", label: "Check Engine Light (Emissions)", icon: "warning" },
+          ],
+        },
+      ],
+    },
+    // ─── Drivetrain ───
+    drivetrain: {
+      title: "Drivetrain Service Details",
+      sections: [
+        {
+          id: "drivetrainService",
+          label: "Service Needed",
+          type: "multi",
+          options: [
+            { id: "differential_fluid", label: "Differential Fluid Change", icon: "water" },
+            { id: "differential_repair", label: "Differential Repair", icon: "construct" },
+            { id: "transfer_case", label: "Transfer Case Fluid / Repair (4WD/AWD)", icon: "swap-horizontal" },
+            { id: "cv_axle", label: "CV Axle / CV Joint", icon: "git-branch" },
+            { id: "u_joint", label: "U-Joint Replacement", icon: "radio-button-on" },
+            { id: "driveshaft", label: "Driveshaft Repair / Balance", icon: "resize" },
+            { id: "hub_bearing", label: "Hub / Wheel Bearing (Drive Axle)", icon: "sync" },
+            { id: "pto", label: "PTO Service (Work Trucks)", icon: "cog" },
+          ],
+        },
+        {
+          id: "driveType",
+          label: "Drive Type",
+          type: "single",
+          options: [
+            { id: "fwd", label: "Front-Wheel Drive (FWD)", icon: "arrow-up" },
+            { id: "rwd", label: "Rear-Wheel Drive (RWD)", icon: "arrow-down" },
+            { id: "4wd", label: "4WD / 4x4", icon: "apps" },
+            { id: "awd", label: "All-Wheel Drive (AWD)", icon: "grid" },
+            { id: "not_sure", label: "Not Sure", icon: "help-circle" },
+          ],
+        },
+      ],
+    },
+    // ─── Belts & Hoses ───
+    belts_hoses: {
+      title: "Belts & Hoses Service Details",
+      sections: [
+        {
+          id: "beltsService",
+          label: "Service Needed",
+          type: "multi",
+          options: [
+            { id: "serpentine", label: "Serpentine Belt", icon: "sync" },
+            { id: "timing_belt", label: "Timing Belt / Chain", icon: "time" },
+            { id: "tensioner", label: "Belt Tensioner / Idler Pulley", icon: "cog" },
+            { id: "radiator_hoses", label: "Radiator Hoses", icon: "git-branch" },
+            { id: "heater_hoses", label: "Heater Hoses", icon: "flame" },
+            { id: "power_steering_hose", label: "Power Steering Hose", icon: "swap-horizontal" },
+            { id: "ac_hose", label: "A/C Hose / Line", icon: "snow" },
+            { id: "vacuum_hoses", label: "Vacuum Hoses", icon: "funnel" },
+          ],
+        },
+        {
+          id: "beltsSymptoms",
+          label: "Symptoms (optional)",
+          type: "multi",
+          options: [
+            { id: "squealing", label: "Squealing / Chirping Noise", icon: "volume-high" },
+            { id: "cracking", label: "Visible Cracks / Wear", icon: "alert-circle" },
+            { id: "leak_hose", label: "Fluid Leak from Hose", icon: "water" },
+          ],
+        },
+      ],
+    },
+    // ─── Fluid Services ───
+    fluids: {
+      title: "Fluid Services Details",
+      sections: [
+        {
+          id: "fluidService",
+          label: "Which Fluids?",
+          type: "multi",
+          options: [
+            { id: "engine_oil", label: "Engine Oil Change", icon: "water" },
+            { id: "transmission_fluid", label: "Transmission Fluid", icon: "swap-horizontal" },
+            { id: "brake_fluid", label: "Brake Fluid Flush", icon: "disc" },
+            { id: "coolant", label: "Coolant / Antifreeze Flush", icon: "thermometer" },
+            { id: "power_steering", label: "Power Steering Fluid", icon: "sync" },
+            { id: "differential", label: "Differential Fluid", icon: "cog" },
+            { id: "transfer_case_fluid", label: "Transfer Case Fluid (4WD/AWD)", icon: "swap-horizontal" },
+            { id: "windshield_washer", label: "Windshield Washer Fluid", icon: "water" },
+            { id: "def", label: "DEF (Diesel Exhaust Fluid)", icon: "beaker" },
+          ],
+        },
+      ],
+    },
+    // ─── Preventive Maintenance Packages ───
+    packages: {
+      title: "Preventive Maintenance Package",
+      sections: [
+        {
+          id: "packageType",
+          label: "Select Package",
+          type: "single",
+          options: [
+            { id: "basic", label: "Basic — Oil + Filter + Inspection", icon: "checkmark-circle" },
+            { id: "standard", label: "Standard — Oil + Filters + Fluids Check + Brakes + Tires", icon: "shield-checkmark" },
+            { id: "premium", label: "Premium — Full Service + All Fluids + Belts + Hoses + Battery", icon: "diamond" },
+            { id: "seasonal", label: "Seasonal Prep (Winter / Summer)", icon: "sunny" },
+            { id: "trip_prep", label: "Trip Prep / Long Distance Check", icon: "navigate" },
+          ],
+        },
+        {
+          id: "mileageInterval",
+          label: "Mileage Interval (optional)",
+          type: "single",
+          options: [
+            { id: "5k", label: "5,000 Miles", icon: "speedometer" },
+            { id: "15k", label: "15,000 Miles", icon: "speedometer" },
+            { id: "30k", label: "30,000 Miles", icon: "speedometer" },
+            { id: "60k", label: "60,000 Miles", icon: "speedometer" },
+            { id: "100k", label: "100,000 Miles", icon: "speedometer" },
+            { id: "not_sure", label: "Not Sure", icon: "help-circle" },
+          ],
+        },
+      ],
+    },
   };
 
   // Handle sub-option toggle
@@ -1941,13 +2161,26 @@ export default function CreateRequestScreen({ navigation }: any) {
     }
   }
 
-  // Service types — aligned with provider ServiceOffered enum for proper matching
+  // Service types — aligned with Mobile App Service & Diagnostic Tree (Feb 2026)
   // Icons use Ionicons library
   const serviceTypes = [
+    // Maintenance
     {
       id: "oil",
       label: t.createRequest?.serviceOilChange || "Oil Change",
       icon: "water",
+      hasProviders: true,
+    },
+    {
+      id: "air_filter",
+      label: t.createRequest?.serviceAirFilter || "Air Filter Service",
+      icon: "cloud",
+      hasProviders: true,
+    },
+    {
+      id: "fuel_system",
+      label: t.createRequest?.serviceFuelSystem || "Fuel System",
+      icon: "flame",
       hasProviders: true,
     },
     {
@@ -1957,33 +2190,58 @@ export default function CreateRequestScreen({ navigation }: any) {
       hasProviders: true,
     },
     {
+      id: "cooling",
+      label: t.createRequest?.serviceCooling || "Cooling System",
+      icon: "thermometer",
+      hasProviders: true,
+    },
+    {
       id: "tire",
-      label: t.createRequest?.serviceTires || "Tires",
+      label: t.createRequest?.serviceTires || "Tires & Wheels",
       icon: "ellipse",
+      hasProviders: true,
+    },
+    {
+      id: "belts_hoses",
+      label: t.createRequest?.serviceBeltsHoses || "Belts & Hoses",
+      icon: "link",
+      hasProviders: true,
+    },
+    // Repairs
+    {
+      id: "ac",
+      label: t.createRequest?.serviceAC || "A/C & Heating",
+      icon: "snow",
+      hasProviders: true,
+    },
+    {
+      id: "steering",
+      label: t.createRequest?.serviceSteering || "Steering & Suspension",
+      icon: "navigate",
+      hasProviders: true,
+    },
+    {
+      id: "electric",
+      label: t.createRequest?.serviceElectrical || "Electrical System",
+      icon: "flash",
+      hasProviders: true,
+    },
+    {
+      id: "exhaust",
+      label: t.createRequest?.serviceExhaust || "Exhaust System",
+      icon: "cloud",
+      hasProviders: true,
+    },
+    {
+      id: "drivetrain",
+      label: t.createRequest?.serviceDrivetrain || "Drivetrain",
+      icon: "speedometer",
       hasProviders: true,
     },
     {
       id: "engine",
       label: t.createRequest?.serviceEngine || "Engine",
       icon: "cog",
-      hasProviders: true,
-    },
-    {
-      id: "electric",
-      label: t.createRequest?.serviceElectrical || "Electrical",
-      icon: "flash",
-      hasProviders: true,
-    },
-    {
-      id: "ac",
-      label: t.createRequest?.serviceAC || "A/C",
-      icon: "snow",
-      hasProviders: true,
-    },
-    {
-      id: "suspension",
-      label: t.createRequest?.serviceSuspension || "Suspension",
-      icon: "resize",
       hasProviders: true,
     },
     {
@@ -1998,6 +2256,20 @@ export default function CreateRequestScreen({ navigation }: any) {
       icon: "battery-charging",
       hasProviders: true,
     },
+    // Fluid Services & Packages
+    {
+      id: "fluids",
+      label: t.createRequest?.serviceFluidServices || "Fluid Services",
+      icon: "water",
+      hasProviders: true,
+    },
+    {
+      id: "packages",
+      label: t.createRequest?.servicePreventive || "Preventive Maintenance",
+      icon: "cube",
+      hasProviders: true,
+    },
+    // Inspection & Diagnostics
     {
       id: "inspection",
       label: t.createRequest?.serviceInspection || "Inspection",
@@ -2010,18 +2282,14 @@ export default function CreateRequestScreen({ navigation }: any) {
       icon: "pulse",
       hasProviders: true,
     },
-    {
-      id: "maintenance",
-      label: t.serviceTypes?.scheduledMaintenance || "Maintenance",
-      icon: "build",
-      hasProviders: true,
-    },
+    // Detailing
     {
       id: "detailing",
       label: t.createRequest?.serviceDetailing || "Detailing",
       icon: "sparkles",
       hasProviders: true,
     },
+    // SOS / Roadside
     {
       id: "towing",
       label: t.createRequest?.serviceTowing || "Towing",
@@ -2043,6 +2311,7 @@ export default function CreateRequestScreen({ navigation }: any) {
       icon: "key",
       hasProviders: true,
     },
+    // General / Other
     {
       id: "general_repair",
       label: t.serviceTypes?.generalRepair || "General Repair",
