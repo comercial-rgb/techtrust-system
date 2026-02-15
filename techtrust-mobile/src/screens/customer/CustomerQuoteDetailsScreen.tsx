@@ -776,7 +776,7 @@ Valid until: ${formatDate(quote.validUntil)}
             >
               <Ionicons name="location" size={14} color="#1976d2" />
               <Text style={{ fontSize: 12, color: "#1e40af" }}>
-                {quote.distanceKm.toFixed(1)} km away
+                {(quote.distanceKm * 0.621371).toFixed(1)} mi away
                 {quote.travelFee > 0
                   ? ` • Travel fee: $${quote.travelFee.toFixed(2)}`
                   : " • No travel fee"}
@@ -784,6 +784,24 @@ Valid until: ${formatDate(quote.validUntil)}
             </View>
           ) : null}
         </View>
+
+        {/* Your Request Summary */}
+        {quote.request && (
+          <View style={[styles.section, { backgroundColor: "#eff6ff", borderRadius: 12, padding: 14, borderWidth: 1, borderColor: "#bfdbfe" }]}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
+              <Ionicons name="document-text" size={18} color="#1976d2" />
+              <Text style={{ fontSize: 14, fontWeight: "700", color: "#1976d2" }}>Your Request</Text>
+            </View>
+            <Text style={{ fontSize: 15, fontWeight: "600", color: "#1f2937", marginBottom: 4 }}>
+              {quote.request.title}
+            </Text>
+            {quote.request.description ? (
+              <Text style={{ fontSize: 13, color: "#4b5563", lineHeight: 18 }} numberOfLines={4}>
+                {quote.request.description.split('\n---\n')[0]}
+              </Text>
+            ) : null}
+          </View>
+        )}
 
         {/* Vehicle & Service */}
         <View style={styles.section}>

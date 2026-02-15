@@ -287,7 +287,6 @@ export default function ProviderDashboardScreen({ navigation }: any) {
                       : request.serviceLocationType === 'REMOTE'
                         ? (request.serviceAddress || t.provider?.roadsideAssist || 'Roadside')
                         : (t.provider?.atShop || 'At Shop')}
-                    {request.location ? `, ${request.location}` : ''}
                   </Text>
                 </View>
                 <MaterialCommunityIcons

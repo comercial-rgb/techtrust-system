@@ -16,13 +16,40 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useI18n } from "../../i18n";
 import * as fdacsService from "../../services/fdacs.service";
+import api from "../../services/api";
+import { useAuth } from "../../contexts/AuthContext";
+
+interface WorkOrderItem {
+  id: string;
+  orderNumber: string;
+  status: string;
+  serviceRequest?: {
+    title: string;
+    serviceType: string;
+    serviceLocationType: string;
+    preferredDate?: string;
+    preferredTime?: string;
+  };
+  vehicle?: {
+    make: string;
+    model: string;
+    year: number;
+  };
+  customer?: {
+    fullName: string;
+  };
+  createdAt: string;
+}
 
 export default function AppointmentsScreen({ navigation }: any) {
   const { t } = useI18n();
+  const { user } = useAuth();
+  const isProvider = user?.role === "PROVIDER";
   const [loading, setLoading] = useState(true);
   const [appointments, setAppointments] = useState<fdacsService.Appointment[]>(
     [],
   );
+  const [workOrders, setWorkOrders] = useState<WorkOrderItem[]>([]);
 
   useFocusEffect(
     useCallback(() => {
@@ -33,8 +60,17 @@ export default function AppointmentsScreen({ navigation }: any) {
   async function loadAppointments() {
     try {
       setLoading(true);
-      const res = await fdacsService.getMyAppointments();
-      setAppointments(res.data?.appointments || []);
+      const [appointmentRes, workOrderRes] = await Promise.all([
+        fdacsService.getMyAppointments(),
+        isProvider ? api.get("/work-orders/provider").catch(() => null) : Promise.resolve(null),
+      ]);
+      setAppointments(appointmentRes.data?.appointments || []);
+      if (workOrderRes?.data?.data) {
+        const orders = Array.isArray(workOrderRes.data.data)
+          ? workOrderRes.data.data
+          : workOrderRes.data.data.workOrders || [];
+        setWorkOrders(orders);
+      }
     } catch (error) {
       console.error("Error loading appointments:", error);
     } finally {
@@ -200,7 +236,7 @@ export default function AppointmentsScreen({ navigation }: any) {
         <View style={{ width: 24 }} />
       </View>
 
-      {appointments.length === 0 ? (
+      {appointments.length === 0 && workOrders.length === 0 ? (
         <View style={styles.emptyState}>
           <Ionicons name="calendar-outline" size={64} color="#d1d5db" />
           <Text style={styles.emptyTitle}>{t.fdacs.noAppointments}</Text>
@@ -222,6 +258,59 @@ export default function AppointmentsScreen({ navigation }: any) {
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ padding: 16 }}
           showsVerticalScrollIndicator={false}
+          ListHeaderComponent={
+            isProvider && workOrders.length > 0 ? (
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ fontSize: 16, fontWeight: "700", color: "#111827", marginBottom: 12 }}>
+                  Client Service Requests
+                </Text>
+                {workOrders.map((wo) => (
+                  <TouchableOpacity
+                    key={wo.id}
+                    style={styles.card}
+                    onPress={() =>
+                      navigation.navigate("ProviderWorkOrders", {
+                        screen: "ProviderWorkOrderDetails",
+                        params: { workOrderId: wo.id },
+                      })
+                    }
+                  >
+                    <View style={styles.cardHeader}>
+                      <Text style={styles.appointmentNumber}>{wo.orderNumber}</Text>
+                      <View style={[styles.statusBadge, { backgroundColor: "#dbeafe" }]}>
+                        <Ionicons name="document-text" size={14} color="#3b82f6" />
+                        <Text style={[styles.statusText, { color: "#3b82f6" }]}>
+                          {wo.status.replace(/_/g, ' ')}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={styles.serviceDesc} numberOfLines={2}>
+                      {wo.serviceRequest?.title || "Service"}
+                    </Text>
+                    {wo.customer && (
+                      <View style={styles.infoRow}>
+                        <Ionicons name="person-outline" size={16} color="#6b7280" />
+                        <Text style={styles.infoText}>{wo.customer.fullName}</Text>
+                      </View>
+                    )}
+                    {wo.vehicle && (
+                      <View style={styles.infoRow}>
+                        <Ionicons name="car-outline" size={16} color="#6b7280" />
+                        <Text style={styles.infoText}>
+                          {wo.vehicle.year} {wo.vehicle.make} {wo.vehicle.model}
+                        </Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                ))}
+                {appointments.length > 0 && (
+                  <Text style={{ fontSize: 16, fontWeight: "700", color: "#111827", marginTop: 8 }}>
+                    Scheduled Appointments
+                  </Text>
+                )}
+              </View>
+            ) : null
+          }
         />
       )}
     </SafeAreaView>

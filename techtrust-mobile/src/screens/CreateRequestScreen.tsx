@@ -110,6 +110,11 @@ export default function CreateRequestScreen({ navigation }: any) {
   const [serviceScope, setServiceScope] = useState<string>("both");
   // Customer responsibility acknowledgment
   const [responsibilityAccepted, setResponsibilityAccepted] = useState(false);
+  // Mileage / Odometer
+  const [mileage, setMileage] = useState<string>("");
+  // Preferred date and time
+  const [preferredDate, setPreferredDate] = useState<string>("");
+  const [preferredTime, setPreferredTime] = useState<string>("");
   const [currentLocation, setCurrentLocation] = useState<{
     lat: number;
     lng: number;
@@ -2217,6 +2222,9 @@ export default function CreateRequestScreen({ navigation }: any) {
         urgency: urgency || undefined,
         vehicleCategory: vehicleType || undefined,
         serviceScope: serviceScope || undefined,
+        mileage: mileage ? parseInt(mileage) : undefined,
+        preferredDate: preferredDate || undefined,
+        preferredTime: preferredTime || undefined,
       });
 
       const providerName =
@@ -2597,6 +2605,46 @@ export default function CreateRequestScreen({ navigation }: any) {
                 )}
               </TouchableOpacity>
             ))}
+          </View>
+
+          {/* Mileage / Odometer */}
+          <Text style={styles.sectionTitle}>
+            {t.createRequest?.mileage || "Current Mileage (miles)"}
+          </Text>
+          <TextInput
+            style={styles.detailInput}
+            keyboardType="number-pad"
+            placeholder={t.createRequest?.mileagePlaceholder || "e.g., 45000"}
+            value={mileage}
+            onChangeText={(text) => setMileage(text.replace(/[^0-9]/g, ''))}
+          />
+
+          {/* Preferred Date & Time */}
+          <Text style={styles.sectionTitle}>
+            {t.createRequest?.preferredDate || "Preferred Date & Time"}
+          </Text>
+          <View style={{ flexDirection: "row", gap: 10, marginBottom: 16 }}>
+            <TextInput
+              style={[styles.detailInput, { flex: 1, marginBottom: 0 }]}
+              placeholder="MM/DD/YYYY"
+              value={preferredDate}
+              onChangeText={(text) => {
+                // Auto-add slashes for date formatting
+                const cleaned = text.replace(/[^0-9/]/g, '');
+                if (cleaned.length <= 10) setPreferredDate(cleaned);
+              }}
+              keyboardType="number-pad"
+            />
+            <TextInput
+              style={[styles.detailInput, { width: 100, marginBottom: 0 }]}
+              placeholder="HH:MM"
+              value={preferredTime}
+              onChangeText={(text) => {
+                const cleaned = text.replace(/[^0-9:]/g, '');
+                if (cleaned.length <= 5) setPreferredTime(cleaned);
+              }}
+              keyboardType="number-pad"
+            />
           </View>
 
           {/* Service Type */}

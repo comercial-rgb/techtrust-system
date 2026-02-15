@@ -34,6 +34,7 @@ interface QuoteLineItem {
   brand?: string;
   quantity: number;
   unitPrice: number;
+  unitPriceText?: string; // Raw text for decimal input
 }
 
 interface ServiceRequest {
@@ -118,24 +119,34 @@ export default function ProviderRequestDetailsScreen({
 
   // Mobile Service / Displacement cost state
   const [isMobileService, setIsMobileService] = useState(false);
-  const [providerServiceRadius, setProviderServiceRadius] = useState(15); // km - from provider settings
-  const [providerFreeKm, setProviderFreeKm] = useState(5); // Free km - from provider settings
-  const [providerCostPerKm, setProviderCostPerKm] = useState(5.0); // $ per extra km - from provider settings
+  const [providerServiceRadius, setProviderServiceRadius] = useState(10); // miles - from provider settings
+  const [providerFreeMiles, setProviderFreeMiles] = useState(3); // Free miles - from provider settings
+  const [providerCostPerMile, setProviderCostPerMile] = useState(3.0); // $ per extra mile - from provider settings
 
-  // Calculate displacement cost based on customer distance
+  // Calculate displacement cost based on customer distance (miles)
   const calculateDisplacementCost = () => {
     if (!isMobileService || !request) return 0;
 
-    // Parse customer distance (e.g., "3.2 km" -> 3.2)
+    // Parse customer distance (e.g., "3.2 mi" -> 3.2)
     const distanceStr = request.customer.distance.replace(/[^\d.]/g, "");
-    const customerDistance = parseFloat(distanceStr) || 0;
+    const customerDistanceKm = parseFloat(distanceStr) || 0;
+    // Convert km from backend to miles
+    const customerDistanceMiles = customerDistanceKm * 0.621371;
 
-    // If within free km range, no charge
-    if (customerDistance <= providerFreeKm) return 0;
+    // If within free miles range, no charge
+    if (customerDistanceMiles <= providerFreeMiles) return 0;
 
-    // Calculate extra km and cost
-    const extraKm = customerDistance - providerFreeKm;
-    return extraKm * providerCostPerKm;
+    // Calculate extra miles and cost
+    const extraMiles = customerDistanceMiles - providerFreeMiles;
+    return extraMiles * providerCostPerMile;
+  };
+
+  // Get customer distance in miles
+  const getCustomerDistanceMiles = () => {
+    if (!request) return 0;
+    const distanceStr = request.customer.distance.replace(/[^\d.]/g, "");
+    const km = parseFloat(distanceStr) || 0;
+    return km * 0.621371;
   };
 
   // Reset state and reload when requestId changes or screen gains focus
@@ -169,9 +180,12 @@ export default function ProviderRequestDetailsScreen({
         const pp =
           profileResponse.data.data.providerProfile ||
           profileResponse.data.data;
-        setProviderServiceRadius(pp.serviceRadiusKm || 25);
-        setProviderFreeKm(pp.freeKm ? Number(pp.freeKm) : 0);
-        setProviderCostPerKm(pp.extraFeePerKm ? Number(pp.extraFeePerKm) : 0);
+        // Convert km values from backend to miles
+        const radiusKm = pp.serviceRadiusKm || 25;
+        setProviderServiceRadius(Math.round(radiusKm * 0.621371));
+        const freeKm = pp.freeKm ? Number(pp.freeKm) : 0;
+        setProviderFreeMiles(Math.round(freeKm * 0.621371 * 10) / 10);
+        setProviderCostPerMile(pp.extraFeePerKm ? Number(pp.extraFeePerKm) / 0.621371 : 0);
       }
 
       // Calculate time remaining until quoteDeadline
@@ -243,6 +257,12 @@ export default function ProviderRequestDetailsScreen({
         preferredDate: sr.preferredDate || undefined,
         preferredTime: sr.preferredTime || undefined,
       });
+
+      // Auto-enable mobile service if request is for mobile/roadside
+      const locType = sr.serviceLocationType;
+      if (locType === "MOBILE" || locType === "REMOTE") {
+        setIsMobileService(true);
+      }
     } catch (error) {
       console.error("Error loading request:", error);
     } finally {
@@ -1004,38 +1024,78 @@ export default function ProviderRequestDetailsScreen({
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
-              {/* Customer's Requested Services Summary */}
-              {request && request.description && (
+              {/* Customer's Request Summary - Service Type Header */}
+              {request && (
                 <View style={styles.customerRequestSummary}>
                   <View style={styles.customerRequestHeader}>
-                    <MaterialCommunityIcons name="clipboard-text" size={18} color="#1976d2" />
-                    <Text style={styles.customerRequestTitle}>
-                      {t.quote?.customerRequest || "Customer's Request"}
-                    </Text>
-                  </View>
-                  <View style={styles.customerRequestBody}>
-                    <Text style={styles.customerRequestServiceTitle}>
-                      {request.title}
-                    </Text>
-                    <Text style={styles.customerRequestDesc} numberOfLines={6}>
-                      {request.description}
-                    </Text>
-                    <View style={styles.customerRequestVehicle}>
-                      <MaterialCommunityIcons name="car-side" size={14} color="#6b7280" />
-                      <Text style={styles.customerRequestVehicleText}>
-                        {request.vehicle.make} {request.vehicle.model} {request.vehicle.year}
-                      </Text>
+                    <View style={[styles.serviceTypeIconBox, { backgroundColor: getServiceTypeInfo(request.serviceType).bg }]}>
+                      <MaterialCommunityIcons 
+                        name={getServiceTypeInfo(request.serviceType).icon as any} 
+                        size={22} 
+                        color={getServiceTypeInfo(request.serviceType).color} 
+                      />
                     </View>
-                    {request.serviceLocation && (
-                      <View style={styles.customerRequestVehicle}>
-                        <MaterialCommunityIcons name="map-marker" size={14} color="#6b7280" />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.customerRequestServiceTitle}>
+                        {request.title}
+                      </Text>
+                      {request.vehicle && (
                         <Text style={styles.customerRequestVehicleText}>
+                          {request.vehicle.year} {request.vehicle.make} {request.vehicle.model}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+
+                  {/* Parts | Labor columns from description */}
+                  {request.description && (
+                    <View style={styles.partsLaborContainer}>
+                      <View style={styles.partsLaborColumn}>
+                        <Text style={styles.partsLaborHeader}>Parts</Text>
+                        {(() => {
+                          const desc = request.description.split('\n---\n')[0] || request.description;
+                          const lines = desc.split('\n').filter((l: string) => l.trim());
+                          return lines.length > 0 ? lines.map((line: string, i: number) => (
+                            <View key={`p-${i}`} style={styles.partsLaborItem}>
+                              <MaterialCommunityIcons name="circle-small" size={16} color="#6b7280" />
+                              <Text style={styles.partsLaborItemText}>{line.trim()}</Text>
+                            </View>
+                          )) : (
+                            <Text style={styles.partsLaborEmpty}>—</Text>
+                          );
+                        })()}
+                      </View>
+                      <View style={styles.partsLaborDivider} />
+                      <View style={styles.partsLaborColumn}>
+                        <Text style={styles.partsLaborHeader}>Labor</Text>
+                        <View style={styles.partsLaborItem}>
+                          <MaterialCommunityIcons name="circle-small" size={16} color="#6b7280" />
+                          <Text style={styles.partsLaborItemText}>{request.title}</Text>
+                        </View>
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Service scope and location row */}
+                  <View style={styles.customerRequestMeta}>
+                    {request.serviceLocation && (
+                      <View style={styles.customerRequestMetaItem}>
+                        <MaterialCommunityIcons name="map-marker" size={14} color="#6b7280" />
+                        <Text style={styles.customerRequestMetaText}>
                           {request.serviceLocation.type === "shop"
                             ? t.provider?.atShop || "At Shop"
                             : request.serviceLocation.type === "mobile"
                               ? t.provider?.mobileService || "Mobile Service"
                               : t.provider?.roadsideAssist || "Roadside Assist"}
-                          {request.serviceLocation.address ? ` - ${request.serviceLocation.address}` : ""}
+                        </Text>
+                      </View>
+                    )}
+                    {request.preferredDate && (
+                      <View style={styles.customerRequestMetaItem}>
+                        <MaterialCommunityIcons name="calendar" size={14} color="#6b7280" />
+                        <Text style={styles.customerRequestMetaText}>
+                          {formatDate(request.preferredDate)}
+                          {request.preferredTime ? ` ${request.preferredTime}` : ""}
                         </Text>
                       </View>
                     )}
@@ -1144,16 +1204,19 @@ export default function ProviderRequestDetailsScreen({
                         style={styles.lineItemSmallInput}
                         keyboardType="decimal-pad"
                         placeholder="0.00"
-                        value={
-                          item.unitPrice > 0 ? item.unitPrice.toString() : ""
-                        }
-                        onChangeText={(text) =>
-                          updateLineItem(
-                            item.id,
-                            "unitPrice",
-                            parseFloat(text) || 0,
-                          )
-                        }
+                        value={item.unitPriceText !== undefined ? item.unitPriceText : (item.unitPrice > 0 ? item.unitPrice.toString() : "")}
+                        onChangeText={(text) => {
+                          // Allow valid decimal input including trailing dots and zeros
+                          const cleaned = text.replace(/[^0-9.]/g, '');
+                          // Prevent multiple decimal points
+                          const parts = cleaned.split('.');
+                          const sanitized = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : cleaned;
+                          setLineItems(lineItems.map(li =>
+                            li.id === item.id
+                              ? { ...li, unitPriceText: sanitized, unitPrice: parseFloat(sanitized) || 0 }
+                              : li
+                          ));
+                        }}
                       />
                     </View>
                     <View style={styles.lineItemSubtotal}>
@@ -1353,7 +1416,7 @@ export default function ProviderRequestDetailsScreen({
                             {t.quote?.customerDistance || "Customer Distance"}
                           </Text>
                           <Text style={styles.displacementValue}>
-                            {request.customer.distance}
+                            {getCustomerDistanceMiles().toFixed(1)} mi
                           </Text>
                         </View>
                       </View>
@@ -1368,7 +1431,7 @@ export default function ProviderRequestDetailsScreen({
                             {t.quote?.freeRadius || "Free Radius"}
                           </Text>
                           <Text style={styles.displacementValue}>
-                            {providerFreeKm} km
+                            {providerFreeMiles} mi
                           </Text>
                         </View>
                       </View>
@@ -1380,10 +1443,10 @@ export default function ProviderRequestDetailsScreen({
                         <>
                           <View style={styles.displacementCostRow}>
                             <Text style={styles.displacementCostLabel}>
-                              {t.quote?.costPerKm || "Cost per extra km"}
+                              {t.quote?.costPerMile || "Cost per extra mile"}
                             </Text>
                             <Text style={styles.displacementCostValue}>
-                              ${providerCostPerKm.toFixed(2)}/km
+                              ${providerCostPerMile.toFixed(2)}/mi
                             </Text>
                           </View>
                           <View style={styles.displacementCostRow}>
@@ -1393,14 +1456,9 @@ export default function ProviderRequestDetailsScreen({
                             </Text>
                             <Text style={styles.displacementCostValue}>
                               {(
-                                parseFloat(
-                                  request.customer.distance.replace(
-                                    /[^\d.]/g,
-                                    "",
-                                  ),
-                                ) - providerFreeKm
+                                getCustomerDistanceMiles() - providerFreeMiles
                               ).toFixed(1)}{" "}
-                              km
+                              mi
                             </Text>
                           </View>
                           <View
@@ -2589,34 +2647,77 @@ const styles = StyleSheet.create({
   customerRequestHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 10,
     marginBottom: 10,
   },
-  customerRequestTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#1976d2",
-  },
-  customerRequestBody: {
-    gap: 6,
+  serviceTypeIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
   },
   customerRequestServiceTitle: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: "700" as const,
     color: "#1f2937",
   },
-  customerRequestDesc: {
-    fontSize: 13,
-    color: "#4b5563",
-    lineHeight: 18,
-  },
-  customerRequestVehicle: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginTop: 4,
-  },
   customerRequestVehicleText: {
+    fontSize: 12,
+    color: "#6b7280",
+    marginTop: 2,
+  },
+  partsLaborContainer: {
+    flexDirection: "row" as const,
+    marginTop: 10,
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  partsLaborColumn: {
+    flex: 1,
+  },
+  partsLaborDivider: {
+    width: 1,
+    backgroundColor: "#e5e7eb",
+    marginHorizontal: 8,
+  },
+  partsLaborHeader: {
+    fontSize: 13,
+    fontWeight: "700" as const,
+    color: "#374151",
+    marginBottom: 6,
+    textAlign: "center" as const,
+  },
+  partsLaborItem: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    marginBottom: 2,
+  },
+  partsLaborItemText: {
+    fontSize: 12,
+    color: "#4b5563",
+    flex: 1,
+  },
+  partsLaborEmpty: {
+    fontSize: 12,
+    color: "#9ca3af",
+    textAlign: "center" as const,
+  },
+  customerRequestMeta: {
+    flexDirection: "row" as const,
+    flexWrap: "wrap" as const,
+    gap: 12,
+    marginTop: 10,
+  },
+  customerRequestMetaItem: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 4,
+  },
+  customerRequestMetaText: {
     fontSize: 12,
     color: "#6b7280",
   },

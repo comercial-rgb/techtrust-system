@@ -143,6 +143,16 @@ function WorkOrdersStack() {
   );
 }
 
+// Stack for Messages (Chat)
+function MessagesStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="ChatListMain" component={ChatListScreen} />
+      <Stack.Screen name="Chat" component={ChatScreen} />
+    </Stack.Navigator>
+  );
+}
+
 // Stack for Profile
 function ProfileStack() {
   return (
@@ -323,6 +333,32 @@ export default function ProviderNavigator() {
                   {
                     name: "ProviderWorkOrders",
                     state: { routes: [{ name: "ProviderWorkOrdersList" }] },
+                  },
+                ],
+              }),
+            );
+          },
+        })}
+      />
+
+      <Tab.Screen
+        name="ProviderMessages"
+        component={MessagesStack}
+        options={{
+          tabBarLabel: t.nav?.messages || "Messages",
+          tabBarIcon: ({ color, size }) => (
+            <TabBarIcon name="chatbubbles" color={color} size={size} />
+          ),
+        }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            navigation.dispatch(
+              CommonActions.reset({
+                index: 0,
+                routes: [
+                  {
+                    name: "ProviderMessages",
+                    state: { routes: [{ name: "ChatListMain" }] },
                   },
                 ],
               }),

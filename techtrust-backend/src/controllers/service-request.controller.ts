@@ -57,6 +57,7 @@ export const createServiceRequest = async (req: Request, res: Response) => {
     serviceLongitude,
     vehicleCategory,
     serviceScope,
+    mileage,
   } = req.body;
 
   // Resolve mobile service-type ID → Prisma enum value
@@ -214,7 +215,11 @@ export const createServiceRequest = async (req: Request, res: Response) => {
       serviceLongitude: finalLongitude,
       locationType: serviceLocationType || null,
       preferredDate: preferredDate ? new Date(preferredDate) : null,
-      preferredTime: preferredTime ? new Date(preferredTime) : null,
+      preferredTime: preferredTime
+        ? (preferredTime.includes(':') && preferredTime.length <= 5
+          ? new Date(`1970-01-01T${preferredTime}:00Z`)
+          : new Date(preferredTime))
+        : null,
       isUrgent: resolvedIsUrgent,
       status: "SEARCHING_PROVIDERS",
       maxQuotes: 5,
@@ -232,6 +237,17 @@ export const createServiceRequest = async (req: Request, res: Response) => {
       },
     },
   });
+
+  // Update vehicle mileage if provided
+  if (mileage && Number(mileage) > 0) {
+    await prisma.vehicle.update({
+      where: { id: vehicleId },
+      data: {
+        currentMileage: Number(mileage),
+        lastMileageUpdate: new Date(),
+      },
+    }).catch(() => {}); // Non-critical, don't block request creation
+  }
 
   logger.info(
     `Solicitação criada: ${serviceRequest.requestNumber} por ${userId}`,
