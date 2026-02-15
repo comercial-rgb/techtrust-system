@@ -45,7 +45,7 @@
     "updates": {
       "url": "https://u.expo.dev/8aadadd9-dd3c-4b9a-8f3e-2a4278e4043a",
       "fallbackToCacheTimeout": 3000,
-      "checkAutomatically": "ON_ERROR_RECOVERY"
+      "checkAutomatically": "ON_LOAD"
     },
     "plugins": [
       "expo-web-browser",
