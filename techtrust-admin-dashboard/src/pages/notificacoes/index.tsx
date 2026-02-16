@@ -28,7 +28,7 @@ export default function NotificacoesPage() {
 
   async function loadData() {
     try {
-      const response = await adminApi.get('/admin/notifications');
+      const response = await adminApi.get<any>('/admin/notifications');
       const list = response.data?.data?.notifications || response.data?.data || [];
       setNotifications(Array.isArray(list) ? list : []);
     } catch (error) {

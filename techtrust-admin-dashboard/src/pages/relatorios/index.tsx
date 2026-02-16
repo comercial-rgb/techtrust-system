@@ -18,7 +18,7 @@ export default function RelatoriosPage() {
   async function loadData() {
     setLoading(true);
     try {
-      const response = await adminApi.get(`/admin/reports?type=overview&period=${period}`);
+      const response = await adminApi.get<any>(`/admin/reports?type=overview&period=${period}`);
       const data = response.data?.data || response.data || {};
       setReportData({
         totalRevenue: data.totalRevenue || data.revenue?.total || 0,

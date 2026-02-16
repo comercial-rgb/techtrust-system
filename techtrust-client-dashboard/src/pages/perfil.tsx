@@ -43,8 +43,10 @@ export default function PerfilPage() {
         api.getVehicles(),
         api.getWorkOrders(),
       ]);
-      const vehicles = vehiclesRes.data?.data || vehiclesRes.data || [];
-      const workOrders = servicesRes.data?.data || servicesRes.data || [];
+      const vData: any = vehiclesRes.data;
+      const sData: any = servicesRes.data;
+      const vehicles = vData?.data || vData || [];
+      const workOrders = sData?.data || sData || [];
       const completed = Array.isArray(workOrders) ? workOrders.filter((w: any) => w.status === 'COMPLETED') : [];
       const totalSpent = completed.reduce((sum: number, w: any) => sum + (w.finalAmount || 0), 0);
       setStats({
