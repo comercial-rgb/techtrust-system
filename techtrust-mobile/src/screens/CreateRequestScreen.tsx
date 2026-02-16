@@ -166,6 +166,10 @@ export default function CreateRequestScreen({ navigation }: any) {
     specialOfferFromLanding,
   );
 
+  // Wizard step management
+  const [currentStep, setCurrentStep] = useState(1);
+  const [asapDate, setAsapDate] = useState(false);
+
   // Smart Sub-options for service types
   const [showSubOptionsModal, setShowSubOptionsModal] = useState(false);
   const [subOptionSelections, setSubOptionSelections] = useState<
@@ -2413,6 +2417,41 @@ export default function CreateRequestScreen({ navigation }: any) {
     }
   }
 
+  // Step validation for wizard
+  function validateStep1(): boolean {
+    if (!selectedVehicle) {
+      Alert.alert(t.common.error, t.createRequest?.selectVehicleRequired || "Please select a vehicle.");
+      return false;
+    }
+    if (!selectedService) {
+      Alert.alert(t.common.error, t.createRequest?.selectServiceRequired || "Please select a service type.");
+      return false;
+    }
+    if (!vehicleType) {
+      Alert.alert(t.common.error, t.createRequest?.selectVehicleType || "Please select a vehicle type.");
+      return false;
+    }
+    return true;
+  }
+
+  function validateStep2(): boolean {
+    if (!title.trim()) {
+      Alert.alert(t.common.error, t.createRequest?.enterTitle || "Please enter a request title.");
+      return false;
+    }
+    return true;
+  }
+
+  function handleNextStep() {
+    if (currentStep === 1 && !validateStep1()) return;
+    if (currentStep === 2 && !validateStep2()) return;
+    setCurrentStep((prev) => Math.min(prev + 1, 3));
+  }
+
+  function handlePrevStep() {
+    setCurrentStep((prev) => Math.max(prev - 1, 1));
+  }
+
   async function handleSubmit() {
     if (!selectedVehicle || !selectedService || !title || !vehicleType) {
       Alert.alert(
@@ -2546,91 +2585,6 @@ export default function CreateRequestScreen({ navigation }: any) {
     );
   }
 
-  // Show payment method required screen if no card registered
-  if (!hasPaymentMethod) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backBtn}
-          >
-            <Ionicons name="arrow-back" size={24} color="#111827" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>
-            {t.createRequest?.newRequest || "New Request"}
-          </Text>
-          <View style={{ width: 40 }} />
-        </View>
-        <View style={styles.noPaymentContainer}>
-          <View style={styles.noPaymentIcon}>
-            <Ionicons name="card-outline" size={64} color="#d1d5db" />
-          </View>
-          <Text style={styles.noPaymentTitle}>
-            {t.createRequest?.paymentRequired || "Payment Method Required"}
-          </Text>
-          <Text style={styles.noPaymentDescription}>
-            {t.createRequest?.paymentRequiredDesc ||
-              "To create a service request, you need to add a payment method first. This ensures secure payment processing when you accept a quote."}
-          </Text>
-
-          <View style={styles.noPaymentFeatures}>
-            <View style={styles.featureRow}>
-              <Ionicons name="shield-checkmark" size={20} color="#10b981" />
-              <Text style={styles.featureText}>
-                {t.createRequest?.securePayment || "Secure payment processing"}
-              </Text>
-            </View>
-            <View style={styles.featureRow}>
-              <Ionicons name="lock-closed" size={20} color="#10b981" />
-              <Text style={styles.featureText}>
-                {t.createRequest?.fundsHeld ||
-                  "Funds held until service completion"}
-              </Text>
-            </View>
-            <View style={styles.featureRow}>
-              <Ionicons name="refresh" size={20} color="#10b981" />
-              <Text style={styles.featureText}>
-                {t.createRequest?.easyRefund ||
-                  "Easy refunds if service cancelled"}
-              </Text>
-            </View>
-          </View>
-
-          <TouchableOpacity
-            style={styles.addPaymentBtn}
-            onPress={() =>
-              navigation.dispatch(
-                CommonActions.navigate({
-                  name: "Profile",
-                  params: {
-                    screen: "PaymentMethods",
-                    initial: false,
-                    params: { addCardMode: true, fromCreateRequest: true },
-                  },
-                }),
-              )
-            }
-          >
-            <Ionicons name="add-circle" size={20} color="#fff" />
-            <Text style={styles.addPaymentText}>
-              {t.createRequest?.addPaymentMethod || "Add Payment Method"}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.laterBtn}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.laterText}>
-              {t.createRequest?.doLater || "I'll do this later"}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   // Show active service blocking screen
   if (hasActiveService && activeServiceInfo) {
     const getStatusText = (status: string) => {
@@ -2741,6 +2695,52 @@ export default function CreateRequestScreen({ navigation }: any) {
         <View style={{ width: 40 }} />
       </View>
 
+      {/* Step Indicator */}
+      <View style={styles.stepIndicatorContainer}>
+        {[
+          { num: 1, label: t.createRequest?.stepVehicle || "Vehicle & Service" },
+          { num: 2, label: t.createRequest?.stepDetails || "Details" },
+          { num: 3, label: t.createRequest?.stepPreferences || "Preferences" },
+        ].map((step, index) => (
+          <React.Fragment key={step.num}>
+            {index > 0 && (
+              <View style={[styles.stepLine, currentStep > index && styles.stepLineActive]} />
+            )}
+            <View style={styles.stepItem}>
+              <View
+                style={[
+                  styles.stepCircle,
+                  currentStep >= step.num && styles.stepCircleActive,
+                  currentStep > step.num && styles.stepCircleCompleted,
+                ]}
+              >
+                {currentStep > step.num ? (
+                  <Ionicons name="checkmark" size={14} color="#fff" />
+                ) : (
+                  <Text
+                    style={[
+                      styles.stepNumber,
+                      currentStep >= step.num && styles.stepNumberActive,
+                    ]}
+                  >
+                    {step.num}
+                  </Text>
+                )}
+              </View>
+              <Text
+                style={[
+                  styles.stepLabel,
+                  currentStep >= step.num && styles.stepLabelActive,
+                ]}
+                numberOfLines={1}
+              >
+                {step.label}
+              </Text>
+            </View>
+          </React.Fragment>
+        ))}
+      </View>
+
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -2751,7 +2751,11 @@ export default function CreateRequestScreen({ navigation }: any) {
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Payment Method Indicator */}
+          {/* ============ STEP 1: Vehicle & Service ============ */}
+          {currentStep === 1 && (
+          <>
+          {/* Payment Method Indicator - mini version */}
+          {hasPaymentMethod && defaultPaymentMethod && (
           <View style={styles.paymentMethodCard}>
             <View style={styles.paymentMethodInfo}>
               <Ionicons name="card" size={20} color="#1976d2" />
@@ -2788,6 +2792,7 @@ export default function CreateRequestScreen({ navigation }: any) {
                 "Payment will be held when you accept a quote and charged upon service completion."}
             </Text>
           </View>
+          )}
 
           {/* Selected Provider Banner */}
           {(selectedProvider || preSelectedProviderName) && (
@@ -2883,38 +2888,10 @@ export default function CreateRequestScreen({ navigation }: any) {
           <TextInput
             style={styles.detailInput}
             keyboardType="number-pad"
-            placeholder={t.createRequest?.mileagePlaceholder || "e.g., 45000"}
-            value={mileage}
+            placeholder={t.createRequest?.mileagePlaceholder || "e.g., 45,000"}
+            value={mileage ? Number(mileage).toLocaleString('en-US') : ''}
             onChangeText={(text) => setMileage(text.replace(/[^0-9]/g, ''))}
           />
-
-          {/* Preferred Date & Time */}
-          <Text style={styles.sectionTitle}>
-            {t.createRequest?.preferredDate || "Preferred Date & Time"}
-          </Text>
-          <View style={{ flexDirection: "row", gap: 10, marginBottom: 16 }}>
-            <TextInput
-              style={[styles.detailInput, { flex: 1, marginBottom: 0 }]}
-              placeholder="MM/DD/YYYY"
-              value={preferredDate}
-              onChangeText={(text) => {
-                // Auto-add slashes for date formatting
-                const cleaned = text.replace(/[^0-9/]/g, '');
-                if (cleaned.length <= 10) setPreferredDate(cleaned);
-              }}
-              keyboardType="number-pad"
-            />
-            <TextInput
-              style={[styles.detailInput, { width: 100, marginBottom: 0 }]}
-              placeholder="HH:MM"
-              value={preferredTime}
-              onChangeText={(text) => {
-                const cleaned = text.replace(/[^0-9:]/g, '');
-                if (cleaned.length <= 5) setPreferredTime(cleaned);
-              }}
-              keyboardType="number-pad"
-            />
-          </View>
 
           {/* Service Type */}
           <View
@@ -2973,6 +2950,33 @@ export default function CreateRequestScreen({ navigation }: any) {
           </View>
 
           {/* Vehicle Type */}
+          {vehicleTypeLocked && vehicleType ? (
+            /* Collapsed vehicle type when auto-detected */
+            <View style={styles.vehicleTypeCollapsed}>
+              <MaterialCommunityIcons
+                name={
+                  ({ car: "car-side", suv: "car-estate", truck: "car-pickup", van: "van-passenger", heavy_truck: "truck", bus: "rv-truck" } as Record<string, string>)[vehicleType] || "car"
+                }
+                size={22}
+                color="#1976d2"
+              />
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text style={{ fontSize: 14, fontWeight: "600", color: "#111827" }}>
+                  {t.createRequest?.vehicleTypeLabel || "Vehicle Type"}
+                </Text>
+                <Text style={{ fontSize: 13, color: "#1976d2" }}>
+                  {({ car: t.createRequest?.vtCar || "Car / Sedan", suv: t.createRequest?.vtSuv || "SUV / Crossover", truck: t.createRequest?.vtTruck || "Pickup Truck", van: t.createRequest?.vtVan || "Van / Minivan", heavy_truck: t.createRequest?.vtHeavyTruck || "Heavy Truck / Semi", bus: t.createRequest?.vtBus || "Bus / RV" } as Record<string, string>)[vehicleType] || vehicleType}
+                </Text>
+              </View>
+              <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: "#d1fae5", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12 }}>
+                <Ionicons name="lock-closed" size={12} color="#059669" />
+                <Text style={{ fontSize: 11, color: "#059669", fontWeight: "600", marginLeft: 4 }}>
+                  {t.createRequest?.autoSelected || "Auto"}
+                </Text>
+              </View>
+            </View>
+          ) : (
+          <>
           <View
             style={{
               flexDirection: "row",
@@ -2984,31 +2988,6 @@ export default function CreateRequestScreen({ navigation }: any) {
             <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>
               {t.createRequest?.vehicleTypeLabel || "Vehicle Type"} *
             </Text>
-            {vehicleTypeLocked && (
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  marginLeft: 8,
-                  backgroundColor: "#d1fae5",
-                  paddingHorizontal: 8,
-                  paddingVertical: 2,
-                  borderRadius: 12,
-                }}
-              >
-                <Ionicons name="lock-closed" size={12} color="#059669" />
-                <Text
-                  style={{
-                    fontSize: 11,
-                    color: "#059669",
-                    fontWeight: "600",
-                    marginLeft: 4,
-                  }}
-                >
-                  {t.createRequest?.autoSelected || "Auto"}
-                </Text>
-              </View>
-            )}
           </View>
           <View style={styles.servicesGrid}>
             {[
@@ -3080,8 +3059,15 @@ export default function CreateRequestScreen({ navigation }: any) {
               </TouchableOpacity>
             ))}
           </View>
+          </>
+          )}
+          </>
+          )}
 
-          {/* Service Scope: Parts, Service, or Both */}
+          {/* ============ STEP 2: Service Details ============ */}
+          {currentStep === 2 && (
+          <>
+          {/* Service Scope: What do you need? (Parts Only removed) */}
           <Text style={styles.sectionTitle}>
             {t.createRequest?.serviceScopeLabel || "What do you need?"} *
           </Text>
@@ -3094,14 +3080,6 @@ export default function CreateRequestScreen({ navigation }: any) {
                 desc:
                   t.createRequest?.serviceOnlyDesc ||
                   "I already have the parts, just need installation",
-              },
-              {
-                id: "parts",
-                label: t.createRequest?.partsOnly || "Parts Only",
-                icon: "cube",
-                desc:
-                  t.createRequest?.partsOnlyDesc ||
-                  "I need the provider to supply the parts",
               },
               {
                 id: "both",
@@ -3149,6 +3127,18 @@ export default function CreateRequestScreen({ navigation }: any) {
               </TouchableOpacity>
             ))}
           </View>
+
+          {/* Parts Store Cross-sell */}
+          <TouchableOpacity
+            style={styles.partsStoreCrossSell}
+            onPress={() => navigation.navigate("PartsStore")}
+          >
+            <Ionicons name="storefront-outline" size={18} color="#7c3aed" />
+            <Text style={styles.partsStoreCrossSellText}>
+              {t.createRequest?.browsePartsStore || "Need to buy parts? Browse our Parts Store"}
+            </Text>
+            <Ionicons name="chevron-forward" size={16} color="#7c3aed" />
+          </TouchableOpacity>
 
           {/* Service Location */}
           <Text style={styles.sectionTitle}>
@@ -3319,6 +3309,65 @@ export default function CreateRequestScreen({ navigation }: any) {
               textAlignVertical="top"
             />
           </View>
+          </>
+          )}
+
+          {/* ============ STEP 3: Preferences & Submit ============ */}
+          {currentStep === 3 && (
+          <>
+          {/* Preferred Date & Time with ASAP option */}
+          <Text style={styles.sectionTitle}>
+            {t.createRequest?.preferredDate || "Preferred Date & Time"}
+          </Text>
+          <TouchableOpacity
+            style={[
+              styles.asapToggle,
+              asapDate && styles.asapToggleActive,
+            ]}
+            onPress={() => {
+              setAsapDate(!asapDate);
+              if (!asapDate) {
+                setPreferredDate("ASAP");
+                setPreferredTime("");
+              } else {
+                setPreferredDate("");
+              }
+            }}
+          >
+            <Ionicons
+              name={asapDate ? "flash" : "flash-outline"}
+              size={20}
+              color={asapDate ? "#fff" : "#f59e0b"}
+            />
+            <Text style={[styles.asapToggleText, asapDate && styles.asapToggleTextActive]}>
+              {t.createRequest?.asapOption || "As Soon As Possible (ASAP)"}
+            </Text>
+            {asapDate && <Ionicons name="checkmark-circle" size={20} color="#fff" />}
+          </TouchableOpacity>
+          {!asapDate && (
+            <View style={{ flexDirection: "row", gap: 10, marginBottom: 16, marginTop: 8 }}>
+              <TextInput
+                style={[styles.detailInput, { flex: 1, marginBottom: 0 }]}
+                placeholder="MM/DD/YYYY"
+                value={preferredDate}
+                onChangeText={(text) => {
+                  const cleaned = text.replace(/[^0-9/]/g, '');
+                  if (cleaned.length <= 10) setPreferredDate(cleaned);
+                }}
+                keyboardType="number-pad"
+              />
+              <TextInput
+                style={[styles.detailInput, { width: 100, marginBottom: 0 }]}
+                placeholder="HH:MM"
+                value={preferredTime}
+                onChangeText={(text) => {
+                  const cleaned = text.replace(/[^0-9:]/g, '');
+                  if (cleaned.length <= 5) setPreferredTime(cleaned);
+                }}
+                keyboardType="number-pad"
+              />
+            </View>
+          )}
 
           {/* Customer Responsibility Disclaimer */}
           <View style={styles.disclaimerCard}>
@@ -3356,45 +3405,53 @@ export default function CreateRequestScreen({ navigation }: any) {
           <Text style={styles.sectionTitle}>
             {t.createRequest?.urgency || "Urgency"}
           </Text>
-          <View style={styles.urgencyContainer}>
+          <View style={styles.urgencyContainerVertical}>
             {[
               {
                 id: "low",
                 label: t.createRequest?.low || "Low",
+                desc: t.createRequest?.lowDesc || "Within 1-2 weeks",
                 color: "#10b981",
+                icon: "time-outline" as const,
               },
               {
                 id: "normal",
                 label: t.createRequest?.normal || "Normal",
+                desc: t.createRequest?.normalDesc || "Within 3-5 days",
                 color: "#3b82f6",
+                icon: "calendar-outline" as const,
               },
               {
                 id: "high",
                 label: t.createRequest?.high || "High",
+                desc: t.createRequest?.highDesc || "Within 24-48 hours",
                 color: "#f59e0b",
+                icon: "alert-circle-outline" as const,
               },
               {
                 id: "urgent",
                 label: t.createRequest?.urgent || "Urgent",
+                desc: t.createRequest?.urgentDesc || "Immediate / Emergency",
                 color: "#ef4444",
+                icon: "flash" as const,
               },
             ].map((u) => (
               <TouchableOpacity
                 key={u.id}
                 style={[
-                  styles.urgencyBtn,
-                  urgency === u.id && { backgroundColor: u.color },
+                  styles.urgencyCardBtn,
+                  urgency === u.id && { borderColor: u.color, backgroundColor: `${u.color}10` },
                 ]}
                 onPress={() => setUrgency(u.id)}
               >
-                <Text
-                  style={[
-                    styles.urgencyText,
-                    urgency === u.id && styles.urgencyTextSelected,
-                  ]}
-                >
-                  {u.label}
-                </Text>
+                <View style={[styles.urgencyIconCircle, { backgroundColor: urgency === u.id ? u.color : '#f3f4f6' }]}>
+                  <Ionicons name={u.icon} size={18} color={urgency === u.id ? '#fff' : '#6b7280'} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.urgencyCardLabel, urgency === u.id && { color: u.color }]}>{u.label}</Text>
+                  <Text style={styles.urgencyCardDesc}>{u.desc}</Text>
+                </View>
+                {urgency === u.id && <Ionicons name="checkmark-circle" size={22} color={u.color} />}
               </TouchableOpacity>
             ))}
           </View>
@@ -3460,30 +3517,110 @@ export default function CreateRequestScreen({ navigation }: any) {
               "Request will be sent directly to this provider instead of all providers"}
           </Text>
 
+          {/* Payment Method in Step 3 */}
+          {hasPaymentMethod && defaultPaymentMethod && (
+            <View style={[styles.paymentMethodCard, { marginTop: 8 }]}>
+              <View style={styles.paymentMethodInfo}>
+                <Ionicons name="card" size={20} color="#1976d2" />
+                <View style={{ flex: 1, marginLeft: 10 }}>
+                  <Text style={styles.paymentMethodLabel}>
+                    {t.createRequest?.paymentMethod || "Payment Method"}
+                  </Text>
+                  <Text style={styles.paymentMethodValue}>
+                    {defaultPaymentMethod?.brand} •••• {defaultPaymentMethod?.lastFour}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() =>
+                    navigation.dispatch(
+                      CommonActions.navigate({
+                        name: "Profile",
+                        params: { screen: "PaymentMethods", initial: false, params: { fromCreateRequest: true } },
+                      }),
+                    )
+                  }
+                >
+                  <Text style={styles.changePaymentText}>
+                    {t.common?.change || "Change"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.paymentMethodNote}>
+                {t.createRequest?.paymentNote || "Payment will be held when you accept a quote and charged upon service completion."}
+              </Text>
+            </View>
+          )}
+          {!hasPaymentMethod && (
+            <TouchableOpacity
+              style={styles.addPaymentInlineBtn}
+              onPress={() =>
+                navigation.dispatch(
+                  CommonActions.navigate({
+                    name: "Profile",
+                    params: { screen: "PaymentMethods", initial: false, params: { fromCreateRequest: true } },
+                  }),
+                )
+              }
+            >
+              <Ionicons name="card-outline" size={20} color="#f59e0b" />
+              <Text style={styles.addPaymentInlineText}>
+                {t.createRequest?.addPaymentMethod || "Add a payment method (recommended)"}
+              </Text>
+              <Ionicons name="chevron-forward" size={16} color="#f59e0b" />
+            </TouchableOpacity>
+          )}
+          </>
+          )}
+
           <View style={{ height: 100 }} />
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Submit Button */}
+      {/* Wizard Navigation Footer */}
       <View style={styles.footer}>
-        <TouchableOpacity
-          style={[styles.submitBtn, submitting && styles.submitBtnDisabled]}
-          onPress={handleSubmit}
-          disabled={submitting}
-        >
-          {submitting ? (
-            <Text style={styles.submitText}>
-              {t.createRequest?.submitting || "Submitting..."}
-            </Text>
-          ) : (
-            <>
-              <Ionicons name="send" size={20} color="#fff" />
-              <Text style={styles.submitText}>
-                {t.createRequest?.requestQuotes || "Request Quotes"}
+        <View style={styles.wizardFooter}>
+          {currentStep > 1 ? (
+            <TouchableOpacity
+              style={styles.wizardBackBtn}
+              onPress={handlePrevStep}
+            >
+              <Ionicons name="arrow-back" size={20} color="#1976d2" />
+              <Text style={styles.wizardBackText}>
+                {t.common?.back || "Back"}
               </Text>
-            </>
+            </TouchableOpacity>
+          ) : (
+            <View style={{ flex: 1 }} />
           )}
-        </TouchableOpacity>
+          {currentStep < 3 ? (
+            <TouchableOpacity
+              style={styles.wizardNextBtn}
+              onPress={handleNextStep}
+            >
+              <Text style={styles.wizardNextText}>
+                {t.common?.next || "Next"}
+              </Text>
+              <Ionicons name="arrow-forward" size={20} color="#fff" />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={[styles.submitBtn, { flex: 2 }, submitting && styles.submitBtnDisabled]}
+              onPress={handleSubmit}
+              disabled={submitting}
+            >
+              {submitting ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <>
+                  <Ionicons name="send" size={20} color="#fff" />
+                  <Text style={styles.submitText}>
+                    {t.createRequest?.requestQuotes || "Request Quotes"}
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {/* Favorite Provider Modal */}
@@ -3701,6 +3838,161 @@ export default function CreateRequestScreen({ navigation }: any) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f8fafc" },
+  // Step Indicator
+  stepIndicatorContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
+  },
+  stepItem: { alignItems: "center", flex: 1 },
+  stepCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#e5e7eb",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  stepCircleActive: { backgroundColor: "#1976d2" },
+  stepCircleCompleted: { backgroundColor: "#10b981" },
+  stepNumber: { fontSize: 13, fontWeight: "700", color: "#9ca3af" },
+  stepNumberActive: { color: "#fff" },
+  stepLabel: { fontSize: 11, color: "#9ca3af", textAlign: "center" },
+  stepLabelActive: { color: "#1976d2", fontWeight: "600" },
+  stepLine: {
+    height: 2,
+    flex: 1,
+    backgroundColor: "#e5e7eb",
+    marginHorizontal: -8,
+    marginBottom: 18,
+  },
+  stepLineActive: { backgroundColor: "#10b981" },
+  // Wizard footer
+  wizardFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  wizardBackBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "#1976d2",
+    backgroundColor: "#fff",
+  },
+  wizardBackText: { fontSize: 16, fontWeight: "600", color: "#1976d2" },
+  wizardNextBtn: {
+    flex: 2,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 16,
+    borderRadius: 12,
+    backgroundColor: "#1976d2",
+  },
+  wizardNextText: { fontSize: 16, fontWeight: "600", color: "#fff" },
+  // ASAP Toggle
+  asapToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "#fcd34d",
+    backgroundColor: "#fffbeb",
+    marginBottom: 4,
+  },
+  asapToggleActive: {
+    borderColor: "#f59e0b",
+    backgroundColor: "#f59e0b",
+  },
+  asapToggleText: { flex: 1, fontSize: 15, fontWeight: "600", color: "#92400e" },
+  asapToggleTextActive: { color: "#fff" },
+  // Urgency vertical cards
+  urgencyContainerVertical: { marginBottom: 20, gap: 8 },
+  urgencyCardBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "#e5e7eb",
+    backgroundColor: "#fff",
+  },
+  urgencyIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  urgencyCardLabel: { fontSize: 15, fontWeight: "600", color: "#374151" },
+  urgencyCardDesc: { fontSize: 12, color: "#6b7280", marginTop: 1 },
+  // Parts Store cross-sell
+  partsStoreCrossSell: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    backgroundColor: "#f5f3ff",
+    borderWidth: 1,
+    borderColor: "#ddd6fe",
+    marginBottom: 20,
+  },
+  partsStoreCrossSellText: { flex: 1, fontSize: 13, fontWeight: "600", color: "#7c3aed" },
+  // Add payment inline
+  addPaymentInlineBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#fcd34d",
+    backgroundColor: "#fffbeb",
+    marginTop: 8,
+  },
+  addPaymentInlineText: { flex: 1, fontSize: 14, fontWeight: "500", color: "#92400e" },
+  // Vehicle type collapsed
+  vehicleTypeCollapsed: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#eff6ff",
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#bfdbfe",
+  },
+  // Detail input for mileage etc.
+  detailInput: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 16,
+    marginBottom: 16,
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",

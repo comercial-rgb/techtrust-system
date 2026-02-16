@@ -54,6 +54,7 @@ import insuranceRoutes from "./routes/insurance.routes";
 import verificationRoutes from "./routes/verification.routes";
 import multiStateRoutes from "./routes/multi-state.routes";
 import carWashRoutes from "./routes/car-wash.routes";
+import partsStoreRoutes from "./routes/parts-store.routes";
 
 // Carregar variáveis de ambiente
 dotenv.config();
@@ -271,6 +272,7 @@ app.use(`/api/${API_VERSION}/insurance`, insuranceRoutes); // Insurance policies
 app.use(`/api/${API_VERSION}/verification`, verificationRoutes); // Verification & risk acceptance
 app.use(`/api/${API_VERSION}/multi-state`, multiStateRoutes); // Multi-state compliance management
 app.use(`/api/${API_VERSION}/car-wash`, carWashRoutes); // Car Wash discovery & management
+app.use(`/api/${API_VERSION}/parts-store`, partsStoreRoutes); // Auto Parts Store discovery & management
 
 // ============================================
 // ERROR HANDLER (deve ser o último middleware)

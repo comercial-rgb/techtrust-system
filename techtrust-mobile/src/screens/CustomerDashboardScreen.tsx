@@ -438,6 +438,29 @@ export default function CustomerDashboardScreen({ navigation }: any) {
           </TouchableOpacity>
         </FadeInView>
 
+        {/* Parts Store Quick Action */}
+        <FadeInView delay={200}>
+          <TouchableOpacity
+            style={[styles.actionBanner, { backgroundColor: '#7c3aed' }]}
+            onPress={() => navigation.navigate("PartsStore")}
+          >
+            <View style={styles.bannerContent}>
+              <View style={[styles.bannerIcon, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                <Ionicons name="storefront" size={28} color="#fff" />
+              </View>
+              <View style={styles.bannerText}>
+                <Text style={styles.bannerTitle}>
+                  {(t as any).partsStore?.title || "Auto Parts Store"}
+                </Text>
+                <Text style={styles.bannerSubtitle}>
+                  {(t as any).partsStore?.dashboardDesc || "Find parts near you, compare prices & reserve"}
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={24} color="#fff" />
+          </TouchableOpacity>
+        </FadeInView>
+
         {/* Stats Cards */}
         <FadeInView delay={200}>
           {stats.activeServices === 0 && stats.pendingQuotes === 0 && stats.completedServices === 0 && stats.totalSpent === 0 ? (
@@ -593,6 +616,20 @@ export default function CustomerDashboardScreen({ navigation }: any) {
               </View>
               <Text style={styles.quickAccessLabel}>
                 {t.customerDashboard?.serviceHistory || "History"}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.quickAccessCard}
+              onPress={() => navigation.navigate("PartsStore")}
+            >
+              <View
+                style={[styles.quickAccessIcon, { backgroundColor: "#ede9fe" }]}
+              >
+                <Ionicons name="storefront" size={22} color="#7c3aed" />
+              </View>
+              <Text style={styles.quickAccessLabel}>
+                {(t as any).partsStore?.tabLabel || "Parts Store"}
               </Text>
             </TouchableOpacity>
           </View>

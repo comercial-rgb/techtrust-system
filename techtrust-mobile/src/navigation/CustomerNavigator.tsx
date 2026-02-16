@@ -66,6 +66,12 @@ import CarWashReviewScreen from "../screens/CarWashReviewScreen";
 import CarWashAllReviewsScreen from "../screens/CarWashAllReviewsScreen";
 import CarWashFavoritesScreen from "../screens/CarWashFavoritesScreen";
 
+// Parts Store Screens
+import PartsStoreScreen from "../screens/PartsStoreScreen";
+import PartsCategoryScreen from "../screens/PartsCategoryScreen";
+import PartsProductDetailScreen from "../screens/PartsProductDetailScreen";
+import PartsStoreProfileScreen from "../screens/PartsStoreProfileScreen";
+
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
@@ -126,6 +132,10 @@ function HomeStack() {
       <Stack.Screen name="CarWashReview" component={CarWashReviewScreen} />
       <Stack.Screen name="CarWashAllReviews" component={CarWashAllReviewsScreen} />
       <Stack.Screen name="CarWashFavorites" component={CarWashFavoritesScreen} />
+      <Stack.Screen name="PartsStore" component={PartsStoreScreen} />
+      <Stack.Screen name="PartsCategory" component={PartsCategoryScreen} />
+      <Stack.Screen name="PartsProductDetail" component={PartsProductDetailScreen} />
+      <Stack.Screen name="PartsStoreProfile" component={PartsStoreProfileScreen} />
       <Stack.Screen name="ChatList" component={ChatListScreen} />
       <Stack.Screen name="Chat" component={ChatScreen} />
     </Stack.Navigator>
@@ -196,6 +206,10 @@ function CarWashStack() {
       <Stack.Screen name="CarWashReview" component={CarWashReviewScreen} />
       <Stack.Screen name="CarWashAllReviews" component={CarWashAllReviewsScreen} />
       <Stack.Screen name="CarWashFavorites" component={CarWashFavoritesScreen} />
+      <Stack.Screen name="PartsStore" component={PartsStoreScreen} />
+      <Stack.Screen name="PartsCategory" component={PartsCategoryScreen} />
+      <Stack.Screen name="PartsProductDetail" component={PartsProductDetailScreen} />
+      <Stack.Screen name="PartsStoreProfile" component={PartsStoreProfileScreen} />
     </Stack.Navigator>
   );
 }
@@ -241,6 +255,10 @@ function ProfileStack() {
       <Stack.Screen name="CarWashReview" component={CarWashReviewScreen} />
       <Stack.Screen name="CarWashAllReviews" component={CarWashAllReviewsScreen} />
       <Stack.Screen name="CarWashFavorites" component={CarWashFavoritesScreen} />
+      <Stack.Screen name="PartsStore" component={PartsStoreScreen} />
+      <Stack.Screen name="PartsCategory" component={PartsCategoryScreen} />
+      <Stack.Screen name="PartsProductDetail" component={PartsProductDetailScreen} />
+      <Stack.Screen name="PartsStoreProfile" component={PartsStoreProfileScreen} />
     </Stack.Navigator>
   );
 }

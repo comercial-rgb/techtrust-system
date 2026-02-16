@@ -121,6 +121,32 @@ export default function ServiceChoiceScreen({ navigation }: any) {
             <Ionicons name="arrow-forward" size={16} color="#fff" />
           </View>
         </TouchableOpacity>
+
+        {/* Parts Store Card */}
+        <TouchableOpacity
+          style={[styles.card, { borderWidth: 1, borderColor: '#ede9fe' }]}
+          activeOpacity={0.7}
+          onPress={() => {
+            navigation.replace("PartsStore");
+          }}
+        >
+          <View style={[styles.iconCircle, { backgroundColor: "#ede9fe" }]}>
+            <Ionicons name="storefront" size={32} color="#7c3aed" />
+          </View>
+          <Text style={styles.cardTitle}>
+            {(t as any).partsStore?.title || "Auto Parts Store"}
+          </Text>
+          <Text style={styles.cardDescription}>
+            {(t as any).partsStore?.serviceChoiceDesc ||
+              "Find auto parts near you. Browse verified stores, compare prices, and reserve parts for pickup."}
+          </Text>
+          <View style={[styles.cardButton, { backgroundColor: "#7c3aed" }]}>
+            <Text style={styles.cardButtonText}>
+              {(t as any).partsStore?.browseStore || "Browse Parts"}
+            </Text>
+            <Ionicons name="arrow-forward" size={16} color="#fff" />
+          </View>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );

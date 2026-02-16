@@ -381,6 +381,12 @@ model User {
   carWashReviews   CarWashReview[]   @relation("UserCarWashReviews")
   carWashFavorites CarWashFavorite[] @relation("UserCarWashFavorites")
 
+  // Auto Parts Store relations
+  partsReservations    PartsReservation[]    @relation("UserPartsReservations")
+  partsProductReviews  PartsProductReview[]  @relation("UserPartsProductReviews")
+  partsStoreReviews    PartsStoreReview[]    @relation("UserPartsStoreReviews")
+  partsStoreFavorites  PartsStoreFavorite[]  @relation("UserPartsStoreFavorites")
+
   @@index([email])
   @@index([phone])
   @@index([role])
@@ -485,6 +491,7 @@ model ProviderProfile {
   technicians          Technician[]
   insurancePolicies    InsurancePolicy[]
   serviceEligibilities ServiceEligibility[]
+  partsStores          PartsStore[]          @relation("ProviderPartsStores")
 
   @@index([userId])
   @@index([isVerified])
@@ -2578,4 +2585,236 @@ model CarWashMetric {
   @@unique([carWashId, date])
   @@index([carWashId])
   @@map("car_wash_metrics")
+}
+
+// ============================================
+// AUTO PARTS STORE MODULE
+// ============================================
+
+model PartsStore {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Link to provider profile (type = AUTO_PARTS)
+  providerId String
+  provider   ProviderProfile @relation("ProviderPartsStores", fields: [providerId], references: [id], onDelete: Cascade)
+
+  // Store Info
+  storeName    String
+  description  String?    @db.Text
+  logoUrl      String?
+  bannerUrl    String?
+  phone        String?
+  email        String?
+  website      String?
+
+  // Location
+  address      String
+  city         String
+  state        String     @default("FL")
+  zipCode      String
+  county       String?
+  latitude     Float?
+  longitude    Float?
+
+  // Operating Hours (JSON: { mon: { open: "08:00", close: "18:00" }, ... })
+  operatingHours Json?
+
+  // Status
+  isActive     Boolean    @default(true)
+  isVerified   Boolean    @default(false)
+
+  // Delivery
+  offersDelivery  Boolean @default(false)
+  deliveryRadius  Float?
+  deliveryFee     Float?
+
+  // Ratings
+  averageRating  Float  @default(0)
+  totalReviews   Int    @default(0)
+
+  // Relations
+  products       PartsProduct[]
+  reviews        PartsStoreReview[]
+  favorites      PartsStoreFavorite[]
+  featured       PartsFeatured[]
+  metrics        PartsStoreMetric[]
+
+  @@index([providerId])
+  @@index([city, state])
+  @@index([isActive])
+  @@map("parts_stores")
+}
+
+model PartsProduct {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  storeId String
+  store   PartsStore @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  // Product Info
+  name         String
+  description  String?    @db.Text
+  brand        String?
+  partNumber   String?
+  oemNumber    String?
+  categoryId   String
+
+  // Pricing
+  price        Float
+  salePrice    Float?
+  currency     String     @default("USD")
+
+  // Inventory
+  inStock      Boolean    @default(true)
+  quantity     Int        @default(0)
+
+  // Media
+  imageUrls    Json?      // String[]
+  thumbnailUrl String?
+
+  // Condition
+  condition    String     @default("new") // new, refurbished, used
+
+  // Vehicle Compatibility (JSON array)
+  compatibility Json?     // [{ make, model, yearFrom, yearTo }]
+
+  // Warranty
+  warrantyInfo String?
+
+  // Status
+  isActive     Boolean    @default(true)
+
+  // Relations
+  reviews      PartsProductReview[]
+  reservations PartsReservation[]
+
+  @@index([storeId])
+  @@index([categoryId])
+  @@index([brand])
+  @@index([isActive])
+  @@map("parts_products")
+}
+
+model PartsReservation {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  productId String
+  product   PartsProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  userId    String
+  user      User   @relation("UserPartsReservations", fields: [userId], references: [id], onDelete: Cascade)
+
+  quantity       Int      @default(1)
+  status         String   @default("pending") // pending, confirmed, picked_up, cancelled, expired
+  reservedUntil  DateTime
+  notes          String?  @db.Text
+
+  @@index([productId])
+  @@index([userId])
+  @@index([status])
+  @@map("parts_reservations")
+}
+
+model PartsProductReview {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  productId String
+  product   PartsProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  userId    String
+  user      User   @relation("UserPartsProductReviews", fields: [userId], references: [id], onDelete: Cascade)
+
+  rating    Int      // 1-5
+  comment   String?  @db.Text
+
+  @@unique([productId, userId])
+  @@index([productId])
+  @@index([rating])
+  @@map("parts_product_reviews")
+}
+
+model PartsStoreReview {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  storeId   String
+  store     PartsStore @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  userId    String
+  user      User   @relation("UserPartsStoreReviews", fields: [userId], references: [id], onDelete: Cascade)
+
+  rating    Int      // 1-5
+  comment   String?  @db.Text
+  response  String?  @db.Text
+  responseAt DateTime?
+
+  @@unique([storeId, userId])
+  @@index([storeId])
+  @@index([rating])
+  @@map("parts_store_reviews")
+}
+
+model PartsStoreFavorite {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  storeId   String
+  store     PartsStore @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  userId    String
+  user      User   @relation("UserPartsStoreFavorites", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([storeId, userId])
+  @@index([userId])
+  @@map("parts_store_favorites")
+}
+
+model PartsFeatured {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  storeId   String
+  store     PartsStore @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?
+  imageUrl    String?
+  position    Int      @default(0)
+  isActive    Boolean  @default(true)
+  startsAt    DateTime?
+  endsAt      DateTime?
+
+  @@index([storeId])
+  @@index([isActive])
+  @@map("parts_featured")
+}
+
+model PartsStoreMetric {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  storeId   String
+  store     PartsStore @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  date              DateTime @db.Date
+  profileViews      Int      @default(0)
+  directionClicks   Int      @default(0)
+  phoneClicks       Int      @default(0)
+  searchImpressions Int      @default(0)
+  productViews      Int      @default(0)
+  reservationCount  Int      @default(0)
+
+  @@unique([storeId, date])
+  @@index([storeId])
+  @@map("parts_store_metrics")
 }
