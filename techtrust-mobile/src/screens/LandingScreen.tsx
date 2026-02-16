@@ -126,8 +126,8 @@ const BENEFITS = [
 ];
 
 // Estados e cidades para filtro - Multi-state support
-import { US_STATES, CITIES_BY_STATE, STATE_CODES } from '../constants/us-states';
-const STATES = STATE_CODES;
+import { US_STATES, CITIES_BY_STATE, STATE_CODES, SORTED_STATE_CODES, isActiveState, getStateName } from '../constants/us-states';
+const STATES = SORTED_STATE_CODES;
 const CITIES: Record<string, string[]> = CITIES_BY_STATE;
 
 interface LandingScreenProps {
@@ -268,9 +268,43 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
   };
 
   const handleSearch = async () => {
-    // Providers search: api.get('/providers/search', { params: { state, city, service } })
-    // Returns empty results until providers search endpoint is available
-    setSearchResults([]);
+    try {
+      const api = (await import("../services/api")).default;
+      const Location = await import("expo-location");
+      let lat: number | undefined;
+      let lng: number | undefined;
+
+      // Try to get user location for radius search
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === "granted") {
+          const pos = await Location.getCurrentPositionAsync({});
+          lat = pos.coords.latitude;
+          lng = pos.coords.longitude;
+        }
+      } catch {}
+
+      const params: any = { radius: 80 };
+      if (lat && lng) { params.lat = lat; params.lng = lng; }
+      if (selectedService) params.serviceType = selectedService;
+
+      const res = await api.get("/providers/search", { params });
+      let found = res.data?.data?.providers || [];
+
+      // Filter by state/city if selected
+      if (selectedState) {
+        found = found.filter((p: any) => p.state === selectedState);
+      }
+      if (selectedCity) {
+        found = found.filter((p: any) =>
+          p.city?.toLowerCase() === selectedCity.toLowerCase()
+        );
+      }
+
+      setSearchResults(found);
+    } catch {
+      setSearchResults([]);
+    }
     setHasSearched(true);
   };
 
@@ -657,12 +691,12 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
             <View style={styles.loggedInBanner}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.loggedInText}>
-                  {`Welcome back, ${user.firstName || user.name || ''}`}
+                  {`Welcome back, ${user.fullName || ''}`}
                 </Text>
               </View>
               <TouchableOpacity
                 style={styles.goToDashboardBtn}
-                onPress={() => navigation.navigate('Dashboard')}
+                onPress={() => navigation.navigate('DashboardMain')}
               >
                 <Text style={styles.goToDashboardText}>My Dashboard</Text>
                 <Ionicons name="arrow-forward" size={14} color="#1976d2" />
@@ -799,10 +833,10 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                     onPress={() => {
                       if (svc.label === ((t.landing as any)?.serviceCarWash || 'Car Wash')) {
                         navigation.navigate('CarWashMap');
+                      } else if (isAuthenticated) {
+                        navigation.navigate('ServiceChoice');
                       } else {
-                        setSelectedService(SERVICE_TYPE_IDS.find(s => 
-                          s.toLowerCase().includes(svc.label.toLowerCase().replace(/\s|\/|\./g, '').slice(0, 4))
-                        ) || '');
+                        navigation.navigate('Login');
                       }
                     }}
                   >
@@ -1039,16 +1073,15 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
               )}
             </View>
 
-            {/* Trust Numbers Bar */}
+            {/* Trust Numbers Bar — credibility indicators */}
             <View style={styles.trustBar}>
               {[
-                { value: '150+', label: (t.landing as any)?.trustProviders || 'Verified Providers', icon: 'shield-checkmark' as const },
-                { value: '1,200+', label: (t.landing as any)?.trustServices || 'Services Completed', icon: 'checkmark-done-circle' as const },
-                { value: '4.8', label: (t.landing as any)?.trustRating || 'Average Rating', icon: 'star' as const },
+                { value: '', label: (t.landing as any)?.trustVerified || 'Licensed & Insured', icon: 'shield-checkmark' as const },
+                { value: '', label: (t.landing as any)?.trustTransparent || 'Transparent Pricing', icon: 'pricetag' as const },
+                { value: '', label: (t.landing as any)?.trustGuarantee || 'Satisfaction Guarantee', icon: 'ribbon' as const },
               ].map((stat, idx) => (
                 <View key={idx} style={styles.trustItem}>
                   <Ionicons name={stat.icon} size={20} color="#1976d2" />
-                  <Text style={styles.trustValue}>{stat.value}</Text>
                   <Text style={styles.trustLabel}>{stat.label}</Text>
                 </View>
               ))}
@@ -1213,7 +1246,14 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                   </Text>
                 </View>
               </View>
-              <TouchableOpacity style={styles.noticeCard} activeOpacity={0.7}>
+              <TouchableOpacity style={styles.noticeCard} activeOpacity={0.7}
+                onPress={() => {
+                  if (isAuthenticated) {
+                    navigation.navigate('ServiceChoice');
+                  } else {
+                    navigation.navigate('Login');
+                  }
+                }}>
                 <View style={styles.noticeIcon}>
                   <Ionicons
                     name="information-circle"
@@ -1235,7 +1275,14 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                   </View>
                 </View>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.noticeCard, styles.noticeWarning]} activeOpacity={0.7}>
+              <TouchableOpacity style={[styles.noticeCard, styles.noticeWarning]} activeOpacity={0.7}
+                onPress={() => {
+                  if (isAuthenticated) {
+                    navigation.navigate('ServiceChoice');
+                  } else {
+                    navigation.navigate('Login');
+                  }
+                }}>
                 <View style={[styles.noticeIcon, styles.noticeIconWarning]}>
                   <Ionicons name="warning" size={24} color="#f59e0b" />
                 </View>
@@ -1356,12 +1403,18 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
               {t.landing?.search?.selectState || "Select State"}
             </Text>
             <ScrollView style={styles.dropdownScroll}>
-              {STATES.map((state) => (
+              {STATES.map((state, idx) => {
+                const active = isActiveState(state);
+                const stateName = getStateName(state);
+                return (
                 <TouchableOpacity
                   key={state}
                   style={[
                     styles.dropdownItem,
                     selectedState === state && styles.dropdownItemSelected,
+                    !active && { opacity: 0.6 },
+                    // separator between active and inactive
+                    idx > 0 && active !== isActiveState(STATES[idx - 1]) && { borderTopWidth: 1, borderTopColor: '#e5e7eb', marginTop: 4, paddingTop: 12 },
                   ]}
                   onPress={() => {
                     setSelectedState(state);
@@ -1369,20 +1422,28 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                     setShowStateDropdown(false);
                   }}
                 >
-                  <Text
-                    style={[
-                      styles.dropdownItemText,
-                      selectedState === state &&
-                        styles.dropdownItemTextSelected,
-                    ]}
-                  >
-                    {state}
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                    <Text
+                      style={[
+                        styles.dropdownItemText,
+                        selectedState === state &&
+                          styles.dropdownItemTextSelected,
+                      ]}
+                    >
+                      {stateName} ({state})
+                    </Text>
+                    {!active && (
+                      <View style={{ backgroundColor: '#f3f4f6', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2, marginLeft: 8 }}>
+                        <Text style={{ fontSize: 10, color: '#9ca3af', fontWeight: '600' }}>Coming Soon</Text>
+                      </View>
+                    )}
+                  </View>
                   {selectedState === state && (
                     <Ionicons name="checkmark" size={20} color="#1976d2" />
                   )}
                 </TouchableOpacity>
-              ))}
+              );
+              })}
             </ScrollView>
           </View>
         </TouchableOpacity>

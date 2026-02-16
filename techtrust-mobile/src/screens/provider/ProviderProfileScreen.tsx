@@ -127,7 +127,10 @@ export default function ProviderProfileScreen({ navigation }: any) {
     t.provider?.provider ||
     "Provider";
   const providerType = user?.providerProfile?.businessType || "AUTO_REPAIR";
+  const businessTypeCat = user?.providerProfile?.businessTypeCat || "REPAIR_SHOP";
   const isVerified = user?.providerProfile?.isVerified || false;
+  const serviceRadiusKm = Number(user?.providerProfile?.serviceRadiusKm || 40);
+  const serviceRadiusMiles = Math.round(serviceRadiusKm * 0.621371);
 
   const getBusinessTypeLabel = (type: string) => {
     const types: Record<string, string> = {
@@ -140,6 +143,13 @@ export default function ProviderProfileScreen({ navigation }: any) {
       MULTI_SERVICE: t.common?.multiService || "Multi-Service",
     };
     return types[type] || type;
+  };
+
+  const getBusinessCatLabel = (cat: string) => {
+    if (cat === 'REPAIR_SHOP') return t.provider?.repairShop || 'Repair Shop';
+    if (cat === 'CAR_WASH') return t.provider?.carWash || 'Car Wash';
+    if (cat === 'BOTH') return t.provider?.multiType || 'Multi-Type Provider';
+    return cat;
   };
 
   return (
@@ -177,9 +187,23 @@ export default function ProviderProfileScreen({ navigation }: any) {
             )}
           </TouchableOpacity>
           <Text style={styles.businessName}>{providerName}</Text>
-          <Text style={styles.businessType}>
-            {getBusinessTypeLabel(providerType)}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <Text style={styles.businessType}>
+              {getBusinessTypeLabel(providerType)}
+            </Text>
+            {businessTypeCat === 'BOTH' && (
+              <View style={{ flexDirection: 'row', gap: 4 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#dbeafe', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, gap: 3 }}>
+                  <MaterialCommunityIcons name="wrench" size={12} color="#1976d2" />
+                  <Text style={{ fontSize: 11, color: '#1976d2', fontWeight: '600' }}>{t.provider?.repairShop || 'Repair'}</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#dbeafe', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, gap: 3 }}>
+                  <MaterialCommunityIcons name="car-wash" size={12} color="#1976d2" />
+                  <Text style={{ fontSize: 11, color: '#1976d2', fontWeight: '600' }}>{t.provider?.carWash || 'Car Wash'}</Text>
+                </View>
+              </View>
+            )}
+          </View>
 
           {/* Rating */}
           <View style={styles.ratingContainer}>
@@ -287,7 +311,7 @@ export default function ProviderProfileScreen({ navigation }: any) {
           <MenuItem
             icon="map-marker-radius"
             label={t.provider?.serviceArea || "Service Area"}
-            subtitle={`${t.common?.radius || "Radius"}: 25 km`}
+            subtitle={`${t.common?.radius || "Radius"}: ${serviceRadiusMiles} mi`}
             onPress={() => navigation.navigate("ServiceArea")}
           />
           <MenuItem
@@ -343,6 +367,20 @@ export default function ProviderProfileScreen({ navigation }: any) {
               setNotifications({ ...notifications, reviews: value })
             }
           />
+          <NotificationItem
+            icon="message-text"
+            label={t.provider?.messages || "Messages"}
+            subtitle={t.provider?.messageAlerts || "Customer messages and chat"}
+            value={true}
+            onToggle={() => {}}
+          />
+          <NotificationItem
+            icon="calendar-alert"
+            label={t.provider?.appointmentReminders || "Appointment Reminders"}
+            subtitle={t.provider?.upcomingAppointments || "Upcoming appointment alerts"}
+            value={true}
+            onToggle={() => {}}
+          />
         </View>
 
         <View style={styles.section}>
@@ -384,6 +422,12 @@ export default function ProviderProfileScreen({ navigation }: any) {
             label={t.provider?.security || "Security"}
             subtitle={t.common?.passwordAuth || "Password, authentication"}
             onPress={() => navigation.navigate("Security")}
+          />
+          <MenuItem
+            icon="office-building"
+            label={t.provider?.businessInfo || "Business Information"}
+            subtitle={t.provider?.einLicense || "EIN, license, insurance details"}
+            onPress={() => navigation.navigate("Compliance")}
           />
           <MenuItem
             icon="help-circle"

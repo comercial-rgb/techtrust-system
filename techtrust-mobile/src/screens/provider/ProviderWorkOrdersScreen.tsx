@@ -432,17 +432,32 @@ export default function ProviderWorkOrdersScreen({ navigation }: any) {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <MaterialCommunityIcons
-              name="toolbox-outline"
+              name={filter === 'completed' ? 'check-circle-outline' : 'toolbox-outline'}
               size={64}
               color="#d1d5db"
             />
             <Text style={styles.emptyTitle}>
-              {t.workOrder?.noServicesFound || "No services found"}
+              {filter === 'completed'
+                ? (t.workOrder?.noCompletedYet || "No completed services yet")
+                : filter === 'active'
+                  ? (t.workOrder?.noActiveServices || "No active services")
+                  : (t.workOrder?.noServicesFound || "No services found")}
             </Text>
             <Text style={styles.emptySubtitle}>
-              {t.workOrder?.servicesWillAppear ||
-                "Your services will appear here when quotes are accepted"}
+              {filter === 'completed'
+                ? (t.workOrder?.completedDesc || "Completed services will appear here after you finish work orders.")
+                : (t.workOrder?.servicesWillAppear || "Services appear here when your quotes are accepted by customers.")}
             </Text>
+            {filter !== 'all' && (
+              <TouchableOpacity
+                style={{ marginTop: 16, paddingHorizontal: 20, paddingVertical: 10, backgroundColor: '#1976d2', borderRadius: 20 }}
+                onPress={() => setFilter('all')}
+              >
+                <Text style={{ fontSize: 14, color: '#fff', fontWeight: '600' }}>
+                  {t.common?.viewAll || "View All"}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         }
       />

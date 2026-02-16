@@ -50,7 +50,7 @@ export default function ProviderRequestsScreen({ navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filter, setFilter] = useState<"all" | "urgent">("all");
+  const [filter, setFilter] = useState<"all" | "urgent" | "nearby" | "new">("all");
 
   // Reload data when screen gains focus
   useFocusEffect(
@@ -112,9 +112,17 @@ export default function ProviderRequestsScreen({ navigation }: any) {
   const filterRequests = () => {
     let filtered = [...requests];
 
-    // Filtro por urgente
+    // Filtro por urgente / nearby / new
     if (filter === "urgent") {
       filtered = filtered.filter((r) => r.isUrgent);
+    } else if (filter === "nearby") {
+      filtered = filtered.filter((r) => {
+        const dist = parseFloat(r.customer.distance);
+        return !isNaN(dist) && dist <= 15;
+      });
+    } else if (filter === "new") {
+      const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+      filtered = filtered.filter((r) => new Date(r.createdAt).getTime() > oneDayAgo);
     }
 
     // Filtro por busca
@@ -287,7 +295,33 @@ export default function ProviderRequestsScreen({ navigation }: any) {
               filter === "urgent" && styles.filterTabTextUrgent,
             ]}
           >
-            🚨 {t.common?.urgent || "Urgent"} ({urgentCount})
+            {t.common?.urgent || "Urgent"} ({urgentCount})
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.filterTab, filter === "nearby" && styles.filterTabActive]}
+          onPress={() => setFilter("nearby")}
+        >
+          <Text
+            style={[
+              styles.filterTabText,
+              filter === "nearby" && styles.filterTabTextActive,
+            ]}
+          >
+            {t.provider?.nearby || "Nearby"}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.filterTab, filter === "new" && styles.filterTabActive]}
+          onPress={() => setFilter("new")}
+        >
+          <Text
+            style={[
+              styles.filterTabText,
+              filter === "new" && styles.filterTabTextActive,
+            ]}
+          >
+            {t.provider?.newToday || "New"}
           </Text>
         </TouchableOpacity>
       </View>
@@ -305,20 +339,34 @@ export default function ProviderRequestsScreen({ navigation }: any) {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <MaterialCommunityIcons
-              name="clipboard-text-outline"
+              name={filter === "urgent" ? "alert-circle-outline" : filter === "nearby" ? "map-marker-radius" : "clipboard-text-outline"}
               size={64}
               color="#d1d5db"
             />
             <Text style={styles.emptyTitle}>
-              {t.common?.noResults || "No results"}
+              {searchQuery
+                ? (t.common?.noResults || "No results")
+                : filter === "urgent"
+                  ? (t.provider?.noUrgentRequests || "No urgent requests")
+                  : filter === "nearby"
+                    ? (t.provider?.noNearbyRequests || "No nearby requests")
+                    : (t.provider?.noRequestsYet || "No requests available")}
             </Text>
             <Text style={styles.emptySubtitle}>
               {searchQuery
-                ? (t.common as any)?.tryDifferentTerms ||
-                  t.common?.tryAgain ||
-                  "Try again"
-                : t.common?.newItems || "New items will appear here"}
+                ? ((t.common as any)?.tryDifferentTerms || "Try different search terms")
+                : filter === "nearby"
+                  ? (t.provider?.expandRadius || "Try expanding your service area in Profile settings.")
+                  : (t.provider?.noRequestsDesc || "New service requests from customers in your area will appear here.")}
             </Text>
+            {filter !== "all" && !searchQuery && (
+              <TouchableOpacity
+                style={styles.emptyActionBtn}
+                onPress={() => setFilter("all")}
+              >
+                <Text style={styles.emptyActionText}>{t.provider?.viewAllRequests || "View All Requests"}</Text>
+              </TouchableOpacity>
+            )}
           </View>
         }
       />
@@ -517,5 +565,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#9ca3af",
     textAlign: "center",
+    paddingHorizontal: 32,
+    lineHeight: 20,
+  },
+  emptyActionBtn: {
+    marginTop: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: '#1976d2',
+    borderRadius: 20,
+  },
+  emptyActionText: {
+    fontSize: 14,
+    color: '#fff',
+    fontWeight: '600',
   },
 });

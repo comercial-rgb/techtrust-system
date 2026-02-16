@@ -57,6 +57,7 @@ export default {
     searchPlaceholder: "Search by title, vehicle...",
     comingSoon: "Coming Soon",
     featureComingSoon: "This feature will be available soon!",
+    viewAll: "View All",
     // Business types
     autoRepair: "Auto Repair Shop",
     tireShop: "Tire Shop",
@@ -233,6 +234,9 @@ export default {
     trustProviders: "Verified Providers",
     trustServices: "Services Completed",
     trustRating: "Average Rating",
+    trustVerified: "Licensed & Insured",
+    trustTransparent: "Transparent Pricing",
+    trustGuarantee: "Satisfaction Guarantee",
     notices: {
       title: "Important Notices",
       subtitle: "Stay informed",
@@ -850,6 +854,42 @@ export default {
       "Make sure the document is clear and all text is readable.",
     retake: "Retake",
     usePhoto: "Use Photo",
+
+    // Part 4 — Dashboard & Profile UX additions
+    getStarted: "Get Started",
+    completeSetup: "Complete your setup",
+    setupProfile: "Complete your business profile",
+    addServices: "Add your services & pricing",
+    setHours: "Set your working hours",
+    defineArea: "Define your service area",
+    noRequestsYet: "No pending requests",
+    noRequestsDesc: "New service requests from customers in your area will appear here.",
+    noActivityYet: "Your activity feed will appear here as you process requests.",
+    analytics: "Analytics",
+    reviewsTitle: "Reviews",
+    carWashQueue: "Wash Queue",
+    repairShop: "Repair Shop",
+    carWash: "Car Wash",
+    multiType: "Multi-Type Provider",
+    quotesSubmitted: "quotes",
+    // Requests screen
+    nearby: "Nearby",
+    newToday: "New Today",
+    noUrgentRequests: "No urgent requests",
+    noNearbyRequests: "No nearby requests",
+    expandRadius: "Try expanding your service area in Profile settings.",
+    viewAllRequests: "View All Requests",
+    // Quotes screen
+    noQuotesWithStatus: "No quotes with this status",
+    noQuotesFound: "No quotes yet",
+    quotesWillAppear: "Send quotes on service requests and track their status here.",
+    tryOtherFilter: "Try selecting a different filter",
+    // Profile screen
+    messages: "Messages",
+    messageAlerts: "Customer messages and chat",
+    appointmentReminders: "Appointment Reminders",
+    upcomingAppointments: "Upcoming appointment alerts",
+    einLicense: "EIN, license, insurance details",
   },
 
   // Customer Dashboard
@@ -1044,6 +1084,9 @@ export default {
     noServicesFound: "No services found",
     tryOtherTerms: "Try searching with other terms",
     servicesWillAppear: "Your services will appear here",
+    noCompletedYet: "No completed services yet",
+    noActiveServices: "No active services",
+    completedDesc: "Completed services will appear here after you finish work orders.",
     // Tabs
     tabRequests: "Requests",
     tabInProgress: "In Progress",

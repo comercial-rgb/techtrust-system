@@ -410,11 +410,11 @@ export const searchProvidersByLocation = async (
   const radiusKm = parseFloat(radius as string);
 
   // Buscar todos os providers ativos com coordenadas
+  // Note: isVerified filter relaxed to include all active providers in early marketplace
   const providers = await prisma.providerProfile.findMany({
     where: {
       baseLatitude: { not: null },
       baseLongitude: { not: null },
-      isVerified: true,
       user: {
         status: "ACTIVE",
       },
@@ -447,12 +447,14 @@ export const searchProvidersByLocation = async (
     : providers;
 
   // Transformar para formato esperado pela função
+  // Use customer's search radius as a fallback when provider's own radius is too restrictive
   const mappedProviders = filteredByService.map((p) => ({
     ...p,
     baseLocation: {
       latitude: Number(p.baseLatitude),
       longitude: Number(p.baseLongitude),
     },
+    serviceRadiusKm: Math.max(Number(p.serviceRadiusKm) || radiusKm, radiusKm),
     freeKm: Number(p.freeKm),
     feePerKm: Number(p.extraFeePerKm),
   }));

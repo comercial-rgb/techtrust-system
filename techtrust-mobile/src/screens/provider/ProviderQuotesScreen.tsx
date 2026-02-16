@@ -392,12 +392,25 @@ export default function ProviderQuotesScreen({ navigation }: any) {
               color="#d1d5db"
             />
             <Text style={styles.emptyTitle}>
-              {t.provider?.noQuotesFound || "No quotes found"}
+              {filter !== 'all'
+                ? `${t.provider?.noQuotesWithStatus || "No quotes with this status"}`
+                : (t.provider?.noQuotesFound || "No quotes yet")}
             </Text>
             <Text style={styles.emptySubtitle}>
-              {t.provider?.quotesWillAppear ||
-                "Your submitted quotes will appear here"}
+              {filter !== 'all'
+                ? (t.provider?.tryOtherFilter || "Try selecting a different filter")
+                : (t.provider?.quotesWillAppear || "Send quotes on service requests and track their status here.")}
             </Text>
+            {filter === 'all' && (
+              <TouchableOpacity
+                style={{ marginTop: 16, paddingHorizontal: 20, paddingVertical: 10, backgroundColor: '#1976d2', borderRadius: 20 }}
+                onPress={() => navigation.navigate('ProviderRequests')}
+              >
+                <Text style={{ fontSize: 14, color: '#fff', fontWeight: '600' }}>
+                  {t.provider?.viewRequests || "View Available Requests"}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         }
       />

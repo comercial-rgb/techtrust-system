@@ -1,9 +1,10 @@
 /**
- * ProviderDashboardScreen - Dashboard do Fornecedor
- * Estatísticas, pedidos pendentes, atividade recente
+ * ProviderDashboardScreen - Provider Dashboard (Part 4 UX Overhaul)
+ * Temporal greeting, onboarding checklist, enhanced request cards,
+ * high-value quick actions, multi-type business support
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -13,6 +14,8 @@ import {
   RefreshControl,
   Dimensions,
   Image,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -54,7 +57,24 @@ interface PendingRequest {
   serviceAddress?: string;
   timeAgo: string;
   isUrgent: boolean;
+  distanceMiles?: number;
+  quotesCount?: number;
+  serviceType?: string;
 }
+
+/** Get temporal greeting based on hour of day */
+const getTemporalGreeting = (): string => {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good Morning';
+  if (hour < 17) return 'Good Afternoon';
+  return 'Good Evening';
+};
+
+/** Check if provider is "new" (no completed services, rating = 0) */
+const isNewProvider = (stats: Stats | null): boolean => {
+  if (!stats) return true;
+  return stats.completedThisMonth === 0 && stats.rating === 0 && stats.totalReviews === 0;
+};
 
 export default function ProviderDashboardScreen({ navigation }: any) {
   const { user } = useAuth();
@@ -65,6 +85,8 @@ export default function ProviderDashboardScreen({ navigation }: any) {
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
 
+  const businessType = user?.providerProfile?.businessTypeCat || 'REPAIR_SHOP';
+
   useEffect(() => {
     loadDashboardData();
   }, []);
@@ -72,7 +94,6 @@ export default function ProviderDashboardScreen({ navigation }: any) {
   const loadDashboardData = async () => {
     setLoading(true);
     try {
-      // Buscar dados reais da API
       const [statsData, activityData, requestsData] = await Promise.all([
         import("../../services/dashboard.service").then((m) =>
           m.getProviderDashboardStats(),
@@ -89,8 +110,7 @@ export default function ProviderDashboardScreen({ navigation }: any) {
       setRecentActivity(activityData);
       setPendingRequests(requestsData);
     } catch (error) {
-      console.error("Erro ao carregar dashboard:", error);
-      // Dados vazios em caso de erro
+      console.error("Error loading dashboard:", error);
       setStats({
         pendingRequests: 0,
         activeWorkOrders: 0,
@@ -128,7 +148,90 @@ export default function ProviderDashboardScreen({ navigation }: any) {
   };
 
   const providerName =
-    user?.providerProfile?.businessName || user?.fullName || "Fornecedor";
+    user?.providerProfile?.businessName || user?.fullName || "Provider";
+
+  const showNewProvider = isNewProvider(stats);
+
+  // Onboarding checklist items
+  const onboardingChecklist = [
+    {
+      id: 'profile',
+      label: t.provider?.setupProfile || 'Complete your business profile',
+      icon: 'account-edit' as const,
+      done: !!(user?.providerProfile?.businessName && user?.providerProfile?.city),
+      action: () => navigation.navigate('ProviderProfile'),
+    },
+    {
+      id: 'services',
+      label: t.provider?.addServices || 'Add your services & pricing',
+      icon: 'toolbox' as const,
+      done: Array.isArray(user?.providerProfile?.servicesOffered) && (user.providerProfile.servicesOffered as any[]).length > 0,
+      action: () => navigation.navigate('ProviderWorkOrders'),
+    },
+    {
+      id: 'hours',
+      label: t.provider?.setHours || 'Set your working hours',
+      icon: 'clock-outline' as const,
+      done: !!(user?.providerProfile?.workingHours),
+      action: () => navigation.navigate('ProviderProfile'),
+    },
+    {
+      id: 'area',
+      label: t.provider?.defineArea || 'Define your service area',
+      icon: 'map-marker-radius' as const,
+      done: !!(user?.providerProfile?.serviceRadiusKm),
+      action: () => navigation.navigate('ProviderProfile'),
+    },
+  ];
+
+  const completedSteps = onboardingChecklist.filter(c => c.done).length;
+  const totalSteps = onboardingChecklist.length;
+
+  // Quick actions based on business type - only high-value, non-tab-bar actions
+  const getQuickActions = () => {
+    const common = [
+      {
+        icon: 'calendar-clock',
+        bg: '#dbeafe',
+        color: '#2563eb',
+        label: t.fdacs?.appointments || 'Appointments',
+        action: () => navigation.navigate('Appointments'),
+      },
+      {
+        icon: 'file-document-check',
+        bg: '#fef3c7',
+        color: '#d97706',
+        label: t.fdacs?.repairInvoices || 'Invoices',
+        action: () => navigation.navigate('ProviderWorkOrders', { screen: 'RepairInvoices' }),
+      },
+      {
+        icon: 'chart-line',
+        bg: '#ede9fe',
+        color: '#7c3aed',
+        label: t.provider?.analytics || 'Analytics',
+        action: () => navigation.navigate('ProviderProfile'),
+      },
+      {
+        icon: 'star-outline',
+        bg: '#fef3c7',
+        color: '#f59e0b',
+        label: t.provider?.reviewsTitle || 'Reviews',
+        action: () => navigation.navigate('ProviderReviews'),
+      },
+    ];
+
+    if (businessType === 'CAR_WASH' || businessType === 'BOTH') {
+      common.splice(2, 0, {
+        icon: 'car-wash',
+        bg: '#dbeafe',
+        color: '#3b82f6',
+        label: t.provider?.carWashQueue || 'Wash Queue',
+        action: () => navigation.navigate('ProviderWorkOrders'),
+      });
+    }
+
+    return common;
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -138,13 +241,13 @@ export default function ProviderDashboardScreen({ navigation }: any) {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* Header */}
+        {/* Header — Temporal Greeting, no emoji */}
         <View style={styles.header}>
           <View style={styles.headerContent}>
             <Image source={logos.noText} style={styles.headerLogo} />
             <View style={styles.headerText}>
               <Text style={styles.greeting}>
-                {t.provider?.hello || "Hello"}, {providerName}! 👋
+                {getTemporalGreeting()}, {providerName}
               </Text>
               <Text style={styles.subGreeting}>
                 {stats?.pendingRequests
@@ -161,82 +264,139 @@ export default function ProviderDashboardScreen({ navigation }: any) {
                 size={24}
                 color="#fff"
               />
-              <View style={styles.notificationBadge} />
+              {(stats?.pendingRequests || 0) > 0 && <View style={styles.notificationBadge} />}
             </TouchableOpacity>
-          </View>{" "}
-          {/* Rating - Clickable to view reviews */}
-          <TouchableOpacity
-            style={styles.ratingContainer}
-            onPress={() => navigation.navigate("ProviderReviews")}
-          >
-            <View style={styles.ratingStars}>
-              {[1, 2, 3, 4, 5].map((star) => (
-                <MaterialCommunityIcons
-                  key={star}
-                  name={
-                    star <= Math.floor(Number(stats?.rating || 0))
-                      ? "star"
-                      : "star-outline"
-                  }
-                  size={16}
-                  color="#fbbf24"
-                />
-              ))}
-            </View>
-            <Text style={styles.ratingText}>
-              {Number(stats?.rating || 0).toFixed(1)} • {stats?.totalReviews}{" "}
-              {t.provider?.reviews || "reviews"}
-            </Text>
-            <MaterialCommunityIcons
-              name="chevron-right"
-              size={16}
-              color="#fff"
-              style={{ marginLeft: 4 }}
-            />
-          </TouchableOpacity>
+          </View>
+
+          {/* Rating — only show when provider has reviews */}
+          {!showNewProvider && (
+            <TouchableOpacity
+              style={styles.ratingContainer}
+              onPress={() => navigation.navigate("ProviderReviews")}
+            >
+              <View style={styles.ratingStars}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <MaterialCommunityIcons
+                    key={star}
+                    name={
+                      star <= Math.floor(Number(stats?.rating || 0))
+                        ? "star"
+                        : "star-outline"
+                    }
+                    size={16}
+                    color="#fbbf24"
+                  />
+                ))}
+              </View>
+              <Text style={styles.ratingText}>
+                {Number(stats?.rating || 0).toFixed(1)} • {stats?.totalReviews}{" "}
+                {t.provider?.reviews || "reviews"}
+              </Text>
+              <MaterialCommunityIcons
+                name="chevron-right"
+                size={16}
+                color="#fff"
+                style={{ marginLeft: 4 }}
+              />
+            </TouchableOpacity>
+          )}
+
+          {/* Business Type Badge */}
+          <View style={styles.businessBadgeRow}>
+            {(businessType === 'REPAIR_SHOP' || businessType === 'BOTH') && (
+              <View style={styles.businessBadge}>
+                <MaterialCommunityIcons name="wrench" size={12} color="#fff" />
+                <Text style={styles.businessBadgeText}>{t.provider?.repairShop || 'Repair Shop'}</Text>
+              </View>
+            )}
+            {(businessType === 'CAR_WASH' || businessType === 'BOTH') && (
+              <View style={[styles.businessBadge, { backgroundColor: 'rgba(59,130,246,0.3)' }]}>
+                <MaterialCommunityIcons name="car-wash" size={12} color="#fff" />
+                <Text style={styles.businessBadgeText}>{t.provider?.carWash || 'Car Wash'}</Text>
+              </View>
+            )}
+          </View>
         </View>
+
+        {/* Onboarding Checklist — only for new providers */}
+        {showNewProvider && (
+          <View style={styles.onboardingContainer}>
+            <View style={styles.onboardingHeader}>
+              <MaterialCommunityIcons name="rocket-launch" size={24} color="#1976d2" />
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={styles.onboardingTitle}>
+                  {t.provider?.getStarted || 'Get Started'}
+                </Text>
+                <Text style={styles.onboardingSubtitle}>
+                  {t.provider?.completeSetup || `Complete your setup (${completedSteps}/${totalSteps})`}
+                </Text>
+              </View>
+            </View>
+            {/* Progress bar */}
+            <View style={styles.progressBarBg}>
+              <View style={[styles.progressBarFill, { width: `${(completedSteps / totalSteps) * 100}%` }]} />
+            </View>
+            {onboardingChecklist.map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                style={styles.checklistItem}
+                onPress={item.action}
+              >
+                <MaterialCommunityIcons
+                  name={item.done ? 'check-circle' : 'circle-outline'}
+                  size={22}
+                  color={item.done ? '#10b981' : '#d1d5db'}
+                />
+                <Text style={[styles.checklistLabel, item.done && styles.checklistLabelDone]}>
+                  {item.label}
+                </Text>
+                <MaterialCommunityIcons name="chevron-right" size={18} color="#9ca3af" />
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
         {/* Stats Cards */}
         <View style={styles.statsContainer}>
           <View style={styles.statsRow}>
-            <StatCard
-              icon="clipboard-text-outline"
-              iconBg="#dbeafe"
-              iconColor="#3b82f6"
-              label={t.provider?.requests || "Requests"}
-              value={stats?.pendingRequests || 0}
-            />
-            <StatCard
-              icon="progress-wrench"
-              iconBg="#fef3c7"
-              iconColor="#f59e0b"
-              label={t.provider?.inProgress || "In Progress"}
-              value={stats?.activeWorkOrders || 0}
-            />
+            <TouchableOpacity style={styles.statCard} onPress={() => navigation.navigate("ProviderRequests")}>
+              <View style={[styles.statIcon, { backgroundColor: "#dbeafe" }]}>
+                <MaterialCommunityIcons name="clipboard-text-outline" size={24} color="#3b82f6" />
+              </View>
+              <Text style={styles.statValue}>{stats?.pendingRequests || 0}</Text>
+              <Text style={styles.statLabel}>{t.provider?.requests || "Requests"}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.statCard} onPress={() => navigation.navigate("ProviderWorkOrders")}>
+              <View style={[styles.statIcon, { backgroundColor: "#fef3c7" }]}>
+                <MaterialCommunityIcons name="progress-wrench" size={24} color="#f59e0b" />
+              </View>
+              <Text style={styles.statValue}>{stats?.activeWorkOrders || 0}</Text>
+              <Text style={styles.statLabel}>{t.provider?.inProgress || "In Progress"}</Text>
+            </TouchableOpacity>
           </View>
           <View style={styles.statsRow}>
-            <StatCard
-              icon="check-circle-outline"
-              iconBg="#d1fae5"
-              iconColor="#10b981"
-              label={t.provider?.completed || "Completed"}
-              value={stats?.completedThisMonth || 0}
-            />
-            <StatCard
-              icon="cash"
-              iconBg="#d1fae5"
-              iconColor="#10b981"
-              label={t.provider?.earnings || "Earnings (month)"}
-              value={formatCurrency(Number(stats?.earningsThisMonth || 0))}
-            />
+            <View style={styles.statCard}>
+              <View style={[styles.statIcon, { backgroundColor: "#d1fae5" }]}>
+                <MaterialCommunityIcons name="check-circle-outline" size={24} color="#10b981" />
+              </View>
+              <Text style={styles.statValue}>{stats?.completedThisMonth || 0}</Text>
+              <Text style={styles.statLabel}>{t.provider?.completed || "Completed"}</Text>
+            </View>
+            <View style={styles.statCard}>
+              <View style={[styles.statIcon, { backgroundColor: "#d1fae5" }]}>
+                <MaterialCommunityIcons name="cash" size={24} color="#10b981" />
+              </View>
+              <Text style={styles.statValue}>{formatCurrency(Number(stats?.earningsThisMonth || 0))}</Text>
+              <Text style={styles.statLabel}>{t.provider?.earnings || "Earnings (month)"}</Text>
+            </View>
           </View>
         </View>
 
-        {/* Pending Requests */}
+        {/* Pending Requests — Enhanced Cards with Send Quote / Decline */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>
-              🔔 {t.provider?.pendingRequests || "Pending Requests"}
+              {t.provider?.pendingRequests || "Pending Requests"}
             </Text>
             <TouchableOpacity
               onPress={() => navigation.navigate("ProviderRequests")}
@@ -247,7 +407,19 @@ export default function ProviderDashboardScreen({ navigation }: any) {
             </TouchableOpacity>
           </View>
 
-          {pendingRequests.map((request) => (
+          {pendingRequests.length === 0 && !loading && (
+            <View style={styles.emptyState}>
+              <MaterialCommunityIcons name="clipboard-check-outline" size={48} color="#d1d5db" />
+              <Text style={styles.emptyTitle}>
+                {t.provider?.noRequestsYet || 'No pending requests'}
+              </Text>
+              <Text style={styles.emptySubtitle}>
+                {t.provider?.noRequestsDesc || 'New service requests from customers in your area will appear here.'}
+              </Text>
+            </View>
+          )}
+
+          {pendingRequests.slice(0, 3).map((request) => (
             <TouchableOpacity
               key={request.id}
               style={styles.requestCard}
@@ -261,11 +433,11 @@ export default function ProviderDashboardScreen({ navigation }: any) {
               <View style={styles.requestHeader}>
                 <View style={styles.requestInfo}>
                   <View style={styles.requestTitleRow}>
-                    <Text style={styles.requestTitle}>{request.title}</Text>
+                    <Text style={styles.requestTitle} numberOfLines={1}>{request.title}</Text>
                     {request.isUrgent && (
                       <View style={styles.urgentBadge}>
                         <Text style={styles.urgentText}>
-                          🚨 {t.provider?.urgent || "Urgent"}
+                          {t.provider?.urgent || "Urgent"}
                         </Text>
                       </View>
                     )}
@@ -274,6 +446,28 @@ export default function ProviderDashboardScreen({ navigation }: any) {
                 </View>
                 <Text style={styles.requestTime}>{request.timeAgo}</Text>
               </View>
+
+              {/* Distance + Quotes info */}
+              <View style={styles.requestMeta}>
+                {request.distanceMiles !== undefined && (
+                  <View style={styles.metaChip}>
+                    <MaterialCommunityIcons name="map-marker-distance" size={13} color="#6b7280" />
+                    <Text style={styles.metaChipText}>{request.distanceMiles.toFixed(1)} mi</Text>
+                  </View>
+                )}
+                {request.quotesCount !== undefined && (
+                  <View style={styles.metaChip}>
+                    <MaterialCommunityIcons name="file-document-outline" size={13} color="#6b7280" />
+                    <Text style={styles.metaChipText}>{request.quotesCount} {t.provider?.quotesSubmitted || 'quotes'}</Text>
+                  </View>
+                )}
+                {request.serviceType && (
+                  <View style={[styles.metaChip, { backgroundColor: '#ede9fe' }]}>
+                    <Text style={[styles.metaChipText, { color: '#7c3aed' }]}>{request.serviceType}</Text>
+                  </View>
+                )}
+              </View>
+
               <View style={styles.requestFooter}>
                 <View style={styles.locationRow}>
                   <MaterialCommunityIcons
@@ -289,11 +483,22 @@ export default function ProviderDashboardScreen({ navigation }: any) {
                         : (t.provider?.atShop || 'At Shop')}
                   </Text>
                 </View>
-                <MaterialCommunityIcons
-                  name="chevron-right"
-                  size={20}
-                  color="#9ca3af"
-                />
+                {/* Quick action buttons */}
+                <View style={styles.requestActions}>
+                  <TouchableOpacity
+                    style={styles.sendQuoteBtn}
+                    onPress={(e) => {
+                      e.stopPropagation?.();
+                      navigation.navigate("ProviderRequests", {
+                        screen: "ProviderRequestDetails",
+                        params: { requestId: request.id, action: 'quote' },
+                      });
+                    }}
+                  >
+                    <MaterialCommunityIcons name="send" size={14} color="#fff" />
+                    <Text style={styles.sendQuoteBtnText}>{t.provider?.sendQuote || 'Quote'}</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </TouchableOpacity>
           ))}
@@ -302,8 +507,17 @@ export default function ProviderDashboardScreen({ navigation }: any) {
         {/* Recent Activity */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            📊 {t.provider?.recentActivity || "Recent Activity"}
+            {t.provider?.recentActivity || "Recent Activity"}
           </Text>
+
+          {recentActivity.length === 0 && !loading && (
+            <View style={styles.emptyState}>
+              <MaterialCommunityIcons name="history" size={40} color="#d1d5db" />
+              <Text style={styles.emptySubtitle}>
+                {t.provider?.noActivityYet || 'Your activity feed will appear here as you process requests.'}
+              </Text>
+            </View>
+          )}
 
           {recentActivity.map((activity) => {
             const iconInfo = getActivityIcon(activity.type);
@@ -340,158 +554,34 @@ export default function ProviderDashboardScreen({ navigation }: any) {
           })}
         </View>
 
-        {/* Quick Actions */}
+        {/* Quick Actions — only high-value, non-redundant with tab bar */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            ⚡ {t.provider?.quickActions || "Quick Actions"}
+            {t.provider?.quickActions || "Quick Actions"}
           </Text>
           <View style={styles.actionsGrid}>
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => navigation.navigate("ProviderRequests")}
-            >
-              <View style={[styles.actionIcon, { backgroundColor: "#dbeafe" }]}>
-                <MaterialCommunityIcons
-                  name="clipboard-list"
-                  size={24}
-                  color="#3b82f6"
-                />
-              </View>
-              <Text style={styles.actionText}>
-                {t.provider?.viewRequests || "View Requests"}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => navigation.navigate("ProviderWorkOrders")}
-            >
-              <View style={[styles.actionIcon, { backgroundColor: "#fef3c7" }]}>
-                <MaterialCommunityIcons
-                  name="toolbox"
-                  size={24}
-                  color="#f59e0b"
-                />
-              </View>
-              <Text style={styles.actionText}>
-                {t.provider?.myServices || "My Services"}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => navigation.navigate("ProviderQuotes")}
-            >
-              <View style={[styles.actionIcon, { backgroundColor: "#ede9fe" }]}>
-                <MaterialCommunityIcons
-                  name="file-document-outline"
-                  size={24}
-                  color="#8b5cf6"
-                />
-              </View>
-              <Text style={styles.actionText}>
-                {t.provider?.quotes || "Quotes"}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => navigation.navigate("ChatList")}
-            >
-              <View style={[styles.actionIcon, { backgroundColor: "#dcfce7" }]}>
-                <MaterialCommunityIcons
-                  name="chat"
-                  size={24}
-                  color="#16a34a"
-                />
-              </View>
-              <Text style={styles.actionText}>
-                {"Messages"}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => navigation.navigate("ProviderProfile")}
-            >
-              <View style={[styles.actionIcon, { backgroundColor: "#f3f4f6" }]}>
-                <MaterialCommunityIcons name="cog" size={24} color="#6b7280" />
-              </View>
-              <Text style={styles.actionText}>
-                {t.provider?.settings || "Settings"}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => navigation.navigate("Appointments")}
-            >
-              <View style={[styles.actionIcon, { backgroundColor: "#dbeafe" }]}>
-                <MaterialCommunityIcons
-                  name="calendar-clock"
-                  size={24}
-                  color="#2563eb"
-                />
-              </View>
-              <Text style={styles.actionText}>
-                {t.fdacs?.appointments || "Appointments"}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() =>
-                navigation.navigate("ProviderWorkOrders", {
-                  screen: "RepairInvoices",
-                })
-              }
-            >
-              <View style={[styles.actionIcon, { backgroundColor: "#fef3c7" }]}>
-                <MaterialCommunityIcons
-                  name="file-document-check"
-                  size={24}
-                  color="#d97706"
-                />
-              </View>
-              <Text style={styles.actionText}>
-                {t.fdacs?.repairInvoices || "Invoices"}
-              </Text>
-            </TouchableOpacity>
+            {getQuickActions().map((qa, idx) => (
+              <TouchableOpacity
+                key={idx}
+                style={styles.actionButton}
+                onPress={qa.action}
+              >
+                <View style={[styles.actionIcon, { backgroundColor: qa.bg }]}>
+                  <MaterialCommunityIcons
+                    name={qa.icon as any}
+                    size={24}
+                    color={qa.color}
+                  />
+                </View>
+                <Text style={styles.actionText}>{qa.label}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
 
         <View style={{ height: 30 }} />
       </ScrollView>
     </SafeAreaView>
-  );
-}
-
-// Componente StatCard
-function StatCard({
-  icon,
-  iconBg,
-  iconColor,
-  label,
-  value,
-}: {
-  icon: string;
-  iconBg: string;
-  iconColor: string;
-  label: string;
-  value: string | number;
-}) {
-  return (
-    <View style={styles.statCard}>
-      <View style={[styles.statIcon, { backgroundColor: iconBg }]}>
-        <MaterialCommunityIcons
-          name={icon as any}
-          size={24}
-          color={iconColor}
-        />
-      </View>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
   );
 }
 
@@ -551,6 +641,140 @@ const styles = StyleSheet.create({
     backgroundColor: "#ef4444",
     borderWidth: 2,
     borderColor: "#1976d2",
+  },
+  businessBadgeRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 10,
+  },
+  businessBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  businessBadgeText: {
+    fontSize: 11,
+    color: '#fff',
+    fontWeight: '600',
+  },
+  onboardingContainer: {
+    margin: 16,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#e0e7ff',
+  },
+  onboardingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  onboardingTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#1f2937',
+  },
+  onboardingSubtitle: {
+    fontSize: 13,
+    color: '#6b7280',
+    marginTop: 2,
+  },
+  progressBarBg: {
+    height: 6,
+    backgroundColor: '#e5e7eb',
+    borderRadius: 3,
+    marginBottom: 14,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#1976d2',
+    borderRadius: 3,
+  },
+  checklistItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#f3f4f6',
+    gap: 10,
+  },
+  checklistLabel: {
+    flex: 1,
+    fontSize: 14,
+    color: '#374151',
+  },
+  checklistLabelDone: {
+    color: '#9ca3af',
+    textDecorationLine: 'line-through',
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  emptySubtitle: {
+    fontSize: 13,
+    color: '#9ca3af',
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  requestMeta: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 10,
+  },
+  metaChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#f3f4f6',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  metaChipText: {
+    fontSize: 11,
+    color: '#6b7280',
+    fontWeight: '500',
+  },
+  requestActions: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  sendQuoteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#1976d2',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+  },
+  sendQuoteBtnText: {
+    fontSize: 12,
+    color: '#fff',
+    fontWeight: '600',
   },
   ratingContainer: {
     flexDirection: "row",

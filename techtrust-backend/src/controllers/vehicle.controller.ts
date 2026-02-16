@@ -237,8 +237,15 @@ export const getVehicle = async (req: Request, res: Response) => {
 export const updateVehicle = async (req: Request, res: Response) => {
   const userId = req.user!.id;
   const { vehicleId } = req.params;
-  const { plateNumber, vin, make, model, year, color, currentMileage } =
-    req.body;
+  const {
+    plateNumber, vin, make, model, year, color, currentMileage,
+    vehicleType, fuelType, engineType, bodyType, trim, driveType,
+    numberOfRows, seatingCapacity, countryOfManufacturer, category,
+    vinDecoded, photoUrl,
+  } = req.body;
+
+  // Map vehicleType → bodyType if bodyType not explicitly provided
+  const resolvedBodyType = bodyType || vehicleType || undefined;
 
   // Verificar se veículo pertence ao usuário
   const existingVehicle = await prisma.vehicle.findFirst({
@@ -289,6 +296,17 @@ export const updateVehicle = async (req: Request, res: Response) => {
         currentMileage: currentMileage ? parseInt(currentMileage) : null,
         lastMileageUpdate: new Date(),
       }),
+      ...(resolvedBodyType !== undefined && { bodyType: resolvedBodyType }),
+      ...(fuelType !== undefined && { fuelType }),
+      ...(engineType !== undefined && { engineType }),
+      ...(trim !== undefined && { trim }),
+      ...(driveType !== undefined && { driveType }),
+      ...(numberOfRows !== undefined && { numberOfRows: numberOfRows ? parseInt(numberOfRows) : null }),
+      ...(seatingCapacity !== undefined && { seatingCapacity: seatingCapacity ? parseInt(seatingCapacity) : null }),
+      ...(countryOfManufacturer !== undefined && { countryOfManufacturer }),
+      ...(category !== undefined && { category }),
+      ...(vinDecoded !== undefined && { vinDecoded: !!vinDecoded }),
+      ...(photoUrl !== undefined && { photoUrl }),
     },
   });
 

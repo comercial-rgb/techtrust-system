@@ -106,6 +106,22 @@ export const CITIES_BY_STATE: Record<string, string[]> = {
 };
 
 /**
+ * Active states where TechTrust has providers.
+ * Used to sort state dropdowns and show "Coming Soon" badges.
+ */
+export const ACTIVE_STATES: string[] = ['FL'];
+
+/** Whether a state is active (has providers) */
+export const isActiveState = (stateCode: string): boolean =>
+  ACTIVE_STATES.includes(stateCode);
+
+/** States sorted: active first, then alphabetical */
+export const SORTED_STATE_CODES = [
+  ...STATE_CODES.filter((c) => ACTIVE_STATES.includes(c)),
+  ...STATE_CODES.filter((c) => !ACTIVE_STATES.includes(c)),
+];
+
+/**
  * Check if a state has a seeded cities list.
  * States without seeded cities show a free-text input instead of a dropdown.
  */
