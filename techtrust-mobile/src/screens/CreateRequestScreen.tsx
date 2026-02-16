@@ -3332,20 +3332,36 @@ export default function CreateRequestScreen({ navigation }: any) {
                 placeholder="MM/DD/YYYY"
                 value={preferredDate}
                 onChangeText={(text) => {
-                  const cleaned = text.replace(/[^0-9/]/g, '');
-                  if (cleaned.length <= 10) setPreferredDate(cleaned);
+                  // Strip non-digits
+                  const digits = text.replace(/\D/g, '');
+                  // Auto-insert slashes: MM/DD/YYYY
+                  let formatted = '';
+                  for (let i = 0; i < digits.length && i < 8; i++) {
+                    if (i === 2 || i === 4) formatted += '/';
+                    formatted += digits[i];
+                  }
+                  setPreferredDate(formatted);
                 }}
                 keyboardType="number-pad"
+                maxLength={10}
               />
               <TextInput
                 style={[styles.detailInput, { width: 100, marginBottom: 0 }]}
                 placeholder="HH:MM"
                 value={preferredTime}
                 onChangeText={(text) => {
-                  const cleaned = text.replace(/[^0-9:]/g, '');
-                  if (cleaned.length <= 5) setPreferredTime(cleaned);
+                  // Strip non-digits
+                  const digits = text.replace(/\D/g, '');
+                  // Auto-insert colon: HH:MM
+                  let formatted = '';
+                  for (let i = 0; i < digits.length && i < 4; i++) {
+                    if (i === 2) formatted += ':';
+                    formatted += digits[i];
+                  }
+                  setPreferredTime(formatted);
                 }}
                 keyboardType="number-pad"
+                maxLength={5}
               />
             </View>
           )}
@@ -3960,7 +3976,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#eff6ff",
     borderRadius: 12,
     padding: 14,
-    marginBottom: 16,
+    marginTop: 12,
+    marginBottom: 0,
     borderWidth: 1,
     borderColor: "#bfdbfe",
   },

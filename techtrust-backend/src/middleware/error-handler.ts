@@ -63,6 +63,7 @@ export const errorHandler = (
     statusCode = 400;
     errorCode = 'VALIDATION_ERROR';
     message = 'Dados inválidos enviados ao servidor';
+    logger.error(`PrismaClientValidationError details: ${err.message}`);
   }
 
   // Erros de validação

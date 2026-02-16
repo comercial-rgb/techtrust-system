@@ -197,6 +197,38 @@ export const createServiceRequest = async (req: Request, res: Response) => {
     }
   }
 
+  // ===== Safely parse DateTime fields (prevent Invalid Date → PrismaClientValidationError) =====
+  let parsedPreferredDate: Date | null = null;
+  let parsedPreferredTime: Date | null = null;
+  const isAsap = preferredDate === 'ASAP';
+
+  if (preferredDate && !isAsap) {
+    const d = new Date(preferredDate);
+    parsedPreferredDate = isNaN(d.getTime()) ? null : d;
+    if (!parsedPreferredDate) {
+      logger.warn(`Invalid preferredDate value: "${preferredDate}" — setting to null`);
+    }
+  }
+
+  if (preferredTime && typeof preferredTime === 'string' && preferredTime.trim() !== '') {
+    if (preferredTime.includes(':') && preferredTime.length <= 5) {
+      const d = new Date(`1970-01-01T${preferredTime}:00Z`);
+      parsedPreferredTime = isNaN(d.getTime()) ? null : d;
+    } else {
+      const d = new Date(preferredTime);
+      parsedPreferredTime = isNaN(d.getTime()) ? null : d;
+    }
+    if (!parsedPreferredTime) {
+      logger.warn(`Invalid preferredTime value: "${preferredTime}" — setting to null`);
+    }
+  }
+
+  // ===== Safely validate Decimal fields (prevent NaN → PrismaClientValidationError) =====
+  const safeLatitude = (finalLatitude !== null && !isNaN(finalLatitude)) ? finalLatitude : null;
+  const safeLongitude = (finalLongitude !== null && !isNaN(finalLongitude)) ? finalLongitude : null;
+
+  logger.info(`Creating service request: serviceType=${serviceType}, preferredDate=${preferredDate}, preferredTime=${preferredTime}, lat=${safeLatitude}, lng=${safeLongitude}`);
+
   // Criar solicitação
   const serviceRequest = await prisma.serviceRequest.create({
     data: {
@@ -209,20 +241,14 @@ export const createServiceRequest = async (req: Request, res: Response) => {
       serviceScope: serviceScope || null,
       title,
       description,
-      serviceLocationType,
-      customerAddress,
-      serviceLatitude: finalLatitude,
-      serviceLongitude: finalLongitude,
+      serviceLocationType: serviceLocationType || 'IN_SHOP',
+      customerAddress: customerAddress || null,
+      serviceLatitude: safeLatitude,
+      serviceLongitude: safeLongitude,
       locationType: serviceLocationType || null,
-      preferredDate: preferredDate && preferredDate !== 'ASAP'
-        ? new Date(preferredDate)
-        : null,
-      preferredTime: preferredTime
-        ? (preferredTime.includes(':') && preferredTime.length <= 5
-          ? new Date(`1970-01-01T${preferredTime}:00Z`)
-          : new Date(preferredTime))
-        : null,
-      flexibleSchedule: preferredDate === 'ASAP' ? true : false,
+      preferredDate: parsedPreferredDate,
+      preferredTime: parsedPreferredTime,
+      flexibleSchedule: isAsap,
       isUrgent: resolvedIsUrgent,
       status: "SEARCHING_PROVIDERS",
       maxQuotes: 5,
