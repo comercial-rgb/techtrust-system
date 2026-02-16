@@ -285,70 +285,79 @@ export default function PaymentMethodsScreen({ navigation }: any) {
       );
       return;
     }
-
-    setSaving(true);
-    try {
-      // Add funds via backend API (cross-device sync)
-      const response = await api.post("/wallet/add-funds", {
-        amount,
-        method: addBalanceMethod,
-      });
-      const data = response.data?.data;
-
-      if (data) {
-        // Update from server response
-        setWalletBalance(data.balance);
-        // Add new transaction to the beginning of the list
-        if (data.transaction) {
-          setRecentTransactions((prev) => [data.transaction, ...prev]);
-        }
-        // Cache locally
-        await AsyncStorage.setItem(WALLET_BALANCE_KEY, String(data.balance));
-      }
-
-      setShowAddBalanceModal(false);
+    if (amount > 1000) {
       Alert.alert(
-        t.common?.success || "Success",
-        `${t.customer?.balanceAdded || "Balance added"}: $${amount.toFixed(2)}`,
+        t.common?.error || "Error",
+        "Maximum amount is $1,000.00 per transaction.",
       );
-    } catch (err: any) {
-      // Fallback to local if API fails
-      console.log("Wallet API error, saving locally:", err);
-      const newBalance = walletBalance + amount;
-      setWalletBalance(newBalance);
-      await AsyncStorage.setItem(WALLET_BALANCE_KEY, newBalance.toString());
-
-      const methodName =
-        addBalanceMethod === "card"
-          ? t.customer?.balanceAddedViaCard || "Balance added via card"
-          : addBalanceMethod === "pix"
-            ? t.customer?.balanceAddedViaPix || "Balance added via PIX"
-            : t.customer?.balanceAddedViaTransfer ||
-              "Balance added via transfer";
-
-      const newTransaction = {
-        id: Date.now().toString(),
-        type: "credit" as const,
-        amount: amount,
-        description: methodName,
-        date: new Date().toISOString().split("T")[0],
-      };
-
-      const updatedTransactions = [newTransaction, ...recentTransactions];
-      setRecentTransactions(updatedTransactions);
-      await AsyncStorage.setItem(
-        TRANSACTIONS_KEY,
-        JSON.stringify(updatedTransactions),
-      );
-
-      setShowAddBalanceModal(false);
-      Alert.alert(
-        t.common?.success || "Success",
-        `${t.customer?.balanceAdded || "Balance added"}: $${amount.toFixed(2)}`,
-      );
-    } finally {
-      setSaving(false);
+      return;
     }
+
+    // For card payments, validate a card exists
+    if (addBalanceMethod === "card") {
+      const cardMethods = paymentMethods.filter(
+        (pm) => pm.type === "credit" || pm.type === "debit",
+      );
+      if (cardMethods.length === 0) {
+        Alert.alert(
+          t.common?.error || "Error",
+          "Please add a credit or debit card first.",
+        );
+        return;
+      }
+    }
+
+    // Find card info for the confirmation dialog
+    const defaultCard = paymentMethods.find((pm) => pm.isDefault && (pm.type === "credit" || pm.type === "debit"))
+      || paymentMethods.find((pm) => pm.type === "credit" || pm.type === "debit");
+    const cardLabel = defaultCard
+      ? `${defaultCard.brand || defaultCard.type} ****${defaultCard.lastFour || "****"}`
+      : "card";
+
+    // Confirmation dialog
+    Alert.alert(
+      "Confirm Payment",
+      `You're adding $${amount.toFixed(2)} using ${addBalanceMethod === "card" ? cardLabel : addBalanceMethod.toUpperCase()}. Confirm?`,
+      [
+        { text: t.common?.cancel || "Cancel", style: "cancel" },
+        {
+          text: t.common?.confirm || "Confirm",
+          onPress: async () => {
+            setSaving(true);
+            try {
+              const response = await api.post("/wallet/add-funds", {
+                amount,
+                method: addBalanceMethod,
+                paymentMethodId: defaultCard?.id || undefined,
+              });
+              const data = response.data?.data;
+
+              if (data) {
+                setWalletBalance(data.balance);
+                if (data.transaction) {
+                  setRecentTransactions((prev) => [data.transaction, ...prev]);
+                }
+                await AsyncStorage.setItem(WALLET_BALANCE_KEY, String(data.balance));
+              }
+
+              setShowAddBalanceModal(false);
+              setAddBalanceAmount("");
+              Alert.alert(
+                t.common?.success || "Success",
+                `$${amount.toFixed(2)} added. New balance: $${(data?.balance || walletBalance + amount).toFixed(2)}`,
+              );
+            } catch (err: any) {
+              const message = err?.response?.data?.message
+                || t.common?.tryAgain
+                || "Payment failed. Please try again.";
+              Alert.alert(t.common?.error || "Error", message);
+            } finally {
+              setSaving(false);
+            }
+          },
+        },
+      ],
+    );
   };
 
   const handleSave = async () => {
@@ -1039,18 +1048,43 @@ export default function PaymentMethodsScreen({ navigation }: any) {
               <Text style={styles.inputLabel}>
                 {t.customer?.paymentMethod || "Payment Method"}
               </Text>
+
+              {/* Show saved card info when card is selected */}
+              {addBalanceMethod === "card" && (() => {
+                const defaultCard = paymentMethods.find((pm) => pm.isDefault && (pm.type === "credit" || pm.type === "debit"))
+                  || paymentMethods.find((pm) => pm.type === "credit" || pm.type === "debit");
+                return defaultCard ? (
+                  <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: "#f0f9ff", padding: 12, borderRadius: 10, marginBottom: 12, borderWidth: 1, borderColor: "#bfdbfe" }}>
+                    <Ionicons name="card" size={20} color="#1976d2" />
+                    <Text style={{ flex: 1, marginLeft: 10, fontSize: 14, color: "#1e3a5f", fontWeight: "500" }}>
+                      {defaultCard.brand || "Card"} •••• {defaultCard.lastFour || "****"}
+                    </Text>
+                    <Ionicons name="checkmark-circle" size={18} color="#10b981" />
+                  </View>
+                ) : (
+                  <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: "#fef3c7", padding: 12, borderRadius: 10, marginBottom: 12, borderWidth: 1, borderColor: "#fcd34d" }}>
+                    <Ionicons name="warning" size={18} color="#d97706" />
+                    <Text style={{ flex: 1, marginLeft: 10, fontSize: 13, color: "#92400e" }}>
+                      No card on file. Please add a card first.
+                    </Text>
+                  </View>
+                );
+              })()}
+
               <View style={styles.balanceMethodOptions}>
                 {[
                   {
                     type: "card" as const,
                     label: t.customer?.creditDebitCard || "Credit/Debit Card",
                     icon: "card",
+                    available: true,
                   },
-                  { type: "pix" as const, label: "PIX", icon: "qr-code" },
+                  { type: "pix" as const, label: "PIX", icon: "qr-code", available: false },
                   {
                     type: "transfer" as const,
                     label: t.customer?.bankTransfer || "Bank Transfer",
                     icon: "swap-horizontal",
+                    available: false,
                   },
                 ].map((option) => (
                   <TouchableOpacity
@@ -1059,8 +1093,20 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                       styles.balanceMethodOption,
                       addBalanceMethod === option.type &&
                         styles.balanceMethodOptionActive,
+                      !option.available && { opacity: 0.5 },
                     ]}
-                    onPress={() => setAddBalanceMethod(option.type)}
+                    onPress={() => {
+                      if (!option.available) {
+                        Alert.alert(
+                          "Coming Soon",
+                          option.type === "pix"
+                            ? "PIX payments are coming soon. Please use a credit or debit card."
+                            : "Bank transfers take 1-3 business days that aren't instant. Please use a credit or debit card for instant top-ups.",
+                        );
+                        return;
+                      }
+                      setAddBalanceMethod(option.type);
+                    }}
                   >
                     <Ionicons
                       name={option.icon as any}
@@ -1078,36 +1124,12 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                     >
                       {option.label}
                     </Text>
+                    {!option.available && (
+                      <Text style={{ fontSize: 10, color: "#9ca3af", fontWeight: "600" }}>SOON</Text>
+                    )}
                   </TouchableOpacity>
                 ))}
               </View>
-
-              {addBalanceMethod === "pix" && (
-                <View style={styles.pixInstructions}>
-                  <View style={styles.pixQRPlaceholder}>
-                    <Ionicons name="qr-code" size={80} color="#1976d2" />
-                    <Text style={styles.pixQRText}>
-                      {t.customer?.scanQRCode || "Scan QR Code"}
-                    </Text>
-                  </View>
-                  <Text style={styles.pixNote}>
-                    {t.customer?.pixNote ||
-                      "Balance will be added automatically after payment confirmation."}
-                  </Text>
-                </View>
-              )}
-
-              {addBalanceMethod === "transfer" && (
-                <View style={styles.transferInstructions}>
-                  <Text style={styles.transferTitle}>
-                    {t.customer?.bankDetails || "Bank Details"}
-                  </Text>
-                  <Text style={styles.transferNote}>
-                    {t.customer?.transferNote ||
-                      "Please contact support for bank transfer details. Balance typically credited within 1-2 business days."}
-                  </Text>
-                </View>
-              )}
 
               <TouchableOpacity
                 style={[styles.saveButton, saving && styles.saveButtonDisabled]}

@@ -447,38 +447,31 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
           {serviceDetails.length > 0 && (
             <View style={s.kvSection}>
               <Text style={s.kvSectionTitle}>{td.serviceDetails || "Service Details"}</Text>
-              {serviceDetails.map((item, i) => (
-                <View key={i}>
-                  <View style={s.kvRow}>
-                    <Text style={s.kvLabel}>{item.label || td.note || "Note"}</Text>
-                    <Text style={s.kvValue}>{item.value}</Text>
+              {serviceDetails.map((item, i) => {
+                const isFilter = /filter/i.test(item.label);
+                return (
+                  <View key={i}>
+                    <View style={s.kvRow}>
+                      <Text style={s.kvLabel}>{item.label || td.note || "Note"}</Text>
+                      {isFilter ? (
+                        <View style={{ flex: 1.5, flexDirection: "row", flexWrap: "wrap", justifyContent: "flex-end", gap: 6 }}>
+                          {item.value.split(",").map((f: string, fi: number) => (
+                            <View key={fi} style={s.chip}>
+                              <Ionicons name="funnel" size={12} color="#1976d2" />
+                              <Text style={s.chipText}>{f.trim()}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      ) : (
+                        <Text style={s.kvValue}>{item.value}</Text>
+                      )}
+                    </View>
+                    {i < serviceDetails.length - 1 && <View style={s.kvDivider} />}
                   </View>
-                  {i < serviceDetails.length - 1 && <View style={s.kvDivider} />}
-                </View>
-              ))}
+                );
+              })}
             </View>
           )}
-
-          {/* Filters as chips */}
-          {request?.description?.includes("Filter") && (() => {
-            const m = request.description.match(/Filters?\s*(?:to\s*Replace)?:?\s*([^|]+)/i);
-            if (!m) return null;
-            const filters = m[1].split(",").map((f: string) => f.trim()).filter(Boolean);
-            if (!filters.length) return null;
-            return (
-              <View style={s.chipsSection}>
-                <Text style={s.kvSectionTitle}>{td.filtersIncluded || "Filters Included"}</Text>
-                <View style={s.chipsRow}>
-                  {filters.map((f: string, i: number) => (
-                    <View key={i} style={s.chip}>
-                      <Ionicons name="funnel" size={12} color="#1976d2" />
-                      <Text style={s.chipText}>{f}</Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            );
-          })()}
 
           {/* Additional info */}
           <View style={s.kvSection}>

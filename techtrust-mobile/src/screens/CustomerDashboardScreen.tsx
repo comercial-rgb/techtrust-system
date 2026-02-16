@@ -337,12 +337,11 @@ export default function CustomerDashboardScreen({ navigation }: any) {
               </TouchableOpacity>
               <Image source={logos.noText} style={styles.headerLogo} />
               <View style={styles.headerTextContainer}>
-                <Text style={styles.greeting}>
-                  {getTimeGreeting(t)}, {user?.fullName?.split(" ")[0]}!
+                <Text style={styles.greetingLine} numberOfLines={1}>
+                  {getTimeGreeting(t)},
                 </Text>
-                <Text style={styles.subtitle} numberOfLines={1}>
-                  {t.customerDashboard?.howCanWeHelp ||
-                    "How can we help you today?"}
+                <Text style={styles.greeting} numberOfLines={1}>
+                  {user?.fullName?.split(" ")[0]}!
                 </Text>
               </View>
             </View>
@@ -1414,15 +1413,15 @@ const styles = StyleSheet.create({
   headerTextContainer: {
     flex: 1,
   },
+  greetingLine: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#6b7280",
+  },
   greeting: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "700",
     color: "#111827",
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: "#6b7280",
   },
   headerRight: {
     flexDirection: "row",

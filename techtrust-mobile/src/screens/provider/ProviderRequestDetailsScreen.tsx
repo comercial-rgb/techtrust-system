@@ -576,31 +576,53 @@ export default function ProviderRequestDetailsScreen({
               return true;
             });
             const metaItems = metaPart.split(' | ').filter((s: string) => s.trim());
+            if (uniqueItems.length === 0 && metaItems.length === 0) return null;
             return (
-              <View style={{ marginTop: 8 }}>
+              <View style={{ marginTop: 12, backgroundColor: '#f8fafc', borderRadius: 12, padding: 14 }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>
+                  Service Details
+                </Text>
                 {uniqueItems.map((item: string, i: number) => {
                   const colonIdx = item.indexOf(':');
                   if (colonIdx === -1) return <Text key={i} style={styles.description}>{item}</Text>;
                   const key = item.substring(0, colonIdx).trim();
                   const val = item.substring(colonIdx + 1).trim();
+                  // Render filters as chips
+                  const isFilter = /filter/i.test(key);
                   return (
-                    <View key={i} style={{ flexDirection: 'row', marginBottom: 4, paddingHorizontal: 4 }}>
-                      <Text style={{ fontSize: 13, color: '#6b7280', width: 120 }}>{key}</Text>
-                      <Text style={{ fontSize: 13, color: '#111827', fontWeight: '500', flex: 1 }}>{val}</Text>
+                    <View key={i}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingVertical: 8 }}>
+                        <Text style={{ fontSize: 13, color: '#6b7280', flex: 1, marginRight: 12 }}>{key}</Text>
+                        {isFilter ? (
+                          <View style={{ flex: 1.5, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 6 }}>
+                            {val.split(',').map((f: string, fi: number) => (
+                              <View key={fi} style={{ backgroundColor: '#dbeafe', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 16 }}>
+                                <Text style={{ fontSize: 12, color: '#1976d2', fontWeight: '500' }}>{f.trim()}</Text>
+                              </View>
+                            ))}
+                          </View>
+                        ) : (
+                          <Text style={{ fontSize: 14, color: '#111827', fontWeight: '600', flex: 1.5, textAlign: 'right' }}>{val}</Text>
+                        )}
+                      </View>
+                      {i < uniqueItems.length - 1 && <View style={{ height: 1, backgroundColor: '#e5e7eb' }} />}
                     </View>
                   );
                 })}
                 {metaItems.length > 0 && (
-                  <View style={{ borderTopWidth: 1, borderTopColor: '#f3f4f6', marginTop: 6, paddingTop: 6 }}>
+                  <View style={{ borderTopWidth: 1, borderTopColor: '#e5e7eb', marginTop: 6, paddingTop: 6 }}>
                     {metaItems.map((item: string, i: number) => {
                       const colonIdx = item.indexOf(':');
                       if (colonIdx === -1) return null;
                       const key = item.substring(0, colonIdx).trim();
                       const val = item.substring(colonIdx + 1).trim();
                       return (
-                        <View key={`m-${i}`} style={{ flexDirection: 'row', marginBottom: 4, paddingHorizontal: 4 }}>
-                          <Text style={{ fontSize: 13, color: '#6b7280', width: 120 }}>{key}</Text>
-                          <Text style={{ fontSize: 13, color: '#111827', fontWeight: '500', flex: 1 }}>{val}</Text>
+                        <View key={`m-${i}`}>
+                          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingVertical: 8 }}>
+                            <Text style={{ fontSize: 13, color: '#6b7280', flex: 1, marginRight: 12 }}>{key}</Text>
+                            <Text style={{ fontSize: 14, color: '#111827', fontWeight: '600', flex: 1.5, textAlign: 'right' }}>{val}</Text>
+                          </View>
+                          {i < metaItems.length - 1 && <View style={{ height: 1, backgroundColor: '#e5e7eb' }} />}
                         </View>
                       );
                     })}
@@ -1114,47 +1136,6 @@ export default function ProviderRequestDetailsScreen({
                       )}
                     </View>
                   </View>
-
-                  {/* Parts | Labor columns from description */}
-                  {request.description && (
-                    <View style={styles.partsLaborContainer}>
-                      <View style={styles.partsLaborColumn}>
-                        <Text style={styles.partsLaborHeader}>{t.quote?.parts || "Parts"}</Text>
-                        {(() => {
-                          const desc = request.description.split('\n---\n')[0] || request.description;
-                          // Parse pipe-separated key-value pairs and deduplicate
-                          const items = desc.split(' | ').filter((s: string) => s.trim());
-                          const seen = new Set<string>();
-                          const unique = items.filter((item: string) => {
-                            const key = item.split(':')[0]?.trim();
-                            if (seen.has(key)) return false;
-                            seen.add(key);
-                            return true;
-                          });
-                          return unique.length > 0 ? unique.map((item: string, i: number) => {
-                            const colonIdx = item.indexOf(':');
-                            const label = colonIdx > -1 ? item.substring(colonIdx + 1).trim() : item.trim();
-                            return (
-                              <View key={`p-${i}`} style={styles.partsLaborItem}>
-                                <MaterialCommunityIcons name="circle-small" size={16} color="#6b7280" />
-                                <Text style={styles.partsLaborItemText}>{label}</Text>
-                              </View>
-                            );
-                          }) : (
-                            <Text style={styles.partsLaborEmpty}>—</Text>
-                          );
-                        })()}
-                      </View>
-                      <View style={styles.partsLaborDivider} />
-                      <View style={styles.partsLaborColumn}>
-                        <Text style={styles.partsLaborHeader}>{t.quote?.labor || "Labor"}</Text>
-                        <View style={styles.partsLaborItem}>
-                          <MaterialCommunityIcons name="circle-small" size={16} color="#6b7280" />
-                          <Text style={styles.partsLaborItemText}>{request.title}</Text>
-                        </View>
-                      </View>
-                    </View>
-                  )}
 
                   {/* Service scope and location row */}
                   <View style={styles.customerRequestMeta}>

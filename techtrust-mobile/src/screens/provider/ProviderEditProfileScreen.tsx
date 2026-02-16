@@ -31,6 +31,17 @@ export default function ProviderEditProfileScreen({ navigation }: any) {
   const [website, setWebsite] = useState(user?.providerProfile?.website || "");
   const [address, setAddress] = useState(user?.providerProfile?.address || "");
   const [cnpj, setCnpj] = useState(user?.providerProfile?.cpfCnpj || "");
+
+  // Auto-format EIN: XX-XXXXXXX
+  const handleEinChange = (text: string) => {
+    const digits = text.replace(/\D/g, '');
+    let formatted = '';
+    for (let i = 0; i < digits.length && i < 9; i++) {
+      if (i === 2) formatted += '-';
+      formatted += digits[i];
+    }
+    setCnpj(formatted);
+  };
   const [fdacsNumber, setFdacsNumber] = useState(
     user?.providerProfile?.fdacsRegistrationNumber || "",
   );
@@ -55,6 +66,7 @@ export default function ProviderEditProfileScreen({ navigation }: any) {
         email: email.trim(),
         website: website.trim(),
         address: address.trim(),
+        cpfCnpj: cnpj.trim() || undefined,
         fdacsRegistrationNumber: fdacsNumber.trim() || undefined,
       });
       Alert.alert(
@@ -149,13 +161,14 @@ export default function ProviderEditProfileScreen({ navigation }: any) {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>{t.provider?.taxId || "Tax ID"}</Text>
+            <Text style={styles.label}>{t.provider?.taxId || "EIN (Tax ID)"}</Text>
             <TextInput
               style={styles.input}
               value={cnpj}
-              onChangeText={setCnpj}
-              placeholder="00.000.000/0000-00"
+              onChangeText={handleEinChange}
+              placeholder="12-3456789"
               keyboardType="numeric"
+              maxLength={10}
             />
           </View>
 

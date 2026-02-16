@@ -132,7 +132,6 @@ export default function VehicleTransferScreen({ navigation, route }: any) {
               {vehicleInfo?.year} {vehicleInfo?.make} {vehicleInfo?.model}
             </Text>
             <Text style={styles.vehicleVin}>VIN: {vehicleInfo?.vin}</Text>
-            <Text style={styles.vehiclePlate}>Plate: {vehicleInfo?.plateNumber}</Text>
           </View>
         </View>
 
@@ -142,7 +141,7 @@ export default function VehicleTransferScreen({ navigation, route }: any) {
           <View style={styles.warningContent}>
             <Text style={styles.warningTitle}>{t.vehicle?.importantInformation || 'Important Information'}</Text>
             <Text style={styles.warningText}>
-              {t.vehicle?.transferWarning || 'Transferring this vehicle will remove it from your account. The new owner will receive an invitation to accept the transfer.'}
+              {t.vehicle?.transferWarning || 'Transferring this vehicle will remove it from your account. The new owner will receive an invitation to accept the transfer.\n\nNote: Your license plate will not be transferred — in the U.S., plates belong to the owner, not the vehicle. Remember to remove your plate before delivering the vehicle.'}
             </Text>
           </View>
         </View>

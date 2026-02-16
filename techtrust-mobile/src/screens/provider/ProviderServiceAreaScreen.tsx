@@ -60,10 +60,17 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
         .filter(Boolean)
         .join(", ");
       setBaseAddress(addr || user?.city || "");
-      setServiceRadius(profile.serviceRadiusKm || 25);
+      // Convert km to miles for display (1 mi = 1.609 km)
+      const radiusKm = profile.serviceRadiusKm || 25;
+      const radiusMi = Math.round(radiusKm / 1.609);
+      // Snap to nearest available option
+      const miOptions = [5, 10, 15, 20, 25, 35, 50];
+      const snapped = miOptions.reduce((prev, curr) => Math.abs(curr - radiusMi) < Math.abs(prev - radiusMi) ? curr : prev);
+      setServiceRadius(snapped);
       setMobileService(profile.mobileService || false);
       setRoadsideAssistance(profile.roadsideAssistance || false);
-      setFreeKm(String(profile.freeKm || 0));
+      const freeKmVal = profile.freeKm || 0;
+      setFreeKm(String(Math.round(freeKmVal / 1.609)));
       setExtraFeePerKm(String(Number(profile.extraFeePerKm || 0).toFixed(2)));
 
       // Load coverage zones if available
@@ -142,11 +149,12 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
   const handleSave = async () => {
     setSaving(true);
     try {
+      // Convert miles back to km for storage
       await api.patch("/providers/profile", {
-        serviceRadiusKm: serviceRadius,
+        serviceRadiusKm: Math.round(serviceRadius * 1.609),
         mobileService,
         roadsideAssistance,
-        freeKm: Number(freeKm) || 0,
+        freeKm: Math.round((Number(freeKm) || 0) * 1.609),
         extraFeePerKm: Number(extraFeePerKm) || 0,
       });
       Alert.alert(
@@ -165,7 +173,8 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
     }
   };
 
-  const radiusOptions = [5, 10, 15, 20, 25, 30, 50];
+  // Display in miles for US market
+  const radiusOptions = [5, 10, 15, 20, 25, 35, 50];
 
   if (loading) {
     return (
@@ -219,7 +228,7 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
                   "• ON-SITE (Mobile): You travel to customer home/business\n" +
                   "• ROADSIDE: Emergency assistance on highways\n\n" +
                   "Distance is calculated using GPS coordinates (straight line). " +
-                  "Extra fees apply for mobile services beyond free km range.",
+                  "Extra fees apply for mobile services beyond free mile range.",
               [{ text: t.common?.ok || "OK" }],
             );
           }}
@@ -244,7 +253,7 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
             />
             <Text style={styles.mapText}>
               {t.provider?.serviceRadius || "Service Radius"}: {serviceRadius}{" "}
-              km
+              mi
             </Text>
             <Text style={styles.mapSubtext}>
               {coverageZones.filter((z) => z.active).length}{" "}
@@ -302,7 +311,7 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
                       serviceRadius === r && styles.radiusOptionTextActive,
                     ]}
                   >
-                    {r} km
+                    {r} mi
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -383,7 +392,7 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
                 <View style={styles.feeInputRow}>
                   <View style={styles.feeInputGroup}>
                     <Text style={styles.feeInputLabel}>
-                      {t.provider?.freeKm || "Free KM"}
+                      {t.provider?.freeKm || "Free Miles"}
                     </Text>
                     <View style={styles.inputWithUnit}>
                       <TextInput
@@ -392,12 +401,12 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
                         onChangeText={setFreeKm}
                         keyboardType="numeric"
                       />
-                      <Text style={styles.inputUnit}>km</Text>
+                      <Text style={styles.inputUnit}>mi</Text>
                     </View>
                   </View>
                   <View style={styles.feeInputGroup}>
                     <Text style={styles.feeInputLabel}>
-                      {t.provider?.extraKmFee || "Extra KM Fee"}
+                      {t.provider?.extraKmFee || "Extra Mile Fee"}
                     </Text>
                     <View style={styles.inputWithUnit}>
                       <Text style={styles.inputPrefix}>$</Text>
@@ -412,8 +421,8 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
                 </View>
                 <Text style={styles.feeNote}>
                   {t.provider?.firstKmFree || "First"} {freeKm}{" "}
-                  {t.provider?.kmFree || "km free, after"} ${extraFeePerKm}/
-                  {t.provider?.extraKm || "km extra"}
+                  {t.provider?.kmFree || "mi free, after"} ${extraFeePerKm}/
+                  {t.provider?.extraKm || "mi extra"}
                 </Text>
                 <View style={styles.distanceInfo}>
                   <MaterialCommunityIcons
