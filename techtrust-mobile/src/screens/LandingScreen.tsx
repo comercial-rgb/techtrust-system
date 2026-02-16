@@ -287,19 +287,11 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
       const params: any = { radius: 80 };
       if (lat && lng) { params.lat = lat; params.lng = lng; }
       if (selectedService) params.serviceType = selectedService;
+      if (selectedState) params.state = selectedState;
+      if (selectedCity) params.city = selectedCity;
 
       const res = await api.get("/providers/search", { params });
       let found = res.data?.data?.providers || [];
-
-      // Filter by state/city if selected
-      if (selectedState) {
-        found = found.filter((p: any) => p.state === selectedState);
-      }
-      if (selectedCity) {
-        found = found.filter((p: any) =>
-          p.city?.toLowerCase() === selectedCity.toLowerCase()
-        );
-      }
 
       setSearchResults(found);
     } catch {

@@ -298,6 +298,7 @@ export default function CustomerNavigator() {
         }}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
+            e.preventDefault();
             navigation.dispatch(
               CommonActions.reset({
                 index: 0,

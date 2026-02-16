@@ -5,7 +5,7 @@
  * Requires payment method before creating request
  */
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -169,6 +169,7 @@ export default function CreateRequestScreen({ navigation }: any) {
   // Wizard step management
   const [currentStep, setCurrentStep] = useState(1);
   const [asapDate, setAsapDate] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
 
   // Smart Sub-options for service types
   const [showSubOptionsModal, setShowSubOptionsModal] = useState(false);
@@ -1925,11 +1926,13 @@ export default function CreateRequestScreen({ navigation }: any) {
 
   // Handle service type selection with sub-options
   const handleServiceSelect = (serviceId: string, serviceLabel: string) => {
+    // Clear old selections when changing service type
+    setDescription("");
+    setSubOptionSelections({});
     setSelectedService(serviceId);
     setTitle(serviceLabel);
     if (SERVICE_SUB_OPTIONS[serviceId]) {
       setPendingServiceId(serviceId);
-      setSubOptionSelections({});
       setShowSubOptionsModal(true);
     }
   };
@@ -2427,6 +2430,21 @@ export default function CreateRequestScreen({ navigation }: any) {
       Alert.alert(t.common.error, t.createRequest?.selectServiceRequired || "Please select a service type.");
       return false;
     }
+    // If the selected service has sub-options, ensure at least one section was filled
+    if (SERVICE_SUB_OPTIONS[selectedService]) {
+      const sections = SERVICE_SUB_OPTIONS[selectedService].sections;
+      const hasAnySelection = sections.some((section) => {
+        const selected = subOptionSelections[section.id] || [];
+        return selected.length > 0;
+      });
+      if (!hasAnySelection) {
+        Alert.alert(
+          t.common.error,
+          t.createRequest?.selectServiceNeed || "Please select the service details by tapping the service type again.",
+        );
+        return false;
+      }
+    }
     if (!vehicleType) {
       Alert.alert(t.common.error, t.createRequest?.selectVehicleType || "Please select a vehicle type.");
       return false;
@@ -2446,10 +2464,12 @@ export default function CreateRequestScreen({ navigation }: any) {
     if (currentStep === 1 && !validateStep1()) return;
     if (currentStep === 2 && !validateStep2()) return;
     setCurrentStep((prev) => Math.min(prev + 1, 3));
+    scrollRef.current?.scrollTo({ y: 0, animated: true });
   }
 
   function handlePrevStep() {
     setCurrentStep((prev) => Math.max(prev - 1, 1));
+    scrollRef.current?.scrollTo({ y: 0, animated: true });
   }
 
   async function handleSubmit() {
@@ -2747,6 +2767,7 @@ export default function CreateRequestScreen({ navigation }: any) {
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
       >
         <ScrollView
+          ref={scrollRef}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
@@ -4047,7 +4068,7 @@ const styles = StyleSheet.create({
   },
   serviceCard: {
     width: "31%",
-    aspectRatio: 1,
+    paddingVertical: 14,
     backgroundColor: "#fff",
     borderRadius: 12,
     justifyContent: "center",

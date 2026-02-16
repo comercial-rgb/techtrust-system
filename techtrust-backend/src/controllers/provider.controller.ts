@@ -388,37 +388,41 @@ export const updateProfile = async (req: Request, res: Response) => {
 
 /**
  * GET /api/v1/providers/search
- * Buscar providers por localização e raio
- * Query params: lat, lng, radius (km), serviceType
+ * Buscar providers por localização e raio, ou por state/city/serviceType
+ * Query params: lat, lng, radius (km), serviceType, state, city
  */
 export const searchProvidersByLocation = async (
   req: Request,
   res: Response,
 ): Promise<void> => {
-  const { lat, lng, radius = 50, serviceType } = req.query;
+  const { lat, lng, radius = 50, serviceType, state, city } = req.query;
 
-  if (!lat || !lng) {
-    res.status(400).json({
-      success: false,
-      message: "Latitude e longitude são obrigatórios",
-    });
-    return;
+  const hasCoordinates = lat && lng;
+
+  // Build Prisma where clause
+  const whereClause: any = {
+    user: {
+      status: "ACTIVE",
+    },
+  };
+
+  // Only require coordinates when doing radius search
+  if (hasCoordinates) {
+    whereClause.baseLatitude = { not: null };
+    whereClause.baseLongitude = { not: null };
   }
 
-  const latitude = parseFloat(lat as string);
-  const longitude = parseFloat(lng as string);
-  const radiusKm = parseFloat(radius as string);
+  // Filter by state/city at DB level when provided
+  if (state) {
+    whereClause.state = String(state);
+  }
+  if (city) {
+    whereClause.city = { equals: String(city), mode: 'insensitive' };
+  }
 
-  // Buscar todos os providers ativos com coordenadas
-  // Note: isVerified filter relaxed to include all active providers in early marketplace
+  // Buscar providers ativos
   const providers = await prisma.providerProfile.findMany({
-    where: {
-      baseLatitude: { not: null },
-      baseLongitude: { not: null },
-      user: {
-        status: "ACTIVE",
-      },
-    },
+    where: whereClause,
     include: {
       user: {
         select: {
@@ -446,55 +450,83 @@ export const searchProvidersByLocation = async (
       })
     : providers;
 
-  // Transformar para formato esperado pela função
-  // Use customer's search radius as a fallback when provider's own radius is too restrictive
-  const mappedProviders = filteredByService.map((p) => ({
-    ...p,
-    baseLocation: {
-      latitude: Number(p.baseLatitude),
-      longitude: Number(p.baseLongitude),
-    },
-    serviceRadiusKm: Math.max(Number(p.serviceRadiusKm) || radiusKm, radiusKm),
-    freeKm: Number(p.freeKm),
-    feePerKm: Number(p.extraFeePerKm),
-  }));
+  if (hasCoordinates) {
+    // Radius-based search with distance calculation
+    const latitude = parseFloat(lat as string);
+    const longitude = parseFloat(lng as string);
+    const radiusKm = parseFloat(radius as string);
 
-  // Filtrar e ordenar por distância
-  const serviceLocation = { latitude, longitude };
-  const providersWithDistance = findProvidersWithinRadius(
-    serviceLocation,
-    mappedProviders,
-  );
+    const mappedProviders = filteredByService.map((p) => ({
+      ...p,
+      baseLocation: {
+        latitude: Number(p.baseLatitude),
+        longitude: Number(p.baseLongitude),
+      },
+      serviceRadiusKm: Math.max(Number(p.serviceRadiusKm) || radiusKm, radiusKm),
+      freeKm: Number(p.freeKm),
+      feePerKm: Number(p.extraFeePerKm),
+    }));
 
-  // Enriquecer resultado com dados adicionais (protect provider data - only business name)
-  const enrichedProviders = providersWithDistance.map((item) => ({
-    id: item.id,
-    userId: item.userId,
-    businessName: item.businessName,
-    city: item.city,
-    state: item.state,
-    serviceRadiusKm: item.serviceRadiusKm,
-    averageRating: item.averageRating,
-    totalReviews: item.totalReviews,
-    servicesOffered: item.servicesOffered,
-    distance: {
-      distanceKm: item.distanceInfo.distanceKm,
-      distanceMiles: item.distanceInfo.distanceMiles,
-      withinRadius: item.distanceInfo.withinRadius,
-      estimatedTimeMinutes: item.distanceInfo.estimatedTimeMinutes,
-    },
-    travelFee: item.distanceInfo.travelFee,
-  }));
+    const serviceLocation = { latitude, longitude };
+    const providersWithDistance = findProvidersWithinRadius(
+      serviceLocation,
+      mappedProviders,
+    );
 
-  res.json({
-    success: true,
-    data: {
-      providers: enrichedProviders,
-      searchLocation: { latitude, longitude },
-      searchRadius: radiusKm,
-      totalFound: enrichedProviders.length,
-    },
-  });
+    const enrichedProviders = providersWithDistance.map((item) => ({
+      id: item.id,
+      userId: item.userId,
+      businessName: item.businessName,
+      city: item.city,
+      state: item.state,
+      serviceRadiusKm: item.serviceRadiusKm,
+      averageRating: item.averageRating,
+      totalReviews: item.totalReviews,
+      servicesOffered: item.servicesOffered,
+      distance: {
+        distanceKm: item.distanceInfo.distanceKm,
+        distanceMiles: item.distanceInfo.distanceMiles,
+        withinRadius: item.distanceInfo.withinRadius,
+        estimatedTimeMinutes: item.distanceInfo.estimatedTimeMinutes,
+      },
+      travelFee: item.distanceInfo.travelFee,
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        providers: enrichedProviders,
+        searchLocation: { latitude, longitude },
+        searchRadius: radiusKm,
+        totalFound: enrichedProviders.length,
+      },
+    });
+  } else {
+    // No coordinates — return providers filtered by state/city/serviceType only
+    const enrichedProviders = filteredByService.map((p) => ({
+      id: p.id,
+      userId: p.userId,
+      businessName: p.businessName,
+      city: p.city,
+      state: p.state,
+      serviceRadiusKm: Number(p.serviceRadiusKm),
+      averageRating: p.averageRating,
+      totalReviews: p.totalReviews,
+      servicesOffered: p.servicesOffered,
+      distance: null,
+      travelFee: null,
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        providers: enrichedProviders,
+        searchLocation: null,
+        searchRadius: null,
+        totalFound: enrichedProviders.length,
+      },
+    });
+  }
 };
 
 /**

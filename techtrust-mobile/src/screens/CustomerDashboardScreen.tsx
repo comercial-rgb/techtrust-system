@@ -329,6 +329,12 @@ export default function CustomerDashboardScreen({ navigation }: any) {
         <FadeInView delay={0}>
           <View style={styles.header}>
             <View style={styles.headerLeft}>
+              <TouchableOpacity
+                onPress={() => navigation.goBack()}
+                style={{ marginRight: 8, padding: 4 }}
+              >
+                <Ionicons name="arrow-back" size={22} color="#374151" />
+              </TouchableOpacity>
               <Image source={logos.noText} style={styles.headerLogo} />
               <View style={styles.headerTextContainer}>
                 <Text style={styles.greeting}>
@@ -562,7 +568,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
               >
                 <Ionicons name="add-circle" size={22} color="#3b82f6" />
               </View>
-              <Text style={styles.quickAccessLabel}>
+              <Text style={styles.quickAccessLabel} numberOfLines={2}>
                 {t.customerDashboard?.newRequest || "New Request"}
               </Text>
             </TouchableOpacity>
@@ -576,8 +582,8 @@ export default function CustomerDashboardScreen({ navigation }: any) {
               >
                 <MaterialCommunityIcons name="car-wash" size={22} color="#0ea5e9" />
               </View>
-              <Text style={styles.quickAccessLabel}>
-                {(t as any).carWash?.findCarWash || "Find Car Wash"}
+              <Text style={styles.quickAccessLabel} numberOfLines={2}>
+                {(t as any).carWash?.findCarWash || "Car Wash"}
               </Text>
             </TouchableOpacity>
 
@@ -590,8 +596,8 @@ export default function CustomerDashboardScreen({ navigation }: any) {
               >
                 <Ionicons name="pricetags" size={22} color="#f59e0b" />
               </View>
-              <Text style={styles.quickAccessLabel}>
-                {t.customerDashboard?.myQuotes || "My Quotes"}
+              <Text style={styles.quickAccessLabel} numberOfLines={2}>
+                {t.customerDashboard?.myQuotes || "Quotes"}
               </Text>
             </TouchableOpacity>
 
@@ -614,7 +620,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
               >
                 <Ionicons name="time" size={22} color="#10b981" />
               </View>
-              <Text style={styles.quickAccessLabel}>
+              <Text style={styles.quickAccessLabel} numberOfLines={2}>
                 {t.customerDashboard?.serviceHistory || "History"}
               </Text>
             </TouchableOpacity>
@@ -628,8 +634,8 @@ export default function CustomerDashboardScreen({ navigation }: any) {
               >
                 <Ionicons name="storefront" size={22} color="#7c3aed" />
               </View>
-              <Text style={styles.quickAccessLabel}>
-                {(t as any).partsStore?.tabLabel || "Parts Store"}
+              <Text style={styles.quickAccessLabel} numberOfLines={2}>
+                {(t as any).partsStore?.tabLabel || "Auto Parts"}
               </Text>
             </TouchableOpacity>
           </View>
@@ -1518,12 +1524,14 @@ const styles = StyleSheet.create({
   // Quick Access
   quickAccessGrid: {
     flexDirection: "row",
+    flexWrap: "wrap",
     paddingHorizontal: 20,
     gap: 12,
     marginBottom: 24,
   },
   quickAccessCard: {
-    flex: 1,
+    width: "28%",
+    flexGrow: 1,
     alignItems: "center",
     backgroundColor: "#fff",
     paddingVertical: 16,
@@ -1543,9 +1551,11 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   quickAccessLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "500",
     color: "#374151",
+    textAlign: "center",
+    paddingHorizontal: 2,
   },
   // Quick Actions
   quickActionsContainer: {

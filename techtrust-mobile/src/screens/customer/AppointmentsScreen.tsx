@@ -236,82 +236,148 @@ export default function AppointmentsScreen({ navigation }: any) {
         <View style={{ width: 24 }} />
       </View>
 
-      {appointments.length === 0 && workOrders.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Ionicons name="calendar-outline" size={64} color="#d1d5db" />
-          <Text style={styles.emptyTitle}>{t.fdacs.noAppointments}</Text>
-          <Text style={styles.emptyText}>{t.fdacs.schedulePrompt}</Text>
-          <TouchableOpacity
-            style={styles.scheduleButton}
-            onPress={() => navigation.navigate("ScheduleAppointment")}
-          >
-            <Ionicons name="add-circle-outline" size={20} color="#fff" />
-            <Text style={styles.scheduleButtonText}>
-              {t.serviceChoice?.scheduleDiagnostic || "Schedule Visit"}
+      {isProvider ? (
+        /* ===== PROVIDER VIEW: Work orders + appointments ===== */
+        workOrders.length === 0 && appointments.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="document-text-outline" size={64} color="#d1d5db" />
+            <Text style={styles.emptyTitle}>
+              {t.provider?.noRequests || "No Client Requests Yet"}
             </Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <FlatList
-          data={appointments}
-          renderItem={renderAppointment}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={{ padding: 16 }}
-          showsVerticalScrollIndicator={false}
-          ListHeaderComponent={
-            isProvider && workOrders.length > 0 ? (
-              <View style={{ marginBottom: 16 }}>
+            <Text style={styles.emptyText}>
+              {t.provider?.requestsWillAppear || "Service requests from customers will appear here once they submit estimates."}
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={workOrders}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={{ padding: 16 }}
+            showsVerticalScrollIndicator={false}
+            ListHeaderComponent={
+              workOrders.length > 0 ? (
                 <Text style={{ fontSize: 16, fontWeight: "700", color: "#111827", marginBottom: 12 }}>
-                  Client Service Requests
+                  {t.provider?.clientRequests || "Client Service Requests"}
                 </Text>
-                {workOrders.map((wo) => (
-                  <TouchableOpacity
-                    key={wo.id}
-                    style={styles.card}
-                    onPress={() =>
-                      navigation.navigate("ProviderWorkOrders", {
-                        screen: "ProviderWorkOrderDetails",
-                        params: { workOrderId: wo.id },
-                      })
-                    }
-                  >
-                    <View style={styles.cardHeader}>
-                      <Text style={styles.appointmentNumber}>{wo.orderNumber}</Text>
-                      <View style={[styles.statusBadge, { backgroundColor: "#dbeafe" }]}>
-                        <Ionicons name="document-text" size={14} color="#3b82f6" />
-                        <Text style={[styles.statusText, { color: "#3b82f6" }]}>
-                          {wo.status.replace(/_/g, ' ')}
-                        </Text>
-                      </View>
-                    </View>
-                    <Text style={styles.serviceDesc} numberOfLines={2}>
-                      {wo.serviceRequest?.title || "Service"}
+              ) : null
+            }
+            renderItem={({ item: wo }) => (
+              <TouchableOpacity
+                style={styles.card}
+                onPress={() =>
+                  navigation.navigate("ProviderWorkOrders", {
+                    screen: "ProviderWorkOrderDetails",
+                    params: { workOrderId: wo.id },
+                  })
+                }
+              >
+                <View style={styles.cardHeader}>
+                  <Text style={styles.appointmentNumber}>{wo.orderNumber}</Text>
+                  <View style={[styles.statusBadge, { backgroundColor: "#dbeafe" }]}>
+                    <Ionicons name="document-text" size={14} color="#3b82f6" />
+                    <Text style={[styles.statusText, { color: "#3b82f6" }]}>
+                      {wo.status.replace(/_/g, ' ')}
                     </Text>
-                    {wo.customer && (
-                      <View style={styles.infoRow}>
-                        <Ionicons name="person-outline" size={16} color="#6b7280" />
-                        <Text style={styles.infoText}>{wo.customer.fullName}</Text>
-                      </View>
-                    )}
-                    {wo.vehicle && (
-                      <View style={styles.infoRow}>
-                        <Ionicons name="car-outline" size={16} color="#6b7280" />
-                        <Text style={styles.infoText}>
-                          {wo.vehicle.year} {wo.vehicle.make} {wo.vehicle.model}
-                        </Text>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                ))}
-                {appointments.length > 0 && (
-                  <Text style={{ fontSize: 16, fontWeight: "700", color: "#111827", marginTop: 8 }}>
-                    Scheduled Appointments
-                  </Text>
+                  </View>
+                </View>
+                <Text style={styles.serviceDesc} numberOfLines={2}>
+                  {wo.serviceRequest?.title || "Service"}
+                </Text>
+                {wo.customer && (
+                  <View style={styles.infoRow}>
+                    <Ionicons name="person-outline" size={16} color="#6b7280" />
+                    <Text style={styles.infoText}>{wo.customer.fullName}</Text>
+                  </View>
                 )}
-              </View>
-            ) : null
-          }
-        />
+                {wo.vehicle && (
+                  <View style={styles.infoRow}>
+                    <Ionicons name="car-outline" size={16} color="#6b7280" />
+                    <Text style={styles.infoText}>
+                      {wo.vehicle.year} {wo.vehicle.make} {wo.vehicle.model}
+                    </Text>
+                  </View>
+                )}
+                {wo.serviceRequest?.preferredDate && (
+                  <View style={styles.infoRow}>
+                    <Ionicons name="calendar-outline" size={16} color="#6b7280" />
+                    <Text style={styles.infoText}>
+                      {new Date(wo.serviceRequest.preferredDate).toLocaleDateString()}
+                      {wo.serviceRequest.preferredTime ? ` at ${wo.serviceRequest.preferredTime}` : ""}
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            )}
+            ListFooterComponent={
+              appointments.length > 0 ? (
+                <View style={{ marginTop: 8 }}>
+                  <Text style={{ fontSize: 16, fontWeight: "700", color: "#111827", marginBottom: 12 }}>
+                    {t.fdacs?.appointments || "Scheduled Appointments"}
+                  </Text>
+                  {appointments.map((appt) => {
+                    const statusInfo = getStatusInfo(appt.status);
+                    const date = new Date(appt.scheduledDate);
+                    return (
+                      <TouchableOpacity
+                        key={appt.id}
+                        style={styles.card}
+                        onPress={() =>
+                          navigation.navigate("AppointmentDetails", { appointmentId: appt.id })
+                        }
+                      >
+                        <View style={styles.cardHeader}>
+                          <Text style={styles.appointmentNumber}>{appt.appointmentNumber}</Text>
+                          <View style={[styles.statusBadge, { backgroundColor: statusInfo.bgColor }]}>
+                            <Ionicons name={statusInfo.icon} size={14} color={statusInfo.color} />
+                            <Text style={[styles.statusText, { color: statusInfo.color }]}>
+                              {statusInfo.label}
+                            </Text>
+                          </View>
+                        </View>
+                        <Text style={styles.serviceDesc} numberOfLines={2}>
+                          {appt.serviceDescription}
+                        </Text>
+                        <View style={styles.infoRow}>
+                          <Ionicons name="calendar-outline" size={16} color="#6b7280" />
+                          <Text style={styles.infoText}>
+                            {date.toLocaleDateString()}
+                            {appt.scheduledTime ? ` at ${appt.scheduledTime}` : ""}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              ) : null
+            }
+          />
+        )
+      ) : (
+        /* ===== CUSTOMER VIEW: Appointments list ===== */
+        appointments.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="calendar-outline" size={64} color="#d1d5db" />
+            <Text style={styles.emptyTitle}>{t.fdacs.noAppointments}</Text>
+            <Text style={styles.emptyText}>{t.fdacs.schedulePrompt}</Text>
+            <TouchableOpacity
+              style={styles.scheduleButton}
+              onPress={() => navigation.navigate("ScheduleAppointment")}
+            >
+              <Ionicons name="add-circle-outline" size={20} color="#fff" />
+              <Text style={styles.scheduleButtonText}>
+                {t.serviceChoice?.scheduleDiagnostic || "Schedule Visit"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <FlatList
+            data={appointments}
+            renderItem={renderAppointment}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={{ padding: 16 }}
+            showsVerticalScrollIndicator={false}
+          />
+        )
       )}
     </SafeAreaView>
   );

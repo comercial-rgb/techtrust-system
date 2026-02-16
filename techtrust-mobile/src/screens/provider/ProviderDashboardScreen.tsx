@@ -159,28 +159,28 @@ export default function ProviderDashboardScreen({ navigation }: any) {
       label: t.provider?.setupProfile || 'Complete your business profile',
       icon: 'account-edit' as const,
       done: !!(user?.providerProfile?.businessName && user?.providerProfile?.city),
-      action: () => navigation.navigate('ProviderProfile'),
+      action: () => navigation.navigate('ProviderProfile', { screen: 'EditProfile' }),
     },
     {
       id: 'services',
       label: t.provider?.addServices || 'Add your services & pricing',
       icon: 'toolbox' as const,
       done: Array.isArray(user?.providerProfile?.servicesOffered) && (user.providerProfile.servicesOffered as any[]).length > 0,
-      action: () => navigation.navigate('ProviderWorkOrders'),
+      action: () => navigation.navigate('ProviderProfile', { screen: 'Services' }),
     },
     {
       id: 'hours',
       label: t.provider?.setHours || 'Set your working hours',
       icon: 'clock-outline' as const,
       done: !!(user?.providerProfile?.workingHours),
-      action: () => navigation.navigate('ProviderProfile'),
+      action: () => navigation.navigate('ProviderProfile', { screen: 'WorkingHours' }),
     },
     {
       id: 'area',
       label: t.provider?.defineArea || 'Define your service area',
       icon: 'map-marker-radius' as const,
       done: !!(user?.providerProfile?.serviceRadiusKm),
-      action: () => navigation.navigate('ProviderProfile'),
+      action: () => navigation.navigate('ProviderProfile', { screen: 'ServiceArea' }),
     },
   ];
 
