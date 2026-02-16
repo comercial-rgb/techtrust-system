@@ -170,7 +170,7 @@ export default function SubscriptionPlanScreen({ navigation }: any) {
 
   const handleBack = () => {
     if (fromDashboard) {
-      navigation.navigate("Home", { screen: "Dashboard" });
+      navigation.navigate("Home", { screen: "DashboardMain" });
     } else {
       navigation.goBack();
     }

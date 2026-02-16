@@ -324,14 +324,9 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
     }
 
     // Navigate to create request with provider pre-selected
-    // First go to Dashboard tab, then push CreateRequest
-    navigation.navigate("Dashboard", {
-      screen: "CreateRequest",
-      params: {
-        preSelectedProvider: provider,
-        specialOffer: offer || null,
-      },
-      initial: false, // This ensures it's pushed on top of existing stack
+    navigation.navigate("CreateRequest", {
+      preSelectedProvider: provider,
+      specialOffer: offer || null,
     });
   };
 
@@ -345,7 +340,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
         {
           icon: "home",
           label: t.nav?.home || "Dashboard",
-          action: () => navigation.navigate("Dashboard"),
+          action: () => navigation.navigate("DashboardMain"),
         },
         {
           icon: "car",
@@ -398,9 +393,9 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
   // Handle navigation for various buttons
   const handleLogin = () => navigation.navigate("Login");
   const handleSignup = () => navigation.navigate("Signup");
-  const handleGoToDashboard = () => navigation.navigate("Dashboard");
+  const handleGoToDashboard = () => navigation.navigate("DashboardMain");
   const handleCreateRequest = () =>
-    navigation.navigate("Dashboard", { screen: "CreateRequest" });
+    navigation.navigate("CreateRequest");
 
   const renderBanner = ({ item }: { item: Banner }) => {
     // Support both 'imageUrl' (API/interface) and 'image' (legacy) fields

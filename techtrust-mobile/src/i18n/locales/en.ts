@@ -46,6 +46,9 @@ export default {
     // Time
     remaining: "remaining",
     quotesCount: "quote(s)",
+    quoteReceived: "quote received",
+    quotesReceived: "quotes received",
+    ago: "ago",
     noResults: "No results found",
     tryAgain: "Something went wrong. Please try again.",
     tryDifferentTerms: "Try searching with different terms",
@@ -289,6 +292,7 @@ export default {
     withQuotes: "With Quotes",
     totalOpen: "Total Open",
     awaitingQuotes: "Awaiting quotes...",
+    sentToShops: "Sent to nearby shops",
   },
 
   // Navigation
@@ -817,11 +821,17 @@ export default {
   // Customer Dashboard
   customerDashboard: {
     greeting: "Hi",
+    goodMorning: "Good morning",
+    goodAfternoon: "Good afternoon",
+    goodEvening: "Good evening",
     howCanWeHelp: "How can we help you today?",
     needService: "Need a service?",
     requestQuotes: "Request free quotes now",
     activeServices: "Active Services",
+    activeServiceSingular: "Active Service",
     pendingQuotes: "Pending Quotes",
+    pendingQuoteSingular: "Pending Quote",
+    pendingQuotePlural: "Pending Quotes",
     completed: "Completed",
     totalSpent: "Total Spent",
     myVehicles: "My Vehicles",
@@ -838,6 +848,22 @@ export default {
     payments: "Payments",
     chat: "Chat",
     help: "Help",
+    findCarWash: "Find Car Wash",
+    myQuotes: "My Quotes",
+    serviceHistory: "History",
+    reviewQuotesNow: "Review and compare now",
+    requestQuotesDesc: "Schedule your next service",
+    emptyStatsTitle: "Welcome to TechTrust!",
+    emptyStatsSubtitle: "Add your vehicle and request your first service to get started",
+    getStarted: "Get Started",
+    nextTip: "Next tip",
+    tipReviewQuotes: "You have pending quotes! Review them to get the best deal.",
+    tipSyntheticOil: "Synthetic oil lasts 7,500-10,000 miles. Check your last oil change date.",
+    tipBrakes: "Brake pads should be inspected every 12,000 miles for safety.",
+    tipWinter: "Winter tip: Check your antifreeze levels and battery before cold hits.",
+    tipSummer: "Summer tip: Check your A/C and coolant system before the heat arrives.",
+    tipMaintenance: "Regular maintenance can extend your car's life by 30%+.",
+    tipEmergency: "Keep an emergency kit in your car: jumper cables, flashlight, first aid.",
     // Special Offers
     specialOffers: "Special Offers",
     limitedTimeDeals: "Limited time deals",
@@ -1011,6 +1037,10 @@ export default {
   vehicle: {
     vehicle: "Vehicle",
     vehicles: "Vehicles",
+    vehicleSingular: "Vehicle",
+    vehiclePlural: "Vehicles",
+    totalMiles: "Total Miles",
+    setPrimary: "Primary",
     addVehicle: "Add Vehicle",
     editVehicle: "Edit Vehicle",
     saveChanges: "Save Changes",
@@ -1678,6 +1708,7 @@ export default {
 
   // Car Wash Module
   carWash: {
+    tabLabel: "Car Wash",
     findNearby: "Find a Car Wash",
     nearbyDesc: "Discover car washes near you — quick, easy & affordable",
     serviceChoiceDesc: "Need a wash? Find car washes near you with real-time pricing, unlimited membership plans, and customer reviews.",

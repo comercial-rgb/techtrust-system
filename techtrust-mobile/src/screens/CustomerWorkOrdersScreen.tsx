@@ -350,7 +350,7 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
         <TouchableOpacity
           style={styles.newRequestButton}
           onPress={() =>
-            navigation.navigate("Dashboard", { screen: "ServiceChoice" })
+            navigation.navigate("Home", { screen: "ServiceChoice" })
           }
         >
           <Ionicons name="add" size={20} color="#fff" />
@@ -514,7 +514,7 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
               <View style={[styles.statCard, { backgroundColor: "#fef3c7" }]}>
                 <Ionicons name="wallet" size={20} color="#f59e0b" />
                 <Text style={[styles.statValue, { color: "#b45309" }]}>
-                  ${stats.totalSpent}
+                  ${stats.totalSpent.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                 </Text>
                 <Text style={styles.statLabel}>
                   {t.workOrder?.spent || "Spent"}
@@ -669,7 +669,7 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
               <TouchableOpacity
                 style={styles.emptyButton}
                 onPress={() =>
-                  navigation.navigate("Dashboard", { screen: "ServiceChoice" })
+                  navigation.navigate("Home", { screen: "ServiceChoice" })
                 }
               >
                 <Ionicons name="add" size={20} color="#fff" />
@@ -686,7 +686,7 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
                 <FadeInView key={request.id} delay={200 + index * 50}>
                   <ScalePress
                     onPress={() =>
-                      navigation.navigate("Dashboard", {
+                      navigation.navigate("Home", {
                         screen: "RequestDetails",
                         params: { requestId: request.id },
                       })
@@ -743,7 +743,7 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
                       <View style={styles.orderFooter}>
                         <View style={styles.dateInfo}>
                           <Text style={styles.requestNumber}>
-                            #{request.requestNumber}
+                            #{request.requestNumber.length > 10 ? `SR-${request.requestNumber.substring(0, 6).toUpperCase()}` : request.requestNumber}
                           </Text>
                         </View>
                         <Text style={styles.dateText}>
@@ -758,7 +758,9 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
                           <Ionicons name="pricetag" size={16} color="#f59e0b" />
                           <Text style={styles.quotesAlertText}>
                             {request.quotesCount}{" "}
-                            {t.common?.quotesCount || "quote(s) received"}
+                            {request.quotesCount === 1 
+                              ? (t.common?.quoteReceived || "quote received")
+                              : (t.common?.quotesReceived || "quotes received")}
                           </Text>
                           <Ionicons
                             name="chevron-forward"
@@ -770,11 +772,16 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
 
                       {request.status === "SEARCHING" && (
                         <View style={styles.searchingHint}>
-                          <Ionicons name="time" size={16} color="#3b82f6" />
+                          <Ionicons name="radio-outline" size={16} color="#3b82f6" />
                           <Text style={styles.searchingHintText}>
-                            {t.serviceRequest?.awaitingQuotes ||
-                              "Awaiting quotes..."}
+                            {t.serviceRequest?.sentToShops ||
+                              "Sent to nearby shops"}
                           </Text>
+                          <View style={styles.searchingDots}>
+                            <View style={[styles.searchingDot, styles.searchingDotActive]} />
+                            <View style={[styles.searchingDot, styles.searchingDotActive]} />
+                            <View style={styles.searchingDot} />
+                          </View>
                         </View>
                       )}
                     </View>
@@ -885,7 +892,7 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
                         </Text>
                       </View>
                       <Text style={styles.amount}>
-                        R${wo.finalAmount.toFixed(2)}
+                        ${wo.finalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </Text>
                     </View>
 
@@ -1263,5 +1270,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#8b5cf6",
     fontWeight: "600",
+  },
+  searchingDots: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginLeft: 4,
+  },
+  searchingDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#bfdbfe",
+  },
+  searchingDotActive: {
+    backgroundColor: "#3b82f6",
   },
 });

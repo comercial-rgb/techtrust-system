@@ -132,11 +132,11 @@ export default function PaymentMethodsScreen({ navigation }: any) {
   const handleBack = () => {
     // If we came from CreateRequest, navigate back to it
     if (fromCreateRequest) {
-      // Get the parent tab navigator and navigate to Dashboard > CreateRequest
+      // Get the parent tab navigator and navigate to Home > CreateRequest
       const parent = navigation.getParent();
       if (parent) {
-        // Navigate to Dashboard with CreateRequest screen
-        parent.navigate("Dashboard", { screen: "CreateRequest" });
+        // Navigate to Home with CreateRequest screen
+        parent.navigate("Home", { screen: "CreateRequest" });
         // Pop Profile stack to ProfileMain
         navigation.popToTop();
       } else {
@@ -145,7 +145,7 @@ export default function PaymentMethodsScreen({ navigation }: any) {
     } else if (fromDashboard) {
       const parent = navigation.getParent();
       if (parent) {
-        parent.navigate("Dashboard", { screen: "DashboardMain" });
+        parent.navigate("Home", { screen: "DashboardMain" });
         navigation.popToTop();
       } else {
         navigation.goBack();

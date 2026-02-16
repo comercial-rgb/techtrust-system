@@ -107,7 +107,7 @@ export default function CustomerVehiclesScreen({ navigation }: any) {
   }
 
   function formatMileage(miles: number) {
-    return miles.toLocaleString() + " mi";
+    return miles.toLocaleString('en-US') + " mi";
   }
 
   function formatDate(date: string) {
@@ -199,16 +199,20 @@ export default function CustomerVehiclesScreen({ navigation }: any) {
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>{vehicles.length}</Text>
-              <Text style={styles.statLabel}>Vehicles</Text>
+              <Text style={styles.statLabel}>
+                {vehicles.length === 1
+                  ? (t.vehicle?.vehicleSingular || "Vehicle")
+                  : (t.vehicle?.vehiclePlural || "Vehicles")}
+              </Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <Text style={styles.statValue}>
                 {vehicles
                   .reduce((acc, v) => acc + (v.currentMileage || 0), 0)
-                  .toLocaleString()}
+                  .toLocaleString('en-US')}
               </Text>
-              <Text style={styles.statLabel}>Total Miles</Text>
+              <Text style={styles.statLabel}>{t.vehicle?.totalMiles || "Total Miles"}</Text>
             </View>
           </View>
         </FadeInView>
@@ -371,7 +375,7 @@ export default function CustomerVehiclesScreen({ navigation }: any) {
                   <ScalePress
                     style={styles.actionButton}
                     onPress={() =>
-                      navigation.navigate("Dashboard", {
+                      navigation.navigate("Home", {
                         screen: "CreateRequest",
                         params: { vehicleId: vehicle.id },
                       })
@@ -404,14 +408,14 @@ export default function CustomerVehiclesScreen({ navigation }: any) {
                     </Text>
                   </TouchableOpacity>
 
-                  {!vehicle.isDefault && (
+                  {!vehicle.isDefault && vehicles.length > 1 && (
                     <TouchableOpacity
                       style={styles.actionButtonSecondary}
                       onPress={() => handleSetDefault(vehicle.id)}
                     >
                       <Ionicons name="star-outline" size={18} color="#6b7280" />
                       <Text style={styles.actionButtonSecondaryText}>
-                        Set Default
+                        {t.vehicle?.setPrimary || "Primary"}
                       </Text>
                     </TouchableOpacity>
                   )}

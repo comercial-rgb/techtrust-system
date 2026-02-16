@@ -46,6 +46,9 @@ export default {
     // Time
     remaining: "restantes",
     quotesCount: "cotización(es)",
+    quoteReceived: "cotización recibida",
+    quotesReceived: "cotizaciones recibidas",
+    ago: "hace",
     noResults: "No se encontraron resultados",
     tryAgain: "Algo salió mal. Inténtalo de nuevo.",
     tryDifferentTerms: "Intenta buscar con otros términos",
@@ -293,6 +296,7 @@ export default {
     withQuotes: "Con Cotizaciones",
     totalOpen: "Total Abiertas",
     awaitingQuotes: "Esperando cotizaciones...",
+    sentToShops: "Enviado a talleres cercanos",
   },
 
   // Navigation
@@ -837,11 +841,17 @@ export default {
   // Customer Dashboard
   customerDashboard: {
     greeting: "Hola",
+    goodMorning: "Buenos días",
+    goodAfternoon: "Buenas tardes",
+    goodEvening: "Buenas noches",
     howCanWeHelp: "¿Cómo podemos ayudarte hoy?",
     needService: "¿Necesitas un servicio?",
     requestQuotes: "Solicita cotizaciones gratis ahora",
     activeServices: "Servicios Activos",
+    activeServiceSingular: "Servicio Activo",
     pendingQuotes: "Cotizaciones Pendientes",
+    pendingQuoteSingular: "Cotización Pendiente",
+    pendingQuotePlural: "Cotizaciones Pendientes",
     completed: "Completados",
     totalSpent: "Total Gastado",
     myVehicles: "Mis Vehículos",
@@ -858,6 +868,22 @@ export default {
     payments: "Pagos",
     chat: "Chat",
     help: "Ayuda",
+    findCarWash: "Buscar Lavado",
+    myQuotes: "Mis Cotizaciones",
+    serviceHistory: "Historial",
+    reviewQuotesNow: "Revisa y compara ahora",
+    requestQuotesDesc: "Agenda tu próximo servicio",
+    emptyStatsTitle: "¡Bienvenido a TechTrust!",
+    emptyStatsSubtitle: "Agrega tu vehículo y solicita tu primer servicio para comenzar",
+    getStarted: "Comenzar",
+    nextTip: "Siguiente consejo",
+    tipReviewQuotes: "¡Tienes cotizaciones pendientes! Revísalas para obtener el mejor precio.",
+    tipSyntheticOil: "El aceite sintético dura de 12,000 a 16,000 km. Verifica la fecha de tu último cambio.",
+    tipBrakes: "Las pastillas de freno deben ser inspeccionadas cada 20,000 km por seguridad.",
+    tipWinter: "Consejo de invierno: Verifica el anticongelante y la batería antes del frío.",
+    tipSummer: "Consejo de verano: Verifica el aire acondicionado y el sistema de refrigeración.",
+    tipMaintenance: "El mantenimiento regular puede prolongar la vida de tu auto en un 30%+.",
+    tipEmergency: "Mantén un kit de emergencia en tu auto: cables de batería, linterna, primeros auxilios.",
     // Special Offers
     specialOffers: "Ofertas Especiales",
     limitedTimeDeals: "Ofertas por tiempo limitado",
@@ -1008,6 +1034,10 @@ export default {
   vehicle: {
     vehicle: "Vehículo",
     vehicles: "Vehículos",
+    vehicleSingular: "Vehículo",
+    vehiclePlural: "Vehículos",
+    totalMiles: "Total de Millas",
+    setPrimary: "Principal",
     addVehicle: "Agregar Vehículo",
     editVehicle: "Editar Vehículo",
     saveChanges: "Guardar Cambios",
@@ -1676,6 +1706,7 @@ export default {
 
   // Módulo Lavado de Autos
   carWash: {
+    tabLabel: "Lavado",
     findNearby: "Encontrar Lavado de Autos",
     nearbyDesc: "Descubre lavados de autos cerca de ti — rápido, fácil y económico",
     serviceChoiceDesc: "¿Necesitas un lavado? Encuentra lavados de autos cerca de ti con precios en tiempo real, planes ilimitados y reseñas de clientes.",

@@ -1,7 +1,7 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { View, Text, StyleSheet } from "react-native";
 import { useI18n } from "../i18n";
 import { useNotifications } from "../contexts/NotificationsContext";
@@ -97,18 +97,6 @@ function HomeStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="LandingMain" component={LandingScreen} />
-      <Stack.Screen name="CarWashMap" component={CarWashMapScreen} />
-      <Stack.Screen name="CarWashProfile" component={CarWashProfileScreen} />
-      <Stack.Screen name="CarWashReview" component={CarWashReviewScreen} />
-      <Stack.Screen name="CarWashAllReviews" component={CarWashAllReviewsScreen} />
-      <Stack.Screen name="CarWashFavorites" component={CarWashFavoritesScreen} />
-    </Stack.Navigator>
-  );
-}
-
-function DashboardStack() {
-  return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="DashboardMain" component={CustomerDashboardScreen} />
       <Stack.Screen name="ServiceChoice" component={ServiceChoiceScreen} />
       <Stack.Screen name="CreateRequest" component={CreateRequestScreen} />
@@ -138,6 +126,8 @@ function DashboardStack() {
       <Stack.Screen name="CarWashReview" component={CarWashReviewScreen} />
       <Stack.Screen name="CarWashAllReviews" component={CarWashAllReviewsScreen} />
       <Stack.Screen name="CarWashFavorites" component={CarWashFavoritesScreen} />
+      <Stack.Screen name="ChatList" component={ChatListScreen} />
+      <Stack.Screen name="Chat" component={ChatScreen} />
     </Stack.Navigator>
   );
 }
@@ -187,6 +177,8 @@ function WorkOrdersStack() {
         name="CompareEstimates"
         component={CompareEstimatesScreen}
       />
+      <Stack.Screen name="ChatList" component={ChatListScreen} />
+      <Stack.Screen name="Chat" component={ChatScreen} />
       <Stack.Screen name="CarWashMap" component={CarWashMapScreen} />
       <Stack.Screen name="CarWashProfile" component={CarWashProfileScreen} />
       <Stack.Screen name="CarWashReview" component={CarWashReviewScreen} />
@@ -196,11 +188,14 @@ function WorkOrdersStack() {
   );
 }
 
-function ChatStack() {
+function CarWashStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="ChatList" component={ChatListScreen} />
-      <Stack.Screen name="Chat" component={ChatScreen} />
+      <Stack.Screen name="CarWashMapMain" component={CarWashMapScreen} />
+      <Stack.Screen name="CarWashProfile" component={CarWashProfileScreen} />
+      <Stack.Screen name="CarWashReview" component={CarWashReviewScreen} />
+      <Stack.Screen name="CarWashAllReviews" component={CarWashAllReviewsScreen} />
+      <Stack.Screen name="CarWashFavorites" component={CarWashFavoritesScreen} />
     </Stack.Navigator>
   );
 }
@@ -234,6 +229,8 @@ function ProfileStack() {
         component={SubscriptionPlanScreen}
       />
       <Stack.Screen name="SupportChat" component={SupportChatScreen} />
+      <Stack.Screen name="ChatList" component={ChatListScreen} />
+      <Stack.Screen name="Chat" component={ChatScreen} />
       <Stack.Screen name="MyVehicles" component={CustomerVehiclesScreen} />
       <Stack.Screen name="AddVehicle" component={AddVehicleScreen} />
       <Stack.Screen name="VehicleDetails" component={VehicleDetailsScreen} />
@@ -283,7 +280,6 @@ export default function CustomerNavigator() {
         }}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
-            // Reset stack to Landing when tab is pressed
             navigation.dispatch(
               CommonActions.reset({
                 index: 0,
@@ -291,59 +287,6 @@ export default function CustomerNavigator() {
                   {
                     name: "Home",
                     state: { routes: [{ name: "LandingMain" }] },
-                  },
-                ],
-              }),
-            );
-          },
-        })}
-      />
-      <Tab.Screen
-        name="Dashboard"
-        component={DashboardStack}
-        options={{
-          tabBarLabel: t.nav?.dashboard || "Dashboard",
-          tabBarIcon: ({ color, size }) => (
-            <TabBarIcon name="grid" color={color} size={size} />
-          ),
-        }}
-        listeners={({ navigation, route }) => ({
-          tabPress: (e) => {
-            // Prevent default behavior
-            e.preventDefault();
-            // Always reset to DashboardMain when tab is pressed
-            navigation.dispatch(
-              CommonActions.reset({
-                index: 0,
-                routes: [
-                  {
-                    name: "Dashboard",
-                    state: { routes: [{ name: "DashboardMain" }] },
-                  },
-                ],
-              }),
-            );
-          },
-        })}
-      />
-      <Tab.Screen
-        name="Vehicles"
-        component={VehiclesStack}
-        options={{
-          tabBarLabel: t.nav?.vehicles || "Vehicles",
-          tabBarIcon: ({ color, size }) => (
-            <TabBarIcon name="car" color={color} size={size} />
-          ),
-        }}
-        listeners={({ navigation }) => ({
-          tabPress: (e) => {
-            navigation.dispatch(
-              CommonActions.reset({
-                index: 0,
-                routes: [
-                  {
-                    name: "Vehicles",
-                    state: { routes: [{ name: "VehiclesList" }] },
                   },
                 ],
               }),
@@ -377,17 +320,12 @@ export default function CustomerNavigator() {
         })}
       />
       <Tab.Screen
-        name="Messages"
-        component={ChatStack}
+        name="CarWash"
+        component={CarWashStack}
         options={{
-          tabBarLabel: t.nav?.chat || "Messages",
+          tabBarLabel: (t as any).carWash?.tabLabel || "Car Wash",
           tabBarIcon: ({ color, size }) => (
-            <TabBarIcon
-              name="chatbubbles"
-              color={color}
-              size={size}
-              badge={unreadMessagesCount}
-            />
+            <MaterialCommunityIcons name="car-wash" size={size} color={color} />
           ),
         }}
         listeners={({ navigation }) => ({
@@ -397,8 +335,33 @@ export default function CustomerNavigator() {
                 index: 0,
                 routes: [
                   {
-                    name: "Messages",
-                    state: { routes: [{ name: "ChatList" }] },
+                    name: "CarWash",
+                    state: { routes: [{ name: "CarWashMapMain" }] },
+                  },
+                ],
+              }),
+            );
+          },
+        })}
+      />
+      <Tab.Screen
+        name="Vehicles"
+        component={VehiclesStack}
+        options={{
+          tabBarLabel: t.nav?.vehicles || "Vehicles",
+          tabBarIcon: ({ color, size }) => (
+            <TabBarIcon name="car" color={color} size={size} />
+          ),
+        }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            navigation.dispatch(
+              CommonActions.reset({
+                index: 0,
+                routes: [
+                  {
+                    name: "Vehicles",
+                    state: { routes: [{ name: "VehiclesList" }] },
                   },
                 ],
               }),
@@ -412,12 +375,16 @@ export default function CustomerNavigator() {
         options={{
           tabBarLabel: t.nav?.profile || "Profile",
           tabBarIcon: ({ color, size }) => (
-            <TabBarIcon name="person" color={color} size={size} />
+            <TabBarIcon
+              name="person"
+              color={color}
+              size={size}
+              badge={unreadMessagesCount}
+            />
           ),
         }}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
-            // Always reset Profile stack to ProfileMain when tab is pressed
             navigation.dispatch(
               CommonActions.reset({
                 index: 0,

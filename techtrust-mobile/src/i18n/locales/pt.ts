@@ -46,6 +46,9 @@ export default {
     // Time
     remaining: "restantes",
     quotesCount: "orçamento(s)",
+    quoteReceived: "orçamento recebido",
+    quotesReceived: "orçamentos recebidos",
+    ago: "atrás",
     noResults: "Nenhum resultado encontrado",
     tryAgain: "Algo deu errado. Tente novamente.",
     tryDifferentTerms: "Tente buscar com outros termos",
@@ -291,6 +294,7 @@ export default {
     withQuotes: "Com Orçamentos",
     totalOpen: "Total Abertas",
     awaitingQuotes: "Aguardando orçamentos...",
+    sentToShops: "Enviado para oficinas próximas",
   },
 
   // Navigation
@@ -834,11 +838,17 @@ export default {
   // Customer Dashboard
   customerDashboard: {
     greeting: "Olá",
+    goodMorning: "Bom dia",
+    goodAfternoon: "Boa tarde",
+    goodEvening: "Boa noite",
     howCanWeHelp: "Como podemos ajudar você hoje?",
     needService: "Precisa de um serviço?",
     requestQuotes: "Solicite orçamentos grátis agora",
     activeServices: "Serviços Ativos",
+    activeServiceSingular: "Serviço Ativo",
     pendingQuotes: "Orçamentos Pendentes",
+    pendingQuoteSingular: "Orçamento Pendente",
+    pendingQuotePlural: "Orçamentos Pendentes",
     completed: "Concluídos",
     totalSpent: "Total Gasto",
     myVehicles: "Meus Veículos",
@@ -855,6 +865,22 @@ export default {
     payments: "Pagamentos",
     chat: "Chat",
     help: "Ajuda",
+    findCarWash: "Encontrar Lava Jato",
+    myQuotes: "Meus Orçamentos",
+    serviceHistory: "Histórico",
+    reviewQuotesNow: "Revise e compare agora",
+    requestQuotesDesc: "Agende seu próximo serviço",
+    emptyStatsTitle: "Bem-vindo ao TechTrust!",
+    emptyStatsSubtitle: "Adicione seu veículo e solicite seu primeiro serviço para começar",
+    getStarted: "Começar",
+    nextTip: "Próxima dica",
+    tipReviewQuotes: "Você tem orçamentos pendentes! Revise-os para garantir o melhor preço.",
+    tipSyntheticOil: "Óleo sintético dura de 12.000 a 16.000 km. Verifique a data da sua última troca.",
+    tipBrakes: "As pastilhas de freio devem ser inspecionadas a cada 20.000 km para segurança.",
+    tipWinter: "Dica de inverno: Verifique o anticongelante e a bateria antes do frio chegar.",
+    tipSummer: "Dica de verão: Verifique o ar-condicionado e o sistema de refrigeração antes do calor.",
+    tipMaintenance: "A manutenção regular pode prolongar a vida do seu carro em 30%+.",
+    tipEmergency: "Mantenha um kit de emergência no carro: cabos de bateria, lanterna, primeiros socorros.",
     // Special Offers
     specialOffers: "Ofertas Especiais",
     limitedTimeDeals: "Ofertas por tempo limitado",
@@ -1023,6 +1049,10 @@ export default {
   vehicle: {
     vehicle: "Veículo",
     vehicles: "Veículos",
+    vehicleSingular: "Veículo",
+    vehiclePlural: "Veículos",
+    totalMiles: "Total de Milhas",
+    setPrimary: "Principal",
     addVehicle: "Adicionar Veículo",
     editVehicle: "Editar Veículo",
     saveChanges: "Salvar Alterações",
@@ -1687,6 +1717,7 @@ export default {
 
   // Módulo Lava Jato
   carWash: {
+    tabLabel: "Lava Jato",
     findNearby: "Encontrar Lava Jato",
     nearbyDesc: "Descubra lava jatos perto de você — rápido, fácil e acessível",
     serviceChoiceDesc: "Precisa de uma lavagem? Encontre lava jatos perto de você com preços em tempo real, planos ilimitados e avaliações de clientes.",

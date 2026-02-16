@@ -81,6 +81,53 @@ interface Vehicle {
   plateNumber: string;
 }
 
+// Helper: time-based greeting
+function getTimeGreeting(t: any): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return t.customerDashboard?.goodMorning || 'Good morning';
+  if (hour < 17) return t.customerDashboard?.goodAfternoon || 'Good afternoon';
+  return t.customerDashboard?.goodEvening || 'Good evening';
+}
+
+// Helper: format number with US locale (comma for thousands)
+function formatNumber(n: number): string {
+  return n.toLocaleString('en-US');
+}
+
+// Helper: format currency with US locale
+function formatCurrency(n: number): string {
+  return n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+// Helper: contextual tips based on user state
+function getContextualTips(t: any, stats: any, requests: any[]): { text: string; icon: string }[] {
+  const tips: { text: string; icon: string }[] = [];
+  const hasOilChange = requests.some(r => r.title?.toLowerCase().includes('oil'));
+  const hasBrake = requests.some(r => r.title?.toLowerCase().includes('brake'));
+  const isWinter = [11, 0, 1, 2].includes(new Date().getMonth());
+  const isSummer = [5, 6, 7].includes(new Date().getMonth());
+
+  if (stats.pendingQuotes > 0) {
+    tips.push({ text: t.customerDashboard?.tipReviewQuotes || `You have ${stats.pendingQuotes} quote(s) waiting for review. Compare them to get the best deal!`, icon: 'pricetags' });
+  }
+  tips.push({ text: t.customerDashboard?.tipCompareQuotes || 'Compare at least 3 quotes before accepting to ensure the best price', icon: 'bulb-outline' });
+  if (hasOilChange) {
+    tips.push({ text: t.customerDashboard?.tipSyntheticOil || 'Did you know? Synthetic oil lasts 7,500-10,000 miles vs 3,000-5,000 for conventional. Ask your shop about upgrading.', icon: 'flask-outline' });
+  }
+  if (hasBrake) {
+    tips.push({ text: t.customerDashboard?.tipBrakes || 'Brake pads typically last 30,000-70,000 miles. Grinding noises mean immediate replacement is needed.', icon: 'warning-outline' });
+  }
+  if (isWinter) {
+    tips.push({ text: t.customerDashboard?.tipWinter || 'Winter tip: Undercarriage washes remove road salt that causes rust. Find a car wash near you!', icon: 'snow-outline' });
+  }
+  if (isSummer) {
+    tips.push({ text: t.customerDashboard?.tipSummer || 'Summer tip: Check your A/C and coolant levels before the heat wave. Overheating is the #1 summer breakdown cause.', icon: 'sunny-outline' });
+  }
+  tips.push({ text: t.customerDashboard?.tipMaintenance || 'Regular maintenance can extend your vehicle\'s life by 30%+ and preserve its resale value.', icon: 'shield-checkmark-outline' });
+  tips.push({ text: t.customerDashboard?.tipEmergency || 'Keep an emergency kit in your car: jumper cables, flashlight, tire gauge, and first-aid supplies.', icon: 'medkit-outline' });
+  return tips;
+}
+
 export default function CustomerDashboardScreen({ navigation }: any) {
   const { user } = useAuth();
   const { t } = useI18n();
@@ -93,6 +140,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
   const [articles, setArticles] = useState<Article[]>([]);
   const [walletBalance, setWalletBalance] = useState(0);
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
+  const [currentTipIndex, setCurrentTipIndex] = useState(0);
   const [stats, setStats] = useState({
     activeServices: 0,
     pendingQuotes: 0,
@@ -284,8 +332,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
               <Image source={logos.noText} style={styles.headerLogo} />
               <View style={styles.headerTextContainer}>
                 <Text style={styles.greeting}>
-                  {t.customerDashboard?.greeting || "Hi"},{" "}
-                  {user?.fullName?.split(" ")[0]}! 👋
+                  {getTimeGreeting(t)}, {user?.fullName?.split(" ")[0]}!
                 </Text>
                 <Text style={styles.subtitle} numberOfLines={1}>
                   {t.customerDashboard?.howCanWeHelp ||
@@ -294,18 +341,20 @@ export default function CustomerDashboardScreen({ navigation }: any) {
               </View>
             </View>
             <View style={styles.headerRight}>
-              {/* Balance Card */}
-              <TouchableOpacity
-                style={styles.balanceButton}
-                onPress={() =>
-                  navigation.navigate("Profile", { screen: "PaymentMethods" })
-                }
-              >
-                <Ionicons name="wallet-outline" size={18} color="#10b981" />
-                <Text style={styles.balanceText}>
-                  ${walletBalance.toFixed(2)}
-                </Text>
-              </TouchableOpacity>
+              {/* Balance Card — only show when balance > 0 */}
+              {walletBalance > 0 && (
+                <TouchableOpacity
+                  style={styles.balanceButton}
+                  onPress={() =>
+                    navigation.navigate("Profile", { screen: "PaymentMethods" })
+                  }
+                >
+                  <Ionicons name="wallet-outline" size={18} color="#10b981" />
+                  <Text style={styles.balanceText}>
+                    ${walletBalance.toFixed(2)}
+                  </Text>
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
                 style={styles.notificationButton}
                 onPress={() => navigation.navigate("Notifications")}
@@ -330,23 +379,35 @@ export default function CustomerDashboardScreen({ navigation }: any) {
           </FadeInView>
         )}
 
-        {/* Quick Action Banner */}
+        {/* Quick Action Banner — contextual */}
         <FadeInView delay={100}>
           <TouchableOpacity
             style={styles.actionBanner}
-            onPress={() => navigation.navigate("ServiceChoice")}
+            onPress={() => {
+              if (stats.pendingQuotes > 0) {
+                navigation.navigate("Services");
+              } else {
+                navigation.navigate("ServiceChoice");
+              }
+            }}
           >
             <View style={styles.bannerContent}>
               <View style={styles.bannerIcon}>
-                <Ionicons name="add-circle" size={32} color="#fff" />
+                <Ionicons name={stats.pendingQuotes > 0 ? "pricetags" : "add-circle"} size={32} color="#fff" />
               </View>
               <View style={styles.bannerText}>
                 <Text style={styles.bannerTitle}>
-                  {t.customerDashboard?.needService || "Need a service?"}
+                  {stats.pendingQuotes > 0
+                    ? `${stats.pendingQuotes} ${stats.pendingQuotes === 1
+                        ? (t.customerDashboard?.pendingQuoteSingular || 'Pending Quote')
+                        : (t.customerDashboard?.pendingQuotePlural || 'Pending Quotes')
+                      }`
+                    : (t.customerDashboard?.needService || "Need a service?")}
                 </Text>
                 <Text style={styles.bannerSubtitle}>
-                  {t.customerDashboard?.requestQuotes ||
-                    "Request free quotes now"}
+                  {stats.pendingQuotes > 0
+                    ? (t.customerDashboard?.reviewQuotesNow || "Review and compare your quotes")
+                    : (t.customerDashboard?.requestQuotesDesc || "Schedule your next service — Get free quotes in minutes")}
                 </Text>
               </View>
             </View>
@@ -379,64 +440,89 @@ export default function CustomerDashboardScreen({ navigation }: any) {
 
         {/* Stats Cards */}
         <FadeInView delay={200}>
-          <View style={styles.statsGrid}>
-            <TouchableOpacity
-              style={[styles.statCard, { borderLeftColor: "#3b82f6" }]}
-              onPress={() => navigation.navigate("Services")}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="construct-outline" size={24} color="#3b82f6" />
-              <Text style={styles.statValue}>{stats.activeServices}</Text>
-              <Text style={styles.statLabel}>
-                {t.customerDashboard?.activeServices || "Active Services"}
+          {stats.activeServices === 0 && stats.pendingQuotes === 0 && stats.completedServices === 0 && stats.totalSpent === 0 ? (
+            /* Empty state for new users */
+            <View style={styles.emptyStatsCard}>
+              <Ionicons name="rocket-outline" size={40} color="#3b82f6" />
+              <Text style={styles.emptyStatsTitle}>
+                {t.customerDashboard?.emptyStatsTitle || "Your dashboard will come alive!"}
               </Text>
-            </TouchableOpacity>
+              <Text style={styles.emptyStatsSubtitle}>
+                {t.customerDashboard?.emptyStatsSubtitle || "Start by requesting your first service quote — it's free and takes less than 2 minutes."}
+              </Text>
+              <TouchableOpacity
+                style={styles.emptyStatsButton}
+                onPress={() => navigation.navigate("ServiceChoice")}
+              >
+                <Ionicons name="add" size={20} color="#fff" />
+                <Text style={styles.emptyStatsButtonText}>
+                  {t.customerDashboard?.getStarted || "Get Started"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.statsGrid}>
+              <TouchableOpacity
+                style={[styles.statCard, { borderLeftColor: "#3b82f6" }]}
+                onPress={() => navigation.navigate("Services")}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="construct-outline" size={24} color="#3b82f6" />
+                <Text style={styles.statValue}>{stats.activeServices}</Text>
+                <Text style={styles.statLabel}>
+                  {stats.activeServices === 1
+                    ? (t.customerDashboard?.activeServiceSingular || "Active Service")
+                    : (t.customerDashboard?.activeServices || "Active Services")}
+                </Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.statCard, { borderLeftColor: "#f59e0b" }]}
-              onPress={() => navigation.navigate("Services")}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="pricetags-outline" size={24} color="#f59e0b" />
-              <Text style={styles.statValue}>{stats.pendingQuotes}</Text>
-              <Text style={styles.statLabel}>
-                {t.customerDashboard?.pendingQuotes || "Pending Quotes"}
-              </Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.statCard, { borderLeftColor: "#f59e0b" }]}
+                onPress={() => navigation.navigate("Services")}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="pricetags-outline" size={24} color="#f59e0b" />
+                <Text style={styles.statValue}>{stats.pendingQuotes}</Text>
+                <Text style={styles.statLabel}>
+                  {stats.pendingQuotes === 1
+                    ? (t.customerDashboard?.pendingQuoteSingular || "Pending Quote")
+                    : (t.customerDashboard?.pendingQuotePlural || "Pending Quotes")}
+                </Text>
+                {stats.pendingQuotes > 0 && (
+                  <View style={styles.actionDot} />
+                )}
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.statCard, { borderLeftColor: "#10b981" }]}
-              onPress={() => navigation.navigate("Services")}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name="checkmark-done-outline"
-                size={24}
-                color="#10b981"
-              />
-              <Text style={styles.statValue}>{stats.completedServices}</Text>
-              <Text style={styles.statLabel}>
-                {t.customerDashboard?.completed || "Completed"}
-              </Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.statCard, { borderLeftColor: "#10b981" }]}
+                onPress={() => navigation.navigate("Services")}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="checkmark-done-outline" size={24} color="#10b981" />
+                <Text style={styles.statValue}>{stats.completedServices}</Text>
+                <Text style={styles.statLabel}>
+                  {t.customerDashboard?.completed || "Completed"}
+                </Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.statCard, { borderLeftColor: "#8b5cf6" }]}
-              onPress={() =>
-                navigation.navigate("Profile", { screen: "ServiceHistory" })
-              }
-              activeOpacity={0.7}
-            >
-              <Ionicons name="wallet-outline" size={24} color="#8b5cf6" />
-              <Text style={styles.statValue}>${stats.totalSpent}</Text>
-              <Text style={styles.statLabel}>
-                {t.customerDashboard?.totalSpent || "Total Spent"}
-              </Text>
-            </TouchableOpacity>
-          </View>
+              <TouchableOpacity
+                style={[styles.statCard, { borderLeftColor: "#8b5cf6" }]}
+                onPress={() =>
+                  navigation.navigate("Profile", { screen: "ServiceHistory" })
+                }
+                activeOpacity={0.7}
+              >
+                <Ionicons name="wallet-outline" size={24} color="#8b5cf6" />
+                <Text style={styles.statValue}>{formatCurrency(stats.totalSpent)}</Text>
+                <Text style={styles.statLabel}>
+                  {t.customerDashboard?.totalSpent || "Total Spent"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </FadeInView>
 
-        {/* Quick Access */}
+        {/* Quick Access — redesigned with actionable shortcuts */}
         <FadeInView delay={250}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>
@@ -446,15 +532,43 @@ export default function CustomerDashboardScreen({ navigation }: any) {
           <View style={styles.quickAccessGrid}>
             <TouchableOpacity
               style={styles.quickAccessCard}
+              onPress={() => navigation.navigate("ServiceChoice")}
+            >
+              <View
+                style={[styles.quickAccessIcon, { backgroundColor: "#dbeafe" }]}
+              >
+                <Ionicons name="add-circle" size={22} color="#3b82f6" />
+              </View>
+              <Text style={styles.quickAccessLabel}>
+                {t.customerDashboard?.newRequest || "New Request"}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.quickAccessCard}
+              onPress={() => navigation.navigate("CarWashMap")}
+            >
+              <View
+                style={[styles.quickAccessIcon, { backgroundColor: "#e0f2fe" }]}
+              >
+                <MaterialCommunityIcons name="car-wash" size={22} color="#0ea5e9" />
+              </View>
+              <Text style={styles.quickAccessLabel}>
+                {(t as any).carWash?.findCarWash || "Find Car Wash"}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.quickAccessCard}
               onPress={() => navigation.navigate("Services")}
             >
               <View
                 style={[styles.quickAccessIcon, { backgroundColor: "#fef3c7" }]}
               >
-                <Ionicons name="construct" size={22} color="#f59e0b" />
+                <Ionicons name="pricetags" size={22} color="#f59e0b" />
               </View>
               <Text style={styles.quickAccessLabel}>
-                {t.customerDashboard?.myServices || "My Services"}
+                {t.customerDashboard?.myQuotes || "My Quotes"}
               </Text>
             </TouchableOpacity>
 
@@ -465,58 +579,20 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                   CommonActions.navigate({
                     name: "Profile",
                     params: {
-                      screen: "PaymentMethods",
+                      screen: "ServiceHistory",
                       initial: false,
                     },
                   }),
                 )
               }
-            >
-              <View
-                style={[styles.quickAccessIcon, { backgroundColor: "#ede9fe" }]}
-              >
-                <Ionicons name="card" size={22} color="#8b5cf6" />
-              </View>
-              <Text style={styles.quickAccessLabel}>
-                {t.customerDashboard?.payments || "Payments"}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.quickAccessCard}
-              onPress={() => navigation.navigate("Messages")}
             >
               <View
                 style={[styles.quickAccessIcon, { backgroundColor: "#d1fae5" }]}
               >
-                <Ionicons name="chatbubbles" size={22} color="#10b981" />
+                <Ionicons name="time" size={22} color="#10b981" />
               </View>
               <Text style={styles.quickAccessLabel}>
-                {t.customerDashboard?.chat || "Chat"}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.quickAccessCard}
-              onPress={() =>
-                navigation.dispatch(
-                  CommonActions.navigate({
-                    name: "Profile",
-                    params: {
-                      screen: "HelpCenter",
-                      initial: false,
-                    },
-                  }),
-                )
-              }
-            >
-              <View
-                style={[styles.quickAccessIcon, { backgroundColor: "#fee2e2" }]}
-              >
-                <Ionicons name="help-circle" size={22} color="#ef4444" />
-              </View>
-              <Text style={styles.quickAccessLabel}>
-                {t.customerDashboard?.help || "Help"}
+                {t.customerDashboard?.serviceHistory || "History"}
               </Text>
             </TouchableOpacity>
           </View>
@@ -749,19 +825,36 @@ export default function CustomerDashboardScreen({ navigation }: any) {
           )}
         </FadeInView>
 
-        {/* Quick Tips */}
+        {/* Contextual Rotating Tips */}
         <FadeInView delay={600}>
           <View style={styles.tipsSection}>
-            <Text style={styles.tipsTitle}>
-              💡 {t.customerDashboard?.tips || "Tips"}
-            </Text>
-            <View style={styles.tipCard}>
-              <Ionicons name="bulb-outline" size={20} color="#f59e0b" />
-              <Text style={styles.tipText}>
-                {t.customerDashboard?.tipCompareQuotes ||
-                  "Compare at least 3 quotes before accepting to ensure the best price"}
+            <View style={styles.tipsHeader}>
+              <Text style={styles.tipsTitle}>
+                💡 {t.customerDashboard?.tips || "Tips"}
               </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  const tips = getContextualTips(t, stats, requests);
+                  setCurrentTipIndex((prev) => (prev + 1) % tips.length);
+                }}
+                style={styles.nextTipButton}
+              >
+                <Text style={styles.nextTipText}>
+                  {t.customerDashboard?.nextTip || "Next tip"}
+                </Text>
+                <Ionicons name="chevron-forward" size={14} color="#3b82f6" />
+              </TouchableOpacity>
             </View>
+            {(() => {
+              const tips = getContextualTips(t, stats, requests);
+              const tip = tips[currentTipIndex % tips.length];
+              return (
+                <View style={styles.tipCard}>
+                  <Ionicons name={tip.icon as any} size={20} color="#f59e0b" />
+                  <Text style={styles.tipText}>{tip.text}</Text>
+                </View>
+              );
+            })()}
           </View>
         </FadeInView>
 
@@ -2123,6 +2216,79 @@ const styles = StyleSheet.create({
   },
   dropdownItemTextSelected: {
     color: "#1976d2",
+    fontWeight: "600",
+  },
+  // Empty stats card for new users
+  emptyStatsCard: {
+    marginHorizontal: 20,
+    marginTop: 16,
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 24,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  emptyStatsTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#111827",
+    marginTop: 12,
+    textAlign: "center",
+  },
+  emptyStatsSubtitle: {
+    fontSize: 14,
+    color: "#6b7280",
+    marginTop: 6,
+    textAlign: "center",
+    lineHeight: 20,
+    paddingHorizontal: 10,
+  },
+  emptyStatsButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#1976d2",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginTop: 16,
+    gap: 6,
+  },
+  emptyStatsButtonText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  // Action dot for pending quotes card
+  actionDot: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#ef4444",
+  },
+  // Tips header with "Next tip" button
+  tipsHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  nextTipButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+  },
+  nextTipText: {
+    fontSize: 13,
+    color: "#3b82f6",
     fontWeight: "600",
   },
 });

@@ -595,9 +595,7 @@ export default function CarWashProfileScreen({ route, navigation }: any) {
           <TouchableOpacity
             style={styles.detailingBtn}
             onPress={() => {
-              navigation.navigate('Dashboard', {
-                screen: 'ServiceChoice',
-              });
+              navigation.navigate('ServiceChoice');
             }}
           >
             <Text style={styles.detailingBtnText}>Request Detailing Service</Text>
