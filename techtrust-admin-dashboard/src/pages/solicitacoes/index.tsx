@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminLayout from '../../components/AdminLayout';
+import { adminApi } from '../../services/api';
 import {
   Search,
   FileText,
@@ -45,8 +46,9 @@ export default function SolicitacoesPage() {
 
   async function loadData() {
     try {
-      // Carregar dados reais da API quando implementado
-      setRequests([]);
+      const response = await adminApi.getServiceRequests({ status: statusFilter !== 'all' ? statusFilter : undefined });
+      const list = response.data?.data?.serviceRequests || response.data?.data || response.data?.serviceRequests || [];
+      setRequests(Array.isArray(list) ? list : []);
     } catch (error) {
       console.error('Erro ao carregar solicitações:', error);
       setRequests([]);

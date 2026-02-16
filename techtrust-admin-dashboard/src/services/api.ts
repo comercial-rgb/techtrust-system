@@ -101,7 +101,7 @@ class AdminApiService {
   }
 
   async getProfile() {
-    return this.request<any>('/users/profile');
+    return this.request<any>('/users/me');
   }
 
   // ============================================
@@ -113,8 +113,8 @@ class AdminApiService {
   }
 
   async getRevenueStats(period?: string) {
-    const query = period ? `?period=${period}` : '';
-    return this.request<any>(`/admin/revenue${query}`);
+    const query = period ? `&period=${period}` : '';
+    return this.request<any>(`/admin/reports?type=financial${query}`);
   }
 
   // ============================================
@@ -169,7 +169,7 @@ class AdminApiService {
   async toggleUserStatus(id: string, isActive: boolean) {
     return this.request(`/admin/users/${id}/status`, {
       method: 'PATCH',
-      body: JSON.stringify({ isActive }),
+      body: JSON.stringify({ status: isActive ? 'ACTIVE' : 'SUSPENDED', reason: isActive ? 'Reactivated by admin' : 'Suspended by admin' }),
     });
   }
 
@@ -432,15 +432,15 @@ class AdminApiService {
   // ============================================
 
   async getRevenueReport(startDate: string, endDate: string) {
-    return this.request<any>(`/admin/reports/revenue?startDate=${startDate}&endDate=${endDate}`);
+    return this.request<any>(`/admin/reports?type=financial&startDate=${startDate}&endDate=${endDate}`);
   }
 
   async getUsersReport(startDate: string, endDate: string) {
-    return this.request<any>(`/admin/reports/users?startDate=${startDate}&endDate=${endDate}`);
+    return this.request<any>(`/admin/reports?type=users&startDate=${startDate}&endDate=${endDate}`);
   }
 
   async getServicesReport(startDate: string, endDate: string) {
-    return this.request<any>(`/admin/reports/services?startDate=${startDate}&endDate=${endDate}`);
+    return this.request<any>(`/admin/reports?type=services&startDate=${startDate}&endDate=${endDate}`);
   }
 
   // ============================================
@@ -448,11 +448,11 @@ class AdminApiService {
   // ============================================
 
   async getSettings() {
-    return this.request<any>('/admin/settings');
+    return this.request<any>('/admin/config');
   }
 
   async updateSettings(data: Record<string, any>) {
-    return this.request('/admin/settings', {
+    return this.request('/admin/config', {
       method: 'PUT',
       body: JSON.stringify(data),
     });

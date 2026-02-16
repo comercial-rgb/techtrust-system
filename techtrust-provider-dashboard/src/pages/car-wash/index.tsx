@@ -88,8 +88,14 @@ export default function CarWashPage() {
     setLoading(true)
     try {
       const [washesRes, metricsRes] = await Promise.all([
-        api.get('/car-wash/provider/my'),
-        api.get('/car-wash/provider/dashboard').catch(() => null),
+        api.get('/car-wash/provider/my-car-washes'),
+        api.get('/car-wash/provider/my-car-washes').then(r => {
+          const washes = r.data?.data || []
+          if (washes.length > 0) {
+            return api.get(`/car-wash/provider/${washes[0].id}/dashboard`).catch(() => null)
+          }
+          return null
+        }).catch(() => null),
       ])
       setCarWashes(washesRes.data.data || [])
       if (metricsRes?.data?.data) {

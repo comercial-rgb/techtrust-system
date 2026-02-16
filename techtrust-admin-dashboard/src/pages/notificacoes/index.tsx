@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminLayout from '../../components/AdminLayout';
+import { adminApi } from '../../services/api';
 import { Bell, Send, Plus, Users, Building2, Megaphone, CheckCircle, Clock } from 'lucide-react';
 
 interface Notification {
@@ -27,8 +28,9 @@ export default function NotificacoesPage() {
 
   async function loadData() {
     try {
-      // Carregar dados reais da API quando implementado
-      setNotifications([]);
+      const response = await adminApi.get('/admin/notifications');
+      const list = response.data?.data?.notifications || response.data?.data || [];
+      setNotifications(Array.isArray(list) ? list : []);
     } catch (error) {
       console.error('Erro ao carregar notificações:', error);
       setNotifications([]);
@@ -39,9 +41,15 @@ export default function NotificacoesPage() {
 
   async function handleSendNotification(e: React.FormEvent) {
     e.preventDefault();
-    // API call
-    setShowModal(false);
-    setNewNotification({ title: '', message: '', targetRole: 'ALL' });
+    try {
+      await adminApi.sendBroadcast(newNotification);
+      setShowModal(false);
+      setNewNotification({ title: '', message: '', targetRole: 'ALL' });
+      loadData();
+    } catch (error) {
+      console.error('Erro ao enviar notificação:', error);
+      alert('Erro ao enviar notificação');
+    }
   }
 
   const getTargetLabel = (role: string) => {

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminLayout from '../../components/AdminLayout';
+import { adminApi } from '../../services/api';
 import { Search, Wrench, Clock, CheckCircle, CreditCard, Eye, Building2, User, Car } from 'lucide-react';
 
 interface WorkOrder {
@@ -30,8 +31,9 @@ export default function ServicosPage() {
 
   async function loadData() {
     try {
-      // Carregar dados reais da API quando implementado
-      setWorkOrders([]);
+      const response = await adminApi.getWorkOrders({ status: statusFilter !== 'all' ? statusFilter : undefined });
+      const list = response.data?.data?.workOrders || response.data?.data || response.data?.workOrders || [];
+      setWorkOrders(Array.isArray(list) ? list : []);
     } catch (error) {
       console.error('Erro ao carregar serviços:', error);
       setWorkOrders([]);

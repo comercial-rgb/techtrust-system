@@ -55,11 +55,12 @@ export default function ConfiguracoesPage() {
 
   async function loadConfig() {
     try {
-      // const response = await api.getSystemConfig();
-      // setConfig(response.data);
-      setLoading(false);
+      const response = await api.getSettings();
+      const serverConfig = response.data?.data || response.data || {};
+      setConfig(prev => ({ ...prev, ...serverConfig }));
     } catch (error) {
       console.error('Erro ao carregar configurações:', error);
+    } finally {
       setLoading(false);
     }
   }

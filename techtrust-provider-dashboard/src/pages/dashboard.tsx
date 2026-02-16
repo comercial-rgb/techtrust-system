@@ -61,18 +61,29 @@ export default function DashboardPage() {
   async function loadDashboardData() {
     setLoading(true)
     try {
-      const response = await api.get('/provider/dashboard')
+      const response = await api.get('/providers/dashboard')
+      const apiData = response.data?.data || response.data || {}
+      const apiStats = apiData.stats || {}
       
-      setStats(response.data.stats || {
-        pendingRequests: 0,
-        activeWorkOrders: 0,
-        completedThisMonth: 0,
-        earningsThisMonth: 0,
-        rating: 0,
-        totalReviews: 0,
+      setStats({
+        pendingRequests: apiStats.activeQuotes || 0,
+        activeWorkOrders: apiStats.activeWorkOrders || 0,
+        completedThisMonth: apiStats.completedServices || 0,
+        earningsThisMonth: apiStats.totalRevenue || 0,
+        rating: apiStats.averageRating || 0,
+        totalReviews: apiStats.totalReviews || 0,
       })
 
-      setRecentActivity(response.data.recentActivity || [])
+      // Map recentWorkOrders to activity format
+      const workOrders = apiData.recentWorkOrders || []
+      setRecentActivity(workOrders.map((wo: any) => ({
+        id: wo.id,
+        type: wo.status === 'COMPLETED' ? 'service_completed' : 'new_request',
+        title: wo.serviceRequest?.title || 'Service',
+        description: wo.customer?.fullName || wo.serviceRequest?.serviceType || '',
+        time: new Date(wo.createdAt).toLocaleDateString(),
+        amount: wo.finalAmount || undefined,
+      })))
     } catch (error) {
       console.error('Erro ao carregar dashboard:', error)
     } finally {

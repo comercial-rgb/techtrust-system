@@ -74,6 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               phone: userData.phone,
               role: userData.role,
               avatarUrl: userData.avatarUrl,
+              memberSince: userData.createdAt ? new Date(userData.createdAt).getFullYear().toString() : undefined,
             };
             setUser(updatedUser);
             Cookies.set("tt_client_user", JSON.stringify(updatedUser), {

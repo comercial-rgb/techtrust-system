@@ -139,8 +139,13 @@ export default function UsuariosPage() {
 
   async function handleDeleteUser() {
     if (!userToDelete) return;
-    // API call here
-    setUsers(users.filter(u => u.id !== userToDelete.id));
+    try {
+      await adminApi.deleteUser(userToDelete.id);
+      setUsers(users.filter(u => u.id !== userToDelete.id));
+    } catch (error) {
+      console.error('Erro ao deletar usuário:', error);
+      alert('Erro ao deletar usuário');
+    }
     setShowDeleteModal(false);
     setUserToDelete(null);
   }

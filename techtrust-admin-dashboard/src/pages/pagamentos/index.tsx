@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminLayout from '../../components/AdminLayout';
+import { adminApi } from '../../services/api';
 import { Search, CreditCard, CheckCircle, Clock, XCircle, RefreshCw, Eye, User, Building2 } from 'lucide-react';
 
 interface Payment {
@@ -29,8 +30,9 @@ export default function PagamentosPage() {
 
   async function loadData() {
     try {
-      // Carregar dados reais da API quando implementado
-      setPayments([]);
+      const response = await adminApi.getPayments({ status: statusFilter !== 'all' ? statusFilter : undefined });
+      const list = response.data?.data?.payments || response.data?.data || response.data?.payments || [];
+      setPayments(Array.isArray(list) ? list : []);
     } catch (error) {
       console.error('Erro ao carregar pagamentos:', error);
       setPayments([]);

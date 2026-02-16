@@ -120,16 +120,21 @@ export default function FornecedoresPage() {
 
   async function handleAction() {
     if (!selectedProvider) return;
-    // API call here
-    
-    if (actionType === 'approve') {
-      setProviders(providers.map(p => p.id === selectedProvider.id ? { ...p, status: 'APPROVED' as const, isVerified: true } : p));
-    } else if (actionType === 'reject') {
-      setProviders(providers.map(p => p.id === selectedProvider.id ? { ...p, status: 'REJECTED' as const } : p));
-    } else if (actionType === 'suspend') {
-      setProviders(providers.map(p => p.id === selectedProvider.id ? { ...p, status: 'SUSPENDED' as const } : p));
+    try {
+      if (actionType === 'approve') {
+        await api.approveProvider(selectedProvider.id);
+        setProviders(providers.map(p => p.id === selectedProvider.id ? { ...p, status: 'APPROVED' as const, isVerified: true } : p));
+      } else if (actionType === 'reject') {
+        await api.rejectProvider(selectedProvider.id, actionReason);
+        setProviders(providers.map(p => p.id === selectedProvider.id ? { ...p, status: 'REJECTED' as const } : p));
+      } else if (actionType === 'suspend') {
+        await api.suspendProvider(selectedProvider.id, actionReason);
+        setProviders(providers.map(p => p.id === selectedProvider.id ? { ...p, status: 'SUSPENDED' as const } : p));
+      }
+    } catch (error) {
+      console.error('Erro ao executar ação:', error);
+      alert('Erro ao executar ação');
     }
-    
     setShowActionModal(false);
     setSelectedProvider(null);
     setActionReason('');

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminLayout from '../../components/AdminLayout';
+import { adminApi } from '../../services/api';
 import { Search, Star, User, Building2, Trash2, Flag, MessageSquare } from 'lucide-react';
 
 interface Review {
@@ -28,8 +29,9 @@ export default function AvaliacoesPage() {
 
   async function loadData() {
     try {
-      // Carregar dados reais da API quando implementado
-      setReviews([]);
+      const response = await adminApi.getReviews({ rating: ratingFilter !== 'all' ? Number(ratingFilter) : undefined });
+      const list = response.data?.data?.reviews || response.data?.data || response.data?.reviews || [];
+      setReviews(Array.isArray(list) ? list : []);
     } catch (error) {
       console.error('Erro ao carregar avaliações:', error);
       setReviews([]);

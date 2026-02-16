@@ -212,7 +212,7 @@ export default function ServicosPage() {
                       <span className="text-lg font-bold text-primary-600">${wo.finalAmount.toFixed(2)}</span>
                     </div>
                     {wo.status === 'AWAITING_PAYMENT' && (
-                      <button onClick={(e) => { e.stopPropagation(); router.push(`/pagamento/${wo.id}`); }} className="w-full mt-4 btn bg-purple-600 text-white hover:bg-purple-700">
+                      <button onClick={(e) => { e.stopPropagation(); router.push(`/pagamentos`); }} className="w-full mt-4 btn bg-purple-600 text-white hover:bg-purple-700">
                         <CreditCard className="w-4 h-4" />Efetuar Pagamento
                       </button>
                     )}

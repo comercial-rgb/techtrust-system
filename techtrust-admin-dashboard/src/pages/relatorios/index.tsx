@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminLayout from '../../components/AdminLayout';
+import { adminApi } from '../../services/api';
 import { BarChart3, TrendingUp, Calendar, Download, DollarSign, Users, Wrench, FileText } from 'lucide-react';
 
 export default function RelatoriosPage() {
@@ -9,9 +10,28 @@ export default function RelatoriosPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('month');
+  const [reportData, setReportData] = useState<any>({ totalRevenue: 0, newUsers: 0, servicesCompleted: 0, avgRating: 0 });
 
   useEffect(() => { if (!authLoading && !isAuthenticated) router.push('/login'); }, [authLoading, isAuthenticated, router]);
-  useEffect(() => { if (isAuthenticated) setLoading(false); }, [isAuthenticated]);
+  useEffect(() => { if (isAuthenticated) loadData(); }, [isAuthenticated, period]);
+
+  async function loadData() {
+    setLoading(true);
+    try {
+      const response = await adminApi.get(`/admin/reports?type=overview&period=${period}`);
+      const data = response.data?.data || response.data || {};
+      setReportData({
+        totalRevenue: data.totalRevenue || data.revenue?.total || 0,
+        newUsers: data.newUsers || data.users?.new || 0,
+        servicesCompleted: data.servicesCompleted || data.services?.completed || 0,
+        avgRating: data.avgRating || data.reviews?.average || 0,
+      });
+    } catch (error) {
+      console.error('Erro ao carregar relatórios:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const reports = [
     { id: 'revenue', title: 'Relatório de Receitas', description: 'Análise completa de receitas, pagamentos e comissões', icon: DollarSign, color: 'bg-green-100 text-green-600' },
@@ -48,9 +68,9 @@ export default function RelatoriosPage() {
               <DollarSign className="w-6 h-6 text-green-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">R$ 0</p>
+              <p className="text-2xl font-bold text-gray-900">${reportData.totalRevenue.toLocaleString()}</p>
               <p className="text-sm text-gray-500">Receita Total</p>
-              <p className="text-xs text-gray-400">Sem dados</p>
+              <p className="text-xs text-gray-400">{reportData.totalRevenue > 0 ? 'Período selecionado' : 'Sem dados'}</p>
             </div>
           </div>
         </div>
@@ -60,9 +80,9 @@ export default function RelatoriosPage() {
               <Users className="w-6 h-6 text-blue-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">0</p>
+              <p className="text-2xl font-bold text-gray-900">{reportData.newUsers}</p>
               <p className="text-sm text-gray-500">Novos Usuários</p>
-              <p className="text-xs text-gray-400">Sem dados</p>
+              <p className="text-xs text-gray-400">{reportData.newUsers > 0 ? 'Período selecionado' : 'Sem dados'}</p>
             </div>
           </div>
         </div>
@@ -72,9 +92,9 @@ export default function RelatoriosPage() {
               <Wrench className="w-6 h-6 text-purple-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">0</p>
+              <p className="text-2xl font-bold text-gray-900">{reportData.servicesCompleted}</p>
               <p className="text-sm text-gray-500">Serviços Realizados</p>
-              <p className="text-xs text-gray-400">Sem dados</p>
+              <p className="text-xs text-gray-400">{reportData.servicesCompleted > 0 ? 'Período selecionado' : 'Sem dados'}</p>
             </div>
           </div>
         </div>
@@ -84,9 +104,9 @@ export default function RelatoriosPage() {
               <TrendingUp className="w-6 h-6 text-amber-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">0</p>
+              <p className="text-2xl font-bold text-gray-900">{reportData.avgRating > 0 ? reportData.avgRating.toFixed(1) : '0'}</p>
               <p className="text-sm text-gray-500">Média de Avaliação</p>
-              <p className="text-xs text-gray-400">Sem dados</p>
+              <p className="text-xs text-gray-400">{reportData.avgRating > 0 ? 'Período selecionado' : 'Sem dados'}</p>
             </div>
           </div>
         </div>

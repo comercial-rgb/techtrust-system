@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
 import DashboardLayout from '../components/DashboardLayout';
+import { api } from '../services/api';
 import {
   User,
   Mail,
@@ -22,6 +23,7 @@ export default function PerfilPage() {
   const router = useRouter();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(true);
+  const [stats, setStats] = useState({ totalServices: 0, totalSpent: 0, vehiclesCount: 0 });
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -29,11 +31,31 @@ export default function PerfilPage() {
     }
   }, [authLoading, isAuthenticated, router]);
 
-  const stats = {
-    totalServices: 12,
-    totalSpent: 2450,
-    vehiclesCount: 2,
-  };
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadStats();
+    }
+  }, [isAuthenticated]);
+
+  async function loadStats() {
+    try {
+      const [vehiclesRes, servicesRes] = await Promise.all([
+        api.getVehicles(),
+        api.getWorkOrders(),
+      ]);
+      const vehicles = vehiclesRes.data?.data || vehiclesRes.data || [];
+      const workOrders = servicesRes.data?.data || servicesRes.data || [];
+      const completed = Array.isArray(workOrders) ? workOrders.filter((w: any) => w.status === 'COMPLETED') : [];
+      const totalSpent = completed.reduce((sum: number, w: any) => sum + (w.finalAmount || 0), 0);
+      setStats({
+        totalServices: completed.length,
+        totalSpent: Math.round(totalSpent),
+        vehiclesCount: Array.isArray(vehicles) ? vehicles.length : 0,
+      });
+    } catch (error) {
+      console.error('Erro ao carregar stats:', error);
+    }
+  }
 
   const menuItems = [
     { id: 'personal', title: 'Dados Pessoais', subtitle: 'Nome, email, telefone', icon: User, color: 'text-blue-600 bg-blue-100' },

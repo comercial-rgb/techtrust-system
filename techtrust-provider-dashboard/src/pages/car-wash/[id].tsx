@@ -151,7 +151,7 @@ export default function CarWashDetailPage() {
 
   async function loadCarWash() {
     try {
-      const response = await api.get(`/car-wash/${id}`)
+      const response = await api.get(`/car-wash/profile/${id}`)
       const data = response.data.data
       setForm({
         businessName: data.businessName || '',
@@ -274,9 +274,9 @@ export default function CarWashDetailPage() {
       }
 
       if (isNew) {
-        await api.post('/car-wash/provider', payload)
+        await api.post('/car-wash/provider/create', payload)
       } else {
-        await api.put(`/car-wash/provider/${id}`, payload)
+        await api.patch(`/car-wash/provider/${id}`, payload)
       }
 
       router.push('/car-wash')
