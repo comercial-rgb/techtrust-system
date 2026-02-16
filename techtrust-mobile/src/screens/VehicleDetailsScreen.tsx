@@ -51,6 +51,14 @@ interface VehicleDetails {
   isDefault: boolean;
   maintenanceHistory: MaintenanceRecord[];
   totalMaintenanceSpent: number;
+  // VIN-decoded fields
+  engineType?: string;
+  driveType?: string;
+  bodyType?: string;
+  category?: string;
+  seatingCapacity?: number;
+  numberOfRows?: number;
+  countryOfManufacturer?: string;
 }
 
 export default function VehicleDetailsScreen({ navigation, route }: any) {
@@ -83,16 +91,24 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
           color: vehicleData.color || "",
           currentMileage: vehicleData.currentMileage || 0,
           fuelType: vehicleData.fuelType || "",
-          vehicleType: vehicleData.vehicleType || "Car",
+          vehicleType: vehicleData.bodyType || vehicleData.vehicleType || vehicleData.category || "",
           primaryDriver: vehicleData.primaryDriver || "",
           insuranceProvider: vehicleData.insuranceProvider || "",
           insurancePolicy: vehicleData.insurancePolicy || "",
           insuranceExpiry: vehicleData.insuranceExpiry || "",
           lastService: vehicleData.lastService || "",
           nextServiceDue: vehicleData.nextServiceDue || "",
-          isDefault: vehicleData.isDefault || false,
+          isDefault: vehicleData.isDefault || vehicleData.isPrimary || false,
           totalMaintenanceSpent: vehicleData.totalMaintenanceSpent || 0,
           maintenanceHistory: vehicleData.maintenanceHistory || [],
+          // VIN-decoded fields
+          ...(vehicleData.engineType && { engineType: vehicleData.engineType }),
+          ...(vehicleData.driveType && { driveType: vehicleData.driveType }),
+          ...(vehicleData.bodyType && { bodyType: vehicleData.bodyType }),
+          ...(vehicleData.category && { category: vehicleData.category }),
+          ...(vehicleData.seatingCapacity && { seatingCapacity: vehicleData.seatingCapacity }),
+          ...(vehicleData.numberOfRows && { numberOfRows: vehicleData.numberOfRows }),
+          ...(vehicleData.countryOfManufacturer && { countryOfManufacturer: vehicleData.countryOfManufacturer }),
         });
       }
     } catch (error) {
@@ -109,7 +125,10 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
   }
 
   function formatDate(date: string) {
-    return new Date(date).toLocaleDateString("en-US", {
+    if (!date) return null;
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return null;
+    return d.toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
@@ -117,7 +136,7 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
   }
 
   function formatMileage(miles: number) {
-    return miles.toLocaleString() + " mi";
+    return miles.toLocaleString('en-US') + " mi";
   }
 
   function formatCurrency(amount: number) {
@@ -125,7 +144,9 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
   }
 
   function isExpiringSoon(date: string) {
+    if (!date) return false;
     const expiry = new Date(date);
+    if (isNaN(expiry.getTime())) return false;
     const today = new Date();
     const daysUntilExpiry = Math.ceil(
       (expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
@@ -134,7 +155,10 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
   }
 
   function isExpired(date: string) {
-    return new Date(date) < new Date();
+    if (!date) return false;
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return false;
+    return d < new Date();
   }
 
   function getStatusColor(status: string) {
@@ -203,7 +227,17 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
         <FadeInView delay={0}>
           <View style={styles.heroSection}>
             <View style={styles.vehicleIconLarge}>
-              <Ionicons name="car-sport" size={64} color="#1976d2" />
+              <Ionicons
+                name={vehicle.vehicleType?.toLowerCase().includes('truck') || vehicle.vehicleType?.toLowerCase().includes('pickup')
+                  ? 'car-sport'
+                  : vehicle.vehicleType?.toLowerCase().includes('suv')
+                    ? 'car'
+                    : vehicle.vehicleType?.toLowerCase().includes('van')
+                      ? 'bus'
+                      : 'car-sport'}
+                size={64}
+                color="#1976d2"
+              />
             </View>
             <Text style={styles.vehicleTitle}>
               {vehicle.year} {vehicle.make} {vehicle.model} {vehicle.trim || ""}
@@ -458,7 +492,9 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
                         styles.expiringSoonText,
                     ]}
                   >
-                    {formatDate(vehicle.insuranceExpiry)}
+                    {vehicle.insuranceExpiry && formatDate(vehicle.insuranceExpiry)
+                      ? formatDate(vehicle.insuranceExpiry)
+                      : (t.common?.notProvided || "Not provided")}
                   </Text>
                   {isExpired(vehicle.insuranceExpiry) && (
                     <View style={styles.expiredBadge}>
@@ -495,24 +531,28 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
             </Text>
             <View style={styles.serviceStatusCard}>
               <View style={styles.serviceStatusItem}>
-                <Ionicons name="checkmark-circle" size={20} color="#10b981" />
+                <Ionicons name="checkmark-circle" size={20} color={vehicle.lastService && formatDate(vehicle.lastService) ? "#10b981" : "#d1d5db"} />
                 <View style={styles.serviceStatusInfo}>
                   <Text style={styles.serviceStatusLabel}>
                     {t.vehicle?.lastService || "Last Service"}
                   </Text>
-                  <Text style={styles.serviceStatusValue}>
-                    {formatDate(vehicle.lastService)}
+                  <Text style={[styles.serviceStatusValue, !(vehicle.lastService && formatDate(vehicle.lastService)) && { color: '#9ca3af', fontStyle: 'italic' }]}>
+                    {vehicle.lastService && formatDate(vehicle.lastService)
+                      ? formatDate(vehicle.lastService)
+                      : (t.vehicle?.noServiceRecorded || "No service recorded")}
                   </Text>
                 </View>
               </View>
               <View style={styles.serviceStatusItem}>
-                <Ionicons name="calendar" size={20} color="#3b82f6" />
+                <Ionicons name="calendar" size={20} color={vehicle.nextServiceDue && formatDate(vehicle.nextServiceDue) ? "#3b82f6" : "#d1d5db"} />
                 <View style={styles.serviceStatusInfo}>
                   <Text style={styles.serviceStatusLabel}>
                     {t.vehicle?.nextServiceDue || "Next Service Due"}
                   </Text>
-                  <Text style={styles.serviceStatusValue}>
-                    {formatDate(vehicle.nextServiceDue)}
+                  <Text style={[styles.serviceStatusValue, !(vehicle.nextServiceDue && formatDate(vehicle.nextServiceDue)) && { color: '#9ca3af', fontStyle: 'italic' }]}>
+                    {vehicle.nextServiceDue && formatDate(vehicle.nextServiceDue)
+                      ? formatDate(vehicle.nextServiceDue)
+                      : (t.vehicle?.notSet || "Not set")}
                   </Text>
                 </View>
               </View>
@@ -533,7 +573,18 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
               </Text>
             </View>
 
-            {vehicle.maintenanceHistory.map((record, index) => {
+            {vehicle.maintenanceHistory.length === 0 ? (
+              <View style={{ alignItems: 'center', paddingVertical: 24 }}>
+                <Ionicons name="time-outline" size={40} color="#d1d5db" />
+                <Text style={{ fontSize: 15, fontWeight: '600', color: '#6b7280', marginTop: 12 }}>
+                  {t.vehicle?.noHistory || "No maintenance history yet"}
+                </Text>
+                <Text style={{ fontSize: 13, color: '#9ca3af', textAlign: 'center', marginTop: 4, paddingHorizontal: 16 }}>
+                  {t.vehicle?.historyWillAppear || "Your maintenance timeline will appear here after completing services through TechTrust."}
+                </Text>
+              </View>
+            ) : (
+            vehicle.maintenanceHistory.map((record, index) => {
               const statusColor = getStatusColor(record.status);
               return (
                 <TouchableOpacity
@@ -659,7 +710,8 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
                   )}
                 </TouchableOpacity>
               );
-            })}
+            })
+            )}
           </View>
         </FadeInView>
 

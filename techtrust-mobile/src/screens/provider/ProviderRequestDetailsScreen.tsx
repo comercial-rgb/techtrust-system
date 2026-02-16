@@ -246,11 +246,11 @@ export default function ProviderRequestDetailsScreen({
           year: vehicle.year || 0,
           plateNumber: vehicle.plateNumber || vehicle.licensePlate || "",
           color: vehicle.color || "",
-          mileage: vehicle.mileage || 0,
+          mileage: vehicle.mileage || vehicle.currentMileage || 0,
           vin: vehicle.vin || "",
           fuelType: vehicle.fuelType || "",
-          transmission: vehicle.transmission || "",
-          engine: vehicle.engine || "",
+          transmission: vehicle.transmission || vehicle.driveType || "",
+          engine: vehicle.engine || vehicle.engineType || "",
           lastServiceDate: vehicle.lastServiceDate || undefined,
           lastServiceMileage: vehicle.lastServiceMileage || undefined,
         },
@@ -422,7 +422,9 @@ export default function ProviderRequestDetailsScreen({
 
   const durationOptions = [
     { value: "30min", label: "30 min" },
+    { value: "45min", label: "45 min" },
     { value: "1h", label: `1 ${t.common?.hour || "hour"}` },
+    { value: "1.5h", label: `1.5 ${t.common?.hours || "hours"}` },
     { value: "2h", label: `2 ${t.common?.hours || "hours"}` },
     { value: "3h", label: `3 ${t.common?.hours || "hours"}` },
     { value: "4h", label: `4 ${t.common?.hours || "hours"}` },
@@ -450,14 +452,16 @@ export default function ProviderRequestDetailsScreen({
   const availableDates = generateAvailableDates();
 
   const availableTimes = [
-    { value: "08:00", label: "08:00" },
-    { value: "09:00", label: "09:00" },
-    { value: "10:00", label: "10:00" },
-    { value: "11:00", label: "11:00" },
-    { value: "13:00", label: "13:00" },
-    { value: "14:00", label: "14:00" },
-    { value: "15:00", label: "15:00" },
-    { value: "16:00", label: "16:00" },
+    { value: "08:00", label: "8:00 AM" },
+    { value: "09:00", label: "9:00 AM" },
+    { value: "10:00", label: "10:00 AM" },
+    { value: "11:00", label: "11:00 AM" },
+    { value: "12:00", label: "12:00 PM" },
+    { value: "13:00", label: "1:00 PM" },
+    { value: "14:00", label: "2:00 PM" },
+    { value: "15:00", label: "3:00 PM" },
+    { value: "16:00", label: "4:00 PM" },
+    { value: "17:00", label: "5:00 PM" },
   ];
 
   const formatDate = (date: string) => {
@@ -543,14 +547,68 @@ export default function ProviderRequestDetailsScreen({
               </View>
               <Text style={styles.requestNumber}>#{request.requestNumber}</Text>
             </View>
-            <View style={styles.timeBox}>
-              <Text style={styles.timeValue}>{request.expiresIn}</Text>
-              <Text style={styles.timeLabel}>{t.common?.remaining || "remaining"}</Text>
+            <View style={[styles.timeBox, request.expiresIn === "Expired" && { backgroundColor: '#fef2f2', borderColor: '#fca5a5' }]}>
+              <Text style={[styles.timeValue, request.expiresIn === "Expired" && { color: '#ef4444' }]}>{request.expiresIn}</Text>
+              <Text style={styles.timeLabel}>
+                {request.expiresIn === "Expired"
+                  ? (t.common?.closed || "Closed")
+                  : (t.common?.remaining || "remaining")}
+              </Text>
             </View>
           </View>
 
           <Text style={styles.title}>{request.title}</Text>
-          <Text style={styles.description}>{request.description}</Text>
+
+          {/* Structured key-value service details */}
+          {(() => {
+            const rawDesc = request.description || "";
+            const parts = rawDesc.split('\n---\n');
+            const detailsPart = parts[0] || "";
+            const metaPart = parts[1] || "";
+            // Parse key-value pairs from pipe-separated format
+            const detailItems = detailsPart.split(' | ').filter((s: string) => s.trim());
+            // Deduplicate items with same key
+            const seen = new Set<string>();
+            const uniqueItems = detailItems.filter((item: string) => {
+              const key = item.split(':')[0]?.trim();
+              if (seen.has(key)) return false;
+              seen.add(key);
+              return true;
+            });
+            const metaItems = metaPart.split(' | ').filter((s: string) => s.trim());
+            return (
+              <View style={{ marginTop: 8 }}>
+                {uniqueItems.map((item: string, i: number) => {
+                  const colonIdx = item.indexOf(':');
+                  if (colonIdx === -1) return <Text key={i} style={styles.description}>{item}</Text>;
+                  const key = item.substring(0, colonIdx).trim();
+                  const val = item.substring(colonIdx + 1).trim();
+                  return (
+                    <View key={i} style={{ flexDirection: 'row', marginBottom: 4, paddingHorizontal: 4 }}>
+                      <Text style={{ fontSize: 13, color: '#6b7280', width: 120 }}>{key}</Text>
+                      <Text style={{ fontSize: 13, color: '#111827', fontWeight: '500', flex: 1 }}>{val}</Text>
+                    </View>
+                  );
+                })}
+                {metaItems.length > 0 && (
+                  <View style={{ borderTopWidth: 1, borderTopColor: '#f3f4f6', marginTop: 6, paddingTop: 6 }}>
+                    {metaItems.map((item: string, i: number) => {
+                      const colonIdx = item.indexOf(':');
+                      if (colonIdx === -1) return null;
+                      const key = item.substring(0, colonIdx).trim();
+                      const val = item.substring(colonIdx + 1).trim();
+                      return (
+                        <View key={`m-${i}`} style={{ flexDirection: 'row', marginBottom: 4, paddingHorizontal: 4 }}>
+                          <Text style={{ fontSize: 13, color: '#6b7280', width: 120 }}>{key}</Text>
+                          <Text style={{ fontSize: 13, color: '#111827', fontWeight: '500', flex: 1 }}>{val}</Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                )}
+              </View>
+            );
+          })()}
 
           {/* Preferred Schedule */}
           {(request.preferredDate || request.preferredTime) && (
@@ -718,14 +776,24 @@ export default function ProviderRequestDetailsScreen({
             <Text style={styles.cardTitle}>
               👤 {t.common?.customer || "Customer"}
             </Text>
-            <View style={styles.ratingBadge}>
-              <MaterialCommunityIcons name="star" size={14} color="#f59e0b" />
-              <Text style={styles.ratingText}>{request.customer.rating}</Text>
-              <Text style={styles.ratingCount}>
-                ({request.customer.totalRequests}{" "}
-                {t.common?.requests || "requests"})
-              </Text>
-            </View>
+            {request.customer.rating > 0 ? (
+              <View style={styles.ratingBadge}>
+                <MaterialCommunityIcons name="star" size={14} color="#f59e0b" />
+                <Text style={styles.ratingText}>{request.customer.rating.toFixed(1)}</Text>
+                <Text style={styles.ratingCount}>
+                  ({request.customer.totalRequests} {t.common?.requests || "requests"})
+                </Text>
+              </View>
+            ) : (
+              <View style={[styles.ratingBadge, { backgroundColor: '#eff6ff' }]}>
+                <MaterialCommunityIcons name="account-star" size={14} color="#3b82f6" />
+                <Text style={[styles.ratingText, { color: '#3b82f6' }]}>
+                  {request.customer.totalRequests <= 1
+                    ? (t.provider?.newCustomer || "New Customer")
+                    : `${request.customer.totalRequests} ${t.common?.requests || "requests"}`}
+                </Text>
+              </View>
+            )}
           </View>
           <View style={styles.infoRow}>
             <MaterialCommunityIcons name="account" size={18} color="#6b7280" />
@@ -738,7 +806,9 @@ export default function ProviderRequestDetailsScreen({
               color="#6b7280"
             />
             <Text style={styles.infoText}>
-              {request.customer.location} • {request.customer.distance}
+              {request.customer.location && request.customer.location !== '.'
+                ? `${request.customer.location}${request.customer.distance ? ` • ${request.customer.distance}` : ''}`
+                : (t.provider?.locationNotProvided || "Location not provided")}
             </Text>
           </View>
 
@@ -838,8 +908,8 @@ export default function ProviderRequestDetailsScreen({
               <Text style={styles.vehicleGridLabel}>
                 {t.vehicle?.mileage || "Mileage"}
               </Text>
-              <Text style={styles.vehicleGridValue}>
-                {request.vehicle.mileage > 0 ? `${request.vehicle.mileage.toLocaleString()} mi` : "N/A"}
+              <Text style={[styles.vehicleGridValue, !(request.vehicle.mileage > 0) && { color: '#9ca3af', fontStyle: 'italic' }]}>
+                {request.vehicle.mileage > 0 ? `${request.vehicle.mileage.toLocaleString('en-US')} mi` : (t.common?.notProvided || "Not provided")}
               </Text>
             </View>
             <View style={styles.vehicleGridItem}>
@@ -864,8 +934,8 @@ export default function ProviderRequestDetailsScreen({
               <Text style={styles.vehicleGridLabel}>
                 {t.vehicle?.transmission || "Transmission"}
               </Text>
-              <Text style={styles.vehicleGridValue}>
-                {request.vehicle.transmission || "N/A"}
+              <Text style={[styles.vehicleGridValue, !request.vehicle.transmission && { color: '#9ca3af', fontStyle: 'italic' }]}>
+                {request.vehicle.transmission || (t.common?.notProvided || "Not provided")}
               </Text>
             </View>
             <View style={styles.vehicleGridItem}>
@@ -873,8 +943,8 @@ export default function ProviderRequestDetailsScreen({
               <Text style={styles.vehicleGridLabel}>
                 {t.vehicle?.engine || "Engine"}
               </Text>
-              <Text style={styles.vehicleGridValue}>
-                {request.vehicle.engine || "N/A"}
+              <Text style={[styles.vehicleGridValue, !request.vehicle.engine && { color: '#9ca3af', fontStyle: 'italic' }]}>
+                {request.vehicle.engine || (t.common?.notProvided || "Not provided")}
               </Text>
             </View>
             <View style={styles.vehicleGridItem}>
@@ -919,17 +989,20 @@ export default function ProviderRequestDetailsScreen({
           <MaterialCommunityIcons
             name="account-group"
             size={24}
-            color="#6b7280"
+            color={request.quotesCount === 0 ? "#10b981" : "#f59e0b"}
           />
           <View style={styles.competitionInfo}>
             <Text style={styles.competitionTitle}>
-              {request.quotesCount}{" "}
-              {t.provider?.providersSubmittedQuotes ||
-                "provider(s) have already submitted quotes"}
+              {request.quotesCount === 0
+                ? (t.provider?.noQuotesYet || "No providers have submitted quotes yet")
+                : request.quotesCount === 1
+                  ? (t.provider?.oneProviderQuoted || "1 provider has submitted a quote")
+                  : `${request.quotesCount} ${t.provider?.providersQuoted || "providers have already submitted quotes"}`}
             </Text>
             <Text style={styles.competitionSubtitle}>
-              {t.provider?.beCompetitive ||
-                "Be competitive to increase your chances!"}
+              {request.quotesCount === 0
+                ? (t.provider?.beFirst || "Be the first to quote!")
+                : (t.provider?.beCompetitive || "Be competitive to increase your chances!")}
             </Text>
           </View>
         </View>
@@ -937,20 +1010,57 @@ export default function ProviderRequestDetailsScreen({
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* Bottom Button */}
+      {/* Bottom Buttons */}
       {!quoteSubmitted && (
         <View style={styles.bottomContainer}>
+          {request.expiresIn === "Expired" ? (
+            <View style={[styles.quoteButton, { backgroundColor: '#9ca3af' }]}>
+              <MaterialCommunityIcons name="clock-alert" size={22} color="#fff" />
+              <Text style={styles.quoteButtonText}>
+                {t.quote?.requestExpired || "Request Expired"}
+              </Text>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={styles.quoteButton}
+              onPress={() => setShowQuoteModal(true)}
+            >
+              <MaterialCommunityIcons
+                name="file-document-edit"
+                size={22}
+                color="#fff"
+              />
+              <Text style={styles.quoteButtonText}>
+                {t.quote?.createQuote || "Create Quote"}
+              </Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
-            style={styles.quoteButton}
-            onPress={() => setShowQuoteModal(true)}
+            style={styles.declineLink}
+            onPress={() => {
+              Alert.alert(
+                t.provider?.declineRequest || "Decline Request",
+                t.provider?.declineConfirm || "Are you sure you want to decline this request?",
+                [
+                  { text: t.common?.cancel || "Cancel", style: "cancel" },
+                  {
+                    text: t.provider?.decline || "Decline",
+                    style: "destructive",
+                    onPress: async () => {
+                      try {
+                        await api.post(`/service-requests/${requestId}/decline`);
+                        navigation.goBack();
+                      } catch {
+                        navigation.goBack();
+                      }
+                    },
+                  },
+                ],
+              );
+            }}
           >
-            <MaterialCommunityIcons
-              name="file-document-edit"
-              size={22}
-              color="#fff"
-            />
-            <Text style={styles.quoteButtonText}>
-              {t.quote?.createQuote || "Create Quote"}
+            <Text style={styles.declineLinkText}>
+              {t.provider?.cantHandle || "Can't handle this request? Decline"}
             </Text>
           </TouchableOpacity>
         </View>
@@ -1009,23 +1119,35 @@ export default function ProviderRequestDetailsScreen({
                   {request.description && (
                     <View style={styles.partsLaborContainer}>
                       <View style={styles.partsLaborColumn}>
-                        <Text style={styles.partsLaborHeader}>Parts</Text>
+                        <Text style={styles.partsLaborHeader}>{t.quote?.parts || "Parts"}</Text>
                         {(() => {
                           const desc = request.description.split('\n---\n')[0] || request.description;
-                          const lines = desc.split('\n').filter((l: string) => l.trim());
-                          return lines.length > 0 ? lines.map((line: string, i: number) => (
-                            <View key={`p-${i}`} style={styles.partsLaborItem}>
-                              <MaterialCommunityIcons name="circle-small" size={16} color="#6b7280" />
-                              <Text style={styles.partsLaborItemText}>{line.trim()}</Text>
-                            </View>
-                          )) : (
+                          // Parse pipe-separated key-value pairs and deduplicate
+                          const items = desc.split(' | ').filter((s: string) => s.trim());
+                          const seen = new Set<string>();
+                          const unique = items.filter((item: string) => {
+                            const key = item.split(':')[0]?.trim();
+                            if (seen.has(key)) return false;
+                            seen.add(key);
+                            return true;
+                          });
+                          return unique.length > 0 ? unique.map((item: string, i: number) => {
+                            const colonIdx = item.indexOf(':');
+                            const label = colonIdx > -1 ? item.substring(colonIdx + 1).trim() : item.trim();
+                            return (
+                              <View key={`p-${i}`} style={styles.partsLaborItem}>
+                                <MaterialCommunityIcons name="circle-small" size={16} color="#6b7280" />
+                                <Text style={styles.partsLaborItemText}>{label}</Text>
+                              </View>
+                            );
+                          }) : (
                             <Text style={styles.partsLaborEmpty}>—</Text>
                           );
                         })()}
                       </View>
                       <View style={styles.partsLaborDivider} />
                       <View style={styles.partsLaborColumn}>
-                        <Text style={styles.partsLaborHeader}>Labor</Text>
+                        <Text style={styles.partsLaborHeader}>{t.quote?.labor || "Labor"}</Text>
                         <View style={styles.partsLaborItem}>
                           <MaterialCommunityIcons name="circle-small" size={16} color="#6b7280" />
                           <Text style={styles.partsLaborItemText}>{request.title}</Text>
@@ -1526,24 +1648,34 @@ export default function ProviderRequestDetailsScreen({
                 />
               </View>
 
-              {/* Total */}
-              <View style={styles.totalContainer}>
-                <View>
-                  <Text style={styles.totalLabel}>
-                    {t.quote?.subtotal || "Subtotal"}
-                  </Text>
-                  <Text style={styles.totalItems}>
-                    {
-                      lineItems.filter((i) => i.description && i.unitPrice > 0)
-                        .length
-                    }{" "}
-                    item(s)
-                  </Text>
-                </View>
-                <Text style={styles.totalValue}>
-                  ${calculateSubtotal().toFixed(2)}
-                </Text>
-              </View>
+              {/* Total Breakdown */}
+              {(() => {
+                const partItems = lineItems.filter((i) => i.type === 'part' && i.description && i.unitPrice > 0);
+                const serviceItems = lineItems.filter((i) => i.type === 'service' && i.description && i.unitPrice > 0);
+                const partsTotal = partItems.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
+                const laborTotal = serviceItems.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
+                return (
+                  <View style={styles.totalContainer}>
+                    <View style={{ flex: 1 }}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <Text style={{ fontSize: 13, color: '#6b7280' }}>{t.quote?.parts || "Parts"}</Text>
+                        <Text style={{ fontSize: 13, color: '#374151' }}>${partsTotal.toFixed(2)}</Text>
+                      </View>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <Text style={{ fontSize: 13, color: '#6b7280' }}>{t.quote?.labor || "Labor"}</Text>
+                        <Text style={{ fontSize: 13, color: '#374151' }}>${laborTotal.toFixed(2)}</Text>
+                      </View>
+                      <View style={{ borderTopWidth: 1, borderTopColor: '#e5e7eb', paddingTop: 6, flexDirection: 'row', justifyContent: 'space-between' }}>
+                        <Text style={styles.totalLabel}>{t.quote?.subtotal || "Subtotal"}</Text>
+                        <Text style={styles.totalValue}>${calculateSubtotal().toFixed(2)}</Text>
+                      </View>
+                      <Text style={styles.totalItems}>
+                        {lineItems.filter((i) => i.description && i.unitPrice > 0).length} item(s)
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })()}
 
               {/* Show displacement cost if mobile service is enabled */}
               {isMobileService && calculateDisplacementCost() > 0 && (
@@ -1978,6 +2110,15 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
+  },
+  declineLink: {
+    paddingVertical: 10,
+    alignItems: "center",
+  },
+  declineLinkText: {
+    fontSize: 13,
+    color: "#6b7280",
+    textDecorationLine: "underline",
   },
   // Modal styles
   modalOverlay: {
