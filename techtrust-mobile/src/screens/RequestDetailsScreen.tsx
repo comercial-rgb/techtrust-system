@@ -1,6 +1,7 @@
-/**
- * RequestDetailsScreen - Request Details
- * With quotes and chat functionality
+﻿/**
+ * RequestDetailsScreen â€” Service Request Details (Redesigned)
+ * Progress stepper, key-value layout, action buttons,
+ * photos/notes prompt, contextual progress text, grouped info
  */
 
 import React, { useState, useEffect, useMemo } from "react";
@@ -11,11 +12,16 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  Share,
+  Animated,
+  Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useI18n } from "../i18n";
 import api from "../services/api";
+
+const { width } = Dimensions.get("window");
 
 interface Quote {
   id: string;
@@ -32,15 +38,63 @@ interface Quote {
   description: string;
 }
 
+// Progress stepper steps
+const PROGRESS_STEPS = [
+  "submitted",
+  "sentToShops",
+  "awaitingQuotes",
+  "quoteAccepted",
+  "scheduled",
+  "inProgress",
+  "completed",
+] as const;
+
+function getStepIndex(status?: string): number {
+  switch (status) {
+    case "DRAFT":
+      return 0;
+    case "SEARCHING_PROVIDERS":
+      return 2;
+    case "QUOTES_RECEIVED":
+      return 2;
+    case "QUOTE_ACCEPTED":
+      return 3;
+    case "SCHEDULED":
+      return 4;
+    case "IN_PROGRESS":
+      return 5;
+    case "COMPLETED":
+      return 6;
+    case "CANCELLED":
+      return -1;
+    default:
+      return 0;
+  }
+}
+
 export default function RequestDetailsScreen({ navigation, route }: any) {
   const { t } = useI18n();
+  const td = (t as any).requestDetails || {};
   const { requestId } = route.params || { requestId: "1" };
   const [loading, setLoading] = useState(true);
   const [request, setRequest] = useState<any>(null);
   const [quotes, setQuotes] = useState<Quote[]>([]);
+  const pulseAnim = useState(new Animated.Value(1))[0];
 
   useEffect(() => {
     loadDetails();
+  }, []);
+
+  // Pulse animation for current step
+  useEffect(() => {
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.4, duration: 800, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+      ]),
+    );
+    pulse.start();
+    return () => pulse.stop();
   }, []);
 
   async function loadDetails() {
@@ -50,7 +104,6 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
       const reqData = requestRes.data.data || requestRes.data;
       setRequest(reqData);
 
-      // Quotes are already included in the service request response
       const includedQuotes = reqData?.quotes || [];
       if (includedQuotes.length > 0) {
         setQuotes(
@@ -73,11 +126,8 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
           })),
         );
       } else {
-        // Fallback: try the quotes endpoint
         try {
-          const quotesRes = await api.get(
-            `/quotes/service-requests/${requestId}`,
-          );
+          const quotesRes = await api.get(`/quotes/service-requests/${requestId}`);
           const quotesData = quotesRes.data.data || quotesRes.data || [];
           setQuotes(Array.isArray(quotesData) ? quotesData : []);
         } catch {
@@ -87,9 +137,7 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
     } catch (err: any) {
       Alert.alert(
         t.common?.error || "Error",
-        err?.response?.data?.message ||
-          t.common?.tryAgain ||
-          "Could not load details",
+        err?.response?.data?.message || t.common?.tryAgain || "Could not load details",
       );
     } finally {
       setLoading(false);
@@ -98,27 +146,19 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
 
   function handleAcceptQuote(quote: Quote) {
     Alert.alert(
-      t.common?.acceptQuote || "Accept Quote",
-      `${t.common?.acceptQuoteConfirm || "Accept"} ${quote.provider.businessName} ${t.common?.for || "for"} $${quote.totalAmount}?`,
+      (t.common as any)?.acceptQuote || "Accept Quote",
+      `${(t.common as any)?.acceptQuoteConfirm || "Accept"} ${quote.provider.businessName} ${(t.common as any)?.for || "for"} $${quote.totalAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}?`,
       [
         { text: t.common?.cancel || "Cancel", style: "cancel" },
         {
-          text: t.common?.accept || "Accept",
+          text: (t.common as any)?.accept || "Accept",
           onPress: async () => {
             try {
               await api.post(`/quotes/${quote.id}/accept`);
-              Alert.alert(
-                t.common?.success || "Success!",
-                t.common?.quoteAccepted || "Quote accepted!",
-              );
+              Alert.alert(t.common?.success || "Success!", (t.common as any)?.quoteAccepted || "Quote accepted!");
               navigation.goBack();
             } catch (err: any) {
-              Alert.alert(
-                t.common?.error || "Error",
-                err?.response?.data?.message ||
-                  t.common?.tryAgain ||
-                  "Try again",
-              );
+              Alert.alert(t.common?.error || "Error", err?.response?.data?.message || t.common?.tryAgain || "Try again");
             }
           },
         },
@@ -143,756 +183,550 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
     });
   }
 
-  // Find the index of the quote with the lowest total amount (best value)
+  async function handleShare() {
+    try {
+      const v = request?.vehicle ? `${request.vehicle.year} ${request.vehicle.make} ${request.vehicle.model}` : "";
+      await Share.share({
+        message: `TechTrust Service Request\n${request?.title || ""}\nVehicle: ${v}\nRef: #${request?.requestNumber || ""}\nStatus: ${getStatusLabel(request?.status)}`,
+        title: "TechTrust Service Request",
+      });
+    } catch {}
+  }
+
+  function handleEdit() {
+    Alert.alert(
+      td.editRequest || "Edit Request",
+      td.editRequestDesc || "You can edit your request details before receiving quotes.",
+      [
+        { text: t.common?.cancel || "Cancel", style: "cancel" },
+        { text: td.edit || "Edit", onPress: () => navigation.navigate("CreateRequest", { editRequestId: requestId, editData: request }) },
+      ],
+    );
+  }
+
+  function handleCancel() {
+    Alert.alert(
+      td.cancelRequest || "Cancel Request",
+      td.cancelRequestConfirm || "Are you sure you want to cancel this service request? This cannot be undone.",
+      [
+        { text: t.common?.cancel || "No, keep it", style: "cancel" },
+        {
+          text: td.yesCancel || "Yes, cancel",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await api.post(`/service-requests/${requestId}/cancel`);
+              Alert.alert(t.common?.success || "Success", td.requestCancelled || "Request cancelled.");
+              loadDetails();
+            } catch (err: any) {
+              Alert.alert(t.common?.error || "Error", err?.response?.data?.message || "Could not cancel request");
+            }
+          },
+        },
+      ],
+    );
+  }
+
   const bestValueIndex = useMemo(() => {
     if (quotes.length === 0) return -1;
-    let minIndex = 0;
-    let minAmount = quotes[0].totalAmount;
-    quotes.forEach((quote, idx) => {
-      if (quote.totalAmount < minAmount) {
-        minAmount = quote.totalAmount;
-        minIndex = idx;
-      }
-    });
-    return minIndex;
+    let minIdx = 0;
+    let minAmt = quotes[0].totalAmount;
+    quotes.forEach((q, i) => { if (q.totalAmount < minAmt) { minAmt = q.totalAmount; minIdx = i; } });
+    return minIdx;
   }, [quotes]);
 
   // Status helpers
   function getStatusColor(status?: string): string {
-    const colors: Record<string, string> = {
-      SEARCHING_PROVIDERS: "#f59e0b",
-      QUOTES_RECEIVED: "#3b82f6",
-      QUOTE_ACCEPTED: "#10b981",
-      SCHEDULED: "#8b5cf6",
-      IN_PROGRESS: "#f59e0b",
-      COMPLETED: "#10b981",
-      CANCELLED: "#ef4444",
-      DRAFT: "#9ca3af",
+    const c: Record<string, string> = {
+      SEARCHING_PROVIDERS: "#f59e0b", QUOTES_RECEIVED: "#3b82f6", QUOTE_ACCEPTED: "#10b981",
+      SCHEDULED: "#8b5cf6", IN_PROGRESS: "#f59e0b", COMPLETED: "#10b981", CANCELLED: "#ef4444", DRAFT: "#9ca3af",
     };
-    return colors[status || ""] || "#6b7280";
+    return c[status || ""] || "#6b7280";
   }
-  function getStatusBg(status?: string): string {
-    const bgs: Record<string, string> = {
-      SEARCHING_PROVIDERS: "#fef3c7",
-      QUOTES_RECEIVED: "#dbeafe",
-      QUOTE_ACCEPTED: "#d1fae5",
-      SCHEDULED: "#ede9fe",
-      IN_PROGRESS: "#fef3c7",
-      COMPLETED: "#d1fae5",
-      CANCELLED: "#fee2e2",
-      DRAFT: "#f3f4f6",
-    };
-    return bgs[status || ""] || "#f3f4f6";
-  }
+
   function getStatusLabel(status?: string): string {
-    const labels: Record<string, string> = {
-      SEARCHING_PROVIDERS: t.common?.searching || "Searching",
+    const l: Record<string, string> = {
+      SEARCHING_PROVIDERS: (t.common as any)?.searching || "Searching",
       QUOTES_RECEIVED: t.common?.quotesReceived || "Quotes Received",
-      QUOTE_ACCEPTED: t.common?.accepted || "Accepted",
-      SCHEDULED: t.common?.scheduled || "Scheduled",
-      IN_PROGRESS: t.common?.inProgress || "In Progress",
+      QUOTE_ACCEPTED: (t.common as any)?.accepted || "Accepted",
+      SCHEDULED: (t.common as any)?.scheduled || "Scheduled",
+      IN_PROGRESS: (t.common as any)?.inProgress || "In Progress",
       COMPLETED: t.common?.completed || "Completed",
       CANCELLED: t.common?.cancelled || "Cancelled",
     };
-    return labels[status || ""] || status || "";
+    return l[status || ""] || status || "";
   }
-  function getUrgencyColor(urgency?: string): string {
-    const colors: Record<string, string> = {
-      low: "#10b981",
-      normal: "#3b82f6",
-      high: "#f59e0b",
-      urgent: "#ef4444",
-    };
-    return colors[urgency || ""] || "#374151";
+
+  // Contextual progress message
+  function getProgressMessage(): string {
+    if (!request) return "";
+    const st = request.status;
+    const hrs = request.createdAt ? (Date.now() - new Date(request.createdAt).getTime()) / 3600000 : 0;
+
+    if (st === "CANCELLED") return td.progressCancelled || "This request has been cancelled.";
+    if (st === "COMPLETED") return td.progressCompleted || "This service has been completed. Thank you for using TechTrust!";
+    if (st === "IN_PROGRESS") return td.progressInProgress || "Your vehicle is being serviced. You'll be notified when it's ready.";
+    if (st === "SCHEDULED") return td.progressScheduled || "Your service is scheduled. Check the date and time below.";
+    if (st === "QUOTE_ACCEPTED") return td.progressAccepted || "Quote accepted! The provider will contact you to schedule.";
+    if (st === "QUOTES_RECEIVED" || (st === "SEARCHING_PROVIDERS" && quotes.length > 0)) {
+      return (td.progressQuotesReady || "You have %d quote(s) ready to review! Compare and choose the best one.").replace("%d", String(quotes.length));
+    }
+    if (st === "SEARCHING_PROVIDERS") {
+      if (hrs < 2) return td.progressSearchingNew || "Your request was sent to nearby service providers. Most quotes arrive within 2-4 hours.";
+      if (hrs < 24) return td.progressSearchingWait || "Still searching for quotes. Hang tight â€” providers are reviewing your request.";
+      return td.progressSearchingLong || "Taking longer than usual? You can edit your request details or contact support.";
+    }
+    return "";
   }
+
+  // Parse description into deduplicated key-value pairs
+  function getServiceDetails(): { label: string; value: string }[] {
+    if (!request?.description) return [];
+    let desc = request.description;
+    const metaSep = desc.indexOf("\n---\n");
+    if (metaSep !== -1) desc = desc.substring(0, metaSep).trim();
+    if (/^(Vehicle Type:|Scope:)/i.test(desc)) return [];
+    if (desc === request?.title) return [];
+    if (!desc) return [];
+
+    const parts = desc.split(" | ").map((p: string) => p.trim()).filter(Boolean);
+    const seen = new Set<string>();
+    const lines: { label: string; value: string }[] = [];
+
+    for (const part of parts) {
+      const ci = part.indexOf(": ");
+      if (ci !== -1) {
+        let label = part.substring(0, ci).trim()
+          .replace(/\s*\(optional,?\s*select all that apply\)/i, "")
+          .replace(/\s*\(select all that apply\)/i, "")
+          .replace(/\s*\(optional\)/i, "")
+          .replace(/^What type of /i, "").replace(/^What needs to be /i, "")
+          .replace(/^Describe any /i, "").replace(/\?$/, "").trim();
+        const value = part.substring(ci + 2).trim();
+        if (request?.title?.includes(value)) continue;
+        const key = `${label}:${value}`.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        if (value) lines.push({ label, value });
+      } else {
+        if (!request?.title?.includes(part)) {
+          const key = part.toLowerCase();
+          if (!seen.has(key)) { seen.add(key); lines.push({ label: "", value: part }); }
+        }
+      }
+    }
+    return lines;
+  }
+
+  function getScopeLabel(s?: string): string {
+    if (s === "service") return td.laborOnly || "Labor Only";
+    if (s === "parts") return td.partsOnly || "Parts Only";
+    if (s === "both") return td.partsAndLabor || "Parts + Labor";
+    return s || "";
+  }
+
+  function getLocationLabel(l?: string): string {
+    if (l === "IN_SHOP") return td.atTheShop || "At the shop (drop-off)";
+    if (l === "MOBILE") return td.mobileService || "Mobile service (at your location)";
+    if (l === "ROADSIDE") return td.roadsideAssist || "Roadside assistance";
+    return l || "";
+  }
+
+  const currentStep = getStepIndex(request?.status);
+  const isCancelled = request?.status === "CANCELLED";
+  const isStale = request?.status === "SEARCHING_PROVIDERS" && request?.createdAt && Date.now() - new Date(request.createdAt).getTime() > 48 * 3600000;
+  const canEdit = request?.status === "SEARCHING_PROVIDERS" || request?.status === "DRAFT";
+  const canCancel = request?.status === "SEARCHING_PROVIDERS" || request?.status === "QUOTES_RECEIVED" || request?.status === "DRAFT";
+  const serviceDetails = getServiceDetails();
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loading}>
-          <Text>{t.common?.loading || "Loading..."}</Text>
-        </View>
+      <SafeAreaView style={s.container}>
+        <View style={s.loading}><Text>{t.common?.loading || "Loading..."}</Text></View>
       </SafeAreaView>
     );
   }
 
+  const stepLabels = [
+    td.stepSubmitted || "Submitted",
+    td.stepSentToShops || "Sent to Shops",
+    td.stepAwaitingQuotes || "Awaiting Quotes",
+    td.stepQuoteAccepted || "Accepted",
+    td.stepScheduled || "Scheduled",
+    td.stepInProgress || "In Progress",
+    td.stepCompleted || "Completed",
+  ];
+
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backBtn}
-        >
+    <SafeAreaView style={s.container}>
+      {/* Header */}
+      <View style={s.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
           <Ionicons name="arrow-back" size={24} color="#111827" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t.common?.details || "Details"}</Text>
-        <View style={{ width: 40 }} />
+        <Text style={s.headerTitle}>{td.serviceRequest || "Service Request"}</Text>
+        <TouchableOpacity onPress={handleShare} style={s.shareBtn}>
+          <Ionicons name="share-outline" size={22} color="#6b7280" />
+        </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Professional Header Card */}
-        <View style={styles.card}>
-          {/* Request Number & Status */}
-          <View style={styles.headerRow}>
-            <Text style={styles.requestNumber}>#{request?.requestNumber}</Text>
-            <View
-              style={[
-                styles.statusChip,
-                { backgroundColor: getStatusBg(request?.status) },
-              ]}
-            >
-              <View
-                style={[
-                  styles.statusDot,
-                  { backgroundColor: getStatusColor(request?.status) },
-                ]}
-              />
-              <Text
-                style={[
-                  styles.statusChipText,
-                  { color: getStatusColor(request?.status) },
-                ]}
-              >
-                {getStatusLabel(request?.status)}
-              </Text>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: canEdit || canCancel ? 100 : 40 }}>
+
+        {/* â•â•â• PROGRESS STEPPER â•â•â• */}
+        {!isCancelled && (
+          <View style={s.stepperWrap}>
+            <View style={s.stepperRow}>
+              {PROGRESS_STEPS.map((_, idx) => {
+                const isDone = idx < currentStep;
+                const isCurr = idx === currentStep;
+                const isFuture = idx > currentStep;
+                return (
+                  <View key={idx} style={s.stepItem}>
+                    {idx > 0 && <View style={[s.stepLine, isDone || isCurr ? s.stepLineDone : s.stepLineFuture]} />}
+                    {isCurr ? (
+                      <Animated.View style={[s.stepDot, s.stepDotCurr, { transform: [{ scale: pulseAnim }] }]}>
+                        <View style={s.stepDotInner} />
+                      </Animated.View>
+                    ) : (
+                      <View style={[s.stepDot, isDone ? s.stepDotDone : s.stepDotFuture]}>
+                        {isDone && <Ionicons name="checkmark" size={10} color="#fff" />}
+                      </View>
+                    )}
+                    {(isDone || isCurr || idx === currentStep + 1) && (
+                      <Text style={[s.stepLabel, isCurr && s.stepLabelCurr, isFuture && s.stepLabelFuture]} numberOfLines={2}>
+                        {stepLabels[idx]}
+                      </Text>
+                    )}
+                  </View>
+                );
+              })}
+            </View>
+            {request?.status === "SEARCHING_PROVIDERS" && (
+              <View style={s.stepperInfo}>
+                <Ionicons name="pricetags-outline" size={14} color="#6b7280" />
+                <Text style={s.stepperInfoText}>
+                  {quotes.length > 0
+                    ? (td.quotesReceivedCount || "%d quote(s) received").replace("%d", String(quotes.length))
+                    : td.noQuotesYet || "No quotes yet"}
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Cancelled */}
+        {isCancelled && (
+          <View style={s.cancelledBanner}>
+            <Ionicons name="close-circle" size={20} color="#ef4444" />
+            <Text style={s.cancelledText}>{td.requestCancelledMsg || "This request has been cancelled"}</Text>
+          </View>
+        )}
+
+        {/* â•â•â• CONTEXTUAL PROGRESS MESSAGE â•â•â• */}
+        {getProgressMessage() !== "" && (
+          <View style={s.progressMsg}>
+            <Ionicons name={quotes.length > 0 && request?.status !== "COMPLETED" ? "pricetags" : "information-circle"} size={18} color={quotes.length > 0 ? "#3b82f6" : "#6b7280"} />
+            <Text style={s.progressMsgText}>{getProgressMessage()}</Text>
+          </View>
+        )}
+
+        {/* â•â•â• SERVICE REQUESTED CARD â•â•â• */}
+        <View style={s.card}>
+          <View style={s.cardHeader}>
+            <View style={s.cardIconWrap}><Ionicons name="construct" size={20} color="#1976d2" /></View>
+            <Text style={s.cardTitle}>{td.serviceRequested || "Service Requested"}</Text>
+            <View style={[s.statusBadge, { backgroundColor: getStatusColor(request?.status) + "20" }]}>
+              <View style={[s.statusDot, { backgroundColor: getStatusColor(request?.status) }]} />
+              <Text style={[s.statusBadgeText, { color: getStatusColor(request?.status) }]}>{getStatusLabel(request?.status)}</Text>
             </View>
           </View>
 
-          {/* Title */}
-          <Text style={styles.title}>{request?.title}</Text>
+          <Text style={s.serviceTitle}>{request?.title}</Text>
 
-          {/* Description - clean formatting, no meta duplication */}
-          {request?.description &&
-            (() => {
-              let desc = request.description;
-              // Remove enriched meta lines (Vehicle Type: ... | Scope: ...) appended during creation
-              const metaSeparator = desc.indexOf("\n---\n");
-              if (metaSeparator !== -1) {
-                desc = desc.substring(0, metaSeparator).trim();
-              }
-              // If description is just the meta lines (no separator, but starts with "Vehicle Type:")
-              if (/^(Vehicle Type:|Scope:)/i.test(desc)) {
-                return null;
-              }
-              // Remove if description duplicates the title exactly
-              if (desc === request?.title) {
-                return null;
-              }
-              if (!desc) return null;
-
-              // Parse pipe-separated sub-option details into clean lines
-              // Format: "Section Label: Value1, Value2 | Section Label: Value3"
-              const parts = desc
-                .split(" | ")
-                .map((p) => p.trim())
-                .filter(Boolean);
-              const cleanLines: { label: string; value: string }[] = [];
-              for (const part of parts) {
-                const colonIdx = part.indexOf(": ");
-                if (colonIdx !== -1) {
-                  let label = part.substring(0, colonIdx).trim();
-                  const value = part.substring(colonIdx + 2).trim();
-                  // Shorten verbose question labels
-                  label = label
-                    .replace(/\s*\(optional,?\s*select all that apply\)/i, "")
-                    .replace(/\s*\(select all that apply\)/i, "")
-                    .replace(/\s*\(optional\)/i, "")
-                    .replace(/^What type of /i, "")
-                    .replace(/^What needs to be /i, "")
-                    .replace(/^Describe any /i, "")
-                    .replace(/\?$/, "")
-                    .trim();
-                  // Skip if the value already appears in the title
-                  if (request?.title?.includes(value)) continue;
-                  if (value) cleanLines.push({ label, value });
-                } else {
-                  // Plain text line
-                  if (!request?.title?.includes(part)) {
-                    cleanLines.push({ label: "", value: part });
-                  }
-                }
-              }
-
-              if (cleanLines.length === 0) return null;
-
-              return (
-                <View style={styles.descriptionBox}>
-                  <Ionicons
-                    name="document-text-outline"
-                    size={16}
-                    color="#6b7280"
-                    style={{ marginTop: 2 }}
-                  />
-                  <View style={{ flex: 1, gap: 6 }}>
-                    {cleanLines.map((line, i) => (
-                      <View key={i}>
-                        {line.label ? (
-                          <>
-                            <Text
-                              style={{
-                                fontSize: 12,
-                                color: "#9ca3af",
-                                fontWeight: "600",
-                                marginBottom: 2,
-                              }}
-                            >
-                              {line.label}
-                            </Text>
-                            <Text style={styles.description}>{line.value}</Text>
-                          </>
-                        ) : (
-                          <Text style={styles.description}>{line.value}</Text>
-                        )}
-                      </View>
-                    ))}
+          {/* Key-value service details */}
+          {serviceDetails.length > 0 && (
+            <View style={s.kvSection}>
+              <Text style={s.kvSectionTitle}>{td.serviceDetails || "Service Details"}</Text>
+              {serviceDetails.map((item, i) => (
+                <View key={i}>
+                  <View style={s.kvRow}>
+                    <Text style={s.kvLabel}>{item.label || td.note || "Note"}</Text>
+                    <Text style={s.kvValue}>{item.value}</Text>
                   </View>
+                  {i < serviceDetails.length - 1 && <View style={s.kvDivider} />}
                 </View>
-              );
-            })()}
-
-          {/* Divider */}
-          <View style={styles.divider} />
-
-          {/* Info Grid */}
-          <View style={styles.infoGrid}>
-            <View style={styles.infoItem}>
-              <View style={styles.infoIconContainer}>
-                <Ionicons name="car" size={18} color="#1976d2" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.infoLabel}>
-                  {t.common?.vehicle || "Vehicle"}
-                </Text>
-                <Text style={styles.infoValue}>
-                  {request?.vehicle?.year} {request?.vehicle?.make}{" "}
-                  {request?.vehicle?.model} {request?.vehicle?.trim || ""}
-                </Text>
-                {(request?.vehicle?.fuelType ||
-                  request?.vehicle?.vehicleType) && (
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      gap: 8,
-                      marginTop: 4,
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    {request?.vehicle?.fuelType && (
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          alignItems: "center",
-                          backgroundColor: "#eff6ff",
-                          paddingHorizontal: 8,
-                          paddingVertical: 2,
-                          borderRadius: 8,
-                        }}
-                      >
-                        <Ionicons name="flash" size={10} color="#1976d2" />
-                        <Text
-                          style={{
-                            fontSize: 11,
-                            color: "#1976d2",
-                            fontWeight: "500",
-                            marginLeft: 3,
-                          }}
-                        >
-                          {request.vehicle.fuelType}
-                        </Text>
-                      </View>
-                    )}
-                    {request?.vehicle?.vehicleType && (
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          alignItems: "center",
-                          backgroundColor: "#f0fdf4",
-                          paddingHorizontal: 8,
-                          paddingVertical: 2,
-                          borderRadius: 8,
-                        }}
-                      >
-                        <Ionicons name="car" size={10} color="#059669" />
-                        <Text
-                          style={{
-                            fontSize: 11,
-                            color: "#059669",
-                            fontWeight: "500",
-                            marginLeft: 3,
-                          }}
-                        >
-                          {request.vehicle.vehicleType}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                )}
-              </View>
+              ))}
             </View>
+          )}
 
+          {/* Filters as chips */}
+          {request?.description?.includes("Filter") && (() => {
+            const m = request.description.match(/Filters?\s*(?:to\s*Replace)?:?\s*([^|]+)/i);
+            if (!m) return null;
+            const filters = m[1].split(",").map((f: string) => f.trim()).filter(Boolean);
+            if (!filters.length) return null;
+            return (
+              <View style={s.chipsSection}>
+                <Text style={s.kvSectionTitle}>{td.filtersIncluded || "Filters Included"}</Text>
+                <View style={s.chipsRow}>
+                  {filters.map((f: string, i: number) => (
+                    <View key={i} style={s.chip}>
+                      <Ionicons name="funnel" size={12} color="#1976d2" />
+                      <Text style={s.chipText}>{f}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            );
+          })()}
+
+          {/* Additional info */}
+          <View style={s.kvSection}>
             {request?.serviceType && (
-              <View style={styles.infoItem}>
-                <View style={styles.infoIconContainer}>
-                  <Ionicons name="construct" size={18} color="#1976d2" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.infoLabel}>
-                    {t.common?.serviceType || "Service Type"}
-                  </Text>
-                  <Text style={styles.infoValue}>
-                    {request?.serviceType?.replace(/_/g, " ")}
-                  </Text>
-                </View>
-              </View>
+              <><View style={s.kvRow}><Text style={s.kvLabel}>{t.common?.serviceType || "Service Type"}</Text><Text style={s.kvValue}>{request.serviceType.replace(/_/g, " ")}</Text></View><View style={s.kvDivider} /></>
             )}
-
             {request?.serviceLocationType && (
-              <View style={styles.infoItem}>
-                <View style={styles.infoIconContainer}>
-                  <Ionicons name="location" size={18} color="#1976d2" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.infoLabel}>
-                    {t.common?.location || "Location"}
-                  </Text>
-                  <Text style={styles.infoValue}>
-                    {request?.serviceLocationType === "IN_SHOP"
-                      ? t.common?.inShop || "In Shop"
-                      : request?.serviceLocationType === "MOBILE"
-                        ? t.common?.mobile || "Mobile"
-                        : t.common?.roadside || "Roadside"}
-                  </Text>
-                </View>
-              </View>
+              <><View style={s.kvRow}><Text style={s.kvLabel}>{td.serviceLocation || "Service Location"}</Text><Text style={s.kvValue}>{getLocationLabel(request.serviceLocationType)}</Text></View><View style={s.kvDivider} /></>
             )}
-
-            {request?.urgency && (
-              <View style={styles.infoItem}>
-                <View style={styles.infoIconContainer}>
-                  <Ionicons name="time" size={18} color="#1976d2" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.infoLabel}>
-                    {t.common?.urgency || "Urgency"}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.infoValue,
-                      {
-                        color: getUrgencyColor(request?.urgency),
-                        textTransform: "capitalize",
-                      },
-                    ]}
-                  >
-                    {request?.urgency}
-                  </Text>
-                </View>
-              </View>
-            )}
-
-            {request?.vehicleCategory && (
-              <View style={styles.infoItem}>
-                <View style={styles.infoIconContainer}>
-                  <Ionicons name="options" size={18} color="#1976d2" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.infoLabel}>
-                    {t.common?.vehicleCategory || "Vehicle Category"}
-                  </Text>
-                  <Text style={styles.infoValue}>
-                    {request.vehicleCategory.replace(/_/g, " ")}
-                  </Text>
-                </View>
-              </View>
-            )}
-
             {request?.serviceScope && (
-              <View style={styles.infoItem}>
-                <View style={styles.infoIconContainer}>
-                  <Ionicons name="layers" size={18} color="#1976d2" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.infoLabel}>
-                    {t.common?.scope || "Scope"}
-                  </Text>
-                  <Text style={styles.infoValue}>
-                    {request.serviceScope === "service"
-                      ? "Service / Labor Only"
-                      : request.serviceScope === "parts"
-                        ? "Parts Only"
-                        : request.serviceScope === "both"
-                          ? "Parts + Service"
-                          : request.serviceScope}
-                  </Text>
-                </View>
-              </View>
+              <><View style={s.kvRow}><Text style={s.kvLabel}>{td.whatsIncluded || "What's Included"}</Text><Text style={s.kvValue}>{getScopeLabel(request.serviceScope)}</Text></View><View style={s.kvDivider} /></>
             )}
-
-            <View style={styles.infoItem}>
-              <View style={styles.infoIconContainer}>
-                <Ionicons name="calendar" size={18} color="#1976d2" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.infoLabel}>{t.common?.date || "Date"}</Text>
-                <Text style={styles.infoValue}>
-                  {request?.createdAt
-                    ? new Date(request.createdAt).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })
-                    : "-"}
-                </Text>
-              </View>
-            </View>
+            {request?.urgency && (
+              <><View style={s.kvRow}><Text style={s.kvLabel}>{(t.common as any)?.urgency || "Urgency"}</Text><Text style={[s.kvValue, { color: request.urgency === "urgent" ? "#ef4444" : request.urgency === "high" ? "#f59e0b" : "#374151", fontWeight: "600" }]}>{request.urgency.charAt(0).toUpperCase() + request.urgency.slice(1)}</Text></View><View style={s.kvDivider} /></>
+            )}
+            <View style={s.kvRow}><Text style={s.kvLabel}>{td.submitted || "Submitted"}</Text><Text style={s.kvValue}>{request?.createdAt ? new Date(request.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "-"}</Text></View>
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>
-          {t.common?.quotes || "Quotes"} ({quotes.length})
-        </Text>
-        {quotes.map((quote, idx) => (
-          <TouchableOpacity
-            key={quote.id}
-            style={styles.quoteCard}
-            onPress={() => handleViewQuoteDetails(quote)}
-          >
-            <View style={styles.providerRow}>
-              <View style={styles.avatar}>
-                <Ionicons name="business" size={20} color="#1976d2" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.providerName}>
-                  {quote.provider.businessName}
-                </Text>
-                <View style={styles.ratingRow}>
-                  <Ionicons name="star" size={14} color="#fbbf24" />
-                  <Text style={styles.ratingText}>
-                    {quote.provider.rating} ({quote.provider.totalReviews})
-                  </Text>
-                </View>
-              </View>
-              {idx === bestValueIndex && (
-                <View style={styles.bestBadge}>
-                  <Text style={styles.bestText}>
-                    {t.common?.bestValue || "Best Value"}
-                  </Text>
-                </View>
+        {/* â•â•â• YOUR VEHICLE â•â•â• */}
+        {request?.vehicle && (
+          <View style={s.card}>
+            <View style={s.cardHeader}>
+              <View style={[s.cardIconWrap, { backgroundColor: "#f0fdf4" }]}><Ionicons name="car-sport" size={20} color="#059669" /></View>
+              <Text style={s.cardTitle}>{td.yourVehicle || "Your Vehicle"}</Text>
+            </View>
+            <Text style={s.vehicleName}>{request.vehicle.year} {request.vehicle.make} {request.vehicle.model} {request.vehicle.trim || ""}</Text>
+            <View style={s.vehicleBadges}>
+              {request.vehicle.fuelType && (
+                <View style={s.vehicleBadge}><Ionicons name="flash" size={12} color="#1976d2" /><Text style={s.vehicleBadgeText}>{request.vehicle.fuelType}</Text></View>
               )}
-              <Ionicons
-                name="chevron-forward"
-                size={20}
-                color="#9ca3af"
-                style={{ marginLeft: 8 }}
-              />
+              {request.vehicle.vehicleType && (
+                <View style={[s.vehicleBadge, { backgroundColor: "#f0fdf4" }]}><Ionicons name="car" size={12} color="#059669" /><Text style={[s.vehicleBadgeText, { color: "#059669" }]}>{request.vehicle.vehicleType}</Text></View>
+              )}
+              {request.vehicleCategory && (
+                <View style={[s.vehicleBadge, { backgroundColor: "#faf5ff" }]}><Ionicons name="options" size={12} color="#7c3aed" /><Text style={[s.vehicleBadgeText, { color: "#7c3aed" }]}>{request.vehicleCategory.replace(/_/g, " ")}</Text></View>
+              )}
             </View>
-            <View style={styles.detailsBox}>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>
-                  {t.workOrder?.parts || "Parts"}:
-                </Text>
-                <Text style={styles.detailValue}>${quote.partsCost}</Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>
-                  {t.workOrder?.labor || "Labor"}:
-                </Text>
-                <Text style={styles.detailValue}>${quote.laborCost}</Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>
-                  {t.workOrder?.estimatedTime || "Est. Time"}:
-                </Text>
-                <Text style={styles.detailValue}>{quote.estimatedTime}</Text>
-              </View>
-              <View style={[styles.detailRow, styles.totalRow]}>
-                <Text style={styles.totalLabel}>
-                  {t.common?.total || "Total"}:
-                </Text>
-                <Text style={styles.totalValue}>${quote.totalAmount}</Text>
-              </View>
+          </View>
+        )}
+
+        {/* â•â•â• PHOTOS & NOTES PROMPT â•â•â• */}
+        {(!request?.photos || request.photos?.length === 0) && !request?.customerNotes && canEdit && (
+          <TouchableOpacity style={s.addPhotosPrompt} onPress={handleEdit}>
+            <Ionicons name="camera-outline" size={24} color="#1976d2" />
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={s.addPhotosTitle}>{td.addPhotos || "Add Photos & Notes"}</Text>
+              <Text style={s.addPhotosDesc}>{td.addPhotosDesc || "Add photos to help providers give you a more accurate quote."}</Text>
             </View>
-            <View style={styles.actions}>
-              <TouchableOpacity
-                style={styles.chatBtn}
-                onPress={(e) => {
-                  e.stopPropagation();
-                  handleChat(quote);
-                }}
-              >
-                <Ionicons name="chatbubble-outline" size={18} color="#1976d2" />
-                <Text style={styles.chatText}>{t.common?.chat || "Chat"}</Text>
+            <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+          </TouchableOpacity>
+        )}
+
+        {/* â•â•â• QUOTES â•â•â• */}
+        <View style={s.sectionHeader}>
+          <Text style={s.sectionTitle}>{(t.common as any)?.quotes || "Quotes"} ({quotes.length})</Text>
+          {quotes.length > 0 && (
+            <View style={s.quoteBadge}>
+              <Text style={s.quoteBadgeText}>{quotes.length > 1 ? (td.compareNow || "Compare now!") : td.reviewQuote || "Review"}</Text>
+            </View>
+          )}
+        </View>
+
+        {quotes.length === 0 && (
+          <View style={s.emptyQuotes}>
+            <MaterialCommunityIcons name="file-search-outline" size={48} color="#d1d5db" />
+            <Text style={s.emptyQuotesTitle}>{td.noQuotesTitle || "No quotes yet"}</Text>
+            <Text style={s.emptyQuotesDesc}>{td.noQuotesDesc || "Providers are reviewing your request. You'll be notified when quotes arrive."}</Text>
+          </View>
+        )}
+
+        {quotes.map((quote, idx) => (
+          <TouchableOpacity key={quote.id} style={[s.quoteCard, idx === bestValueIndex && s.quoteCardBest]} onPress={() => handleViewQuoteDetails(quote)}>
+            {idx === bestValueIndex && (
+              <View style={s.bestBadge}><Ionicons name="trophy" size={12} color="#047857" /><Text style={s.bestText}>{(t.common as any)?.bestValue || "Best Value"}</Text></View>
+            )}
+            <View style={s.providerRow}>
+              <View style={s.avatar}><Ionicons name="business" size={20} color="#1976d2" /></View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.providerName}>{quote.provider.businessName}</Text>
+                <View style={s.ratingRow}>
+                  <Ionicons name="star" size={14} color="#fbbf24" />
+                  <Text style={s.ratingText}>{quote.provider.rating.toFixed(1)} ({quote.provider.totalReviews} {quote.provider.totalReviews === 1 ? td.review || "review" : td.reviews || "reviews"})</Text>
+                </View>
+              </View>
+              <Text style={s.quoteTotal}>${quote.totalAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</Text>
+            </View>
+
+            <View style={s.costBreakdown}>
+              <View style={s.costItem}><Text style={s.costLabel}>{t.workOrder?.parts || "Parts"}</Text><Text style={s.costValue}>${quote.partsCost.toLocaleString("en-US", { minimumFractionDigits: 2 })}</Text></View>
+              <View style={s.costDividerV} />
+              <View style={s.costItem}><Text style={s.costLabel}>{t.workOrder?.labor || "Labor"}</Text><Text style={s.costValue}>${quote.laborCost.toLocaleString("en-US", { minimumFractionDigits: 2 })}</Text></View>
+              {quote.estimatedTime ? <><View style={s.costDividerV} /><View style={s.costItem}><Text style={s.costLabel}>{t.workOrder?.estimatedTime || "Est. Time"}</Text><Text style={s.costValue}>{quote.estimatedTime}</Text></View></> : null}
+            </View>
+
+            <View style={s.quoteActions}>
+              <TouchableOpacity style={s.chatBtn} onPress={(e) => { e.stopPropagation(); handleChat(quote); }}>
+                <Ionicons name="chatbubble-outline" size={16} color="#1976d2" /><Text style={s.chatText}>{(t.common as any)?.chat || "Chat"}</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.acceptBtn}
-                onPress={(e) => {
-                  e.stopPropagation();
-                  handleAcceptQuote(quote);
-                }}
-              >
-                <Ionicons name="checkmark" size={18} color="#fff" />
-                <Text style={styles.acceptText}>
-                  {t.common?.accept || "Accept"}
-                </Text>
+              <TouchableOpacity style={s.acceptBtn} onPress={(e) => { e.stopPropagation(); handleAcceptQuote(quote); }}>
+                <Ionicons name="checkmark" size={16} color="#fff" /><Text style={s.acceptText}>{(t.common as any)?.accept || "Accept"}</Text>
               </TouchableOpacity>
-            </View>
-            <View style={styles.viewDetailsHint}>
-              <Text style={styles.viewDetailsText}>
-                {t.common?.tapToViewFullDetails ||
-                  "Tap to view full details and share PDF"}
-              </Text>
             </View>
           </TouchableOpacity>
         ))}
 
-        {/* Renew Request Button - only for cancelled/expired requests */}
-        {request?.status &&
-          (() => {
-            const isCancelled = request.status === "CANCELLED";
-            // Consider a request "expired" if searching for providers for more than 48 hours
-            const isStale =
-              request.status === "SEARCHING_PROVIDERS" &&
-              request.createdAt &&
-              Date.now() - new Date(request.createdAt).getTime() >
-                48 * 60 * 60 * 1000;
-            if (!isCancelled && !isStale) return null;
-            return (
-              <TouchableOpacity
-                style={styles.renewBtn}
-                onPress={() => {
-                  Alert.alert(
-                    t.common?.renewRequest || "Renew Request",
-                    t.common?.renewRequestConfirm ||
-                      "This will reopen your request to receive more quotes from providers. Continue?",
-                    [
-                      { text: t.common?.cancel || "Cancel", style: "cancel" },
-                      {
-                        text: t.common?.renew || "Renew",
-                        onPress: async () => {
-                          try {
-                            await api.post(
-                              `/service-requests/${requestId}/renew`,
-                            );
-                            Alert.alert(
-                              t.common?.success || "Success!",
-                              t.common?.renewSuccess ||
-                                "Your request has been renewed. You will receive new quotes soon.",
-                            );
-                            loadDetails(); // Refresh
-                          } catch (err: any) {
-                            Alert.alert(
-                              t.common?.error || "Error",
-                              err?.response?.data?.message ||
-                                "Could not renew request",
-                            );
-                          }
-                        },
-                      },
-                    ],
-                  );
-                }}
-              >
-                <Ionicons name="refresh" size={20} color="#1976d2" />
-                <Text style={styles.renewBtnText}>
-                  {t.common?.renewForMoreQuotes ||
-                    "Renew Request for More Quotes"}
-                </Text>
-              </TouchableOpacity>
-            );
-          })()}
+        {/* Renew */}
+        {(isCancelled || isStale) && (
+          <TouchableOpacity style={s.renewBtn} onPress={() => {
+            Alert.alert((t.common as any)?.renewRequest || "Renew Request", (t.common as any)?.renewRequestConfirm || "This will reopen your request to receive more quotes. Continue?", [
+              { text: t.common?.cancel || "Cancel", style: "cancel" },
+              { text: (t.common as any)?.renew || "Renew", onPress: async () => { try { await api.post(`/service-requests/${requestId}/renew`); Alert.alert(t.common?.success || "Success!", (t.common as any)?.renewSuccess || "Your request has been renewed."); loadDetails(); } catch (err: any) { Alert.alert(t.common?.error || "Error", err?.response?.data?.message || "Could not renew request"); } } },
+            ]);
+          }}>
+            <Ionicons name="refresh" size={20} color="#1976d2" /><Text style={s.renewBtnText}>{(t.common as any)?.renewForMoreQuotes || "Renew Request for More Quotes"}</Text>
+          </TouchableOpacity>
+        )}
 
-        <View style={{ height: 40 }} />
+        {/* â•â•â• REFERENCE NUMBER (bottom) â•â•â• */}
+        {request?.requestNumber && (
+          <View style={s.refSection}>
+            <Text style={s.refLabel}>{td.referenceNumber || "Reference Number"}</Text>
+            <Text style={s.refValue}>#{request.requestNumber}</Text>
+          </View>
+        )}
       </ScrollView>
+
+      {/* â•â•â• BOTTOM ACTIONS â•â•â• */}
+      {(canEdit || canCancel) && (
+        <View style={s.bottomActions}>
+          {canEdit && (
+            <TouchableOpacity style={s.actionBtnEdit} onPress={handleEdit}>
+              <Ionicons name="create-outline" size={18} color="#1976d2" /><Text style={s.actionBtnEditText}>{td.editRequest || "Edit Request"}</Text>
+            </TouchableOpacity>
+          )}
+          {canCancel && (
+            <TouchableOpacity style={s.actionBtnCancel} onPress={handleCancel}>
+              <Ionicons name="close-circle-outline" size={18} color="#ef4444" /><Text style={s.actionBtnCancelText}>{t.common?.cancel || "Cancel"}</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f8fafc" },
   loading: { flex: 1, justifyContent: "center", alignItems: "center" },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 16,
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#f3f4f6",
-  },
+  // Header
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12, backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#f3f4f6" },
   backBtn: { padding: 8 },
-  headerTitle: { fontSize: 18, fontWeight: "600", color: "#111827" },
-  card: {
-    backgroundColor: "#fff",
-    margin: 16,
-    padding: 20,
-    borderRadius: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 12,
-  },
-  requestNumber: { fontSize: 14, color: "#6b7280", fontWeight: "500" },
-  statusChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    gap: 6,
-  },
-  statusDot: { width: 8, height: 8, borderRadius: 4 },
-  statusChipText: { fontSize: 12, fontWeight: "600" },
-  title: { fontSize: 20, fontWeight: "700", color: "#111827", marginBottom: 8 },
-  descriptionBox: {
-    flexDirection: "row",
-    gap: 8,
-    backgroundColor: "#f8fafc",
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 16,
-  },
-  description: { fontSize: 14, color: "#6b7280", flex: 1, lineHeight: 20 },
-  divider: { height: 1, backgroundColor: "#f3f4f6", marginBottom: 16 },
-  infoGrid: { gap: 14 },
-  infoItem: { flexDirection: "row", alignItems: "center", gap: 12 },
-  infoIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: "#eff6ff",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  infoLabel: { fontSize: 12, color: "#9ca3af", marginBottom: 2 },
-  infoValue: { fontSize: 14, fontWeight: "500", color: "#374151" },
-  vehicleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: "#f3f4f6",
-  },
-  vehicleText: { fontSize: 14, color: "#374151" },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#111827",
-    marginHorizontal: 16,
-    marginBottom: 12,
-  },
-  quoteCard: {
-    backgroundColor: "#fff",
-    marginHorizontal: 16,
-    marginBottom: 12,
-    padding: 16,
-    borderRadius: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
-  },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: "#111827" },
+  shareBtn: { padding: 8 },
+  // Stepper
+  stepperWrap: { backgroundColor: "#fff", marginHorizontal: 16, marginTop: 16, borderRadius: 16, padding: 20, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 1 },
+  stepperRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" },
+  stepItem: { alignItems: "center", flex: 1, position: "relative" },
+  stepLine: { position: "absolute", top: 10, right: "50%", width: "100%", height: 2, zIndex: -1 },
+  stepLineDone: { backgroundColor: "#10b981" },
+  stepLineFuture: { backgroundColor: "#e5e7eb" },
+  stepDot: { width: 20, height: 20, borderRadius: 10, justifyContent: "center", alignItems: "center", marginBottom: 6 },
+  stepDotDone: { backgroundColor: "#10b981" },
+  stepDotCurr: { backgroundColor: "#dbeafe", width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: "#3b82f6" },
+  stepDotInner: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#3b82f6" },
+  stepDotFuture: { backgroundColor: "#e5e7eb" },
+  stepLabel: { fontSize: 9, color: "#10b981", textAlign: "center", fontWeight: "600", maxWidth: 52 },
+  stepLabelCurr: { color: "#3b82f6", fontWeight: "700" },
+  stepLabelFuture: { color: "#9ca3af", fontWeight: "400" },
+  stepperInfo: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: "#f3f4f6", justifyContent: "center" },
+  stepperInfoText: { fontSize: 13, color: "#6b7280" },
+  // Cancelled
+  cancelledBanner: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 16, marginTop: 16, padding: 14, backgroundColor: "#fef2f2", borderRadius: 12, borderWidth: 1, borderColor: "#fecaca" },
+  cancelledText: { fontSize: 14, color: "#dc2626", fontWeight: "600" },
+  // Progress msg
+  progressMsg: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginHorizontal: 16, marginTop: 12, padding: 14, backgroundColor: "#eff6ff", borderRadius: 12 },
+  progressMsgText: { fontSize: 13, color: "#374151", flex: 1, lineHeight: 20 },
+  // Cards
+  card: { backgroundColor: "#fff", marginHorizontal: 16, marginTop: 16, padding: 20, borderRadius: 16, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 1 },
+  cardHeader: { flexDirection: "row", alignItems: "center", marginBottom: 14 },
+  cardIconWrap: { width: 36, height: 36, borderRadius: 10, backgroundColor: "#eff6ff", justifyContent: "center", alignItems: "center", marginRight: 10 },
+  cardTitle: { fontSize: 15, fontWeight: "700", color: "#374151", flex: 1 },
+  statusBadge: { flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, gap: 6 },
+  statusDot: { width: 7, height: 7, borderRadius: 4 },
+  statusBadgeText: { fontSize: 12, fontWeight: "600" },
+  serviceTitle: { fontSize: 19, fontWeight: "700", color: "#111827", marginBottom: 4 },
+  // KV
+  kvSection: { marginTop: 14, backgroundColor: "#f8fafc", borderRadius: 12, padding: 14 },
+  kvSectionTitle: { fontSize: 12, fontWeight: "700", color: "#9ca3af", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 },
+  kvRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", paddingVertical: 8 },
+  kvLabel: { fontSize: 13, color: "#6b7280", flex: 1, marginRight: 12 },
+  kvValue: { fontSize: 14, color: "#111827", fontWeight: "600", flex: 1.5, textAlign: "right" },
+  kvDivider: { height: 1, backgroundColor: "#e5e7eb" },
+  // Chips
+  chipsSection: { marginTop: 14, backgroundColor: "#f8fafc", borderRadius: 12, padding: 14 },
+  chipsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  chip: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#dbeafe", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
+  chipText: { fontSize: 13, color: "#1976d2", fontWeight: "500" },
+  // Vehicle
+  vehicleName: { fontSize: 17, fontWeight: "700", color: "#111827", marginBottom: 10 },
+  vehicleBadges: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  vehicleBadge: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#eff6ff", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  vehicleBadgeText: { fontSize: 12, color: "#1976d2", fontWeight: "500" },
+  // Photos
+  addPhotosPrompt: { flexDirection: "row", alignItems: "center", marginHorizontal: 16, marginTop: 16, padding: 16, backgroundColor: "#fff", borderRadius: 14, borderWidth: 1, borderColor: "#dbeafe", borderStyle: "dashed" },
+  addPhotosTitle: { fontSize: 14, fontWeight: "600", color: "#1976d2", marginBottom: 2 },
+  addPhotosDesc: { fontSize: 12, color: "#6b7280", lineHeight: 18 },
+  // Section
+  sectionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginHorizontal: 16, marginTop: 24, marginBottom: 12 },
+  sectionTitle: { fontSize: 18, fontWeight: "700", color: "#111827" },
+  quoteBadge: { backgroundColor: "#dbeafe", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+  quoteBadgeText: { fontSize: 12, fontWeight: "600", color: "#1976d2" },
+  // Empty
+  emptyQuotes: { alignItems: "center", padding: 32, marginHorizontal: 16, backgroundColor: "#fff", borderRadius: 16 },
+  emptyQuotesTitle: { fontSize: 16, fontWeight: "600", color: "#374151", marginTop: 12 },
+  emptyQuotesDesc: { fontSize: 13, color: "#9ca3af", textAlign: "center", marginTop: 6, lineHeight: 20, maxWidth: 280 },
+  // Quote cards
+  quoteCard: { backgroundColor: "#fff", marginHorizontal: 16, marginBottom: 12, padding: 16, borderRadius: 16, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
+  quoteCardBest: { borderWidth: 1.5, borderColor: "#10b981" },
+  bestBadge: { flexDirection: "row", alignItems: "center", gap: 4, alignSelf: "flex-start", backgroundColor: "#d1fae5", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, marginBottom: 10 },
+  bestText: { fontSize: 11, fontWeight: "700", color: "#047857" },
   providerRow: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: "#dbeafe",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
-  },
-  providerName: { fontSize: 16, fontWeight: "600", color: "#111827" },
-  ratingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    marginTop: 2,
-  },
-  ratingText: { fontSize: 13, color: "#6b7280" },
-  bestBadge: {
-    backgroundColor: "#d1fae5",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  bestText: { fontSize: 11, fontWeight: "600", color: "#047857" },
-  detailsBox: {
-    backgroundColor: "#f8fafc",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-  },
-  detailRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 6,
-  },
-  detailLabel: { fontSize: 14, color: "#6b7280" },
-  detailValue: { fontSize: 14, color: "#374151", fontWeight: "500" },
-  totalRow: {
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: "#e5e7eb",
-    marginBottom: 0,
-  },
-  totalLabel: { fontSize: 16, fontWeight: "600", color: "#111827" },
-  totalValue: { fontSize: 18, fontWeight: "700", color: "#1976d2" },
-  actions: { flexDirection: "row", gap: 12 },
-  chatBtn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    backgroundColor: "#dbeafe",
-    paddingVertical: 12,
-    borderRadius: 10,
-  },
-  chatText: { fontSize: 14, fontWeight: "600", color: "#1976d2" },
-  acceptBtn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    backgroundColor: "#10b981",
-    paddingVertical: 12,
-    borderRadius: 10,
-  },
-  acceptText: { fontSize: 14, fontWeight: "600", color: "#fff" },
-  viewDetailsHint: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: "#f3f4f6",
-    alignItems: "center",
-  },
-  viewDetailsText: { fontSize: 12, color: "#9ca3af", fontStyle: "italic" },
-  renewBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    marginHorizontal: 16,
-    marginTop: 8,
-    marginBottom: 8,
-    paddingVertical: 14,
-    backgroundColor: "#eff6ff",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#bfdbfe",
-  },
+  avatar: { width: 42, height: 42, borderRadius: 12, backgroundColor: "#dbeafe", justifyContent: "center", alignItems: "center", marginRight: 12 },
+  providerName: { fontSize: 15, fontWeight: "600", color: "#111827" },
+  ratingRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
+  ratingText: { fontSize: 12, color: "#6b7280" },
+  quoteTotal: { fontSize: 20, fontWeight: "800", color: "#1976d2" },
+  costBreakdown: { flexDirection: "row", backgroundColor: "#f8fafc", borderRadius: 10, padding: 12, marginBottom: 12, alignItems: "center" },
+  costItem: { flex: 1, alignItems: "center" },
+  costLabel: { fontSize: 11, color: "#9ca3af", marginBottom: 2 },
+  costValue: { fontSize: 13, fontWeight: "600", color: "#374151" },
+  costDividerV: { width: 1, height: 28, backgroundColor: "#e5e7eb" },
+  quoteActions: { flexDirection: "row", gap: 10 },
+  chatBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#eff6ff", paddingVertical: 11, borderRadius: 10 },
+  chatText: { fontSize: 13, fontWeight: "600", color: "#1976d2" },
+  acceptBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#10b981", paddingVertical: 11, borderRadius: 10 },
+  acceptText: { fontSize: 13, fontWeight: "600", color: "#fff" },
+  // Renew
+  renewBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginHorizontal: 16, marginTop: 16, paddingVertical: 14, backgroundColor: "#eff6ff", borderRadius: 12, borderWidth: 1, borderColor: "#bfdbfe" },
   renewBtnText: { fontSize: 15, fontWeight: "600", color: "#1976d2" },
+  // Ref
+  refSection: { alignItems: "center", marginTop: 24, paddingTop: 16, borderTopWidth: 1, borderTopColor: "#e5e7eb", marginHorizontal: 32 },
+  refLabel: { fontSize: 11, color: "#9ca3af", marginBottom: 4 },
+  refValue: { fontSize: 13, color: "#6b7280", fontWeight: "500" },
+  // Bottom
+  bottomActions: { flexDirection: "row", gap: 12, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: "#fff", borderTopWidth: 1, borderTopColor: "#f3f4f6" },
+  actionBtnEdit: { flex: 2, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#eff6ff", paddingVertical: 14, borderRadius: 12 },
+  actionBtnEditText: { fontSize: 14, fontWeight: "600", color: "#1976d2" },
+  actionBtnCancel: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#fef2f2", paddingVertical: 14, borderRadius: 12 },
+  actionBtnCancelText: { fontSize: 14, fontWeight: "600", color: "#ef4444" },
 });

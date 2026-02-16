@@ -97,7 +97,7 @@ const BENEFITS = [
     titleKey: "verifiedProviders",
     descKey: "verifiedProvidersDesc",
     title: "Verified Providers",
-    description: "All mechanics are background-checked and certified",
+    description: "Licensed, insured shops with ASE-certified technicians",
   },
   {
     id: "2",
@@ -105,7 +105,7 @@ const BENEFITS = [
     titleKey: "transparentPricing",
     descKey: "transparentPricingDesc",
     title: "Transparent Pricing",
-    description: "Compare quotes and pay only for what you need",
+    description: "Compare quotes upfront — no hidden fees or surprises",
   },
   {
     id: "3",
@@ -113,7 +113,7 @@ const BENEFITS = [
     titleKey: "saveTime",
     descKey: "saveTimeDesc",
     title: "Save Time",
-    description: "Book appointments and track service in real-time",
+    description: "Request quotes from multiple shops at once, 24/7",
   },
   {
     id: "4",
@@ -121,7 +121,7 @@ const BENEFITS = [
     titleKey: "qualityGuaranteed",
     descKey: "qualityGuaranteedDesc",
     title: "Quality Guaranteed",
-    description: "Rated services with warranty protection",
+    description: "Real reviews from verified customers you can trust",
   },
 ];
 
@@ -652,11 +652,21 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
 
       {!loading && (
         <>
-          {/* Logged In Banner */}
+          {/* Welcome Banner for logged-in users */}
           {isAuthenticated && user && (
             <View style={styles.loggedInBanner}>
-              <View style={styles.onlineIndicator} />
-              <Text style={styles.loggedInText}>Online</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.loggedInText}>
+                  {`Welcome back, ${user.firstName || user.name || ''}`}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={styles.goToDashboardBtn}
+                onPress={() => navigation.navigate('Dashboard')}
+              >
+                <Text style={styles.goToDashboardText}>My Dashboard</Text>
+                <Ionicons name="arrow-forward" size={14} color="#1976d2" />
+              </TouchableOpacity>
             </View>
           )}
 
@@ -683,6 +693,9 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
               >
                 <Text style={styles.languageFlag}>
                   {languages.find((l) => l.code === language)?.flag || "🇺🇸"}
+                </Text>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151' }}>
+                  {language.toUpperCase()}
                 </Text>
                 <Ionicons name="chevron-down" size={16} color="#6b7280" />
               </TouchableOpacity>
@@ -721,15 +734,15 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
               />
             }
           >
-            {/* Banner/Ads Section */}
+            {/* Featured Deals Section */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <MaterialCommunityIcons
-                  name="advertisements"
-                  size={20}
+                <Ionicons
+                  name="flame"
+                  size={18}
                   color="#f59e0b"
                 />
-                <Text style={styles.sectionLabel}>Ads & Promotions</Text>
+                <Text style={styles.sectionLabel}>{(t.landing as any)?.featuredDeals || 'Featured Deals'}</Text>
               </View>
               <FlatList
                 ref={bannerRef}
@@ -761,6 +774,43 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                         styles.paginationDotActive,
                     ]}
                   />
+                ))}
+              </View>
+            </View>
+
+            {/* Popular Services Grid */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Ionicons name="grid" size={18} color="#1976d2" />
+                <Text style={styles.sectionLabel}>{(t.landing as any)?.popularServices || 'Popular Services'}</Text>
+              </View>
+              <View style={styles.servicesGrid}>
+                {[
+                  { icon: 'water' as const, label: (t.landing as any)?.serviceOilChange || 'Oil Change', color: '#f59e0b' },
+                  { icon: 'disc' as const, label: (t.landing as any)?.serviceBrakes || 'Brakes', color: '#ef4444' },
+                  { icon: 'pulse' as const, label: (t.landing as any)?.serviceDiagnostics || 'Diagnostics', color: '#8b5cf6' },
+                  { icon: 'snow' as const, label: (t.landing as any)?.serviceAC || 'A/C', color: '#0ea5e9' },
+                  { icon: 'speedometer' as const, label: (t.landing as any)?.serviceTires || 'Tires', color: '#10b981' },
+                  { icon: 'car-sport' as const, label: (t.landing as any)?.serviceCarWash || 'Car Wash', color: '#6366f1' },
+                ].map((svc, idx) => (
+                  <TouchableOpacity
+                    key={idx}
+                    style={styles.serviceGridItem}
+                    onPress={() => {
+                      if (svc.label === ((t.landing as any)?.serviceCarWash || 'Car Wash')) {
+                        navigation.navigate('CarWashMap');
+                      } else {
+                        setSelectedService(SERVICE_TYPE_IDS.find(s => 
+                          s.toLowerCase().includes(svc.label.toLowerCase().replace(/\s|\/|\./g, '').slice(0, 4))
+                        ) || '');
+                      }
+                    }}
+                  >
+                    <View style={[styles.serviceGridIcon, { backgroundColor: svc.color + '15' }]}>
+                      <Ionicons name={svc.icon} size={24} color={svc.color} />
+                    </View>
+                    <Text style={styles.serviceGridLabel}>{svc.label}</Text>
+                  </TouchableOpacity>
                 ))}
               </View>
             </View>
@@ -989,6 +1039,21 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
               )}
             </View>
 
+            {/* Trust Numbers Bar */}
+            <View style={styles.trustBar}>
+              {[
+                { value: '150+', label: (t.landing as any)?.trustProviders || 'Verified Providers', icon: 'shield-checkmark' as const },
+                { value: '1,200+', label: (t.landing as any)?.trustServices || 'Services Completed', icon: 'checkmark-done-circle' as const },
+                { value: '4.8', label: (t.landing as any)?.trustRating || 'Average Rating', icon: 'star' as const },
+              ].map((stat, idx) => (
+                <View key={idx} style={styles.trustItem}>
+                  <Ionicons name={stat.icon} size={20} color="#1976d2" />
+                  <Text style={styles.trustValue}>{stat.value}</Text>
+                  <Text style={styles.trustLabel}>{stat.label}</Text>
+                </View>
+              ))}
+            </View>
+
             {/* Special Offers Section */}
             <View style={styles.section}>
               <View style={styles.sectionHeaderLarge}>
@@ -1148,7 +1213,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                   </Text>
                 </View>
               </View>
-              <View style={styles.noticeCard}>
+              <TouchableOpacity style={styles.noticeCard} activeOpacity={0.7}>
                 <View style={styles.noticeIcon}>
                   <Ionicons
                     name="information-circle"
@@ -1164,9 +1229,13 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                     {t.landing?.notices?.holidayDesc ||
                       "Some service providers may have modified hours during the holiday season. Please confirm availability when booking."}
                   </Text>
+                  <View style={styles.noticeAction}>
+                    <Text style={styles.noticeActionText}>{(t.landing as any)?.notices?.checkHours || 'Check Provider Hours'}</Text>
+                    <Ionicons name="arrow-forward" size={14} color="#1976d2" />
+                  </View>
                 </View>
-              </View>
-              <View style={[styles.noticeCard, styles.noticeWarning]}>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.noticeCard, styles.noticeWarning]} activeOpacity={0.7}>
                 <View style={[styles.noticeIcon, styles.noticeIconWarning]}>
                   <Ionicons name="warning" size={24} color="#f59e0b" />
                 </View>
@@ -1178,8 +1247,12 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                     {t.landing?.notices?.weatherDesc ||
                       "Heavy rain expected this week. Consider scheduling preventive maintenance and tire checks."}
                   </Text>
+                  <View style={styles.noticeAction}>
+                    <Text style={[styles.noticeActionText, { color: '#d97706' }]}>{(t.landing as any)?.notices?.scheduleMaintenance || 'Schedule Maintenance'}</Text>
+                    <Ionicons name="arrow-forward" size={14} color="#d97706" />
+                  </View>
                 </View>
-              </View>
+              </TouchableOpacity>
             </View>
 
             {/* Footer CTA */}
@@ -1212,6 +1285,23 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                 </View>
               </View>
             )}
+
+            {/* Footer Links */}
+            <View style={styles.footerLinks}>
+              <View style={styles.footerLinksRow}>
+                <TouchableOpacity><Text style={styles.footerLinkText}>{(t.landing as any)?.footer?.about || 'About'}</Text></TouchableOpacity>
+                <Text style={styles.footerDot}>·</Text>
+                <TouchableOpacity><Text style={styles.footerLinkText}>{(t.landing as any)?.footer?.privacy || 'Privacy Policy'}</Text></TouchableOpacity>
+                <Text style={styles.footerDot}>·</Text>
+                <TouchableOpacity><Text style={styles.footerLinkText}>{(t.landing as any)?.footer?.terms || 'Terms'}</Text></TouchableOpacity>
+              </View>
+              <View style={styles.footerLinksRow}>
+                <TouchableOpacity><Text style={styles.footerLinkText}>{(t.landing as any)?.footer?.faq || 'FAQ'}</Text></TouchableOpacity>
+                <Text style={styles.footerDot}>·</Text>
+                <TouchableOpacity><Text style={styles.footerLinkText}>{(t.landing as any)?.footer?.contact || 'Contact'}</Text></TouchableOpacity>
+              </View>
+              <Text style={styles.footerCopyright}>© {new Date().getFullYear()} TechTrust AutoSolutions</Text>
+            </View>
 
             <View style={{ height: 30 }} />
           </ScrollView>
@@ -1980,13 +2070,12 @@ const styles = StyleSheet.create({
   loggedInBanner: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "space-between",
     backgroundColor: "#eff6ff",
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: "#dbeafe",
-    gap: 8,
   },
   onlineIndicator: {
     width: 8,
@@ -1995,10 +2084,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#10b981",
   },
   loggedInText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "600",
-    color: "#10b981",
-    letterSpacing: 0.5,
+    color: "#1976d2",
   },
   loggedInName: {
     fontWeight: "600",
@@ -3242,5 +3330,101 @@ const styles = StyleSheet.create({
     color: "#9ca3af",
     textAlign: "center",
     marginTop: 16,
+  },
+  // Services Grid
+  servicesGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  serviceGridItem: {
+    width: (width - 56) / 3,
+    alignItems: "center",
+    paddingVertical: 14,
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#f1f5f9",
+  },
+  serviceGridIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  serviceGridLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#374151",
+    textAlign: "center",
+  },
+  // Trust Numbers Bar
+  trustBar: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    backgroundColor: "#fff",
+    marginHorizontal: 16,
+    marginTop: 16,
+    paddingVertical: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  trustItem: {
+    alignItems: "center",
+    gap: 4,
+  },
+  trustValue: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#111827",
+  },
+  trustLabel: {
+    fontSize: 10,
+    color: "#6b7280",
+    fontWeight: "500",
+    textAlign: "center",
+  },
+  // Notice Action
+  noticeAction: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 8,
+  },
+  noticeActionText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#1976d2",
+  },
+  // Footer Links
+  footerLinks: {
+    alignItems: "center",
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  footerLinksRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  footerLinkText: {
+    fontSize: 13,
+    color: "#6b7280",
+    fontWeight: "500",
+  },
+  footerDot: {
+    fontSize: 13,
+    color: "#d1d5db",
+  },
+  footerCopyright: {
+    fontSize: 11,
+    color: "#9ca3af",
+    marginTop: 4,
   },
 });

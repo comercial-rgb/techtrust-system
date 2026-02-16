@@ -663,6 +663,11 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                       .filter(Boolean)
                       .join(" • ")}
                   </Text>
+                  {(vehicle as any).mileage > 0 && (
+                    <Text style={styles.vehicleMileage}>
+                      {formatNumber((vehicle as any).mileage)} mi
+                    </Text>
+                  )}
                 </View>
               </ScalePress>
             ))}
@@ -1602,6 +1607,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
+  },
+  vehicleMileage: {
+    fontSize: 11,
+    color: "#6b7280",
+    marginTop: 4,
+    fontWeight: "500",
   },
   addVehicleCard: {
     borderStyle: "dashed",
