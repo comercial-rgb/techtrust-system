@@ -57,7 +57,7 @@ interface WalletTransaction {
 }
 
 export default function PaymentMethodsScreen({ navigation }: any) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const route = useRoute<any>();
   const fromDashboard = route.params?.fromDashboard;
   const fromCreateRequest = route.params?.fromCreateRequest;
@@ -676,7 +676,13 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                       {transaction.description}
                     </Text>
                     <Text style={styles.transactionDate}>
-                      {transaction.date}
+                      {(() => {
+                        try {
+                          return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(transaction.date));
+                        } catch {
+                          return transaction.date;
+                        }
+                      })()}
                     </Text>
                   </View>
                   <Text
@@ -769,7 +775,7 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                     <View style={styles.methodInfo}>
                       <View style={styles.methodTitleRow}>
                         <Text style={styles.methodTitle}>
-                          {method.brand || method.cardBrand}
+                          {((method.brand || method.cardBrand) || '').replace(/^\w/, (c: string) => c.toUpperCase())}
                         </Text>
                         <View
                           style={[
@@ -1079,13 +1085,13 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                     icon: "card",
                     available: true,
                   },
-                  { type: "pix" as const, label: "PIX", icon: "qr-code", available: false },
                   {
                     type: "transfer" as const,
-                    label: t.customer?.bankTransfer || "Bank Transfer",
+                    label: t.customer?.bankTransfer || "Bank Transfer (ACH)",
                     icon: "swap-horizontal",
                     available: false,
                   },
+                  ...(language === "pt" ? [{ type: "pix" as const, label: "PIX", icon: "qr-code" as const, available: false }] : []),
                 ].map((option) => (
                   <TouchableOpacity
                     key={option.type}

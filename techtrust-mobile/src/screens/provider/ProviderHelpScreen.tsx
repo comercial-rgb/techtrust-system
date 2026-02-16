@@ -194,7 +194,7 @@ export default function ProviderHelpScreen({ navigation }: any) {
               </View>
               <View style={styles.contactContent}>
                 <Text style={styles.contactTitle}>{t.provider?.sendEmail || 'Send Email'}</Text>
-                <Text style={styles.contactSubtitle}>suporte@techtrust.com.br</Text>
+                <Text style={styles.contactSubtitle}>support@techtrustautosolutions.com</Text>
               </View>
               <MaterialCommunityIcons name="chevron-right" size={24} color="#9ca3af" />
             </TouchableOpacity>
@@ -205,7 +205,7 @@ export default function ProviderHelpScreen({ navigation }: any) {
               </View>
               <View style={styles.contactContent}>
                 <Text style={styles.contactTitle}>{t.provider?.call || 'Call'}</Text>
-                <Text style={styles.contactSubtitle}>0800 123 4567</Text>
+                <Text style={styles.contactSubtitle}>(786) 919-7605</Text>
               </View>
               <MaterialCommunityIcons name="chevron-right" size={24} color="#9ca3af" />
             </TouchableOpacity>

@@ -251,7 +251,7 @@ export default function ProviderDashboardScreen({ navigation }: any) {
               </Text>
               <Text style={styles.subGreeting}>
                 {stats?.pendingRequests
-                  ? `${stats.pendingRequests} ${t.provider?.newRequestsWaiting || "new requests waiting"}`
+                  ? `${stats.pendingRequests} ${stats.pendingRequests === 1 ? (t.provider?.newRequestWaiting || "new request waiting") : (t.provider?.newRequestsWaiting || "new requests waiting")}`
                   : t.provider?.allCaughtUp || "All caught up!"}
               </Text>
             </View>

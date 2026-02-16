@@ -168,12 +168,27 @@ export default function ComplianceItemDetailScreen({ route, navigation }: any) {
           <TextInput
             style={styles.input}
             value={expirationDate}
-            onChangeText={setExpirationDate}
-            placeholder="YYYY-MM-DD"
+            onChangeText={(text) => {
+              const digits = text.replace(/\D/g, "").slice(0, 8);
+              let formatted = digits;
+              if (digits.length > 2)
+                formatted = digits.slice(0, 2) + "/" + digits.slice(2);
+              if (digits.length > 4)
+                formatted =
+                  digits.slice(0, 2) +
+                  "/" +
+                  digits.slice(2, 4) +
+                  "/" +
+                  digits.slice(4);
+              setExpirationDate(formatted);
+            }}
+            placeholder="MM/DD/YYYY"
             placeholderTextColor="#9ca3af"
+            keyboardType="numeric"
+            maxLength={10}
           />
           <Text style={styles.fieldHint}>
-            Format: YYYY-MM-DD (e.g., 2026-12-31)
+            Format: MM/DD/YYYY (e.g., 12/31/2026)
           </Text>
         </View>
 

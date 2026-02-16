@@ -55,7 +55,7 @@ const YEARS = Array.from({ length: 100 }, (_, i) =>
 const DAYS = Array.from({ length: 31 }, (_, i) => (i + 1).toString());
 
 export default function PersonalInfoScreen({ navigation }: any) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -269,10 +269,7 @@ export default function PersonalInfoScreen({ navigation }: any) {
     switch (index) {
       case 0:
         // Take Photo
-        Alert.alert(
-          "Camera",
-          "Camera functionality will be available soon.",
-        );
+        Alert.alert("Camera", "Camera functionality will be available soon.");
         setProfileImage(
           "https://ui-avatars.com/api/?name=" +
             encodeURIComponent(formData.fullName) +
@@ -281,10 +278,7 @@ export default function PersonalInfoScreen({ navigation }: any) {
         break;
       case 1:
         // Choose from Library
-        Alert.alert(
-          "Gallery",
-          "Gallery functionality will be available soon.",
-        );
+        Alert.alert("Gallery", "Gallery functionality will be available soon.");
         setProfileImage(
           "https://ui-avatars.com/api/?name=" +
             encodeURIComponent(formData.fullName) +
@@ -542,28 +536,79 @@ export default function PersonalInfoScreen({ navigation }: any) {
 
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>
-                {t.profile?.cpfSsn || "CPF/SSN"}
+                {language === "pt"
+                  ? "CPF"
+                  : language === "es"
+                    ? "Tax ID"
+                    : "SSN"}
               </Text>
               {isEditing ? (
                 <TextInput
                   style={styles.input}
                   value={formData.cpf}
-                  onChangeText={(text) =>
-                    setFormData({ ...formData, cpf: text })
+                  onChangeText={(text) => {
+                    if (language === "pt") {
+                      // CPF: 000.000.000-00
+                      const digits = text.replace(/\D/g, "").slice(0, 11);
+                      let formatted = digits;
+                      if (digits.length > 3)
+                        formatted = digits.slice(0, 3) + "." + digits.slice(3);
+                      if (digits.length > 6)
+                        formatted =
+                          digits.slice(0, 3) +
+                          "." +
+                          digits.slice(3, 6) +
+                          "." +
+                          digits.slice(6);
+                      if (digits.length > 9)
+                        formatted =
+                          digits.slice(0, 3) +
+                          "." +
+                          digits.slice(3, 6) +
+                          "." +
+                          digits.slice(6, 9) +
+                          "-" +
+                          digits.slice(9);
+                      setFormData({ ...formData, cpf: formatted });
+                    } else {
+                      // SSN: 000-00-0000
+                      const digits = text.replace(/\D/g, "").slice(0, 9);
+                      let formatted = digits;
+                      if (digits.length > 3)
+                        formatted = digits.slice(0, 3) + "-" + digits.slice(3);
+                      if (digits.length > 5)
+                        formatted =
+                          digits.slice(0, 3) +
+                          "-" +
+                          digits.slice(3, 5) +
+                          "-" +
+                          digits.slice(5);
+                      setFormData({ ...formData, cpf: formatted });
+                    }
+                  }}
+                  placeholder={
+                    language === "pt"
+                      ? "000.000.000-00"
+                      : language === "es"
+                        ? "Enter your Tax ID"
+                        : "000-00-0000"
                   }
-                  placeholder={t.profile?.enterCpfSsn || "Enter your CPF/SSN"}
                   keyboardType="numeric"
+                  maxLength={language === "pt" ? 14 : 11}
                 />
               ) : (
                 <>
                   <Text style={styles.inputValue}>
                     {formData.cpf
-                      ? `***-**-${formData.cpf.slice(-2)}`
+                      ? language === "pt"
+                        ? `***.***.*${formData.cpf.replace(/\D/g, "").slice(-3, -2)}${formData.cpf.replace(/\D/g, "").slice(-2, -1)}-${formData.cpf.replace(/\D/g, "").slice(-2)}`
+                        : `***-**-${formData.cpf.replace(/\D/g, "").slice(-4)}`
                       : t.profile?.notProvided || "Not provided"}
                   </Text>
                   <Text style={styles.inputHint}>
-                    {t.profile?.securityHint ||
-                      "For security, only the last 2 digits are shown"}
+                    {language === "pt"
+                      ? "Por segurança, apenas os últimos 2 dígitos são mostrados"
+                      : "For security, only the last 4 digits are shown"}
                   </Text>
                 </>
               )}

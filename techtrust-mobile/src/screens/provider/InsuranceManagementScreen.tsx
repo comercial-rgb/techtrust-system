@@ -321,11 +321,25 @@ export default function InsuranceManagementScreen({ navigation }: any) {
                         <TextInput
                           style={styles.input}
                           value={form.expirationDate}
-                          onChangeText={(v) =>
-                            updateForm(type, "expirationDate", v)
-                          }
-                          placeholder="YYYY-MM-DD"
+                          onChangeText={(v) => {
+                            const digits = v.replace(/\D/g, "").slice(0, 8);
+                            let formatted = digits;
+                            if (digits.length > 2)
+                              formatted =
+                                digits.slice(0, 2) + "/" + digits.slice(2);
+                            if (digits.length > 4)
+                              formatted =
+                                digits.slice(0, 2) +
+                                "/" +
+                                digits.slice(2, 4) +
+                                "/" +
+                                digits.slice(4);
+                            updateForm(type, "expirationDate", formatted);
+                          }}
+                          placeholder="MM/DD/YYYY"
                           placeholderTextColor="#9ca3af"
+                          keyboardType="numeric"
+                          maxLength={10}
                         />
                       </View>
 

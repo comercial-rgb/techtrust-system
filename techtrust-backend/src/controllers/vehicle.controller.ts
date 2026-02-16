@@ -9,7 +9,7 @@ import { Request, Response } from "express";
 import { prisma } from "../config/database";
 import { AppError } from "../middleware/error-handler";
 import { logger } from "../config/logger";
-import { decodeVIN, isValidVINFormat } from "../services/nhtsa.service";
+import { decodeVIN, isValidVINFormat, getRecallsByVehicle } from "../services/nhtsa.service";
 
 /**
  * GET /api/v1/vehicles
@@ -47,6 +47,7 @@ export const getVehicles = async (req: Request, res: Response) => {
       seatingCapacity: true,
       countryOfManufacturer: true,
       category: true,
+      transmission: true,
     },
   });
 
@@ -83,6 +84,7 @@ export const createVehicle = async (req: Request, res: Response) => {
     seatingCapacity,
     countryOfManufacturer,
     category,
+    transmission,
     vinDecoded = false,
   } = req.body;
 
@@ -165,6 +167,7 @@ export const createVehicle = async (req: Request, res: Response) => {
       seatingCapacity: seatingCapacity ? parseInt(seatingCapacity) : null,
       countryOfManufacturer,
       category,
+      transmission,
       vinDecoded: vinDecoded,
       vinDecodedAt: vinDecoded ? new Date() : null,
       isPrimary,
@@ -241,7 +244,7 @@ export const updateVehicle = async (req: Request, res: Response) => {
     plateNumber, vin, make, model, year, color, currentMileage,
     vehicleType, fuelType, engineType, bodyType, trim, driveType,
     numberOfRows, seatingCapacity, countryOfManufacturer, category,
-    vinDecoded, photoUrl,
+    transmission, vinDecoded, photoUrl,
   } = req.body;
 
   // Map vehicleType → bodyType if bodyType not explicitly provided
@@ -305,6 +308,7 @@ export const updateVehicle = async (req: Request, res: Response) => {
       ...(seatingCapacity !== undefined && { seatingCapacity: seatingCapacity ? parseInt(seatingCapacity) : null }),
       ...(countryOfManufacturer !== undefined && { countryOfManufacturer }),
       ...(category !== undefined && { category }),
+      ...(transmission !== undefined && { transmission }),
       ...(vinDecoded !== undefined && { vinDecoded: !!vinDecoded }),
       ...(photoUrl !== undefined && { photoUrl }),
     },
@@ -486,5 +490,38 @@ export const decodeVehicleVIN = async (req: Request, res: Response) => {
   res.json({
     success: true,
     data: result.data,
+  });
+};
+
+/**
+ * GET /api/v1/vehicles/:vehicleId/recalls
+ * Fetch NHTSA safety recalls for a vehicle
+ */
+export const getVehicleRecalls = async (req: Request, res: Response) => {
+  const userId = req.user!.id;
+  const { vehicleId } = req.params;
+
+  const vehicle = await prisma.vehicle.findFirst({
+    where: { id: vehicleId, userId, isActive: true },
+    select: { make: true, model: true, year: true },
+  });
+
+  if (!vehicle) {
+    throw new AppError("Vehicle not found", 404, "VEHICLE_NOT_FOUND");
+  }
+
+  // Clean model name — remove series suffix for API call (e.g., "Sierra 1500" → "Sierra 1500")
+  const result = await getRecallsByVehicle(vehicle.make, vehicle.model, vehicle.year);
+
+  if (!result.success) {
+    throw new AppError(result.error || "Failed to fetch recalls", 502, "RECALLS_FETCH_FAILED");
+  }
+
+  logger.info(`Recalls fetched: ${result.count} for ${vehicle.year} ${vehicle.make} ${vehicle.model}`);
+
+  res.json({
+    success: true,
+    data: result.data,
+    count: result.count,
   });
 };

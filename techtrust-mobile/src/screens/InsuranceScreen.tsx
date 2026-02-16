@@ -3,7 +3,7 @@
  * Manage insurance policies with expiration alerts
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -14,11 +14,11 @@ import {
   TextInput,
   Modal,
   Alert,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { FadeInView, ScalePress } from '../components/Animated';
-import { useI18n } from '../i18n';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { FadeInView, ScalePress } from "../components/Animated";
+import { useI18n } from "../i18n";
 
 interface InsurancePolicy {
   id: string;
@@ -28,7 +28,7 @@ interface InsurancePolicy {
   policyNumber: string;
   coverageType: string;
   premium: number;
-  premiumFrequency: 'monthly' | 'semi-annual' | 'annual';
+  premiumFrequency: "monthly" | "semi-annual" | "annual";
   startDate: string;
   expiryDate: string;
   deductible: number;
@@ -39,18 +39,18 @@ interface InsurancePolicy {
 }
 
 const coverageTypes = [
-  'Full Coverage',
-  'Liability Only',
-  'Comprehensive',
-  'Collision',
-  'Personal Injury Protection',
-  'Uninsured Motorist',
+  "Full Coverage",
+  "Liability Only",
+  "Comprehensive",
+  "Collision",
+  "Personal Injury Protection",
+  "Uninsured Motorist",
 ];
 
 const premiumFrequencies = [
-  { id: 'monthly', label: 'Monthly' },
-  { id: 'semi-annual', label: 'Semi-Annual' },
-  { id: 'annual', label: 'Annual' },
+  { id: "monthly", label: "Monthly" },
+  { id: "semi-annual", label: "Semi-Annual" },
+  { id: "annual", label: "Annual" },
 ];
 
 export default function InsuranceScreen({ navigation, route }: any) {
@@ -60,22 +60,24 @@ export default function InsuranceScreen({ navigation, route }: any) {
   const [refreshing, setRefreshing] = useState(false);
   const [policies, setPolicies] = useState<InsurancePolicy[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
-  const [editingPolicy, setEditingPolicy] = useState<InsurancePolicy | null>(null);
-  
+  const [editingPolicy, setEditingPolicy] = useState<InsurancePolicy | null>(
+    null,
+  );
+
   // Form state
   const [formData, setFormData] = useState({
-    provider: '',
-    policyNumber: '',
-    coverageType: 'Full Coverage',
-    premium: '',
-    premiumFrequency: 'monthly' as 'monthly' | 'semi-annual' | 'annual',
-    startDate: '',
-    expiryDate: '',
-    deductible: '',
-    coverageAmount: '',
-    agentName: '',
-    agentPhone: '',
-    notes: '',
+    provider: "",
+    policyNumber: "",
+    coverageType: "Full Coverage",
+    premium: "",
+    premiumFrequency: "monthly" as "monthly" | "semi-annual" | "annual",
+    startDate: "",
+    expiryDate: "",
+    deductible: "",
+    coverageAmount: "",
+    agentName: "",
+    agentPhone: "",
+    notes: "",
   });
 
   useEffect(() => {
@@ -88,7 +90,7 @@ export default function InsuranceScreen({ navigation, route }: any) {
       // Endpoint: api.get('/insurance-policies')
       setPolicies([]);
     } catch (error) {
-      console.error('Error loading policies:', error);
+      console.error("Error loading policies:", error);
       setPolicies([]);
     } finally {
       setLoading(false);
@@ -102,45 +104,70 @@ export default function InsuranceScreen({ navigation, route }: any) {
   }
 
   function formatDate(date: string) {
-    return new Date(date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
+    return new Date(date).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     });
   }
 
   function formatCurrency(amount: number) {
-    return '$' + amount.toFixed(2);
+    return "$" + amount.toFixed(2);
   }
 
   function getDaysUntilExpiry(date: string) {
     const expiry = new Date(date);
     const today = new Date();
-    return Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    return Math.ceil(
+      (expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+    );
   }
 
   function getExpiryStatus(date: string) {
     const days = getDaysUntilExpiry(date);
-    if (days < 0) return { status: 'expired', color: '#ef4444', bg: '#fee2e2', label: t.insurance?.expired || 'Expired' };
-    if (days <= 30) return { status: 'critical', color: '#ef4444', bg: '#fee2e2', label: `${days} ${t.insurance?.daysLeft || 'days left'}` };
-    if (days <= 60) return { status: 'warning', color: '#f59e0b', bg: '#fef3c7', label: `${days} ${t.insurance?.daysLeft || 'days left'}` };
-    return { status: 'active', color: '#10b981', bg: '#d1fae5', label: t.insurance?.active || 'Active' };
+    if (days < 0)
+      return {
+        status: "expired",
+        color: "#ef4444",
+        bg: "#fee2e2",
+        label: t.insurance?.expired || "Expired",
+      };
+    if (days <= 30)
+      return {
+        status: "critical",
+        color: "#ef4444",
+        bg: "#fee2e2",
+        label: `${days} ${t.insurance?.daysLeft || "days left"}`,
+      };
+    if (days <= 60)
+      return {
+        status: "warning",
+        color: "#f59e0b",
+        bg: "#fef3c7",
+        label: `${days} ${t.insurance?.daysLeft || "days left"}`,
+      };
+    return {
+      status: "active",
+      color: "#10b981",
+      bg: "#d1fae5",
+      label: t.insurance?.active || "Active",
+    };
   }
 
   function resetForm() {
     setFormData({
-      provider: '',
-      policyNumber: '',
-      coverageType: 'Full Coverage',
-      premium: '',
-      premiumFrequency: 'monthly',
-      startDate: '',
-      expiryDate: '',
-      deductible: '',
-      coverageAmount: '',
-      agentName: '',
-      agentPhone: '',
-      notes: '',
+      provider: "",
+      policyNumber: "",
+      coverageType: "Full Coverage",
+      premium: "",
+      premiumFrequency: "monthly",
+      startDate: "",
+      expiryDate: "",
+      deductible: "",
+      coverageAmount: "",
+      agentName: "",
+      agentPhone: "",
+      notes: "",
     });
     setEditingPolicy(null);
   }
@@ -162,45 +189,53 @@ export default function InsuranceScreen({ navigation, route }: any) {
       expiryDate: policy.expiryDate,
       deductible: policy.deductible.toString(),
       coverageAmount: policy.coverageAmount.toString(),
-      agentName: policy.agentName || '',
-      agentPhone: policy.agentPhone || '',
-      notes: policy.notes || '',
+      agentName: policy.agentName || "",
+      agentPhone: policy.agentPhone || "",
+      notes: policy.notes || "",
     });
     setModalVisible(true);
   }
 
   async function handleSavePolicy() {
     if (!formData.provider || !formData.policyNumber || !formData.expiryDate) {
-      Alert.alert(t.common?.error || 'Error', t.insurance?.fillRequiredFields || 'Please fill in all required fields');
+      Alert.alert(
+        t.common?.error || "Error",
+        t.insurance?.fillRequiredFields || "Please fill in all required fields",
+      );
       return;
     }
 
     // Save to local storage (insurance managed by user)
 
     if (editingPolicy) {
-      setPolicies(prev => prev.map(p => 
-        p.id === editingPolicy.id 
-          ? { 
-              ...p, 
-              ...formData, 
-              premium: parseFloat(formData.premium) || 0,
-              deductible: parseFloat(formData.deductible) || 0,
-              coverageAmount: parseFloat(formData.coverageAmount) || 0,
-            }
-          : p
-      ));
-      Alert.alert(t.common?.success || 'Success', t.insurance?.policyUpdated || 'Policy updated successfully');
+      setPolicies((prev) =>
+        prev.map((p) =>
+          p.id === editingPolicy.id
+            ? {
+                ...p,
+                ...formData,
+                premium: parseFloat(formData.premium) || 0,
+                deductible: parseFloat(formData.deductible) || 0,
+                coverageAmount: parseFloat(formData.coverageAmount) || 0,
+              }
+            : p,
+        ),
+      );
+      Alert.alert(
+        t.common?.success || "Success",
+        t.insurance?.policyUpdated || "Policy updated successfully",
+      );
     } else {
       const newPolicy: InsurancePolicy = {
         id: Date.now().toString(),
-        vehicleId: vehicleId || '1',
-        vehicleName: '2020 Honda Civic',
+        vehicleId: vehicleId || "1",
+        vehicleName: "2020 Honda Civic",
         provider: formData.provider,
         policyNumber: formData.policyNumber,
         coverageType: formData.coverageType,
         premium: parseFloat(formData.premium) || 0,
         premiumFrequency: formData.premiumFrequency,
-        startDate: formData.startDate || new Date().toISOString().split('T')[0],
+        startDate: formData.startDate || new Date().toISOString().split("T")[0],
         expiryDate: formData.expiryDate,
         deductible: parseFloat(formData.deductible) || 0,
         coverageAmount: parseFloat(formData.coverageAmount) || 0,
@@ -208,8 +243,11 @@ export default function InsuranceScreen({ navigation, route }: any) {
         agentPhone: formData.agentPhone || undefined,
         notes: formData.notes || undefined,
       };
-      setPolicies(prev => [...prev, newPolicy]);
-      Alert.alert(t.common?.success || 'Success', t.insurance?.policyAdded || 'Policy added successfully');
+      setPolicies((prev) => [...prev, newPolicy]);
+      Alert.alert(
+        t.common?.success || "Success",
+        t.insurance?.policyAdded || "Policy added successfully",
+      );
     }
 
     setModalVisible(false);
@@ -218,41 +256,49 @@ export default function InsuranceScreen({ navigation, route }: any) {
 
   function handleDeletePolicy(policyId: string) {
     Alert.alert(
-      t.insurance?.deletePolicy || 'Delete Policy',
-      t.insurance?.deletePolicyConfirm || 'Are you sure you want to delete this policy?',
+      t.insurance?.deletePolicy || "Delete Policy",
+      t.insurance?.deletePolicyConfirm ||
+        "Are you sure you want to delete this policy?",
       [
-        { text: t.common?.cancel || 'Cancel', style: 'cancel' },
+        { text: t.common?.cancel || "Cancel", style: "cancel" },
         {
-          text: t.common?.delete || 'Delete',
-          style: 'destructive',
+          text: t.common?.delete || "Delete",
+          style: "destructive",
           onPress: () => {
-            setPolicies(prev => prev.filter(p => p.id !== policyId));
+            setPolicies((prev) => prev.filter((p) => p.id !== policyId));
           },
         },
-      ]
+      ],
     );
   }
 
   // Get expiring policies for alerts
-  const expiringPolicies = policies.filter(p => {
+  const expiringPolicies = policies.filter((p) => {
     const days = getDaysUntilExpiry(p.expiryDate);
     return days >= 0 && days <= 30;
   });
 
-  const expiredPolicies = policies.filter(p => getDaysUntilExpiry(p.expiryDate) < 0);
+  const expiredPolicies = policies.filter(
+    (p) => getDaysUntilExpiry(p.expiryDate) < 0,
+  );
 
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backBtn}
+          >
             <Ionicons name="arrow-back" size={24} color="#111827" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{t.insurance?.title || 'Insurance'}</Text>
+          <Text style={styles.headerTitle}>
+            {t.insurance?.title || "Insurance"}
+          </Text>
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.loadingContainer}>
-          <Text>{t.common?.loading || 'Loading...'}</Text>
+          <Text>{t.common?.loading || "Loading..."}</Text>
         </View>
       </SafeAreaView>
     );
@@ -262,10 +308,15 @@ export default function InsuranceScreen({ navigation, route }: any) {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backBtn}
+        >
           <Ionicons name="arrow-back" size={24} color="#111827" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t.insurance?.title || 'Insurance'}</Text>
+        <Text style={styles.headerTitle}>
+          {t.insurance?.title || "Insurance"}
+        </Text>
         <TouchableOpacity style={styles.addBtn} onPress={openAddModal}>
           <Ionicons name="add" size={24} color="#1976d2" />
         </TouchableOpacity>
@@ -283,27 +334,43 @@ export default function InsuranceScreen({ navigation, route }: any) {
             <View style={styles.alertsSection}>
               {expiredPolicies.length > 0 && (
                 <View style={styles.alertCard}>
-                  <View style={[styles.alertIcon, { backgroundColor: '#fee2e2' }]}>
+                  <View
+                    style={[styles.alertIcon, { backgroundColor: "#fee2e2" }]}
+                  >
                     <Ionicons name="warning" size={24} color="#ef4444" />
                   </View>
                   <View style={styles.alertContent}>
                     <Text style={styles.alertTitle}>Expired Policies</Text>
                     <Text style={styles.alertText}>
-                      {expiredPolicies.length} {expiredPolicies.length === 1 ? 'policy has' : 'policies have'} expired. Renew immediately to avoid coverage gaps.
+                      {expiredPolicies.length}{" "}
+                      {expiredPolicies.length === 1
+                        ? "policy has"
+                        : "policies have"}{" "}
+                      expired. Renew immediately to avoid coverage gaps.
                     </Text>
                   </View>
                 </View>
               )}
-              
+
               {expiringPolicies.length > 0 && (
-                <View style={[styles.alertCard, { backgroundColor: '#fef3c7' }]}>
-                  <View style={[styles.alertIcon, { backgroundColor: '#fde68a' }]}>
+                <View
+                  style={[styles.alertCard, { backgroundColor: "#fef3c7" }]}
+                >
+                  <View
+                    style={[styles.alertIcon, { backgroundColor: "#fde68a" }]}
+                  >
                     <Ionicons name="alert-circle" size={24} color="#f59e0b" />
                   </View>
                   <View style={styles.alertContent}>
-                    <Text style={[styles.alertTitle, { color: '#92400e' }]}>Expiring Soon</Text>
-                    <Text style={[styles.alertText, { color: '#92400e' }]}>
-                      {expiringPolicies.length} {expiringPolicies.length === 1 ? 'policy is' : 'policies are'} expiring within 30 days.
+                    <Text style={[styles.alertTitle, { color: "#92400e" }]}>
+                      Expiring Soon
+                    </Text>
+                    <Text style={[styles.alertText, { color: "#92400e" }]}>
+                      {expiringPolicies.length}{" "}
+                      {expiringPolicies.length === 1
+                        ? "policy is"
+                        : "policies are"}{" "}
+                      expiring within 30 days.
                     </Text>
                   </View>
                 </View>
@@ -322,7 +389,9 @@ export default function InsuranceScreen({ navigation, route }: any) {
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <Text style={styles.statValue}>
-                {formatCurrency(policies.reduce((sum, p) => sum + p.premium, 0))}
+                {formatCurrency(
+                  policies.reduce((sum, p) => sum + p.premium, 0),
+                )}
               </Text>
               <Text style={styles.statLabel}>Monthly Premium</Text>
             </View>
@@ -332,7 +401,7 @@ export default function InsuranceScreen({ navigation, route }: any) {
         {/* Policies List */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>My Policies</Text>
-          
+
           {policies.length === 0 ? (
             <View style={styles.emptyState}>
               <View style={styles.emptyIcon}>
@@ -340,9 +409,13 @@ export default function InsuranceScreen({ navigation, route }: any) {
               </View>
               <Text style={styles.emptyTitle}>No Insurance Policies</Text>
               <Text style={styles.emptySubtitle}>
-                Add your insurance policies to track coverage and receive expiration alerts
+                Add your insurance policies to track coverage and receive
+                expiration alerts
               </Text>
-              <TouchableOpacity style={styles.emptyButton} onPress={openAddModal}>
+              <TouchableOpacity
+                style={styles.emptyButton}
+                onPress={openAddModal}
+              >
                 <Ionicons name="add" size={20} color="#fff" />
                 <Text style={styles.emptyButtonText}>Add Policy</Text>
               </TouchableOpacity>
@@ -352,22 +425,40 @@ export default function InsuranceScreen({ navigation, route }: any) {
               const expiryStatus = getExpiryStatus(policy.expiryDate);
               return (
                 <FadeInView key={policy.id} delay={200 + index * 100}>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.policyCard}
                     onPress={() => openEditModal(policy)}
                   >
                     <View style={styles.policyHeader}>
                       <View style={styles.providerInfo}>
                         <View style={styles.providerIcon}>
-                          <Ionicons name="shield-checkmark" size={24} color="#1976d2" />
+                          <Ionicons
+                            name="shield-checkmark"
+                            size={24}
+                            color="#1976d2"
+                          />
                         </View>
                         <View>
-                          <Text style={styles.providerName}>{policy.provider}</Text>
-                          <Text style={styles.policyNumber}>{policy.policyNumber}</Text>
+                          <Text style={styles.providerName}>
+                            {policy.provider}
+                          </Text>
+                          <Text style={styles.policyNumber}>
+                            {policy.policyNumber}
+                          </Text>
                         </View>
                       </View>
-                      <View style={[styles.statusBadge, { backgroundColor: expiryStatus.bg }]}>
-                        <Text style={[styles.statusText, { color: expiryStatus.color }]}>
+                      <View
+                        style={[
+                          styles.statusBadge,
+                          { backgroundColor: expiryStatus.bg },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.statusText,
+                            { color: expiryStatus.color },
+                          ]}
+                        >
                           {expiryStatus.label}
                         </Text>
                       </View>
@@ -377,66 +468,108 @@ export default function InsuranceScreen({ navigation, route }: any) {
                       <View style={styles.policyDetailRow}>
                         <View style={styles.policyDetailItem}>
                           <Text style={styles.policyDetailLabel}>Vehicle</Text>
-                          <Text style={styles.policyDetailValue}>{policy.vehicleName}</Text>
+                          <Text style={styles.policyDetailValue}>
+                            {policy.vehicleName}
+                          </Text>
                         </View>
                         <View style={styles.policyDetailItem}>
                           <Text style={styles.policyDetailLabel}>Coverage</Text>
-                          <Text style={styles.policyDetailValue}>{policy.coverageType}</Text>
+                          <Text style={styles.policyDetailValue}>
+                            {policy.coverageType}
+                          </Text>
                         </View>
                       </View>
                       <View style={styles.policyDetailRow}>
                         <View style={styles.policyDetailItem}>
                           <Text style={styles.policyDetailLabel}>Premium</Text>
                           <Text style={styles.policyDetailValue}>
-                            {formatCurrency(policy.premium)}/{policy.premiumFrequency === 'monthly' ? 'mo' : policy.premiumFrequency === 'semi-annual' ? '6mo' : 'yr'}
+                            {formatCurrency(policy.premium)}/
+                            {policy.premiumFrequency === "monthly"
+                              ? "mo"
+                              : policy.premiumFrequency === "semi-annual"
+                                ? "6mo"
+                                : "yr"}
                           </Text>
                         </View>
                         <View style={styles.policyDetailItem}>
-                          <Text style={styles.policyDetailLabel}>Deductible</Text>
-                          <Text style={styles.policyDetailValue}>{formatCurrency(policy.deductible)}</Text>
+                          <Text style={styles.policyDetailLabel}>
+                            Deductible
+                          </Text>
+                          <Text style={styles.policyDetailValue}>
+                            {formatCurrency(policy.deductible)}
+                          </Text>
                         </View>
                       </View>
                       <View style={styles.policyDetailRow}>
                         <View style={styles.policyDetailItem}>
                           <Text style={styles.policyDetailLabel}>Expires</Text>
-                          <Text style={[styles.policyDetailValue, { color: expiryStatus.color }]}>
+                          <Text
+                            style={[
+                              styles.policyDetailValue,
+                              { color: expiryStatus.color },
+                            ]}
+                          >
                             {formatDate(policy.expiryDate)}
                           </Text>
                         </View>
                         <View style={styles.policyDetailItem}>
-                          <Text style={styles.policyDetailLabel}>Coverage Amount</Text>
-                          <Text style={styles.policyDetailValue}>{formatCurrency(policy.coverageAmount)}</Text>
+                          <Text style={styles.policyDetailLabel}>
+                            Coverage Amount
+                          </Text>
+                          <Text style={styles.policyDetailValue}>
+                            {formatCurrency(policy.coverageAmount)}
+                          </Text>
                         </View>
                       </View>
                     </View>
 
                     {policy.agentName && (
                       <View style={styles.agentInfo}>
-                        <Ionicons name="person-outline" size={16} color="#6b7280" />
-                        <Text style={styles.agentText}>Agent: {policy.agentName}</Text>
+                        <Ionicons
+                          name="person-outline"
+                          size={16}
+                          color="#6b7280"
+                        />
+                        <Text style={styles.agentText}>
+                          Agent: {policy.agentName}
+                        </Text>
                         {policy.agentPhone && (
                           <>
                             <Text style={styles.agentDivider}>•</Text>
-                            <Text style={styles.agentText}>{policy.agentPhone}</Text>
+                            <Text style={styles.agentText}>
+                              {policy.agentPhone}
+                            </Text>
                           </>
                         )}
                       </View>
                     )}
 
                     <View style={styles.policyActions}>
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         style={styles.actionBtn}
                         onPress={() => openEditModal(policy)}
                       >
-                        <Ionicons name="create-outline" size={18} color="#1976d2" />
+                        <Ionicons
+                          name="create-outline"
+                          size={18}
+                          color="#1976d2"
+                        />
                         <Text style={styles.actionBtnText}>Edit</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         style={[styles.actionBtn, styles.deleteBtn]}
                         onPress={() => handleDeletePolicy(policy.id)}
                       >
-                        <Ionicons name="trash-outline" size={18} color="#ef4444" />
-                        <Text style={[styles.actionBtnText, { color: '#ef4444' }]}>Delete</Text>
+                        <Ionicons
+                          name="trash-outline"
+                          size={18}
+                          color="#ef4444"
+                        />
+                        <Text
+                          style={[styles.actionBtnText, { color: "#ef4444" }]}
+                        >
+                          Delete
+                        </Text>
                       </TouchableOpacity>
                     </View>
                   </TouchableOpacity>
@@ -462,21 +595,26 @@ export default function InsuranceScreen({ navigation, route }: any) {
               <Ionicons name="close" size={24} color="#111827" />
             </TouchableOpacity>
             <Text style={styles.modalTitle}>
-              {editingPolicy ? 'Edit Policy' : 'Add Policy'}
+              {editingPolicy ? "Edit Policy" : "Add Policy"}
             </Text>
             <TouchableOpacity onPress={handleSavePolicy}>
               <Text style={styles.saveText}>Save</Text>
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            style={styles.modalContent}
+            showsVerticalScrollIndicator={false}
+          >
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Insurance Provider *</Text>
               <TextInput
                 style={styles.input}
                 placeholder="e.g., State Farm, Geico"
                 value={formData.provider}
-                onChangeText={(text) => setFormData(prev => ({ ...prev, provider: text }))}
+                onChangeText={(text) =>
+                  setFormData((prev) => ({ ...prev, provider: text }))
+                }
               />
             </View>
 
@@ -486,26 +624,38 @@ export default function InsuranceScreen({ navigation, route }: any) {
                 style={styles.input}
                 placeholder="e.g., POL-12345678"
                 value={formData.policyNumber}
-                onChangeText={(text) => setFormData(prev => ({ ...prev, policyNumber: text }))}
+                onChangeText={(text) =>
+                  setFormData((prev) => ({ ...prev, policyNumber: text }))
+                }
               />
             </View>
 
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Coverage Type</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.optionsScroll}>
-                {coverageTypes.map(type => (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.optionsScroll}
+              >
+                {coverageTypes.map((type) => (
                   <TouchableOpacity
                     key={type}
                     style={[
                       styles.optionChip,
-                      formData.coverageType === type && styles.optionChipSelected
+                      formData.coverageType === type &&
+                        styles.optionChipSelected,
                     ]}
-                    onPress={() => setFormData(prev => ({ ...prev, coverageType: type }))}
+                    onPress={() =>
+                      setFormData((prev) => ({ ...prev, coverageType: type }))
+                    }
                   >
-                    <Text style={[
-                      styles.optionChipText,
-                      formData.coverageType === type && styles.optionChipTextSelected
-                    ]}>
+                    <Text
+                      style={[
+                        styles.optionChipText,
+                        formData.coverageType === type &&
+                          styles.optionChipTextSelected,
+                      ]}
+                    >
                       {type}
                     </Text>
                   </TouchableOpacity>
@@ -520,26 +670,37 @@ export default function InsuranceScreen({ navigation, route }: any) {
                   style={styles.input}
                   placeholder="0.00"
                   value={formData.premium}
-                  onChangeText={(text) => setFormData(prev => ({ ...prev, premium: text }))}
+                  onChangeText={(text) =>
+                    setFormData((prev) => ({ ...prev, premium: text }))
+                  }
                   keyboardType="decimal-pad"
                 />
               </View>
               <View style={[styles.inputGroup, { flex: 1 }]}>
                 <Text style={styles.inputLabel}>Frequency</Text>
                 <View style={styles.frequencyContainer}>
-                  {premiumFrequencies.map(freq => (
+                  {premiumFrequencies.map((freq) => (
                     <TouchableOpacity
                       key={freq.id}
                       style={[
                         styles.frequencyBtn,
-                        formData.premiumFrequency === freq.id && styles.frequencyBtnSelected
+                        formData.premiumFrequency === freq.id &&
+                          styles.frequencyBtnSelected,
                       ]}
-                      onPress={() => setFormData(prev => ({ ...prev, premiumFrequency: freq.id as any }))}
+                      onPress={() =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          premiumFrequency: freq.id as any,
+                        }))
+                      }
                     >
-                      <Text style={[
-                        styles.frequencyText,
-                        formData.premiumFrequency === freq.id && styles.frequencyTextSelected
-                      ]}>
+                      <Text
+                        style={[
+                          styles.frequencyText,
+                          formData.premiumFrequency === freq.id &&
+                            styles.frequencyTextSelected,
+                        ]}
+                      >
                         {freq.label}
                       </Text>
                     </TouchableOpacity>
@@ -553,18 +714,48 @@ export default function InsuranceScreen({ navigation, route }: any) {
                 <Text style={styles.inputLabel}>Start Date</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="YYYY-MM-DD"
+                  placeholder="MM/DD/YYYY"
                   value={formData.startDate}
-                  onChangeText={(text) => setFormData(prev => ({ ...prev, startDate: text }))}
+                  onChangeText={(text) => {
+                    const digits = text.replace(/\D/g, "").slice(0, 8);
+                    let formatted = digits;
+                    if (digits.length > 2)
+                      formatted = digits.slice(0, 2) + "/" + digits.slice(2);
+                    if (digits.length > 4)
+                      formatted =
+                        digits.slice(0, 2) +
+                        "/" +
+                        digits.slice(2, 4) +
+                        "/" +
+                        digits.slice(4);
+                    setFormData((prev) => ({ ...prev, startDate: formatted }));
+                  }}
+                  keyboardType="numeric"
+                  maxLength={10}
                 />
               </View>
               <View style={[styles.inputGroup, { flex: 1 }]}>
                 <Text style={styles.inputLabel}>Expiry Date *</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="YYYY-MM-DD"
+                  placeholder="MM/DD/YYYY"
                   value={formData.expiryDate}
-                  onChangeText={(text) => setFormData(prev => ({ ...prev, expiryDate: text }))}
+                  onChangeText={(text) => {
+                    const digits = text.replace(/\D/g, "").slice(0, 8);
+                    let formatted = digits;
+                    if (digits.length > 2)
+                      formatted = digits.slice(0, 2) + "/" + digits.slice(2);
+                    if (digits.length > 4)
+                      formatted =
+                        digits.slice(0, 2) +
+                        "/" +
+                        digits.slice(2, 4) +
+                        "/" +
+                        digits.slice(4);
+                    setFormData((prev) => ({ ...prev, expiryDate: formatted }));
+                  }}
+                  keyboardType="numeric"
+                  maxLength={10}
                 />
               </View>
             </View>
@@ -576,7 +767,9 @@ export default function InsuranceScreen({ navigation, route }: any) {
                   style={styles.input}
                   placeholder="0.00"
                   value={formData.deductible}
-                  onChangeText={(text) => setFormData(prev => ({ ...prev, deductible: text }))}
+                  onChangeText={(text) =>
+                    setFormData((prev) => ({ ...prev, deductible: text }))
+                  }
                   keyboardType="decimal-pad"
                 />
               </View>
@@ -586,7 +779,9 @@ export default function InsuranceScreen({ navigation, route }: any) {
                   style={styles.input}
                   placeholder="0.00"
                   value={formData.coverageAmount}
-                  onChangeText={(text) => setFormData(prev => ({ ...prev, coverageAmount: text }))}
+                  onChangeText={(text) =>
+                    setFormData((prev) => ({ ...prev, coverageAmount: text }))
+                  }
                   keyboardType="decimal-pad"
                 />
               </View>
@@ -598,7 +793,9 @@ export default function InsuranceScreen({ navigation, route }: any) {
                 style={styles.input}
                 placeholder="e.g., John Smith"
                 value={formData.agentName}
-                onChangeText={(text) => setFormData(prev => ({ ...prev, agentName: text }))}
+                onChangeText={(text) =>
+                  setFormData((prev) => ({ ...prev, agentName: text }))
+                }
               />
             </View>
 
@@ -608,7 +805,9 @@ export default function InsuranceScreen({ navigation, route }: any) {
                 style={styles.input}
                 placeholder="e.g., (555) 123-4567"
                 value={formData.agentPhone}
-                onChangeText={(text) => setFormData(prev => ({ ...prev, agentPhone: text }))}
+                onChangeText={(text) =>
+                  setFormData((prev) => ({ ...prev, agentPhone: text }))
+                }
                 keyboardType="phone-pad"
               />
             </View>
@@ -619,7 +818,9 @@ export default function InsuranceScreen({ navigation, route }: any) {
                 style={[styles.input, styles.textArea]}
                 placeholder="Additional notes about the policy..."
                 value={formData.notes}
-                onChangeText={(text) => setFormData(prev => ({ ...prev, notes: text }))}
+                onChangeText={(text) =>
+                  setFormData((prev) => ({ ...prev, notes: text }))
+                }
                 multiline
                 numberOfLines={3}
                 textAlignVertical="top"
@@ -642,41 +843,41 @@ export default function InsuranceScreen({ navigation, route }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: "#f8fafc",
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: "#f3f4f6",
   },
   backBtn: {
     padding: 8,
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
+    fontWeight: "600",
+    color: "#111827",
   },
   addBtn: {
     padding: 8,
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   alertsSection: {
     padding: 16,
     gap: 12,
   },
   alertCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: '#fee2e2',
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: "#fee2e2",
     padding: 16,
     borderRadius: 12,
     gap: 12,
@@ -685,31 +886,31 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   alertContent: {
     flex: 1,
   },
   alertTitle: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#991b1b',
+    fontWeight: "700",
+    color: "#991b1b",
     marginBottom: 4,
   },
   alertText: {
     fontSize: 13,
-    color: '#991b1b',
+    color: "#991b1b",
     lineHeight: 18,
   },
   statsRow: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
+    flexDirection: "row",
+    backgroundColor: "#fff",
     borderRadius: 16,
     marginHorizontal: 16,
     padding: 20,
     marginBottom: 16,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
@@ -717,21 +918,21 @@ const styles = StyleSheet.create({
   },
   statItem: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
   },
   statValue: {
     fontSize: 24,
-    fontWeight: '700',
-    color: '#111827',
+    fontWeight: "700",
+    color: "#111827",
   },
   statLabel: {
     fontSize: 12,
-    color: '#6b7280',
+    color: "#6b7280",
     marginTop: 4,
   },
   statDivider: {
     width: 1,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: "#e5e7eb",
     marginHorizontal: 20,
   },
   section: {
@@ -739,39 +940,39 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
+    fontWeight: "700",
+    color: "#111827",
     marginBottom: 16,
   },
   emptyState: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: 60,
   },
   emptyIcon: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: '#f3f4f6',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#f3f4f6",
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 20,
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#374151',
+    fontWeight: "600",
+    color: "#374151",
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#9ca3af',
+    color: "#9ca3af",
     marginTop: 8,
-    textAlign: 'center',
+    textAlign: "center",
     paddingHorizontal: 40,
   },
   emptyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1976d2',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#1976d2",
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderRadius: 12,
@@ -779,48 +980,48 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   emptyButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   policyCard: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
   },
   policyHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     marginBottom: 16,
   },
   providerInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
   },
   providerIcon: {
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: '#dbeafe',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#dbeafe",
+    justifyContent: "center",
+    alignItems: "center",
   },
   providerName: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#111827',
+    fontWeight: "700",
+    color: "#111827",
   },
   policyNumber: {
     fontSize: 13,
-    color: '#6b7280',
+    color: "#6b7280",
     marginTop: 2,
   },
   statusBadge: {
@@ -830,15 +1031,15 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   policyDetails: {
     borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
+    borderTopColor: "#f3f4f6",
     paddingTop: 16,
   },
   policyDetailRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginBottom: 12,
   },
   policyDetailItem: {
@@ -846,66 +1047,66 @@ const styles = StyleSheet.create({
   },
   policyDetailLabel: {
     fontSize: 12,
-    color: '#6b7280',
+    color: "#6b7280",
     marginBottom: 2,
   },
   policyDetailValue: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#111827',
+    fontWeight: "600",
+    color: "#111827",
   },
   agentInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
+    borderTopColor: "#f3f4f6",
     gap: 6,
   },
   agentText: {
     fontSize: 13,
-    color: '#6b7280',
+    color: "#6b7280",
   },
   agentDivider: {
-    color: '#d1d5db',
+    color: "#d1d5db",
   },
   policyActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
+    borderTopColor: "#f3f4f6",
   },
   actionBtn: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#dbeafe',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#dbeafe",
     paddingVertical: 10,
     borderRadius: 10,
     gap: 6,
   },
   deleteBtn: {
-    backgroundColor: '#fee2e2',
+    backgroundColor: "#fee2e2",
   },
   actionBtnText: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#1976d2',
+    fontWeight: "600",
+    color: "#1976d2",
   },
   fab: {
-    position: 'absolute',
+    position: "absolute",
     right: 20,
     bottom: 20,
     width: 56,
     height: 56,
     borderRadius: 16,
-    backgroundColor: '#1976d2',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#1976d2',
+    backgroundColor: "#1976d2",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#1976d2",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -914,25 +1115,25 @@ const styles = StyleSheet.create({
   // Modal styles
   modalContainer: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: "#f3f4f6",
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
+    fontWeight: "600",
+    color: "#111827",
   },
   saveText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1976d2',
+    fontWeight: "600",
+    color: "#1976d2",
   },
   modalContent: {
     flex: 1,
@@ -943,14 +1144,14 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#374151',
+    fontWeight: "500",
+    color: "#374151",
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: "#f8fafc",
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: "#e5e7eb",
     borderRadius: 12,
     padding: 16,
     fontSize: 16,
@@ -959,50 +1160,50 @@ const styles = StyleSheet.create({
     minHeight: 80,
   },
   inputRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
   },
   optionsScroll: {
     marginTop: 4,
   },
   optionChip: {
-    backgroundColor: '#f3f4f6',
+    backgroundColor: "#f3f4f6",
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
     marginRight: 8,
   },
   optionChipSelected: {
-    backgroundColor: '#1976d2',
+    backgroundColor: "#1976d2",
   },
   optionChipText: {
     fontSize: 14,
-    color: '#374151',
+    color: "#374151",
   },
   optionChipTextSelected: {
-    color: '#fff',
-    fontWeight: '500',
+    color: "#fff",
+    fontWeight: "500",
   },
   frequencyContainer: {
-    flexDirection: 'column',
+    flexDirection: "column",
     gap: 6,
   },
   frequencyBtn: {
-    backgroundColor: '#f3f4f6',
+    backgroundColor: "#f3f4f6",
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
   frequencyBtnSelected: {
-    backgroundColor: '#1976d2',
+    backgroundColor: "#1976d2",
   },
   frequencyText: {
     fontSize: 12,
-    color: '#374151',
+    color: "#374151",
   },
   frequencyTextSelected: {
-    color: '#fff',
-    fontWeight: '500',
+    color: "#fff",
+    fontWeight: "500",
   },
 });

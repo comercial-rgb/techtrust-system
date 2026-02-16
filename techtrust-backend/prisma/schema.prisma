@@ -520,11 +520,12 @@ model Vehicle {
   color String?
 
   // Dados adicionais (auto-preenchidos via NHTSA vPIC ou manual)
-  engineType            String? // Tipo de motor
+  engineType            String? // Tipo de motor (e.g., "5.3L V8 (L84)")
   fuelType              String? // Tipo de combustível
   bodyType              String? // Tipo de carroceria
   trim                  String? // Versão/acabamento
   driveType             String? // Tração (FWD, RWD, AWD, 4WD)
+  transmission          String? // Transmissão (e.g., "10-Speed Automatic")
   numberOfRows          Int? // Número de fileiras de assentos
   seatingCapacity       Int? // Capacidade de passageiros
   countryOfManufacturer String? // País de fabricação

@@ -275,8 +275,13 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
                 color="#1976d2"
               />
               <View style={styles.addressInfo}>
-                <Text style={styles.addressText}>{baseAddress}</Text>
-                <TouchableOpacity style={styles.changeAddressBtn}>
+                <Text style={styles.addressText}>
+                  {baseAddress || "No address set — update in Edit Profile"}
+                </Text>
+                <TouchableOpacity
+                  style={styles.changeAddressBtn}
+                  onPress={() => navigation.navigate("EditProfile")}
+                >
                   <Text style={styles.changeAddressText}>
                     {t.provider?.changeAddress || "Change address"}
                   </Text>

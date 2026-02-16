@@ -456,9 +456,24 @@ export default function TechnicianManagementScreen({ navigation }: any) {
               <TextInput
                 style={styles.input}
                 value={epa609CertExpiry}
-                onChangeText={setEpa609CertExpiry}
-                placeholder="YYYY-MM-DD"
+                onChangeText={(text) => {
+                  const digits = text.replace(/\D/g, "").slice(0, 8);
+                  let formatted = digits;
+                  if (digits.length > 2)
+                    formatted = digits.slice(0, 2) + "/" + digits.slice(2);
+                  if (digits.length > 4)
+                    formatted =
+                      digits.slice(0, 2) +
+                      "/" +
+                      digits.slice(2, 4) +
+                      "/" +
+                      digits.slice(4);
+                  setEpa609CertExpiry(formatted);
+                }}
+                placeholder="MM/DD/YYYY"
                 placeholderTextColor="#9ca3af"
+                keyboardType="numeric"
+                maxLength={10}
               />
             </View>
 

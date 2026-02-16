@@ -76,4 +76,13 @@ router.delete(
   asyncHandler(vehicleController.deleteVehicle)
 );
 
+/**
+ * GET /api/v1/vehicles/:vehicleId/recalls
+ * Fetch NHTSA safety recalls for this vehicle
+ */
+router.get(
+  '/:vehicleId/recalls',
+  asyncHandler(vehicleController.getVehicleRecalls)
+);
+
 export default router;

@@ -229,7 +229,7 @@ export default function ProviderEditProfileScreen({ navigation }: any) {
                 style={styles.inputIcon}
                 value={website}
                 onChangeText={setWebsite}
-                placeholder="www.seusite.com"
+                placeholder="www.yourbusiness.com"
                 autoCapitalize="none"
               />
             </View>

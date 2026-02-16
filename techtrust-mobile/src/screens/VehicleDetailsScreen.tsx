@@ -17,6 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { FadeInView, ScalePress } from "../components/Animated";
 import { useI18n } from "../i18n";
+import { getVehicleRecalls, RecallItem } from "../services/nhtsa.service";
 
 interface MaintenanceRecord {
   id: string;
@@ -59,6 +60,7 @@ interface VehicleDetails {
   seatingCapacity?: number;
   numberOfRows?: number;
   countryOfManufacturer?: string;
+  transmission?: string;
 }
 
 export default function VehicleDetailsScreen({ navigation, route }: any) {
@@ -67,10 +69,19 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [vehicle, setVehicle] = useState<VehicleDetails | null>(null);
+  const [recalls, setRecalls] = useState<RecallItem[]>([]);
+  const [recallsLoading, setRecallsLoading] = useState(false);
+  const [expandedRecall, setExpandedRecall] = useState<string | null>(null);
 
   useEffect(() => {
     loadVehicleDetails();
   }, []);
+
+  useEffect(() => {
+    if (vehicleId) {
+      loadRecalls();
+    }
+  }, [vehicleId]);
 
   async function loadVehicleDetails() {
     try {
@@ -109,6 +120,7 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
           ...(vehicleData.seatingCapacity && { seatingCapacity: vehicleData.seatingCapacity }),
           ...(vehicleData.numberOfRows && { numberOfRows: vehicleData.numberOfRows }),
           ...(vehicleData.countryOfManufacturer && { countryOfManufacturer: vehicleData.countryOfManufacturer }),
+          ...(vehicleData.transmission && { transmission: vehicleData.transmission }),
         });
       }
     } catch (error) {
@@ -120,8 +132,22 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
 
   async function onRefresh() {
     setRefreshing(true);
-    await loadVehicleDetails();
+    await Promise.all([loadVehicleDetails(), loadRecalls()]);
     setRefreshing(false);
+  }
+
+  async function loadRecalls() {
+    setRecallsLoading(true);
+    try {
+      const result = await getVehicleRecalls(vehicleId);
+      if (result.success && result.data) {
+        setRecalls(result.data);
+      }
+    } catch (error) {
+      console.error("Error loading recalls:", error);
+    } finally {
+      setRecallsLoading(false);
+    }
   }
 
   function formatDate(date: string) {
@@ -384,7 +410,7 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
                   <Text style={styles.infoValue}>{vehicle.driveType}</Text>
                 </View>
               )}
-              {vehicle.bodyType && (
+              {vehicle.bodyType && vehicle.bodyType !== vehicle.vehicleType && (
                 <View style={styles.infoRow}>
                   <Text style={styles.infoLabel}>
                     {t.vehicle?.bodyType || "Body Style"}
@@ -435,6 +461,14 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
                     {t.vehicle?.engine || "Engine"}
                   </Text>
                   <Text style={styles.infoValue}>{vehicle.engineType}</Text>
+                </View>
+              )}
+              {vehicle.transmission && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>
+                    {t.vehicle?.transmission || "Transmission"}
+                  </Text>
+                  <Text style={styles.infoValue}>{vehicle.transmission}</Text>
                 </View>
               )}
               <View style={styles.infoRow}>
@@ -520,6 +554,87 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
                 </View>
               </View>
             </View>
+          </View>
+        </FadeInView>
+
+        {/* Safety Recalls */}
+        <FadeInView delay={320}>
+          <View style={styles.section}>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitle}>
+                {"Safety Recalls"}
+              </Text>
+              {recalls.length > 0 && (
+                <View style={{ backgroundColor: "#fef2f2", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 }}>
+                  <Text style={{ fontSize: 12, fontWeight: "700", color: "#ef4444" }}>{recalls.length}</Text>
+                </View>
+              )}
+            </View>
+            {recallsLoading ? (
+              <View style={[styles.infoCard, { alignItems: "center", paddingVertical: 20 }]}>
+                <Text style={{ color: "#9ca3af" }}>Loading recalls...</Text>
+              </View>
+            ) : recalls.length === 0 ? (
+              <View style={[styles.infoCard, { alignItems: "center", paddingVertical: 20 }]}>
+                <Ionicons name="shield-checkmark" size={32} color="#10b981" />
+                <Text style={{ marginTop: 8, fontSize: 14, fontWeight: "600", color: "#10b981" }}>No Active Recalls</Text>
+                <Text style={{ marginTop: 4, fontSize: 12, color: "#9ca3af", textAlign: "center" }}>
+                  This vehicle has no open safety recalls from NHTSA.
+                </Text>
+              </View>
+            ) : (
+              <View>
+                {recalls.map((recall, index) => {
+                  const isExpanded = expandedRecall === recall.nhtsaCampaignNumber;
+                  return (
+                    <TouchableOpacity
+                      key={recall.nhtsaCampaignNumber || index}
+                      style={[styles.infoCard, { marginBottom: 8 }]}
+                      onPress={() => setExpandedRecall(isExpanded ? null : recall.nhtsaCampaignNumber)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                        <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: "#fef2f2", alignItems: "center", justifyContent: "center" }}>
+                          <Ionicons name="warning" size={16} color="#ef4444" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontSize: 13, fontWeight: "600", color: "#111827" }} numberOfLines={isExpanded ? undefined : 1}>
+                            {recall.component}
+                          </Text>
+                          <Text style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>
+                            Campaign #{recall.nhtsaCampaignNumber}
+                            {recall.reportReceivedDate ? ` • ${new Date(recall.reportReceivedDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}` : ""}
+                          </Text>
+                        </View>
+                        <Ionicons name={isExpanded ? "chevron-up" : "chevron-down"} size={18} color="#9ca3af" />
+                      </View>
+                      {isExpanded && (
+                        <View style={{ marginTop: 12, gap: 10 }}>
+                          {recall.summary ? (
+                            <View>
+                              <Text style={{ fontSize: 11, fontWeight: "700", color: "#6b7280", textTransform: "uppercase", letterSpacing: 0.5 }}>Summary</Text>
+                              <Text style={{ fontSize: 13, color: "#374151", marginTop: 4, lineHeight: 18 }}>{recall.summary}</Text>
+                            </View>
+                          ) : null}
+                          {recall.consequence ? (
+                            <View>
+                              <Text style={{ fontSize: 11, fontWeight: "700", color: "#ef4444", textTransform: "uppercase", letterSpacing: 0.5 }}>Risk</Text>
+                              <Text style={{ fontSize: 13, color: "#374151", marginTop: 4, lineHeight: 18 }}>{recall.consequence}</Text>
+                            </View>
+                          ) : null}
+                          {recall.remedy ? (
+                            <View>
+                              <Text style={{ fontSize: 11, fontWeight: "700", color: "#10b981", textTransform: "uppercase", letterSpacing: 0.5 }}>Remedy</Text>
+                              <Text style={{ fontSize: 13, color: "#374151", marginTop: 4, lineHeight: 18 }}>{recall.remedy}</Text>
+                            </View>
+                          ) : null}
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
           </View>
         </FadeInView>
 
