@@ -162,6 +162,9 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
   const [hasSearched, setHasSearched] = useState(false);
   const [showAllResultsModal, setShowAllResultsModal] = useState(false);
 
+  // Active provider cities data (for "Coming Soon" badges)
+  const [activeCitiesByState, setActiveCitiesByState] = useState<Record<string, string[]>>({});
+
   // Offer Detail Modal state
   const [showOfferModal, setShowOfferModal] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<SpecialOffer | null>(null);
@@ -247,6 +250,17 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
   // Carrega dados ao montar o componente
   useEffect(() => {
     loadHomeData();
+    // Load active provider cities for "Coming Soon" badges
+    (async () => {
+      try {
+        const api = (await import("../services/api")).default;
+        const res = await api.get("/providers/active-cities");
+        const data = res.data?.data;
+        if (data?.activeCities) {
+          setActiveCitiesByState(data.activeCities);
+        }
+      } catch {}
+    })();
   }, []);
 
   // Auto-scroll banners
@@ -1396,8 +1410,9 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
             </Text>
             <ScrollView style={styles.dropdownScroll}>
               {STATES.map((state, idx) => {
-                const active = isActiveState(state);
+                const active = isActiveState(state) || !!(activeCitiesByState[state] && activeCitiesByState[state].length > 0);
                 const stateName = getStateName(state);
+                const prevActive = idx > 0 ? (isActiveState(STATES[idx - 1]) || !!(activeCitiesByState[STATES[idx - 1]] && activeCitiesByState[STATES[idx - 1]].length > 0)) : active;
                 return (
                 <TouchableOpacity
                   key={state}
@@ -1406,7 +1421,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                     selectedState === state && styles.dropdownItemSelected,
                     !active && { opacity: 0.6 },
                     // separator between active and inactive
-                    idx > 0 && active !== isActiveState(STATES[idx - 1]) && { borderTopWidth: 1, borderTopColor: '#e5e7eb', marginTop: 4, paddingTop: 12 },
+                    idx > 0 && active !== prevActive && { borderTopWidth: 1, borderTopColor: '#e5e7eb', marginTop: 4, paddingTop: 12 },
                   ]}
                   onPress={() => {
                     setSelectedState(state);
@@ -1452,31 +1467,57 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
               {t.landing?.search?.selectCity || "Select City"}
             </Text>
             <ScrollView style={styles.dropdownScroll}>
-              {(CITIES[selectedState] || []).map((city) => (
+              {(() => {
+                const allCities = CITIES[selectedState] || [];
+                const providerCities = activeCitiesByState[selectedState] || [];
+                const providerCitySet = new Set(providerCities.map((c: string) => c.toLowerCase()));
+                // Sort: cities with providers first, then alphabetical within each group
+                const sorted = [...allCities].sort((a, b) => {
+                  const aActive = providerCitySet.has(a.toLowerCase());
+                  const bActive = providerCitySet.has(b.toLowerCase());
+                  if (aActive && !bActive) return -1;
+                  if (!aActive && bActive) return 1;
+                  return a.localeCompare(b);
+                });
+                return sorted.map((city, idx) => {
+                  const hasProvider = providerCitySet.has(city.toLowerCase());
+                  const prevHasProvider = idx > 0 ? providerCitySet.has(sorted[idx - 1].toLowerCase()) : hasProvider;
+                  return (
                 <TouchableOpacity
                   key={city}
                   style={[
                     styles.dropdownItem,
                     selectedCity === city && styles.dropdownItemSelected,
+                    !hasProvider && { opacity: 0.6 },
+                    idx > 0 && hasProvider !== prevHasProvider && { borderTopWidth: 1, borderTopColor: '#e5e7eb', marginTop: 4, paddingTop: 12 },
                   ]}
                   onPress={() => {
                     setSelectedCity(city);
                     setShowCityDropdown(false);
                   }}
                 >
-                  <Text
-                    style={[
-                      styles.dropdownItemText,
-                      selectedCity === city && styles.dropdownItemTextSelected,
-                    ]}
-                  >
-                    {city}
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                    <Text
+                      style={[
+                        styles.dropdownItemText,
+                        selectedCity === city && styles.dropdownItemTextSelected,
+                      ]}
+                    >
+                      {city}
+                    </Text>
+                    {!hasProvider && (
+                      <View style={{ backgroundColor: '#f3f4f6', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2, marginLeft: 8 }}>
+                        <Text style={{ fontSize: 10, color: '#9ca3af', fontWeight: '600' }}>Coming Soon</Text>
+                      </View>
+                    )}
+                  </View>
                   {selectedCity === city && (
                     <Ionicons name="checkmark" size={20} color="#1976d2" />
                   )}
                 </TouchableOpacity>
-              ))}
+                  );
+                });
+              })()}
             </ScrollView>
           </View>
         </TouchableOpacity>

@@ -214,12 +214,15 @@ export const createServiceRequest = async (req: Request, res: Response) => {
       serviceLatitude: finalLatitude,
       serviceLongitude: finalLongitude,
       locationType: serviceLocationType || null,
-      preferredDate: preferredDate ? new Date(preferredDate) : null,
+      preferredDate: preferredDate && preferredDate !== 'ASAP'
+        ? new Date(preferredDate)
+        : null,
       preferredTime: preferredTime
         ? (preferredTime.includes(':') && preferredTime.length <= 5
           ? new Date(`1970-01-01T${preferredTime}:00Z`)
           : new Date(preferredTime))
         : null,
+      flexibleSchedule: preferredDate === 'ASAP' ? true : false,
       isUrgent: resolvedIsUrgent,
       status: "SEARCHING_PROVIDERS",
       maxQuotes: 5,

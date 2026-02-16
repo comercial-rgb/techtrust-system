@@ -2775,46 +2775,6 @@ export default function CreateRequestScreen({ navigation }: any) {
           {/* ============ STEP 1: Vehicle & Service ============ */}
           {currentStep === 1 && (
           <>
-          {/* Payment Method Indicator - mini version */}
-          {hasPaymentMethod && defaultPaymentMethod && (
-          <View style={styles.paymentMethodCard}>
-            <View style={styles.paymentMethodInfo}>
-              <Ionicons name="card" size={20} color="#1976d2" />
-              <View style={{ flex: 1, marginLeft: 10 }}>
-                <Text style={styles.paymentMethodLabel}>
-                  {t.createRequest?.paymentMethod || "Payment Method"}
-                </Text>
-                <Text style={styles.paymentMethodValue}>
-                  {defaultPaymentMethod?.brand} ••••{" "}
-                  {defaultPaymentMethod?.lastFour}
-                </Text>
-              </View>
-              <TouchableOpacity
-                onPress={() =>
-                  navigation.dispatch(
-                    CommonActions.navigate({
-                      name: "Profile",
-                      params: {
-                        screen: "PaymentMethods",
-                        initial: false,
-                        params: { fromCreateRequest: true },
-                      },
-                    }),
-                  )
-                }
-              >
-                <Text style={styles.changePaymentText}>
-                  {t.common?.change || "Change"}
-                </Text>
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.paymentMethodNote}>
-              {t.createRequest?.paymentNote ||
-                "Payment will be held when you accept a quote and charged upon service completion."}
-            </Text>
-          </View>
-          )}
-
           {/* Selected Provider Banner */}
           {(selectedProvider || preSelectedProviderName) && (
             <View style={styles.selectedProviderBanner}>

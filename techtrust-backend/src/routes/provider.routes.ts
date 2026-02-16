@@ -7,6 +7,7 @@ const router = Router();
 
 // Endpoint público de busca (não requer autenticação)
 router.get('/search', asyncHandler(providerController.searchProvidersByLocation));
+router.get('/active-cities', asyncHandler(providerController.getActiveCities));
 
 // Endpoints protegidos (requerem autenticação como PROVIDER)
 router.use(authenticate);

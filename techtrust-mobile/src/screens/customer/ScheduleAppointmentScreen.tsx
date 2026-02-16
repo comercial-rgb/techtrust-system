@@ -227,13 +227,29 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
         setUserLocation(loc);
       }
 
+      // Map diagnostic sub-type IDs to provider servicesOffered values
+      const diagServiceMap: Record<string, string> = {
+        engine_diag: 'DIAGNOSTICS',
+        transmission_diag: 'DIAGNOSTICS',
+        brake_diag: 'DIAGNOSTICS',
+        electrical_diag: 'DIAGNOSTICS',
+        ac_diag: 'DIAGNOSTICS',
+        steering_diag: 'DIAGNOSTICS',
+        diesel_emissions: 'DIAGNOSTICS',
+        nvh: 'DIAGNOSTICS',
+        cooling_diag: 'DIAGNOSTICS',
+        fuel_diag: 'DIAGNOSTICS',
+        pre_purchase: 'INSPECTION',
+      };
+      const searchServiceType = diagServiceMap[selectedServiceType] || selectedServiceType.toUpperCase();
+
       const radiusKm = radiusMiles * 1.60934;
       const response = await api.get("/providers/search", {
         params: {
           lat: loc.lat,
           lng: loc.lng,
           radius: radiusKm,
-          serviceType: selectedServiceType.toUpperCase(),
+          serviceType: searchServiceType,
         },
       });
 

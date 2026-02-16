@@ -530,6 +530,48 @@ export const searchProvidersByLocation = async (
 };
 
 /**
+ * GET /api/v1/providers/active-cities
+ * Return states and cities that have at least one active provider.
+ * Public endpoint — used by LandingScreen to show "Coming Soon" badges on cities.
+ */
+export const getActiveCities = async (req: Request, res: Response): Promise<void> => {
+  const providers = await prisma.providerProfile.findMany({
+    where: {
+      user: { status: 'ACTIVE' },
+      state: { not: null },
+      city: { not: null },
+    },
+    select: {
+      state: true,
+      city: true,
+    },
+  });
+
+  // Build a map of state → Set<city>
+  const stateMap: Record<string, Set<string>> = {};
+  for (const p of providers) {
+    if (!p.state || !p.city) continue;
+    const st = p.state.toUpperCase();
+    if (!stateMap[st]) stateMap[st] = new Set();
+    stateMap[st].add(p.city);
+  }
+
+  // Convert to plain object
+  const activeCities: Record<string, string[]> = {};
+  for (const [state, cities] of Object.entries(stateMap)) {
+    activeCities[state] = Array.from(cities).sort();
+  }
+
+  res.json({
+    success: true,
+    data: {
+      activeStates: Object.keys(activeCities),
+      activeCities,
+    },
+  });
+};
+
+/**
  * GET /api/v1/providers/dashboard-stats
  * Estatísticas resumidas do dashboard do fornecedor
  */
