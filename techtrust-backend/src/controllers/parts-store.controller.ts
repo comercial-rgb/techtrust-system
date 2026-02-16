@@ -137,7 +137,7 @@ export const getStoreProfile = async (req: Request, res: Response) => {
       reviews: {
         take: 10,
         orderBy: { createdAt: "desc" },
-        include: { user: { select: { id: true, name: true } } },
+        include: { user: { select: { id: true, fullName: true } } },
       },
       featured: {
         where: { isActive: true },
@@ -260,7 +260,7 @@ export const getProductDetail = async (req: Request, res: Response) => {
       reviews: {
         take: 5,
         orderBy: { createdAt: "desc" },
-        include: { user: { select: { id: true, name: true } } },
+        include: { user: { select: { id: true, fullName: true } } },
       },
       _count: { select: { reviews: true } },
     },
@@ -374,7 +374,7 @@ export const getStoreReviews = async (req: Request, res: Response) => {
       orderBy: { createdAt: "desc" },
       skip: offset,
       take: limitNum,
-      include: { user: { select: { id: true, name: true } } },
+      include: { user: { select: { id: true, fullName: true } } },
     }),
     prisma.partsStoreReview.count({ where: { storeId: id } }),
   ]);
@@ -696,7 +696,6 @@ export const getProviderDashboard = async (req: Request, res: Response) => {
           select: {
             products: { where: { isActive: true } },
             reviews: true,
-            reservations: true,
           },
         },
       },
@@ -712,7 +711,7 @@ export const getProviderDashboard = async (req: Request, res: Response) => {
       },
       include: {
         product: { select: { name: true } },
-        user: { select: { name: true } },
+        user: { select: { fullName: true } },
       },
       orderBy: { createdAt: "desc" },
       take: 20,
