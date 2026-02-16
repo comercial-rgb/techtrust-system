@@ -135,6 +135,7 @@ const en = {
       quotes: "Quotes",
       invoices: "Invoices",
       services: "Services",
+      carWash: "Car Wash",
       compliance: "Compliance",
       settings: "Settings",
     },

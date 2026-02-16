@@ -1083,6 +1083,40 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
               </View>
             </View>
 
+            {/* Car Wash Discovery Banner */}
+            <TouchableOpacity
+              style={{
+                marginHorizontal: 16,
+                marginBottom: 16,
+                borderRadius: 16,
+                overflow: 'hidden',
+              }}
+              activeOpacity={0.85}
+              onPress={() => navigation.navigate('CarWashMap')}
+            >
+              <LinearGradient
+                colors={['#0ea5e9', '#0284c7']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  padding: 20,
+                }}
+              >
+                <MaterialCommunityIcons name="car-wash" size={40} color="#fff" />
+                <View style={{ flex: 1, marginLeft: 16 }}>
+                  <Text style={{ fontSize: 18, fontWeight: '700', color: '#fff' }}>
+                    {(t as any).carWash?.findNearby || 'Find a Car Wash'}
+                  </Text>
+                  <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', marginTop: 4 }}>
+                    {(t as any).carWash?.nearbyDesc || 'Discover car washes near you — quick, easy & affordable'}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={24} color="rgba(255,255,255,0.7)" />
+              </LinearGradient>
+            </TouchableOpacity>
+
             {/* Articles Section */}
             <View style={styles.section}>
               <View style={styles.sectionHeaderLarge}>

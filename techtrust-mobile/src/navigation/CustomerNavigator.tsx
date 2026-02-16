@@ -59,6 +59,13 @@ import RepairInvoiceDetailsScreen from "../screens/customer/RepairInvoiceDetails
 import EstimateSharesScreen from "../screens/customer/EstimateSharesScreen";
 import CompareEstimatesScreen from "../screens/customer/CompareEstimatesScreen";
 
+// Car Wash Screens
+import CarWashMapScreen from "../screens/CarWashMapScreen";
+import CarWashProfileScreen from "../screens/CarWashProfileScreen";
+import CarWashReviewScreen from "../screens/CarWashReviewScreen";
+import CarWashAllReviewsScreen from "../screens/CarWashAllReviewsScreen";
+import CarWashFavoritesScreen from "../screens/CarWashFavoritesScreen";
+
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
@@ -90,6 +97,11 @@ function HomeStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="LandingMain" component={LandingScreen} />
+      <Stack.Screen name="CarWashMap" component={CarWashMapScreen} />
+      <Stack.Screen name="CarWashProfile" component={CarWashProfileScreen} />
+      <Stack.Screen name="CarWashReview" component={CarWashReviewScreen} />
+      <Stack.Screen name="CarWashAllReviews" component={CarWashAllReviewsScreen} />
+      <Stack.Screen name="CarWashFavorites" component={CarWashFavoritesScreen} />
     </Stack.Navigator>
   );
 }
@@ -121,6 +133,11 @@ function DashboardStack() {
         name="CompareEstimates"
         component={CompareEstimatesScreen}
       />
+      <Stack.Screen name="CarWashMap" component={CarWashMapScreen} />
+      <Stack.Screen name="CarWashProfile" component={CarWashProfileScreen} />
+      <Stack.Screen name="CarWashReview" component={CarWashReviewScreen} />
+      <Stack.Screen name="CarWashAllReviews" component={CarWashAllReviewsScreen} />
+      <Stack.Screen name="CarWashFavorites" component={CarWashFavoritesScreen} />
     </Stack.Navigator>
   );
 }
@@ -170,6 +187,11 @@ function WorkOrdersStack() {
         name="CompareEstimates"
         component={CompareEstimatesScreen}
       />
+      <Stack.Screen name="CarWashMap" component={CarWashMapScreen} />
+      <Stack.Screen name="CarWashProfile" component={CarWashProfileScreen} />
+      <Stack.Screen name="CarWashReview" component={CarWashReviewScreen} />
+      <Stack.Screen name="CarWashAllReviews" component={CarWashAllReviewsScreen} />
+      <Stack.Screen name="CarWashFavorites" component={CarWashFavoritesScreen} />
     </Stack.Navigator>
   );
 }
@@ -217,6 +239,11 @@ function ProfileStack() {
       <Stack.Screen name="VehicleDetails" component={VehicleDetailsScreen} />
       <Stack.Screen name="VehicleTransfer" component={VehicleTransferScreen} />
       <Stack.Screen name="Insurance" component={InsuranceScreen} />
+      <Stack.Screen name="CarWashMap" component={CarWashMapScreen} />
+      <Stack.Screen name="CarWashProfile" component={CarWashProfileScreen} />
+      <Stack.Screen name="CarWashReview" component={CarWashReviewScreen} />
+      <Stack.Screen name="CarWashAllReviews" component={CarWashAllReviewsScreen} />
+      <Stack.Screen name="CarWashFavorites" component={CarWashFavoritesScreen} />
     </Stack.Navigator>
   );
 }

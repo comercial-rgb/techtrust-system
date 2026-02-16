@@ -12,7 +12,7 @@ import {
   StatusBar,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useI18n } from "../i18n";
 
 export default function ServiceChoiceScreen({ navigation }: any) {
@@ -91,6 +91,32 @@ export default function ServiceChoiceScreen({ navigation }: any) {
           <View style={[styles.cardButton, { backgroundColor: "#16a34a" }]}>
             <Text style={styles.cardButtonText}>
               {t.serviceChoice?.scheduleDiagnostic || "Schedule Visit"}
+            </Text>
+            <Ionicons name="arrow-forward" size={16} color="#fff" />
+          </View>
+        </TouchableOpacity>
+
+        {/* Car Wash Card */}
+        <TouchableOpacity
+          style={[styles.card, { borderWidth: 1, borderColor: '#e0f2fe' }]}
+          activeOpacity={0.7}
+          onPress={() => {
+            navigation.replace("CarWashMap");
+          }}
+        >
+          <View style={[styles.iconCircle, { backgroundColor: "#e0f2fe" }]}>
+            <MaterialCommunityIcons name="car-wash" size={32} color="#0ea5e9" />
+          </View>
+          <Text style={styles.cardTitle}>
+            {(t as any).carWash?.findNearby || "Find a Car Wash"}
+          </Text>
+          <Text style={styles.cardDescription}>
+            {(t as any).carWash?.serviceChoiceDesc ||
+              "Need a wash? Find car washes near you with real-time pricing, unlimited membership plans, and customer reviews."}
+          </Text>
+          <View style={[styles.cardButton, { backgroundColor: "#0ea5e9" }]}>
+            <Text style={styles.cardButtonText}>
+              {(t as any).carWash?.findNearby || "Find Car Washes"}
             </Text>
             <Ionicons name="arrow-forward" size={16} color="#fff" />
           </View>

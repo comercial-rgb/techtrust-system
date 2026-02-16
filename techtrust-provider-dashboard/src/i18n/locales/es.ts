@@ -135,6 +135,7 @@ const es = {
       quotes: "Cotizaciones",
       invoices: "Facturas",
       services: "Servicios",
+      carWash: "Lavado de Autos",
       compliance: "Cumplimiento",
       settings: "Configuración",
     },

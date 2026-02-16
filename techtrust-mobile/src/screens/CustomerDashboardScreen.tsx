@@ -17,7 +17,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { CommonActions } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../contexts/AuthContext";
@@ -347,6 +347,29 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                 <Text style={styles.bannerSubtitle}>
                   {t.customerDashboard?.requestQuotes ||
                     "Request free quotes now"}
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={24} color="#fff" />
+          </TouchableOpacity>
+        </FadeInView>
+
+        {/* Car Wash Quick Action */}
+        <FadeInView delay={150}>
+          <TouchableOpacity
+            style={[styles.actionBanner, { backgroundColor: '#0ea5e9' }]}
+            onPress={() => navigation.navigate("CarWashMap")}
+          >
+            <View style={styles.bannerContent}>
+              <View style={[styles.bannerIcon, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                <MaterialCommunityIcons name="car-wash" size={28} color="#fff" />
+              </View>
+              <View style={styles.bannerText}>
+                <Text style={styles.bannerTitle}>
+                  {(t as any).carWash?.findNearby || "Find a Car Wash"}
+                </Text>
+                <Text style={styles.bannerSubtitle}>
+                  {(t as any).carWash?.nearbyDesc || "Discover car washes near you"}
                 </Text>
               </View>
             </View>

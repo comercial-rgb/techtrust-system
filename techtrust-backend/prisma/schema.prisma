@@ -8,8 +8,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   // Prisma supports a separate direct URL for some operations.
   // In our deployment (Render IPv4 + Supabase), the "direct" endpoint can be IPv6-only.
   // Keep this set to DATABASE_URL to avoid requiring an extra env var in production.
@@ -135,17 +135,17 @@ enum AppointmentStatus {
 }
 
 enum EstimateType {
-  DIRECT          // Provider creates estimate from service request
-  DIAGNOSTIC      // Provider creates estimate after on-site diagnostic
-  COMPETING       // Provider creates estimate in response to a shared estimate
+  DIRECT // Provider creates estimate from service request
+  DIAGNOSTIC // Provider creates estimate after on-site diagnostic
+  COMPETING // Provider creates estimate in response to a shared estimate
 }
 
 enum RepairInvoiceStatus {
-  DRAFT           // Auto-created from approved estimate
-  IN_PROGRESS     // Service is underway
-  COMPLETED       // Service done, awaiting customer approval
-  APPROVED        // Customer approved, payment captured
-  DISPUTED        // Customer disputes invoice
+  DRAFT // Auto-created from approved estimate
+  IN_PROGRESS // Service is underway
+  COMPLETED // Service done, awaiting customer approval
+  APPROVED // Customer approved, payment captured
+  DISPUTED // Customer disputes invoice
 }
 
 enum SupplementStatus {
@@ -211,7 +211,7 @@ enum ComplianceType {
   LOCAL_BTR_CITY
   LOCAL_BTR_COUNTY
   EPA_609_TECHNICIAN
-  STATE_SHOP_REGISTRATION  // Generic for any state
+  STATE_SHOP_REGISTRATION // Generic for any state
 }
 
 // ============================================
@@ -297,84 +297,89 @@ enum CancellationRequestStatus {
 // ============================================
 
 model User {
-  id        String   @id @default(uuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        String    @id @default(uuid())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
   // Dados pessoais
-  fullName String
-  email    String  @unique
-  phone    String  @unique
+  fullName     String
+  email        String    @unique
+  phone        String    @unique
   passwordHash String
-  cpf      String? // CPF (BR) or SSN (US)
-  dateOfBirth DateTime?
-  gender   String? // MALE, FEMALE, OTHER, PREFER_NOT_TO_SAY
-  avatarUrl String?
-  
+  cpf          String? // CPF (BR) or SSN (US)
+  dateOfBirth  DateTime?
+  gender       String? // MALE, FEMALE, OTHER, PREFER_NOT_TO_SAY
+  avatarUrl    String?
+
   // Social login
-  authProvider String?  // LOCAL, GOOGLE, APPLE, FACEBOOK
-  googleId     String?  @unique
-  appleId      String?  @unique
-  facebookId   String?  @unique
-  
+  authProvider String? // LOCAL, GOOGLE, APPLE, FACEBOOK
+  googleId     String? @unique
+  appleId      String? @unique
+  facebookId   String? @unique
+
   // Tipo e status
   role     UserRole      @default(CLIENT)
   status   AccountStatus @default(PENDING_VERIFICATION)
   language Language      @default(EN)
-  
+
   // Verificação
   emailVerified Boolean   @default(false)
   phoneVerified Boolean   @default(false)
   otpCode       String?
   otpExpiresAt  DateTime?
-  
+
   // Email OTP (separate from phone OTP)
   emailOtpCode      String?
-  emailOtpExpiresAt  DateTime?
-  
+  emailOtpExpiresAt DateTime?
+
   // Notificações
-  fcmToken            String?
-  pushEnabled         Boolean @default(true)
-  emailNotifications  Boolean @default(true)
-  smsNotifications    Boolean @default(false)
-  
+  fcmToken           String?
+  pushEnabled        Boolean @default(true)
+  emailNotifications Boolean @default(true)
+  smsNotifications   Boolean @default(false)
+
   // Localização
-  address String?
-  city    String?
-  state   String?
-  zipCode String?
-  addressesJson Json? // JSON array of user addresses for cross-device sync
+  address         String?
+  city            String?
+  state           String?
+  zipCode         String?
+  addressesJson   Json? // JSON array of user addresses for cross-device sync
   preferencesJson Json? // JSON object for user preferences (spokenLanguages, etc.) for cross-device sync
-  
+
   // Metadata
   lastLoginAt DateTime?
-  
+
   // Relacionamentos
-  providerProfile   ProviderProfile?
-  vehicles          Vehicle[]
-  serviceRequests   ServiceRequest[]
-  quotes            Quote[]
-  workOrdersAsCustomer WorkOrder[] @relation("CustomerWorkOrders")
-  workOrdersAsProvider WorkOrder[] @relation("ProviderWorkOrders")
-  paymentsAsCustomer   Payment[]   @relation("CustomerPayments")
-  paymentsAsProvider   Payment[]   @relation("ProviderPayments")
-  subscriptions     Subscription[]
-  reviewsGiven      Review[]       @relation("CustomerReviews")
-  reviewsReceived   Review[]       @relation("ProviderReviews")
-  notifications     Notification[]
-  paymentMethods    PaymentMethod[]
-  wallet            Wallet?
-  tipsGiven         Tip[]          @relation("CustomerTips")
-  tipsReceived      Tip[]          @relation("ProviderTips")
-  chatMessagesFrom  ChatMessage[]  @relation("MessageFrom")
-  chatMessagesTo    ChatMessage[]  @relation("MessageTo")
-  supportTickets    SupportTicket[]
-  supportMessages   SupportMessage[]
-  articles          Article[]
-  appointmentsAsCustomer Appointment[] @relation("CustomerAppointments")
-  appointmentsAsProvider Appointment[] @relation("ProviderAppointments")
+  providerProfile        ProviderProfile?
+  vehicles               Vehicle[]
+  serviceRequests        ServiceRequest[]
+  quotes                 Quote[]
+  workOrdersAsCustomer   WorkOrder[]             @relation("CustomerWorkOrders")
+  workOrdersAsProvider   WorkOrder[]             @relation("ProviderWorkOrders")
+  paymentsAsCustomer     Payment[]               @relation("CustomerPayments")
+  paymentsAsProvider     Payment[]               @relation("ProviderPayments")
+  subscriptions          Subscription[]
+  reviewsGiven           Review[]                @relation("CustomerReviews")
+  reviewsReceived        Review[]                @relation("ProviderReviews")
+  notifications          Notification[]
+  paymentMethods         PaymentMethod[]
+  wallet                 Wallet?
+  tipsGiven              Tip[]                   @relation("CustomerTips")
+  tipsReceived           Tip[]                   @relation("ProviderTips")
+  chatMessagesFrom       ChatMessage[]           @relation("MessageFrom")
+  chatMessagesTo         ChatMessage[]           @relation("MessageTo")
+  supportTickets         SupportTicket[]
+  supportMessages        SupportMessage[]
+  articles               Article[]
+  appointmentsAsCustomer Appointment[]           @relation("CustomerAppointments")
+  appointmentsAsProvider Appointment[]           @relation("ProviderAppointments")
   riskAcceptanceLogs     UserRiskAcceptanceLog[]
+
+  // Car Wash relations
+  carWashes        CarWash[]         @relation("ProviderCarWashes")
+  carWashReviews   CarWashReview[]   @relation("UserCarWashReviews")
+  carWashFavorites CarWashFavorite[] @relation("UserCarWashFavorites")
 
   @@index([email])
   @@index([phone])
@@ -389,95 +394,96 @@ model ProviderProfile {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   // ===== Legal / Business Identity =====
-  businessName  String
-  legalName     String?    // Official registered legal name
-  dbaName       String?    // "Doing Business As" name
-  ein           String?    // Employer Identification Number (encrypted at-rest)
-  entityType    EntityType? // LLC, CORP, SOLE_PROP, PARTNERSHIP, OTHER_ENTITY
-  businessType  String?
+  businessName    String
+  legalName       String? // Official registered legal name
+  dbaName         String? // "Doing Business As" name
+  ein             String? // Employer Identification Number (encrypted at-rest)
+  entityType      EntityType? // LLC, CORP, SOLE_PROP, PARTNERSHIP, OTHER_ENTITY
+  businessType    String?
+  businessTypeCat BusinessType @default(REPAIR_SHOP) // REPAIR_SHOP, CAR_WASH, BOTH
   businessLicense String?
-  taxId         String?
-  
+  taxId           String?
+
   // FDACS Motor Vehicle Repair Shop Registration (Florida requirement)
   fdacsRegistrationNumber String?
-  
+
   // ===== Contact =====
-  contactName   String?    // Primary contact person name
+  contactName   String? // Primary contact person name
   businessPhone String?
   businessEmail String?
   website       String?
-  
+
   // ===== Service Address =====
-  address       String       // service_address_line1
-  addressLine2  String?      // service_address_line2
-  city          String
-  state         String       @default("FL")
-  zipCode       String
-  county        String?      // Required for BTR compliance
-  insideCityLimits Boolean?  // For Local BTR City determination
-  
+  address          String // service_address_line1
+  addressLine2     String? // service_address_line2
+  city             String
+  state            String   @default("FL")
+  zipCode          String
+  county           String? // Required for BTR compliance
+  insideCityLimits Boolean? // For Local BTR City determination
+
   // Raio de atendimento (em km)
   serviceRadiusKm Int @default(25)
-  
+
   // Coordenadas GPS da oficina base
   baseLatitude  Decimal? @db.Decimal(10, 8)
   baseLongitude Decimal? @db.Decimal(11, 8)
-  
+
   // ===== Services Offered (enum set) =====
   servicesOffered Json @default("[]") // Array of ServiceOffered values
-  
+
   // Vehicle types this provider serves
   vehicleTypesServed Json @default("[]") // Array of VehicleTypeServed values
-  
+
   // Whether provider sells parts (for parts-only requests)
   sellsParts Boolean @default(false)
-  
+
   // Tipos de serviço oferecidos (legacy)
   mobileService      Boolean @default(false)
   roadsideAssistance Boolean @default(false)
-  
+
   // Configuração de taxa de deslocamento
   freeKm        Int     @default(0)
   extraFeePerKm Decimal @default(0) @db.Decimal(6, 2)
-  
+
   // Especialidades (JSON array)
   specialties Json @default("[]")
-  
+
   // Horário de funcionamento (JSON)
   businessHours Json?
-  
+
   // Stripe
-  stripeAccountId String? @unique
+  stripeAccountId           String? @unique
   stripeOnboardingCompleted Boolean @default(false)
-  
+
   // Assinatura PRO
-  hasProSubscription Boolean @default(false)
+  hasProSubscription       Boolean   @default(false)
   proSubscriptionExpiresAt DateTime?
-  
+
   // ===== Compliance & Insurance Status =====
-  providerPublicStatus ProviderPublicStatus @default(PENDING)
-  providerInternalNotes String?  @db.Text
-  
+  providerPublicStatus  ProviderPublicStatus @default(PENDING)
+  providerInternalNotes String?              @db.Text
+
   // Legacy verification flags (kept for backward compat)
-  isVerified Boolean @default(false)
-  verifiedAt DateTime?
-  backgroundCheckCompleted Boolean @default(false)
-  insuranceVerified Boolean @default(false)
-  
+  isVerified               Boolean   @default(false)
+  verifiedAt               DateTime?
+  backgroundCheckCompleted Boolean   @default(false)
+  insuranceVerified        Boolean   @default(false)
+
   // Avaliações
-  averageRating Decimal @default(0) @db.Decimal(3, 2)
-  totalReviews  Int     @default(0)
-  totalServicesCompleted Int @default(0)
-  
+  averageRating          Decimal @default(0) @db.Decimal(3, 2)
+  totalReviews           Int     @default(0)
+  totalServicesCompleted Int     @default(0)
+
   // ===== Relations =====
-  complianceItems     ComplianceItem[]
-  technicians         Technician[]
-  insurancePolicies   InsurancePolicy[]
+  complianceItems      ComplianceItem[]
+  technicians          Technician[]
+  insurancePolicies    InsurancePolicy[]
   serviceEligibilities ServiceEligibility[]
 
   @@index([userId])
@@ -487,56 +493,56 @@ model ProviderProfile {
 }
 
 model Vehicle {
-  id        String   @id @default(uuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        String    @id @default(uuid())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
-  
+
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   // Identificação (agora opcionais)
   plateNumber String?
   plateState  String? // Estado da placa (EUA)
   vin         String? // VIN (Vehicle Identification Number)
-  
+
   // Dados do veículo
   make  String
   model String
   year  Int
   color String?
-  
+
   // Dados adicionais (auto-preenchidos via NHTSA vPIC ou manual)
-  engineType String? // Tipo de motor
-  fuelType   String? // Tipo de combustível
-  bodyType   String? // Tipo de carroceria
-  trim       String? // Versão/acabamento
-  driveType  String? // Tração (FWD, RWD, AWD, 4WD)
-  numberOfRows     Int?    // Número de fileiras de assentos
-  seatingCapacity  Int?    // Capacidade de passageiros
+  engineType            String? // Tipo de motor
+  fuelType              String? // Tipo de combustível
+  bodyType              String? // Tipo de carroceria
+  trim                  String? // Versão/acabamento
+  driveType             String? // Tração (FWD, RWD, AWD, 4WD)
+  numberOfRows          Int? // Número de fileiras de assentos
+  seatingCapacity       Int? // Capacidade de passageiros
   countryOfManufacturer String? // País de fabricação
-  category   String? // Categoria do veículo (Passenger, Truck, MPV, etc.)
-  
+  category              String? // Categoria do veículo (Passenger, Truck, MPV, etc.)
+
   // Hodômetro
-  currentMileage       Int?
-  lastMileageUpdate    DateTime?
-  
+  currentMileage    Int?
+  lastMileageUpdate DateTime?
+
   // Foto
   photoUrl String?
-  
+
   // Metadata NHTSA
-  vinDecoded     Boolean @default(false) // Se VIN foi decodificado
-  vinDecodedAt   DateTime? // Quando foi decodificado
-  
+  vinDecoded   Boolean   @default(false) // Se VIN foi decodificado
+  vinDecodedAt DateTime? // Quando foi decodificado
+
   // Status
   isPrimary Boolean @default(false)
   isActive  Boolean @default(true)
-  
+
   // Relacionamentos
-  serviceRequests ServiceRequest[]
-  workOrders      WorkOrder[]
+  serviceRequests     ServiceRequest[]
+  workOrders          WorkOrder[]
   maintenanceSchedule VehicleMaintenanceSchedule[]
-  appointments    Appointment[]
+  appointments        Appointment[]
 
   @@index([userId])
   @@index([vin])
@@ -547,28 +553,28 @@ model VehicleMaintenanceSchedule {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   vehicleId String
   vehicle   Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
-  
+
   // Tipo de manutenção
   maintenanceType String
   description     String?
-  
+
   // Quando fazer
   recommendedMileage Int?
   recommendedMonths  Int?
-  
+
   // Última vez
   lastServiceDate    DateTime?
   lastServiceMileage Int?
-  
+
   // Próxima vez
   nextServiceDueDate    DateTime?
   nextServiceDueMileage Int?
-  
+
   // Status
-  isOverdue Boolean @default(false)
+  isOverdue        Boolean @default(false)
   notificationSent Boolean @default(false)
 
   @@index([vehicleId])
@@ -580,62 +586,62 @@ model ServiceRequest {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   requestNumber String @unique
-  
+
   // Cliente e veículo
   userId    String
   user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   vehicleId String
   vehicle   Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
-  
+
   // Tipo de serviço
-  serviceType    ServiceType
-  rawServiceType String?     // Original mobile service type ID (oil, brake, tire, etc.)
-  vehicleCategory String?    // Vehicle type: car, suv, truck, van, heavy_truck, bus
-  serviceScope   String?     // Service scope: service, parts, both
-  title       String
-  description String?
-  
+  serviceType     ServiceType
+  rawServiceType  String? // Original mobile service type ID (oil, brake, tire, etc.)
+  vehicleCategory String? // Vehicle type: car, suv, truck, van, heavy_truck, bus
+  serviceScope    String? // Service scope: service, parts, both
+  title           String
+  description     String?
+
   // Localização
   serviceLocationType String
   customerAddress     String?
-  
+
   // Coordenadas GPS do local de serviço
   serviceLatitude  Decimal? @db.Decimal(10, 8)
   serviceLongitude Decimal? @db.Decimal(11, 8)
-  locationType     String?  // IN_SHOP, ON_SITE, ROADSIDE
-  
+  locationType     String? // IN_SHOP, ON_SITE, ROADSIDE
+
   // Preferências
-  preferredDate     DateTime?
-  preferredTime     DateTime?
-  flexibleSchedule  Boolean @default(false)
-  
+  preferredDate    DateTime?
+  preferredTime    DateTime?
+  flexibleSchedule Boolean   @default(false)
+
   // Urgência
   isUrgent Boolean @default(false)
-  
+
   // Anexos (JSON array de URLs)
   attachments Json @default("[]")
-  
+
   // Status
   status ServiceRequestStatus @default(DRAFT)
-  
+
   // Cotações
-  quotesCount      Int @default(0)
-  maxQuotes        Int @default(5)
-  quoteDeadline    DateTime?
-  
+  quotesCount   Int       @default(0)
+  maxQuotes     Int       @default(5)
+  quoteDeadline DateTime?
+
   // Orçamento aceito
   acceptedQuoteId String?
-  
+
   // Datas importantes
-  expiresAt    DateTime?
-  scheduledFor DateTime?
-  startedAt    DateTime?
-  completedAt  DateTime?
-  cancelledAt  DateTime?
+  expiresAt          DateTime?
+  scheduledFor       DateTime?
+  startedAt          DateTime?
+  completedAt        DateTime?
+  cancelledAt        DateTime?
   cancellationReason String?
-  
+
   // Relacionamentos
   quotes       Quote[]
   workOrders   WorkOrder[]
@@ -643,7 +649,7 @@ model ServiceRequest {
   appointments Appointment[]
 
   // Customer responsibility for their request
-  customerResponsibilityAccepted Boolean @default(false)
+  customerResponsibilityAccepted   Boolean   @default(false)
   customerResponsibilityAcceptedAt DateTime?
 
   @@index([userId])
@@ -658,117 +664,117 @@ model Quote {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   quoteNumber String @unique
-  
+
   // ===== FDACS Written Estimate Number (WE-XXXXXX) =====
-  estimateNumber String? @unique  // Unique Written Estimate ID (e.g., WE-2026-000001)
+  estimateNumber String?      @unique // Unique Written Estimate ID (e.g., WE-2026-000001)
   estimateType   EstimateType @default(DIRECT) // DIRECT, DIAGNOSTIC, COMPETING
-  
+
   // Relacionamentos
   serviceRequestId String
   serviceRequest   ServiceRequest @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
   providerId       String
   provider         User           @relation(fields: [providerId], references: [id], onDelete: Cascade)
-  
+
   // Appointment that originated this estimate (for diagnostic flow)
   appointmentId String?
   appointment   Appointment? @relation(fields: [appointmentId], references: [id])
-  
+
   // If this is a competing estimate, reference the original estimate being compared
   originalEstimateId String?
   originalEstimate   Quote?  @relation("CompetingEstimates", fields: [originalEstimateId], references: [id])
   competingEstimates Quote[] @relation("CompetingEstimates")
-  
+
   // Valores
   partsCost      Decimal @db.Decimal(10, 2)
   laborCost      Decimal @db.Decimal(10, 2)
   additionalFees Decimal @default(0) @db.Decimal(10, 2)
   taxAmount      Decimal @default(0) @db.Decimal(10, 2)
   totalAmount    Decimal @db.Decimal(10, 2)
-  
+
   // Diagnostic fee (charged for the estimate visit itself)
-  diagnosticFee  Decimal @default(0) @db.Decimal(10, 2)
+  diagnosticFee       Decimal @default(0) @db.Decimal(10, 2)
   diagnosticFeeWaived Boolean @default(false) // Waived if service is completed on platform
-  
+
   // Distância e taxa de deslocamento
-  distanceKm  Decimal? @db.Decimal(7, 2)
-  travelFee   Decimal @default(0) @db.Decimal(10, 2)
-  
+  distanceKm Decimal? @db.Decimal(7, 2)
+  travelFee  Decimal  @default(0) @db.Decimal(10, 2)
+
   // Detalhes (JSON)
-  partsList         Json
-  laborDescription  String?
-  estimatedHours    Decimal? @db.Decimal(4, 2)
-  
+  partsList        Json
+  laborDescription String?
+  estimatedHours   Decimal? @db.Decimal(4, 2)
+
   // Prazo
   estimatedCompletionTime String?
   availableDate           DateTime?
   availableTime           DateTime?
-  
+
   // Garantia (FDACS Req #6: guarantee with time AND mileage)
   warrantyMonths      Int?
   warrantyMileage     Int?
   warrantyDescription String?
-  
+
   // FDACS Req #1: Odometer reading at time of estimate
   odometerReading Int?
-  
+
   // ===== FDACS §559.905(1)(e) - Proposed Completion Date =====
   proposedCompletionDate DateTime?
-  
+
   // ===== FDACS §559.905(1)(g) - Labor Charge Basis =====
-  laborChargeType String?   // FLAT_RATE, HOURLY, BOTH
-  hourlyRate      Decimal?  @db.Decimal(10, 2)
-  
+  laborChargeType String? // FLAT_RATE, HOURLY, BOTH
+  hourlyRate      Decimal? @db.Decimal(10, 2)
+
   // ===== FDACS §559.905(1)(h) - Mandated Fees & Statements =====
-  shopSuppliesFee    Decimal  @default(0) @db.Decimal(10, 2)
-  newTireCount       Int      @default(0)
-  tireFee            Decimal  @default(0) @db.Decimal(10, 2)  // $1.00 per new tire (FS 403.718)
-  newBatteryCount    Int      @default(0)
-  batteryFee         Decimal  @default(0) @db.Decimal(10, 2)  // $1.50 per new/reman battery (FS 403.7185)
-  
+  shopSuppliesFee Decimal @default(0) @db.Decimal(10, 2)
+  newTireCount    Int     @default(0)
+  tireFee         Decimal @default(0) @db.Decimal(10, 2) // $1.00 per new tire (FS 403.718)
+  newBatteryCount Int     @default(0)
+  batteryFee      Decimal @default(0) @db.Decimal(10, 2) // $1.50 per new/reman battery (FS 403.7185)
+
   // ===== FDACS §559.905(1)(j) - Intended Payment Method =====
-  intendedPaymentMethod String?  // CASH, CHECK, VISA, MC, AMEX, OTHER
-  
+  intendedPaymentMethod String? // CASH, CHECK, VISA, MC, AMEX, OTHER
+
   // ===== FDACS §559.905(1)(k) - Authorized Person =====
   authorizedPersonName  String?
   authorizedPersonPhone String?
-  
+
   // ===== FDACS §559.905(1)(m) - Save Replaced Parts =====
   saveReplacedParts Boolean @default(false)
-  
+
   // ===== FDACS §559.905(1)(n) - Daily Storage Charge =====
   dailyStorageCharge Decimal @default(0) @db.Decimal(10, 2)
-  
+
   // ===== FDACS §559.905(2) - Written Estimate Consent (>$150) =====
-  estimateConsentType        String?   // REQUEST_ESTIMATE, NO_ESTIMATE_LIMIT, NO_ESTIMATE
-  maxAmountWithoutEstimate   Decimal?  @db.Decimal(10, 2)
-  consentSignature           String?
-  consentSignedAt            DateTime?
-  
+  estimateConsentType      String? // REQUEST_ESTIMATE, NO_ESTIMATE_LIMIT, NO_ESTIMATE
+  maxAmountWithoutEstimate Decimal?  @db.Decimal(10, 2)
+  consentSignature         String?
+  consentSignedAt          DateTime?
+
   // Notas
   notes String?
-  
+
   // Customer responsibility disclaimer
-  customerResponsibilityAccepted Boolean @default(false)
+  customerResponsibilityAccepted   Boolean   @default(false)
   customerResponsibilityAcceptedAt DateTime?
-  
+
   // Status
   status QuoteStatus @default(PENDING)
-  
+
   // Validade
   validUntil DateTime
-  
+
   // Datas
   viewedByCustomerAt DateTime?
   acceptedAt         DateTime?
   rejectedAt         DateTime?
   expiredAt          DateTime?
-  
+
   // Relacionamentos
-  workOrders      WorkOrder[]
-  repairInvoice   RepairInvoice?
-  estimateShares  EstimateShare[]
+  workOrders     WorkOrder[]
+  repairInvoice  RepairInvoice?
+  estimateShares EstimateShare[]
 
   @@unique([serviceRequestId, providerId])
   @@index([serviceRequestId])
@@ -785,67 +791,67 @@ model Appointment {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   appointmentNumber String @unique // APT-XXXXXX
-  
+
   // Participants
   customerId String
   customer   User   @relation("CustomerAppointments", fields: [customerId], references: [id])
   providerId String
   provider   User   @relation("ProviderAppointments", fields: [providerId], references: [id])
-  
+
   // Vehicle
   vehicleId String
   vehicle   Vehicle @relation(fields: [vehicleId], references: [id])
-  
+
   // Service Request (optional - may be created from provider search)
   serviceRequestId String?
   serviceRequest   ServiceRequest? @relation(fields: [serviceRequestId], references: [id])
-  
+
   // Scheduling
-  scheduledDate DateTime
-  scheduledTime String?   // "09:00", "14:30"
+  scheduledDate     DateTime
+  scheduledTime     String? // "09:00", "14:30"
   estimatedDuration String? // "30min", "1h", "2h"
-  
+
   // Service description (what the customer wants diagnosed/checked)
   serviceDescription String
   serviceType        ServiceType @default(DIAGNOSTIC)
-  
+
   // Location
   locationType String // IN_SHOP, ON_SITE (at customer's location)
   address      String?
   latitude     Decimal? @db.Decimal(10, 8)
   longitude    Decimal? @db.Decimal(11, 8)
-  
+
   // Fees (defined at scheduling time)
-  diagnosticFee     Decimal @default(0) @db.Decimal(10, 2) // Fee for the diagnostic visit
-  travelFee         Decimal @default(0) @db.Decimal(10, 2) // Travel fee if on-site
-  feeWaivedOnService Boolean @default(true)  // Waive diagnostic fee if service completed on platform
-  
+  diagnosticFee      Decimal @default(0) @db.Decimal(10, 2) // Fee for the diagnostic visit
+  travelFee          Decimal @default(0) @db.Decimal(10, 2) // Travel fee if on-site
+  feeWaivedOnService Boolean @default(true) // Waive diagnostic fee if service completed on platform
+
   // Payment pre-authorization (verify funds/card before appointment)
   stripePaymentIntentId String?
   paymentMethodVerified Boolean @default(false)
-  
+
   // Status
   status AppointmentStatus @default(REQUESTED)
-  
+
   // Provider check-in / Customer confirmation
-  providerCheckedInAt  DateTime?
-  customerConfirmedAt  DateTime?
-  
+  providerCheckedInAt DateTime?
+  customerConfirmedAt DateTime?
+
   // Completion
-  completedAt DateTime?
-  cancelledAt DateTime?
+  completedAt        DateTime?
+  cancelledAt        DateTime?
   cancellationReason String?
-  cancelledBy String? // CUSTOMER or PROVIDER
-  
+  cancelledBy        String? // CUSTOMER or PROVIDER
+
   // Notes
   customerNotes String?
   providerNotes String?
-  
+
   // Resulting estimates from this appointment
   quotes Quote[]
-  
+
   @@index([customerId])
   @@index([providerId])
   @@index([vehicleId])
@@ -861,38 +867,38 @@ model EstimateShare {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   shareNumber String @unique // ES-XXXXXX
-  
+
   // The original estimate being shared
   originalEstimateId String
   originalEstimate   Quote  @relation(fields: [originalEstimateId], references: [id], onDelete: Cascade)
-  
+
   // Who is sharing
   customerId String
-  
+
   // Share type
-  shareType  String // SPECIFIC (to selected providers), PUBLIC (open to all local providers)
-  
+  shareType String // SPECIFIC (to selected providers), PUBLIC (open to all local providers)
+
   // For SPECIFIC shares: target provider IDs (JSON array)
   targetProviderIds Json @default("[]")
-  
+
   // For PUBLIC shares: visibility settings
-  cityFilter  String?  // Limit to providers in this city
-  stateFilter String?  // Limit to providers in this state
-  radiusKm    Int?     // Limit to providers within radius
-  
+  cityFilter  String? // Limit to providers in this city
+  stateFilter String? // Limit to providers in this state
+  radiusKm    Int? // Limit to providers within radius
+
   // What info is shared (redact original provider identity for fair competition)
   shareOriginalProviderName Boolean @default(false) // Usually false for fair competition
-  
+
   // Status
-  isActive   Boolean @default(true)
-  expiresAt  DateTime
-  closedAt   DateTime?
-  
+  isActive  Boolean   @default(true)
+  expiresAt DateTime
+  closedAt  DateTime?
+
   // Resulting competing estimates count
   competingEstimatesCount Int @default(0)
-  
+
   @@index([originalEstimateId])
   @@index([customerId])
   @@index([shareType])
@@ -908,87 +914,87 @@ model RepairInvoice {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   invoiceNumber String @unique // RI-2026-000001
-  
+
   // Source: the approved Written Estimate
   quoteId String @unique
   quote   Quote  @relation(fields: [quoteId], references: [id], onDelete: Cascade)
-  
+
   // Work Order
-  workOrderId String @unique
+  workOrderId String    @unique
   workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
-  
+
   // Participants (denormalized for invoice document)
-  customerId   String
-  customerName String
-  customerContact String?
-  providerId   String
-  providerName String
-  providerBusinessName String?
+  customerId              String
+  customerName            String
+  customerContact         String?
+  providerId              String
+  providerName            String
+  providerBusinessName    String?
   fdacsRegistrationNumber String?
-  
+
   // Vehicle info (denormalized)
-  vehicleInfo       String  // "2020 Toyota Camry (ABC1234)"
-  odometerReading   Int?
-  
+  vehicleInfo     String // "2020 Toyota Camry (ABC1234)"
+  odometerReading Int?
+
   // Original estimate amounts
-  originalPartsCost  Decimal @db.Decimal(10, 2)
-  originalLaborCost  Decimal @db.Decimal(10, 2)
-  originalTravelFee  Decimal @default(0) @db.Decimal(10, 2)
-  originalTaxAmount  Decimal @default(0) @db.Decimal(10, 2)
-  originalTotal      Decimal @db.Decimal(10, 2)
-  
+  originalPartsCost Decimal @db.Decimal(10, 2)
+  originalLaborCost Decimal @db.Decimal(10, 2)
+  originalTravelFee Decimal @default(0) @db.Decimal(10, 2)
+  originalTaxAmount Decimal @default(0) @db.Decimal(10, 2)
+  originalTotal     Decimal @db.Decimal(10, 2)
+
   // Line items from estimate (JSON - FDACS itemized)
   lineItems Json @default("[]") // Full itemized list with part conditions
 
   // Supplement tracking
-  approvedSupplements Json @default("[]") // [{supplementId, description, amount, approvedAt}]
-  rejectedSupplements Json @default("[]") // [{supplementId, description, amount, rejectedAt, reason}]
+  approvedSupplements Json    @default("[]") // [{supplementId, description, amount, approvedAt}]
+  rejectedSupplements Json    @default("[]") // [{supplementId, description, amount, rejectedAt, reason}]
   supplementsTotal    Decimal @default(0) @db.Decimal(10, 2)
-  
+
   // Final amounts (original + approved supplements)
-  finalPartsCost  Decimal @db.Decimal(10, 2)
-  finalLaborCost  Decimal @db.Decimal(10, 2)
-  finalTotal      Decimal @db.Decimal(10, 2)
-  
+  finalPartsCost Decimal @db.Decimal(10, 2)
+  finalLaborCost Decimal @db.Decimal(10, 2)
+  finalTotal     Decimal @db.Decimal(10, 2)
+
   // Service performed (FDACS Req #2)
   servicePerformed String?
-  
+
   // Warranty / Guarantee (FDACS Req #6)
   warrantyStatement String?
   warrantyMonths    Int?
   warrantyMileage   Int?
-  
+
   // Diagnostic fee (shown on invoice, may be waived)
   diagnosticFee       Decimal @default(0) @db.Decimal(10, 2)
   diagnosticFeeWaived Boolean @default(false)
-  
+
   // ===== FDACS §559.905(1)(g) - Labor Charge Basis (from estimate) =====
-  laborChargeType String?   // FLAT_RATE, HOURLY, BOTH
-  hourlyRate      Decimal?  @db.Decimal(10, 2)
-  
+  laborChargeType String? // FLAT_RATE, HOURLY, BOTH
+  hourlyRate      Decimal? @db.Decimal(10, 2)
+
   // ===== FDACS §559.905(1)(h) - Mandated Fees =====
-  shopSuppliesFee    Decimal  @default(0) @db.Decimal(10, 2)
-  tireFee            Decimal  @default(0) @db.Decimal(10, 2)
-  batteryFee         Decimal  @default(0) @db.Decimal(10, 2)
-  
+  shopSuppliesFee Decimal @default(0) @db.Decimal(10, 2)
+  tireFee         Decimal @default(0) @db.Decimal(10, 2)
+  batteryFee      Decimal @default(0) @db.Decimal(10, 2)
+
   // ===== FDACS §559.905(1)(n) - Storage Charge =====
   dailyStorageCharge Decimal @default(0) @db.Decimal(10, 2)
-  
+
   // Status
   status RepairInvoiceStatus @default(DRAFT)
-  
+
   // Customer acceptance
-  customerAcceptedAt  DateTime?
-  customerSignature   String?
-  
+  customerAcceptedAt DateTime?
+  customerSignature  String?
+
   // Completion
   completedAt DateTime?
-  
+
   // PDF
   pdfUrl String?
-  
+
   @@index([quoteId])
   @@index([workOrderId])
   @@index([customerId])
@@ -1002,9 +1008,9 @@ model WorkOrder {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   orderNumber String @unique
-  
+
   // Relacionamentos
   serviceRequestId String
   serviceRequest   ServiceRequest @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
@@ -1016,60 +1022,60 @@ model WorkOrder {
   provider         User           @relation("ProviderWorkOrders", fields: [providerId], references: [id])
   vehicleId        String
   vehicle          Vehicle        @relation(fields: [vehicleId], references: [id])
-  
+
   // Status
   status String @default("PENDING_START")
-  
+
   // Valores
   originalAmount   Decimal @db.Decimal(10, 2)
   additionalAmount Decimal @default(0) @db.Decimal(10, 2)
   finalAmount      Decimal @db.Decimal(10, 2)
-  
+
   // Aditivos (JSON)
   additives Json @default("[]")
-  
+
   // Hodômetro
   startMileage Int?
   endMileage   Int?
-  
+
   // Datas
-  scheduledFor          DateTime?
-  startedAt             DateTime?
-  completedAt           DateTime?
-  approvedByCustomerAt  DateTime?
-  cancelledAt           DateTime?
-  
+  scheduledFor         DateTime?
+  startedAt            DateTime?
+  completedAt          DateTime?
+  approvedByCustomerAt DateTime?
+  cancelledAt          DateTime?
+
   // Fotos (JSON arrays)
-  beforePhotos  Json @default("[]")
-  duringPhotos  Json @default("[]")
-  afterPhotos   Json @default("[]")
-  
+  beforePhotos Json @default("[]")
+  duringPhotos Json @default("[]")
+  afterPhotos  Json @default("[]")
+
   // Notas
   providerNotes String?
   customerNotes String?
-  
+
   // Presença do cliente
-  clientPresent Boolean?
+  clientPresent       Boolean?
   serviceLocationType String? // IN_SHOP, MOBILE, REMOTE
-  
+
   // Finalização pelo fornecedor
   serviceCompletedByProvider Boolean @default(false)
   serviceCompletionNotes     String?
-  
+
   // FDACS Req #2: Statement of what was done to correct the problem
   servicePerformedDescription String?
-  
+
   // Aprovação do cliente com termos legais
   termsAcceptedAt           DateTime?
   termsAcceptedIp           String?
   fraudDisclaimerAcceptedAt DateTime?
   serviceApprovalSignature  String? // nome digitado como assinatura
-  
+
   // Garantia
   warrantyMonths    Int?
   warrantyMileage   Int?
   warrantyExpiresAt DateTime?
-  
+
   // Relacionamentos
   payments             Payment[]
   reviews              Review[]
@@ -1089,9 +1095,9 @@ model Payment {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   paymentNumber String @unique
-  
+
   // Relacionamentos
   workOrderId String
   workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
@@ -1099,48 +1105,48 @@ model Payment {
   customer    User      @relation("CustomerPayments", fields: [customerId], references: [id])
   providerId  String
   provider    User      @relation("ProviderPayments", fields: [providerId], references: [id])
-  
+
   // Processador de pagamento
   paymentProcessor PaymentProcessor @default(STRIPE)
-  
+
   // Stripe
-  stripePaymentIntentId String @unique
+  stripePaymentIntentId String  @unique
   stripeChargeId        String?
   stripeTransferId      String?
-  
+
   // Chase (futuro)
   chaseTransactionId String?
-  
+
   // Valores
-  subtotal      Decimal @db.Decimal(10, 2)
-  platformFee   Decimal @db.Decimal(10, 2)
-  processingFee Decimal @db.Decimal(10, 2) // Stripe ou Chase fee
-  totalAmount   Decimal @db.Decimal(10, 2)
+  subtotal       Decimal @db.Decimal(10, 2)
+  platformFee    Decimal @db.Decimal(10, 2)
+  processingFee  Decimal @db.Decimal(10, 2) // Stripe ou Chase fee
+  totalAmount    Decimal @db.Decimal(10, 2)
   providerAmount Decimal @db.Decimal(10, 2)
-  
+
   // Status
   status PaymentStatus @default(PENDING)
-  
+
   // Tipo do pagamento
-  paymentType String @default("SERVICE") // SERVICE, SUPPLEMENT, CANCELLATION_FEE
+  paymentType     String  @default("SERVICE") // SERVICE, SUPPLEMENT, CANCELLATION_FEE
   parentPaymentId String? // para suplementos, referencia o pagamento original
-  
+
   // Método de pagamento
   paymentMethodId String?
   cardLast4       String?
   cardBrand       String?
   cardType        String? // credit, debit
-  
+
   // Datas
-  authorizedAt           DateTime?
-  capturedAt             DateTime?
-  refundedAt             DateTime?
+  authorizedAt            DateTime?
+  capturedAt              DateTime?
+  refundedAt              DateTime?
   transferredToProviderAt DateTime?
-  
+
   // Reembolso
   refundAmount Decimal? @db.Decimal(10, 2)
   refundReason String?
-  
+
   // Recibo
   receipt Receipt?
 
@@ -1155,35 +1161,35 @@ model Subscription {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   // Plano
-  plan  SubscriptionPlan   @default(FREE)
-  price Decimal            @default(0) @db.Decimal(10, 2)
-  
+  plan  SubscriptionPlan @default(FREE)
+  price Decimal          @default(0) @db.Decimal(10, 2)
+
   // Stripe
-  stripeSubscriptionId String?  @unique
+  stripeSubscriptionId String? @unique
   stripeCustomerId     String?
-  
+
   // Limites
-  maxVehicles                 Int  @default(1)
-  maxServiceRequestsPerMonth  Int?
-  
+  maxVehicles                Int  @default(1)
+  maxServiceRequestsPerMonth Int?
+
   // Status
   status SubscriptionStatus @default(ACTIVE)
-  
+
   // Datas
   currentPeriodStart DateTime
   currentPeriodEnd   DateTime
   trialEnd           DateTime?
   cancelledAt        DateTime?
   cancellationReason String?
-  
+
   // Uso no período
-  vehiclesRegistered          Int @default(0)
-  serviceRequestsThisMonth    Int @default(0)
+  vehiclesRegistered       Int @default(0)
+  serviceRequestsThisMonth Int @default(0)
 
   @@index([userId])
   @@index([status])
@@ -1194,36 +1200,36 @@ model Review {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   // Relacionamentos
-  workOrderId String @unique
+  workOrderId String    @unique
   workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
   customerId  String
   customer    User      @relation("CustomerReviews", fields: [customerId], references: [id])
   providerId  String
   provider    User      @relation("ProviderReviews", fields: [providerId], references: [id])
-  
+
   // Avaliação do cliente
-  customerRating      Int
-  customerComment     String?
-  customerReviewDate  DateTime @default(now())
-  
+  customerRating     Int
+  customerComment    String?
+  customerReviewDate DateTime @default(now())
+
   // Avaliação do fornecedor
-  providerRating      Int?
-  providerComment     String?
-  providerReviewDate  DateTime?
-  
+  providerRating     Int?
+  providerComment    String?
+  providerReviewDate DateTime?
+
   // Categorias
   qualityRating       Int?
   timelinessRating    Int?
   communicationRating Int?
   valueRating         Int?
-  
+
   // Flags
-  isVerified            Boolean @default(true)
-  isFeatured            Boolean @default(false)
+  isVerified             Boolean @default(true)
+  isFeatured             Boolean @default(false)
   flaggedAsInappropriate Boolean @default(false)
-  
+
   // Resposta do fornecedor
   providerResponse     String?
   providerResponseDate DateTime?
@@ -1238,27 +1244,27 @@ model Review {
 model Notification {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
-  
+
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   // Tipo e conteúdo
   type    NotificationType
   title   String
   message String
-  
+
   // Relacionamentos opcionais
   relatedServiceRequestId String?
   relatedQuoteId          String?
   relatedWorkOrderId      String?
-  
+
   // Data adicional (JSON)
   data Json @default("{}")
-  
+
   // Status
-  isRead Boolean  @default(false)
+  isRead Boolean   @default(false)
   readAt DateTime?
-  
+
   // Canais
   sentViaPush  Boolean @default(false)
   sentViaEmail Boolean @default(false)
@@ -1273,30 +1279,30 @@ model PaymentMethod {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   // Tipo de pagamento
-  type         String  @default("credit") // credit, debit, pix
-  
+  type String @default("credit") // credit, debit, pix
+
   // Stripe (opcional - para integração futura)
   stripePaymentMethodId String? @unique
-  
+
   // Dados do cartão
   cardBrand    String?
   cardLast4    String?
   cardExpMonth Int?
   cardExpYear  Int?
   holderName   String?
-  
+
   // PIX
-  pixKey       String?
-  
+  pixKey String?
+
   // Billing
   billingName String?
   billingZip  String?
-  
+
   // Status
   isDefault Boolean @default(false)
   isActive  Boolean @default(true)
@@ -1313,12 +1319,12 @@ model Wallet {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   balance Decimal @default(0) @db.Decimal(10, 2)
-  
+
   transactions WalletTransaction[]
 
   @@map("wallets")
@@ -1327,15 +1333,15 @@ model Wallet {
 model WalletTransaction {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
-  
+
   walletId String
   wallet   Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
-  
-  type        String  // "credit" or "debit"
+
+  type        String // "credit" or "debit"
   amount      Decimal @db.Decimal(10, 2)
   description String
   method      String? // "card", "pix", "transfer", "tip_received", "tip_sent", "service_payment"
-  
+
   // Reference to related entities
   relatedPaymentId String?
   relatedTipId     String?
@@ -1351,28 +1357,28 @@ model WalletTransaction {
 model Tip {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
-  
+
   // Who tips who
   customerId String
   customer   User   @relation("CustomerTips", fields: [customerId], references: [id])
   providerId String
   provider   User   @relation("ProviderTips", fields: [providerId], references: [id])
-  
+
   // Context
   workOrderId String
   workOrder   WorkOrder @relation(fields: [workOrderId], references: [id])
   reviewId    String?
-  
+
   // Amount
-  amount      Decimal @db.Decimal(10, 2)
-  
+  amount Decimal @db.Decimal(10, 2)
+
   // Payment
-  paymentMethod String? // "wallet", "card"
-  paymentMethodId String? // ID of PaymentMethod used
+  paymentMethod         String? // "wallet", "card"
+  paymentMethodId       String? // ID of PaymentMethod used
   stripePaymentIntentId String?
-  
+
   status String @default("COMPLETED") // "PENDING", "COMPLETED", "FAILED", "REFUNDED"
-  
+
   message String? // Optional message with the tip
 
   @@index([customerId])
@@ -1384,31 +1390,31 @@ model Tip {
 model ChatMessage {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
-  
+
   // Participantes
   fromUserId String
   fromUser   User   @relation("MessageFrom", fields: [fromUserId], references: [id])
   toUserId   String
   toUser     User   @relation("MessageTo", fields: [toUserId], references: [id])
-  
+
   // Contexto (opcional)
   workOrderId String?
-  
+
   // Conversation identifier (groups messages between two users for a context)
   conversationId String?
-  
+
   // Link to service request (associates chat with a specific request)
   serviceRequestId String?
   serviceRequest   ServiceRequest? @relation("ServiceRequestChats", fields: [serviceRequestId], references: [id])
-  
+
   // Conteúdo
   message String
-  
+
   // Anexos (JSON array)
   attachments Json @default("[]")
-  
+
   // Status
-  isRead Boolean  @default(false)
+  isRead Boolean   @default(false)
   readAt DateTime?
 
   @@index([fromUserId])
@@ -1436,31 +1442,31 @@ model SupportTicket {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   // Ticket identifier (e.g., SUP-000001)
   ticketNumber String @unique
-  
+
   // Customer
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   // Topic / category
-  topic    String   // payments, services, account, vehicles, technical, other
-  subject  String
-  
+  topic   String // payments, services, account, vehicles, technical, other
+  subject String
+
   // Customer language (detected/selected)
   language String @default("en") // en, pt, es
-  
+
   // Status
   status SupportTicketStatus @default(OPEN)
-  
+
   // Admin assigned
   assignedAdminId String?
-  
+
   // Resolution
   resolvedAt DateTime?
   closedAt   DateTime?
-  
+
   // Messages
   messages SupportMessage[]
 
@@ -1474,22 +1480,22 @@ model SupportTicket {
 model SupportMessage {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
-  
+
   // Ticket
   ticketId String
   ticket   SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  
+
   // Sender
-  senderId String
-  sender   User   @relation(fields: [senderId], references: [id])
+  senderId   String
+  sender     User   @relation(fields: [senderId], references: [id])
   senderRole String // CLIENT, ADMIN, SYSTEM
-  
+
   // Content
-  message String
-  attachments Json @default("[]")
-  
+  message     String
+  attachments Json   @default("[]")
+
   // Status
-  isRead Boolean  @default(false)
+  isRead Boolean   @default(false)
   readAt DateTime?
 
   @@index([ticketId])
@@ -1514,30 +1520,30 @@ model SystemSettings {
 
 // Banners/Publicidade
 model Banner {
-  id          String   @id @default(uuid())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  title       String
-  subtitle    String?
-  imageUrl    String
-  linkUrl     String?
-  linkType    String?  // internal, external, none
-  
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  title    String
+  subtitle String?
+  imageUrl String
+  linkUrl  String?
+  linkType String? // internal, external, none
+
   // Ordenação e visibilidade
-  position    Int      @default(0)
-  isActive    Boolean  @default(true)
-  
+  position Int     @default(0)
+  isActive Boolean @default(true)
+
   // Período de exibição
-  startDate   DateTime?
-  endDate     DateTime?
-  
+  startDate DateTime?
+  endDate   DateTime?
+
   // Audiência
   targetAudience String @default("all") // all, customers, providers
-  
+
   // Criado por
   createdById String?
-  
+
   @@index([isActive])
   @@index([position])
   @@map("banners")
@@ -1545,50 +1551,50 @@ model Banner {
 
 // Ofertas Especiais
 model SpecialOffer {
-  id          String   @id @default(uuid())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   title       String
   description String
   imageUrl    String?
-  
+
   // Desconto
-  discountType  String   // percentage, fixed, free
+  discountType  String // percentage, fixed, free
   discountValue Decimal? @db.Decimal(10, 2)
-  discountLabel String   // "15% OFF", "FREE", "$20 OFF"
-  
+  discountLabel String // "15% OFF", "FREE", "$20 OFF"
+
   // Preços para exibição
   originalPrice   Decimal? @db.Decimal(10, 2)
   discountedPrice Decimal? @db.Decimal(10, 2)
-  
+
   // Validade
-  validFrom   DateTime?
-  validUntil  DateTime?
-  
+  validFrom  DateTime?
+  validUntil DateTime?
+
   // Código promocional (opcional)
-  promoCode   String?
-  
+  promoCode String?
+
   // Configurações
-  position    Int      @default(0)
-  isActive    Boolean  @default(true)
-  isFeatured  Boolean  @default(false)
-  
+  position   Int     @default(0)
+  isActive   Boolean @default(true)
+  isFeatured Boolean @default(false)
+
   // Limite de uso
-  usageLimit  Int?
-  usageCount  Int      @default(0)
-  
+  usageLimit Int?
+  usageCount Int  @default(0)
+
   // Service type restrictions - NEW FIELDS
-  serviceType    String?  // oil, brake, tire, engine, etc.
-  vehicleTypes   Json     @default("[]") // ["Car", "SUV", "Pickup", "Van", "Light Truck"]
-  fuelTypes      Json     @default("[]") // ["Gasoline", "Diesel", "Hybrid", "Electric"]
-  
+  serviceType  String? // oil, brake, tire, engine, etc.
+  vehicleTypes Json    @default("[]") // ["Car", "SUV", "Pickup", "Van", "Light Truck"]
+  fuelTypes    Json    @default("[]") // ["Gasoline", "Diesel", "Hybrid", "Electric"]
+
   // Legacy field (keep for backwards compatibility)
   applicableServices Json @default("[]") // array de ServiceType
-  
+
   // Criado por
   createdById String?
-  
+
   @@index([isActive])
   @@index([validUntil])
   @@index([serviceType])
@@ -1597,37 +1603,37 @@ model SpecialOffer {
 
 // Artigos/Dicas
 model Article {
-  id          String   @id @default(uuid())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id          String    @id @default(uuid())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   publishedAt DateTime?
-  
-  title       String
-  slug        String   @unique
-  excerpt     String
-  content     String   @db.Text
-  imageUrl    String?
-  
+
+  title    String
+  slug     String  @unique
+  excerpt  String
+  content  String  @db.Text
+  imageUrl String?
+
   // Categorização
-  category    String   // tips, maintenance, news, safety, technology
-  tags        Json     @default("[]")
-  
+  category String // tips, maintenance, news, safety, technology
+  tags     Json   @default("[]")
+
   // Meta
-  readTime    String?  // "5 min read"
-  
+  readTime String? // "5 min read"
+
   // Configurações
-  isPublished Boolean  @default(false)
-  isFeatured  Boolean  @default(false)
-  position    Int      @default(0)
-  
+  isPublished Boolean @default(false)
+  isFeatured  Boolean @default(false)
+  position    Int     @default(0)
+
   // Estatísticas
-  viewCount   Int      @default(0)
-  likeCount   Int      @default(0)
-  
+  viewCount Int @default(0)
+  likeCount Int @default(0)
+
   // Autor
-  authorId    String?
-  author      User?    @relation(fields: [authorId], references: [id])
-  
+  authorId String?
+  author   User?   @relation(fields: [authorId], references: [id])
+
   @@index([isPublished])
   @@index([category])
   @@index([slug])
@@ -1636,36 +1642,36 @@ model Article {
 
 // Avisos/Notícias Importantes
 model Notice {
-  id          String   @id @default(uuid())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  title       String
-  message     String   @db.Text
-  
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  title   String
+  message String @db.Text
+
   // Tipo e aparência
-  type        String   @default("info") // info, warning, alert, success
-  icon        String?  // nome do ícone
-  
+  type String  @default("info") // info, warning, alert, success
+  icon String? // nome do ícone
+
   // Visibilidade
-  isActive    Boolean  @default(true)
-  isPinned    Boolean  @default(false)
-  position    Int      @default(0)
-  
+  isActive Boolean @default(true)
+  isPinned Boolean @default(false)
+  position Int     @default(0)
+
   // Período de exibição
-  startDate   DateTime?
-  endDate     DateTime?
-  
+  startDate DateTime?
+  endDate   DateTime?
+
   // Audiência
   targetAudience String @default("all") // all, customers, providers
-  
+
   // Ação (opcional)
   actionLabel String?
   actionUrl   String?
-  
+
   // Criado por
   createdById String?
-  
+
   @@index([isActive])
   @@index([type])
   @@map("notices")
@@ -1676,30 +1682,30 @@ model SubscriptionPlanTemplate {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   // Identificador único do plano (free, basic, premium, enterprise)
   planKey String @unique
-  
+
   // Informações do plano
-  name        String  // Nome do plano
+  name        String // Nome do plano
   description String? // Descrição
-  
+
   // Preços
   monthlyPrice Decimal @default(0) @db.Decimal(10, 2)
   yearlyPrice  Decimal @default(0) @db.Decimal(10, 2)
-  
+
   // Limites
-  vehicleLimit              Int @default(1)
-  serviceRequestsPerMonth   Int? // null = unlimited
-  
+  vehicleLimit            Int  @default(1)
+  serviceRequestsPerMonth Int? // null = unlimited
+
   // Features (JSON array de strings)
   features Json @default("[]")
-  
+
   // Status
   isActive   Boolean @default(true)
   isFeatured Boolean @default(false)
   position   Int     @default(0)
-  
+
   @@index([isActive])
   @@index([position])
   @@map("subscription_plan_templates")
@@ -1710,21 +1716,21 @@ model CoverageZone {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   // Relacionamento com o provider
   providerId String
-  
+
   // Informações da zona
-  name   String  // Ex: "Zona Sul", "Centro", "ABC Paulista"
+  name   String // Ex: "Zona Sul", "Centro", "ABC Paulista"
   region String? // Ex: "São Paulo", "Grande SP"
-  
+
   // Status
   active Boolean @default(true)
-  
+
   // Coordenadas do polígono (JSON array de {lat, lng})
   // Para fase 1, pode ser null - apenas tag de marketing
   polygonCoordinates Json?
-  
+
   @@index([providerId])
   @@index([active])
   @@map("coverage_zones")
@@ -1737,40 +1743,40 @@ model PaymentSupplement {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   supplementNumber String @unique
-  
+
   workOrderId String
   workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
-  
+
   // Quem pediu e valores
   requestedByProviderId String
   description           String
   additionalAmount      Decimal @db.Decimal(10, 2)
-  
+
   // Detalhamento
-  additionalParts Json @default("[]")
+  additionalParts Json    @default("[]")
   additionalLabor Decimal @default(0) @db.Decimal(10, 2)
   reason          String? // motivo detalhado
-  
+
   // Status do suplemento
   status SupplementStatus @default(REQUESTED)
-  
+
   // Aprovação do cliente
   approvedByCustomerAt DateTime?
   rejectedByCustomerAt DateTime?
   customerNote         String?
-  
+
   // Hold (pré-autorização do suplemento)
   stripePaymentIntentId String?
   holdPlacedAt          DateTime?
   holdFailedReason      String?
-  holdAmount            Decimal? @db.Decimal(10, 2)
+  holdAmount            Decimal?  @db.Decimal(10, 2)
   capturedAt            DateTime?
-  
+
   // Se hold falhou, continuar com orçamento original
   proceedWithOriginal Boolean @default(false)
-  
+
   @@index([workOrderId])
   @@index([status])
   @@map("payment_supplements")
@@ -1783,33 +1789,33 @@ model CancellationRequest {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   workOrderId String
   workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
-  
+
   // Cliente que pediu cancelamento
   requestedByCustomerId String
   reason                String?
-  
+
   // Status do pedido
   status CancellationRequestStatus @default(REQUESTED)
-  
+
   // Validação do fornecedor
   providerValidation       String? // descrição do que foi feito
   providerHasIncurredCosts Boolean?
-  providerReportedCosts    Decimal? @db.Decimal(10, 2)
-  providerEvidencePhotos   Json @default("[]")
+  providerReportedCosts    Decimal?  @db.Decimal(10, 2)
+  providerEvidencePhotos   Json      @default("[]")
   providerValidatedAt      DateTime?
-  
+
   // Taxa de cancelamento calculada
   cancellationFeePercent Decimal? @db.Decimal(5, 2)
   cancellationFeeAmount  Decimal? @db.Decimal(10, 2)
-  
+
   // Resolução
   resolvedAt DateTime?
   resolvedBy String? // admin ou sistema
   resolution String? // FULL_REFUND, PARTIAL_REFUND, NO_REFUND, FEE_CHARGED
-  
+
   @@index([workOrderId])
   @@index([status])
   @@map("cancellation_requests")
@@ -1821,49 +1827,49 @@ model CancellationRequest {
 model Receipt {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
-  
+
   receiptNumber String @unique
-  
+
   // Pagamento associado
   paymentId String  @unique
   payment   Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
-  
+
   // Dados do recibo
-  customerName  String
-  customerEmail String
-  providerName  String
+  customerName         String
+  customerEmail        String
+  providerName         String
   providerBusinessName String?
-  
+
   // Serviço
   serviceDescription String
   vehicleInfo        String
   orderNumber        String
-  
+
   // Valores detalhados
-  subtotal      Decimal @db.Decimal(10, 2)
-  platformFee   Decimal @db.Decimal(10, 2)
-  processingFee Decimal @db.Decimal(10, 2)
-  totalAmount   Decimal @db.Decimal(10, 2)
+  subtotal         Decimal @db.Decimal(10, 2)
+  platformFee      Decimal @db.Decimal(10, 2)
+  processingFee    Decimal @db.Decimal(10, 2)
+  totalAmount      Decimal @db.Decimal(10, 2)
   supplementsTotal Decimal @default(0) @db.Decimal(10, 2)
-  
+
   // FDACS Compliance fields
-  lineItems          Json    @default("[]")  // Itemized parts/labor/merchandise with costs
-  odometerReading    Int?                     // Odometer at time of service
-  fdacsNumber        String?                  // Provider FDACS registration number
-  warrantyStatement  String?                  // Guarantee with time and mileage period
-  servicePerformed   String?                  // What was done to correct the problem
-  
+  lineItems         Json    @default("[]") // Itemized parts/labor/merchandise with costs
+  odometerReading   Int? // Odometer at time of service
+  fdacsNumber       String? // Provider FDACS registration number
+  warrantyStatement String? // Guarantee with time and mileage period
+  servicePerformed  String? // What was done to correct the problem
+
   // Processador
   paymentProcessor  PaymentProcessor
   paymentMethodInfo String // "Visa ending in 4242"
-  
+
   // Termos aceitos
   termsAcceptedAt           DateTime?
   fraudDisclaimerAcceptedAt DateTime?
-  
+
   // PDF (futuro)
   pdfUrl String?
-  
+
   @@index([paymentId])
   @@map("receipts")
 }
@@ -1876,37 +1882,37 @@ model ComplianceItem {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   // Provider
   providerProfileId String
   providerProfile   ProviderProfile @relation(fields: [providerProfileId], references: [id], onDelete: Cascade)
-  
+
   // Type and status
   type   ComplianceType
   status ComplianceStatus @default(NOT_PROVIDED)
-  
+
   // License/registration details
   licenseNumber    String?
-  issuingAuthority String?    // e.g. "FDACS", "City of Miami", "Orange County Tax Collector"
+  issuingAuthority String? // e.g. "FDACS", "City of Miami", "Orange County Tax Collector"
   issueDate        DateTime?
   expirationDate   DateTime?
-  
+
   // Document uploads (JSON array of {url, filename, uploadedAt})
-  documentUploads  Json @default("[]")
-  
+  documentUploads Json @default("[]")
+
   // Verification
   lastVerifiedAt     DateTime?
   verifiedByUserId   String?
   verificationMethod VerificationMethod?
   verificationNotes  String?
-  
+
   // For EPA_609_TECHNICIAN: link to technician
   technicianId String?
   technician   Technician? @relation(fields: [technicianId], references: [id], onDelete: SetNull)
-  
+
   // Multi-state: links to dynamic ComplianceRequirement catalog
   requirementKey String? // e.g. STATE_REPAIR_SHOP_REG, LOCAL_BUSINESS_LICENSE_COUNTY, EPA_609
-  
+
   @@unique([providerProfileId, type, technicianId]) // One compliance item per type per provider (or per technician for EPA)
   @@index([providerProfileId])
   @@index([type])
@@ -1923,31 +1929,31 @@ model Technician {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   // Provider
   providerProfileId String
   providerProfile   ProviderProfile @relation(fields: [providerProfileId], references: [id], onDelete: Cascade)
-  
+
   // Personal info
   fullName String
   phone    String?
   email    String?
   role     TechnicianRole @default(TECH)
-  
+
   // EPA Section 609 Certification
-  epa609Status        ComplianceStatus @default(NOT_PROVIDED)
-  epa609CertNumber    String?
-  epa609IssuingOrg    String?    // e.g. "ESCO Institute", "EPA"
-  epa609IssueDate     DateTime?
+  epa609Status         ComplianceStatus @default(NOT_PROVIDED)
+  epa609CertNumber     String?
+  epa609IssuingOrg     String? // e.g. "ESCO Institute", "EPA"
+  epa609IssueDate      DateTime?
   epa609ExpirationDate DateTime? // Some don't expire; allow null
-  epa609Uploads       Json @default("[]") // [{url, filename, uploadedAt}]
-  
+  epa609Uploads        Json             @default("[]") // [{url, filename, uploadedAt}]
+
   // Active status
   isActive Boolean @default(true)
-  
+
   // Relations
   complianceItems ComplianceItem[]
-  
+
   @@index([providerProfileId])
   @@index([epa609Status])
   @@map("technicians")
@@ -1960,36 +1966,36 @@ model InsurancePolicy {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   // Provider
   providerProfileId String
   providerProfile   ProviderProfile @relation(fields: [providerProfileId], references: [id], onDelete: Cascade)
-  
+
   // Type
   type InsurancePolicyType
-  
+
   // Coverage declaration
   hasCoverage Boolean @default(false)
-  
+
   // Status
   status InsurancePolicyStatus @default(INS_NOT_PROVIDED)
-  
+
   // Policy details (required if hasCoverage = true)
   carrierName    String?
   policyNumber   String?
   effectiveDate  DateTime?
   expirationDate DateTime?
-  coverageLimit  String?   // e.g. "$1,000,000 / $2,000,000 agg"
+  coverageLimit  String? // e.g. "$1,000,000 / $2,000,000 agg"
   deductible     String?
-  
+
   // Certificate of Insurance uploads (JSON array of {url, filename, uploadedAt})
   coiUploads Json @default("[]")
-  
+
   // Verification
-  lastVerifiedAt     DateTime?
-  verifiedByUserId   String?
-  verificationNotes  String?
-  
+  lastVerifiedAt    DateTime?
+  verifiedByUserId  String?
+  verificationNotes String?
+
   @@unique([providerProfileId, type]) // One policy per type per provider
   @@index([providerProfileId])
   @@index([type])
@@ -2004,26 +2010,26 @@ model InsurancePolicy {
 model UserRiskAcceptanceLog {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
-  
+
   // Who accepted
   userId String
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   // About which provider
   providerId String
-  
+
   // Context
-  serviceType        String    // e.g. "GENERAL_REPAIR", "TOWING"
-  disclaimerVersion  String    // Version of the disclaimer text shown
-  
+  serviceType       String // e.g. "GENERAL_REPAIR", "TOWING"
+  disclaimerVersion String // Version of the disclaimer text shown
+
   // Device/session info (security & legal)
   ipAddress  String?
   userAgent  String?
   deviceInfo String?
-  
+
   // The exact disclaimer text shown (for legal defensibility)
   disclaimerTextShown String @db.Text
-  
+
   @@index([userId])
   @@index([providerId])
   @@index([createdAt])
@@ -2036,21 +2042,21 @@ model UserRiskAcceptanceLog {
 model VerificationLog {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
-  
+
   // What was verified
   entityType VerificationEntityType
-  entityId   String   // UUID of ComplianceItem, InsurancePolicy, or Technician
-  
+  entityId   String // UUID of ComplianceItem, InsurancePolicy, or Technician
+
   // Status change
   previousStatus String
   newStatus      String
-  
+
   // Who verified
   verifiedByUserId String
-  
+
   // Notes
   notes String? @db.Text
-  
+
   @@index([entityType, entityId])
   @@index([verifiedByUserId])
   @@index([createdAt])
@@ -2066,30 +2072,30 @@ model StateProfile {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
-  stateCode     String @unique // "FL", "TX", "CA", etc.
-  stateName     String         // "Florida", "Texas", etc.
-  
+
+  stateCode String @unique // "FL", "TX", "CA", etc.
+  stateName String // "Florida", "Texas", etc.
+
   // Feature flag: is marketplace active in this state?
-  isActive      Boolean @default(false)
-  
+  isActive Boolean @default(false)
+
   // State repair shop registration config
   stateRepairShopRegRequired    Boolean @default(false)
   stateRepairShopRegDisplayName String? // "FDACS Motor Vehicle Repair", "BAR License", etc.
   stateRepairShopRegAuthority   String? // "FDACS", "Bureau of Automotive Repair", etc.
-  
+
   // Local license model
   defaultLocalLicenseModel LocalLicenseModel @default(COUNTY_ONLY)
-  
+
   // Towing regulation level
   towingRegulationLevel TowingRegulationLevel @default(MEDIUM)
-  
+
   // Internal notes
   notesInternal String? @db.Text
-  
+
   // Relations
   jurisdictionPolicies JurisdictionPolicy[]
-  
+
   @@map("state_profiles")
 }
 
@@ -2098,38 +2104,38 @@ model ComplianceRequirement {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   // Stable key used for programmatic reference
   requirementKey String @unique // STATE_REPAIR_SHOP_REG, LOCAL_BUSINESS_LICENSE_COUNTY, EPA_609, etc.
-  
+
   // Scope: federal, state, county, or city level
   scope RequirementScope
-  
+
   // Display
-  displayName String  // "State Repair Shop Registration"
+  displayName String // "State Repair Shop Registration"
   description String? @db.Text
-  
+
   // Which services does this requirement apply to? ["ALL"] or ["AC_SERVICE", "TOWING"]
   appliesToServices Json @default("[\"ALL\"]")
-  
+
   // How is this verified?
   verificationMode String @default("UPLOAD_ONLY") // UPLOAD_ONLY, MANUAL_REVIEW, API_VERIFY, SELF_ATTESTATION
-  
+
   // Schema for data collection (JSON schema)
   fieldsSchema Json? // {number: true, issuer: true, dates: true, uploads: true}
-  
+
   // Renewal information
   renewalRule String? // "annual", "biennial", "varies", "none"
-  
+
   // Display priority (lower = higher priority)
   priority Int @default(100)
-  
+
   // Active flag
   isActive Boolean @default(true)
-  
+
   // Relations
   jurisdictionRequirements JurisdictionRequirement[]
-  
+
   @@map("compliance_requirements")
 }
 
@@ -2138,23 +2144,23 @@ model JurisdictionPolicy {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   // Location scope
-  stateCode     String
-  stateProfile  StateProfile @relation(fields: [stateCode], references: [stateCode])
-  countyName    String? // null = statewide
-  cityName      String? // null = county-wide or statewide
+  stateCode                String
+  stateProfile             StateProfile @relation(fields: [stateCode], references: [stateCode])
+  countyName               String? // null = statewide
+  cityName                 String? // null = county-wide or statewide
   insideCityLimitsRequired Boolean? // For city-level requirements
-  
+
   // Active flag
   isActive Boolean @default(true)
-  
+
   // Internal notes
   notesInternal String? @db.Text
-  
+
   // Relations
   requirements JurisdictionRequirement[]
-  
+
   @@unique([stateCode, countyName, cityName])
   @@index([stateCode])
   @@map("jurisdiction_policies")
@@ -2163,20 +2169,20 @@ model JurisdictionPolicy {
 // Join: which requirements belong to which jurisdiction policy
 model JurisdictionRequirement {
   id String @id @default(uuid())
-  
+
   policyId String
   policy   JurisdictionPolicy @relation(fields: [policyId], references: [id], onDelete: Cascade)
-  
+
   requirementKey String
   requirement    ComplianceRequirement @relation(fields: [requirementKey], references: [requirementKey])
-  
+
   // Override display name per jurisdiction (e.g. "FDACS Motor Vehicle Repair" for FL)
   displayNameOverride      String?
   issuingAuthorityOverride String?
-  
+
   // Mandatory vs recommended
   isMandatory Boolean @default(true)
-  
+
   @@unique([policyId, requirementKey])
   @@index([requirementKey])
   @@map("jurisdiction_requirements")
@@ -2187,15 +2193,15 @@ model ServiceEligibility {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   providerProfileId String
   providerProfile   ProviderProfile @relation(fields: [providerProfileId], references: [id], onDelete: Cascade)
-  
-  serviceType      String  // ServiceOffered value (e.g. "AC_SERVICE", "TOWING", "GENERAL_REPAIR")
-  eligible         Boolean @default(false)
-  reasonCodes      Json    @default("[]") // ["EPA_609_MISSING", "TOW_INSURANCE_MISSING"]
+
+  serviceType      String // ServiceOffered value (e.g. "AC_SERVICE", "TOWING", "GENERAL_REPAIR")
+  eligible         Boolean  @default(false)
+  reasonCodes      Json     @default("[]") // ["EPA_609_MISSING", "TOW_INSURANCE_MISSING"]
   lastCalculatedAt DateTime @default(now())
-  
+
   @@unique([providerProfileId, serviceType])
   @@index([providerProfileId])
   @@index([serviceType])
@@ -2206,16 +2212,370 @@ model ServiceEligibility {
 model DisclaimerVersion {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
-  
+
   serviceType   String? // null = ALL services
   stateCode     String? // null = ALL states
-  version       String  // "v1.0", "v1.1", etc.
-  text          String  @db.Text
+  version       String // "v1.0", "v1.1", etc.
+  text          String   @db.Text
   effectiveDate DateTime @default(now())
-  isActive      Boolean @default(true)
-  
+  isActive      Boolean  @default(true)
+
   @@unique([serviceType, stateCode, version])
   @@index([serviceType])
   @@index([isActive])
   @@map("disclaimer_versions")
+}
+
+// ============================================
+// CAR WASH MODULE — ENUMS
+// ============================================
+
+enum BusinessType {
+  REPAIR_SHOP
+  CAR_WASH
+  BOTH
+}
+
+enum CarWashType {
+  AUTOMATIC_TUNNEL
+  EXPRESS_EXTERIOR
+  SELF_SERVICE_BAY
+  FULL_SERVICE
+  HAND_WASH
+}
+
+enum CarWashStatus {
+  ACTIVE
+  INACTIVE
+  PENDING_APPROVAL
+}
+
+// ============================================
+// CAR WASH MODULE — MODELS
+// ============================================
+
+model CarWash {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relation to provider user
+  providerId String
+  provider   User   @relation("ProviderCarWashes", fields: [providerId], references: [id], onDelete: Cascade)
+
+  // Basic info
+  businessName String
+  description  String? @db.VarChar(500)
+  logoUrl      String?
+  websiteUrl   String?
+  phoneNumber  String?
+  email        String?
+
+  // Type of car wash (multiple allowed)
+  carWashTypes Json @default("[]") // Array of CarWashType values
+
+  // Location
+  address            String
+  addressLine2       String?
+  city               String
+  state              String
+  zipCode            String
+  country            String  @default("US")
+  latitude           Decimal @db.Decimal(10, 8)
+  longitude          Decimal @db.Decimal(11, 8)
+  accessInstructions String? @db.Text
+
+  // Facility details
+  numberOfTunnels      Int      @default(0)
+  numberOfBays         Int      @default(0)
+  maxVehicleHeight     Decimal? @db.Decimal(4, 1) // in feet (e.g. 7.5)
+  acceptsLargeVehicles Boolean  @default(true) // trucks, vans, duallies
+  equipmentType        String? // touchless, soft_cloth, hand_wash
+  yearEstablished      Int?
+  isEcoFriendly        Boolean  @default(false) // water recycling
+
+  // Status
+  status CarWashStatus @default(PENDING_APPROVAL)
+
+  // Ratings (denormalized for performance)
+  averageRating Decimal @default(0) @db.Decimal(3, 2)
+  totalReviews  Int     @default(0)
+
+  // Monetization
+  isFeatured    Boolean   @default(false)
+  isPromoted    Boolean   @default(false)
+  featuredUntil DateTime?
+  promotedUntil DateTime?
+
+  // Relations
+  photos          CarWashPhoto[]
+  operatingHours  CarWashOperatingHours[]
+  holidayHours    CarWashHolidayHours[]
+  packages        CarWashPackage[]
+  membershipPlans CarWashMembershipPlan[]
+  addOnServices   CarWashAddOn[]
+  amenities       CarWashAmenity[]
+  paymentMethods  CarWashPaymentMethod[]
+  reviews         CarWashReview[]
+  metrics         CarWashMetric[]
+  favorites       CarWashFavorite[]
+
+  @@index([providerId])
+  @@index([status])
+  @@index([latitude, longitude])
+  @@index([city, state])
+  @@index([averageRating])
+  @@index([isFeatured])
+  @@index([isPromoted])
+  @@map("car_washes")
+}
+
+model CarWashPhoto {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  carWashId String
+  carWash   CarWash @relation(fields: [carWashId], references: [id], onDelete: Cascade)
+
+  imageUrl  String
+  caption   String?
+  sortOrder Int     @default(0)
+  isPrimary Boolean @default(false)
+
+  @@index([carWashId])
+  @@map("car_wash_photos")
+}
+
+model CarWashOperatingHours {
+  id String @id @default(uuid())
+
+  carWashId String
+  carWash   CarWash @relation(fields: [carWashId], references: [id], onDelete: Cascade)
+
+  dayOfWeek Int // 0=Sunday .. 6=Saturday
+  openTime  String? // "07:00"
+  closeTime String? // "21:00"
+  isClosed  Boolean @default(false)
+  is24Hours Boolean @default(false)
+
+  @@unique([carWashId, dayOfWeek])
+  @@map("car_wash_operating_hours")
+}
+
+model CarWashHolidayHours {
+  id String @id @default(uuid())
+
+  carWashId String
+  carWash   CarWash @relation(fields: [carWashId], references: [id], onDelete: Cascade)
+
+  date        DateTime @db.Date
+  holidayName String
+  openTime    String?
+  closeTime   String?
+  isClosed    Boolean  @default(false)
+
+  @@index([carWashId])
+  @@map("car_wash_holiday_hours")
+}
+
+// Pre-defined car wash services catalog
+model CarWashServiceCatalog {
+  id String @id @default(uuid())
+
+  key         String  @unique // e.g. "basic_exterior_wash", "triple_foam_polish"
+  category    String // "exterior_wash", "protection", "wheels_chassis", "drying", "interior_basic", "additional"
+  name        String
+  description String?
+  sortOrder   Int     @default(0)
+  isActive    Boolean @default(true)
+
+  packageServices CarWashPackageService[]
+
+  @@index([category])
+  @@map("car_wash_service_catalog")
+}
+
+model CarWashPackage {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  carWashId String
+  carWash   CarWash @relation(fields: [carWashId], references: [id], onDelete: Cascade)
+
+  name          String
+  priceBase     Decimal  @db.Decimal(8, 2) // regular car price
+  priceSUV      Decimal? @db.Decimal(8, 2) // SUV/truck surcharge price
+  isMostPopular Boolean  @default(false)
+  sortOrder     Int      @default(0)
+  isActive      Boolean  @default(true)
+
+  // Services included in this package
+  services CarWashPackageService[]
+
+  @@index([carWashId])
+  @@map("car_wash_packages")
+}
+
+model CarWashPackageService {
+  id String @id @default(uuid())
+
+  packageId String
+  package   CarWashPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  serviceId String
+  service   CarWashServiceCatalog @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([packageId, serviceId])
+  @@map("car_wash_package_services")
+}
+
+model CarWashMembershipPlan {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  carWashId String
+  carWash   CarWash @relation(fields: [carWashId], references: [id], onDelete: Cascade)
+
+  name          String
+  monthlyPrice  Decimal @db.Decimal(8, 2)
+  packageLevel  String // Which wash level is included (e.g. "Deluxe")
+  multiLocation Boolean @default(false)
+  description   String? @db.Text
+  isActive      Boolean @default(true)
+
+  @@index([carWashId])
+  @@map("car_wash_membership_plans")
+}
+
+model CarWashAddOn {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  carWashId String
+  carWash   CarWash @relation(fields: [carWashId], references: [id], onDelete: Cascade)
+
+  name        String
+  description String?
+  price       Decimal @db.Decimal(8, 2)
+  isActive    Boolean @default(true)
+
+  @@index([carWashId])
+  @@map("car_wash_add_ons")
+}
+
+// Pre-defined amenities catalog
+model CarWashAmenityCatalog {
+  id String @id @default(uuid())
+
+  key       String  @unique // e.g. "free_vacuum", "wifi"
+  name      String
+  icon      String? // icon name for frontend display
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
+
+  carWashAmenities CarWashAmenity[]
+
+  @@map("car_wash_amenity_catalog")
+}
+
+model CarWashAmenity {
+  id String @id @default(uuid())
+
+  carWashId String
+  carWash   CarWash @relation(fields: [carWashId], references: [id], onDelete: Cascade)
+
+  amenityId String
+  amenity   CarWashAmenityCatalog @relation(fields: [amenityId], references: [id], onDelete: Cascade)
+
+  @@unique([carWashId, amenityId])
+  @@map("car_wash_amenities")
+}
+
+// Pre-defined payment methods catalog
+model CarWashPaymentMethodCatalog {
+  id String @id @default(uuid())
+
+  key       String  @unique // e.g. "credit_card", "apple_pay", "coins"
+  name      String
+  icon      String?
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
+
+  carWashPaymentMethods CarWashPaymentMethod[]
+
+  @@map("car_wash_payment_method_catalog")
+}
+
+model CarWashPaymentMethod {
+  id String @id @default(uuid())
+
+  carWashId String
+  carWash   CarWash @relation(fields: [carWashId], references: [id], onDelete: Cascade)
+
+  paymentMethodId String
+  paymentMethod   CarWashPaymentMethodCatalog @relation(fields: [paymentMethodId], references: [id], onDelete: Cascade)
+
+  @@unique([carWashId, paymentMethodId])
+  @@map("car_wash_payment_methods")
+}
+
+model CarWashReview {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  carWashId String
+  carWash   CarWash @relation(fields: [carWashId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation("UserCarWashReviews", fields: [userId], references: [id], onDelete: Cascade)
+
+  rating  Int // 1-5
+  comment String? @db.Text
+
+  // Owner response
+  response   String?   @db.Text
+  responseAt DateTime?
+
+  @@index([carWashId])
+  @@index([userId])
+  @@index([rating])
+  @@map("car_wash_reviews")
+}
+
+model CarWashFavorite {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  carWashId String
+  carWash   CarWash @relation(fields: [carWashId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation("UserCarWashFavorites", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([carWashId, userId])
+  @@index([userId])
+  @@map("car_wash_favorites")
+}
+
+model CarWashMetric {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  carWashId String
+  carWash   CarWash @relation(fields: [carWashId], references: [id], onDelete: Cascade)
+
+  date              DateTime @db.Date
+  profileViews      Int      @default(0)
+  directionClicks   Int      @default(0)
+  phoneClicks       Int      @default(0)
+  websiteClicks     Int      @default(0)
+  searchImpressions Int      @default(0)
+
+  @@unique([carWashId, date])
+  @@index([carWashId])
+  @@map("car_wash_metrics")
 }
