@@ -12,6 +12,7 @@ import { StripeProvider } from "@stripe/stripe-react-native";
 import { Alert, AppState, Platform } from "react-native";
 import * as Updates from "expo-updates";
 import { AuthProvider } from "./src/contexts/AuthContext";
+import { ThemeProvider } from "./src/contexts/ThemeContext";
 import { NotificationsProvider } from "./src/contexts/NotificationsContext";
 import { I18nProvider } from "./src/i18n";
 import RootNavigator from "./src/navigation/RootNavigator";
@@ -137,6 +138,7 @@ export default function App() {
         publishableKey={stripePublishableKey || "pk_test_placeholder"}
         merchantIdentifier="merchant.com.techtrustautosolutions"
       >
+        <ThemeProvider>
         <I18nProvider>
           <PaperProvider>
             <AuthProvider>
@@ -149,6 +151,7 @@ export default function App() {
             </AuthProvider>
           </PaperProvider>
         </I18nProvider>
+        </ThemeProvider>
       </StripeProvider>
     </SafeAreaProvider>
   );

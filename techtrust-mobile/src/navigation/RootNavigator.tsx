@@ -28,6 +28,7 @@ import ProviderNavigator from "./ProviderNavigator";
 // Onboarding
 import ProviderOnboardingScreen from "../screens/provider/ProviderOnboardingScreen";
 import ProviderServicesScreen from "../screens/provider/ProviderServicesScreen";
+import CustomerOnboardingScreen from "../screens/customer/CustomerOnboardingScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -188,6 +189,19 @@ function AuthStack() {
   );
 }
 
+// Wrapper that shows onboarding before customer tabs
+function CustomerWithOnboarding() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen
+        name="CustomerOnboarding"
+        component={CustomerOnboardingScreen}
+      />
+      <Stack.Screen name="CustomerMain" component={CustomerNavigator} />
+    </Stack.Navigator>
+  );
+}
+
 // Wrapper that shows onboarding before provider tabs
 function ProviderWithOnboarding() {
   return (
@@ -232,6 +246,10 @@ export default function RootNavigator() {
           <ProviderNavigator />
         </ProviderErrorBoundary>
       );
+    }
+    // Show onboarding for new customers who haven't completed it
+    if (!hasCompletedOnboarding) {
+      return <CustomerWithOnboarding />;
     }
     return <CustomerNavigator />;
   }

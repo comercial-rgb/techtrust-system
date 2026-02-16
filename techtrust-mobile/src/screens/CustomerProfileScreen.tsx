@@ -19,6 +19,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../contexts/AuthContext";
+import { useTheme, ThemeMode } from "../contexts/ThemeContext";
 import { FadeInView, ScalePress } from "../components/Animated";
 import { useI18n, languages, Language } from "../i18n";
 import api from "../services/api";
@@ -28,6 +29,7 @@ const SPOKEN_LANGUAGES_KEY = "@techtrust_spoken_languages";
 
 export default function CustomerProfileScreen({ navigation }: any) {
   const { user, logout } = useAuth();
+  const { mode: themeMode, setMode: setThemeMode, isDark } = useTheme();
   const { language, setLanguage, t } = useI18n();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -598,6 +600,54 @@ export default function CustomerProfileScreen({ navigation }: any) {
                 <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
               </View>
             </ScalePress>
+
+            {/* Dark Mode Toggle */}
+            <View style={styles.menuItem}>
+              <View style={[styles.menuIcon, { backgroundColor: isDark ? "#312e81" : "#f3f4f6" }]}>
+                <Ionicons name={isDark ? "moon" : "sunny"} size={22} color={isDark ? "#a78bfa" : "#f59e0b"} />
+              </View>
+              <View style={styles.menuContent}>
+                <Text style={styles.menuItemTitle}>
+                  {(t as any).settings?.darkMode || "Dark Mode"}
+                </Text>
+                <Text style={styles.menuItemSubtitle}>
+                  {themeMode === "system"
+                    ? ((t as any).settings?.systemDefault || "System Default")
+                    : themeMode === "dark"
+                      ? ((t as any).settings?.dark || "Dark")
+                      : ((t as any).settings?.light || "Light")}
+                </Text>
+              </View>
+              <View style={styles.themeToggleRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.themeOption,
+                    themeMode === "light" && styles.themeOptionActive,
+                  ]}
+                  onPress={() => setThemeMode("light")}
+                >
+                  <Ionicons name="sunny" size={14} color={themeMode === "light" ? "#f59e0b" : "#9ca3af"} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.themeOption,
+                    themeMode === "system" && styles.themeOptionActive,
+                  ]}
+                  onPress={() => setThemeMode("system")}
+                >
+                  <Ionicons name="phone-portrait" size={14} color={themeMode === "system" ? "#3b82f6" : "#9ca3af"} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.themeOption,
+                    themeMode === "dark" && styles.themeOptionActive,
+                  ]}
+                  onPress={() => setThemeMode("dark")}
+                >
+                  <Ionicons name="moon" size={14} color={themeMode === "dark" ? "#a78bfa" : "#9ca3af"} />
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
         </FadeInView>
 
@@ -1036,5 +1086,28 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
+  },
+  themeToggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f3f4f6",
+    borderRadius: 8,
+    padding: 2,
+    gap: 2,
+  },
+  themeOption: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 6,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  themeOptionActive: {
+    backgroundColor: "#ffffff",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
 });

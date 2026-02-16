@@ -152,14 +152,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             JSON.stringify(normalizedUser),
           );
 
-          // Check onboarding status for providers BEFORE setting user
-          // to prevent a flash of ProviderNavigator before switching to onboarding
-          if (normalizedUser.role === "PROVIDER") {
-            const onboardingDone = await AsyncStorage.getItem(
-              `@TechTrust:onboarding:${normalizedUser.id}`,
-            );
-            setHasCompletedOnboarding(onboardingDone === "true");
-          }
+          // Check onboarding status BEFORE setting user
+          // to prevent a flash of main navigator before switching to onboarding
+          const onboardingDone = await AsyncStorage.getItem(
+            `@TechTrust:onboarding:${normalizedUser.id}`,
+          );
+          setHasCompletedOnboarding(onboardingDone === "true");
           setUser(normalizedUser);
         }
       } catch (apiError: any) {
@@ -237,13 +235,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await AsyncStorage.setItem("@TechTrust:refreshToken", refreshToken);
       }
 
-      // Check onboarding status for providers
-      if (normalizedUser.role === "PROVIDER") {
-        const onboardingDone = await AsyncStorage.getItem(
-          `@TechTrust:onboarding:${normalizedUser.id}`,
-        );
-        setHasCompletedOnboarding(onboardingDone === "true");
-      }
+      // Check onboarding status
+      const onboardingDone = await AsyncStorage.getItem(
+        `@TechTrust:onboarding:${normalizedUser.id}`,
+      );
+      setHasCompletedOnboarding(onboardingDone === "true");
 
       setUser(normalizedUser);
     } catch (error: any) {
@@ -412,13 +408,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       await AsyncStorage.removeItem("@TechTrust:pendingUser");
 
-      // Check onboarding status for providers
-      if (normalizedUser.role === "PROVIDER") {
-        const onboardingDone = await AsyncStorage.getItem(
-          `@TechTrust:onboarding:${normalizedUser.id}`,
-        );
-        setHasCompletedOnboarding(onboardingDone === "true");
-      }
+      // Check onboarding status
+      const onboardingDone = await AsyncStorage.getItem(
+        `@TechTrust:onboarding:${normalizedUser.id}`,
+      );
+      setHasCompletedOnboarding(onboardingDone === "true");
 
       setUser(normalizedUser);
     } catch (error: any) {
@@ -498,13 +492,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           );
         }
 
-        // Check onboarding for providers
-        if (normalizedUser.role === "PROVIDER") {
-          const onboardingDone = await AsyncStorage.getItem(
-            `@TechTrust:onboarding:${normalizedUser.id}`,
-          );
-          setHasCompletedOnboarding(onboardingDone === "true");
-        }
+        // Check onboarding status
+        const onboardingDone = await AsyncStorage.getItem(
+          `@TechTrust:onboarding:${normalizedUser.id}`,
+        );
+        setHasCompletedOnboarding(onboardingDone === "true");
 
         setUser(normalizedUser);
       }
@@ -571,13 +563,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           );
         }
 
-        // Check onboarding for providers
-        if (normalizedUser.role === "PROVIDER") {
-          const onboardingDone = await AsyncStorage.getItem(
-            `@TechTrust:onboarding:${normalizedUser.id}`,
-          );
-          setHasCompletedOnboarding(onboardingDone === "true");
-        }
+        // Check onboarding status
+        const onboardingDone = await AsyncStorage.getItem(
+          `@TechTrust:onboarding:${normalizedUser.id}`,
+        );
+        setHasCompletedOnboarding(onboardingDone === "true");
 
         setUser(normalizedUser);
       }
