@@ -73,4 +73,14 @@ router.delete(
   asyncHandler(userController.deleteMe)
 );
 
+// D30 — Login Sessions
+router.get('/me/sessions', asyncHandler(userController.getSessions));
+router.post('/me/sessions/revoke', asyncHandler(userController.revokeSessions));
+
+// D28 — Client Insurance Policies
+router.get('/me/insurance-policies', asyncHandler(userController.getInsurancePolicies));
+router.post('/me/insurance-policies', asyncHandler(userController.createInsurancePolicy));
+router.patch('/me/insurance-policies/:id', asyncHandler(userController.updateInsurancePolicy));
+router.delete('/me/insurance-policies/:id', asyncHandler(userController.deleteInsurancePolicy));
+
 export default router;

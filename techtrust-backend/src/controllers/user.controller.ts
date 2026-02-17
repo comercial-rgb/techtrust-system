@@ -11,6 +11,34 @@ import { AppError } from "../middleware/error-handler";
 import { hashPassword, comparePassword } from "../utils/password";
 import { logger } from "../config/logger";
 
+// ============================================
+// Helper: parse user-agent into device info
+// ============================================
+function parseDeviceInfo(userAgent: string | undefined): { deviceName: string; deviceType: string } {
+  if (!userAgent) return { deviceName: 'Unknown Device', deviceType: 'unknown' };
+  const ua = userAgent.toLowerCase();
+
+  if (ua.includes('iphone')) return { deviceName: 'iPhone', deviceType: 'mobile' };
+  if (ua.includes('ipad')) return { deviceName: 'iPad', deviceType: 'tablet' };
+  if (ua.includes('android') && ua.includes('mobile')) return { deviceName: 'Android Phone', deviceType: 'mobile' };
+  if (ua.includes('android')) return { deviceName: 'Android Tablet', deviceType: 'tablet' };
+  if (ua.includes('expo') || ua.includes('okhttp')) return { deviceName: 'TechTrust App', deviceType: 'mobile' };
+
+  // Desktop browsers
+  let browser = 'Browser';
+  if (ua.includes('chrome') && !ua.includes('edg')) browser = 'Chrome';
+  else if (ua.includes('firefox')) browser = 'Firefox';
+  else if (ua.includes('safari') && !ua.includes('chrome')) browser = 'Safari';
+  else if (ua.includes('edg')) browser = 'Edge';
+
+  let os = '';
+  if (ua.includes('windows')) os = 'Windows';
+  else if (ua.includes('mac')) os = 'macOS';
+  else if (ua.includes('linux')) os = 'Linux';
+
+  return { deviceName: `${browser}${os ? ' · ' + os : ''}`, deviceType: 'desktop' };
+}
+
 /**
  * GET /api/v1/users/me
  * Obter perfil do usuário autenticado
@@ -409,4 +437,216 @@ export const getReports = async (req: Request, res: Response) => {
       })),
     },
   });
+};
+
+// ============================================
+// D30 — LOGIN SESSIONS
+// ============================================
+
+/**
+ * GET /api/v1/users/me/sessions
+ * List active login sessions for current user
+ */
+export const getSessions = async (req: Request, res: Response) => {
+  const userId = req.user!.id;
+
+  const sessions = await prisma.loginSession.findMany({
+    where: {
+      userId,
+      revokedAt: null,
+    },
+    orderBy: { lastActiveAt: 'desc' },
+    take: 10,
+  });
+
+  // If no sessions exist yet, create one for the current request
+  if (sessions.length === 0) {
+    const device = parseDeviceInfo(req.headers['user-agent']);
+    const ip = req.headers['x-forwarded-for']?.toString().split(',')[0] || req.ip || '';
+    const session = await prisma.loginSession.create({
+      data: {
+        userId,
+        deviceName: device.deviceName,
+        deviceType: device.deviceType,
+        ipAddress: ip,
+        userAgent: req.headers['user-agent'] || '',
+        isCurrentSession: true,
+        lastActiveAt: new Date(),
+      },
+    });
+    res.json({ success: true, data: [session] });
+    return;
+  }
+
+  res.json({ success: true, data: sessions });
+};
+
+/**
+ * POST /api/v1/users/me/sessions/revoke
+ * Revoke a specific session or all other sessions
+ */
+export const revokeSessions = async (req: Request, res: Response) => {
+  const userId = req.user!.id;
+  const { sessionId, revokeAll } = req.body;
+
+  if (revokeAll) {
+    // Revoke all sessions except current
+    await prisma.loginSession.updateMany({
+      where: {
+        userId,
+        isCurrentSession: false,
+        revokedAt: null,
+      },
+      data: { revokedAt: new Date() },
+    });
+    logger.info(`All other sessions revoked for user ${userId}`);
+    res.json({ success: true, message: 'All other sessions revoked' });
+    return;
+  }
+
+  if (sessionId) {
+    await prisma.loginSession.updateMany({
+      where: {
+        id: sessionId,
+        userId,
+        isCurrentSession: false,
+      },
+      data: { revokedAt: new Date() },
+    });
+    logger.info(`Session ${sessionId} revoked for user ${userId}`);
+    res.json({ success: true, message: 'Session revoked' });
+    return;
+  }
+
+  res.status(400).json({ success: false, message: 'Provide sessionId or revokeAll: true' });
+};
+
+// ============================================
+// D28 — CLIENT INSURANCE POLICIES
+// ============================================
+
+/**
+ * GET /api/v1/users/me/insurance-policies
+ * List client vehicle insurance policies
+ */
+export const getInsurancePolicies = async (req: Request, res: Response) => {
+  const userId = req.user!.id;
+
+  const policies = await prisma.clientInsurancePolicy.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  res.json({ success: true, data: policies });
+};
+
+/**
+ * POST /api/v1/users/me/insurance-policies
+ * Create a client vehicle insurance policy
+ */
+export const createInsurancePolicy = async (req: Request, res: Response) => {
+  const userId = req.user!.id;
+  const {
+    provider, policyNumber, coverageType, premium, premiumFrequency,
+    startDate, expiryDate, deductible, coverageAmount,
+    agentName, agentPhone, notes, vehicleId, vehicleName, cardImageUrl,
+  } = req.body;
+
+  if (!provider || !policyNumber || !expiryDate) {
+    res.status(400).json({
+      success: false,
+      message: 'Provider, policy number, and expiry date are required',
+    });
+    return;
+  }
+
+  const policy = await prisma.clientInsurancePolicy.create({
+    data: {
+      userId,
+      provider,
+      policyNumber,
+      coverageType: coverageType || 'Full Coverage',
+      premium: premium ? parseFloat(premium) : 0,
+      premiumFrequency: premiumFrequency || 'monthly',
+      startDate: startDate || null,
+      expiryDate,
+      deductible: deductible ? parseFloat(deductible) : 0,
+      coverageAmount: coverageAmount ? parseFloat(coverageAmount) : 0,
+      agentName: agentName || null,
+      agentPhone: agentPhone || null,
+      notes: notes || null,
+      vehicleId: vehicleId || null,
+      vehicleName: vehicleName || null,
+      cardImageUrl: cardImageUrl || null,
+    },
+  });
+
+  res.status(201).json({ success: true, data: policy });
+};
+
+/**
+ * PATCH /api/v1/users/me/insurance-policies/:id
+ * Update a client vehicle insurance policy
+ */
+export const updateInsurancePolicy = async (req: Request, res: Response) => {
+  const userId = req.user!.id;
+  const { id } = req.params;
+
+  // Verify ownership
+  const existing = await prisma.clientInsurancePolicy.findFirst({
+    where: { id, userId },
+  });
+  if (!existing) {
+    res.status(404).json({ success: false, message: 'Policy not found' });
+    return;
+  }
+
+  const {
+    provider, policyNumber, coverageType, premium, premiumFrequency,
+    startDate, expiryDate, deductible, coverageAmount,
+    agentName, agentPhone, notes, vehicleId, vehicleName,
+  } = req.body;
+
+  const policy = await prisma.clientInsurancePolicy.update({
+    where: { id },
+    data: {
+      ...(provider !== undefined && { provider }),
+      ...(policyNumber !== undefined && { policyNumber }),
+      ...(coverageType !== undefined && { coverageType }),
+      ...(premium !== undefined && { premium: parseFloat(premium) }),
+      ...(premiumFrequency !== undefined && { premiumFrequency }),
+      ...(startDate !== undefined && { startDate }),
+      ...(expiryDate !== undefined && { expiryDate }),
+      ...(deductible !== undefined && { deductible: parseFloat(deductible) }),
+      ...(coverageAmount !== undefined && { coverageAmount: parseFloat(coverageAmount) }),
+      ...(agentName !== undefined && { agentName }),
+      ...(agentPhone !== undefined && { agentPhone }),
+      ...(notes !== undefined && { notes }),
+      ...(vehicleId !== undefined && { vehicleId }),
+      ...(vehicleName !== undefined && { vehicleName }),
+    },
+  });
+
+  res.json({ success: true, data: policy });
+};
+
+/**
+ * DELETE /api/v1/users/me/insurance-policies/:id
+ * Delete a client vehicle insurance policy
+ */
+export const deleteInsurancePolicy = async (req: Request, res: Response) => {
+  const userId = req.user!.id;
+  const { id } = req.params;
+
+  const existing = await prisma.clientInsurancePolicy.findFirst({
+    where: { id, userId },
+  });
+  if (!existing) {
+    res.status(404).json({ success: false, message: 'Policy not found' });
+    return;
+  }
+
+  await prisma.clientInsurancePolicy.delete({ where: { id } });
+
+  res.json({ success: true, message: 'Policy deleted' });
 };

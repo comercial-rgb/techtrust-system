@@ -65,6 +65,29 @@ export interface ProviderStats {
   earningsThisMonth: number;
   rating: number;
   totalReviews: number;
+  // D34 — Expired quotes
+  expiredQuotes?: number;
+  // D38 — Trends
+  trends?: {
+    requests: number;
+    workOrders: number;
+    completed: number;
+    earnings: number;
+  };
+  // D37
+  businessType?: string;
+  // D39
+  carWashMetrics?: {
+    washesToday: number;
+    activePackages: number;
+    memberships: number;
+  } | null;
+  // D40
+  partsStoreMetrics?: {
+    productsListed: number;
+    pendingPickups: number;
+    fillRate: number;
+  } | null;
 }
 
 export interface RecentActivity {
@@ -194,6 +217,11 @@ export async function getProviderDashboardStats(): Promise<ProviderStats> {
         earningsThisMonth: 0,
         rating: 0,
         totalReviews: 0,
+        expiredQuotes: 0,
+        trends: { requests: 0, workOrders: 0, completed: 0, earnings: 0 },
+        businessType: 'REPAIR_SHOP',
+        carWashMetrics: null,
+        partsStoreMetrics: null,
       }
     );
   } catch (error) {
@@ -205,6 +233,11 @@ export async function getProviderDashboardStats(): Promise<ProviderStats> {
       earningsThisMonth: 0,
       rating: 0,
       totalReviews: 0,
+      expiredQuotes: 0,
+      trends: { requests: 0, workOrders: 0, completed: 0, earnings: 0 },
+      businessType: 'REPAIR_SHOP',
+      carWashMetrics: null,
+      partsStoreMetrics: null,
     };
   }
 }

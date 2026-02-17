@@ -10,6 +10,7 @@ import { prisma } from "../config/database";
 import { geocodeAddress, formatAddress } from "../services/geocoding.service";
 import { findProvidersWithinRadius } from "../utils/distance";
 import { RAW_TO_SERVICE_OFFERED } from "../config/service-type-mapping";
+import { logger } from "../config/logger";
 
 /**
  * GET /api/v1/providers/dashboard
@@ -573,20 +574,25 @@ export const getActiveCities = async (_req: Request, res: Response): Promise<voi
 
 /**
  * GET /api/v1/providers/dashboard-stats
- * Estatísticas resumidas do dashboard do fornecedor
+ * Estatísticas resumidas do dashboard do fornecedor (D34, D38, D39, D40)
  */
 export const getDashboardStats = async (req: Request, res: Response) => {
   const providerId = req.user!.id;
 
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
   const [
     profile,
     pendingRequests,
     activeWorkOrders,
     completedThisMonth,
+    completedLastMonth,
     earningsThisMonth,
+    earningsLastMonth,
+    expiredQuotesCount,
+    pendingRequestsLastMonth,
   ] = await Promise.all([
     prisma.providerProfile.findUnique({
       where: { userId: providerId },
@@ -621,6 +627,17 @@ export const getDashboardStats = async (req: Request, res: Response) => {
         },
       },
     }),
+    // D38 — Completas mês passado (para trend)
+    prisma.workOrder.count({
+      where: {
+        providerId,
+        status: "COMPLETED",
+        completedAt: {
+          gte: startOfLastMonth,
+          lt: startOfMonth,
+        },
+      },
+    }),
     // Ganhos do mês
     prisma.payment.aggregate({
       where: {
@@ -634,7 +651,112 @@ export const getDashboardStats = async (req: Request, res: Response) => {
         providerAmount: true,
       },
     }),
+    // D38 — Ganhos mês passado (para trend)
+    prisma.payment.aggregate({
+      where: {
+        providerId,
+        status: "CAPTURED",
+        capturedAt: {
+          gte: startOfLastMonth,
+          lt: startOfMonth,
+        },
+      },
+      _sum: {
+        providerAmount: true,
+      },
+    }),
+    // D34 — Expired quotes count
+    prisma.quote.count({
+      where: {
+        providerId,
+        status: "EXPIRED",
+      },
+    }),
+    // D38 — Pending requests last month (for trend)
+    prisma.serviceRequest.count({
+      where: {
+        status: {
+          in: ["SEARCHING_PROVIDERS", "QUOTES_RECEIVED"],
+        },
+        createdAt: {
+          gte: startOfLastMonth,
+          lt: startOfMonth,
+        },
+      },
+    }),
   ]);
+
+  // D38 — Calculate trend percentages
+  const calcTrend = (current: number, previous: number): number => {
+    if (previous === 0) return current > 0 ? 100 : 0;
+    return Math.round(((current - previous) / previous) * 100);
+  };
+
+  const earningsThisVal = Number(earningsThisMonth._sum.providerAmount || 0);
+  const earningsLastVal = Number(earningsLastMonth._sum.providerAmount || 0);
+
+  const trends = {
+    requests: calcTrend(pendingRequests, pendingRequestsLastMonth),
+    workOrders: 0, // active work orders is a snapshot, not a trend
+    completed: calcTrend(completedThisMonth, completedLastMonth),
+    earnings: calcTrend(earningsThisVal, earningsLastVal),
+  };
+
+  // D39 — Car Wash metrics (if applicable)
+  let carWashMetrics = null;
+  const businessType = profile?.businessTypeCat || 'REPAIR_SHOP';
+  if (businessType === 'CAR_WASH' || businessType === 'BOTH') {
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const [washesToday, totalWashes, activeWashes] = await Promise.all([
+      prisma.carWash.count({
+        where: {
+          providerId: providerId,
+          createdAt: { gte: todayStart },
+        },
+      }),
+      prisma.carWash.count({
+        where: {
+          providerId: providerId,
+          status: 'ACTIVE',
+        },
+      }),
+      prisma.carWash.count({
+        where: {
+          providerId: providerId,
+        },
+      }),
+    ]);
+    carWashMetrics = { washesToday, activePackages: totalWashes, memberships: activeWashes };
+  }
+
+  // D40 — Parts Store metrics (if applicable)
+  let partsStoreMetrics = null;
+  if (profile) {
+    try {
+      const store = await prisma.partsStore.findFirst({
+        where: { providerId: profile.id },
+        select: { id: true },
+      });
+      if (store) {
+        const [productsListed, pendingPickups] = await Promise.all([
+          prisma.partsProduct.count({ where: { storeId: store.id, isActive: true } }),
+          prisma.partsReservation.count({
+            where: {
+              product: { storeId: store.id },
+              status: 'pending',
+            },
+          }),
+        ]);
+        partsStoreMetrics = {
+          productsListed,
+          pendingPickups,
+          fillRate: productsListed > 0 ? Math.min(99, Math.round((productsListed / (productsListed + pendingPickups)) * 100)) : 0,
+        };
+      }
+    } catch (err) {
+      logger.warn('Parts store metrics lookup failed');
+    }
+  }
 
   res.json({
     success: true,
@@ -642,9 +764,18 @@ export const getDashboardStats = async (req: Request, res: Response) => {
       pendingRequests,
       activeWorkOrders,
       completedThisMonth,
-      earningsThisMonth: Number(earningsThisMonth._sum.providerAmount || 0),
+      earningsThisMonth: earningsThisVal,
       rating: Number(profile?.averageRating || 0),
       totalReviews: profile?.totalReviews || 0,
+      // D34 — Expired quotes
+      expiredQuotes: expiredQuotesCount,
+      // D38 — Trends
+      trends,
+      // D37 — Weekly reports preference (stored in user preferencesJson)
+      businessType,
+      // D39/D40 — Adaptive metrics
+      carWashMetrics,
+      partsStoreMetrics,
     },
   });
 };
@@ -841,5 +972,101 @@ export const getPendingRequests = async (req: Request, res: Response) => {
   res.json({
     success: true,
     data: pendingRequests,
+  });
+};
+
+/**
+ * POST /api/v1/providers/validate-fdacs
+ * D35 — Validate FDACS MV-XXXXX license number
+ */
+export const validateFdacs = async (req: Request, res: Response): Promise<void> => {
+  const { fdacsNumber } = req.body;
+
+  if (!fdacsNumber) {
+    res.status(400).json({ success: false, message: "FDACS number is required" });
+    return;
+  }
+
+  // Validate MV-XXXXX format
+  const pattern = /^MV-\d{5}$/;
+  if (!pattern.test(fdacsNumber)) {
+    res.json({
+      success: true,
+      data: {
+        valid: false,
+        formatted: fdacsNumber,
+        reason: "Invalid format. Expected MV-XXXXX (e.g. MV-12345)",
+      },
+    });
+    return;
+  }
+
+  // Check if this FDACS number is already registered by another provider
+  const existing = await prisma.providerProfile.findFirst({
+    where: {
+      fdacsRegistrationNumber: fdacsNumber,
+      userId: { not: req.user!.id },
+    },
+    select: { id: true },
+  });
+
+  if (existing) {
+    res.json({
+      success: true,
+      data: {
+        valid: false,
+        formatted: fdacsNumber,
+        reason: "This FDACS number is already registered by another provider",
+      },
+    });
+    return;
+  }
+
+  // Check state compliance records
+  const complianceItem = await prisma.complianceItem.findFirst({
+    where: {
+      providerProfile: { userId: req.user!.id },
+      type: "FDACS_MOTOR_VEHICLE_REPAIR",
+    },
+    select: { id: true, status: true },
+  });
+
+  res.json({
+    success: true,
+    data: {
+      valid: true,
+      formatted: fdacsNumber,
+      complianceStatus: complianceItem?.status || null,
+      reason: null,
+    },
+  });
+};
+
+/**
+ * PATCH /api/v1/providers/weekly-reports
+ * D37 — Toggle weekly reports preference
+ */
+export const toggleWeeklyReports = async (req: Request, res: Response): Promise<void> => {
+  const userId = req.user!.id;
+  const { enabled } = req.body;
+
+  // Store in User.preferencesJson
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { preferencesJson: true },
+  });
+
+  const prefs = (user?.preferencesJson as Record<string, any>) || {};
+  prefs.weeklyReportsEnabled = !!enabled;
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { preferencesJson: prefs },
+  });
+
+  res.json({
+    success: true,
+    data: { weeklyReportsEnabled: !!enabled },
+    message: enabled ? "Weekly reports enabled" : "Weekly reports disabled",
   });
 };

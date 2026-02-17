@@ -103,9 +103,26 @@ export default function InsuranceScreen({ navigation, route }: any) {
 
   async function loadPolicies() {
     try {
-      // Carregar apólices reais do backend quando API estiver disponível
-      // Endpoint: api.get('/insurance-policies')
-      setPolicies([]);
+      const api = (await import('../services/api')).default;
+      const response = await api.get('/users/me/insurance-policies');
+      const data = response.data?.data || [];
+      setPolicies(data.map((p: any) => ({
+        id: p.id,
+        vehicleId: p.vehicleId || '',
+        vehicleName: p.vehicleName || '',
+        provider: p.provider,
+        policyNumber: p.policyNumber,
+        coverageType: p.coverageType || 'Full Coverage',
+        premium: p.premium || 0,
+        premiumFrequency: p.premiumFrequency || 'monthly',
+        startDate: p.startDate || '',
+        expiryDate: p.expiryDate || '',
+        deductible: p.deductible || 0,
+        coverageAmount: p.coverageAmount || 0,
+        agentName: p.agentName || '',
+        agentPhone: p.agentPhone || '',
+        notes: p.notes || '',
+      })));
     } catch (error) {
       console.error("Error loading policies:", error);
       setPolicies([]);
@@ -273,31 +290,9 @@ export default function InsuranceScreen({ navigation, route }: any) {
       return;
     }
 
-    // Save to local storage (insurance managed by user)
-
-    if (editingPolicy) {
-      setPolicies((prev) =>
-        prev.map((p) =>
-          p.id === editingPolicy.id
-            ? {
-                ...p,
-                ...formData,
-                premium: parseFloat(formData.premium) || 0,
-                deductible: parseFloat(formData.deductible) || 0,
-                coverageAmount: parseFloat(formData.coverageAmount) || 0,
-              }
-            : p,
-        ),
-      );
-      Alert.alert(
-        t.common?.success || "Success",
-        t.insurance?.policyUpdated || "Policy updated successfully",
-      );
-    } else {
-      const newPolicy: InsurancePolicy = {
-        id: Date.now().toString(),
-        vehicleId: vehicleId || "1",
-        vehicleName: "2020 Honda Civic",
+    try {
+      const api = (await import('../services/api')).default;
+      const payload = {
         provider: formData.provider,
         policyNumber: formData.policyNumber,
         coverageType: formData.coverageType,
@@ -307,15 +302,56 @@ export default function InsuranceScreen({ navigation, route }: any) {
         expiryDate: formData.expiryDate,
         deductible: parseFloat(formData.deductible) || 0,
         coverageAmount: parseFloat(formData.coverageAmount) || 0,
-        agentName: formData.agentName || undefined,
-        agentPhone: formData.agentPhone || undefined,
-        notes: formData.notes || undefined,
+        agentName: formData.agentName || '',
+        agentPhone: formData.agentPhone || '',
+        notes: formData.notes || '',
+        vehicleId: vehicleId || '',
+        vehicleName: formData.vehicleName || '',
       };
-      setPolicies((prev) => [...prev, newPolicy]);
-      Alert.alert(
-        t.common?.success || "Success",
-        t.insurance?.policyAdded || "Policy added successfully",
-      );
+
+      if (editingPolicy) {
+        const response = await api.patch(`/users/me/insurance-policies/${editingPolicy.id}`, payload);
+        const updated = response.data?.data;
+        setPolicies((prev) =>
+          prev.map((p) =>
+            p.id === editingPolicy.id
+              ? { ...p, ...payload, id: p.id }
+              : p,
+          ),
+        );
+        Alert.alert(
+          t.common?.success || "Success",
+          t.insurance?.policyUpdated || "Policy updated successfully",
+        );
+      } else {
+        const response = await api.post('/users/me/insurance-policies', payload);
+        const created = response.data?.data;
+        const newPolicy: InsurancePolicy = {
+          id: created?.id || Date.now().toString(),
+          vehicleId: vehicleId || '',
+          vehicleName: created?.vehicleName || '',
+          provider: formData.provider,
+          policyNumber: formData.policyNumber,
+          coverageType: formData.coverageType,
+          premium: parseFloat(formData.premium) || 0,
+          premiumFrequency: formData.premiumFrequency,
+          startDate: formData.startDate || new Date().toISOString().split("T")[0],
+          expiryDate: formData.expiryDate,
+          deductible: parseFloat(formData.deductible) || 0,
+          coverageAmount: parseFloat(formData.coverageAmount) || 0,
+          agentName: formData.agentName || undefined,
+          agentPhone: formData.agentPhone || undefined,
+          notes: formData.notes || undefined,
+        };
+        setPolicies((prev) => [...prev, newPolicy]);
+        Alert.alert(
+          t.common?.success || "Success",
+          t.insurance?.policyAdded || "Policy added successfully",
+        );
+      }
+    } catch (error) {
+      console.error("Error saving policy:", error);
+      Alert.alert(t.common?.error || "Error", "Failed to save policy. Please try again.");
     }
 
     setModalVisible(false);
@@ -332,8 +368,15 @@ export default function InsuranceScreen({ navigation, route }: any) {
         {
           text: t.common?.delete || "Delete",
           style: "destructive",
-          onPress: () => {
-            setPolicies((prev) => prev.filter((p) => p.id !== policyId));
+          onPress: async () => {
+            try {
+              const api = (await import('../services/api')).default;
+              await api.delete(`/users/me/insurance-policies/${policyId}`);
+              setPolicies((prev) => prev.filter((p) => p.id !== policyId));
+            } catch (error) {
+              console.error("Error deleting policy:", error);
+              Alert.alert(t.common?.error || "Error", "Failed to delete policy.");
+            }
           },
         },
       ],

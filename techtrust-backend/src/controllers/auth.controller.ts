@@ -1376,6 +1376,30 @@ export const login = async (req: Request, res: Response) => {
       data: { lastLoginAt: new Date() },
     });
 
+    // D30 — Create login session record
+    try {
+      const ua = req.headers['user-agent'] || '';
+      const ip = req.headers['x-forwarded-for']?.toString().split(',')[0] || req.ip || '';
+      // Mark all previous sessions as not current
+      await prisma.loginSession.updateMany({
+        where: { userId: user.id, isCurrentSession: true },
+        data: { isCurrentSession: false },
+      });
+      await prisma.loginSession.create({
+        data: {
+          userId: user.id,
+          deviceName: ua.includes('Expo') || ua.includes('okhttp') ? 'TechTrust App' : (ua.includes('iPhone') ? 'iPhone' : (ua.includes('Android') ? 'Android' : 'Browser')),
+          deviceType: ua.includes('Mobile') || ua.includes('Expo') || ua.includes('okhttp') ? 'mobile' : 'desktop',
+          ipAddress: ip,
+          userAgent: ua.substring(0, 500),
+          isCurrentSession: true,
+          lastActiveAt: new Date(),
+        },
+      });
+    } catch (sessionErr) {
+      logger.warn('Failed to create login session:', sessionErr);
+    }
+
     // Gerar tokens
     const tokens = generateTokens({
       userId: user.id,

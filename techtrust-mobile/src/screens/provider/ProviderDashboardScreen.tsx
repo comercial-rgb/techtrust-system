@@ -34,6 +34,29 @@ interface Stats {
   earningsThisMonth: number;
   rating: number;
   totalReviews: number;
+  // D34
+  expiredQuotes?: number;
+  // D38
+  trends?: {
+    requests: number;
+    workOrders: number;
+    completed: number;
+    earnings: number;
+  };
+  // D37
+  businessType?: string;
+  // D39
+  carWashMetrics?: {
+    washesToday: number;
+    activePackages: number;
+    memberships: number;
+  } | null;
+  // D40
+  partsStoreMetrics?: {
+    productsListed: number;
+    pendingPickups: number;
+    fillRate: number;
+  } | null;
 }
 
 interface RecentActivity {
@@ -85,9 +108,9 @@ export default function ProviderDashboardScreen({ navigation }: any) {
   const [stats, setStats] = useState<Stats | null>(null);
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
-  // D34 — Quote expired notification
+  // D34 — Quote expired notification (from API)
   const [expiredQuotes, setExpiredQuotes] = useState(0);
-  // D37 — Weekly reports email toggle
+  // D37 — Weekly reports email toggle (from API preferencesJson)
   const [weeklyReportsEnabled, setWeeklyReportsEnabled] = useState(true);
 
   const businessType = user?.providerProfile?.businessTypeCat || 'REPAIR_SHOP';
@@ -114,8 +137,15 @@ export default function ProviderDashboardScreen({ navigation }: any) {
       setStats(statsData);
       setRecentActivity(activityData);
       setPendingRequests(requestsData);
-      // D34 — Simulate expired quotes count (would come from API)
-      setExpiredQuotes(Math.floor(Math.random() * 3));
+      // D34 — Expired quotes from real API
+      setExpiredQuotes(statsData.expiredQuotes || 0);
+      // D37 — Load weekly reports preference
+      try {
+        const api = (await import('../../services/api')).default;
+        const userRes = await api.get('/users/me');
+        const prefs = userRes.data?.data?.user?.preferencesJson || {};
+        setWeeklyReportsEnabled(prefs.weeklyReportsEnabled !== false);
+      } catch { /* keep default */ }
     } catch (error) {
       console.error("Error loading dashboard:", error);
       setStats({
@@ -472,7 +502,11 @@ export default function ProviderDashboardScreen({ navigation }: any) {
               <Text style={styles.statValue}>{stats?.pendingRequests || 0}</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                 <Text style={styles.statLabel}>{t.provider?.requests || "Requests"}</Text>
-                <Text style={{ fontSize: 11, fontWeight: '700', color: '#10b981' }}>↑ 12%</Text>
+                {(stats?.trends?.requests ?? 0) !== 0 && (
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: (stats?.trends?.requests ?? 0) > 0 ? '#10b981' : '#ef4444' }}>
+                    {(stats?.trends?.requests ?? 0) > 0 ? '↑' : '↓'} {Math.abs(stats?.trends?.requests ?? 0)}%
+                  </Text>
+                )}
               </View>
             </TouchableOpacity>
             <TouchableOpacity style={styles.statCard} onPress={() => navigation.navigate("ProviderWorkOrders")}>
@@ -482,7 +516,6 @@ export default function ProviderDashboardScreen({ navigation }: any) {
               <Text style={styles.statValue}>{stats?.activeWorkOrders || 0}</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                 <Text style={styles.statLabel}>{t.provider?.inProgress || "In Progress"}</Text>
-                <Text style={{ fontSize: 11, fontWeight: '700', color: '#f59e0b' }}>— 0%</Text>
               </View>
             </TouchableOpacity>
           </View>
@@ -494,7 +527,11 @@ export default function ProviderDashboardScreen({ navigation }: any) {
               <Text style={styles.statValue}>{stats?.completedThisMonth || 0}</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                 <Text style={styles.statLabel}>{t.provider?.completed || "Completed"}</Text>
-                <Text style={{ fontSize: 11, fontWeight: '700', color: '#10b981' }}>↑ 8%</Text>
+                {(stats?.trends?.completed ?? 0) !== 0 && (
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: (stats?.trends?.completed ?? 0) > 0 ? '#10b981' : '#ef4444' }}>
+                    {(stats?.trends?.completed ?? 0) > 0 ? '↑' : '↓'} {Math.abs(stats?.trends?.completed ?? 0)}%
+                  </Text>
+                )}
               </View>
             </View>
             <View style={styles.statCard}>
@@ -504,14 +541,18 @@ export default function ProviderDashboardScreen({ navigation }: any) {
               <Text style={styles.statValue}>{formatCurrency(Number(stats?.earningsThisMonth || 0))}</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                 <Text style={styles.statLabel}>{t.provider?.earnings || "Earnings"}</Text>
-                <Text style={{ fontSize: 11, fontWeight: '700', color: '#10b981' }}>↑ 23%</Text>
+                {(stats?.trends?.earnings ?? 0) !== 0 && (
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: (stats?.trends?.earnings ?? 0) > 0 ? '#10b981' : '#ef4444' }}>
+                    {(stats?.trends?.earnings ?? 0) > 0 ? '↑' : '↓'} {Math.abs(stats?.trends?.earnings ?? 0)}%
+                  </Text>
+                )}
               </View>
             </View>
           </View>
         </View>
 
         {/* D39 — Car Wash Adaptive Metrics */}
-        {(businessType === 'CAR_WASH' || businessType === 'BOTH') && (
+        {(businessType === 'CAR_WASH' || businessType === 'BOTH') && stats?.carWashMetrics && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Car Wash Metrics</Text>
             <View style={styles.statsRow}>
@@ -519,24 +560,21 @@ export default function ProviderDashboardScreen({ navigation }: any) {
                 <View style={[styles.statIcon, { backgroundColor: '#dbeafe' }]}>
                   <MaterialCommunityIcons name="car-wash" size={22} color="#3b82f6" />
                 </View>
-                <Text style={styles.statValue}>24</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                  <Text style={styles.statLabel}>Washes Today</Text>
-                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#10b981' }}>↑ 15%</Text>
-                </View>
+                <Text style={styles.statValue}>{stats.carWashMetrics.washesToday}</Text>
+                <Text style={styles.statLabel}>Washes Today</Text>
               </View>
               <View style={[styles.statCard, { flex: 1 }]}>
                 <View style={[styles.statIcon, { backgroundColor: '#ede9fe' }]}>
                   <MaterialCommunityIcons name="package-variant" size={22} color="#7c3aed" />
                 </View>
-                <Text style={styles.statValue}>5</Text>
+                <Text style={styles.statValue}>{stats.carWashMetrics.activePackages}</Text>
                 <Text style={styles.statLabel}>Active Packages</Text>
               </View>
               <View style={[styles.statCard, { flex: 1 }]}>
                 <View style={[styles.statIcon, { backgroundColor: '#fef3c7' }]}>
                   <MaterialCommunityIcons name="account-group" size={22} color="#d97706" />
                 </View>
-                <Text style={styles.statValue}>12</Text>
+                <Text style={styles.statValue}>{stats.carWashMetrics.memberships}</Text>
                 <Text style={styles.statLabel}>Memberships</Text>
               </View>
             </View>
@@ -544,7 +582,7 @@ export default function ProviderDashboardScreen({ navigation }: any) {
         )}
 
         {/* D40 — Parts Store Adaptive Metrics */}
-        {businessType === 'PARTS_STORE' && (
+        {stats?.partsStoreMetrics && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Parts Store Metrics</Text>
             <View style={styles.statsRow}>
@@ -552,25 +590,22 @@ export default function ProviderDashboardScreen({ navigation }: any) {
                 <View style={[styles.statIcon, { backgroundColor: '#dbeafe' }]}>
                   <MaterialCommunityIcons name="package-variant-closed" size={22} color="#3b82f6" />
                 </View>
-                <Text style={styles.statValue}>156</Text>
+                <Text style={styles.statValue}>{stats.partsStoreMetrics.productsListed}</Text>
                 <Text style={styles.statLabel}>Products Listed</Text>
               </View>
               <View style={[styles.statCard, { flex: 1 }]}>
                 <View style={[styles.statIcon, { backgroundColor: '#fef3c7' }]}>
                   <MaterialCommunityIcons name="truck-delivery" size={22} color="#d97706" />
                 </View>
-                <Text style={styles.statValue}>8</Text>
+                <Text style={styles.statValue}>{stats.partsStoreMetrics.pendingPickups}</Text>
                 <Text style={styles.statLabel}>Pending Pickups</Text>
               </View>
               <View style={[styles.statCard, { flex: 1 }]}>
                 <View style={[styles.statIcon, { backgroundColor: '#d1fae5' }]}>
                   <MaterialCommunityIcons name="trending-up" size={22} color="#10b981" />
                 </View>
-                <Text style={styles.statValue}>92%</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                  <Text style={styles.statLabel}>Fill Rate</Text>
-                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#10b981' }}>↑ 5%</Text>
-                </View>
+                <Text style={styles.statValue}>{stats.partsStoreMetrics.fillRate}%</Text>
+                <Text style={styles.statLabel}>Fill Rate</Text>
               </View>
             </View>
           </View>
@@ -788,12 +823,19 @@ export default function ProviderDashboardScreen({ navigation }: any) {
             </View>
             <Switch
               value={weeklyReportsEnabled}
-              onValueChange={(val) => {
+              onValueChange={async (val) => {
                 setWeeklyReportsEnabled(val);
-                Alert.alert(
-                  val ? 'Reports Enabled' : 'Reports Disabled',
-                  val ? 'You will receive weekly performance reports by email.' : 'Weekly reports have been disabled.',
-                );
+                try {
+                  const api = (await import('../../services/api')).default;
+                  await api.patch('/providers/weekly-reports', { enabled: val });
+                  Alert.alert(
+                    val ? 'Reports Enabled' : 'Reports Disabled',
+                    val ? 'You will receive weekly performance reports by email.' : 'Weekly reports have been disabled.',
+                  );
+                } catch {
+                  setWeeklyReportsEnabled(!val);
+                  Alert.alert('Error', 'Could not update preference. Please try again.');
+                }
               }}
               trackColor={{ false: '#e5e7eb', true: '#c4b5fd' }}
               thumbColor={weeklyReportsEnabled ? '#7c3aed' : '#f4f4f5'}

@@ -20,5 +20,7 @@ router.get('/pending-requests', asyncHandler(providerController.getPendingReques
 router.get('/available-requests', asyncHandler(providerController.getAvailableRequests));
 router.get('/my-quotes', asyncHandler(providerController.getMyQuotes));
 router.patch('/profile', asyncHandler(providerController.updateProfile));
+router.post('/validate-fdacs', asyncHandler(providerController.validateFdacs));
+router.patch('/weekly-reports', asyncHandler(providerController.toggleWeeklyReports));
 
 export default router;

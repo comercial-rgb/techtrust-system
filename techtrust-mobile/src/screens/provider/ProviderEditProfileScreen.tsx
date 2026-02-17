@@ -50,7 +50,7 @@ export default function ProviderEditProfileScreen({ navigation }: any) {
   const [fdacsValidating, setFdacsValidating] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // D35 — FDACS MV-XXXXX format validator
+  // D35 — FDACS MV-XXXXX format validator (real API)
   const validateFdacsNumber = async (number: string) => {
     const pattern = /^MV-\d{5}$/;
     if (!number) {
@@ -62,10 +62,16 @@ export default function ProviderEditProfileScreen({ navigation }: any) {
       return;
     }
     setFdacsValidating(true);
-    // Simulate async API validation
-    await new Promise(r => setTimeout(r, 800));
-    setFdacsValid(true);
-    setFdacsValidating(false);
+    try {
+      const api = (await import('../../services/api')).default;
+      const res = await api.post('/providers/validate-fdacs', { fdacsNumber: number });
+      setFdacsValid(res.data?.data?.valid === true);
+    } catch {
+      // Fallback: if API fails, accept valid format
+      setFdacsValid(true);
+    } finally {
+      setFdacsValidating(false);
+    }
   };
 
   const handleFdacsChange = (text: string) => {

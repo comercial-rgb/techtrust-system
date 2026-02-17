@@ -387,6 +387,10 @@ model User {
   partsStoreReviews    PartsStoreReview[]    @relation("UserPartsStoreReviews")
   partsStoreFavorites  PartsStoreFavorite[]  @relation("UserPartsStoreFavorites")
 
+  // Login sessions & client insurance
+  loginSessions          LoginSession[]
+  clientInsurancePolicies ClientInsurancePolicy[]
+
   @@index([email])
   @@index([phone])
   @@index([role])
@@ -2818,4 +2822,61 @@ model PartsStoreMetric {
   @@unique([storeId, date])
   @@index([storeId])
   @@map("parts_store_metrics")
+}
+
+// ============================================
+// LOGIN SESSIONS (D30)
+// ============================================
+model LoginSession {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  deviceName   String?  // "iPhone 15 Pro", "Chrome · Windows"
+  deviceType   String?  // "mobile", "desktop", "tablet"
+  ipAddress    String?
+  location     String?  // "Miami, FL"
+  userAgent    String?
+  lastActiveAt DateTime @default(now())
+  isCurrentSession Boolean @default(false)
+  revokedAt    DateTime?
+
+  @@index([userId])
+  @@index([revokedAt])
+  @@map("login_sessions")
+}
+
+// ============================================
+// CLIENT INSURANCE POLICIES (D28)
+// ============================================
+model ClientInsurancePolicy {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  provider        String
+  policyNumber    String
+  coverageType    String   // "Full Coverage", "Liability Only", "PIP", etc.
+  premium         Float    @default(0)
+  premiumFrequency String  @default("monthly") // monthly, semi-annual, annual
+  startDate       String?
+  expiryDate      String
+  deductible      Float    @default(0)
+  coverageAmount  Float    @default(0)
+  agentName       String?
+  agentPhone      String?
+  notes           String?
+  vehicleId       String?
+  vehicleName     String?
+  cardImageUrl    String?  // OCR scanned card image
+
+  @@index([userId])
+  @@index([expiryDate])
+  @@map("client_insurance_policies")
 }
