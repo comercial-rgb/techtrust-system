@@ -29,7 +29,7 @@ const SPOKEN_LANGUAGES_KEY = "@techtrust_spoken_languages";
 
 export default function CustomerProfileScreen({ navigation }: any) {
   const { user, logout } = useAuth();
-  const { mode: themeMode, setMode: setThemeMode, isDark } = useTheme();
+  const { mode: themeMode, setMode: setThemeMode, isDark, colors: themeColors } = useTheme();
   const { language, setLanguage, t } = useI18n();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -253,13 +253,13 @@ export default function CustomerProfileScreen({ navigation }: any) {
   ];
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <FadeInView delay={0}>
-          <View style={styles.header}>
+          <View style={[styles.header, { backgroundColor: isDark ? themeColors.card : undefined }]}>
             <View style={styles.avatarContainer}>
-              <View style={styles.avatar}>
+              <View style={[styles.avatar, isDark && { backgroundColor: themeColors.primary }]}>
                 <Text style={styles.avatarText}>
                   {user?.fullName?.charAt(0)?.toUpperCase() || "U"}
                 </Text>
@@ -352,16 +352,16 @@ export default function CustomerProfileScreen({ navigation }: any) {
         {/* Menu Items */}
         <FadeInView delay={300}>
           <View style={styles.menuContainer}>
-            <Text style={styles.menuTitle}>
+            <Text style={[styles.menuTitle, { color: themeColors.text }]}>
               {t.profile?.myAccount || "My Account"}
             </Text>
             {menuItems.map((item) => (
               <ScalePress key={item.id} onPress={item.onPress}>
-                <View style={styles.menuItem}>
+                <View style={[styles.menuItem, { backgroundColor: themeColors.card }]}>
                   <View
                     style={[
                       styles.menuIcon,
-                      { backgroundColor: `${item.color}15` },
+                      { backgroundColor: isDark ? themeColors.surface : `${item.color}15` },
                     ]}
                   >
                     <Ionicons
@@ -371,10 +371,10 @@ export default function CustomerProfileScreen({ navigation }: any) {
                     />
                   </View>
                   <View style={styles.menuContent}>
-                    <Text style={styles.menuItemTitle}>{item.title}</Text>
-                    <Text style={styles.menuItemSubtitle}>{item.subtitle}</Text>
+                    <Text style={[styles.menuItemTitle, { color: themeColors.text }]}>{item.title}</Text>
+                    <Text style={[styles.menuItemSubtitle, { color: themeColors.textSecondary }]}>{item.subtitle}</Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                  <Ionicons name="chevron-forward" size={20} color={themeColors.textLight} />
                 </View>
               </ScalePress>
             ))}
@@ -508,75 +508,75 @@ export default function CustomerProfileScreen({ navigation }: any) {
         {/* Support Section */}
         <FadeInView delay={400}>
           <View style={styles.menuContainer}>
-            <Text style={styles.menuTitle}>
+            <Text style={[styles.menuTitle, { color: themeColors.text }]}>
               {t.profile?.helpAndSupport || "Help & Support"}
             </Text>
 
             <ScalePress onPress={() => navigation.navigate("HelpCenter")}>
-              <View style={styles.menuItem}>
-                <View style={[styles.menuIcon, { backgroundColor: "#f3f4f6" }]}>
-                  <Ionicons name="help-circle" size={22} color="#6b7280" />
+              <View style={[styles.menuItem, { backgroundColor: themeColors.card }]}>
+                <View style={[styles.menuIcon, { backgroundColor: isDark ? themeColors.surface : "#f3f4f6" }]}>
+                  <Ionicons name="help-circle" size={22} color={isDark ? themeColors.textSecondary : "#6b7280"} />
                 </View>
                 <View style={styles.menuContent}>
-                  <Text style={styles.menuItemTitle}>
+                  <Text style={[styles.menuItemTitle, { color: themeColors.text }]}>
                     {t.profile?.helpCenter || "Help Center"}
                   </Text>
-                  <Text style={styles.menuItemSubtitle}>
+                  <Text style={[styles.menuItemSubtitle, { color: themeColors.textSecondary }]}>
                     {t.profile?.faqs || "FAQs"}
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                <Ionicons name="chevron-forward" size={20} color={themeColors.textLight} />
               </View>
             </ScalePress>
 
             <ScalePress onPress={() => navigation.navigate("ContactUs")}>
-              <View style={styles.menuItem}>
-                <View style={[styles.menuIcon, { backgroundColor: "#f3f4f6" }]}>
+              <View style={[styles.menuItem, { backgroundColor: themeColors.card }]}>
+                <View style={[styles.menuIcon, { backgroundColor: isDark ? themeColors.surface : "#f3f4f6" }]}>
                   <Ionicons
                     name="chatbubble-ellipses"
                     size={22}
-                    color="#6b7280"
+                    color={isDark ? themeColors.textSecondary : "#6b7280"}
                   />
                 </View>
                 <View style={styles.menuContent}>
-                  <Text style={styles.menuItemTitle}>
+                  <Text style={[styles.menuItemTitle, { color: themeColors.text }]}>
                     {t.profile?.contactUs || "Contact Us"}
                   </Text>
-                  <Text style={styles.menuItemSubtitle}>
+                  <Text style={[styles.menuItemSubtitle, { color: themeColors.textSecondary }]}>
                     {t.profile?.chatSupport || "Chat support"}
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                <Ionicons name="chevron-forward" size={20} color={themeColors.textLight} />
               </View>
             </ScalePress>
 
             <ScalePress onPress={() => navigation.navigate("RateApp")}>
-              <View style={styles.menuItem}>
-                <View style={[styles.menuIcon, { backgroundColor: "#f3f4f6" }]}>
-                  <Ionicons name="star" size={22} color="#6b7280" />
+              <View style={[styles.menuItem, { backgroundColor: themeColors.card }]}>
+                <View style={[styles.menuIcon, { backgroundColor: isDark ? themeColors.surface : "#f3f4f6" }]}>
+                  <Ionicons name="star" size={22} color={isDark ? "#fbbf24" : "#6b7280"} />
                 </View>
                 <View style={styles.menuContent}>
-                  <Text style={styles.menuItemTitle}>
+                  <Text style={[styles.menuItemTitle, { color: themeColors.text }]}>
                     {t.profile?.rateApp || "Rate the App"}
                   </Text>
-                  <Text style={styles.menuItemSubtitle}>
+                  <Text style={[styles.menuItemSubtitle, { color: themeColors.textSecondary }]}>
                     {t.profile?.leaveFeedback || "Leave your feedback"}
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                <Ionicons name="chevron-forward" size={20} color={themeColors.textLight} />
               </View>
             </ScalePress>
 
             <ScalePress onPress={() => navigation.navigate("TermsAndPolicies")}>
-              <View style={styles.menuItem}>
-                <View style={[styles.menuIcon, { backgroundColor: "#f3f4f6" }]}>
-                  <Ionicons name="document-text" size={22} color="#6b7280" />
+              <View style={[styles.menuItem, { backgroundColor: themeColors.card }]}>
+                <View style={[styles.menuIcon, { backgroundColor: isDark ? themeColors.surface : "#f3f4f6" }]}>
+                  <Ionicons name="document-text" size={22} color={isDark ? themeColors.textSecondary : "#6b7280"} />
                 </View>
                 <View style={styles.menuContent}>
-                  <Text style={styles.menuItemTitle}>
+                  <Text style={[styles.menuItemTitle, { color: themeColors.text }]}>
                     {t.profile?.termsAndPolicies || "Terms & Policies"}
                   </Text>
-                  <Text style={styles.menuItemSubtitle}>
+                  <Text style={[styles.menuItemSubtitle, { color: themeColors.textSecondary }]}>
                     {t.profile?.termsSubtitle || "Terms of use and privacy"}
                   </Text>
                 </View>
@@ -585,7 +585,7 @@ export default function CustomerProfileScreen({ navigation }: any) {
             </ScalePress>
 
             <ScalePress onPress={() => setShowLanguageModal(true)}>
-              <View style={styles.menuItem}>
+              <View style={[styles.menuItem, { backgroundColor: themeColors.card }]}>
                 <View style={[styles.menuIcon, { backgroundColor: "#eff6ff" }]}>
                   <Ionicons name="globe" size={22} color="#3b82f6" />
                 </View>
@@ -597,17 +597,17 @@ export default function CustomerProfileScreen({ navigation }: any) {
                     {currentLanguage.flag} {currentLanguage.nativeName}
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                <Ionicons name="chevron-forward" size={20} color={themeColors.textLight} />
               </View>
             </ScalePress>
 
             {/* Dark Mode Toggle */}
-            <View style={styles.menuItem}>
+            <View style={[styles.menuItem, { backgroundColor: themeColors.card }]}>
               <View style={[styles.menuIcon, { backgroundColor: isDark ? "#312e81" : "#f3f4f6" }]}>
                 <Ionicons name={isDark ? "moon" : "sunny"} size={22} color={isDark ? "#a78bfa" : "#f59e0b"} />
               </View>
               <View style={styles.menuContent}>
-                <Text style={styles.menuItemTitle}>
+                <Text style={[styles.menuItemTitle, { color: themeColors.text }]}>
                   {(t as any).settings?.darkMode || "Dark Mode"}
                 </Text>
                 <Text style={styles.menuItemSubtitle}>
@@ -653,14 +653,14 @@ export default function CustomerProfileScreen({ navigation }: any) {
 
         {/* Logout Button */}
         <FadeInView delay={500}>
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Ionicons name="log-out" size={20} color="#ef4444" />
-            <Text style={styles.logoutText}>{t.auth?.logout || "Log Out"}</Text>
+          <TouchableOpacity style={[styles.logoutButton, isDark && { backgroundColor: themeColors.errorLight }]} onPress={handleLogout}>
+            <Ionicons name="log-out" size={20} color={themeColors.error} />
+            <Text style={[styles.logoutText, { color: themeColors.error }]}>{t.auth?.logout || "Log Out"}</Text>
           </TouchableOpacity>
         </FadeInView>
 
         {/* Version */}
-        <Text style={styles.version}>TechTrust v1.0.0</Text>
+        <Text style={[styles.version, { color: themeColors.textLight }]}>TechTrust v1.0.0</Text>
 
         <View style={{ height: 100 }} />
       </ScrollView>

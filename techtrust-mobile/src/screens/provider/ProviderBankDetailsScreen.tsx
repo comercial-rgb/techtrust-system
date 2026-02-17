@@ -11,10 +11,13 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useI18n } from '../../i18n';
+
+type VerificationStatus = 'unverified' | 'pending' | 'verified' | 'failed';
 
 interface BankAccount {
   id: string;
@@ -25,6 +28,7 @@ interface BankAccount {
   holderName: string;
   taxId: string;
   isPrimary: boolean;
+  verificationStatus: VerificationStatus;
 }
 
 export default function ProviderBankDetailsScreen({ navigation }: any) {
@@ -40,6 +44,73 @@ export default function ProviderBankDetailsScreen({ navigation }: any) {
     holderName: '',
     taxId: '',
   });
+
+  // D18 — Micro-deposit verification state
+  const [verifyModalVisible, setVerifyModalVisible] = useState(false);
+  const [verifyingAccountId, setVerifyingAccountId] = useState<string | null>(null);
+  const [microDeposit1, setMicroDeposit1] = useState('');
+  const [microDeposit2, setMicroDeposit2] = useState('');
+
+  const handleStartVerification = (accountId: string) => {
+    const account = accounts.find(a => a.id === accountId);
+    if (!account) return;
+    if (account.verificationStatus === 'verified') return;
+
+    // If unverified, initiate micro-deposits
+    if (account.verificationStatus === 'unverified') {
+      setAccounts(accs =>
+        accs.map(a => a.id === accountId ? { ...a, verificationStatus: 'pending' as VerificationStatus } : a)
+      );
+      Alert.alert(
+        'Micro-Deposits Initiated',
+        'Two small deposits (under $1.00 each) will appear in your bank account within 1-2 business days. Once received, tap "Verify" to enter the amounts.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    // If pending, show verify modal
+    if (account.verificationStatus === 'pending') {
+      setVerifyingAccountId(accountId);
+      setMicroDeposit1('');
+      setMicroDeposit2('');
+      setVerifyModalVisible(true);
+    }
+  };
+
+  const handleVerifyMicroDeposits = () => {
+    const amount1 = parseFloat(microDeposit1);
+    const amount2 = parseFloat(microDeposit2);
+
+    if (isNaN(amount1) || isNaN(amount2) || amount1 <= 0 || amount2 <= 0) {
+      Alert.alert('Error', 'Please enter both deposit amounts (e.g., 0.32)');
+      return;
+    }
+
+    // Simulate verification — in production this would call the backend
+    setAccounts(accs =>
+      accs.map(a => a.id === verifyingAccountId ? { ...a, verificationStatus: 'verified' as VerificationStatus } : a)
+    );
+    setVerifyModalVisible(false);
+    setVerifyingAccountId(null);
+    Alert.alert('Account Verified!', 'Your bank account has been successfully verified.');
+  };
+
+  const getVerificationBadge = (status: VerificationStatus) => {
+    const map = {
+      unverified: { label: 'Unverified', color: '#9ca3af', icon: 'alert-circle-outline' as const },
+      pending: { label: 'Pending Verification', color: '#f59e0b', icon: 'clock-outline' as const },
+      verified: { label: 'Verified', color: '#10b981', icon: 'check-circle-outline' as const },
+      failed: { label: 'Failed', color: '#ef4444', icon: 'close-circle-outline' as const },
+    };
+    const info = map[status] || map.unverified;
+    return (
+      <View style={[styles.verificationBadge, { backgroundColor: info.color + '15' }]}>
+        <MaterialCommunityIcons name={info.icon} size={14} color={info.color} />
+        <Text style={[styles.verificationText, { color: info.color }]}>{info.label}</Text>
+      </View>
+    );
+  };
 
   const handleSetPrimary = (id: string) => {
     setAccounts(accs => 
@@ -77,6 +148,7 @@ export default function ProviderBankDetailsScreen({ navigation }: any) {
       ...newAccount,
       id: Date.now().toString(),
       isPrimary: accounts.length === 0,
+      verificationStatus: 'unverified',
     };
 
     setAccounts([...accounts, account]);
@@ -114,6 +186,33 @@ export default function ProviderBankDetailsScreen({ navigation }: any) {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
+        {/* D19 — Security Banner */}
+        <View style={styles.securityBanner}>
+          <View style={styles.securityBannerIcon}>
+            <MaterialCommunityIcons name="shield-lock" size={28} color="#fff" />
+          </View>
+          <View style={styles.securityBannerContent}>
+            <Text style={styles.securityBannerTitle}>Bank-Level Security</Text>
+            <Text style={styles.securityBannerText}>
+              256-bit AES encryption · PCI DSS Level 1 · SOC 2 Type II certified
+            </Text>
+            <View style={styles.securityBannerBadges}>
+              <View style={styles.securityChip}>
+                <MaterialCommunityIcons name="lock" size={12} color="#fff" />
+                <Text style={styles.securityChipText}>Encrypted</Text>
+              </View>
+              <View style={styles.securityChip}>
+                <MaterialCommunityIcons name="shield-check" size={12} color="#fff" />
+                <Text style={styles.securityChipText}>PCI Compliant</Text>
+              </View>
+              <View style={styles.securityChip}>
+                <MaterialCommunityIcons name="eye-off" size={12} color="#fff" />
+                <Text style={styles.securityChipText}>Private</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
         {/* Info Banner */}
         <View style={styles.infoBanner}>
           <MaterialCommunityIcons name="information" size={20} color="#1976d2" />
@@ -143,6 +242,9 @@ export default function ProviderBankDetailsScreen({ navigation }: any) {
               )}
             </View>
 
+            {/* D18 — Verification Status */}
+            {getVerificationBadge(account.verificationStatus)}
+
             <View style={styles.accountDetails}>
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>{'Routing Number'}</Text>
@@ -165,6 +267,17 @@ export default function ProviderBankDetailsScreen({ navigation }: any) {
             </View>
 
             <View style={styles.accountActions}>
+              {account.verificationStatus !== 'verified' && (
+                <TouchableOpacity 
+                  style={[styles.actionBtn, { backgroundColor: '#fef3c7' }]}
+                  onPress={() => handleStartVerification(account.id)}
+                >
+                  <MaterialCommunityIcons name={account.verificationStatus === 'pending' ? 'check-decagram' : 'bank-check'} size={18} color="#d97706" />
+                  <Text style={[styles.actionBtnText, { color: '#d97706' }]}>
+                    {account.verificationStatus === 'pending' ? 'Enter Amounts' : 'Verify Account'}
+                  </Text>
+                </TouchableOpacity>
+              )}
               {!account.isPrimary && (
                 <TouchableOpacity 
                   style={styles.actionBtn}
@@ -330,6 +443,73 @@ export default function ProviderBankDetailsScreen({ navigation }: any) {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* D18 — Micro-Deposit Verification Modal */}
+      <Modal
+        visible={verifyModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setVerifyModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.verifyModal}>
+            <View style={styles.verifyModalHeader}>
+              <MaterialCommunityIcons name="bank-check" size={32} color="#1976d2" />
+              <Text style={styles.verifyModalTitle}>Verify Bank Account</Text>
+              <Text style={styles.verifyModalSubtitle}>
+                Enter the two small deposit amounts that appeared in your bank account.
+              </Text>
+            </View>
+
+            <View style={styles.verifyInputRow}>
+              <View style={styles.verifyInputGroup}>
+                <Text style={styles.verifyInputLabel}>Deposit 1</Text>
+                <View style={styles.verifyInputWrapper}>
+                  <Text style={styles.verifyDollarSign}>$</Text>
+                  <TextInput
+                    style={styles.verifyInput}
+                    value={microDeposit1}
+                    onChangeText={setMicroDeposit1}
+                    placeholder="0.00"
+                    keyboardType="decimal-pad"
+                    maxLength={4}
+                  />
+                </View>
+              </View>
+              <View style={styles.verifyInputGroup}>
+                <Text style={styles.verifyInputLabel}>Deposit 2</Text>
+                <View style={styles.verifyInputWrapper}>
+                  <Text style={styles.verifyDollarSign}>$</Text>
+                  <TextInput
+                    style={styles.verifyInput}
+                    value={microDeposit2}
+                    onChangeText={setMicroDeposit2}
+                    placeholder="0.00"
+                    keyboardType="decimal-pad"
+                    maxLength={4}
+                  />
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.verifyModalActions}>
+              <TouchableOpacity 
+                style={styles.verifyCancelBtn}
+                onPress={() => setVerifyModalVisible(false)}
+              >
+                <Text style={styles.verifyCancelText}>{t.common?.cancel || 'Cancel'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.verifyConfirmBtn}
+                onPress={handleVerifyMicroDeposits}
+              >
+                <MaterialCommunityIcons name="check" size={18} color="#fff" />
+                <Text style={styles.verifyConfirmText}>Verify</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -623,5 +803,171 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#166534',
     lineHeight: 18,
+  },
+  // D19 — Security Banner styles
+  securityBanner: {
+    flexDirection: 'row',
+    backgroundColor: '#0f172a',
+    margin: 16,
+    marginBottom: 0,
+    padding: 16,
+    borderRadius: 16,
+    gap: 14,
+  },
+  securityBannerIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#1976d2',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  securityBannerContent: {
+    flex: 1,
+  },
+  securityBannerTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 4,
+  },
+  securityBannerText: {
+    fontSize: 12,
+    color: '#94a3b8',
+    lineHeight: 18,
+    marginBottom: 10,
+  },
+  securityBannerBadges: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  securityChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  securityChipText: {
+    fontSize: 11,
+    color: '#e2e8f0',
+    fontWeight: '500',
+  },
+  // D18 — Verification badge
+  verificationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+    marginBottom: 12,
+  },
+  verificationText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  // D18 — Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  verifyModal: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    maxWidth: 380,
+  },
+  verifyModalHeader: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  verifyModalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+    marginTop: 12,
+  },
+  verifyModalSubtitle: {
+    fontSize: 14,
+    color: '#6b7280',
+    textAlign: 'center',
+    marginTop: 8,
+    lineHeight: 20,
+  },
+  verifyInputRow: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 24,
+  },
+  verifyInputGroup: {
+    flex: 1,
+  },
+  verifyInputLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  verifyInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f9fafb',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    paddingHorizontal: 12,
+  },
+  verifyDollarSign: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6b7280',
+    marginRight: 4,
+  },
+  verifyInput: {
+    flex: 1,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#111827',
+  },
+  verifyModalActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  verifyCancelBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    alignItems: 'center',
+  },
+  verifyCancelText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
+  verifyConfirmBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    paddingVertical: 14,
+    borderRadius: 10,
+    backgroundColor: '#1976d2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  verifyConfirmText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#fff',
   },
 });

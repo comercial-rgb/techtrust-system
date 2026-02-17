@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, StyleSheet, FlatList, TouchableOpacity, Image, TextInput,
-  Dimensions, Platform, Linking, ActivityIndicator, StatusBar
+  Dimensions, Platform, Linking, ActivityIndicator, StatusBar, ScrollView
 } from 'react-native';
 import { Text, Chip } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,7 +18,7 @@ import { CarWashListItem, CarWashSearchFilters } from '../types/carWash';
 import { colors, spacing, borderRadius, fontSize, fontWeight, shadows } from '../constants/theme';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-const MAP_HEIGHT = SCREEN_HEIGHT * 0.45;
+const MAP_HEIGHT = SCREEN_HEIGHT * 0.38;
 
 const CAR_WASH_TYPE_LABELS: Record<string, string> = {
   AUTOMATIC_TUNNEL: 'Tunnel',
@@ -54,6 +54,8 @@ export default function CarWashMapScreen({ navigation }: any) {
   const [membershipFilter, setMembershipFilter] = useState(false);
   const [freeVacuumFilter, setFreeVacuumFilter] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
+  const [selectedPin, setSelectedPin] = useState<string | null>(null);
 
   useEffect(() => {
     getLocationAndSearch();
@@ -400,23 +402,144 @@ export default function CarWashMapScreen({ navigation }: any) {
         </View>
       )}
 
-      {/* Map Placeholder — a colored area showing location info */}
-      <View style={styles.mapPlaceholder}>
-        <MaterialCommunityIcons name="map-marker-radius" size={48} color={colors.primary} />
-        <Text style={styles.mapText}>
-          {location
-            ? `Searching within ${filters.radiusMiles || 10} miles`
-            : 'Getting your location...'}
-        </Text>
-        {carWashes.length > 0 && (
-          <Text style={styles.mapSubtext}>
-            {carWashes.length} car wash{carWashes.length !== 1 ? 'es' : ''} found
-          </Text>
-        )}
+      {/* Map/List Toggle */}
+      <View style={styles.viewToggle}>
+        <TouchableOpacity
+          style={[styles.viewToggleBtn, viewMode === 'map' && styles.viewToggleBtnActive]}
+          onPress={() => setViewMode('map')}
+        >
+          <Ionicons name="map" size={16} color={viewMode === 'map' ? '#fff' : colors.primary} />
+          <Text style={[styles.viewToggleText, viewMode === 'map' && styles.viewToggleTextActive]}>Map</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.viewToggleBtn, viewMode === 'list' && styles.viewToggleBtnActive]}
+          onPress={() => setViewMode('list')}
+        >
+          <Ionicons name="list" size={16} color={viewMode === 'list' ? '#fff' : colors.primary} />
+          <Text style={[styles.viewToggleText, viewMode === 'list' && styles.viewToggleTextActive]}>List</Text>
+        </TouchableOpacity>
       </View>
 
+      {/* Interactive Map View */}
+      {viewMode === 'map' && (
+        <View style={styles.mapContainer}>
+          {/* Map Background with grid */}
+          <View style={styles.mapGrid}>
+            {/* Radius circle */}
+            <View style={styles.radiusCircle}>
+              <View style={styles.radiusCircleInner} />
+            </View>
+
+            {/* Center pin — user location */}
+            <View style={styles.centerPin}>
+              <View style={styles.centerPinDot} />
+              <View style={styles.centerPinRing} />
+            </View>
+
+            {/* Car wash pins */}
+            {carWashes.slice(0, 12).map((cw, i) => {
+              const angle = (i * (360 / Math.min(carWashes.length, 12))) * (Math.PI / 180);
+              const maxR = (SCREEN_WIDTH - 80) / 2 - 20;
+              const dist = Math.min((cw.distanceMiles / (filters.radiusMiles || 10)) * maxR, maxR);
+              const x = Math.cos(angle) * dist;
+              const y = Math.sin(angle) * dist;
+              const isSelected = selectedPin === cw.id;
+              const typeColor = (cw.carWashTypes as string[])[0]
+                ? CAR_WASH_TYPE_COLORS[(cw.carWashTypes as string[])[0]] || colors.primary
+                : colors.primary;
+
+              return (
+                <TouchableOpacity
+                  key={cw.id}
+                  style={[
+                    styles.mapPin,
+                    { transform: [{ translateX: x }, { translateY: y }] },
+                    isSelected && styles.mapPinSelected,
+                  ]}
+                  onPress={() => setSelectedPin(isSelected ? null : cw.id)}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.mapPinHead, { backgroundColor: typeColor }]}>
+                    <MaterialCommunityIcons name="car-wash" size={12} color="#fff" />
+                  </View>
+                  {cw.isOpenNow && <View style={styles.mapPinOpenDot} />}
+                </TouchableOpacity>
+              );
+            })}
+
+            {/* Location label */}
+            <View style={styles.mapRadiusLabel}>
+              <Text style={styles.mapRadiusText}>
+                {filters.radiusMiles || 10} mi radius
+              </Text>
+            </View>
+          </View>
+
+          {/* Stats bar */}
+          <View style={styles.mapStats}>
+            <View style={styles.mapStatItem}>
+              <MaterialCommunityIcons name="car-wash" size={14} color={colors.primary} />
+              <Text style={styles.mapStatText}>{carWashes.length} found</Text>
+            </View>
+            <View style={styles.mapStatItem}>
+              <Ionicons name="time" size={14} color="#10b981" />
+              <Text style={styles.mapStatText}>{carWashes.filter(c => c.isOpenNow).length} open</Text>
+            </View>
+            <View style={styles.mapStatItem}>
+              <Ionicons name="star" size={14} color="#f59e0b" />
+              <Text style={styles.mapStatText}>
+                {carWashes.length > 0
+                  ? (carWashes.reduce((s, c) => s + c.averageRating, 0) / carWashes.length).toFixed(1)
+                  : '--'} avg
+              </Text>
+            </View>
+          </View>
+
+          {/* Selected pin preview */}
+          {selectedPin && (() => {
+            const cw = carWashes.find(c => c.id === selectedPin);
+            if (!cw) return null;
+            return (
+              <TouchableOpacity
+                style={styles.pinPreview}
+                onPress={() => navigation.navigate('CarWashProfile', { carWashId: cw.id })}
+                activeOpacity={0.9}
+              >
+                <View style={styles.pinPreviewContent}>
+                  {cw.primaryPhoto || cw.logoUrl ? (
+                    <Image source={{ uri: cw.primaryPhoto || cw.logoUrl! }} style={styles.pinPreviewImg} />
+                  ) : (
+                    <View style={[styles.pinPreviewImg, { backgroundColor: '#dbeafe', justifyContent: 'center', alignItems: 'center' }]}>
+                      <MaterialCommunityIcons name="car-wash" size={20} color={colors.primary} />
+                    </View>
+                  )}
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.pinPreviewName} numberOfLines={1}>{cw.businessName}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <Ionicons name="star" size={12} color="#f59e0b" />
+                      <Text style={{ fontSize: 12, color: '#374151' }}>{cw.averageRating.toFixed(1)}</Text>
+                      <Text style={{ fontSize: 12, color: '#9ca3af' }}>· {cw.distanceMiles} mi</Text>
+                      <View style={[styles.statusDot, { backgroundColor: cw.isOpenNow ? '#10b981' : '#ef4444', marginLeft: 4 }]} />
+                      <Text style={{ fontSize: 11, color: cw.isOpenNow ? '#10b981' : '#ef4444' }}>
+                        {cw.isOpenNow ? 'Open' : 'Closed'}
+                      </Text>
+                    </View>
+                    {cw.priceFrom !== null && (
+                      <Text style={{ fontSize: 12, color: colors.primary, fontWeight: '600', marginTop: 2 }}>
+                        From ${cw.priceFrom.toFixed(0)}
+                      </Text>
+                    )}
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                </View>
+              </TouchableOpacity>
+            );
+          })()}
+        </View>
+      )}
+
       {/* Results List */}
-      {loading ? (
+      {viewMode === 'list' && (loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.loadingText}>
@@ -442,7 +565,7 @@ export default function CarWashMapScreen({ navigation }: any) {
           showsVerticalScrollIndicator={false}
           ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
         />
-      )}
+      ))}
     </SafeAreaView>
   );
 }
@@ -609,6 +732,173 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xs,
     color: colors.textSecondary,
     marginTop: 2,
+  },
+  viewToggle: {
+    flexDirection: 'row',
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
+    backgroundColor: colors.gray100,
+    borderRadius: borderRadius.lg,
+    padding: 3,
+  },
+  viewToggleBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    borderRadius: borderRadius.md,
+    gap: 4,
+  },
+  viewToggleBtnActive: {
+    backgroundColor: colors.primary,
+  },
+  viewToggleText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
+    color: colors.primary,
+  },
+  viewToggleTextActive: {
+    color: colors.white,
+  },
+  mapContainer: {
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
+  },
+  mapGrid: {
+    height: MAP_HEIGHT,
+    backgroundColor: '#e8f0fe',
+    borderRadius: borderRadius.lg,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  radiusCircle: {
+    position: 'absolute',
+    width: SCREEN_WIDTH - 80,
+    height: SCREEN_WIDTH - 80,
+    borderRadius: (SCREEN_WIDTH - 80) / 2,
+    borderWidth: 2,
+    borderColor: colors.primary + '30',
+    borderStyle: 'dashed',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  radiusCircleInner: {
+    width: (SCREEN_WIDTH - 80) * 0.5,
+    height: (SCREEN_WIDTH - 80) * 0.5,
+    borderRadius: (SCREEN_WIDTH - 80) * 0.25,
+    borderWidth: 1,
+    borderColor: colors.primary + '15',
+    borderStyle: 'dashed',
+  },
+  centerPin: {
+    position: 'absolute',
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  centerPinDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.primary,
+  },
+  centerPinRing: {
+    position: 'absolute',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: colors.primary + '40',
+  },
+  mapPin: {
+    position: 'absolute',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  mapPinSelected: {
+    zIndex: 20,
+    transform: [{ scale: 1.3 }],
+  },
+  mapPinHead: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  mapPinOpenDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#10b981',
+    borderWidth: 1.5,
+    borderColor: '#fff',
+    position: 'absolute',
+    top: -2,
+    right: -2,
+  },
+  mapRadiusLabel: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  mapRadiusText: {
+    fontSize: 10,
+    color: colors.primary,
+    fontWeight: fontWeight.semibold,
+  },
+  mapStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.md,
+    marginTop: spacing.xs,
+    paddingVertical: 8,
+    ...shadows.sm,
+  },
+  mapStatItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  mapStatText: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
+    fontWeight: fontWeight.medium,
+  },
+  pinPreview: {
+    marginTop: spacing.xs,
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    ...shadows.md,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.primary,
+  },
+  pinPreviewContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  pinPreviewImg: {
+    width: 48,
+    height: 48,
+    borderRadius: borderRadius.md,
   },
   loadingContainer: {
     flex: 1,

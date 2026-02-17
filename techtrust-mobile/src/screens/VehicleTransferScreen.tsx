@@ -13,10 +13,12 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useI18n } from '../i18n';
+import * as LocalAuthentication from 'expo-local-authentication';
 
 interface MaintenanceRecord {
   id: string;
@@ -69,6 +71,31 @@ export default function VehicleTransferScreen({ navigation, route }: any) {
     if (!newOwnerName.trim()) {
       Alert.alert(t.common?.requiredField || 'Required Field', t.vehicle?.enterNewOwnerName || "Please enter the new owner's name.");
       return;
+    }
+
+    // D25 — Biometric confirmation before transfer
+    const hasHardware = await LocalAuthentication.hasHardwareAsync();
+    const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+    
+    if (hasHardware && isEnrolled) {
+      const biometricType = await LocalAuthentication.supportedAuthenticationTypesAsync();
+      const biometricLabel = biometricType.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)
+        ? (Platform.OS === 'ios' ? 'Face ID' : 'Face Recognition')
+        : (Platform.OS === 'ios' ? 'Touch ID' : 'Fingerprint');
+      
+      const authResult = await LocalAuthentication.authenticateAsync({
+        promptMessage: `Confirm vehicle transfer with ${biometricLabel}`,
+        cancelLabel: 'Cancel',
+        disableDeviceFallback: false,
+        fallbackLabel: 'Use Passcode',
+      });
+
+      if (!authResult.success) {
+        if (authResult.error !== 'user_cancel') {
+          Alert.alert('Authentication Required', `${biometricLabel} authentication is required to transfer a vehicle.`);
+        }
+        return;
+      }
     }
 
     Alert.alert(

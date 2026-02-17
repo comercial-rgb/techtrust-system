@@ -53,6 +53,17 @@ const premiumFrequencies = [
   { id: "annual", label: "Annual" },
 ];
 
+// D27 — Major US Insurance Providers for autocomplete
+const US_INSURANCE_PROVIDERS = [
+  'State Farm', 'Geico', 'Progressive', 'Allstate', 'USAA',
+  'Liberty Mutual', 'Farmers', 'Nationwide', 'Travelers', 'American Family',
+  'Erie Insurance', 'Auto-Owners', 'CSAA', 'Amica Mutual', 'Shelter Insurance',
+  'Hartford', 'Mercury Insurance', 'Kemper', 'Safeco', 'MetLife',
+  'Country Financial', 'Wawanesa', 'MAPFRE', 'NJM Insurance', 'Cincinnati Financial',
+  'Sentry Insurance', 'Westfield', 'Donegal', 'Plymouth Rock', 'Root Insurance',
+  'Lemonade', 'Hippo', 'Tesla Insurance', 'Clearcover',
+];
+
 export default function InsuranceScreen({ navigation, route }: any) {
   const { t } = useI18n();
   const { vehicleId } = route.params || {};
@@ -63,6 +74,8 @@ export default function InsuranceScreen({ navigation, route }: any) {
   const [editingPolicy, setEditingPolicy] = useState<InsurancePolicy | null>(
     null,
   );
+  // D27 — Provider autocomplete
+  const [showProviderSuggestions, setShowProviderSuggestions] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -608,14 +621,55 @@ export default function InsuranceScreen({ navigation, route }: any) {
           >
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Insurance Provider *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g., State Farm, Geico"
-                value={formData.provider}
-                onChangeText={(text) =>
-                  setFormData((prev) => ({ ...prev, provider: text }))
-                }
-              />
+              <View style={{ position: 'relative', zIndex: 10 }}>
+                <View style={[styles.input, { flexDirection: 'row', alignItems: 'center' }]}>
+                  <Ionicons name="shield-checkmark-outline" size={18} color="#6b7280" style={{ marginRight: 8 }} />
+                  <TextInput
+                    style={{ flex: 1, fontSize: 15, color: '#111827', padding: 0 }}
+                    placeholder="Search provider..."
+                    value={formData.provider}
+                    onChangeText={(text) => {
+                      setFormData((prev) => ({ ...prev, provider: text }));
+                      setShowProviderSuggestions(text.length > 0);
+                    }}
+                    onFocus={() => setShowProviderSuggestions(formData.provider.length > 0)}
+                  />
+                  {formData.provider.length > 0 && (
+                    <TouchableOpacity onPress={() => { setFormData(prev => ({ ...prev, provider: '' })); setShowProviderSuggestions(false); }}>
+                      <Ionicons name="close-circle" size={18} color="#9ca3af" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+                {showProviderSuggestions && (
+                  <View style={styles.autocompleteDropdown}>
+                    <ScrollView style={{ maxHeight: 180 }} keyboardShouldPersistTaps="handled" nestedScrollEnabled>
+                      {US_INSURANCE_PROVIDERS
+                        .filter(p => p.toLowerCase().includes(formData.provider.toLowerCase()))
+                        .slice(0, 8)
+                        .map((provider) => (
+                          <TouchableOpacity
+                            key={provider}
+                            style={styles.autocompleteItem}
+                            onPress={() => {
+                              setFormData(prev => ({ ...prev, provider }));
+                              setShowProviderSuggestions(false);
+                            }}
+                          >
+                            <Ionicons name="business-outline" size={16} color="#1976d2" />
+                            <Text style={styles.autocompleteText}>{provider}</Text>
+                          </TouchableOpacity>
+                        ))
+                      }
+                      {US_INSURANCE_PROVIDERS.filter(p => p.toLowerCase().includes(formData.provider.toLowerCase())).length === 0 && (
+                        <View style={styles.autocompleteItem}>
+                          <Ionicons name="add-circle-outline" size={16} color="#6b7280" />
+                          <Text style={[styles.autocompleteText, { color: '#6b7280' }]}>Use "{formData.provider}"</Text>
+                        </View>
+                      )}
+                    </ScrollView>
+                  </View>
+                )}
+              </View>
             </View>
 
             <View style={styles.inputGroup}>
@@ -1205,5 +1259,35 @@ const styles = StyleSheet.create({
   frequencyTextSelected: {
     color: "#fff",
     fontWeight: "500",
+  },
+  // D27 — Autocomplete styles
+  autocompleteDropdown: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    marginTop: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  autocompleteItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+    gap: 10,
+  },
+  autocompleteText: {
+    fontSize: 15,
+    color: '#111827',
   },
 });

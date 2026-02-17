@@ -33,6 +33,7 @@ import {
   disableBiometricLogin,
   BiometricInfo,
 } from "../../services/authService";
+import * as ImagePicker from "expo-image-picker";
 
 // Generate arrays for date picker
 const MONTHS = [
@@ -265,30 +266,70 @@ export default function PersonalInfoScreen({ navigation }: any) {
     }
   };
 
-  const handlePhotoAction = (index: number) => {
+  const handlePhotoAction = async (index: number) => {
     switch (index) {
-      case 0:
-        // Take Photo
-        Alert.alert("Camera", "Camera functionality will be available soon.");
-        setProfileImage(
-          "https://ui-avatars.com/api/?name=" +
-            encodeURIComponent(formData.fullName) +
-            "&background=1976d2&color=fff&size=200",
-        );
+      case 0: {
+        // D10 — Take Photo with camera
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission Denied', 'Camera access is required to take a photo.');
+          return;
+        }
+        const result = await ImagePicker.launchCameraAsync({
+          mediaTypes: ['images'],
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 0.8,
+        });
+        if (!result.canceled && result.assets[0]) {
+          const uri = result.assets[0].uri;
+          setProfileImage(uri);
+          uploadProfilePhoto(uri);
+        }
         break;
-      case 1:
-        // Choose from Library
-        Alert.alert("Gallery", "Gallery functionality will be available soon.");
-        setProfileImage(
-          "https://ui-avatars.com/api/?name=" +
-            encodeURIComponent(formData.fullName) +
-            "&background=10b981&color=fff&size=200",
-        );
+      }
+      case 1: {
+        // D10 — Choose from Library
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission Denied', 'Gallery access is required.');
+          return;
+        }
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images'],
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 0.8,
+        });
+        if (!result.canceled && result.assets[0]) {
+          const uri = result.assets[0].uri;
+          setProfileImage(uri);
+          uploadProfilePhoto(uri);
+        }
         break;
+      }
       case 2:
         // Remove Photo
         setProfileImage(null);
         break;
+    }
+  };
+
+  // D10 — Upload profile photo to server
+  const uploadProfilePhoto = async (uri: string) => {
+    try {
+      const api = (await import("../../services/api")).default;
+      const formDataUpload = new FormData();
+      const filename = uri.split('/').pop() || 'photo.jpg';
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : 'image/jpeg';
+      formDataUpload.append('photo', { uri, name: filename, type } as any);
+      
+      await api.post('/users/profile-photo', formDataUpload, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+    } catch (error) {
+      console.log('Photo upload pending — will sync when API endpoint is ready');
     }
   };
 

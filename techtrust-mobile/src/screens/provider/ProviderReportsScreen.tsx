@@ -44,6 +44,10 @@ export default function ProviderReportsScreen({ navigation }: any) {
   const [avgRating, setAvgRating] = useState(0);
   const [acceptanceRate, setAcceptanceRate] = useState(0);
 
+  // D20 — Chart type toggle: bar vs line, metric selector
+  const [chartType, setChartType] = useState<'bar' | 'line'>('bar');
+  const [chartMetric, setChartMetric] = useState<'revenue' | 'services' | 'rating'>('revenue');
+
   useEffect(() => {
     loadReports();
   }, [period]);
@@ -157,25 +161,91 @@ export default function ProviderReportsScreen({ navigation }: any) {
           </View>
         </View>
 
-        {/* Earnings Chart */}
+        {/* D20 — Enhanced Earnings Chart */}
         <View style={styles.chartCard}>
-          <Text style={styles.chartTitle}>{t.provider?.earningsEvolution || 'Earnings Evolution'}</Text>
-          <View style={styles.chart}>
-            {earnings.map((item, index) => (
-              <View key={item.month} style={styles.chartBar}>
-                <Text style={styles.chartValue}>${(item.amount / 1000).toFixed(1)}k</Text>
-                <View 
-                  style={[
-                    styles.bar,
-                    { 
-                      height: (item.amount / maxAmount) * 120,
-                      backgroundColor: index === earnings.length - 1 ? '#1976d2' : '#93c5fd',
-                    },
-                  ]} 
-                />
-                <Text style={styles.chartLabel}>{item.month}</Text>
-              </View>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <Text style={styles.chartTitle}>{t.provider?.earningsEvolution || 'Earnings Evolution'}</Text>
+            <View style={{ flexDirection: 'row', gap: 6 }}>
+              <TouchableOpacity 
+                onPress={() => setChartType('bar')}
+                style={[styles.chartToggle, chartType === 'bar' && styles.chartToggleActive]}
+              >
+                <MaterialCommunityIcons name="chart-bar" size={16} color={chartType === 'bar' ? '#fff' : '#6b7280'} />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                onPress={() => setChartType('line')}
+                style={[styles.chartToggle, chartType === 'line' && styles.chartToggleActive]}
+              >
+                <MaterialCommunityIcons name="chart-line" size={16} color={chartType === 'line' ? '#fff' : '#6b7280'} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Metric Selector */}
+          <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
+            {[
+              { key: 'revenue', label: 'Revenue', icon: 'currency-usd' },
+              { key: 'services', label: '# Services', icon: 'wrench' },
+              { key: 'rating', label: 'Avg Rating', icon: 'star' },
+            ].map(m => (
+              <TouchableOpacity
+                key={m.key}
+                style={[styles.metricChip, chartMetric === m.key && styles.metricChipActive]}
+                onPress={() => setChartMetric(m.key as any)}
+              >
+                <MaterialCommunityIcons name={m.icon as any} size={14} color={chartMetric === m.key ? '#fff' : '#6b7280'} />
+                <Text style={[styles.metricChipText, chartMetric === m.key && { color: '#fff' }]}>{m.label}</Text>
+              </TouchableOpacity>
             ))}
+          </View>
+
+          {/* Chart Area */}
+          <View style={styles.chart}>
+            {chartType === 'bar' ? (
+              // Bar Chart
+              earnings.map((item, index) => (
+                <View key={item.month} style={styles.chartBar}>
+                  <Text style={styles.chartValue}>
+                    {chartMetric === 'revenue' ? `$${(item.amount / 1000).toFixed(1)}k` : chartMetric === 'services' ? Math.round(item.amount / (avgTicket || 200)).toString() : avgRating.toFixed(1)}
+                  </Text>
+                  <View 
+                    style={[
+                      styles.bar,
+                      { 
+                        height: Math.max((item.amount / maxAmount) * 120, 4),
+                        backgroundColor: index === earnings.length - 1 ? '#1976d2' : '#93c5fd',
+                      },
+                    ]} 
+                  />
+                  <Text style={styles.chartLabel}>{item.month}</Text>
+                </View>
+              ))
+            ) : (
+              // Line Chart (SVG-free, pure RN)
+              <View style={{ flex: 1, height: 160, position: 'relative' }}>
+                {/* Grid lines */}
+                {[0, 1, 2, 3].map(i => (
+                  <View key={i} style={{ position: 'absolute', top: i * 40, left: 0, right: 0, height: 1, backgroundColor: '#f3f4f6' }} />
+                ))}
+                {/* Data points connected with lines */}
+                <View style={{ flexDirection: 'row', alignItems: 'flex-end', flex: 1, paddingBottom: 20 }}>
+                  {earnings.map((item, index) => {
+                    const barH = maxAmount > 0 ? (item.amount / maxAmount) * 120 : 4;
+                    return (
+                      <View key={item.month} style={{ flex: 1, alignItems: 'center' }}>
+                        <Text style={{ fontSize: 10, color: '#6b7280', marginBottom: 4 }}>
+                          {chartMetric === 'revenue' ? `$${(item.amount / 1000).toFixed(1)}k` : ''}
+                        </Text>
+                        <View style={{ height: barH }}>
+                          <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#1976d2', marginTop: barH - 10, borderWidth: 2, borderColor: '#fff', shadowColor: '#1976d2', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.4, shadowRadius: 4, elevation: 3 }} />
+                        </View>
+                        <Text style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>{item.month}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
           </View>
         </View>
 
@@ -476,5 +546,34 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     color: '#10b981',
+  },
+  // D20 — Chart toggle & metric styles
+  chartToggle: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#f3f4f6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  chartToggleActive: {
+    backgroundColor: '#1976d2',
+  },
+  metricChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: '#f3f4f6',
+    gap: 4,
+  },
+  metricChipActive: {
+    backgroundColor: '#1976d2',
+  },
+  metricChipText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#6b7280',
   },
 });

@@ -11,11 +11,14 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { CommonActions } from '@react-navigation/native';
 import { useI18n } from '../../i18n';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 
 interface ServiceRecord {
   id: string;
@@ -83,6 +86,91 @@ export default function ServiceHistoryScreen({ navigation }: any) {
 
   const formatCurrency = (amount: number) => {
     return '$' + amount.toFixed(2);
+  };
+
+  // D12 — Export service history to PDF
+  const handleExportPDF = async () => {
+    if (services.length === 0) {
+      Alert.alert('No Data', 'No service records to export.');
+      return;
+    }
+
+    try {
+      const completedServices = services.filter(s => s.status === 'completed');
+      const html = `
+        <html>
+        <head>
+          <style>
+            body { font-family: -apple-system, Helvetica, Arial, sans-serif; padding: 40px; color: #111827; }
+            h1 { color: #1976d2; font-size: 24px; margin-bottom: 4px; }
+            .subtitle { color: #6b7280; font-size: 14px; margin-bottom: 24px; }
+            .stats { display: flex; gap: 24px; margin-bottom: 24px; padding: 16px; background: #f8fafc; border-radius: 8px; }
+            .stat { text-align: center; }
+            .stat-value { font-size: 20px; font-weight: 700; color: #1976d2; }
+            .stat-label { font-size: 12px; color: #6b7280; }
+            table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+            th { background: #1976d2; color: white; padding: 10px 12px; text-align: left; font-size: 12px; }
+            td { padding: 10px 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px; }
+            tr:nth-child(even) { background: #f9fafb; }
+            .footer { margin-top: 24px; text-align: center; font-size: 11px; color: #9ca3af; }
+            .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+            .completed { background: #dcfce7; color: #16a34a; }
+            .cancelled { background: #fef2f2; color: #ef4444; }
+          </style>
+        </head>
+        <body>
+          <h1>Service History Report</h1>
+          <div class="subtitle">Generated on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+          <div class="stats">
+            <div class="stat">
+              <div class="stat-value">${completedServices.length}</div>
+              <div class="stat-label">Services</div>
+            </div>
+            <div class="stat">
+              <div class="stat-value">${formatCurrency(totalSpent)}</div>
+              <div class="stat-label">Total Spent</div>
+            </div>
+          </div>
+          <table>
+            <tr>
+              <th>Date</th>
+              <th>Service</th>
+              <th>Vehicle</th>
+              <th>Provider</th>
+              <th>Status</th>
+              <th>Amount</th>
+            </tr>
+            ${services.map(s => `
+              <tr>
+                <td>${formatDate(s.date)}</td>
+                <td>${s.title}</td>
+                <td>${s.vehicle.year} ${s.vehicle.make} ${s.vehicle.model}</td>
+                <td>${s.provider.name}</td>
+                <td><span class="badge ${s.status}">${s.status}</span></td>
+                <td>${s.status === 'completed' ? formatCurrency(s.amount) : '—'}</td>
+              </tr>
+            `).join('')}
+          </table>
+          <div class="footer">TechTrust — Service History Export</div>
+        </body>
+        </html>
+      `;
+
+      const { uri } = await Print.printToFileAsync({ html, base64: false });
+      
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: 'Service History Report',
+          UTI: 'com.adobe.pdf',
+        });
+      } else {
+        Alert.alert('PDF Generated', 'File saved to: ' + uri);
+      }
+    } catch (error) {
+      console.error('PDF export error:', error);
+      Alert.alert('Error', 'Failed to generate PDF.');
+    }
   };
 
   const totalSpent = services
@@ -188,7 +276,9 @@ export default function ServiceHistoryScreen({ navigation }: any) {
           <Ionicons name="arrow-back" size={24} color="#111827" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t.customer?.serviceHistory || 'Service History'}</Text>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity onPress={handleExportPDF} style={styles.backBtn}>
+          <Ionicons name="download-outline" size={24} color="#1976d2" />
+        </TouchableOpacity>
       </View>
 
       {/* Stats Banner */}

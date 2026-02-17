@@ -1,5 +1,6 @@
 /**
  * FavoriteProvidersScreen - Fornecedores Favoritos do Cliente
+ * D22: Expanded favorites with sub-tabs for Repair, Car Wash, Parts Store
  */
 
 import React, { useState, useEffect } from 'react';
@@ -14,13 +15,16 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useI18n } from '../../i18n';
+
+type FavoriteCategory = 'all' | 'repair' | 'carwash' | 'parts';
 
 interface Provider {
   id: string;
   name: string;
   businessType: string;
+  category: FavoriteCategory;
   rating: number;
   totalReviews: number;
   distance: string;
@@ -36,6 +40,18 @@ export default function FavoriteProvidersScreen({ navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [providers, setProviders] = useState<Provider[]>([]);
+  const [activeCategory, setActiveCategory] = useState<FavoriteCategory>('all');
+
+  const categoryTabs: { key: FavoriteCategory; label: string; icon: string; color: string }[] = [
+    { key: 'all', label: 'All', icon: 'grid', color: '#1976d2' },
+    { key: 'repair', label: 'Repair', icon: 'construct', color: '#f59e0b' },
+    { key: 'carwash', label: 'Car Wash', icon: 'car-wash', color: '#3b82f6' },
+    { key: 'parts', label: 'Parts Store', icon: 'storefront', color: '#10b981' },
+  ];
+
+  const filteredProviders = activeCategory === 'all'
+    ? providers
+    : providers.filter(p => p.category === activeCategory);
 
   useEffect(() => {
     loadProviders();
@@ -80,7 +96,14 @@ export default function FavoriteProvidersScreen({ navigation }: any) {
   const getBusinessTypeIcon = (type: string) => {
     if (type.toLowerCase().includes('tire')) return 'disc';
     if (type.toLowerCase().includes('oil')) return 'water';
+    if (type.toLowerCase().includes('wash')) return 'water-outline';
+    if (type.toLowerCase().includes('part')) return 'storefront-outline';
     return 'construct';
+  };
+
+  const getCategoryCount = (cat: FavoriteCategory) => {
+    if (cat === 'all') return providers.length;
+    return providers.filter(p => p.category === cat).length;
   };
 
   const renderProviderItem = ({ item }: { item: Provider }) => (
@@ -186,8 +209,37 @@ export default function FavoriteProvidersScreen({ navigation }: any) {
         <View style={{ width: 40 }} />
       </View>
 
+      {/* Category Tabs */}
+      <View style={styles.categoryTabsContainer}>
+        {categoryTabs.map((tab) => {
+          const isActive = activeCategory === tab.key;
+          const count = getCategoryCount(tab.key);
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              style={[styles.categoryTab, isActive && { backgroundColor: tab.color + '15', borderColor: tab.color }]}
+              onPress={() => setActiveCategory(tab.key)}
+            >
+              {tab.key === 'carwash' ? (
+                <MaterialCommunityIcons name="car-wash" size={18} color={isActive ? tab.color : '#9ca3af'} />
+              ) : (
+                <Ionicons name={tab.icon as any} size={18} color={isActive ? tab.color : '#9ca3af'} />
+              )}
+              <Text style={[styles.categoryTabText, isActive && { color: tab.color, fontWeight: '600' }]}>
+                {tab.label}
+              </Text>
+              {count > 0 && (
+                <View style={[styles.categoryBadge, isActive && { backgroundColor: tab.color }]}>
+                  <Text style={styles.categoryBadgeText}>{count}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
       <FlatList
-        data={providers}
+        data={filteredProviders}
         renderItem={renderProviderItem}
         keyExtractor={item => item.id}
         contentContainerStyle={styles.listContainer}
@@ -196,10 +248,11 @@ export default function FavoriteProvidersScreen({ navigation }: any) {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
         ListHeaderComponent={
-          providers.length > 0 ? (
+          filteredProviders.length > 0 ? (
             <View style={styles.listHeader}>
               <Text style={styles.listHeaderText}>
-                {providers.length} favorite provider{providers.length !== 1 ? 's' : ''}
+                {filteredProviders.length} favorite{filteredProviders.length !== 1 ? 's' : ''}
+                {activeCategory !== 'all' ? ` in ${categoryTabs.find(c => c.key === activeCategory)?.label}` : ''}
               </Text>
             </View>
           ) : null
@@ -255,6 +308,47 @@ const styles = StyleSheet.create({
   listContainer: {
     padding: 16,
     paddingBottom: 100,
+  },
+  categoryTabsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+    gap: 6,
+  },
+  categoryTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#e5e7eb',
+    backgroundColor: '#fff',
+    gap: 4,
+  },
+  categoryTabText: {
+    fontSize: 11,
+    color: '#9ca3af',
+    fontWeight: '500',
+  },
+  categoryBadge: {
+    backgroundColor: '#d1d5db',
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  categoryBadgeText: {
+    fontSize: 10,
+    color: '#fff',
+    fontWeight: '700',
   },
   listHeader: {
     marginBottom: 12,

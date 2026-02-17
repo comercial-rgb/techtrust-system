@@ -13,6 +13,11 @@ import {
   RefreshControl,
   Alert,
   Linking,
+  Image,
+  Modal,
+  TextInput,
+  Platform,
+  ActionSheetIOS,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -75,6 +80,85 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
   const [recallsLoading, setRecallsLoading] = useState(false);
   const [expandedRecall, setExpandedRecall] = useState<string | null>(null);
   const [recallBannerDismissed, setRecallBannerDismissed] = useState(false);
+
+  // D11 — Vehicle photo
+  const [vehiclePhoto, setVehiclePhoto] = useState<string | null>(null);
+
+  // D13 — Add Past Service modal
+  const [showPastServiceModal, setShowPastServiceModal] = useState(false);
+  const [pastServiceData, setPastServiceData] = useState({
+    type: '',
+    description: '',
+    date: '',
+    mileage: '',
+    cost: '',
+    provider: '',
+  });
+
+  // D11 — Handle vehicle photo change
+  const handleVehiclePhoto = () => {
+    const options = [
+      t.profile?.takePhoto || 'Take Photo',
+      t.profile?.chooseFromLibrary || 'Choose from Gallery',
+      t.common?.cancel || 'Cancel',
+    ];
+
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        { options, cancelButtonIndex: 2 },
+        (index) => {
+          if (index === 0 || index === 1) {
+            // In production: use expo-image-picker 
+            const photoType = index === 0 ? 'camera' : 'gallery';
+            setVehiclePhoto(
+              `https://ui-avatars.com/api/?name=${encodeURIComponent((vehicle?.make || '') + '+' + (vehicle?.model || ''))}&background=1976d2&color=fff&size=400&format=png`
+            );
+          }
+        }
+      );
+    } else {
+      Alert.alert(
+        t.profile?.changeProfilePhoto || 'Vehicle Photo',
+        '',
+        [
+          { text: 'Take Photo', onPress: () => setVehiclePhoto(`https://ui-avatars.com/api/?name=${encodeURIComponent((vehicle?.make || '') + '+' + (vehicle?.model || ''))}&background=1976d2&color=fff&size=400`) },
+          { text: 'Choose from Gallery', onPress: () => setVehiclePhoto(`https://ui-avatars.com/api/?name=${encodeURIComponent((vehicle?.make || '') + '+' + (vehicle?.model || ''))}&background=059669&color=fff&size=400`) },
+          { text: t.common?.cancel || 'Cancel', style: 'cancel' },
+        ]
+      );
+    }
+  };
+
+  // D13 — Save past service record
+  const handleSavePastService = () => {
+    if (!pastServiceData.type || !pastServiceData.date || !pastServiceData.cost) {
+      Alert.alert('Error', 'Please fill in service type, date, and cost.');
+      return;
+    }
+
+    if (vehicle) {
+      const newRecord: MaintenanceRecord = {
+        id: `manual-${Date.now()}`,
+        type: pastServiceData.type,
+        description: pastServiceData.description || pastServiceData.type,
+        date: pastServiceData.date,
+        mileage: parseInt(pastServiceData.mileage) || 0,
+        cost: parseFloat(pastServiceData.cost) || 0,
+        provider: pastServiceData.provider || 'Self / Other',
+        status: 'completed',
+      };
+
+      setVehicle({
+        ...vehicle,
+        maintenanceHistory: [newRecord, ...vehicle.maintenanceHistory],
+        totalMaintenanceSpent: vehicle.totalMaintenanceSpent + newRecord.cost,
+      });
+    }
+
+    setShowPastServiceModal(false);
+    setPastServiceData({ type: '', description: '', date: '', mileage: '', cost: '', provider: '' });
+    Alert.alert('Success', 'Past service record added.');
+  };
 
   useEffect(() => {
     loadVehicleDetails();
@@ -277,19 +361,34 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
         {/* Vehicle Hero */}
         <FadeInView delay={0}>
           <View style={styles.heroSection}>
-            <View style={styles.vehicleIconLarge}>
-              <Ionicons
-                name={vehicle.vehicleType?.toLowerCase().includes('truck') || vehicle.vehicleType?.toLowerCase().includes('pickup')
-                  ? 'car-sport'
-                  : vehicle.vehicleType?.toLowerCase().includes('suv')
-                    ? 'car'
-                    : vehicle.vehicleType?.toLowerCase().includes('van')
-                      ? 'bus'
-                      : 'car-sport'}
-                size={64}
-                color="#1976d2"
-              />
-            </View>
+            {/* D11 — Vehicle Photo or Icon */}
+            <TouchableOpacity onPress={handleVehiclePhoto} activeOpacity={0.8}>
+              {vehiclePhoto ? (
+                <View style={styles.vehiclePhotoContainer}>
+                  <Image source={{ uri: vehiclePhoto }} style={styles.vehiclePhotoImage} />
+                  <View style={styles.vehiclePhotoOverlay}>
+                    <Ionicons name="camera" size={20} color="#fff" />
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.vehicleIconLarge}>
+                  <Ionicons
+                    name={vehicle.vehicleType?.toLowerCase().includes('truck') || vehicle.vehicleType?.toLowerCase().includes('pickup')
+                      ? 'car-sport'
+                      : vehicle.vehicleType?.toLowerCase().includes('suv')
+                        ? 'car'
+                        : vehicle.vehicleType?.toLowerCase().includes('van')
+                          ? 'bus'
+                          : 'car-sport'}
+                    size={64}
+                    color="#1976d2"
+                  />
+                  <View style={{ position: 'absolute', bottom: -4, right: -4, backgroundColor: '#1976d2', borderRadius: 14, width: 28, height: 28, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#fff' }}>
+                    <Ionicons name="camera" size={14} color="#fff" />
+                  </View>
+                </View>
+              )}
+            </TouchableOpacity>
             <Text style={styles.vehicleTitle}>
               {vehicle.year} {vehicle.make} {vehicle.model} {vehicle.trim || ""}
             </Text>
@@ -962,11 +1061,126 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
                 {t.vehicle?.transferVehicle || "Transfer Vehicle"}
               </Text>
             </ScalePress>
+
+            {/* D14 — Find Parts for This Vehicle */}
+            <ScalePress
+              onPress={() =>
+                navigation.navigate("PartsStore", {
+                  vehicleId: vehicle.id,
+                  vehicleMake: vehicle.make,
+                  vehicleModel: vehicle.model,
+                  vehicleYear: vehicle.year,
+                })
+              }
+              style={styles.partsButton}
+            >
+              <Ionicons name="construct-outline" size={20} color="#ea580c" />
+              <Text style={styles.partsButtonText}>
+                {t.vehicle?.findParts || "Find Parts for This Vehicle"}
+              </Text>
+            </ScalePress>
+
+            {/* D13 — Add Past Service */}
+            <ScalePress
+              onPress={() => setShowPastServiceModal(true)}
+              style={styles.pastServiceButton}
+            >
+              <Ionicons name="time-outline" size={20} color="#6b7280" />
+              <Text style={styles.pastServiceButtonText}>
+                {t.vehicle?.addPastService || "Add Past Service"}
+              </Text>
+            </ScalePress>
           </View>
         </FadeInView>
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* D13 — Add Past Service Modal */}
+      <Modal
+        visible={showPastServiceModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowPastServiceModal(false)}
+      >
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => setShowPastServiceModal(false)} style={styles.backBtn}>
+              <Ionicons name="close" size={24} color="#111827" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Add Past Service</Text>
+            <TouchableOpacity onPress={handleSavePastService}>
+              <Text style={{ fontSize: 16, fontWeight: '600', color: '#1976d2' }}>Save</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={{ padding: 16 }} showsVerticalScrollIndicator={false}>
+            <Text style={styles.pastServiceLabel}>Service Type *</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+              {['Oil Change', 'Brake Service', 'Tire Rotation', 'Battery', 'AC Repair', 'Transmission', 'Engine', 'Body Work', 'Other'].map(type => (
+                <TouchableOpacity
+                  key={type}
+                  style={[styles.pastServiceChip, pastServiceData.type === type && styles.pastServiceChipActive]}
+                  onPress={() => setPastServiceData(prev => ({ ...prev, type }))}
+                >
+                  <Text style={[styles.pastServiceChipText, pastServiceData.type === type && { color: '#fff' }]}>{type}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={styles.pastServiceLabel}>Description</Text>
+            <TextInput
+              style={styles.pastServiceInput}
+              placeholder="Describe the service performed..."
+              value={pastServiceData.description}
+              onChangeText={text => setPastServiceData(prev => ({ ...prev, description: text }))}
+              multiline
+              numberOfLines={3}
+            />
+
+            <Text style={styles.pastServiceLabel}>Date * (MM/DD/YYYY)</Text>
+            <TextInput
+              style={styles.pastServiceInput}
+              placeholder="01/15/2024"
+              value={pastServiceData.date}
+              onChangeText={text => setPastServiceData(prev => ({ ...prev, date: text }))}
+              keyboardType="numeric"
+            />
+
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.pastServiceLabel}>Mileage</Text>
+                <TextInput
+                  style={styles.pastServiceInput}
+                  placeholder="45,000"
+                  value={pastServiceData.mileage}
+                  onChangeText={text => setPastServiceData(prev => ({ ...prev, mileage: text }))}
+                  keyboardType="numeric"
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.pastServiceLabel}>Cost * ($)</Text>
+                <TextInput
+                  style={styles.pastServiceInput}
+                  placeholder="150.00"
+                  value={pastServiceData.cost}
+                  onChangeText={text => setPastServiceData(prev => ({ ...prev, cost: text }))}
+                  keyboardType="decimal-pad"
+                />
+              </View>
+            </View>
+
+            <Text style={styles.pastServiceLabel}>Service Provider</Text>
+            <TextInput
+              style={styles.pastServiceInput}
+              placeholder="e.g., Jiffy Lube, Local Mechanic"
+              value={pastServiceData.provider}
+              onChangeText={text => setPastServiceData(prev => ({ ...prev, provider: text }))}
+            />
+
+            <View style={{ height: 40 }} />
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1364,5 +1578,95 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#8b5cf6",
+  },
+  // D14 — Find Parts button
+  partsButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fff7ed",
+    paddingVertical: 16,
+    borderRadius: 12,
+    gap: 8,
+  },
+  partsButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#ea580c",
+  },
+  // D13 — Add Past Service button
+  pastServiceButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#f3f4f6",
+    paddingVertical: 16,
+    borderRadius: 12,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderStyle: "dashed",
+  },
+  pastServiceButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#6b7280",
+  },
+  // D11 — Vehicle photo styles
+  vehiclePhotoContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 20,
+    overflow: "hidden",
+    position: "relative",
+  },
+  vehiclePhotoImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 20,
+  },
+  vehiclePhotoOverlay: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    borderTopLeftRadius: 12,
+    padding: 6,
+  },
+  // D13 — Past Service modal styles
+  pastServiceLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#374151",
+    marginBottom: 8,
+    marginTop: 16,
+  },
+  pastServiceInput: {
+    backgroundColor: "#f9fafb",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: "#111827",
+    marginBottom: 4,
+  },
+  pastServiceChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: "#f3f4f6",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  pastServiceChipActive: {
+    backgroundColor: "#1976d2",
+    borderColor: "#1976d2",
+  },
+  pastServiceChipText: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: "#374151",
   },
 });

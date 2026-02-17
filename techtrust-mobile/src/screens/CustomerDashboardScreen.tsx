@@ -21,6 +21,7 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { CommonActions } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../contexts/AuthContext";
+import { useTheme } from "../contexts/ThemeContext";
 import { FadeInView, ScalePress } from "../components/Animated";
 import { DashboardStatsSkeleton } from "../components/Skeleton";
 import { logos } from "../constants/images";
@@ -131,6 +132,7 @@ function getContextualTips(t: any, stats: any, requests: any[]): { text: string;
 export default function CustomerDashboardScreen({ navigation }: any) {
   const { user } = useAuth();
   const { t } = useI18n();
+  const { colors: themeColors, isDark } = useTheme();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
@@ -309,16 +311,25 @@ export default function CustomerDashboardScreen({ navigation }: any) {
     return `${days}${t.customerDashboard?.daysAgo || "d ago"}`;
   };
 
+  // Dynamic dark mode styles
+  const dynamicStyles = {
+    container: { backgroundColor: themeColors.background },
+    card: { backgroundColor: themeColors.card },
+    text: { color: themeColors.text },
+    textSecondary: { color: themeColors.textSecondary },
+    border: { borderColor: themeColors.border },
+  };
+
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, dynamicStyles.container]}>
         <DashboardStatsSkeleton />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, dynamicStyles.container]}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={

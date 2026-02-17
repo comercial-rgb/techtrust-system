@@ -516,7 +516,29 @@ export default function ProviderRequestDetailsScreen({
   };
 
   const calculateTotal = () => {
-    return calculateSubtotal() + calculateDisplacementCost();
+    return calculateSubtotal() + calculateDisplacementCost() + calculateSalesTax();
+  };
+
+  // D15 — Auto Sales Tax calculation (FL 7% on parts, configurable by state)
+  const SALES_TAX_RATES: Record<string, { rate: number; label: string; partsOnly: boolean }> = {
+    FL: { rate: 0.07, label: 'FL Sales Tax (7%)', partsOnly: true },
+    CA: { rate: 0.0725, label: 'CA Sales Tax (7.25%)', partsOnly: true },
+    TX: { rate: 0.0625, label: 'TX Sales Tax (6.25%)', partsOnly: true },
+    NY: { rate: 0.08, label: 'NY Sales Tax (8%)', partsOnly: true },
+  };
+
+  const providerState = 'FL'; // Would come from provider profile in production
+  const calculateSalesTax = () => {
+    const taxConfig = SALES_TAX_RATES[providerState];
+    if (!taxConfig) return 0;
+    if (taxConfig.partsOnly) {
+      // Tax only on parts, not labor
+      const partsTotal = lineItems
+        .filter(item => item.description?.toLowerCase().includes('part') || item.description?.toLowerCase().includes('filter') || item.description?.toLowerCase().includes('oil') || !item.description?.toLowerCase().includes('labor'))
+        .reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+      return partsTotal * taxConfig.rate;
+    }
+    return calculateSubtotal() * taxConfig.rate;
   };
 
   // Uses centralized service type info from serviceTree.ts
@@ -553,18 +575,27 @@ export default function ProviderRequestDetailsScreen({
   };
   const availableDates = generateAvailableDates();
 
-  const availableTimes = [
-    { value: "08:00", label: "8:00 AM" },
-    { value: "09:00", label: "9:00 AM" },
-    { value: "10:00", label: "10:00 AM" },
-    { value: "11:00", label: "11:00 AM" },
-    { value: "12:00", label: "12:00 PM" },
-    { value: "13:00", label: "1:00 PM" },
-    { value: "14:00", label: "2:00 PM" },
-    { value: "15:00", label: "3:00 PM" },
-    { value: "16:00", label: "4:00 PM" },
-    { value: "17:00", label: "5:00 PM" },
-  ];
+  // D16 — Dynamic time slots based on working hours
+  const generateTimeSlots = (startHour = 8, endHour = 17, intervalMinutes = 60) => {
+    const slots = [];
+    for (let hour = startHour; hour <= endHour; hour++) {
+      for (let min = 0; min < 60; min += intervalMinutes) {
+        if (hour === endHour && min > 0) break;
+        const h24 = `${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+        const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+        const period = hour >= 12 ? 'PM' : 'AM';
+        const displayMin = min > 0 ? `:${String(min).padStart(2, '0')}` : ':00';
+        slots.push({
+          value: h24,
+          label: `${displayHour}${displayMin} ${period}`,
+        });
+      }
+    }
+    return slots;
+  };
+  
+  // Working hours could come from provider settings; default 8 AM - 5 PM, 1hr intervals
+  const availableTimes = generateTimeSlots(8, 17, 60);
 
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString("en-US", {
@@ -1758,20 +1789,41 @@ export default function ProviderRequestDetailsScreen({
                 </View>
               )}
 
+              {/* Sales Tax (auto-calculated for applicable states) */}
+              {calculateSalesTax() > 0 && (() => {
+                const providerState = request?.provider?.state || request?.provider?.address?.state || 'FL';
+                const taxRate = SALES_TAX_RATES[providerState as keyof typeof SALES_TAX_RATES];
+                return (
+                  <View style={styles.displacementTotalContainer}>
+                    <View>
+                      <Text style={styles.displacementTotalLabelSmall}>
+                        {`Sales Tax (${providerState} ${(taxRate * 100).toFixed(0)}% on parts)`}
+                      </Text>
+                      <Text style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>
+                        Auto-calculated • Parts only
+                      </Text>
+                    </View>
+                    <Text style={styles.displacementTotalValueSmall}>
+                      + ${calculateSalesTax().toFixed(2)}
+                    </Text>
+                  </View>
+                );
+              })()}
+
               {/* Grand Total */}
               <View style={styles.grandTotalContainer}>
                 <View>
                   <Text style={styles.grandTotalLabel}>
                     {t.quote?.grandTotal || "Grand Total"}
                   </Text>
-                  {isMobileService && calculateDisplacementCost() > 0 && (
+                  {(isMobileService && calculateDisplacementCost() > 0) || calculateSalesTax() > 0 ? (
                     <Text style={styles.grandTotalNote}>
-                      (
-                      {t.quote?.totalWithDisplacement ||
-                        "Total with Displacement"}
-                      )
+                      {[
+                        isMobileService && calculateDisplacementCost() > 0 ? (t.quote?.totalWithDisplacement || "Incl. Displacement") : null,
+                        calculateSalesTax() > 0 ? "Incl. Tax" : null,
+                      ].filter(Boolean).join(' + ')}
                     </Text>
-                  )}
+                  ) : null}
                 </View>
                 <Text style={styles.grandTotalValue}>
                   ${calculateTotal().toFixed(2)}

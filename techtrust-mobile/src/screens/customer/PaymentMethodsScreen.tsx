@@ -889,6 +889,61 @@ export default function PaymentMethodsScreen({ navigation }: any) {
               contentContainerStyle={{ paddingBottom: 50 }}
               keyboardShouldPersistTaps="handled"
             >
+              {/* D9 — Apple Pay / Google Pay Quick Add */}
+              <View style={styles.digitalWalletSection}>
+                <Text style={styles.digitalWalletTitle}>
+                  {Platform.OS === 'ios' ? 'Apple Pay' : 'Google Pay'}
+                </Text>
+                <Text style={styles.digitalWalletSubtitle}>
+                  Pay faster with {Platform.OS === 'ios' ? 'Apple Pay' : 'Google Pay'}
+                </Text>
+                <TouchableOpacity
+                  style={[
+                    styles.digitalWalletBtn,
+                    { backgroundColor: Platform.OS === 'ios' ? '#000' : '#fff' }
+                  ]}
+                  onPress={() => {
+                    Alert.alert(
+                      Platform.OS === 'ios' ? 'Apple Pay' : 'Google Pay',
+                      `${Platform.OS === 'ios' ? 'Apple Pay' : 'Google Pay'} is available for payments. When checking out, select "Pay with ${Platform.OS === 'ios' ? 'Apple Pay' : 'Google Pay'}" for a quick, secure transaction.`,
+                      [{ text: 'Got It' }]
+                    );
+                  }}
+                >
+                  <Ionicons
+                    name={Platform.OS === 'ios' ? 'logo-apple' : 'logo-google'}
+                    size={20}
+                    color={Platform.OS === 'ios' ? '#fff' : '#111827'}
+                  />
+                  <Text style={[
+                    styles.digitalWalletBtnText,
+                    { color: Platform.OS === 'ios' ? '#fff' : '#111827' }
+                  ]}>
+                    {Platform.OS === 'ios' ? ' Pay' : ' Pay'}
+                  </Text>
+                </TouchableOpacity>
+                <View style={styles.digitalWalletBadges}>
+                  <View style={styles.securityBadge}>
+                    <Ionicons name="shield-checkmark" size={12} color="#10b981" />
+                    <Text style={styles.securityBadgeText}>Tokenized</Text>
+                  </View>
+                  <View style={styles.securityBadge}>
+                    <Ionicons name="finger-print" size={12} color="#10b981" />
+                    <Text style={styles.securityBadgeText}>Biometric</Text>
+                  </View>
+                  <View style={styles.securityBadge}>
+                    <Ionicons name="lock-closed" size={12} color="#10b981" />
+                    <Text style={styles.securityBadgeText}>Encrypted</Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 16 }}>
+                <View style={{ flex: 1, height: 1, backgroundColor: '#e5e7eb' }} />
+                <Text style={{ fontSize: 13, color: '#9ca3af' }}>or add manually</Text>
+                <View style={{ flex: 1, height: 1, backgroundColor: '#e5e7eb' }} />
+              </View>
+
               {/* Type Selection */}
               <Text style={styles.inputLabel}>Type</Text>
               <View style={styles.typeOptions}>
@@ -1687,5 +1742,61 @@ const styles = StyleSheet.create({
     color: "#6b7280",
     marginTop: 12,
     lineHeight: 18,
+  },
+  // D9 — Digital Wallet (Apple Pay / Google Pay)
+  digitalWalletSection: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    marginBottom: 4,
+  },
+  digitalWalletTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  digitalWalletSubtitle: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginBottom: 16,
+  },
+  digitalWalletBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 40,
+    borderRadius: 12,
+    gap: 2,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    minWidth: 200,
+    marginBottom: 16,
+  },
+  digitalWalletBtnText: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  digitalWalletBadges: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  securityBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#dcfce7',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  securityBadgeText: {
+    fontSize: 11,
+    color: '#166534',
+    fontWeight: '500',
   },
 });
