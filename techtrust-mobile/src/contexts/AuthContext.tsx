@@ -226,6 +226,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               description: apiUser.providerProfile.description,
               website: apiUser.providerProfile.website,
               address: apiUser.providerProfile.address,
+              city: apiUser.providerProfile.city,
+              state: apiUser.providerProfile.state,
+              zipCode: apiUser.providerProfile.zipCode,
               cpfCnpj: apiUser.providerProfile.cpfCnpj,
               fdacsRegistrationNumber:
                 apiUser.providerProfile.fdacsRegistrationNumber,

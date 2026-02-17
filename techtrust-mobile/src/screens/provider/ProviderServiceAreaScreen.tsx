@@ -21,7 +21,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import MapView, { Circle, PROVIDER_GOOGLE } from 'react-native-maps';
-const MAP_PROVIDER = Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined;
 import { useFocusEffect } from "@react-navigation/native";
 import { useI18n } from "../../i18n";
 import api from "../../services/api";
@@ -54,9 +53,9 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
   const loadProfile = async () => {
     setLoading(true);
     try {
-      const response = await api.get("/providers/profile");
+      const response = await api.get("/providers/dashboard");
       const profile =
-        response.data?.data?.providerProfile || response.data?.data || {};
+        response.data?.data?.profile || response.data?.data?.providerProfile || response.data?.data || {};
       const user = response.data?.data;
 
       // Build base address from profile
@@ -261,7 +260,7 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
             <MapView
               ref={mapRef}
               style={styles.mapFull}
-              provider={MAP_PROVIDER}
+              {...(Platform.OS === 'android' ? { provider: PROVIDER_GOOGLE } : {})}
               initialRegion={{
                 latitude: providerCoords.lat,
                 longitude: providerCoords.lng,

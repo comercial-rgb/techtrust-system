@@ -12,7 +12,6 @@ import { Text, Chip } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import MapView, { Marker, Circle, PROVIDER_GOOGLE } from 'react-native-maps';
-const MAP_PROVIDER = Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined;
 import * as Location from 'expo-location';
 import { useI18n } from '../i18n';
 import carWashService from '../services/carWash.service';
@@ -210,7 +209,7 @@ export default function CarWashMapScreen({ navigation }: any) {
           <View style={styles.cardRow}>
             <Ionicons name="star" size={13} color="#f59e0b" />
             <Text style={styles.cardRating}>
-              {item.averageRating.toFixed(1)}
+              {(item.averageRating || 0).toFixed(1)}
             </Text>
             <Text style={styles.cardSubtext}>
               ({item.totalReviews} {item.totalReviews === 1 ? 'review' : 'reviews'})
@@ -432,7 +431,7 @@ export default function CarWashMapScreen({ navigation }: any) {
               <MapView
                 ref={mapRef}
                 style={styles.map}
-                provider={MAP_PROVIDER}
+                {...(Platform.OS === 'android' ? { provider: PROVIDER_GOOGLE } : {})}
                 initialRegion={{
                   latitude: location.lat,
                   longitude: location.lng,
@@ -464,7 +463,7 @@ export default function CarWashMapScreen({ navigation }: any) {
                       key={cw.id}
                       coordinate={{ latitude: cw.latitude, longitude: cw.longitude }}
                       title={cw.businessName}
-                      description={`${cw.averageRating.toFixed(1)}★ · ${cw.distanceMiles} mi${cw.isOpenNow ? ' · Open' : ''}`}
+                      description={`${(cw.averageRating || 0).toFixed(1)}★ · ${cw.distanceMiles || '?'} mi${cw.isOpenNow ? ' · Open' : ''}`}
                       pinColor={typeColor}
                       onPress={() => setSelectedPin(cw.id)}
                     />
@@ -520,7 +519,7 @@ export default function CarWashMapScreen({ navigation }: any) {
                     <Text style={styles.pinPreviewName} numberOfLines={1}>{cw.businessName}</Text>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                       <Ionicons name="star" size={12} color="#f59e0b" />
-                      <Text style={{ fontSize: 12, color: '#374151' }}>{cw.averageRating.toFixed(1)}</Text>
+                      <Text style={{ fontSize: 12, color: '#374151' }}>{(cw.averageRating || 0).toFixed(1)}</Text>
                       <Text style={{ fontSize: 12, color: '#9ca3af' }}>· {cw.distanceMiles} mi</Text>
                       <View style={[styles.statusDot, { backgroundColor: cw.isOpenNow ? '#10b981' : '#ef4444', marginLeft: 4 }]} />
                       <Text style={{ fontSize: 11, color: cw.isOpenNow ? '#10b981' : '#ef4444' }}>

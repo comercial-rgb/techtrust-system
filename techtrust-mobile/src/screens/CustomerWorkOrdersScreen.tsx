@@ -350,12 +350,9 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
-          <Ionicons name="arrow-back" size={24} color="#111827" />
-        </TouchableOpacity>
+        <View style={styles.backButton}>
+          <Ionicons name="list" size={24} color="#7c3aed" />
+        </View>
         <Text style={styles.headerTitle}>
           {t.workOrder?.myServices || "My Services"}
         </Text>

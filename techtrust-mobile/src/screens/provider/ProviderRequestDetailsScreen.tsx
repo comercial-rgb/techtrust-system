@@ -1275,6 +1275,9 @@ export default function ProviderRequestDetailsScreen({
                       <Text style={styles.customerRequestServiceTitle}>
                         {request.title}
                       </Text>
+                      <Text style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>
+                        {requestDetailsExpanded ? "Tap to collapse" : "Tap for details"}
+                      </Text>
                     </View>
                     <MaterialCommunityIcons
                       name={requestDetailsExpanded ? "chevron-up" : "chevron-down"}

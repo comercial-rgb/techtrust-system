@@ -698,6 +698,48 @@ export default function CustomerDashboardScreen({ navigation }: any) {
           </FadeInView>
         )}
 
+        {/* Popular Services — always visible */}
+        {vehicles.length === 0 && (
+          <FadeInView delay={270}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>
+                {"Popular Services"}
+              </Text>
+            </View>
+            <View style={{ paddingHorizontal: 16, marginBottom: 8 }}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+                {[
+                  { icon: "oil" as const, label: "Oil Change", desc: "Most requested", color: "#f59e0b", service: "OIL_CHANGE" },
+                  { icon: "car-brake-alert" as const, label: "Brakes", desc: "Safety first", color: "#ef4444", service: "BRAKES" },
+                  { icon: "car-battery" as const, label: "Battery", desc: "Quick service", color: "#10b981", service: "BATTERY" },
+                  { icon: "tire" as const, label: "Tires", desc: "Rotation & replace", color: "#3b82f6", service: "TIRES" },
+                  { icon: "engine" as const, label: "Diagnostics", desc: "Check engine light", color: "#8b5cf6", service: "DIAGNOSTICS" },
+                  { icon: "air-conditioner" as const, label: "A/C Service", desc: "Stay cool", color: "#06b6d4", service: "AC_SERVICE" },
+                ].map((svc) => (
+                  <TouchableOpacity
+                    key={svc.service}
+                    style={{
+                      backgroundColor: "#fff",
+                      borderRadius: 14,
+                      padding: 14,
+                      width: 140,
+                      borderWidth: 1,
+                      borderColor: "#f3f4f6",
+                    }}
+                    onPress={() => navigation.navigate("ServiceChoice", { preselectedService: svc.service })}
+                  >
+                    <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: `${svc.color}15`, justifyContent: "center", alignItems: "center", marginBottom: 8 }}>
+                      <MaterialCommunityIcons name={svc.icon} size={20} color={svc.color} />
+                    </View>
+                    <Text style={{ fontSize: 13, fontWeight: "600", color: "#111827", marginBottom: 2 }}>{svc.label}</Text>
+                    <Text style={{ fontSize: 11, color: "#9ca3af" }}>{svc.desc}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          </FadeInView>
+        )}
+
         {/* Special Offers */}
         {offers.length > 0 && (
           <FadeInView delay={280}>
