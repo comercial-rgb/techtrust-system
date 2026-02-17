@@ -116,6 +116,7 @@ export default function ProviderRequestDetailsScreen({
 
   // D8: Quote review before submit
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [requestDetailsExpanded, setRequestDetailsExpanded] = useState(false);
 
   // D6: Quick Quote Templates
   const [quoteTemplates, setQuoteTemplates] = useState<QuoteTemplate[]>([]);
@@ -678,7 +679,7 @@ export default function ProviderRequestDetailsScreen({
                   </View>
                 )}
               </View>
-              <Text style={styles.requestNumber}>#{request.requestNumber}</Text>
+              <Text style={styles.requestNumber}>#{request.requestNumber?.includes('-') ? `SR-${request.requestNumber.split('-').pop()}` : request.requestNumber}</Text>
             </View>
             <View style={[styles.timeBox, request.expiresIn === "Expired" && { backgroundColor: '#fef2f2', borderColor: '#fca5a5' }]}>
               <Text style={[styles.timeValue, request.expiresIn === "Expired" && { color: '#ef4444' }]}>{request.expiresIn}</Text>
@@ -776,7 +777,27 @@ export default function ProviderRequestDetailsScreen({
               <Text style={styles.preferredScheduleText}>
                 {t.provider?.preference || "Preferred"}:{" "}
                 {request.preferredDate && formatDate(request.preferredDate)}
-                {request.preferredTime && ` ${t.common?.at || "at"} ${request.preferredTime}`}
+                {request.preferredTime && (() => {
+                  const raw = request.preferredTime;
+                  // Handle ISO DateTime like "1970-01-01T14:30:00.000Z" — extract time only
+                  if (raw.includes('T')) {
+                    const d = new Date(raw);
+                    if (!isNaN(d.getTime()) && d.getFullYear() !== 1970) {
+                      return ` ${t.common?.at || "at"} ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
+                    }
+                    if (!isNaN(d.getTime())) {
+                      return ` ${t.common?.at || "at"} ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'UTC' })}`;
+                    }
+                  }
+                  // Already formatted like "14:30" — convert to 12h
+                  if (raw.includes(':') && raw.length <= 5) {
+                    const [h, m] = raw.split(':').map(Number);
+                    const ampm = h >= 12 ? 'PM' : 'AM';
+                    const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+                    return ` ${t.common?.at || "at"} ${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+                  }
+                  return ` ${t.common?.at || "at"} ${raw}`;
+                })()}
               </Text>
             </View>
           )}
@@ -1231,10 +1252,14 @@ export default function ProviderRequestDetailsScreen({
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
-              {/* Customer's Request Summary - Service Type Header */}
+              {/* Collapsible Customer Request Details */}
               {request && (
                 <View style={styles.customerRequestSummary}>
-                  <View style={styles.customerRequestHeader}>
+                  <TouchableOpacity
+                    style={styles.customerRequestHeader}
+                    onPress={() => setRequestDetailsExpanded(!requestDetailsExpanded)}
+                    activeOpacity={0.7}
+                  >
                     <View style={[styles.serviceTypeIconBox, { backgroundColor: getServiceTypeInfo(request.serviceType).bg }]}>
                       <MaterialCommunityIcons 
                         name={getServiceTypeInfo(request.serviceType).icon as any} 
@@ -1243,19 +1268,30 @@ export default function ProviderRequestDetailsScreen({
                       />
                     </View>
                     <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 11, fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                        📋 Customer Request Details
+                      </Text>
                       <Text style={styles.customerRequestServiceTitle}>
                         {request.title}
                       </Text>
-                      {request.vehicle && (
-                        <Text style={styles.customerRequestVehicleText}>
+                    </View>
+                    <MaterialCommunityIcons
+                      name={requestDetailsExpanded ? "chevron-up" : "chevron-down"}
+                      size={22}
+                      color="#9ca3af"
+                    />
+                  </TouchableOpacity>
+
+                  {/* Always visible: vehicle + location + date */}
+                  <View style={styles.customerRequestMeta}>
+                    {request.vehicle && (
+                      <View style={styles.customerRequestMetaItem}>
+                        <MaterialCommunityIcons name="car" size={14} color="#6b7280" />
+                        <Text style={styles.customerRequestMetaText}>
                           {request.vehicle.year} {request.vehicle.make} {request.vehicle.model}
                         </Text>
-                      )}
-                    </View>
-                  </View>
-
-                  {/* Service scope and location row */}
-                  <View style={styles.customerRequestMeta}>
+                      </View>
+                    )}
                     {request.serviceLocation && (
                       <View style={styles.customerRequestMetaItem}>
                         <MaterialCommunityIcons name="map-marker" size={14} color="#6b7280" />
@@ -1268,16 +1304,115 @@ export default function ProviderRequestDetailsScreen({
                         </Text>
                       </View>
                     )}
-                    {request.preferredDate && (
-                      <View style={styles.customerRequestMetaItem}>
-                        <MaterialCommunityIcons name="calendar" size={14} color="#6b7280" />
-                        <Text style={styles.customerRequestMetaText}>
-                          {formatDate(request.preferredDate)}
-                          {request.preferredTime ? ` ${request.preferredTime}` : ""}
-                        </Text>
-                      </View>
-                    )}
                   </View>
+
+                  {/* Expanded details */}
+                  {requestDetailsExpanded && (
+                    <View style={{ marginTop: 10, borderTopWidth: 1, borderTopColor: '#e5e7eb', paddingTop: 10 }}>
+                      {/* Parsed service details from description */}
+                      {(() => {
+                        const rawDesc = request.description || "";
+                        const parts = rawDesc.split('\n---\n');
+                        const detailsPart = parts[0] || "";
+                        const detailItems = detailsPart.split(' | ').filter((s: string) => s.trim());
+                        const seen = new Set<string>();
+                        const uniqueItems = detailItems.filter((item: string) => {
+                          const key = item.split(':')[0]?.trim();
+                          if (seen.has(key)) return false;
+                          seen.add(key);
+                          return true;
+                        });
+                        return uniqueItems.map((item: string, i: number) => {
+                          const colonIdx = item.indexOf(':');
+                          if (colonIdx === -1) return null;
+                          const key = item.substring(0, colonIdx).trim();
+                          const val = item.substring(colonIdx + 1).trim();
+                          const isFilter = /filter|item|part/i.test(key);
+                          return (
+                            <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingVertical: 5 }}>
+                              <Text style={{ fontSize: 13, color: '#6b7280', flex: 1 }}>{key}</Text>
+                              {isFilter ? (
+                                <View style={{ flex: 1.5, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 4 }}>
+                                  {val.split(',').map((f: string, fi: number) => (
+                                    <View key={fi} style={{ backgroundColor: '#dbeafe', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 }}>
+                                      <Text style={{ fontSize: 11, color: '#1976d2', fontWeight: '500' }}>🔧 {f.trim()}</Text>
+                                    </View>
+                                  ))}
+                                </View>
+                              ) : (
+                                <Text style={{ fontSize: 13, color: '#111827', fontWeight: '600', flex: 1.5, textAlign: 'right' }}>{val}</Text>
+                              )}
+                            </View>
+                          );
+                        });
+                      })()}
+
+                      {/* Vehicle extended details */}
+                      {request.vehicle && (
+                        <View style={{ marginTop: 8, backgroundColor: '#f8fafc', borderRadius: 8, padding: 10 }}>
+                          <Text style={{ fontSize: 11, fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', marginBottom: 6 }}>Vehicle</Text>
+                          <Text style={{ fontSize: 14, fontWeight: '700', color: '#111827' }}>
+                            {request.vehicle.year} {request.vehicle.make} {request.vehicle.model}
+                          </Text>
+                          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                            {request.vehicle.engine ? (
+                              <Text style={{ fontSize: 12, color: '#6b7280' }}>{request.vehicle.engine}</Text>
+                            ) : null}
+                            {request.vehicle.fuelType ? (
+                              <Text style={{ fontSize: 12, color: '#6b7280' }}>· {request.vehicle.fuelType}</Text>
+                            ) : null}
+                            {request.vehicle.color ? (
+                              <Text style={{ fontSize: 12, color: '#6b7280' }}>· {request.vehicle.color}</Text>
+                            ) : null}
+                          </View>
+                          {request.vehicle.mileage > 0 && (
+                            <Text style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>
+                              📏 {Number(request.vehicle.mileage).toLocaleString()} mi
+                            </Text>
+                          )}
+                        </View>
+                      )}
+
+                      {/* Customer info */}
+                      {request.customer && (
+                        <View style={{ marginTop: 6, flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 5 }}>
+                          <Text style={{ fontSize: 13, color: '#6b7280' }}>Customer</Text>
+                          <Text style={{ fontSize: 13, color: '#111827', fontWeight: '600' }}>
+                            {request.customer.name}
+                            {request.customer.totalRequests <= 1 ? ' ★ New' : ` · ${request.customer.totalRequests} requests`}
+                          </Text>
+                        </View>
+                      )}
+
+                      {/* Preferred schedule */}
+                      {request.preferredDate && (
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 5 }}>
+                          <Text style={{ fontSize: 13, color: '#6b7280' }}>Preferred</Text>
+                          <Text style={{ fontSize: 13, color: '#111827', fontWeight: '600' }}>
+                            {formatDate(request.preferredDate)}
+                            {request.preferredTime ? (() => {
+                              const raw = request.preferredTime;
+                              if (raw.includes('T')) {
+                                const d = new Date(raw);
+                                if (!isNaN(d.getTime())) return ` at ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'UTC' })}`;
+                              }
+                              if (raw.includes(':') && raw.length <= 5) {
+                                const [h, m] = raw.split(':').map(Number);
+                                return ` at ${h === 0 ? 12 : h > 12 ? h - 12 : h}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
+                              }
+                              return '';
+                            })() : ''}
+                          </Text>
+                        </View>
+                      )}
+
+                      {/* Notes */}
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 5 }}>
+                        <Text style={{ fontSize: 13, color: '#6b7280' }}>Notes</Text>
+                        <Text style={{ fontSize: 13, color: '#9ca3af' }}>(none)</Text>
+                      </View>
+                    </View>
+                  )}
                 </View>
               )}
 

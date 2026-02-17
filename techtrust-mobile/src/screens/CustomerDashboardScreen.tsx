@@ -651,6 +651,53 @@ export default function CustomerDashboardScreen({ navigation }: any) {
           </View>
         </FadeInView>
 
+        {/* Recommended for Your Vehicle */}
+        {vehicles.length > 0 && (
+          <FadeInView delay={270}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>
+                {"Recommended for Your Vehicle"}
+              </Text>
+            </View>
+            <View style={{ paddingHorizontal: 16, marginBottom: 8 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12, gap: 8 }}>
+                <Ionicons name="car-sport" size={16} color="#7c3aed" />
+                <Text style={{ fontSize: 13, fontWeight: "600", color: "#6b7280" }}>
+                  {vehicles[0].year} {vehicles[0].make} {vehicles[0].model}
+                </Text>
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+                {[
+                  { icon: "oil" as const, label: "Oil Change", desc: "Every 5,000-7,500 mi", color: "#f59e0b", service: "OIL_CHANGE" },
+                  { icon: "car-brake-alert" as const, label: "Brake Inspection", desc: "Every 20,000 mi", color: "#ef4444", service: "BRAKES" },
+                  { icon: "air-filter" as const, label: "Air Filter", desc: "Every 15,000-30,000 mi", color: "#10b981", service: "AIR_FILTER" },
+                  { icon: "tire" as const, label: "Tire Rotation", desc: "Every 5,000-7,500 mi", color: "#3b82f6", service: "TIRES" },
+                  { icon: "coolant-temperature" as const, label: "Coolant Flush", desc: "Every 30,000 mi", color: "#8b5cf6", service: "COOLING_SYSTEM" },
+                ].map((svc) => (
+                  <TouchableOpacity
+                    key={svc.service}
+                    style={{
+                      backgroundColor: "#fff",
+                      borderRadius: 14,
+                      padding: 14,
+                      width: 140,
+                      borderWidth: 1,
+                      borderColor: "#f3f4f6",
+                    }}
+                    onPress={() => navigation.navigate("ServiceChoice", { preselectedService: svc.service })}
+                  >
+                    <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: `${svc.color}15`, justifyContent: "center", alignItems: "center", marginBottom: 8 }}>
+                      <MaterialCommunityIcons name={svc.icon} size={20} color={svc.color} />
+                    </View>
+                    <Text style={{ fontSize: 13, fontWeight: "600", color: "#111827", marginBottom: 2 }}>{svc.label}</Text>
+                    <Text style={{ fontSize: 11, color: "#9ca3af" }}>{svc.desc}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          </FadeInView>
+        )}
+
         {/* Special Offers */}
         {offers.length > 0 && (
           <FadeInView delay={280}>
@@ -847,7 +894,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
 
                         <View style={styles.requestFooter}>
                           <Text style={styles.requestNumber}>
-                            #{request.requestNumber}
+                            #{request.requestNumber?.includes('-') ? `SR-${request.requestNumber.split('-').pop()}` : request.requestNumber}
                           </Text>
                           <Text style={styles.requestTime}>
                             {formatTimeAgo(request.createdAt)}

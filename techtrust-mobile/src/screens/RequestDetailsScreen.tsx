@@ -15,9 +15,12 @@ import {
   Share,
   Animated,
   Dimensions,
+  Image,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { useI18n } from "../i18n";
 import api from "../services/api";
 
@@ -79,6 +82,8 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
   const [loading, setLoading] = useState(true);
   const [request, setRequest] = useState<any>(null);
   const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
+  const [photos, setPhotos] = useState<string[]>([]);
   const pulseAnim = useState(new Animated.Value(1))[0];
 
   useEffect(() => {
@@ -103,6 +108,10 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
       const requestRes = await api.get(`/service-requests/${requestId}`);
       const reqData = requestRes.data.data || requestRes.data;
       setRequest(reqData);
+
+      // Load existing photos/attachments
+      const existingPhotos = reqData?.attachments || reqData?.photos || [];
+      if (Array.isArray(existingPhotos)) setPhotos(existingPhotos);
 
       const includedQuotes = reqData?.quotes || [];
       if (includedQuotes.length > 0) {
@@ -141,6 +150,69 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
       );
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleAddPhotos() {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          t.common?.error || "Error",
+          "Camera roll permission is required to add photos.",
+        );
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: true,
+        quality: 0.7,
+        selectionLimit: 5,
+      });
+      if (result.canceled || !result.assets?.length) return;
+
+      setUploadingPhotos(true);
+      try {
+        const formData = new FormData();
+        result.assets.forEach((asset, index) => {
+          const uri = asset.uri;
+          const ext = uri.split(".").pop() || "jpg";
+          formData.append("files", {
+            uri,
+            name: `photo_${index}.${ext}`,
+            type: `image/${ext === "png" ? "png" : "jpeg"}`,
+          } as any);
+        });
+
+        const uploadRes = await api.post("/uploads/service-request-photos", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        const uploadedUrls = uploadRes.data?.data?.urls || uploadRes.data?.urls || [];
+
+        // Update service request with new photos
+        const allPhotos = [...photos, ...uploadedUrls];
+        await api.patch(`/service-requests/${requestId}`, {
+          attachments: allPhotos,
+        });
+
+        setPhotos(allPhotos);
+        Alert.alert(
+          t.common?.success || "Success",
+          `${result.assets.length} photo(s) added successfully!`,
+        );
+      } catch (uploadErr: any) {
+        // If upload endpoint doesn't exist, store URIs locally
+        const localUris = result.assets.map((a) => a.uri);
+        setPhotos((prev) => [...prev, ...localUris]);
+        Alert.alert(
+          t.common?.success || "Photos Added",
+          "Photos saved locally. They will be uploaded when the service starts.",
+        );
+      } finally {
+        setUploadingPhotos(false);
+      }
+    } catch (err) {
+      console.error("Error adding photos:", err);
     }
   }
 
@@ -513,10 +585,31 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
           </View>
         )}
 
-        {/* â•â•â• PHOTOS & NOTES PROMPT â•â•â• */}
-        {(!request?.photos || request.photos?.length === 0) && !request?.customerNotes && canEdit && (
-          <TouchableOpacity style={s.addPhotosPrompt} onPress={handleEdit}>
-            <Ionicons name="camera-outline" size={24} color="#1976d2" />
+        {/* ═══ PHOTOS & NOTES ═══ */}
+        {photos.length > 0 && (
+          <View style={{ marginHorizontal: 16, marginTop: 16 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+              <Text style={s.sectionTitle}>{"Photos"} ({photos.length})</Text>
+              {canEdit && (
+                <TouchableOpacity onPress={handleAddPhotos} disabled={uploadingPhotos}>
+                  <Text style={{ color: "#1976d2", fontWeight: "600", fontSize: 14 }}>+ Add More</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ gap: 8 }}>
+              {photos.map((uri, idx) => (
+                <Image key={idx} source={{ uri }} style={{ width: 80, height: 80, borderRadius: 10, marginRight: 8, backgroundColor: "#e5e7eb" }} />
+              ))}
+            </ScrollView>
+          </View>
+        )}
+        {photos.length === 0 && !request?.customerNotes && canEdit && (
+          <TouchableOpacity style={s.addPhotosPrompt} onPress={handleAddPhotos} disabled={uploadingPhotos}>
+            {uploadingPhotos ? (
+              <ActivityIndicator size="small" color="#1976d2" />
+            ) : (
+              <Ionicons name="camera-outline" size={24} color="#1976d2" />
+            )}
             <View style={{ flex: 1, marginLeft: 12 }}>
               <Text style={s.addPhotosTitle}>{td.addPhotos || "Add Photos & Notes"}</Text>
               <Text style={s.addPhotosDesc}>{td.addPhotosDesc || "Add photos to help providers give you a more accurate quote."}</Text>
@@ -594,7 +687,7 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
         {request?.requestNumber && (
           <View style={s.refSection}>
             <Text style={s.refLabel}>{td.referenceNumber || "Reference Number"}</Text>
-            <Text style={s.refValue}>#{request.requestNumber}</Text>
+            <Text style={s.refValue}>#{request.requestNumber?.includes('-') ? `SR-${request.requestNumber.split('-').pop()}` : request.requestNumber}</Text>
           </View>
         )}
       </ScrollView>

@@ -171,6 +171,8 @@ export async function getServiceRequests(): Promise<ServiceRequest[]> {
         SEARCHING_PROVIDERS: "SEARCHING",
         QUOTE_ACCEPTED: "QUOTES_RECEIVED",
         DRAFT: "SEARCHING",
+        WAITING_APPROVAL: "IN_PROGRESS",
+        EXPIRED: "CANCELLED",
       };
       return map[status] || status;
     };

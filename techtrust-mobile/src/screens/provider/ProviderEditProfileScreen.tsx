@@ -29,7 +29,10 @@ export default function ProviderEditProfileScreen({ navigation }: any) {
   const [phone, setPhone] = useState(user?.phone || "");
   const [email, setEmail] = useState(user?.email || "");
   const [website, setWebsite] = useState(user?.providerProfile?.website || "");
-  const [address, setAddress] = useState(user?.providerProfile?.address || "");
+  const [street, setStreet] = useState(user?.providerProfile?.address || "");
+  const [city, setCity] = useState(user?.providerProfile?.city || "");
+  const [stateField, setStateField] = useState(user?.providerProfile?.state || "");
+  const [zipCode, setZipCode] = useState(user?.providerProfile?.zipCode || "");
   const [cnpj, setCnpj] = useState(user?.providerProfile?.cpfCnpj || "");
 
   // Auto-format EIN: XX-XXXXXXX
@@ -99,10 +102,13 @@ export default function ProviderEditProfileScreen({ navigation }: any) {
       await api.patch("/providers/profile", {
         businessName: businessName.trim(),
         description: description.trim(),
-        phone: phone.trim(),
-        email: email.trim(),
+        businessPhone: phone.trim(),
+        businessEmail: email.trim(),
         website: website.trim(),
-        address: address.trim(),
+        address: street.trim(),
+        city: city.trim(),
+        state: stateField.trim(),
+        zipCode: zipCode.trim(),
         cpfCnpj: cnpj.trim() || undefined,
         fdacsRegistrationNumber: fdacsNumber.trim() || undefined,
       });
@@ -310,7 +316,7 @@ export default function ProviderEditProfileScreen({ navigation }: any) {
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>
-              {t.provider?.fullAddress || "Full Address"}
+              {"Street Address"}
             </Text>
             <View style={styles.inputWithIcon}>
               <MaterialCommunityIcons
@@ -320,12 +326,44 @@ export default function ProviderEditProfileScreen({ navigation }: any) {
               />
               <TextInput
                 style={styles.inputIcon}
-                value={address}
-                onChangeText={setAddress}
-                placeholder={
-                  t.provider?.addressPlaceholder ||
-                  "Street, number, city, state"
-                }
+                value={street}
+                onChangeText={setStreet}
+                placeholder="123 Main Street"
+              />
+            </View>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>{"City"}</Text>
+            <TextInput
+              style={styles.input}
+              value={city}
+              onChangeText={setCity}
+              placeholder="Orlando"
+            />
+          </View>
+
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <View style={[styles.inputGroup, { flex: 1 }]}>
+              <Text style={styles.label}>{"State"}</Text>
+              <TextInput
+                style={styles.input}
+                value={stateField}
+                onChangeText={setStateField}
+                placeholder="FL"
+                maxLength={2}
+                autoCapitalize="characters"
+              />
+            </View>
+            <View style={[styles.inputGroup, { flex: 1 }]}>
+              <Text style={styles.label}>{"ZIP Code"}</Text>
+              <TextInput
+                style={styles.input}
+                value={zipCode}
+                onChangeText={setZipCode}
+                placeholder="32801"
+                keyboardType="number-pad"
+                maxLength={10}
               />
             </View>
           </View>

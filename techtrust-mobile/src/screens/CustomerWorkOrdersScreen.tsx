@@ -30,7 +30,7 @@ interface ServiceRequest {
   id: string;
   requestNumber: string;
   title: string;
-  status: "SEARCHING" | "QUOTES_RECEIVED";
+  status: string;
   quotesCount: number;
   createdAt: string;
   vehicle: {
@@ -90,7 +90,7 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
           id: req.id,
           requestNumber: req.requestNumber || `SR-${req.id.substring(0, 4)}`,
           title: req.title,
-          status: req.status as "SEARCHING" | "QUOTES_RECEIVED",
+          status: req.status,
           quotesCount: req.quotesCount || 0,
           createdAt: req.createdAt,
           vehicle: req.vehicle,
@@ -245,6 +245,18 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
           {
             value: "QUOTES_RECEIVED",
             label: t.serviceRequest?.quotes || "Quotes",
+          },
+          {
+            value: "SCHEDULED",
+            label: t.workOrder?.scheduled || "Scheduled",
+          },
+          {
+            value: "IN_PROGRESS",
+            label: t.workOrder?.inProgress || "In Progress",
+          },
+          {
+            value: "COMPLETED",
+            label: t.workOrder?.completed || "Completed",
           },
         ]
       : [

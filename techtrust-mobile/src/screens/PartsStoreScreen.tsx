@@ -64,6 +64,8 @@ export default function PartsStoreScreen({ navigation }: any) {
   const [searchText, setSearchText] = useState("");
   const [stores, setStores] = useState<any[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
+  const [vehicles, setVehicles] = useState<any[]>([]);
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -75,12 +77,19 @@ export default function PartsStoreScreen({ navigation }: any) {
     setLoading(true);
     try {
       const api = (await import("../services/api")).default;
-      const [storesRes, productsRes] = await Promise.all([
+      const [storesRes, productsRes, vehiclesRes] = await Promise.all([
         api.get("/parts-store/search?limit=10").catch(() => ({ data: { data: [] } })),
         api.get("/parts-store/products/search?limit=6&sortBy=newest").catch(() => ({ data: { data: [] } })),
+        api.get("/vehicles").catch(() => ({ data: { data: [] } })),
       ]);
       setStores(storesRes.data?.data || []);
       setFeaturedProducts(productsRes.data?.data || []);
+      const v = vehiclesRes.data?.data || vehiclesRes.data || [];
+      setVehicles(Array.isArray(v) ? v : []);
+      // Auto-select first vehicle
+      if (Array.isArray(v) && v.length > 0 && !selectedVehicleId) {
+        setSelectedVehicleId(v[0].id);
+      }
     } catch {
       setStores([]);
       setFeaturedProducts([]);
@@ -123,6 +132,30 @@ export default function PartsStoreScreen({ navigation }: any) {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
+        {/* Vehicle Selector */}
+        {vehicles.length > 0 && (
+          <View style={styles.vehicleSelector}>
+            <Text style={styles.vehicleSelectorLabel}>{ps.shopFor || "Shopping for:"}</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 12, gap: 8 }}>
+              {vehicles.map((v) => {
+                const isSelected = v.id === selectedVehicleId;
+                return (
+                  <TouchableOpacity
+                    key={v.id}
+                    style={[styles.vehicleChip, isSelected && styles.vehicleChipActive]}
+                    onPress={() => setSelectedVehicleId(v.id)}
+                  >
+                    <Ionicons name="car-sport" size={16} color={isSelected ? "#fff" : "#6b7280"} />
+                    <Text style={[styles.vehicleChipText, isSelected && styles.vehicleChipTextActive]}>
+                      {v.year} {v.make} {v.model}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
+
         {/* Search Bar */}
         <View style={styles.searchContainer}>
           <View style={styles.searchBar}>
@@ -378,4 +411,21 @@ const styles = StyleSheet.create({
   emptyState: { alignItems: "center", paddingVertical: 40, paddingHorizontal: 32 },
   emptyTitle: { fontSize: 16, fontWeight: "600", color: "#6b7280", marginTop: 12 },
   emptySubtitle: { fontSize: 14, color: "#9ca3af", textAlign: "center", marginTop: 6 },
+  // Vehicle selector
+  vehicleSelector: { backgroundColor: "#fff", paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: "#f3f4f6" },
+  vehicleSelectorLabel: { fontSize: 13, fontWeight: "600", color: "#6b7280", paddingHorizontal: 16, marginBottom: 8 },
+  vehicleChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: "#f3f4f6",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  vehicleChipActive: { backgroundColor: "#7c3aed", borderColor: "#7c3aed" },
+  vehicleChipText: { fontSize: 13, fontWeight: "500", color: "#374151" },
+  vehicleChipTextActive: { color: "#fff" },
 });

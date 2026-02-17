@@ -583,7 +583,7 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
                   <Text style={styles.infoLabel}>
                     {t.vehicle?.bodyType || "Body Style"}
                   </Text>
-                  <Text style={styles.infoValue}>{vehicle.bodyType}</Text>
+                  <Text style={styles.infoValue}>{vehicle.bodyType.charAt(0).toUpperCase() + vehicle.bodyType.slice(1)}</Text>
                 </View>
               )}
               {vehicle.category && (
