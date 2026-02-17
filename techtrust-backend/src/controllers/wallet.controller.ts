@@ -126,12 +126,11 @@ export const addFunds = async (req: Request, res: Response) => {
     let stripeCustomerId = subscription?.stripeCustomerId;
 
     if (!stripeCustomerId) {
-      const customer = await stripeService.getOrCreateCustomer({
+      stripeCustomerId = await stripeService.getOrCreateCustomer({
+        userId,
         email: user.email,
         name: user.fullName,
-        metadata: { userId },
       });
-      stripeCustomerId = customer.customerId;
     }
 
     // Create and confirm PaymentIntent with automatic capture
@@ -141,6 +140,7 @@ export const addFunds = async (req: Request, res: Response) => {
       currency: "usd",
       customerId: stripeCustomerId,
       paymentMethodId: paymentMethod.stripePaymentMethodId,
+      platformFeeAmount: 0,
       description: `Wallet top-up: $${amount.toFixed(2)}`,
       captureMethod: "automatic",
       metadata: {

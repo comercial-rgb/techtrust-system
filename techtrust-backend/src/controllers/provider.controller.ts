@@ -534,12 +534,12 @@ export const searchProvidersByLocation = async (
  * Return states and cities that have at least one active provider.
  * Public endpoint — used by LandingScreen to show "Coming Soon" badges on cities.
  */
-export const getActiveCities = async (req: Request, res: Response): Promise<void> => {
+export const getActiveCities = async (_req: Request, res: Response): Promise<void> => {
   const providers = await prisma.providerProfile.findMany({
     where: {
       user: { status: 'ACTIVE' },
-      state: { not: null },
-      city: { not: null },
+      state: { not: '' },
+      city: { not: '' },
     },
     select: {
       state: true,
