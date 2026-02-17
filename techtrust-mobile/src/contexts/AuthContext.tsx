@@ -32,6 +32,9 @@ interface User {
     description?: string;
     website?: string;
     address?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
     cpfCnpj?: string;
     fdacsRegistrationNumber?: string;
   };
@@ -74,6 +77,7 @@ interface AuthContextType {
   ) => Promise<void>;
   resendOTP: (userId: string, method?: "sms" | "email") => Promise<void>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
   isAuthenticated: boolean;
 }
 
@@ -141,6 +145,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   description: apiUser.providerProfile.description,
                   website: apiUser.providerProfile.website,
                   address: apiUser.providerProfile.address,
+                  city: apiUser.providerProfile.city,
+                  state: apiUser.providerProfile.state,
+                  zipCode: apiUser.providerProfile.zipCode,
                   cpfCnpj: apiUser.providerProfile.cpfCnpj,
                   fdacsRegistrationNumber:
                     apiUser.providerProfile.fdacsRegistrationNumber,
@@ -286,6 +293,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               description: apiUser.providerProfile.description,
               website: apiUser.providerProfile.website,
               address: apiUser.providerProfile.address,
+              city: apiUser.providerProfile.city,
+              state: apiUser.providerProfile.state,
+              zipCode: apiUser.providerProfile.zipCode,
               cpfCnpj: apiUser.providerProfile.cpfCnpj,
               fdacsRegistrationNumber:
                 apiUser.providerProfile.fdacsRegistrationNumber,
@@ -602,6 +612,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         verifyOTP,
         resendOTP,
         logout,
+        refreshUser: checkAuth,
         isAuthenticated: !!user,
       }}
     >

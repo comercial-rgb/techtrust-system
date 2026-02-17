@@ -1128,6 +1128,9 @@ export const verifyOTP = async (req: Request, res: Response) => {
                 totalReviews: updatedUser.providerProfile.totalReviews,
                 website: updatedUser.providerProfile.website,
                 address: updatedUser.providerProfile.address,
+                city: updatedUser.providerProfile.city,
+                state: updatedUser.providerProfile.state,
+                zipCode: updatedUser.providerProfile.zipCode,
                 fdacsRegistrationNumber: updatedUser.providerProfile.fdacsRegistrationNumber,
               }
             : undefined,
@@ -1436,6 +1439,9 @@ export const login = async (req: Request, res: Response) => {
                 totalReviews: user.providerProfile.totalReviews,
                 website: user.providerProfile.website,
                 address: user.providerProfile.address,
+                city: user.providerProfile.city,
+                state: user.providerProfile.state,
+                zipCode: user.providerProfile.zipCode,
                 fdacsRegistrationNumber: user.providerProfile.fdacsRegistrationNumber,
               }
             : undefined,

@@ -12,6 +12,7 @@ import { Text, Chip } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import MapView, { Marker, Circle, PROVIDER_GOOGLE } from 'react-native-maps';
+const MAP_PROVIDER = Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined;
 import * as Location from 'expo-location';
 import { useI18n } from '../i18n';
 import carWashService from '../services/carWash.service';
@@ -431,7 +432,7 @@ export default function CarWashMapScreen({ navigation }: any) {
               <MapView
                 ref={mapRef}
                 style={styles.map}
-                provider={PROVIDER_GOOGLE}
+                provider={MAP_PROVIDER}
                 initialRegion={{
                   latitude: location.lat,
                   longitude: location.lng,

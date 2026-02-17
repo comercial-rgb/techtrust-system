@@ -19,7 +19,7 @@ import { useAuth } from "../../contexts/AuthContext";
 
 export default function ProviderEditProfileScreen({ navigation }: any) {
   const { t } = useI18n();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [businessName, setBusinessName] = useState(
     user?.providerProfile?.businessName || "",
   );
@@ -116,6 +116,7 @@ export default function ProviderEditProfileScreen({ navigation }: any) {
         t.common?.success || "Success",
         t.provider?.profileUpdated || "Profile updated successfully!",
       );
+      await refreshUser();
       navigation.goBack();
     } catch (error) {
       Alert.alert(

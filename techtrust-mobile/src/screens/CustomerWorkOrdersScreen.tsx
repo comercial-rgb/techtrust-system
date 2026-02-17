@@ -698,9 +698,8 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
                 <FadeInView key={request.id} delay={200 + index * 50}>
                   <ScalePress
                     onPress={() =>
-                      navigation.navigate("Home", {
-                        screen: "RequestDetails",
-                        params: { requestId: request.id },
+                      navigation.navigate("RequestDetails", {
+                        requestId: request.id,
                       })
                     }
                   >

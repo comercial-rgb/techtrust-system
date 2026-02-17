@@ -15,6 +15,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useI18n } from '../../i18n';
 import api from '../../services/api';
@@ -98,10 +99,12 @@ export default function ProviderServicesScreen({ navigation }: any) {
   const [enabledVehicleTypes, setEnabledVehicleTypes] = useState<Set<string>>(new Set());
   const [sellsParts, setSellsParts] = useState(false);
 
-  // ─── Load current profile ───
-  useEffect(() => {
-    loadProfile();
-  }, []);
+  // ─── Load current profile on focus ───
+  useFocusEffect(
+    useCallback(() => {
+      loadProfile();
+    }, [])
+  );
 
   const loadProfile = async () => {
     try {

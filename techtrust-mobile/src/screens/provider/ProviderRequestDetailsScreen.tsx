@@ -292,10 +292,11 @@ export default function ProviderRequestDetailsScreen({
         setProviderCostPerMile(pp.extraFeePerKm ? Number(pp.extraFeePerKm) / 0.621371 : 0);
       }
 
-      // Calculate time remaining until quoteDeadline
+      // Calculate time remaining until expiration (use expiresAt, not quoteDeadline)
       let expiresIn = "";
-      if (sr.quoteDeadline) {
-        const diff = new Date(sr.quoteDeadline).getTime() - Date.now();
+      const expirationField = sr.expiresAt || sr.quoteDeadline;
+      if (expirationField) {
+        const diff = new Date(expirationField).getTime() - Date.now();
         if (diff > 0) {
           const hours = Math.floor(diff / (1000 * 60 * 60));
           const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));

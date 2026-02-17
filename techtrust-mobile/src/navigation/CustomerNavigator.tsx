@@ -161,6 +161,11 @@ function WorkOrdersStack() {
         name="WorkOrdersList"
         component={CustomerWorkOrdersScreen}
       />
+      <Stack.Screen name="RequestDetails" component={RequestDetailsScreen} />
+      <Stack.Screen
+        name="QuoteDetails"
+        component={CustomerQuoteDetailsScreen}
+      />
       <Stack.Screen
         name="WorkOrderDetails"
         component={WorkOrderDetailsScreen}

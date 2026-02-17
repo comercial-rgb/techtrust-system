@@ -21,6 +21,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import MapView, { Circle, PROVIDER_GOOGLE } from 'react-native-maps';
+const MAP_PROVIDER = Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined;
 import { useFocusEffect } from "@react-navigation/native";
 import { useI18n } from "../../i18n";
 import api from "../../services/api";
@@ -71,7 +72,9 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
       const snapped = miOptions.reduce((prev, curr) => Math.abs(curr - radiusMi) < Math.abs(prev - radiusMi) ? curr : prev);
       setServiceRadius(snapped);
       // Get coordinates for map
-      if (profile.gpsLatitude && profile.gpsLongitude) {
+      if (profile.baseLatitude && profile.baseLongitude) {
+        setProviderCoords({ lat: Number(profile.baseLatitude), lng: Number(profile.baseLongitude) });
+      } else if (profile.gpsLatitude && profile.gpsLongitude) {
         setProviderCoords({ lat: Number(profile.gpsLatitude), lng: Number(profile.gpsLongitude) });
       } else if (profile.latitude && profile.longitude) {
         setProviderCoords({ lat: Number(profile.latitude), lng: Number(profile.longitude) });
@@ -258,7 +261,7 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
             <MapView
               ref={mapRef}
               style={styles.mapFull}
-              provider={PROVIDER_GOOGLE}
+              provider={MAP_PROVIDER}
               initialRegion={{
                 latitude: providerCoords.lat,
                 longitude: providerCoords.lng,
