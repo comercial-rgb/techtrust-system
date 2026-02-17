@@ -15,11 +15,14 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.techtrustautosolutions.mobile",
-      "buildNumber": "20",
+      "buildNumber": "21",
       "usesAppleSignIn": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSFaceIDUsageDescription": "Use Face ID to securely log in to your TechTrust account"
+      },
+      "config": {
+        "googleMapsApiKey": "AIzaSyAT00JrFC0hzIARF9wVZE0v1Ahd2x_w4os"
       }
     },
     "android": {
@@ -30,8 +33,13 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.techtrustautosolutions.mobile",
-      "versionCode": 20,
-      "softwareKeyboardLayoutMode": "pan"
+      "versionCode": 21,
+      "softwareKeyboardLayoutMode": "pan",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyAT00JrFC0hzIARF9wVZE0v1Ahd2x_w4os"
+        }
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"

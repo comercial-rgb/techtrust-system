@@ -3,7 +3,7 @@
  * Connected to backend API
  */
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -20,6 +20,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import MapView, { Circle, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useFocusEffect } from "@react-navigation/native";
 import { useI18n } from "../../i18n";
 import api from "../../services/api";
@@ -45,6 +46,8 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
   const [newZoneName, setNewZoneName] = useState("");
   const [newZoneRegion, setNewZoneRegion] = useState("");
   const [coverageZones, setCoverageZones] = useState<CoverageZone[]>([]);
+  const [providerCoords, setProviderCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const mapRef = useRef<MapView>(null);
 
   // Load provider profile from API
   const loadProfile = async () => {
@@ -67,6 +70,12 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
       const miOptions = [5, 10, 15, 20, 25, 35, 50];
       const snapped = miOptions.reduce((prev, curr) => Math.abs(curr - radiusMi) < Math.abs(prev - radiusMi) ? curr : prev);
       setServiceRadius(snapped);
+      // Get coordinates for map
+      if (profile.gpsLatitude && profile.gpsLongitude) {
+        setProviderCoords({ lat: Number(profile.gpsLatitude), lng: Number(profile.gpsLongitude) });
+      } else if (profile.latitude && profile.longitude) {
+        setProviderCoords({ lat: Number(profile.latitude), lng: Number(profile.longitude) });
+      }
       setMobileService(profile.mobileService || false);
       setRoadsideAssistance(profile.roadsideAssistance || false);
       const freeKmVal = profile.freeKm || 0;
@@ -243,23 +252,48 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Map Preview Placeholder */}
+        {/* Map Preview */}
         <View style={styles.mapPreview}>
-          <View style={styles.mapPlaceholder}>
-            <MaterialCommunityIcons
-              name="map-marker-radius"
-              size={60}
-              color="#1976d2"
-            />
-            <Text style={styles.mapText}>
-              {t.provider?.serviceRadius || "Service Radius"}: {serviceRadius}{" "}
-              mi
-            </Text>
-            <Text style={styles.mapSubtext}>
-              {coverageZones.filter((z) => z.active).length}{" "}
-              {t.provider?.activeZones || "active zones"}
-            </Text>
-          </View>
+          {providerCoords ? (
+            <MapView
+              ref={mapRef}
+              style={styles.mapFull}
+              provider={PROVIDER_GOOGLE}
+              initialRegion={{
+                latitude: providerCoords.lat,
+                longitude: providerCoords.lng,
+                latitudeDelta: serviceRadius * 0.03,
+                longitudeDelta: serviceRadius * 0.03,
+              }}
+              showsUserLocation
+              scrollEnabled={false}
+              zoomEnabled={false}
+            >
+              <Circle
+                center={{ latitude: providerCoords.lat, longitude: providerCoords.lng }}
+                radius={serviceRadius * 1609.34}
+                strokeColor="#1976d2" 
+                fillColor="rgba(25,118,210,0.1)"
+                strokeWidth={2}
+              />
+            </MapView>
+          ) : (
+            <View style={styles.mapPlaceholder}>
+              <MaterialCommunityIcons
+                name="map-marker-radius"
+                size={60}
+                color="#1976d2"
+              />
+              <Text style={styles.mapText}>
+                {t.provider?.serviceRadius || "Service Radius"}: {serviceRadius}{" "}
+                mi
+              </Text>
+              <Text style={styles.mapSubtext}>
+                {coverageZones.filter((z) => z.active).length}{" "}
+                {t.provider?.activeZones || "active zones"}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Base Address */}
@@ -683,6 +717,9 @@ const styles = StyleSheet.create({
     margin: 16,
     borderRadius: 16,
     overflow: "hidden",
+  },
+  mapFull: {
+    ...StyleSheet.absoluteFillObject,
   },
   mapPlaceholder: {
     flex: 1,

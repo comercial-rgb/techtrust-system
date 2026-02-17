@@ -11,6 +11,7 @@ import {
 import { Text, Chip } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import MapView, { Marker, Circle, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useI18n } from '../i18n';
 import carWashService from '../services/carWash.service';
@@ -54,6 +55,7 @@ export default function CarWashMapScreen({ navigation }: any) {
   const [membershipFilter, setMembershipFilter] = useState(false);
   const [freeVacuumFilter, setFreeVacuumFilter] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const mapRef = useRef<MapView>(null);
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
   const [selectedPin, setSelectedPin] = useState<string | null>(null);
 
@@ -423,56 +425,56 @@ export default function CarWashMapScreen({ navigation }: any) {
       {/* Interactive Map View */}
       {viewMode === 'map' && (
         <View style={styles.mapContainer}>
-          {/* Map Background with grid */}
-          <View style={styles.mapGrid}>
-            {/* Radius circle */}
-            <View style={styles.radiusCircle}>
-              <View style={styles.radiusCircleInner} />
-            </View>
+          {/* Real Google Map */}
+          <View style={styles.mapWrapper}>
+            {location ? (
+              <MapView
+                ref={mapRef}
+                style={styles.map}
+                provider={PROVIDER_GOOGLE}
+                initialRegion={{
+                  latitude: location.lat,
+                  longitude: location.lng,
+                  latitudeDelta: (filters.radiusMiles || 10) * 0.03,
+                  longitudeDelta: (filters.radiusMiles || 10) * 0.03,
+                }}
+                showsUserLocation
+                showsMyLocationButton
+                showsCompass
+                onPress={() => setSelectedPin(null)}
+              >
+                {/* Radius circle overlay */}
+                <Circle
+                  center={{ latitude: location.lat, longitude: location.lng }}
+                  radius={(filters.radiusMiles || 10) * 1609.34}
+                  strokeColor={colors.primary + '40'}
+                  fillColor={colors.primary + '10'}
+                  strokeWidth={2}
+                />
 
-            {/* Center pin — user location */}
-            <View style={styles.centerPin}>
-              <View style={styles.centerPinDot} />
-              <View style={styles.centerPinRing} />
-            </View>
+                {/* Car wash markers */}
+                {carWashes.map((cw) => {
+                  const typeColor = (cw.carWashTypes as string[])[0]
+                    ? CAR_WASH_TYPE_COLORS[(cw.carWashTypes as string[])[0]] || colors.primary
+                    : colors.primary;
 
-            {/* Car wash pins */}
-            {carWashes.slice(0, 12).map((cw, i) => {
-              const angle = (i * (360 / Math.min(carWashes.length, 12))) * (Math.PI / 180);
-              const maxR = (SCREEN_WIDTH - 80) / 2 - 20;
-              const dist = Math.min((cw.distanceMiles / (filters.radiusMiles || 10)) * maxR, maxR);
-              const x = Math.cos(angle) * dist;
-              const y = Math.sin(angle) * dist;
-              const isSelected = selectedPin === cw.id;
-              const typeColor = (cw.carWashTypes as string[])[0]
-                ? CAR_WASH_TYPE_COLORS[(cw.carWashTypes as string[])[0]] || colors.primary
-                : colors.primary;
-
-              return (
-                <TouchableOpacity
-                  key={cw.id}
-                  style={[
-                    styles.mapPin,
-                    { transform: [{ translateX: x }, { translateY: y }] },
-                    isSelected && styles.mapPinSelected,
-                  ]}
-                  onPress={() => setSelectedPin(isSelected ? null : cw.id)}
-                  activeOpacity={0.8}
-                >
-                  <View style={[styles.mapPinHead, { backgroundColor: typeColor }]}>
-                    <MaterialCommunityIcons name="car-wash" size={12} color="#fff" />
-                  </View>
-                  {cw.isOpenNow && <View style={styles.mapPinOpenDot} />}
-                </TouchableOpacity>
-              );
-            })}
-
-            {/* Location label */}
-            <View style={styles.mapRadiusLabel}>
-              <Text style={styles.mapRadiusText}>
-                {filters.radiusMiles || 10} mi radius
-              </Text>
-            </View>
+                  return (
+                    <Marker
+                      key={cw.id}
+                      coordinate={{ latitude: cw.latitude, longitude: cw.longitude }}
+                      title={cw.businessName}
+                      description={`${cw.averageRating.toFixed(1)}★ · ${cw.distanceMiles} mi${cw.isOpenNow ? ' · Open' : ''}`}
+                      pinColor={typeColor}
+                      onPress={() => setSelectedPin(cw.id)}
+                    />
+                  );
+                })}
+              </MapView>
+            ) : (
+              <View style={styles.mapLoading}>
+                <ActivityIndicator size="large" color={colors.primary} />
+              </View>
+            )}
           </View>
 
           {/* Stats bar */}
@@ -765,102 +767,20 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.lg,
     marginBottom: spacing.sm,
   },
-  mapGrid: {
+  mapWrapper: {
+    height: MAP_HEIGHT,
+    borderRadius: borderRadius.lg,
+    overflow: 'hidden',
+  },
+  map: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  mapLoading: {
     height: MAP_HEIGHT,
     backgroundColor: '#e8f0fe',
     borderRadius: borderRadius.lg,
-    overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'relative',
-  },
-  radiusCircle: {
-    position: 'absolute',
-    width: SCREEN_WIDTH - 80,
-    height: SCREEN_WIDTH - 80,
-    borderRadius: (SCREEN_WIDTH - 80) / 2,
-    borderWidth: 2,
-    borderColor: colors.primary + '30',
-    borderStyle: 'dashed',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  radiusCircleInner: {
-    width: (SCREEN_WIDTH - 80) * 0.5,
-    height: (SCREEN_WIDTH - 80) * 0.5,
-    borderRadius: (SCREEN_WIDTH - 80) * 0.25,
-    borderWidth: 1,
-    borderColor: colors.primary + '15',
-    borderStyle: 'dashed',
-  },
-  centerPin: {
-    position: 'absolute',
-    width: 20,
-    height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  centerPinDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: colors.primary,
-  },
-  centerPinRing: {
-    position: 'absolute',
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: colors.primary + '40',
-  },
-  mapPin: {
-    position: 'absolute',
-    alignItems: 'center',
-    zIndex: 10,
-  },
-  mapPinSelected: {
-    zIndex: 20,
-    transform: [{ scale: 1.3 }],
-  },
-  mapPinHead: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  mapPinOpenDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#10b981',
-    borderWidth: 1.5,
-    borderColor: '#fff',
-    position: 'absolute',
-    top: -2,
-    right: -2,
-  },
-  mapRadiusLabel: {
-    position: 'absolute',
-    bottom: 8,
-    right: 8,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  mapRadiusText: {
-    fontSize: 10,
-    color: colors.primary,
-    fontWeight: fontWeight.semibold,
   },
   mapStats: {
     flexDirection: 'row',
