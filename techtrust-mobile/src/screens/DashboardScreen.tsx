@@ -3,13 +3,13 @@
  * ✨ Atualizada com animações e UI melhorada
  */
 
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
-import { Card, Text, FAB, useTheme } from 'react-native-paper';
-import { useAuth } from '../contexts/AuthContext';
-import api from '../services/api';
-import { ServiceRequest } from '../types';
-import { useI18n } from '../i18n';
+import React, { useState, useEffect } from "react";
+import { View, StyleSheet, ScrollView, RefreshControl } from "react-native";
+import { Card, Text, FAB, useTheme } from "react-native-paper";
+import { useAuth } from "../contexts/AuthContext";
+import api from "../services/api";
+import { ServiceRequest } from "../types";
+import { useI18n } from "../i18n";
 
 // ✨ Importando componentes de UI
 import {
@@ -19,7 +19,7 @@ import {
   EmptyState,
   Toast,
   useToast,
-} from '../components';
+} from "../components";
 
 export default function DashboardScreen({ navigation }: any) {
   const theme = useTheme();
@@ -28,7 +28,7 @@ export default function DashboardScreen({ navigation }: any) {
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  
+
   // ✨ Toast hook
   const { toast, error, hideToast } = useToast();
 
@@ -39,13 +39,13 @@ export default function DashboardScreen({ navigation }: any) {
   async function loadRequests() {
     if (!loading) setRefreshing(true);
     try {
-      const response = await api.get('/service-requests', {
+      const response = await api.get("/service-requests", {
         params: { limit: 5 },
       });
       setRequests(response.data.data.requests || []);
     } catch (err) {
-      console.error('Erro ao carregar solicitações:', err);
-      error(t.common?.errorLoadingRequests || 'Error loading requests');
+      console.error("Erro ao carregar solicitações:", err);
+      error(t.common?.errorLoadingRequests || "Error loading requests");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -55,20 +55,21 @@ export default function DashboardScreen({ navigation }: any) {
   const getStatusColor = (status: string) => {
     const colors: any = {
       SEARCHING_PROVIDERS: theme.colors.primary,
-      QUOTES_RECEIVED: '#4caf50',
-      IN_PROGRESS: '#ff9800',
-      COMPLETED: '#9e9e9e',
+      QUOTES_RECEIVED: "#4caf50",
+      IN_PROGRESS: "#ff9800",
+      COMPLETED: "#9e9e9e",
     };
     return colors[status] || theme.colors.primary;
   };
 
   const getStatusText = (status: string) => {
     const texts: any = {
-      SEARCHING_PROVIDERS: t.status?.searchingProviders || 'Searching providers',
-      QUOTES_RECEIVED: t.status?.quotesReceived || 'Quotes received',
-      QUOTE_ACCEPTED: t.status?.quoteAccepted || 'Quote accepted',
-      IN_PROGRESS: t.status?.inProgress || 'In progress',
-      COMPLETED: t.status?.completed || 'Completed',
+      SEARCHING_PROVIDERS:
+        t.status?.searchingProviders || "Searching providers",
+      QUOTES_RECEIVED: t.status?.quotesReceived || "Quotes received",
+      QUOTE_ACCEPTED: t.status?.quoteAccepted || "Quote accepted",
+      IN_PROGRESS: t.status?.inProgress || "In progress",
+      COMPLETED: t.status?.completed || "Completed",
     };
     return texts[status] || status;
   };
@@ -100,8 +101,8 @@ export default function DashboardScreen({ navigation }: any) {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
+          <RefreshControl
+            refreshing={refreshing}
             onRefresh={loadRequests}
             colors={[theme.colors.primary]}
           />
@@ -111,10 +112,12 @@ export default function DashboardScreen({ navigation }: any) {
         <FadeInView delay={0}>
           <View style={styles.header}>
             <Text variant="headlineSmall" style={styles.greeting}>
-              {t.customerDashboard?.greeting || 'Hello'}, {user?.fullName?.split(' ')[0]}! 👋
+              {t.customerDashboard?.greeting || "Hello"},{" "}
+              {user?.fullName?.split(" ")[0]}! 👋
             </Text>
             <Text variant="bodyMedium" style={styles.subtitle}>
-              {t.customerDashboard?.howCanWeHelp || 'How can we help you today?'}
+              {t.customerDashboard?.howCanWeHelp ||
+                "How can we help you today?"}
             </Text>
           </View>
         </FadeInView>
@@ -122,27 +125,52 @@ export default function DashboardScreen({ navigation }: any) {
         {/* ✨ Quick Stats */}
         <FadeInView delay={100}>
           <View style={styles.statsContainer}>
-            <ScalePress onPress={() => navigation.navigate('WorkOrdersTab')} style={styles.statCard}>
-              <View style={[styles.statCardInner, { backgroundColor: '#e3f2fd' }]}>
+            <ScalePress
+              onPress={() => navigation.navigate("WorkOrdersTab")}
+              style={styles.statCard}
+            >
+              <View
+                style={[styles.statCardInner, { backgroundColor: "#e3f2fd" }]}
+              >
                 <Text style={styles.statEmoji}>🔧</Text>
-                <Text style={styles.statNumber}>{requests.filter(r => r.status === 'IN_PROGRESS').length}</Text>
-                <Text style={styles.statLabel}>{t.customerDashboard?.activeServices || 'Active'}</Text>
+                <Text style={styles.statNumber}>
+                  {requests.filter((r) => r.status === "IN_PROGRESS").length}
+                </Text>
+                <Text style={styles.statLabel}>
+                  {t.customerDashboard?.activeServices || "Active"}
+                </Text>
               </View>
             </ScalePress>
-            
+
             <ScalePress onPress={() => {}} style={styles.statCard}>
-              <View style={[styles.statCardInner, { backgroundColor: '#e8f5e9' }]}>
+              <View
+                style={[styles.statCardInner, { backgroundColor: "#e8f5e9" }]}
+              >
                 <Text style={styles.statEmoji}>📋</Text>
-                <Text style={styles.statNumber}>{requests.filter(r => r.status === 'QUOTES_RECEIVED').length}</Text>
-                <Text style={styles.statLabel}>{t.customerDashboard?.pendingQuotes || 'Quotes'}</Text>
+                <Text style={styles.statNumber}>
+                  {
+                    requests.filter((r) => r.status === "QUOTES_RECEIVED")
+                      .length
+                  }
+                </Text>
+                <Text style={styles.statLabel}>
+                  {t.customerDashboard?.pendingQuotes || "Quotes"}
+                </Text>
               </View>
             </ScalePress>
-            
-            <ScalePress onPress={() => navigation.navigate('Vehicles')} style={styles.statCard}>
-              <View style={[styles.statCardInner, { backgroundColor: '#fff3e0' }]}>
+
+            <ScalePress
+              onPress={() => navigation.navigate("Vehicles")}
+              style={styles.statCard}
+            >
+              <View
+                style={[styles.statCardInner, { backgroundColor: "#fff3e0" }]}
+              >
                 <Text style={styles.statEmoji}>🚗</Text>
                 <Text style={styles.statNumber}>-</Text>
-                <Text style={styles.statLabel}>{t.nav?.vehicles || 'Vehicles'}</Text>
+                <Text style={styles.statLabel}>
+                  {t.nav?.vehicles || "Vehicles"}
+                </Text>
               </View>
             </ScalePress>
           </View>
@@ -152,17 +180,20 @@ export default function DashboardScreen({ navigation }: any) {
         <FadeInView delay={200}>
           <View style={styles.section}>
             <Text variant="titleLarge" style={styles.sectionTitle}>
-              {t.customerDashboard?.recentRequests || 'Recent Requests'}
+              {t.customerDashboard?.recentRequests || "Recent Requests"}
             </Text>
 
             {/* ✨ Empty State melhorado */}
             {requests.length === 0 && (
               <EmptyState
                 icon="clipboard-text-outline"
-                title={t.customerDashboard?.noRequests || 'No requests'}
-                description={t.customerDashboard?.createFirstRequest || 'Create your first service request!'}
-                actionLabel={t.customerDashboard?.newRequest || 'New Request'}
-                onAction={() => navigation.navigate('ServiceChoice')}
+                title={t.customerDashboard?.noRequests || "No requests"}
+                description={
+                  t.customerDashboard?.createFirstRequest ||
+                  "Create your first service request!"
+                }
+                actionLabel={t.customerDashboard?.newRequest || "New Request"}
+                onAction={() => navigation.navigate("ServiceChoice")}
               />
             )}
 
@@ -170,7 +201,11 @@ export default function DashboardScreen({ navigation }: any) {
             {requests.map((request, index) => (
               <FadeInView key={request.id} delay={300 + index * 100}>
                 <ScalePress
-                  onPress={() => navigation.navigate('RequestDetails', { requestId: request.id })}
+                  onPress={() =>
+                    navigation.navigate("RequestDetails", {
+                      requestId: request.id,
+                    })
+                  }
                 >
                   <Card style={styles.card}>
                     <Card.Content>
@@ -184,7 +219,9 @@ export default function DashboardScreen({ navigation }: any) {
                             { backgroundColor: getStatusColor(request.status) },
                           ]}
                         >
-                          <Text style={styles.statusText}>{getStatusText(request.status)}</Text>
+                          <Text style={styles.statusText}>
+                            {getStatusText(request.status)}
+                          </Text>
                         </View>
                       </View>
 
@@ -195,7 +232,9 @@ export default function DashboardScreen({ navigation }: any) {
                       {request.quotesCount > 0 && (
                         <View style={styles.quotesContainer}>
                           <Text variant="bodyMedium" style={styles.quotesCount}>
-                            📋 {request.quotesCount} {t.customerDashboard?.quotesAvailable || 'quote(s) available'}
+                            📋 {request.quotesCount}{" "}
+                            {t.customerDashboard?.quotesAvailable ||
+                              "quote(s) available"}
                           </Text>
                         </View>
                       )}
@@ -212,8 +251,8 @@ export default function DashboardScreen({ navigation }: any) {
       <FAB
         icon="plus"
         style={[styles.fab, { backgroundColor: theme.colors.primary }]}
-        onPress={() => navigation.navigate('ServiceChoice')}
-        label={t.customerDashboard?.newRequest || 'New Request'}
+        onPress={() => navigation.navigate("ServiceChoice")}
+        label={t.customerDashboard?.newRequest || "New Request"}
       />
 
       {/* ✨ Toast para notificações */}
@@ -230,7 +269,7 @@ export default function DashboardScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#f5f5f5",
   },
   scrollContent: {
     padding: 16,
@@ -240,7 +279,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   greeting: {
-    fontWeight: '700',
+    fontWeight: "700",
   },
   subtitle: {
     opacity: 0.7,
@@ -250,26 +289,26 @@ const styles = StyleSheet.create({
   skeletonTitle: {
     width: 200,
     height: 28,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: "#e0e0e0",
     borderRadius: 8,
     marginBottom: 8,
   },
   skeletonSubtitle: {
     width: 150,
     height: 16,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: "#e0e0e0",
     borderRadius: 6,
   },
   skeletonSectionTitle: {
     width: 180,
     height: 24,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: "#e0e0e0",
     borderRadius: 6,
     marginBottom: 16,
   },
   // ✨ Stats cards
   statsContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
     marginBottom: 24,
   },
@@ -279,7 +318,7 @@ const styles = StyleSheet.create({
   statCardInner: {
     borderRadius: 16,
     padding: 16,
-    alignItems: 'center',
+    alignItems: "center",
   },
   statEmoji: {
     fontSize: 24,
@@ -287,21 +326,21 @@ const styles = StyleSheet.create({
   },
   statNumber: {
     fontSize: 24,
-    fontWeight: '800',
-    color: '#1f2937',
+    fontWeight: "800",
+    color: "#1f2937",
   },
   statLabel: {
     fontSize: 11,
-    color: '#6b7280',
+    color: "#6b7280",
     marginTop: 4,
-    textAlign: 'center',
+    textAlign: "center",
   },
   section: {
     marginBottom: 16,
   },
   sectionTitle: {
     marginBottom: 16,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   card: {
     marginBottom: 12,
@@ -309,15 +348,15 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     marginBottom: 8,
   },
   cardTitle: {
     flex: 1,
     marginRight: 8,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   statusBadge: {
     paddingHorizontal: 10,
@@ -325,9 +364,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   statusText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   requestNumber: {
     opacity: 0.6,
@@ -337,14 +376,14 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    borderTopColor: "#f0f0f0",
   },
   quotesCount: {
-    color: '#4caf50',
-    fontWeight: '500',
+    color: "#4caf50",
+    fontWeight: "500",
   },
   fab: {
-    position: 'absolute',
+    position: "absolute",
     right: 16,
     bottom: 16,
     borderRadius: 16,

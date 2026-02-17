@@ -7,7 +7,7 @@ export interface User {
   fullName: string;
   email: string;
   phone: string;
-  role: 'CLIENT' | 'PROVIDER';
+  role: "CLIENT" | "PROVIDER";
   status: string;
   language: string;
   emailVerified: boolean;
@@ -33,10 +33,15 @@ export interface ServiceRequest {
   id: string;
   requestNumber: string;
   vehicleId: string;
-  serviceType: 'SCHEDULED_MAINTENANCE' | 'REPAIR' | 'ROADSIDE_SOS' | 'INSPECTION' | 'DETAILING';
+  serviceType:
+    | "SCHEDULED_MAINTENANCE"
+    | "REPAIR"
+    | "ROADSIDE_SOS"
+    | "INSPECTION"
+    | "DETAILING";
   title: string;
   description: string;
-  serviceLocationType: 'SHOP' | 'MOBILE' | 'CUSTOMER_LOCATION';
+  serviceLocationType: "SHOP" | "MOBILE" | "CUSTOMER_LOCATION";
   status: string;
   quotesCount: number;
   maxQuotes: number;
@@ -56,7 +61,7 @@ export interface Quote {
   taxAmount: number;
   totalAmount: number;
   laborDescription: string;
-  status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED';
+  status: "PENDING" | "ACCEPTED" | "REJECTED" | "EXPIRED";
   validUntil: string;
   createdAt: string;
   provider?: {
@@ -72,7 +77,12 @@ export interface Quote {
 export interface WorkOrder {
   id: string;
   orderNumber: string;
-  status: 'PENDING_START' | 'IN_PROGRESS' | 'AWAITING_APPROVAL' | 'COMPLETED' | 'DISPUTED';
+  status:
+    | "PENDING_START"
+    | "IN_PROGRESS"
+    | "AWAITING_APPROVAL"
+    | "COMPLETED"
+    | "DISPUTED";
   originalAmount: number;
   finalAmount: number;
   createdAt: string;
@@ -97,7 +107,7 @@ export interface SignupData {
   email: string;
   phone: string;
   password: string;
-  language: 'EN' | 'PT' | 'ES';
+  language: "EN" | "PT" | "ES";
 }
 
 export interface LoginData {

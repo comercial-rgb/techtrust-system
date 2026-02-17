@@ -12,9 +12,11 @@ import {
   TouchableOpacity,
   RefreshControl,
   Alert,
+  Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { FadeInView, ScalePress } from "../components/Animated";
 import { useI18n } from "../i18n";
 import { getVehicleRecalls, RecallItem } from "../services/nhtsa.service";
@@ -72,6 +74,7 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
   const [recalls, setRecalls] = useState<RecallItem[]>([]);
   const [recallsLoading, setRecallsLoading] = useState(false);
   const [expandedRecall, setExpandedRecall] = useState<string | null>(null);
+  const [recallBannerDismissed, setRecallBannerDismissed] = useState(false);
 
   useEffect(() => {
     loadVehicleDetails();
@@ -139,9 +142,31 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
   async function loadRecalls() {
     setRecallsLoading(true);
     try {
-      const result = await getVehicleRecalls(vehicleId);
-      if (result.success && result.data) {
-        setRecalls(result.data);
+      // D5: Check cache — auto-refresh weekly
+      const cacheKey = `@TechTrust:recalls_${vehicleId}`;
+      const cached = await AsyncStorage.getItem(cacheKey);
+      let shouldFetch = true;
+
+      if (cached) {
+        const { data, timestamp } = JSON.parse(cached);
+        const weekMs = 7 * 24 * 60 * 60 * 1000;
+        if (Date.now() - timestamp < weekMs) {
+          // Cache is fresh (< 7 days)
+          setRecalls(data);
+          shouldFetch = false;
+        }
+      }
+
+      if (shouldFetch) {
+        const result = await getVehicleRecalls(vehicleId);
+        if (result.success && result.data) {
+          setRecalls(result.data);
+          // Cache with timestamp
+          await AsyncStorage.setItem(cacheKey, JSON.stringify({
+            data: result.data,
+            timestamp: Date.now(),
+          }));
+        }
       }
     } catch (error) {
       console.error("Error loading recalls:", error);
@@ -337,6 +362,50 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
             )}
           </View>
         </FadeInView>
+
+        {/* D5: Safety Recall Alert Banner */}
+        {recalls.length > 0 && !recallBannerDismissed && (
+          <FadeInView delay={50}>
+            <View style={{
+              backgroundColor: '#fef2f2',
+              marginHorizontal: 16,
+              marginBottom: 12,
+              borderRadius: 14,
+              padding: 14,
+              borderWidth: 1,
+              borderColor: '#fecaca',
+              flexDirection: 'row',
+              alignItems: 'flex-start',
+              gap: 10,
+            }}>
+              <View style={{
+                width: 36, height: 36, borderRadius: 18,
+                backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Ionicons name="warning" size={20} color="#fff" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 14, fontWeight: '700', color: '#991b1b' }}>
+                  Safety Recall Alert
+                </Text>
+                <Text style={{ fontSize: 13, color: '#7f1d1d', marginTop: 4, lineHeight: 18 }}>
+                  {recalls.length === 1
+                    ? `${recalls[0].component}: ${recalls[0].summary?.substring(0, 100)}...`
+                    : `${recalls.length} active safety recalls found for this vehicle.`}
+                </Text>
+                <Text style={{ fontSize: 12, color: '#b91c1c', marginTop: 6, fontWeight: '600' }}>
+                  Contact nearest dealer for free repair.
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={{ padding: 4 }}
+                onPress={() => setRecallBannerDismissed(true)}
+              >
+                <Ionicons name="close" size={18} color="#9ca3af" />
+              </TouchableOpacity>
+            </View>
+          </FadeInView>
+        )}
 
         {/* Quick Stats */}
         <FadeInView delay={100}>

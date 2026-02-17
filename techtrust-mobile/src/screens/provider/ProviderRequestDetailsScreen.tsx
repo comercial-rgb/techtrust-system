@@ -25,8 +25,24 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useI18n } from "../../i18n";
 import { useNotifications } from "../../contexts/NotificationsContext";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import api from "../../services/api";
 import { getServiceTypeInfo as getServiceTypeInfoFromTree } from "../../constants/serviceTree";
+
+const QUOTE_TEMPLATES_KEY = "@TechTrust:quoteTemplates";
+
+interface QuoteTemplate {
+  id: string;
+  name: string;
+  lineItems: QuoteLineItem[];
+  laborDescription: string;
+  estimatedDuration: string;
+  partsWarrantyMonths: string;
+  serviceWarrantyDays: string;
+  warrantyMileage: string;
+  warrantyTerms: string;
+  notes: string;
+}
 
 interface QuoteLineItem {
   id: string;
@@ -92,6 +108,21 @@ export default function ProviderRequestDetailsScreen({
   const [submitting, setSubmitting] = useState(false);
   const [quoteSubmitted, setQuoteSubmitted] = useState(false);
 
+  // D7: Decline with reasons
+  const [showDeclineModal, setShowDeclineModal] = useState(false);
+  const [declineReason, setDeclineReason] = useState("");
+  const [declineOtherText, setDeclineOtherText] = useState("");
+  const [declining, setDeclining] = useState(false);
+
+  // D8: Quote review before submit
+  const [showReviewModal, setShowReviewModal] = useState(false);
+
+  // D6: Quick Quote Templates
+  const [quoteTemplates, setQuoteTemplates] = useState<QuoteTemplate[]>([]);
+  const [showTemplatesModal, setShowTemplatesModal] = useState(false);
+  const [saveTemplateName, setSaveTemplateName] = useState("");
+  const [showSaveTemplateInput, setShowSaveTemplateInput] = useState(false);
+
   // Mark request as viewed when screen opens
   useEffect(() => {
     if (requestId) {
@@ -148,6 +179,77 @@ export default function ProviderRequestDetailsScreen({
     const distanceStr = request.customer.distance.replace(/[^\d.]/g, "");
     const km = parseFloat(distanceStr) || 0;
     return km * 0.621371;
+  };
+
+  // Load saved quote templates
+  useEffect(() => {
+    loadQuoteTemplates();
+  }, []);
+
+  const loadQuoteTemplates = async () => {
+    try {
+      const saved = await AsyncStorage.getItem(QUOTE_TEMPLATES_KEY);
+      if (saved) setQuoteTemplates(JSON.parse(saved));
+    } catch { /* silent */ }
+  };
+
+  const saveQuoteTemplate = async (name: string) => {
+    const template: QuoteTemplate = {
+      id: Date.now().toString(),
+      name,
+      lineItems: lineItems.filter(i => i.description),
+      laborDescription,
+      estimatedDuration,
+      partsWarrantyMonths,
+      serviceWarrantyDays,
+      warrantyMileage,
+      warrantyTerms,
+      notes,
+    };
+    const updated = [...quoteTemplates, template];
+    setQuoteTemplates(updated);
+    await AsyncStorage.setItem(QUOTE_TEMPLATES_KEY, JSON.stringify(updated));
+    Alert.alert("Template Saved", `"${name}" saved for future quotes.`);
+    setShowSaveTemplateInput(false);
+    setSaveTemplateName("");
+  };
+
+  const applyTemplate = (template: QuoteTemplate) => {
+    setLineItems(template.lineItems.length > 0 ? template.lineItems.map((item, i) => ({ ...item, id: (i + 1).toString() })) : [{ id: "1", type: "part", description: "", quantity: 1, unitPrice: 0 }]);
+    setLaborDescription(template.laborDescription);
+    setEstimatedDuration(template.estimatedDuration);
+    setPartsWarrantyMonths(template.partsWarrantyMonths);
+    setServiceWarrantyDays(template.serviceWarrantyDays);
+    setWarrantyMileage(template.warrantyMileage);
+    setWarrantyTerms(template.warrantyTerms);
+    setNotes(template.notes);
+    setShowTemplatesModal(false);
+  };
+
+  const deleteQuoteTemplate = async (templateId: string) => {
+    const updated = quoteTemplates.filter(t => t.id !== templateId);
+    setQuoteTemplates(updated);
+    await AsyncStorage.setItem(QUOTE_TEMPLATES_KEY, JSON.stringify(updated));
+  };
+
+  // D7: Handle decline with reason
+  const handleDeclineWithReason = async () => {
+    if (!declineReason) {
+      Alert.alert("Select a Reason", "Please select a reason for declining.");
+      return;
+    }
+    setDeclining(true);
+    try {
+      const reason = declineReason === "other" ? declineOtherText || "Other" : declineReason;
+      await api.post(`/service-requests/${requestId}/decline`, { reason });
+      setShowDeclineModal(false);
+      navigation.goBack();
+    } catch {
+      setShowDeclineModal(false);
+      navigation.goBack();
+    } finally {
+      setDeclining(false);
+    }
   };
 
   // Reset state and reload when requestId changes or screen gains focus
@@ -1060,25 +1162,9 @@ export default function ProviderRequestDetailsScreen({
           <TouchableOpacity
             style={styles.declineLink}
             onPress={() => {
-              Alert.alert(
-                t.provider?.declineRequest || "Decline Request",
-                t.provider?.declineConfirm || "Are you sure you want to decline this request?",
-                [
-                  { text: t.common?.cancel || "Cancel", style: "cancel" },
-                  {
-                    text: t.provider?.decline || "Decline",
-                    style: "destructive",
-                    onPress: async () => {
-                      try {
-                        await api.post(`/service-requests/${requestId}/decline`);
-                        navigation.goBack();
-                      } catch {
-                        navigation.goBack();
-                      }
-                    },
-                  },
-                ],
-              );
+              setDeclineReason("");
+              setDeclineOtherText("");
+              setShowDeclineModal(true);
             }}
           >
             <Text style={styles.declineLinkText}>
@@ -1692,45 +1778,430 @@ export default function ProviderRequestDetailsScreen({
                 </Text>
               </View>
 
-              <View style={styles.commissionNote}>
-                <MaterialCommunityIcons
-                  name="information"
-                  size={16}
-                  color="#6b7280"
-                />
-                <Text style={styles.commissionText}>
-                  {t.quote?.commissionNote ||
-                    "Platform commission (10%) will be deducted from final amount"}
-                </Text>
-              </View>
+              {/* D2: Fee Breakdown */}
+              {(() => {
+                const grandTotal = calculateTotal();
+                const platformFee = grandTotal * 0.10;
+                const youReceive = grandTotal - platformFee;
+                return (
+                  <View style={styles.feeBreakdownContainer}>
+                    <View style={styles.feeBreakdownHeader}>
+                      <MaterialCommunityIcons name="cash-check" size={18} color="#1e40af" />
+                      <Text style={styles.feeBreakdownTitle}>Fee Breakdown</Text>
+                    </View>
+                    <View style={styles.feeBreakdownRow}>
+                      <Text style={styles.feeBreakdownLabel}>Your quote</Text>
+                      <Text style={styles.feeBreakdownValue}>${grandTotal.toFixed(2)}</Text>
+                    </View>
+                    <View style={styles.feeBreakdownRow}>
+                      <Text style={[styles.feeBreakdownLabel, { color: '#ef4444' }]}>Platform fee (10%)</Text>
+                      <Text style={[styles.feeBreakdownValue, { color: '#ef4444' }]}>-${platformFee.toFixed(2)}</Text>
+                    </View>
+                    <View style={[styles.feeBreakdownRow, styles.feeBreakdownTotal]}>
+                      <Text style={styles.feeBreakdownReceiveLabel}>You receive</Text>
+                      <Text style={styles.feeBreakdownReceiveValue}>${youReceive.toFixed(2)}</Text>
+                    </View>
+                  </View>
+                );
+              })()}
 
-              {/* Submit Button */}
+              {/* D6: Save as Template / Use Template buttons */}
+              <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
+                {quoteTemplates.length > 0 && (
+                  <TouchableOpacity
+                    style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, borderRadius: 10, borderWidth: 1, borderColor: '#dbeafe', backgroundColor: '#eff6ff', gap: 6 }}
+                    onPress={() => setShowTemplatesModal(true)}
+                  >
+                    <MaterialCommunityIcons name="lightning-bolt" size={16} color="#1976d2" />
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: '#1976d2' }}>Use Template</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, borderRadius: 10, borderWidth: 1, borderColor: '#e5e7eb', backgroundColor: '#f9fafb', gap: 6 }}
+                  onPress={() => {
+                    if (showSaveTemplateInput) {
+                      if (saveTemplateName.trim()) {
+                        saveQuoteTemplate(saveTemplateName.trim());
+                      } else {
+                        Alert.alert("Name Required", "Enter a name for the template.");
+                      }
+                    } else {
+                      setShowSaveTemplateInput(true);
+                    }
+                  }}
+                >
+                  <MaterialCommunityIcons name="content-save" size={16} color="#6b7280" />
+                  <Text style={{ fontSize: 13, fontWeight: '500', color: '#6b7280' }}>Save Template</Text>
+                </TouchableOpacity>
+              </View>
+              {showSaveTemplateInput && (
+                <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+                  <TextInput
+                    style={{ flex: 1, backgroundColor: '#f9fafb', borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14 }}
+                    placeholder="Template name, e.g. Standard Oil Change"
+                    value={saveTemplateName}
+                    onChangeText={setSaveTemplateName}
+                    autoFocus
+                  />
+                  <TouchableOpacity
+                    style={{ backgroundColor: '#1976d2', borderRadius: 8, paddingHorizontal: 14, justifyContent: 'center' }}
+                    onPress={() => {
+                      if (saveTemplateName.trim()) saveQuoteTemplate(saveTemplateName.trim());
+                      else Alert.alert("Name Required", "Enter a name for the template.");
+                    }}
+                  >
+                    <MaterialCommunityIcons name="check" size={20} color="#fff" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{ justifyContent: 'center', paddingHorizontal: 8 }}
+                    onPress={() => { setShowSaveTemplateInput(false); setSaveTemplateName(""); }}
+                  >
+                    <MaterialCommunityIcons name="close" size={20} color="#9ca3af" />
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* D8: Review & Submit Button */}
               <TouchableOpacity
                 style={[
                   styles.submitButton,
                   submitting && styles.submitButtonDisabled,
                 ]}
-                onPress={handleSubmitQuote}
+                onPress={() => {
+                  // Validate before opening review
+                  const validItems = lineItems.filter(i => i.description && i.unitPrice > 0);
+                  if (validItems.length === 0) {
+                    Alert.alert(t.common?.error || "Error", t.common?.addItemError || "Add at least one item to the quote");
+                    return;
+                  }
+                  if (!estimatedDuration) {
+                    Alert.alert(t.common?.error || "Error", t.common?.selectDurationError || "Select the estimated time for the service");
+                    return;
+                  }
+                  if (!selectedDate || !selectedTime) {
+                    Alert.alert(t.common?.error || "Error", t.common?.selectDateTimeError || "Select the available date and time for the service");
+                    return;
+                  }
+                  setShowReviewModal(true);
+                }}
+                disabled={submitting}
+              >
+                <MaterialCommunityIcons name="clipboard-check" size={20} color="#fff" />
+                <Text style={styles.submitButtonText}>
+                  Review & Submit
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* D8: Quote Review Modal */}
+      <Modal
+        visible={showReviewModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowReviewModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { maxHeight: '95%' }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Review Quote</Text>
+              <TouchableOpacity onPress={() => setShowReviewModal(false)}>
+                <MaterialCommunityIcons name="close" size={24} color="#6b7280" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {/* Vehicle & Service */}
+              {request && (
+                <View style={styles.customerRequestSummary}>
+                  <View style={styles.customerRequestHeader}>
+                    <View style={[styles.serviceTypeIconBox, { backgroundColor: getServiceTypeInfo(request.serviceType).bg }]}>
+                      <MaterialCommunityIcons name={getServiceTypeInfo(request.serviceType).icon as any} size={22} color={getServiceTypeInfo(request.serviceType).color} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.customerRequestServiceTitle}>{request.title}</Text>
+                      {request.vehicle && (
+                        <Text style={styles.customerRequestVehicleText}>
+                          {request.vehicle.year} {request.vehicle.make} {request.vehicle.model}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                </View>
+              )}
+
+              {/* Items Summary */}
+              <Text style={styles.sectionTitle}>Items</Text>
+              {lineItems.filter(i => i.description && i.unitPrice > 0).map((item) => (
+                <View key={item.id} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 14, fontWeight: '500', color: '#1f2937' }}>{item.description}</Text>
+                    <Text style={{ fontSize: 12, color: '#6b7280' }}>
+                      {item.type === 'part' ? 'Part' : 'Service'}{item.brand ? ` • ${item.brand}` : ''} • Qty: {item.quantity}
+                    </Text>
+                  </View>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#10b981' }}>${(item.quantity * item.unitPrice).toFixed(2)}</Text>
+                </View>
+              ))}
+
+              {/* Schedule */}
+              <Text style={[styles.sectionTitle, { marginTop: 16 }]}>Schedule & Duration</Text>
+              <View style={{ flexDirection: 'row', gap: 16, marginBottom: 8 }}>
+                <View style={{ flex: 1, backgroundColor: '#f8fafc', padding: 12, borderRadius: 10 }}>
+                  <Text style={{ fontSize: 11, color: '#6b7280' }}>Date</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#111827' }}>{selectedDate ? availableDates.find(d => d.value === selectedDate)?.label || selectedDate : '—'}</Text>
+                </View>
+                <View style={{ flex: 1, backgroundColor: '#f8fafc', padding: 12, borderRadius: 10 }}>
+                  <Text style={{ fontSize: 11, color: '#6b7280' }}>Time</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#111827' }}>{selectedTime ? availableTimes.find(t => t.value === selectedTime)?.label || selectedTime : '—'}</Text>
+                </View>
+              </View>
+              <View style={{ backgroundColor: '#f8fafc', padding: 12, borderRadius: 10, marginBottom: 8 }}>
+                <Text style={{ fontSize: 11, color: '#6b7280' }}>Estimated Duration</Text>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#111827' }}>{estimatedDuration || '—'}</Text>
+              </View>
+
+              {/* Warranty */}
+              {(partsWarrantyMonths || serviceWarrantyDays || warrantyMileage) && (
+                <>
+                  <Text style={[styles.sectionTitle, { marginTop: 8 }]}>Warranty</Text>
+                  <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+                    {partsWarrantyMonths && (
+                      <View style={{ backgroundColor: '#fef3c7', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 }}>
+                        <Text style={{ fontSize: 12, color: '#92400e', fontWeight: '500' }}>Parts: {partsWarrantyMonths} mo</Text>
+                      </View>
+                    )}
+                    {serviceWarrantyDays && (
+                      <View style={{ backgroundColor: '#fef3c7', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 }}>
+                        <Text style={{ fontSize: 12, color: '#92400e', fontWeight: '500' }}>Service: {serviceWarrantyDays} days</Text>
+                      </View>
+                    )}
+                    {warrantyMileage && (
+                      <View style={{ backgroundColor: '#fef3c7', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 }}>
+                        <Text style={{ fontSize: 12, color: '#92400e', fontWeight: '500' }}>{warrantyMileage} miles</Text>
+                      </View>
+                    )}
+                  </View>
+                </>
+              )}
+
+              {/* Notes */}
+              {notes ? (
+                <>
+                  <Text style={[styles.sectionTitle, { marginTop: 8 }]}>Notes</Text>
+                  <Text style={{ fontSize: 13, color: '#6b7280', lineHeight: 18 }}>{notes}</Text>
+                </>
+              ) : null}
+
+              {/* Fee Breakdown in Review */}
+              {(() => {
+                const validItems = lineItems.filter(i => i.description && i.unitPrice > 0);
+                const partItems = validItems.filter(i => i.type === 'part');
+                const serviceItems = validItems.filter(i => i.type === 'service');
+                const partsTotal = partItems.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
+                const laborTotal = serviceItems.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
+                const displacement = calculateDisplacementCost();
+                const grandTotal = calculateTotal();
+                const platformFee = grandTotal * 0.10;
+                const youReceive = grandTotal - platformFee;
+                return (
+                  <View style={{ marginTop: 16 }}>
+                    <View style={styles.grandTotalContainer}>
+                      <View>
+                        <Text style={styles.grandTotalLabel}>Customer Pays</Text>
+                      </View>
+                      <Text style={styles.grandTotalValue}>${grandTotal.toFixed(2)}</Text>
+                    </View>
+                    <View style={styles.feeBreakdownContainer}>
+                      <View style={styles.feeBreakdownRow}>
+                        <Text style={styles.feeBreakdownLabel}>Parts</Text>
+                        <Text style={styles.feeBreakdownValue}>${partsTotal.toFixed(2)}</Text>
+                      </View>
+                      <View style={styles.feeBreakdownRow}>
+                        <Text style={styles.feeBreakdownLabel}>Labor</Text>
+                        <Text style={styles.feeBreakdownValue}>${laborTotal.toFixed(2)}</Text>
+                      </View>
+                      {displacement > 0 && (
+                        <View style={styles.feeBreakdownRow}>
+                          <Text style={styles.feeBreakdownLabel}>Displacement</Text>
+                          <Text style={styles.feeBreakdownValue}>${displacement.toFixed(2)}</Text>
+                        </View>
+                      )}
+                      <View style={[styles.feeBreakdownRow, { borderTopWidth: 1, borderTopColor: '#e5e7eb', paddingTop: 8, marginTop: 4 }]}>
+                        <Text style={[styles.feeBreakdownLabel, { color: '#ef4444' }]}>Platform fee (10%)</Text>
+                        <Text style={[styles.feeBreakdownValue, { color: '#ef4444' }]}>-${platformFee.toFixed(2)}</Text>
+                      </View>
+                      <View style={[styles.feeBreakdownRow, styles.feeBreakdownTotal]}>
+                        <Text style={styles.feeBreakdownReceiveLabel}>You receive</Text>
+                        <Text style={styles.feeBreakdownReceiveValue}>${youReceive.toFixed(2)}</Text>
+                      </View>
+                    </View>
+                  </View>
+                );
+              })()}
+
+              {/* Submit from Review */}
+              <TouchableOpacity
+                style={[styles.submitButton, submitting && styles.submitButtonDisabled]}
+                onPress={() => {
+                  setShowReviewModal(false);
+                  handleSubmitQuote();
+                }}
                 disabled={submitting}
               >
                 {submitting ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <>
-                    <MaterialCommunityIcons
-                      name="send"
-                      size={20}
-                      color="#fff"
-                    />
-                    <Text style={styles.submitButtonText}>
-                      {t.quote?.sendQuote || "Send Quote"}
-                    </Text>
+                    <MaterialCommunityIcons name="send" size={20} color="#fff" />
+                    <Text style={styles.submitButtonText}>Confirm & Send Quote</Text>
                   </>
                 )}
               </TouchableOpacity>
+
+              <TouchableOpacity
+                style={{ alignItems: 'center', paddingVertical: 12 }}
+                onPress={() => setShowReviewModal(false)}
+              >
+                <Text style={{ fontSize: 14, color: '#6b7280' }}>Go Back and Edit</Text>
+              </TouchableOpacity>
             </ScrollView>
           </View>
-        </KeyboardAvoidingView>
+        </View>
+      </Modal>
+
+      {/* D7: Decline with Reasons Modal */}
+      <Modal
+        visible={showDeclineModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowDeclineModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { maxHeight: '70%' }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Decline Request</Text>
+              <TouchableOpacity onPress={() => setShowDeclineModal(false)}>
+                <MaterialCommunityIcons name="close" size={24} color="#6b7280" />
+              </TouchableOpacity>
+            </View>
+            <Text style={{ fontSize: 14, color: '#6b7280', marginBottom: 16 }}>
+              Please select a reason for declining. This helps us route the request to another provider faster.
+            </Text>
+            {[
+              { id: "not_specialty", label: "Not my specialty", icon: "wrench-off" as const },
+              { id: "too_busy", label: "Too busy right now", icon: "clock-fast" as const },
+              { id: "too_far", label: "Customer too far", icon: "map-marker-distance" as const },
+              { id: "parts_unavailable", label: "Parts unavailable", icon: "package-variant-remove" as const },
+              { id: "other", label: "Other reason", icon: "dots-horizontal" as const },
+            ].map((reason) => (
+              <TouchableOpacity
+                key={reason.id}
+                style={[
+                  { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 12, borderWidth: 1, marginBottom: 8 },
+                  declineReason === reason.id
+                    ? { borderColor: '#ef4444', backgroundColor: '#fef2f2' }
+                    : { borderColor: '#e5e7eb', backgroundColor: '#fff' },
+                ]}
+                onPress={() => setDeclineReason(reason.id)}
+              >
+                <MaterialCommunityIcons
+                  name={reason.icon}
+                  size={20}
+                  color={declineReason === reason.id ? '#ef4444' : '#6b7280'}
+                />
+                <Text style={{ fontSize: 15, color: declineReason === reason.id ? '#ef4444' : '#374151', fontWeight: declineReason === reason.id ? '600' : '400', flex: 1 }}>
+                  {reason.label}
+                </Text>
+                {declineReason === reason.id && (
+                  <MaterialCommunityIcons name="check-circle" size={20} color="#ef4444" />
+                )}
+              </TouchableOpacity>
+            ))}
+            {declineReason === "other" && (
+              <TextInput
+                style={{ backgroundColor: '#f9fafb', borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, padding: 12, fontSize: 14, marginBottom: 8 }}
+                placeholder="Please specify..."
+                value={declineOtherText}
+                onChangeText={setDeclineOtherText}
+                multiline
+              />
+            )}
+            <TouchableOpacity
+              style={[styles.submitButton, { backgroundColor: '#ef4444', marginTop: 8 }, declining && { opacity: 0.7 }]}
+              onPress={handleDeclineWithReason}
+              disabled={declining}
+            >
+              {declining ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <>
+                  <MaterialCommunityIcons name="close-circle" size={20} color="#fff" />
+                  <Text style={styles.submitButtonText}>Decline Request</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* D6: Templates Modal */}
+      <Modal
+        visible={showTemplatesModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowTemplatesModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { maxHeight: '70%' }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Quote Templates</Text>
+              <TouchableOpacity onPress={() => setShowTemplatesModal(false)}>
+                <MaterialCommunityIcons name="close" size={24} color="#6b7280" />
+              </TouchableOpacity>
+            </View>
+            <Text style={{ fontSize: 13, color: '#6b7280', marginBottom: 16 }}>
+              Select a template to pre-fill your quote. You can adjust values after applying.
+            </Text>
+            {quoteTemplates.length === 0 ? (
+              <View style={{ alignItems: 'center', paddingVertical: 24 }}>
+                <MaterialCommunityIcons name="file-document-outline" size={40} color="#d1d5db" />
+                <Text style={{ fontSize: 14, color: '#9ca3af', marginTop: 8 }}>No saved templates yet</Text>
+                <Text style={{ fontSize: 12, color: '#d1d5db', marginTop: 4, textAlign: 'center' }}>
+                  Fill out a quote and tap "Save Template" to create one
+                </Text>
+              </View>
+            ) : (
+              <ScrollView showsVerticalScrollIndicator={false}>
+                {quoteTemplates.map((template) => {
+                  const total = template.lineItems.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
+                  return (
+                    <View key={template.id} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: '#e5e7eb' }}>
+                      <TouchableOpacity style={{ flex: 1 }} onPress={() => applyTemplate(template)}>
+                        <Text style={{ fontSize: 15, fontWeight: '600', color: '#1f2937' }}>{template.name}</Text>
+                        <Text style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>
+                          {template.lineItems.length} item(s) • ${total.toFixed(2)} • {template.estimatedDuration || '—'}
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={{ padding: 8 }}
+                        onPress={() => {
+                          Alert.alert("Delete Template", `Delete "${template.name}"?`, [
+                            { text: "Cancel", style: "cancel" },
+                            { text: "Delete", style: "destructive", onPress: () => deleteQuoteTemplate(template.id) },
+                          ]);
+                        }}
+                      >
+                        <MaterialCommunityIcons name="delete-outline" size={20} color="#ef4444" />
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })}
+              </ScrollView>
+            )}
+          </View>
+        </View>
       </Modal>
     </SafeAreaView>
   );
@@ -2352,6 +2823,57 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#6b7280",
     flex: 1,
+  },
+  // D2: Fee Breakdown styles
+  feeBreakdownContainer: {
+    backgroundColor: "#f8fafc",
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  feeBreakdownHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
+  },
+  feeBreakdownTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#1e40af",
+  },
+  feeBreakdownRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 4,
+  },
+  feeBreakdownLabel: {
+    fontSize: 14,
+    color: "#6b7280",
+  },
+  feeBreakdownValue: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#374151",
+  },
+  feeBreakdownTotal: {
+    borderTopWidth: 2,
+    borderTopColor: "#10b981",
+    paddingTop: 10,
+    marginTop: 8,
+  },
+  feeBreakdownReceiveLabel: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#10b981",
+  },
+  feeBreakdownReceiveValue: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#10b981",
   },
   displacementTotalContainer: {
     backgroundColor: "#f0f9ff",

@@ -70,7 +70,9 @@ export default function AddVehicleScreen({ navigation }: any) {
     editVehicle?.countryOfManufacturer || "",
   );
   const [category, setCategory] = useState(editVehicle?.category || "");
-  const [transmission, setTransmission] = useState(editVehicle?.transmission || "");
+  const [transmission, setTransmission] = useState(
+    editVehicle?.transmission || "",
+  );
 
   const [mileage, setMileage] = useState(
     editVehicle?.currentMileage?.toString() || "",
@@ -332,7 +334,10 @@ export default function AddVehicleScreen({ navigation }: any) {
     if (scanProcessing) return;
     setScanProcessing(true);
 
-    const scannedData = result.data.trim().toUpperCase().replace(/[^A-HJ-NPR-Z0-9]/g, "");
+    const scannedData = result.data
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-HJ-NPR-Z0-9]/g, "");
 
     if (scannedData.length === 17 && isValidVINFormat(scannedData)) {
       setShowScanner(false);
@@ -340,43 +345,62 @@ export default function AddVehicleScreen({ navigation }: any) {
       // Auto-decode after scan
       setTimeout(() => {
         setDecodingVIN(true);
-        decodeVIN(scannedData).then((decodeResult) => {
-          setDecodingVIN(false);
-          if (decodeResult.success && decodeResult.data) {
-            setMake(decodeResult.data.make);
-            setModel(decodeResult.data.model);
-            setYear(decodeResult.data.year.toString());
-            setEngineType(decodeResult.data.engineType || "");
-            setBodyType(decodeResult.data.bodyType || "");
-            setTrim(decodeResult.data.trim || "");
-            setDriveType(decodeResult.data.driveType || "");
-            if (decodeResult.data.numberOfRows) setNumberOfRows(decodeResult.data.numberOfRows.toString());
-            if (decodeResult.data.seatingCapacity) setSeatingCapacity(decodeResult.data.seatingCapacity.toString());
-            setCountryOfManufacturer(decodeResult.data.countryOfManufacturer || "");
-            setCategory(decodeResult.data.category || "");
-            setTransmission(decodeResult.data.transmission || "");
-            setVinDecoded(true);
-            setManualEntry(false);
-            // Fuel type mapping
-            const nfuel = (decodeResult.data.fuelType || "").toLowerCase();
-            if (nfuel.includes("gasoline") || nfuel === "gas") setFuelType("Gasoline");
-            else if (nfuel.includes("diesel")) setFuelType("Diesel");
-            else if (nfuel.includes("plug-in") || nfuel.includes("phev")) setFuelType("Hybrid");
-            else if (nfuel.includes("hybrid")) setFuelType("Hybrid");
-            else if (nfuel.includes("electric")) setFuelType("Electric");
-            else if (nfuel.includes("flex") || nfuel.includes("e85")) setFuelType("Flex Fuel");
-            else if (nfuel.includes("cng") || nfuel.includes("natural")) setFuelType("CNG");
-            else if (nfuel.includes("hydrogen")) setFuelType("Hydrogen");
-            else if (decodeResult.data.fuelType) setFuelType(decodeResult.data.fuelType);
-            Alert.alert("VIN Scanned!", `${decodeResult.data.year} ${decodeResult.data.make} ${decodeResult.data.model} decoded successfully.`);
-          } else {
-            Alert.alert("VIN Scanned", "VIN captured but could not be decoded. You can fill details manually.");
+        decodeVIN(scannedData)
+          .then((decodeResult) => {
+            setDecodingVIN(false);
+            if (decodeResult.success && decodeResult.data) {
+              setMake(decodeResult.data.make);
+              setModel(decodeResult.data.model);
+              setYear(decodeResult.data.year.toString());
+              setEngineType(decodeResult.data.engineType || "");
+              setBodyType(decodeResult.data.bodyType || "");
+              setTrim(decodeResult.data.trim || "");
+              setDriveType(decodeResult.data.driveType || "");
+              if (decodeResult.data.numberOfRows)
+                setNumberOfRows(decodeResult.data.numberOfRows.toString());
+              if (decodeResult.data.seatingCapacity)
+                setSeatingCapacity(
+                  decodeResult.data.seatingCapacity.toString(),
+                );
+              setCountryOfManufacturer(
+                decodeResult.data.countryOfManufacturer || "",
+              );
+              setCategory(decodeResult.data.category || "");
+              setTransmission(decodeResult.data.transmission || "");
+              setVinDecoded(true);
+              setManualEntry(false);
+              // Fuel type mapping
+              const nfuel = (decodeResult.data.fuelType || "").toLowerCase();
+              if (nfuel.includes("gasoline") || nfuel === "gas")
+                setFuelType("Gasoline");
+              else if (nfuel.includes("diesel")) setFuelType("Diesel");
+              else if (nfuel.includes("plug-in") || nfuel.includes("phev"))
+                setFuelType("Hybrid");
+              else if (nfuel.includes("hybrid")) setFuelType("Hybrid");
+              else if (nfuel.includes("electric")) setFuelType("Electric");
+              else if (nfuel.includes("flex") || nfuel.includes("e85"))
+                setFuelType("Flex Fuel");
+              else if (nfuel.includes("cng") || nfuel.includes("natural"))
+                setFuelType("CNG");
+              else if (nfuel.includes("hydrogen")) setFuelType("Hydrogen");
+              else if (decodeResult.data.fuelType)
+                setFuelType(decodeResult.data.fuelType);
+              Alert.alert(
+                "VIN Scanned!",
+                `${decodeResult.data.year} ${decodeResult.data.make} ${decodeResult.data.model} decoded successfully.`,
+              );
+            } else {
+              Alert.alert(
+                "VIN Scanned",
+                "VIN captured but could not be decoded. You can fill details manually.",
+              );
+              setManualEntry(true);
+            }
+          })
+          .catch(() => {
+            setDecodingVIN(false);
             setManualEntry(true);
-          }
-        }).catch(() => {
-          setDecodingVIN(false);
-          setManualEntry(true);
-        });
+          });
       }, 300);
     } else {
       setScanProcessing(false);
@@ -801,11 +825,27 @@ export default function AddVehicleScreen({ navigation }: any) {
           </View>
           {!vinDecoded && (
             <TouchableOpacity
-              style={{ flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start", marginTop: 8, paddingVertical: 6, paddingHorizontal: 12, backgroundColor: "#f0f9ff", borderRadius: 8, borderWidth: 1, borderColor: "#dbeafe" }}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                alignSelf: "flex-start",
+                marginTop: 8,
+                paddingVertical: 6,
+                paddingHorizontal: 12,
+                backgroundColor: "#f0f9ff",
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: "#dbeafe",
+              }}
               onPress={openVinScanner}
             >
               <Ionicons name="scan" size={18} color="#1976d2" />
-              <Text style={{ fontSize: 13, color: "#1976d2", fontWeight: "600" }}>Scan VIN Barcode</Text>
+              <Text
+                style={{ fontSize: 13, color: "#1976d2", fontWeight: "600" }}
+              >
+                Scan VIN Barcode
+              </Text>
             </TouchableOpacity>
           )}
           {vinDecoded && (
@@ -1219,7 +1259,10 @@ export default function AddVehicleScreen({ navigation }: any) {
         animationType="slide"
         onRequestClose={() => setShowScanner(false)}
       >
-        <SafeAreaView style={{ flex: 1, backgroundColor: "#000" }} edges={["top", "bottom"]}>
+        <SafeAreaView
+          style={{ flex: 1, backgroundColor: "#000" }}
+          edges={["top", "bottom"]}
+        >
           <View style={{ flex: 1 }}>
             <CameraView
               style={{ flex: 1 }}
@@ -1230,24 +1273,96 @@ export default function AddVehicleScreen({ navigation }: any) {
               onBarcodeScanned={handleBarCodeScanned}
             />
             {/* Overlay with guide frame */}
-            <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, justifyContent: "center", alignItems: "center" }}>
+            <View
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
               {/* Semi-transparent background above/below frame */}
-              <View style={{ position: "absolute", top: 0, left: 0, right: 0, height: "30%", backgroundColor: "rgba(0,0,0,0.5)" }} />
-              <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "40%", backgroundColor: "rgba(0,0,0,0.5)" }} />
+              <View
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: "30%",
+                  backgroundColor: "rgba(0,0,0,0.5)",
+                }}
+              />
+              <View
+                style={{
+                  position: "absolute",
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  height: "40%",
+                  backgroundColor: "rgba(0,0,0,0.5)",
+                }}
+              />
               {/* Frame */}
-              <View style={{ width: width - 48, height: 120, borderWidth: 2, borderColor: "#1976d2", borderRadius: 12, backgroundColor: "transparent" }}>
-                <View style={{ position: "absolute", top: -1, left: 20, right: 20, height: 2, backgroundColor: "#1976d2" }} />
+              <View
+                style={{
+                  width: width - 48,
+                  height: 120,
+                  borderWidth: 2,
+                  borderColor: "#1976d2",
+                  borderRadius: 12,
+                  backgroundColor: "transparent",
+                }}
+              >
+                <View
+                  style={{
+                    position: "absolute",
+                    top: -1,
+                    left: 20,
+                    right: 20,
+                    height: 2,
+                    backgroundColor: "#1976d2",
+                  }}
+                />
               </View>
-              <Text style={{ color: "#fff", fontSize: 14, fontWeight: "600", marginTop: 16, textAlign: "center" }}>
+              <Text
+                style={{
+                  color: "#fff",
+                  fontSize: 14,
+                  fontWeight: "600",
+                  marginTop: 16,
+                  textAlign: "center",
+                }}
+              >
                 Point camera at VIN barcode
               </Text>
-              <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 12, marginTop: 4, textAlign: "center", paddingHorizontal: 40 }}>
+              <Text
+                style={{
+                  color: "rgba(255,255,255,0.7)",
+                  fontSize: 12,
+                  marginTop: 4,
+                  textAlign: "center",
+                  paddingHorizontal: 40,
+                }}
+              >
                 Usually found on the driver-side door jamb or lower windshield
               </Text>
             </View>
             {/* Close button */}
             <TouchableOpacity
-              style={{ position: "absolute", top: 60, right: 20, width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(0,0,0,0.6)", alignItems: "center", justifyContent: "center" }}
+              style={{
+                position: "absolute",
+                top: 60,
+                right: 20,
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: "rgba(0,0,0,0.6)",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
               onPress={() => setShowScanner(false)}
             >
               <Ionicons name="close" size={24} color="#fff" />

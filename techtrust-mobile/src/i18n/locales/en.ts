@@ -863,8 +863,10 @@ export default {
     setHours: "Set your working hours",
     defineArea: "Define your service area",
     noRequestsYet: "No pending requests",
-    noRequestsDesc: "New service requests from customers in your area will appear here.",
-    noActivityYet: "Your activity feed will appear here as you process requests.",
+    noRequestsDesc:
+      "New service requests from customers in your area will appear here.",
+    noActivityYet:
+      "Your activity feed will appear here as you process requests.",
     analytics: "Analytics",
     reviewsTitle: "Reviews",
     carWashQueue: "Wash Queue",
@@ -882,7 +884,8 @@ export default {
     // Quotes screen
     noQuotesWithStatus: "No quotes with this status",
     noQuotesFound: "No quotes yet",
-    quotesWillAppear: "Send quotes on service requests and track their status here.",
+    quotesWillAppear:
+      "Send quotes on service requests and track their status here.",
     tryOtherFilter: "Try selecting a different filter",
     // Profile screen
     messages: "Messages",
@@ -928,16 +931,22 @@ export default {
     reviewQuotesNow: "Review and compare now",
     requestQuotesDesc: "Schedule your next service",
     emptyStatsTitle: "Welcome to TechTrust!",
-    emptyStatsSubtitle: "Add your vehicle and request your first service to get started",
+    emptyStatsSubtitle:
+      "Add your vehicle and request your first service to get started",
     getStarted: "Get Started",
     nextTip: "Next tip",
-    tipReviewQuotes: "You have pending quotes! Review them to get the best deal.",
-    tipSyntheticOil: "Synthetic oil lasts 7,500-10,000 miles. Check your last oil change date.",
+    tipReviewQuotes:
+      "You have pending quotes! Review them to get the best deal.",
+    tipSyntheticOil:
+      "Synthetic oil lasts 7,500-10,000 miles. Check your last oil change date.",
     tipBrakes: "Brake pads should be inspected every 12,000 miles for safety.",
-    tipWinter: "Winter tip: Check your antifreeze levels and battery before cold hits.",
-    tipSummer: "Summer tip: Check your A/C and coolant system before the heat arrives.",
+    tipWinter:
+      "Winter tip: Check your antifreeze levels and battery before cold hits.",
+    tipSummer:
+      "Summer tip: Check your A/C and coolant system before the heat arrives.",
     tipMaintenance: "Regular maintenance can extend your car's life by 30%+.",
-    tipEmergency: "Keep an emergency kit in your car: jumper cables, flashlight, first aid.",
+    tipEmergency:
+      "Keep an emergency kit in your car: jumper cables, flashlight, first aid.",
     // Special Offers
     specialOffers: "Special Offers",
     limitedTimeDeals: "Limited time deals",
@@ -1086,7 +1095,8 @@ export default {
     servicesWillAppear: "Your services will appear here",
     noCompletedYet: "No completed services yet",
     noActiveServices: "No active services",
-    completedDesc: "Completed services will appear here after you finish work orders.",
+    completedDesc:
+      "Completed services will appear here after you finish work orders.",
     // Tabs
     tabRequests: "Requests",
     tabInProgress: "In Progress",
@@ -1792,7 +1802,8 @@ export default {
     tabLabel: "Car Wash",
     findNearby: "Find a Car Wash",
     nearbyDesc: "Discover car washes near you — quick, easy & affordable",
-    serviceChoiceDesc: "Need a wash? Find car washes near you with real-time pricing, unlimited membership plans, and customer reviews.",
+    serviceChoiceDesc:
+      "Need a wash? Find car washes near you with real-time pricing, unlimited membership plans, and customer reviews.",
     mapTitle: "Car Washes Near You",
     searchPlaceholder: "Search car washes...",
     filters: "Filters",
@@ -1822,7 +1833,8 @@ export default {
     membership: "Membership",
     favorites: "Saved Car Washes",
     noFavorites: "No Saved Car Washes",
-    noFavoritesDesc: "Tap the heart icon on any car wash to save it here for quick access.",
+    noFavoritesDesc:
+      "Tap the heart icon on any car wash to save it here for quick access.",
     findCarWashes: "Find Car Washes",
     // Profile
     washPackages: "Wash Packages",
@@ -1830,7 +1842,8 @@ export default {
     unlimitedPlans: "Unlimited Plans",
     perMonth: "/mo",
     validAllLocations: "Valid at all locations",
-    membershipNote: "* Membership sign-up available at the car wash location or their website",
+    membershipNote:
+      "* Membership sign-up available at the car wash location or their website",
     addOnServices: "Add-On Services",
     freeAmenities: "Free Amenities",
     hoursOfOperation: "Hours of Operation",
@@ -1854,7 +1867,8 @@ export default {
     ratingVeryGood: "Very Good",
     ratingExcellent: "Excellent",
     shareExperience: "Share your experience (optional)",
-    reviewPlaceholder: "What did you like or dislike? How was the wash quality, speed, and customer service?",
+    reviewPlaceholder:
+      "What did you like or dislike? How was the wash quality, speed, and customer service?",
     submitReview: "Submit Review",
     reviewSubmitted: "Review Submitted",
     thankYouReview: "Thank you for your review!",
@@ -1868,7 +1882,8 @@ export default {
     ownerResponse: "Owner Response",
     // Detailing redirect
     lookingForDetailing: "Looking for Professional Detailing?",
-    detailingDesc: "Paint correction, ceramic coating, interior deep clean, and more — request through our Services section.",
+    detailingDesc:
+      "Paint correction, ceramic coating, interior deep clean, and more — request through our Services section.",
     requestDetailing: "Request Detailing Service",
   },
 
@@ -1877,7 +1892,8 @@ export default {
     title: "Auto Parts Store",
     tabLabel: "Parts Store",
     browseStore: "Browse Parts",
-    serviceChoiceDesc: "Find auto parts near you. Browse verified stores, compare prices, and reserve parts for pickup.",
+    serviceChoiceDesc:
+      "Find auto parts near you. Browse verified stores, compare prices, and reserve parts for pickup.",
     dashboardDesc: "Find parts near you, compare prices & reserve",
     searchPlaceholder: "Search parts, brands, stores...",
     categories: "Categories",
@@ -1916,7 +1932,8 @@ export default {
     whereToBuy: "Where to Buy",
     reserveForPickup: "Reserve for Pickup",
     reserved: "Reserved!",
-    reservedDesc: "This product has been reserved for 24 hours. Visit the store to pick it up.",
+    reservedDesc:
+      "This product has been reserved for 24 hours. Visit the store to pick it up.",
     reserveError: "Could not reserve product.",
     sort: "Sort",
     newest: "Newest",
@@ -1939,30 +1956,35 @@ export default {
     skip: "Skip",
     getStarted: "Get Started",
     welcomeTitle: "Welcome to TechTrust!",
-    welcomeSubtitle: "Your trusted partner for auto services. Get quotes from verified shops, track repairs, and keep your vehicle in top shape.",
+    welcomeSubtitle:
+      "Your trusted partner for auto services. Get quotes from verified shops, track repairs, and keep your vehicle in top shape.",
     featureVerified: "Verified & licensed shops",
     featureQuotes: "Compare multiple quotes",
     featureLocal: "Local shops near you",
     vehicleTitle: "Add Your Vehicle",
-    vehicleSubtitle: "Add your vehicle to get accurate quotes and track maintenance history. You can scan your VIN or enter details manually.",
+    vehicleSubtitle:
+      "Add your vehicle to get accurate quotes and track maintenance history. You can scan your VIN or enter details manually.",
     featureVin: "Scan VIN for auto-fill",
     featureMultiple: "Add multiple vehicles",
     featureHistory: "Track service history",
     addVehicleNow: "Add Vehicle Now",
     serviceTitle: "Request a Service",
-    serviceSubtitle: "Describe what you need, and we'll send your request to qualified shops nearby. Compare quotes and choose the best deal.",
+    serviceSubtitle:
+      "Describe what you need, and we'll send your request to qualified shops nearby. Compare quotes and choose the best deal.",
     featureFast: "Quick quote requests",
     featureRatings: "Shop ratings & reviews",
     featureChat: "Chat directly with shops",
     requestServiceNow: "Request Service Now",
     carwashTitle: "Find a Car Wash",
-    carwashSubtitle: "Discover car washes near you with real-time pricing, membership plans, and customer reviews.",
+    carwashSubtitle:
+      "Discover car washes near you with real-time pricing, membership plans, and customer reviews.",
     featureMap: "Interactive map view",
     featureMembership: "Unlimited wash memberships",
     featureReviews: "Ratings & photos",
     findCarWashNow: "Find a Car Wash",
     doneTitle: "You're All Set!",
-    doneSubtitle: "You're ready to go. Add your vehicle, request services, find car washes, and keep your car in perfect shape.",
+    doneSubtitle:
+      "You're ready to go. Add your vehicle, request services, find car washes, and keep your car in perfect shape.",
     featureNotifications: "Get notified on new quotes",
     featurePayments: "Secure in-app payments",
     featureFavorites: "Save favorite shops",
@@ -1984,9 +2006,11 @@ export default {
     yesCancel: "Yes, Cancel",
     requestCancelled: "Request Cancelled",
     addPhotos: "Add Photos",
-    addPhotosDesc: "Attach photos of the issue to help providers give more accurate quotes.",
+    addPhotosDesc:
+      "Attach photos of the issue to help providers give more accurate quotes.",
     noQuotesTitle: "No quotes yet",
-    noQuotesDesc: "Providers are reviewing your request. You'll be notified when quotes arrive.",
+    noQuotesDesc:
+      "Providers are reviewing your request. You'll be notified when quotes arrive.",
     compareNow: "Compare Now",
     reviewQuote: "Review Quote",
     review: "review",
@@ -2010,15 +2034,20 @@ export default {
     progressCompleted: "Service completed! Thank you for using TechTrust.",
     progressInProgress: "Your vehicle is currently being serviced.",
     progressScheduled: "Your appointment is confirmed.",
-    progressAccepted: "You've accepted a quote. The shop will schedule your appointment.",
+    progressAccepted:
+      "You've accepted a quote. The shop will schedule your appointment.",
     progressQuotesReady: "You have {count} quote(s) ready to compare!",
-    progressSearchingNew: "Your request was just sent. Providers are reviewing it now.",
+    progressSearchingNew:
+      "Your request was just sent. Providers are reviewing it now.",
     progressSearchingWait: "We're actively reaching out to shops in your area.",
-    progressSearchingLong: "Still looking! You may want to expand your area or update your request.",
+    progressSearchingLong:
+      "Still looking! You may want to expand your area or update your request.",
     viewQuotes: "View Quotes",
     edit: "Edit",
-    editRequestDesc: "You can modify service details and filters for this request.",
-    cancelRequestConfirm: "Are you sure you want to cancel this request? This action cannot be undone.",
+    editRequestDesc:
+      "You can modify service details and filters for this request.",
+    cancelRequestConfirm:
+      "Are you sure you want to cancel this request? This action cannot be undone.",
     requestCancelledMsg: "Your request has been cancelled.",
     note: "Note",
     bestValue: "Best Value",

@@ -878,8 +878,10 @@ export default {
     setHours: "Defina seus horários de trabalho",
     defineArea: "Defina sua área de serviço",
     noRequestsYet: "Nenhum pedido pendente",
-    noRequestsDesc: "Novas solicitações de clientes na sua área aparecerão aqui.",
-    noActivityYet: "Seu feed de atividades aparecerá aqui conforme você processa pedidos.",
+    noRequestsDesc:
+      "Novas solicitações de clientes na sua área aparecerão aqui.",
+    noActivityYet:
+      "Seu feed de atividades aparecerá aqui conforme você processa pedidos.",
     analytics: "Análises",
     reviewsTitle: "Avaliações",
     carWashQueue: "Fila de Lavagem",
@@ -891,11 +893,13 @@ export default {
     newToday: "Novos Hoje",
     noUrgentRequests: "Nenhum pedido urgente",
     noNearbyRequests: "Nenhum pedido próximo",
-    expandRadius: "Tente expandir sua área de serviço nas configurações do Perfil.",
+    expandRadius:
+      "Tente expandir sua área de serviço nas configurações do Perfil.",
     viewAllRequests: "Ver Todos os Pedidos",
     noQuotesWithStatus: "Nenhum orçamento com este status",
     noQuotesFound: "Nenhum orçamento ainda",
-    quotesWillAppear: "Envie orçamentos em solicitações e acompanhe seu status aqui.",
+    quotesWillAppear:
+      "Envie orçamentos em solicitações e acompanhe seu status aqui.",
     tryOtherFilter: "Tente selecionar um filtro diferente",
     messages: "Mensagens",
     messageAlerts: "Mensagens e chat com clientes",
@@ -940,16 +944,24 @@ export default {
     reviewQuotesNow: "Revise e compare agora",
     requestQuotesDesc: "Agende seu próximo serviço",
     emptyStatsTitle: "Bem-vindo ao TechTrust!",
-    emptyStatsSubtitle: "Adicione seu veículo e solicite seu primeiro serviço para começar",
+    emptyStatsSubtitle:
+      "Adicione seu veículo e solicite seu primeiro serviço para começar",
     getStarted: "Começar",
     nextTip: "Próxima dica",
-    tipReviewQuotes: "Você tem orçamentos pendentes! Revise-os para garantir o melhor preço.",
-    tipSyntheticOil: "Óleo sintético dura de 12.000 a 16.000 km. Verifique a data da sua última troca.",
-    tipBrakes: "As pastilhas de freio devem ser inspecionadas a cada 20.000 km para segurança.",
-    tipWinter: "Dica de inverno: Verifique o anticongelante e a bateria antes do frio chegar.",
-    tipSummer: "Dica de verão: Verifique o ar-condicionado e o sistema de refrigeração antes do calor.",
-    tipMaintenance: "A manutenção regular pode prolongar a vida do seu carro em 30%+.",
-    tipEmergency: "Mantenha um kit de emergência no carro: cabos de bateria, lanterna, primeiros socorros.",
+    tipReviewQuotes:
+      "Você tem orçamentos pendentes! Revise-os para garantir o melhor preço.",
+    tipSyntheticOil:
+      "Óleo sintético dura de 12.000 a 16.000 km. Verifique a data da sua última troca.",
+    tipBrakes:
+      "As pastilhas de freio devem ser inspecionadas a cada 20.000 km para segurança.",
+    tipWinter:
+      "Dica de inverno: Verifique o anticongelante e a bateria antes do frio chegar.",
+    tipSummer:
+      "Dica de verão: Verifique o ar-condicionado e o sistema de refrigeração antes do calor.",
+    tipMaintenance:
+      "A manutenção regular pode prolongar a vida do seu carro em 30%+.",
+    tipEmergency:
+      "Mantenha um kit de emergência no carro: cabos de bateria, lanterna, primeiros socorros.",
     // Special Offers
     specialOffers: "Ofertas Especiais",
     limitedTimeDeals: "Ofertas por tempo limitado",
@@ -1093,7 +1105,8 @@ export default {
     servicesWillAppear: "Seus serviços aparecerão aqui",
     noCompletedYet: "Nenhum serviço concluído ainda",
     noActiveServices: "Nenhum serviço ativo",
-    completedDesc: "Serviços concluídos aparecerão aqui após finalizar ordens de serviço.",
+    completedDesc:
+      "Serviços concluídos aparecerão aqui após finalizar ordens de serviço.",
     // Tabs
     tabRequests: "Solicitações",
     tabInProgress: "Em Andamento",
@@ -1796,7 +1809,8 @@ export default {
     tabLabel: "Lava Jato",
     findNearby: "Encontrar Lava Jato",
     nearbyDesc: "Descubra lava jatos perto de você — rápido, fácil e acessível",
-    serviceChoiceDesc: "Precisa de uma lavagem? Encontre lava jatos perto de você com preços em tempo real, planos ilimitados e avaliações de clientes.",
+    serviceChoiceDesc:
+      "Precisa de uma lavagem? Encontre lava jatos perto de você com preços em tempo real, planos ilimitados e avaliações de clientes.",
     mapTitle: "Lava Jatos Perto de Você",
     searchPlaceholder: "Buscar lava jatos...",
     filters: "Filtros",
@@ -1826,14 +1840,16 @@ export default {
     membership: "Plano Mensal",
     favorites: "Lava Jatos Salvos",
     noFavorites: "Nenhum Lava Jato Salvo",
-    noFavoritesDesc: "Toque no ícone do coração em qualquer lava jato para salvá-lo aqui.",
+    noFavoritesDesc:
+      "Toque no ícone do coração em qualquer lava jato para salvá-lo aqui.",
     findCarWashes: "Encontrar Lava Jatos",
     washPackages: "Pacotes de Lavagem",
     mostPopular: "Mais Popular",
     unlimitedPlans: "Planos Ilimitados",
     perMonth: "/mês",
     validAllLocations: "Válido em todas as unidades",
-    membershipNote: "* Inscrição no plano disponível no local ou no site do lava jato",
+    membershipNote:
+      "* Inscrição no plano disponível no local ou no site do lava jato",
     addOnServices: "Serviços Adicionais",
     freeAmenities: "Comodidades Grátis",
     hoursOfOperation: "Horário de Funcionamento",
@@ -1856,7 +1872,8 @@ export default {
     ratingVeryGood: "Muito Bom",
     ratingExcellent: "Excelente",
     shareExperience: "Compartilhe sua experiência (opcional)",
-    reviewPlaceholder: "O que você gostou ou não? Como foi a qualidade da lavagem, velocidade e atendimento?",
+    reviewPlaceholder:
+      "O que você gostou ou não? Como foi a qualidade da lavagem, velocidade e atendimento?",
     submitReview: "Enviar Avaliação",
     reviewSubmitted: "Avaliação Enviada",
     thankYouReview: "Obrigado pela sua avaliação!",
@@ -1869,7 +1886,8 @@ export default {
     noReviewsYet: "Nenhuma avaliação ainda",
     ownerResponse: "Resposta do Proprietário",
     lookingForDetailing: "Procurando Detalhamento Profissional?",
-    detailingDesc: "Correção de pintura, revestimento cerâmico, limpeza profunda e mais — solicite pela seção de Serviços.",
+    detailingDesc:
+      "Correção de pintura, revestimento cerâmico, limpeza profunda e mais — solicite pela seção de Serviços.",
     requestDetailing: "Solicitar Detalhamento",
   },
 
@@ -1878,7 +1896,8 @@ export default {
     title: "Loja de Autopeças",
     tabLabel: "Autopeças",
     browseStore: "Ver Peças",
-    serviceChoiceDesc: "Encontre autopeças perto de você. Navegue por lojas verificadas, compare preços e reserve peças para retirada.",
+    serviceChoiceDesc:
+      "Encontre autopeças perto de você. Navegue por lojas verificadas, compare preços e reserve peças para retirada.",
     dashboardDesc: "Encontre peças, compare preços e reserve",
     searchPlaceholder: "Buscar peças, marcas, lojas...",
     categories: "Categorias",
@@ -1917,7 +1936,8 @@ export default {
     whereToBuy: "Onde Comprar",
     reserveForPickup: "Reservar para Retirada",
     reserved: "Reservado!",
-    reservedDesc: "Este produto foi reservado por 24 horas. Visite a loja para retirá-lo.",
+    reservedDesc:
+      "Este produto foi reservado por 24 horas. Visite a loja para retirá-lo.",
     reserveError: "Não foi possível reservar o produto.",
     sort: "Ordenar",
     newest: "Mais Recentes",
@@ -1940,30 +1960,35 @@ export default {
     skip: "Pular",
     getStarted: "Começar",
     welcomeTitle: "Bem-vindo ao TechTrust!",
-    welcomeSubtitle: "Seu parceiro de confiança para serviços automotivos. Receba orçamentos de oficinas verificadas, acompanhe reparos e mantenha seu veículo em ótimo estado.",
+    welcomeSubtitle:
+      "Seu parceiro de confiança para serviços automotivos. Receba orçamentos de oficinas verificadas, acompanhe reparos e mantenha seu veículo em ótimo estado.",
     featureVerified: "Oficinas verificadas e licenciadas",
     featureQuotes: "Compare múltiplos orçamentos",
     featureLocal: "Oficinas próximas de você",
     vehicleTitle: "Adicione Seu Veículo",
-    vehicleSubtitle: "Adicione seu veículo para receber orçamentos precisos e acompanhar o histórico de manutenção. Você pode escanear o VIN ou inserir os dados manualmente.",
+    vehicleSubtitle:
+      "Adicione seu veículo para receber orçamentos precisos e acompanhar o histórico de manutenção. Você pode escanear o VIN ou inserir os dados manualmente.",
     featureVin: "Escaneie o VIN para preenchimento automático",
     featureMultiple: "Adicione múltiplos veículos",
     featureHistory: "Acompanhe o histórico de serviços",
     addVehicleNow: "Adicionar Veículo Agora",
     serviceTitle: "Solicite um Serviço",
-    serviceSubtitle: "Descreva o que você precisa e enviaremos sua solicitação para oficinas qualificadas próximas. Compare orçamentos e escolha o melhor.",
+    serviceSubtitle:
+      "Descreva o que você precisa e enviaremos sua solicitação para oficinas qualificadas próximas. Compare orçamentos e escolha o melhor.",
     featureFast: "Solicitações rápidas de orçamento",
     featureRatings: "Avaliações e reviews das oficinas",
     featureChat: "Chat direto com as oficinas",
     requestServiceNow: "Solicitar Serviço Agora",
     carwashTitle: "Encontre um Lava Jato",
-    carwashSubtitle: "Descubra lava jatos perto de você com preços em tempo real, planos de assinatura e avaliações de clientes.",
+    carwashSubtitle:
+      "Descubra lava jatos perto de você com preços em tempo real, planos de assinatura e avaliações de clientes.",
     featureMap: "Mapa interativo",
     featureMembership: "Planos ilimitados de lavagem",
     featureReviews: "Avaliações e fotos",
     findCarWashNow: "Encontrar Lava Jato",
     doneTitle: "Tudo Pronto!",
-    doneSubtitle: "Você está pronto. Adicione seu veículo, solicite serviços, encontre lava jatos e mantenha seu carro em perfeito estado.",
+    doneSubtitle:
+      "Você está pronto. Adicione seu veículo, solicite serviços, encontre lava jatos e mantenha seu carro em perfeito estado.",
     featureNotifications: "Receba notificações de novos orçamentos",
     featurePayments: "Pagamentos seguros no app",
     featureFavorites: "Salve oficinas favoritas",
@@ -1984,9 +2009,11 @@ export default {
     yesCancel: "Sim, Cancelar",
     requestCancelled: "Solicitação Cancelada",
     addPhotos: "Adicionar Fotos",
-    addPhotosDesc: "Anexe fotos do problema para ajudar os fornecedores a dar orçamentos mais precisos.",
+    addPhotosDesc:
+      "Anexe fotos do problema para ajudar os fornecedores a dar orçamentos mais precisos.",
     noQuotesTitle: "Sem orçamentos ainda",
-    noQuotesDesc: "Fornecedores estão analisando sua solicitação. Você será notificado quando os orçamentos chegarem.",
+    noQuotesDesc:
+      "Fornecedores estão analisando sua solicitação. Você será notificado quando os orçamentos chegarem.",
     compareNow: "Comparar Agora",
     reviewQuote: "Ver Orçamento",
     review: "avaliação",
@@ -2010,15 +2037,20 @@ export default {
     progressCompleted: "Serviço concluído! Obrigado por usar a TechTrust.",
     progressInProgress: "Seu veículo está sendo atendido.",
     progressScheduled: "Seu agendamento está confirmado.",
-    progressAccepted: "Você aceitou um orçamento. A oficina irá agendar seu atendimento.",
+    progressAccepted:
+      "Você aceitou um orçamento. A oficina irá agendar seu atendimento.",
     progressQuotesReady: "Você tem {count} orçamento(s) prontos para comparar!",
-    progressSearchingNew: "Sua solicitação foi enviada. Fornecedores estão analisando.",
+    progressSearchingNew:
+      "Sua solicitação foi enviada. Fornecedores estão analisando.",
     progressSearchingWait: "Estamos buscando oficinas na sua região.",
-    progressSearchingLong: "Ainda procurando! Considere ampliar sua área ou atualizar sua solicitação.",
+    progressSearchingLong:
+      "Ainda procurando! Considere ampliar sua área ou atualizar sua solicitação.",
     viewQuotes: "Ver Orçamentos",
     edit: "Editar",
-    editRequestDesc: "Você pode modificar os detalhes e filtros desta solicitação.",
-    cancelRequestConfirm: "Tem certeza que deseja cancelar esta solicitação? Esta ação não pode ser desfeita.",
+    editRequestDesc:
+      "Você pode modificar os detalhes e filtros desta solicitação.",
+    cancelRequestConfirm:
+      "Tem certeza que deseja cancelar esta solicitação? Esta ação não pode ser desfeita.",
     requestCancelledMsg: "Sua solicitação foi cancelada.",
     note: "Observação",
     bestValue: "Melhor Custo-Benefício",

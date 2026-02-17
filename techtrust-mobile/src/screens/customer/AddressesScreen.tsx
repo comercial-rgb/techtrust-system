@@ -2,7 +2,7 @@
  * AddressesScreen - Gerenciamento de Endereços do Cliente
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -13,12 +13,26 @@ import {
   Modal,
   Alert,
   ActivityIndicator,
+  FlatList,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import api from "../../services/api";
 import { useI18n } from "../../i18n";
+
+// Google Places API key (optional - falls back to Nominatim/OSM)
+const GOOGLE_PLACES_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_KEY || "";
+
+interface PlaceSuggestion {
+  id: string;
+  displayName: string;
+  number: string;
+  street: string;
+  city: string;
+  state: string;
+  zipCode: string;
+}
 
 // Local fallback key (will migrate to API)
 const ADDRESSES_KEY = "@TechTrust:addresses";
@@ -42,6 +56,114 @@ export default function AddressesScreen({ navigation }: any) {
   const [showModal, setShowModal] = useState(false);
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // D4: Address search/autocomplete state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<PlaceSuggestion[]>([]);
+  const [searching, setSearching] = useState(false);
+  const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const searchAddresses = useCallback(async (query: string) => {
+    if (query.length < 3) {
+      setSearchResults([]);
+      return;
+    }
+    setSearching(true);
+    try {
+      if (GOOGLE_PLACES_KEY) {
+        // Use Google Places Autocomplete
+        const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(query)}&types=address&components=country:us&key=${GOOGLE_PLACES_KEY}`;
+        const resp = await fetch(url);
+        const data = await resp.json();
+        if (data.predictions) {
+          const details = await Promise.all(
+            data.predictions.slice(0, 5).map(async (p: any) => {
+              try {
+                const dResp = await fetch(`https://maps.googleapis.com/maps/api/place/details/json?place_id=${p.place_id}&fields=address_components&key=${GOOGLE_PLACES_KEY}`);
+                const dData = await dResp.json();
+                const comps = dData.result?.address_components || [];
+                const get = (type: string) => comps.find((c: any) => c.types.includes(type))?.short_name || "";
+                return {
+                  id: p.place_id,
+                  displayName: p.description,
+                  number: get("street_number"),
+                  street: get("route"),
+                  city: get("locality") || get("sublocality"),
+                  state: get("administrative_area_level_1"),
+                  zipCode: get("postal_code"),
+                };
+              } catch { return null; }
+            })
+          );
+          setSearchResults(details.filter(Boolean) as PlaceSuggestion[]);
+        }
+      } else {
+        // Free fallback: Nominatim (OpenStreetMap) geocoding
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=5&countrycodes=us`;
+        const resp = await fetch(url, {
+          headers: { 'User-Agent': 'TechTrust-Mobile/1.0' },
+        });
+        const data = await resp.json();
+        const results: PlaceSuggestion[] = data.map((item: any) => {
+          const addr = item.address || {};
+          return {
+            id: item.place_id?.toString() || Math.random().toString(),
+            displayName: item.display_name || "",
+            number: addr.house_number || "",
+            street: addr.road || "",
+            city: addr.city || addr.town || addr.village || addr.hamlet || "",
+            state: addr.state ? getStateAbbr(addr.state) : "",
+            zipCode: addr.postcode || "",
+          };
+        });
+        setSearchResults(results);
+      }
+    } catch (err) {
+      console.log("Address search error:", err);
+      setSearchResults([]);
+    } finally {
+      setSearching(false);
+    }
+  }, []);
+
+  const handleSearchInput = (text: string) => {
+    setSearchQuery(text);
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    searchTimeout.current = setTimeout(() => searchAddresses(text), 400);
+  };
+
+  const selectSuggestion = (suggestion: PlaceSuggestion) => {
+    setFormData({
+      ...formData,
+      number: suggestion.number,
+      street: suggestion.street,
+      city: suggestion.city,
+      state: suggestion.state,
+      zipCode: suggestion.zipCode,
+    });
+    setSearchQuery("");
+    setSearchResults([]);
+  };
+
+  // Convert full state name to 2-letter abbreviation
+  const getStateAbbr = (stateName: string): string => {
+    const states: Record<string, string> = {
+      'Alabama': 'AL', 'Alaska': 'AK', 'Arizona': 'AZ', 'Arkansas': 'AR',
+      'California': 'CA', 'Colorado': 'CO', 'Connecticut': 'CT', 'Delaware': 'DE',
+      'Florida': 'FL', 'Georgia': 'GA', 'Hawaii': 'HI', 'Idaho': 'ID',
+      'Illinois': 'IL', 'Indiana': 'IN', 'Iowa': 'IA', 'Kansas': 'KS',
+      'Kentucky': 'KY', 'Louisiana': 'LA', 'Maine': 'ME', 'Maryland': 'MD',
+      'Massachusetts': 'MA', 'Michigan': 'MI', 'Minnesota': 'MN', 'Mississippi': 'MS',
+      'Missouri': 'MO', 'Montana': 'MT', 'Nebraska': 'NE', 'Nevada': 'NV',
+      'New Hampshire': 'NH', 'New Jersey': 'NJ', 'New Mexico': 'NM', 'New York': 'NY',
+      'North Carolina': 'NC', 'North Dakota': 'ND', 'Ohio': 'OH', 'Oklahoma': 'OK',
+      'Oregon': 'OR', 'Pennsylvania': 'PA', 'Rhode Island': 'RI', 'South Carolina': 'SC',
+      'South Dakota': 'SD', 'Tennessee': 'TN', 'Texas': 'TX', 'Utah': 'UT',
+      'Vermont': 'VT', 'Virginia': 'VA', 'Washington': 'WA', 'West Virginia': 'WV',
+      'Wisconsin': 'WI', 'Wyoming': 'WY', 'District of Columbia': 'DC',
+    };
+    return states[stateName] || stateName.substring(0, 2).toUpperCase();
+  };
 
   const [formData, setFormData] = useState({
     label: "",
@@ -397,7 +519,47 @@ export default function AddressesScreen({ navigation }: any) {
               </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              {/* D4: Address Search Autocomplete */}
+              <View style={{ marginBottom: 16 }}>
+                <Text style={styles.inputLabel}>
+                  <Ionicons name="search" size={13} color="#6b7280" /> Search Address
+                </Text>
+                <TextInput
+                  style={[styles.input, { marginBottom: searchResults.length > 0 ? 0 : 16 }]}
+                  placeholder="Start typing an address..."
+                  value={searchQuery}
+                  onChangeText={handleSearchInput}
+                  autoCorrect={false}
+                />
+                {searching && (
+                  <View style={{ paddingVertical: 8, alignItems: 'center' }}>
+                    <ActivityIndicator size="small" color="#1976d2" />
+                  </View>
+                )}
+                {searchResults.length > 0 && (
+                  <View style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 12, marginBottom: 16, maxHeight: 200 }}>
+                    {searchResults.map((item) => (
+                      <TouchableOpacity
+                        key={item.id}
+                        style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f3f4f6', gap: 10 }}
+                        onPress={() => selectSuggestion(item)}
+                      >
+                        <Ionicons name="location" size={18} color="#1976d2" />
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontSize: 14, color: '#1f2937' }} numberOfLines={1}>
+                            {item.number ? `${item.number} ${item.street}` : item.street || item.displayName}
+                          </Text>
+                          <Text style={{ fontSize: 12, color: '#9ca3af' }} numberOfLines={1}>
+                            {item.city}{item.state ? `, ${item.state}` : ''}{item.zipCode ? ` ${item.zipCode}` : ''}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </View>
+
               <Text style={styles.inputLabel}>Label *</Text>
               <View style={styles.labelOptions}>
                 {["Home", "Work", "Other"].map((label) => (

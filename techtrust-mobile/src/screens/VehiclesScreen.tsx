@@ -4,13 +4,27 @@
  * 📸 Agora exibe foto do veículo quando disponível
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, Alert, Image } from 'react-native';
-import { Card, Text, FAB, IconButton, useTheme, Chip } from 'react-native-paper';
-import { useFocusEffect } from '@react-navigation/native';
-import api from '../services/api';
-import { Vehicle } from '../types';
-import { useI18n } from '../i18n';
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  RefreshControl,
+  Alert,
+  Image,
+} from "react-native";
+import {
+  Card,
+  Text,
+  FAB,
+  IconButton,
+  useTheme,
+  Chip,
+} from "react-native-paper";
+import { useFocusEffect } from "@react-navigation/native";
+import api from "../services/api";
+import { Vehicle } from "../types";
+import { useI18n } from "../i18n";
 
 // ✨ Importando componentes de UI
 import {
@@ -22,7 +36,7 @@ import {
   useToast,
   LoadingOverlay,
   SuccessAnimation,
-} from '../components';
+} from "../components";
 
 export default function VehiclesScreen({ navigation, route }: any) {
   const { t } = useI18n();
@@ -32,7 +46,7 @@ export default function VehiclesScreen({ navigation, route }: any) {
   const [refreshing, setRefreshing] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState("");
 
   // ✨ Toast hook
   const { toast, success, error, hideToast } = useToast();
@@ -51,21 +65,23 @@ export default function VehiclesScreen({ navigation, route }: any) {
           isPrimary: vehicles.length === 0,
           createdAt: new Date().toISOString(),
         };
-        setVehicles(prev => [newVehicle, ...prev]);
-        success(t.vehicle?.vehicleAddedSuccess || 'Vehicle added successfully!');
+        setVehicles((prev) => [newVehicle, ...prev]);
+        success(
+          t.vehicle?.vehicleAddedSuccess || "Vehicle added successfully!",
+        );
         // Clear the parameter to avoid adding again
         navigation.setParams({ newVehicle: undefined });
       }
-    }, [route.params?.newVehicle])
+    }, [route.params?.newVehicle]),
   );
 
   const loadVehicles = useCallback(async () => {
     if (!loading) setRefreshing(true);
     try {
-      const response = await api.get('/vehicles');
+      const response = await api.get("/vehicles");
       setVehicles(response.data.data || []);
     } catch (err) {
-      console.error('Error loading vehicles:', err);
+      console.error("Error loading vehicles:", err);
       // 📱 Works offline - don't show error, just empty list
       // error(t.vehicle?.loadError || 'Could not load vehicles');
       setVehicles([]); // Empty list to work without backend
@@ -77,28 +93,34 @@ export default function VehiclesScreen({ navigation, route }: any) {
 
   const handleDelete = async (vehicleId: string, plateNumber: string) => {
     Alert.alert(
-      t.common?.confirmDelete || 'Confirm deletion',
-      `${t.vehicle?.deleteConfirmation || 'Do you really want to delete vehicle'} ${plateNumber}?`,
+      t.common?.confirmDelete || "Confirm deletion",
+      `${t.vehicle?.deleteConfirmation || "Do you really want to delete vehicle"} ${plateNumber}?`,
       [
-        { text: t.common?.cancel || 'Cancel', style: 'cancel' },
+        { text: t.common?.cancel || "Cancel", style: "cancel" },
         {
-          text: t.common?.delete || 'Delete',
-          style: 'destructive',
+          text: t.common?.delete || "Delete",
+          style: "destructive",
           onPress: async () => {
             setActionLoading(true);
             try {
               await api.delete(`/vehicles/${vehicleId}`);
-              setSuccessMessage(t.vehicle?.vehicleDeleted || 'Vehicle deleted!');
+              setSuccessMessage(
+                t.vehicle?.vehicleDeleted || "Vehicle deleted!",
+              );
               setShowSuccess(true);
               loadVehicles();
             } catch (err: any) {
-              error(err.response?.data?.message || t.vehicle?.deleteError || 'Error deleting vehicle');
+              error(
+                err.response?.data?.message ||
+                  t.vehicle?.deleteError ||
+                  "Error deleting vehicle",
+              );
             } finally {
               setActionLoading(false);
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -106,10 +128,14 @@ export default function VehiclesScreen({ navigation, route }: any) {
     setActionLoading(true);
     try {
       await api.post(`/vehicles/${vehicleId}/set-primary`);
-      success(t.vehicle?.primarySet || 'Primary vehicle set!');
+      success(t.vehicle?.primarySet || "Primary vehicle set!");
       loadVehicles();
     } catch (err: any) {
-      error(err.response?.data?.message || t.vehicle?.primaryError || 'Error setting primary vehicle');
+      error(
+        err.response?.data?.message ||
+          t.vehicle?.primaryError ||
+          "Error setting primary vehicle",
+      );
     } finally {
       setActionLoading(false);
     }
@@ -141,8 +167,8 @@ export default function VehiclesScreen({ navigation, route }: any) {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
+          <RefreshControl
+            refreshing={refreshing}
             onRefresh={loadVehicles}
             colors={[theme.colors.primary]}
           />
@@ -151,9 +177,12 @@ export default function VehiclesScreen({ navigation, route }: any) {
         {/* ✨ Header animado */}
         <FadeInView delay={0}>
           <View style={styles.header}>
-            <Text variant="titleLarge" style={styles.title}>{t.vehicle?.myVehicles || 'My Vehicles'}</Text>
+            <Text variant="titleLarge" style={styles.title}>
+              {t.vehicle?.myVehicles || "My Vehicles"}
+            </Text>
             <Text variant="bodyMedium" style={styles.subtitle}>
-              {vehicles.length} {t.vehicle?.vehiclesRegistered || 'vehicle(s) registered'}
+              {vehicles.length}{" "}
+              {t.vehicle?.vehiclesRegistered || "vehicle(s) registered"}
             </Text>
           </View>
         </FadeInView>
@@ -163,10 +192,13 @@ export default function VehiclesScreen({ navigation, route }: any) {
           <FadeInView delay={100}>
             <EmptyState
               icon="car-off"
-              title={t.vehicle?.noVehicles || 'No vehicles registered'}
-              description={t.vehicle?.addFirstVehicle || 'Add your first vehicle to get started!'}
-              actionLabel={t.vehicle?.addVehicle || 'Add Vehicle'}
-              onAction={() => navigation.navigate('AddVehicle')}
+              title={t.vehicle?.noVehicles || "No vehicles registered"}
+              description={
+                t.vehicle?.addFirstVehicle ||
+                "Add your first vehicle to get started!"
+              }
+              actionLabel={t.vehicle?.addVehicle || "Add Vehicle"}
+              onAction={() => navigation.navigate("AddVehicle")}
             />
           </FadeInView>
         )}
@@ -181,8 +213,8 @@ export default function VehiclesScreen({ navigation, route }: any) {
                     <View style={styles.cardTitleRow}>
                       {/* 📸 Mostra foto do veículo ou ícone padrão */}
                       {vehicle.photos && vehicle.photos.length > 0 ? (
-                        <Image 
-                          source={{ uri: vehicle.photos[0] }} 
+                        <Image
+                          source={{ uri: vehicle.photos[0] }}
                           style={styles.vehiclePhoto}
                         />
                       ) : (
@@ -201,10 +233,13 @@ export default function VehiclesScreen({ navigation, route }: any) {
                       {vehicle.isPrimary && (
                         <Chip
                           icon="star"
-                          style={[styles.primaryChip, { backgroundColor: theme.colors.primary }]}
+                          style={[
+                            styles.primaryChip,
+                            { backgroundColor: theme.colors.primary },
+                          ]}
                           textStyle={styles.primaryChipText}
                         >
-                          {t.vehicle?.primary || 'Principal'}
+                          {t.vehicle?.primary || "Principal"}
                         </Chip>
                       )}
                     </View>
@@ -244,33 +279,51 @@ export default function VehiclesScreen({ navigation, route }: any) {
                             size={20}
                             iconColor={theme.colors.primary}
                           />
-                          <Text style={[styles.actionText, { color: theme.colors.primary }]}>
-                            {t.vehicle?.setAsPrimary || 'Definir principal'}
+                          <Text
+                            style={[
+                              styles.actionText,
+                              { color: theme.colors.primary },
+                            ]}
+                          >
+                            {t.vehicle?.setAsPrimary || "Definir principal"}
                           </Text>
                         </View>
                       </ScalePress>
                     )}
-                    <ScalePress onPress={() => navigation.navigate('AddVehicle', { vehicle })}>
+                    <ScalePress
+                      onPress={() =>
+                        navigation.navigate("AddVehicle", { vehicle })
+                      }
+                    >
                       <View style={styles.actionButton}>
                         <IconButton
                           icon="pencil-outline"
                           size={20}
                           iconColor="#f59e0b"
                         />
-                        <Text style={[styles.actionText, { color: '#f59e0b' }]}>
-                          {t.common?.edit || 'Editar'}
+                        <Text style={[styles.actionText, { color: "#f59e0b" }]}>
+                          {t.common?.edit || "Editar"}
                         </Text>
                       </View>
                     </ScalePress>
-                    <ScalePress onPress={() => handleDelete(vehicle.id, vehicle.plateNumber)}>
+                    <ScalePress
+                      onPress={() =>
+                        handleDelete(vehicle.id, vehicle.plateNumber)
+                      }
+                    >
                       <View style={styles.actionButton}>
                         <IconButton
                           icon="delete-outline"
                           size={20}
                           iconColor={theme.colors.error}
                         />
-                        <Text style={[styles.actionText, { color: theme.colors.error }]}>
-                          {t.common?.delete || 'Delete'}
+                        <Text
+                          style={[
+                            styles.actionText,
+                            { color: theme.colors.error },
+                          ]}
+                        >
+                          {t.common?.delete || "Delete"}
                         </Text>
                       </View>
                     </ScalePress>
@@ -286,12 +339,15 @@ export default function VehiclesScreen({ navigation, route }: any) {
       <FAB
         icon="plus"
         style={[styles.fab, { backgroundColor: theme.colors.primary }]}
-        onPress={() => navigation.navigate('AddVehicle')}
-        label={t.common?.add || 'Add'}
+        onPress={() => navigation.navigate("AddVehicle")}
+        label={t.common?.add || "Add"}
       />
 
       {/* ✨ Loading Overlay */}
-      <LoadingOverlay visible={actionLoading} message={t.common?.processing || 'Processing...'} />
+      <LoadingOverlay
+        visible={actionLoading}
+        message={t.common?.processing || "Processing..."}
+      />
 
       {/* ✨ Success Animation */}
       <SuccessAnimation
@@ -314,7 +370,7 @@ export default function VehiclesScreen({ navigation, route }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#f5f5f5",
   },
   scrollContent: {
     padding: 16,
@@ -324,7 +380,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   title: {
-    fontWeight: '700',
+    fontWeight: "700",
   },
   subtitle: {
     opacity: 0.7,
@@ -334,36 +390,36 @@ const styles = StyleSheet.create({
   skeletonTitle: {
     width: 150,
     height: 24,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: "#e0e0e0",
     borderRadius: 8,
     marginBottom: 8,
   },
   skeletonSubtitle: {
     width: 180,
     height: 16,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: "#e0e0e0",
     borderRadius: 6,
   },
   card: {
     marginBottom: 16,
     borderRadius: 20,
     elevation: 3,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   cardHeader: {
     marginBottom: 16,
   },
   cardTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   vehicleIcon: {
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: '#e3f2fd',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#e3f2fd",
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 12,
   },
   vehiclePhoto: {
@@ -379,35 +435,35 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   cardTitle: {
-    fontWeight: '700',
+    fontWeight: "700",
   },
   primaryChip: {
     height: 28,
   },
   primaryChipText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   plateNumber: {
     opacity: 0.6,
     marginTop: 2,
-    fontWeight: '600',
+    fontWeight: "600",
     letterSpacing: 1,
   },
   vehicleDetails: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 16,
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    borderTopColor: "#f0f0f0",
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: "#f0f0f0",
   },
   detailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   detailIcon: {
     fontSize: 14,
@@ -417,22 +473,22 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   cardActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
+    flexDirection: "row",
+    justifyContent: "flex-end",
     marginTop: 8,
     gap: 8,
   },
   actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   actionText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
     marginLeft: -8,
   },
   fab: {
-    position: 'absolute',
+    position: "absolute",
     right: 16,
     bottom: 16,
     borderRadius: 16,
