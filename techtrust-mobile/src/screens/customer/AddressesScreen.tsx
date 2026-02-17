@@ -18,11 +18,33 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Location from "expo-location";
 import api from "../../services/api";
 import { useI18n } from "../../i18n";
 
 // Google Places API key (optional - falls back to Nominatim/OSM)
 const GOOGLE_PLACES_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_KEY || "";
+
+// D31 — US States dropdown list
+const US_STATES = [
+  { code: 'AL', name: 'Alabama' }, { code: 'AK', name: 'Alaska' }, { code: 'AZ', name: 'Arizona' },
+  { code: 'AR', name: 'Arkansas' }, { code: 'CA', name: 'California' }, { code: 'CO', name: 'Colorado' },
+  { code: 'CT', name: 'Connecticut' }, { code: 'DE', name: 'Delaware' }, { code: 'DC', name: 'District of Columbia' },
+  { code: 'FL', name: 'Florida' }, { code: 'GA', name: 'Georgia' }, { code: 'HI', name: 'Hawaii' },
+  { code: 'ID', name: 'Idaho' }, { code: 'IL', name: 'Illinois' }, { code: 'IN', name: 'Indiana' },
+  { code: 'IA', name: 'Iowa' }, { code: 'KS', name: 'Kansas' }, { code: 'KY', name: 'Kentucky' },
+  { code: 'LA', name: 'Louisiana' }, { code: 'ME', name: 'Maine' }, { code: 'MD', name: 'Maryland' },
+  { code: 'MA', name: 'Massachusetts' }, { code: 'MI', name: 'Michigan' }, { code: 'MN', name: 'Minnesota' },
+  { code: 'MS', name: 'Mississippi' }, { code: 'MO', name: 'Missouri' }, { code: 'MT', name: 'Montana' },
+  { code: 'NE', name: 'Nebraska' }, { code: 'NV', name: 'Nevada' }, { code: 'NH', name: 'New Hampshire' },
+  { code: 'NJ', name: 'New Jersey' }, { code: 'NM', name: 'New Mexico' }, { code: 'NY', name: 'New York' },
+  { code: 'NC', name: 'North Carolina' }, { code: 'ND', name: 'North Dakota' }, { code: 'OH', name: 'Ohio' },
+  { code: 'OK', name: 'Oklahoma' }, { code: 'OR', name: 'Oregon' }, { code: 'PA', name: 'Pennsylvania' },
+  { code: 'RI', name: 'Rhode Island' }, { code: 'SC', name: 'South Carolina' }, { code: 'SD', name: 'South Dakota' },
+  { code: 'TN', name: 'Tennessee' }, { code: 'TX', name: 'Texas' }, { code: 'UT', name: 'Utah' },
+  { code: 'VT', name: 'Vermont' }, { code: 'VA', name: 'Virginia' }, { code: 'WA', name: 'Washington' },
+  { code: 'WV', name: 'West Virginia' }, { code: 'WI', name: 'Wisconsin' }, { code: 'WY', name: 'Wyoming' },
+];
 
 interface PlaceSuggestion {
   id: string;
@@ -62,6 +84,10 @@ export default function AddressesScreen({ navigation }: any) {
   const [searchResults, setSearchResults] = useState<PlaceSuggestion[]>([]);
   const [searching, setSearching] = useState(false);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // D31 — State dropdown
+  const [showStateDropdown, setShowStateDropdown] = useState(false);
+  // D32 — GPS loading
+  const [gettingLocation, setGettingLocation] = useState(false);
 
   const searchAddresses = useCallback(async (query: string) => {
     if (query.length < 3) {
@@ -143,6 +169,39 @@ export default function AddressesScreen({ navigation }: any) {
     });
     setSearchQuery("");
     setSearchResults([]);
+  };
+
+  // D32 — Use Current Location with reverse geocoding
+  const handleUseCurrentLocation = async () => {
+    try {
+      setGettingLocation(true);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Location access is needed to auto-fill your address.');
+        return;
+      }
+      const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      const [geocode] = await Location.reverseGeocodeAsync({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      });
+      if (geocode) {
+        const stateCode = geocode.region ? getStateAbbr(geocode.region) : '';
+        setFormData(prev => ({
+          ...prev,
+          number: geocode.streetNumber || prev.number,
+          street: geocode.street || prev.street,
+          city: geocode.city || geocode.subregion || prev.city,
+          state: stateCode || prev.state,
+          zipCode: geocode.postalCode || prev.zipCode,
+        }));
+        Alert.alert('Location Found', 'Address fields have been auto-filled. Please verify and adjust if needed.');
+      }
+    } catch (err) {
+      Alert.alert('Location Error', 'Could not determine your location. Please enter the address manually.');
+    } finally {
+      setGettingLocation(false);
+    }
   };
 
   // Convert full state name to 2-letter abbreviation
@@ -520,6 +579,34 @@ export default function AddressesScreen({ navigation }: any) {
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              {/* D32 — Use Current Location Button */}
+              <TouchableOpacity
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: '#eff6ff',
+                  borderWidth: 1,
+                  borderColor: '#bfdbfe',
+                  borderStyle: 'dashed',
+                  borderRadius: 12,
+                  padding: 14,
+                  marginBottom: 16,
+                  gap: 10,
+                }}
+                onPress={handleUseCurrentLocation}
+                disabled={gettingLocation}
+              >
+                {gettingLocation ? (
+                  <ActivityIndicator size="small" color="#1976d2" />
+                ) : (
+                  <Ionicons name="navigate" size={20} color="#1976d2" />
+                )}
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#1976d2', flex: 1 }}>
+                  {gettingLocation ? 'Getting location...' : 'Use Current Location'}
+                </Text>
+                <Ionicons name="chevron-forward" size={16} color="#93c5fd" />
+              </TouchableOpacity>
+
               {/* D4: Address Search Autocomplete */}
               <View style={{ marginBottom: 16 }}>
                 <Text style={styles.inputLabel}>
@@ -638,16 +725,60 @@ export default function AddressesScreen({ navigation }: any) {
                 </View>
                 <View style={[styles.inputHalf, { flex: 1 }]}>
                   <Text style={styles.inputLabel}>State *</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="FL"
-                    value={formData.state}
-                    onChangeText={(text) =>
-                      setFormData({ ...formData, state: text })
-                    }
-                    maxLength={2}
-                    autoCapitalize="characters"
-                  />
+                  {/* D31 — State Dropdown */}
+                  <TouchableOpacity
+                    style={[styles.input, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}
+                    onPress={() => setShowStateDropdown(!showStateDropdown)}
+                  >
+                    <Text style={{ fontSize: 16, color: formData.state ? '#111827' : '#9ca3af' }}>
+                      {formData.state || 'State'}
+                    </Text>
+                    <Ionicons name="chevron-down" size={16} color="#9ca3af" />
+                  </TouchableOpacity>
+                  {showStateDropdown && (
+                    <View style={{
+                      position: 'absolute',
+                      top: 72,
+                      left: 0,
+                      right: 0,
+                      backgroundColor: '#fff',
+                      borderRadius: 12,
+                      borderWidth: 1,
+                      borderColor: '#e5e7eb',
+                      maxHeight: 200,
+                      zIndex: 100,
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: 0.1,
+                      shadowRadius: 8,
+                      elevation: 10,
+                    }}>
+                      <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled">
+                        {US_STATES.map((st) => (
+                          <TouchableOpacity
+                            key={st.code}
+                            style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              paddingHorizontal: 14,
+                              paddingVertical: 11,
+                              borderBottomWidth: 1,
+                              borderBottomColor: '#f3f4f6',
+                              backgroundColor: formData.state === st.code ? '#eff6ff' : '#fff',
+                            }}
+                            onPress={() => {
+                              setFormData({ ...formData, state: st.code });
+                              setShowStateDropdown(false);
+                            }}
+                          >
+                            <Text style={{ fontSize: 14, fontWeight: formData.state === st.code ? '600' : '400', color: formData.state === st.code ? '#1976d2' : '#374151' }}>
+                              {st.code} — {st.name}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  )}
                 </View>
               </View>
 

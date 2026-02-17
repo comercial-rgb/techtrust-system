@@ -1,8 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { useI18n } from "../i18n";
 import { useNotifications } from "../contexts/NotificationsContext";
 import { CommonActions } from "@react-navigation/native";
@@ -96,7 +96,127 @@ function RequestsStack() {
   );
 }
 
-// Stack for Quotes (Orçamentos)
+// D42 — Combined Requests & Quotes Stack (merged from 2 separate tabs)
+function RequestsAndQuotesStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen
+        name="RequestsAndQuotesMain"
+        component={RequestsAndQuotesScreen}
+      />
+      <Stack.Screen
+        name="ProviderRequestsList"
+        component={ProviderRequestsScreen}
+      />
+      <Stack.Screen
+        name="ProviderRequestDetails"
+        component={ProviderRequestDetailsScreen}
+      />
+      <Stack.Screen
+        name="ProviderQuotesList"
+        component={ProviderQuotesScreen}
+      />
+      <Stack.Screen
+        name="ProviderQuoteDetails"
+        component={ProviderQuoteDetailsScreen}
+      />
+      <Stack.Screen
+        name="QuoteWorkOrderDetails"
+        component={ProviderWorkOrderDetailsScreen}
+      />
+      <Stack.Screen name="EstimateShares" component={EstimateSharesScreen} />
+      <Stack.Screen
+        name="CompareEstimates"
+        component={CompareEstimatesScreen}
+      />
+      <Stack.Screen name="Chat" component={ChatScreen} />
+    </Stack.Navigator>
+  );
+}
+
+// D42 — Combined Requests & Quotes Screen with segment control
+function RequestsAndQuotesScreen({ navigation }: any) {
+  const { t } = useI18n();
+  const [activeTab, setActiveTab] = useState<'requests' | 'quotes'>('requests');
+
+  return (
+    <View style={{ flex: 1, backgroundColor: '#f8fafc' }}>
+      {/* Segment Control Header */}
+      <View style={{
+        backgroundColor: '#fff',
+        paddingTop: 50,
+        paddingHorizontal: 16,
+        paddingBottom: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f3f4f6',
+      }}>
+        <Text style={{ fontSize: 20, fontWeight: '700', color: '#111827', marginBottom: 12 }}>
+          {t.provider?.requestsAndQuotes || 'Requests & Quotes'}
+        </Text>
+        <View style={{
+          flexDirection: 'row',
+          backgroundColor: '#f3f4f6',
+          borderRadius: 10,
+          padding: 3,
+        }}>
+          <TouchableOpacity
+            style={{
+              flex: 1,
+              paddingVertical: 10,
+              borderRadius: 8,
+              alignItems: 'center',
+              backgroundColor: activeTab === 'requests' ? '#fff' : 'transparent',
+              shadowColor: activeTab === 'requests' ? '#000' : 'transparent',
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: activeTab === 'requests' ? 0.1 : 0,
+              shadowRadius: 3,
+              elevation: activeTab === 'requests' ? 2 : 0,
+            }}
+            onPress={() => setActiveTab('requests')}
+          >
+            <Text style={{
+              fontSize: 14,
+              fontWeight: activeTab === 'requests' ? '700' : '500',
+              color: activeTab === 'requests' ? '#1976d2' : '#6b7280',
+            }}>
+              {t.nav?.requests || 'Requests'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={{
+              flex: 1,
+              paddingVertical: 10,
+              borderRadius: 8,
+              alignItems: 'center',
+              backgroundColor: activeTab === 'quotes' ? '#fff' : 'transparent',
+              shadowColor: activeTab === 'quotes' ? '#000' : 'transparent',
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: activeTab === 'quotes' ? 0.1 : 0,
+              shadowRadius: 3,
+              elevation: activeTab === 'quotes' ? 2 : 0,
+            }}
+            onPress={() => setActiveTab('quotes')}
+          >
+            <Text style={{
+              fontSize: 14,
+              fontWeight: activeTab === 'quotes' ? '700' : '500',
+              color: activeTab === 'quotes' ? '#1976d2' : '#6b7280',
+            }}>
+              {t.nav?.quotes || 'Quotes'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+      {activeTab === 'requests' ? (
+        <ProviderRequestsScreen navigation={navigation} />
+      ) : (
+        <ProviderQuotesScreen navigation={navigation} />
+      )}
+    </View>
+  );
+}
+
+// Stack for Quotes (Orçamentos) — kept for backwards compatibility
 function QuotesStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -257,9 +377,10 @@ export default function ProviderNavigator() {
         }}
       />
 
+      {/* D42 — Merged Requests & Quotes tab (6→5 tabs) */}
       <Tab.Screen
         name="ProviderRequests"
-        component={RequestsStack}
+        component={RequestsAndQuotesStack}
         options={{
           tabBarLabel: t.nav?.requests || "Requests",
           tabBarIcon: ({ color, size }) => (
@@ -280,33 +401,7 @@ export default function ProviderNavigator() {
                 routes: [
                   {
                     name: "ProviderRequests",
-                    state: { routes: [{ name: "ProviderRequestsList" }] },
-                  },
-                ],
-              }),
-            );
-          },
-        })}
-      />
-
-      <Tab.Screen
-        name="ProviderQuotes"
-        component={QuotesStack}
-        options={{
-          tabBarLabel: t.nav?.quotes || "Quotes",
-          tabBarIcon: ({ color, size }) => (
-            <TabBarIcon name="pricetag" color={color} size={size} />
-          ),
-        }}
-        listeners={({ navigation }) => ({
-          tabPress: (e) => {
-            navigation.dispatch(
-              CommonActions.reset({
-                index: 0,
-                routes: [
-                  {
-                    name: "ProviderQuotes",
-                    state: { routes: [{ name: "ProviderQuotesList" }] },
+                    state: { routes: [{ name: "RequestsAndQuotesMain" }] },
                   },
                 ],
               }),

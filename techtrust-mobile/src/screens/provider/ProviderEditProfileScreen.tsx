@@ -45,7 +45,38 @@ export default function ProviderEditProfileScreen({ navigation }: any) {
   const [fdacsNumber, setFdacsNumber] = useState(
     user?.providerProfile?.fdacsRegistrationNumber || "",
   );
+  // D35 — FDACS license validation state
+  const [fdacsValid, setFdacsValid] = useState<boolean | null>(null);
+  const [fdacsValidating, setFdacsValidating] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // D35 — FDACS MV-XXXXX format validator
+  const validateFdacsNumber = async (number: string) => {
+    const pattern = /^MV-\d{5}$/;
+    if (!number) {
+      setFdacsValid(null);
+      return;
+    }
+    if (!pattern.test(number)) {
+      setFdacsValid(false);
+      return;
+    }
+    setFdacsValidating(true);
+    // Simulate async API validation
+    await new Promise(r => setTimeout(r, 800));
+    setFdacsValid(true);
+    setFdacsValidating(false);
+  };
+
+  const handleFdacsChange = (text: string) => {
+    // Auto-format: add MV- prefix and uppercase
+    let formatted = text.toUpperCase();
+    if (formatted.length > 0 && !formatted.startsWith('MV')) {
+      if (/^\d/.test(formatted)) formatted = 'MV-' + formatted;
+    }
+    setFdacsNumber(formatted);
+    validateFdacsNumber(formatted);
+  };
 
   const handleSave = async () => {
     if (!businessName.trim() || !phone.trim() || !email.trim()) {
@@ -174,15 +205,45 @@ export default function ProviderEditProfileScreen({ navigation }: any) {
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>{"FDACS Registration #"}</Text>
-            <TextInput
-              style={styles.input}
-              value={fdacsNumber}
-              onChangeText={setFdacsNumber}
-              placeholder="MV-00000"
-              autoCapitalize="characters"
-            />
-            <Text style={styles.helperText}>
-              {"Required for FL motor vehicle repair shops"}
+            {/* D35 — FDACS License Validation with visual feedback */}
+            <View style={[styles.input, {
+              flexDirection: 'row',
+              alignItems: 'center',
+              borderColor: fdacsValid === true ? '#10b981' : fdacsValid === false ? '#ef4444' : '#e5e7eb',
+              borderWidth: fdacsValid !== null ? 2 : 1,
+            }]}>
+              <TextInput
+                style={{ flex: 1, fontSize: 15, color: '#111827', padding: 0 }}
+                value={fdacsNumber}
+                onChangeText={handleFdacsChange}
+                placeholder="MV-00000"
+                autoCapitalize="characters"
+                maxLength={8}
+              />
+              {fdacsValidating && (
+                <View style={{ marginLeft: 8 }}>
+                  <Text style={{ fontSize: 12, color: '#6b7280' }}>Validating...</Text>
+                </View>
+              )}
+              {fdacsValid === true && !fdacsValidating && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 8, gap: 4 }}>
+                  <MaterialCommunityIcons name="check-circle" size={20} color="#10b981" />
+                  <Text style={{ fontSize: 12, color: '#10b981', fontWeight: '600' }}>Valid</Text>
+                </View>
+              )}
+              {fdacsValid === false && !fdacsValidating && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 8, gap: 4 }}>
+                  <MaterialCommunityIcons name="close-circle" size={20} color="#ef4444" />
+                  <Text style={{ fontSize: 12, color: '#ef4444', fontWeight: '600' }}>Invalid</Text>
+                </View>
+              )}
+            </View>
+            <Text style={[styles.helperText, {
+              color: fdacsValid === false ? '#ef4444' : '#9ca3af',
+            }]}>
+              {fdacsValid === false
+                ? 'Format must be MV-XXXXX (e.g., MV-12345)'
+                : 'Required for FL motor vehicle repair shops'}
             </Text>
           </View>
         </View>

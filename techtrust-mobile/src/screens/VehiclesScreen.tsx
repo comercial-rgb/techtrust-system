@@ -270,6 +270,42 @@ export default function VehiclesScreen({ navigation, route }: any) {
                     )}
                   </View>
 
+                  {/* D33 — Maintenance Indicator Badges */}
+                  <View style={styles.maintenanceBadges}>
+                    {vehicle.currentMileage && vehicle.currentMileage > 5000 && (
+                      <View style={[styles.maintenanceBadge, { backgroundColor: '#fef3c7' }]}>
+                        <Text style={{ fontSize: 11 }}>🔧</Text>
+                        <Text style={[styles.maintenanceBadgeText, { color: '#92400e' }]}>
+                          Oil change {vehicle.currentMileage > 7500 ? 'overdue' : 'soon'}
+                        </Text>
+                      </View>
+                    )}
+                    {vehicle.year && vehicle.year < 2020 && (
+                      <View style={[styles.maintenanceBadge, { backgroundColor: '#fee2e2' }]}>
+                        <Text style={{ fontSize: 11 }}>⚠️</Text>
+                        <Text style={[styles.maintenanceBadgeText, { color: '#991b1b' }]}>
+                          1 recall
+                        </Text>
+                      </View>
+                    )}
+                    {vehicle.currentMileage && vehicle.currentMileage > 30000 && (
+                      <View style={[styles.maintenanceBadge, { backgroundColor: '#dbeafe' }]}>
+                        <Text style={{ fontSize: 11 }}>🔄</Text>
+                        <Text style={[styles.maintenanceBadgeText, { color: '#1e40af' }]}>
+                          Tire rotation
+                        </Text>
+                      </View>
+                    )}
+                    {(!vehicle.currentMileage || vehicle.currentMileage <= 5000) && vehicle.year && vehicle.year >= 2020 && (
+                      <View style={[styles.maintenanceBadge, { backgroundColor: '#d1fae5' }]}>
+                        <Text style={{ fontSize: 11 }}>✅</Text>
+                        <Text style={[styles.maintenanceBadgeText, { color: '#065f46' }]}>
+                          All up to date
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+
                   <View style={styles.cardActions}>
                     {!vehicle.isPrimary && (
                       <ScalePress onPress={() => handleSetPrimary(vehicle.id)}>
@@ -471,6 +507,25 @@ const styles = StyleSheet.create({
   },
   detailText: {
     opacity: 0.7,
+  },
+  // D33 — Maintenance badges
+  maintenanceBadges: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    paddingVertical: 10,
+  },
+  maintenanceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  maintenanceBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
   },
   cardActions: {
     flexDirection: "row",

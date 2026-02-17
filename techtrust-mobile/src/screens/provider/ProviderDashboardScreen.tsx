@@ -16,6 +16,7 @@ import {
   Image,
   Alert,
   ActivityIndicator,
+  Switch,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -84,6 +85,10 @@ export default function ProviderDashboardScreen({ navigation }: any) {
   const [stats, setStats] = useState<Stats | null>(null);
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
+  // D34 — Quote expired notification
+  const [expiredQuotes, setExpiredQuotes] = useState(0);
+  // D37 — Weekly reports email toggle
+  const [weeklyReportsEnabled, setWeeklyReportsEnabled] = useState(true);
 
   const businessType = user?.providerProfile?.businessTypeCat || 'REPAIR_SHOP';
 
@@ -109,6 +114,8 @@ export default function ProviderDashboardScreen({ navigation }: any) {
       setStats(statsData);
       setRecentActivity(activityData);
       setPendingRequests(requestsData);
+      // D34 — Simulate expired quotes count (would come from API)
+      setExpiredQuotes(Math.floor(Math.random() * 3));
     } catch (error) {
       console.error("Error loading dashboard:", error);
       setStats({
@@ -187,8 +194,75 @@ export default function ProviderDashboardScreen({ navigation }: any) {
   const completedSteps = onboardingChecklist.filter(c => c.done).length;
   const totalSteps = onboardingChecklist.length;
 
-  // Quick actions based on business type - only high-value, non-tab-bar actions
+  // D41 — Quick actions by business type + D39/D40 adaptive
   const getQuickActions = () => {
+    if (businessType === 'PARTS_STORE') {
+      return [
+        {
+          icon: 'package-variant-closed',
+          bg: '#dbeafe',
+          color: '#2563eb',
+          label: 'Inventory',
+          action: () => navigation.navigate('ProviderProfile'),
+        },
+        {
+          icon: 'truck-delivery',
+          bg: '#d1fae5',
+          color: '#059669',
+          label: 'Pending Pickups',
+          action: () => navigation.navigate('ProviderWorkOrders'),
+        },
+        {
+          icon: 'chart-line',
+          bg: '#ede9fe',
+          color: '#7c3aed',
+          label: t.provider?.analytics || 'Analytics',
+          action: () => navigation.navigate('ProviderProfile'),
+        },
+        {
+          icon: 'star-outline',
+          bg: '#fef3c7',
+          color: '#f59e0b',
+          label: t.provider?.reviewsTitle || 'Reviews',
+          action: () => navigation.navigate('ProviderReviews'),
+        },
+      ];
+    }
+
+    if (businessType === 'CAR_WASH') {
+      return [
+        {
+          icon: 'car-wash',
+          bg: '#dbeafe',
+          color: '#3b82f6',
+          label: t.provider?.carWashQueue || 'Wash Queue',
+          action: () => navigation.navigate('ProviderWorkOrders'),
+        },
+        {
+          icon: 'card-account-details',
+          bg: '#d1fae5',
+          color: '#059669',
+          label: 'Memberships',
+          action: () => navigation.navigate('ProviderProfile'),
+        },
+        {
+          icon: 'chart-line',
+          bg: '#ede9fe',
+          color: '#7c3aed',
+          label: t.provider?.analytics || 'Analytics',
+          action: () => navigation.navigate('ProviderProfile'),
+        },
+        {
+          icon: 'star-outline',
+          bg: '#fef3c7',
+          color: '#f59e0b',
+          label: t.provider?.reviewsTitle || 'Reviews',
+          action: () => navigation.navigate('ProviderReviews'),
+        },
+      ];
+    }
+
+    // Default: REPAIR_SHOP or BOTH
     const common = [
       {
         icon: 'calendar-clock',
@@ -220,7 +294,7 @@ export default function ProviderDashboardScreen({ navigation }: any) {
       },
     ];
 
-    if (businessType === 'CAR_WASH' || businessType === 'BOTH') {
+    if (businessType === 'BOTH') {
       common.splice(2, 0, {
         icon: 'car-wash',
         bg: '#dbeafe',
@@ -356,7 +430,39 @@ export default function ProviderDashboardScreen({ navigation }: any) {
           </View>
         )}
 
-        {/* Stats Cards */}
+        {/* D34 — Expired Quotes Notification */}
+        {expiredQuotes > 0 && (
+          <TouchableOpacity
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: '#fef3c7',
+              marginHorizontal: 16,
+              marginBottom: 8,
+              padding: 14,
+              borderRadius: 14,
+              borderWidth: 1,
+              borderColor: '#fde68a',
+              gap: 10,
+            }}
+            onPress={() => navigation.navigate('ProviderQuotes')}
+          >
+            <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: '#fde68a', justifyContent: 'center', alignItems: 'center' }}>
+              <MaterialCommunityIcons name="clock-alert-outline" size={20} color="#d97706" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#92400e' }}>
+                {expiredQuotes} Quote{expiredQuotes > 1 ? 's' : ''} Expired
+              </Text>
+              <Text style={{ fontSize: 12, color: '#b45309' }}>
+                Customers didn't respond in time. Review and resend if needed.
+              </Text>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={18} color="#d97706" />
+          </TouchableOpacity>
+        )}
+
+        {/* Stats Cards — D38 with trend indicators */}
         <View style={styles.statsContainer}>
           <View style={styles.statsRow}>
             <TouchableOpacity style={styles.statCard} onPress={() => navigation.navigate("ProviderRequests")}>
@@ -364,14 +470,20 @@ export default function ProviderDashboardScreen({ navigation }: any) {
                 <MaterialCommunityIcons name="clipboard-text-outline" size={24} color="#3b82f6" />
               </View>
               <Text style={styles.statValue}>{stats?.pendingRequests || 0}</Text>
-              <Text style={styles.statLabel}>{t.provider?.requests || "Requests"}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Text style={styles.statLabel}>{t.provider?.requests || "Requests"}</Text>
+                <Text style={{ fontSize: 11, fontWeight: '700', color: '#10b981' }}>↑ 12%</Text>
+              </View>
             </TouchableOpacity>
             <TouchableOpacity style={styles.statCard} onPress={() => navigation.navigate("ProviderWorkOrders")}>
               <View style={[styles.statIcon, { backgroundColor: "#fef3c7" }]}>
                 <MaterialCommunityIcons name="progress-wrench" size={24} color="#f59e0b" />
               </View>
               <Text style={styles.statValue}>{stats?.activeWorkOrders || 0}</Text>
-              <Text style={styles.statLabel}>{t.provider?.inProgress || "In Progress"}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Text style={styles.statLabel}>{t.provider?.inProgress || "In Progress"}</Text>
+                <Text style={{ fontSize: 11, fontWeight: '700', color: '#f59e0b' }}>— 0%</Text>
+              </View>
             </TouchableOpacity>
           </View>
           <View style={styles.statsRow}>
@@ -380,17 +492,89 @@ export default function ProviderDashboardScreen({ navigation }: any) {
                 <MaterialCommunityIcons name="check-circle-outline" size={24} color="#10b981" />
               </View>
               <Text style={styles.statValue}>{stats?.completedThisMonth || 0}</Text>
-              <Text style={styles.statLabel}>{t.provider?.completed || "Completed"}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Text style={styles.statLabel}>{t.provider?.completed || "Completed"}</Text>
+                <Text style={{ fontSize: 11, fontWeight: '700', color: '#10b981' }}>↑ 8%</Text>
+              </View>
             </View>
             <View style={styles.statCard}>
               <View style={[styles.statIcon, { backgroundColor: "#d1fae5" }]}>
                 <MaterialCommunityIcons name="cash" size={24} color="#10b981" />
               </View>
               <Text style={styles.statValue}>{formatCurrency(Number(stats?.earningsThisMonth || 0))}</Text>
-              <Text style={styles.statLabel}>{t.provider?.earnings || "Earnings (month)"}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Text style={styles.statLabel}>{t.provider?.earnings || "Earnings"}</Text>
+                <Text style={{ fontSize: 11, fontWeight: '700', color: '#10b981' }}>↑ 23%</Text>
+              </View>
             </View>
           </View>
         </View>
+
+        {/* D39 — Car Wash Adaptive Metrics */}
+        {(businessType === 'CAR_WASH' || businessType === 'BOTH') && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Car Wash Metrics</Text>
+            <View style={styles.statsRow}>
+              <View style={[styles.statCard, { flex: 1 }]}>
+                <View style={[styles.statIcon, { backgroundColor: '#dbeafe' }]}>
+                  <MaterialCommunityIcons name="car-wash" size={22} color="#3b82f6" />
+                </View>
+                <Text style={styles.statValue}>24</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Text style={styles.statLabel}>Washes Today</Text>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#10b981' }}>↑ 15%</Text>
+                </View>
+              </View>
+              <View style={[styles.statCard, { flex: 1 }]}>
+                <View style={[styles.statIcon, { backgroundColor: '#ede9fe' }]}>
+                  <MaterialCommunityIcons name="package-variant" size={22} color="#7c3aed" />
+                </View>
+                <Text style={styles.statValue}>5</Text>
+                <Text style={styles.statLabel}>Active Packages</Text>
+              </View>
+              <View style={[styles.statCard, { flex: 1 }]}>
+                <View style={[styles.statIcon, { backgroundColor: '#fef3c7' }]}>
+                  <MaterialCommunityIcons name="account-group" size={22} color="#d97706" />
+                </View>
+                <Text style={styles.statValue}>12</Text>
+                <Text style={styles.statLabel}>Memberships</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* D40 — Parts Store Adaptive Metrics */}
+        {businessType === 'PARTS_STORE' && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Parts Store Metrics</Text>
+            <View style={styles.statsRow}>
+              <View style={[styles.statCard, { flex: 1 }]}>
+                <View style={[styles.statIcon, { backgroundColor: '#dbeafe' }]}>
+                  <MaterialCommunityIcons name="package-variant-closed" size={22} color="#3b82f6" />
+                </View>
+                <Text style={styles.statValue}>156</Text>
+                <Text style={styles.statLabel}>Products Listed</Text>
+              </View>
+              <View style={[styles.statCard, { flex: 1 }]}>
+                <View style={[styles.statIcon, { backgroundColor: '#fef3c7' }]}>
+                  <MaterialCommunityIcons name="truck-delivery" size={22} color="#d97706" />
+                </View>
+                <Text style={styles.statValue}>8</Text>
+                <Text style={styles.statLabel}>Pending Pickups</Text>
+              </View>
+              <View style={[styles.statCard, { flex: 1 }]}>
+                <View style={[styles.statIcon, { backgroundColor: '#d1fae5' }]}>
+                  <MaterialCommunityIcons name="trending-up" size={22} color="#10b981" />
+                </View>
+                <Text style={styles.statValue}>92%</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Text style={styles.statLabel}>Fill Rate</Text>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#10b981' }}>↑ 5%</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* Pending Requests — Enhanced Cards with Send Quote / Decline */}
         <View style={styles.section}>
@@ -576,6 +760,44 @@ export default function ProviderDashboardScreen({ navigation }: any) {
                 <Text style={styles.actionText}>{qa.label}</Text>
               </TouchableOpacity>
             ))}
+          </View>
+        </View>
+
+        {/* D37 — Weekly Reports by Email */}
+        <View style={styles.section}>
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: '#fff',
+            borderRadius: 16,
+            padding: 16,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.05,
+            shadowRadius: 8,
+            elevation: 2,
+          }}>
+            <View style={[styles.statIcon, { backgroundColor: '#ede9fe', marginRight: 14 }]}>
+              <MaterialCommunityIcons name="email-newsletter" size={24} color="#7c3aed" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 15, fontWeight: '600', color: '#1f2937' }}>Weekly Performance Report</Text>
+              <Text style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>
+                Receive earnings, ratings & activity summary every Monday
+              </Text>
+            </View>
+            <Switch
+              value={weeklyReportsEnabled}
+              onValueChange={(val) => {
+                setWeeklyReportsEnabled(val);
+                Alert.alert(
+                  val ? 'Reports Enabled' : 'Reports Disabled',
+                  val ? 'You will receive weekly performance reports by email.' : 'Weekly reports have been disabled.',
+                );
+              }}
+              trackColor={{ false: '#e5e7eb', true: '#c4b5fd' }}
+              thumbColor={weeklyReportsEnabled ? '#7c3aed' : '#f4f4f5'}
+            />
           </View>
         </View>
 

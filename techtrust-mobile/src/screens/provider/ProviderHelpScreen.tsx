@@ -42,6 +42,7 @@ export default function ProviderHelpScreen({ navigation }: any) {
     { id: '4', title: t.nav?.workOrders || 'Work Orders', icon: 'clipboard-list', color: '#8b5cf6', backgroundColor: '#ede9fe' },
     { id: '5', title: t.reviews?.reviews || 'Reviews', icon: 'star', color: '#ec4899', backgroundColor: '#fce7f3' },
     { id: '6', title: t.nav?.settings || 'Settings', icon: 'cog', color: '#6b7280', backgroundColor: '#f3f4f6' },
+    { id: '7', title: 'FL Compliance', icon: 'gavel', color: '#dc2626', backgroundColor: '#fee2e2' },
   ];
 
   const faqItems: FAQItem[] = [
@@ -81,6 +82,39 @@ export default function ProviderHelpScreen({ navigation }: any) {
       question: t.provider?.faqPlatformFee || 'Why was a 10% fee charged?',
       answer: t.provider?.faqPlatformFeeAnswer || 'The 10% fee is the platform commission that covers payment processing costs, customer support, marketing and app maintenance.',
     },
+    // D36 — Florida Compliance FAQ
+    {
+      id: '7',
+      category: 'Florida Compliance',
+      question: 'What is required for FDACS motor vehicle repair registration?',
+      answer: 'Florida Statute 559.901-559.9221 requires all motor vehicle repair shops to register with the Department of Agriculture and Consumer Services (FDACS). You need: (1) MV Registration Number (MV-XXXXX format), (2) Proof of business location, (3) Garage liability insurance, (4) Surety bond or letter of credit ($10,000 minimum). Registration must be renewed annually.',
+    },
+    {
+      id: '8',
+      category: 'Florida Compliance',
+      question: 'What documents must I provide to customers in Florida?',
+      answer: 'Florida law requires: (1) Written repair estimate before starting work, (2) Customer authorization for repairs exceeding estimate by more than 10% or $50, (3) Itemized invoice with parts breakdown (new vs. used), (4) Return of replaced parts if requested, (5) Warranty disclosure for parts and labor. Failure to comply can result in fines up to $5,000 per violation.',
+    },
+    {
+      id: '9',
+      category: 'Florida Compliance',
+      question: 'What is PIP (Personal Injury Protection) and how does it affect my shop?',
+      answer: 'Florida is a no-fault state requiring all drivers to carry PIP coverage ($10,000 minimum). As a repair shop, you should: (1) Verify customer insurance before starting repairs, (2) Understand that PIP covers medical expenses, not vehicle repairs, (3) Ensure your customers also have Property Damage Liability ($10,000 minimum), (4) Be aware of Florida\'s comparative negligence system for claims.',
+    },
+    {
+      id: '10',
+      category: 'Florida Compliance',
+      question: 'How do I handle unclaimed vehicles in Florida?',
+      answer: 'Under Florida Statute 713.78, if a customer abandons a vehicle: (1) You must wait at least 30 days after service completion, (2) Send a certified letter to the registered owner, (3) File a mechanic\'s lien with the county clerk, (4) Apply for a title certificate through the FL DHSMV. Storage fees can be charged at reasonable daily rates. Keep detailed records of all communication attempts.',
+    },
+  ];
+
+  // D36 — Florida Compliance categories
+  const complianceDocs = [
+    { icon: 'file-document-outline', title: 'FDACS Registration Guide', subtitle: 'Step-by-step registration process' },
+    { icon: 'shield-check', title: 'FL Repair Shop Requirements', subtitle: 'Insurance, bonding & licensing' },
+    { icon: 'file-sign', title: 'Customer Rights Disclosure', subtitle: 'Required disclosures template' },
+    { icon: 'scale-balance', title: 'Dispute Resolution Process', subtitle: 'FDACS mediation & complaints' },
   ];
 
   const filteredFAQs = faqItems.filter(item =>
@@ -168,6 +202,47 @@ export default function ProviderHelpScreen({ navigation }: any) {
               </TouchableOpacity>
             ))}
           </View>
+        </View>
+
+        {/* D36 — Florida Compliance Section */}
+        <View style={styles.section}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16, gap: 10 }}>
+            <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: '#fee2e2', justifyContent: 'center', alignItems: 'center' }}>
+              <MaterialCommunityIcons name="gavel" size={22} color="#dc2626" />
+            </View>
+            <View>
+              <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>Florida Compliance</Text>
+              <Text style={{ fontSize: 12, color: '#6b7280' }}>FDACS requirements & regulations</Text>
+            </View>
+          </View>
+          {complianceDocs.map((doc, idx) => (
+            <TouchableOpacity
+              key={idx}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: '#fff',
+                borderRadius: 12,
+                padding: 14,
+                marginBottom: 8,
+                gap: 12,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.04,
+                shadowRadius: 4,
+                elevation: 1,
+              }}
+            >
+              <View style={{ width: 42, height: 42, borderRadius: 10, backgroundColor: '#fef2f2', justifyContent: 'center', alignItems: 'center' }}>
+                <MaterialCommunityIcons name={doc.icon as any} size={22} color="#dc2626" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#1f2937' }}>{doc.title}</Text>
+                <Text style={{ fontSize: 12, color: '#6b7280', marginTop: 1 }}>{doc.subtitle}</Text>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={18} color="#d1d5db" />
+            </TouchableOpacity>
+          ))}
         </View>
 
         {/* Contact Support */}

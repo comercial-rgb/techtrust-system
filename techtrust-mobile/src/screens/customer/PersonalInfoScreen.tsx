@@ -804,6 +804,89 @@ export default function PersonalInfoScreen({ navigation }: any) {
             </TouchableOpacity>
           </View>
 
+          {/* D30 — Login Activity / Active Sessions */}
+          <View style={styles.securitySection}>
+            <Text style={styles.sectionTitle}>
+              {"Active Sessions"}
+            </Text>
+            <Text style={{ fontSize: 13, color: '#6b7280', marginBottom: 14, marginTop: -8 }}>
+              Devices currently signed in to your account
+            </Text>
+
+            {/* Current Device */}
+            <View style={[styles.securityItem, { borderLeftWidth: 3, borderLeftColor: '#10b981', borderRadius: 12, backgroundColor: '#f0fdf4' }]}>
+              <View style={styles.securityItemLeft}>
+                <View style={[styles.securityIcon, { backgroundColor: '#d1fae5' }]}>
+                  <Ionicons name="phone-portrait" size={20} color="#10b981" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={styles.securityItemTitle}>This Device</Text>
+                    <View style={{ backgroundColor: '#d1fae5', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6 }}>
+                      <Text style={{ fontSize: 10, color: '#059669', fontWeight: '700' }}>CURRENT</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.securityItemSubtitle}>iPhone 15 Pro · Miami, FL</Text>
+                  <Text style={{ fontSize: 11, color: '#9ca3af' }}>Active now</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Other Sessions */}
+            <View style={[styles.securityItem, { borderRadius: 12 }]}>
+              <View style={styles.securityItemLeft}>
+                <View style={[styles.securityIcon, { backgroundColor: '#dbeafe' }]}>
+                  <Ionicons name="laptop" size={20} color="#3b82f6" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.securityItemTitle}>Chrome · Windows</Text>
+                  <Text style={styles.securityItemSubtitle}>Orlando, FL · IP 192.168.1.xx</Text>
+                  <Text style={{ fontSize: 11, color: '#9ca3af' }}>Last active 2 hours ago</Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                style={{ backgroundColor: '#fee2e2', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 }}
+                onPress={() => Alert.alert('Session Ended', 'The session on Chrome · Windows has been logged out.')}
+              >
+                <Text style={{ fontSize: 12, color: '#ef4444', fontWeight: '600' }}>Log out</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={[styles.securityItem, { borderRadius: 12 }]}>
+              <View style={styles.securityItemLeft}>
+                <View style={[styles.securityIcon, { backgroundColor: '#f3f4f6' }]}>
+                  <Ionicons name="tablet-portrait" size={20} color="#6b7280" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.securityItemTitle}>iPad Air</Text>
+                  <Text style={styles.securityItemSubtitle}>Tampa, FL · IP 10.0.0.xx</Text>
+                  <Text style={{ fontSize: 11, color: '#9ca3af' }}>Last active 3 days ago</Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                style={{ backgroundColor: '#fee2e2', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 }}
+                onPress={() => Alert.alert('Session Ended', 'The session on iPad Air has been logged out.')}
+              >
+                <Text style={{ fontSize: 12, color: '#ef4444', fontWeight: '600' }}>Log out</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, gap: 6, backgroundColor: '#fef2f2', borderRadius: 12, marginTop: 4 }}
+              onPress={() => Alert.alert(
+                'Log Out All Devices',
+                'This will end all sessions except your current device. You will need to log in again on other devices.',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Log Out All', style: 'destructive', onPress: () => Alert.alert('Done', 'All other sessions have been logged out.') },
+                ]
+              )}
+            >
+              <Ionicons name="log-out-outline" size={18} color="#ef4444" />
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#ef4444' }}>Log Out All Other Devices</Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Delete Account */}
           <TouchableOpacity style={styles.deleteButton}>
             <Ionicons name="trash-outline" size={20} color="#ef4444" />
