@@ -11,7 +11,7 @@ import {
 import { Text, Chip } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import MapView, { Marker, Circle, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker, Circle, PROVIDER_GOOGLE, Camera } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useI18n } from '../i18n';
 import carWashService from '../services/carWash.service';
@@ -74,6 +74,7 @@ export default function CarWashMapScreen({ navigation }: any) {
   const [viewMode, setViewMode] = useState<'map' | 'list'>(Platform.OS === 'ios' ? 'list' : 'map');
   const [selectedPin, setSelectedPin] = useState<string | null>(null);
   const [mapError, setMapError] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
 
   useEffect(() => {
     getLocationAndSearch();
@@ -471,8 +472,21 @@ export default function CarWashMapScreen({ navigation }: any) {
                   showsUserLocation
                   showsMyLocationButton={Platform.OS === 'android'}
                   showsCompass
+                  mapType="standard"
                   onPress={() => setSelectedPin(null)}
-                  onMapReady={() => setMapError(false)}
+                  onMapReady={() => {
+                    setMapError(false);
+                    setMapReady(true);
+                    // Workaround: nudge camera to force GL surface render on iOS
+                    if (Platform.OS === 'ios' && mapRef.current) {
+                      setTimeout(() => {
+                        mapRef.current?.animateCamera(
+                          { center: { latitude: location!.lat, longitude: location!.lng }, zoom: 11 },
+                          { duration: 1 }
+                        );
+                      }, 100);
+                    }
+                  }}
                 >
                   {/* Radius circle overlay */}
                   <Circle
