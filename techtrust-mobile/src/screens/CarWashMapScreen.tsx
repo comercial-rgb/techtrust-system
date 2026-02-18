@@ -3,7 +3,7 @@
  * Map with bottom sheet list of nearby car washes
  */
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, Component, ErrorInfo } from 'react';
 import {
   View, StyleSheet, FlatList, TouchableOpacity, Image, TextInput,
   Dimensions, Platform, Linking, ActivityIndicator, StatusBar, ScrollView
@@ -17,6 +17,21 @@ import { useI18n } from '../i18n';
 import carWashService from '../services/carWash.service';
 import { CarWashListItem, CarWashSearchFilters } from '../types/carWash';
 import { colors, spacing, borderRadius, fontSize, fontWeight, shadows } from '../constants/theme';
+
+// Error boundary to catch native MapView crashes
+class MapErrorBoundary extends Component<
+  { children: React.ReactNode; fallback: React.ReactNode },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+  static getDerivedStateFromError() { return { hasError: true }; }
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error('MapView crash caught:', error, info);
+  }
+  render() {
+    return this.state.hasError ? this.props.fallback : this.props.children;
+  }
+}
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MAP_HEIGHT = SCREEN_HEIGHT * 0.38;
@@ -56,8 +71,9 @@ export default function CarWashMapScreen({ navigation }: any) {
   const [freeVacuumFilter, setFreeVacuumFilter] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const mapRef = useRef<MapView>(null);
-  const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
+  const [viewMode, setViewMode] = useState<'map' | 'list'>(Platform.OS === 'ios' ? 'list' : 'map');
   const [selectedPin, setSelectedPin] = useState<string | null>(null);
+  const [mapError, setMapError] = useState(false);
 
   useEffect(() => {
     getLocationAndSearch();
@@ -425,54 +441,84 @@ export default function CarWashMapScreen({ navigation }: any) {
       {/* Interactive Map View */}
       {viewMode === 'map' && (
         <View style={styles.mapContainer}>
-          {/* Real Google Map */}
+          {/* Map */}
           <View style={styles.mapWrapper}>
-            {location ? (
-              <MapView
-                ref={mapRef}
-                style={styles.map}
-                {...(Platform.OS === 'android' ? { provider: PROVIDER_GOOGLE } : {})}
-                initialRegion={{
-                  latitude: location.lat,
-                  longitude: location.lng,
-                  latitudeDelta: (filters.radiusMiles || 10) * 0.03,
-                  longitudeDelta: (filters.radiusMiles || 10) * 0.03,
-                }}
-                showsUserLocation
-                showsMyLocationButton
-                showsCompass
-                onPress={() => setSelectedPin(null)}
+            {location && !mapError ? (
+              <MapErrorBoundary
+                fallback={
+                  <View style={[styles.mapLoading, { justifyContent: 'center', alignItems: 'center' }]}>
+                    <MaterialCommunityIcons name="map-marker-off" size={40} color={colors.textSecondary} />
+                    <Text style={{ color: colors.textSecondary, fontSize: 14, marginTop: 8 }}>Map unavailable</Text>
+                    <TouchableOpacity
+                      onPress={() => setViewMode('list')}
+                      style={{ backgroundColor: colors.primary, paddingHorizontal: 20, paddingVertical: 8, borderRadius: 8, marginTop: 8 }}
+                    >
+                      <Text style={{ color: '#fff', fontWeight: '600' }}>Switch to List View</Text>
+                    </TouchableOpacity>
+                  </View>
+                }
               >
-                {/* Radius circle overlay */}
-                <Circle
-                  center={{ latitude: location.lat, longitude: location.lng }}
-                  radius={(filters.radiusMiles || 10) * 1609.34}
-                  strokeColor={colors.primary + '40'}
-                  fillColor={colors.primary + '10'}
-                  strokeWidth={2}
-                />
+                <MapView
+                  ref={mapRef}
+                  style={styles.map}
+                  provider={PROVIDER_GOOGLE}
+                  initialRegion={{
+                    latitude: location.lat,
+                    longitude: location.lng,
+                    latitudeDelta: (filters.radiusMiles || 10) * 0.03,
+                    longitudeDelta: (filters.radiusMiles || 10) * 0.03,
+                  }}
+                  showsUserLocation
+                  showsMyLocationButton={Platform.OS === 'android'}
+                  showsCompass
+                  onPress={() => setSelectedPin(null)}
+                  onMapReady={() => setMapError(false)}
+                >
+                  {/* Radius circle overlay */}
+                  <Circle
+                    center={{ latitude: location.lat, longitude: location.lng }}
+                    radius={(filters.radiusMiles || 10) * 1609.34}
+                    strokeColor={colors.primary + '40'}
+                    fillColor={colors.primary + '10'}
+                    strokeWidth={2}
+                  />
 
-                {/* Car wash markers */}
-                {carWashes.map((cw) => {
-                  const typeColor = (cw.carWashTypes as string[])[0]
-                    ? CAR_WASH_TYPE_COLORS[(cw.carWashTypes as string[])[0]] || colors.primary
-                    : colors.primary;
+                  {/* Car wash markers */}
+                  {carWashes.filter(cw => cw.latitude && cw.longitude).map((cw) => {
+                    const types = Array.isArray(cw.carWashTypes) ? cw.carWashTypes as string[] : [];
+                    const typeColor = types[0]
+                      ? CAR_WASH_TYPE_COLORS[types[0]] || colors.primary
+                      : colors.primary;
 
-                  return (
-                    <Marker
-                      key={cw.id}
-                      coordinate={{ latitude: cw.latitude, longitude: cw.longitude }}
-                      title={cw.businessName}
-                      description={`${(cw.averageRating || 0).toFixed(1)}★ · ${cw.distanceMiles || '?'} mi${cw.isOpenNow ? ' · Open' : ''}`}
-                      pinColor={typeColor}
-                      onPress={() => setSelectedPin(cw.id)}
-                    />
-                  );
-                })}
-              </MapView>
+                    return (
+                      <Marker
+                        key={cw.id}
+                        coordinate={{ latitude: Number(cw.latitude), longitude: Number(cw.longitude) }}
+                        title={cw.businessName || 'Car Wash'}
+                        description={`${(cw.averageRating || 0).toFixed(1)}★ · ${cw.distanceMiles || '?'} mi${cw.isOpenNow ? ' · Open' : ''}`}
+                        pinColor={typeColor}
+                        onPress={() => setSelectedPin(cw.id)}
+                      />
+                    );
+                  })}
+                </MapView>
+              </MapErrorBoundary>
             ) : (
               <View style={styles.mapLoading}>
-                <ActivityIndicator size="large" color={colors.primary} />
+                {mapError ? (
+                  <View style={{ alignItems: 'center', gap: 8 }}>
+                    <MaterialCommunityIcons name="map-marker-off" size={40} color={colors.textSecondary} />
+                    <Text style={{ color: colors.textSecondary, fontSize: 14 }}>Map unavailable</Text>
+                    <TouchableOpacity
+                      onPress={() => setViewMode('list')}
+                      style={{ backgroundColor: colors.primary, paddingHorizontal: 20, paddingVertical: 8, borderRadius: 8, marginTop: 4 }}
+                    >
+                      <Text style={{ color: '#fff', fontWeight: '600' }}>Switch to List View</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <ActivityIndicator size="large" color={colors.primary} />
+                )}
               </View>
             )}
           </View>
@@ -491,7 +537,7 @@ export default function CarWashMapScreen({ navigation }: any) {
               <Ionicons name="star" size={14} color="#f59e0b" />
               <Text style={styles.mapStatText}>
                 {carWashes.length > 0
-                  ? (carWashes.reduce((s, c) => s + c.averageRating, 0) / carWashes.length).toFixed(1)
+                  ? (carWashes.reduce((s, c) => s + (c.averageRating || 0), 0) / carWashes.length).toFixed(1)
                   : '--'} avg
               </Text>
             </View>

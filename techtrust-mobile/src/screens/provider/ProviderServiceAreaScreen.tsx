@@ -260,7 +260,7 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
             <MapView
               ref={mapRef}
               style={styles.mapFull}
-              {...(Platform.OS === 'android' ? { provider: PROVIDER_GOOGLE } : {})}
+              provider={PROVIDER_GOOGLE}
               initialRegion={{
                 latitude: providerCoords.lat,
                 longitude: providerCoords.lng,
