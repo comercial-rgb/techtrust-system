@@ -260,7 +260,7 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
             <MapView
               ref={mapRef}
               style={styles.mapFull}
-              provider={PROVIDER_GOOGLE}
+              {...(Platform.OS === 'android' ? { provider: PROVIDER_GOOGLE } : {})}
               initialRegion={{
                 latitude: providerCoords.lat,
                 longitude: providerCoords.lng,
@@ -271,17 +271,6 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
               scrollEnabled={false}
               zoomEnabled={false}
               mapType="standard"
-              onMapReady={() => {
-                // Workaround: nudge camera to force GL surface render on iOS
-                if (Platform.OS === 'ios' && mapRef.current) {
-                  setTimeout(() => {
-                    mapRef.current?.animateCamera(
-                      { center: { latitude: providerCoords!.lat, longitude: providerCoords!.lng }, zoom: 10 },
-                      { duration: 1 }
-                    );
-                  }, 100);
-                }
-              }}
             >
               <Circle
                 center={{ latitude: providerCoords.lat, longitude: providerCoords.lng }}

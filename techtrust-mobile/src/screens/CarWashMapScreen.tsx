@@ -462,7 +462,7 @@ export default function CarWashMapScreen({ navigation }: any) {
                 <MapView
                   ref={mapRef}
                   style={styles.map}
-                  provider={PROVIDER_GOOGLE}
+                  {...(Platform.OS === 'android' ? { provider: PROVIDER_GOOGLE } : {})}
                   initialRegion={{
                     latitude: location.lat,
                     longitude: location.lng,
@@ -477,15 +477,6 @@ export default function CarWashMapScreen({ navigation }: any) {
                   onMapReady={() => {
                     setMapError(false);
                     setMapReady(true);
-                    // Workaround: nudge camera to force GL surface render on iOS
-                    if (Platform.OS === 'ios' && mapRef.current) {
-                      setTimeout(() => {
-                        mapRef.current?.animateCamera(
-                          { center: { latitude: location!.lat, longitude: location!.lng }, zoom: 11 },
-                          { duration: 1 }
-                        );
-                      }, 100);
-                    }
                   }}
                 >
                   {/* Radius circle overlay */}
