@@ -71,7 +71,7 @@ export default function CarWashMapScreen({ navigation }: any) {
   const [freeVacuumFilter, setFreeVacuumFilter] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const mapRef = useRef<MapView>(null);
-  const [viewMode, setViewMode] = useState<'map' | 'list'>(Platform.OS === 'ios' ? 'list' : 'map');
+  const [viewMode, setViewMode] = useState<'map' | 'list'>('list');
   const [selectedPin, setSelectedPin] = useState<string | null>(null);
   const [mapError, setMapError] = useState(false);
   const [mapReady, setMapReady] = useState(false);
@@ -272,6 +272,28 @@ export default function CarWashMapScreen({ navigation }: any) {
               </View>
             )}
           </View>
+
+          {/* Directions button - opens in native maps app */}
+          {item.latitude && item.longitude && (
+            <TouchableOpacity
+              style={styles.directionsBtn}
+              onPress={(e) => {
+                e.stopPropagation();
+                const lat = Number(item.latitude);
+                const lng = Number(item.longitude);
+                const label = encodeURIComponent(item.businessName || 'Car Wash');
+                const url = Platform.OS === 'ios'
+                  ? `maps:0,0?q=${label}@${lat},${lng}`
+                  : `geo:${lat},${lng}?q=${lat},${lng}(${label})`;
+                Linking.openURL(url).catch(() => {
+                  Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`);
+                });
+              }}
+            >
+              <Ionicons name="navigate" size={14} color="#fff" />
+              <Text style={styles.directionsBtnText}>Directions</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     </TouchableOpacity>
@@ -421,7 +443,8 @@ export default function CarWashMapScreen({ navigation }: any) {
         </View>
       )}
 
-      {/* Map/List Toggle */}
+      {/* Map/List Toggle - only show on Android where map works */}
+      {Platform.OS === 'android' && (
       <View style={styles.viewToggle}>
         <TouchableOpacity
           style={[styles.viewToggleBtn, viewMode === 'map' && styles.viewToggleBtnActive]}
@@ -438,6 +461,7 @@ export default function CarWashMapScreen({ navigation }: any) {
           <Text style={[styles.viewToggleText, viewMode === 'list' && styles.viewToggleTextActive]}>List</Text>
         </TouchableOpacity>
       </View>
+      )}
 
       {/* Interactive Map View */}
       {viewMode === 'map' && (
@@ -1059,5 +1083,21 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: fontWeight.medium,
     color: '#16a34a',
+  },
+  directionsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: colors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    gap: 4,
+    marginTop: 6,
+  },
+  directionsBtnText: {
+    fontSize: 12,
+    fontWeight: fontWeight.semibold,
+    color: '#fff',
   },
 });
