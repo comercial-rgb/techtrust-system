@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -20,9 +20,6 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSFaceIDUsageDescription": "Use Face ID to securely log in to your TechTrust account"
-      },
-      "config": {
-        "googleMapsApiKey": "AIzaSyAT00JrFC0hzIARF9wVZE0v1Ahd2x_w4os"
       }
     },
     "android": {
