@@ -71,7 +71,7 @@ export default function CarWashMapScreen({ navigation }: any) {
   const [freeVacuumFilter, setFreeVacuumFilter] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const mapRef = useRef<MapView>(null);
-  const [viewMode, setViewMode] = useState<'map' | 'list'>('list');
+  const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
   const [selectedPin, setSelectedPin] = useState<string | null>(null);
   const [mapError, setMapError] = useState(false);
   const [mapReady, setMapReady] = useState(false);
@@ -443,8 +443,7 @@ export default function CarWashMapScreen({ navigation }: any) {
         </View>
       )}
 
-      {/* Map/List Toggle - only show on Android where map works */}
-      {Platform.OS === 'android' && (
+      {/* Map/List Toggle */}
       <View style={styles.viewToggle}>
         <TouchableOpacity
           style={[styles.viewToggleBtn, viewMode === 'map' && styles.viewToggleBtnActive]}
@@ -461,7 +460,6 @@ export default function CarWashMapScreen({ navigation }: any) {
           <Text style={[styles.viewToggleText, viewMode === 'list' && styles.viewToggleTextActive]}>List</Text>
         </TouchableOpacity>
       </View>
-      )}
 
       {/* Interactive Map View */}
       {viewMode === 'map' && (
