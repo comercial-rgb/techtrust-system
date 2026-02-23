@@ -43,7 +43,7 @@ export default function FavoriteProvidersScreen({ navigation }: any) {
   const [activeCategory, setActiveCategory] = useState<FavoriteCategory>('all');
 
   const categoryTabs: { key: FavoriteCategory; label: string; icon: string; color: string }[] = [
-    { key: 'all', label: 'All', icon: 'grid', color: '#1976d2' },
+    { key: 'all', label: 'All', icon: 'grid', color: '#2B5EA7' },
     { key: 'repair', label: 'Repair', icon: 'construct', color: '#f59e0b' },
     { key: 'carwash', label: 'Car Wash', icon: 'car-wash', color: '#3b82f6' },
     { key: 'parts', label: 'Parts Store', icon: 'storefront', color: '#10b981' },
@@ -116,7 +116,7 @@ export default function FavoriteProvidersScreen({ navigation }: any) {
           <Ionicons 
             name={getBusinessTypeIcon(item.businessType) as any} 
             size={28} 
-            color="#1976d2" 
+            color="#2B5EA7" 
           />
         </View>
         <View style={styles.providerInfo}>
@@ -175,7 +175,7 @@ export default function FavoriteProvidersScreen({ navigation }: any) {
           onPress={() => navigation.navigate('Home', { screen: 'CreateRequest', params: { providerId: item.id } })}
         >
           <Text style={styles.requestButtonText}>{t.customer?.requestQuote || 'Request Quote'}</Text>
-          <Ionicons name="chevron-forward" size={16} color="#1976d2" />
+          <Ionicons name="chevron-forward" size={16} color="#2B5EA7" />
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
@@ -192,7 +192,7 @@ export default function FavoriteProvidersScreen({ navigation }: any) {
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#1976d2" />
+          <ActivityIndicator size="large" color="#2B5EA7" />
         </View>
       </SafeAreaView>
     );
@@ -444,7 +444,7 @@ const styles = StyleSheet.create({
   },
   specialtyText: {
     fontSize: 12,
-    color: '#1976d2',
+    color: '#2B5EA7',
     fontWeight: '500',
   },
   providerFooter: {
@@ -473,7 +473,7 @@ const styles = StyleSheet.create({
   },
   requestButtonText: {
     fontSize: 14,
-    color: '#1976d2',
+    color: '#2B5EA7',
     fontWeight: '600',
   },
   emptyState: {
@@ -505,7 +505,7 @@ const styles = StyleSheet.create({
   emptyButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1976d2',
+    backgroundColor: '#2B5EA7',
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderRadius: 12,

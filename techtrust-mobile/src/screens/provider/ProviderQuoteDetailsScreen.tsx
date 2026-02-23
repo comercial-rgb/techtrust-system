@@ -159,7 +159,7 @@ export default function ProviderQuoteDetailsScreen({ route, navigation }: any) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#1976d2" />
+          <ActivityIndicator size="large" color="#2B5EA7" />
         </View>
       </SafeAreaView>
     );
@@ -314,15 +314,15 @@ export default function ProviderQuoteDetailsScreen({ route, navigation }: any) {
             <Text style={styles.sectionTitle}>{t.provider?.proposedSchedule || 'Proposed Schedule'}</Text>
             <View style={styles.scheduleCard}>
               <View style={styles.scheduleItem}>
-                <MaterialCommunityIcons name="calendar" size={20} color="#1976d2" />
+                <MaterialCommunityIcons name="calendar" size={20} color="#2B5EA7" />
                 <Text style={styles.scheduleText}>{quote.scheduledDate}</Text>
               </View>
               <View style={styles.scheduleItem}>
-                <MaterialCommunityIcons name="clock-outline" size={20} color="#1976d2" />
+                <MaterialCommunityIcons name="clock-outline" size={20} color="#2B5EA7" />
                 <Text style={styles.scheduleText}>{quote.scheduledTime}</Text>
               </View>
               <View style={styles.scheduleItem}>
-                <MaterialCommunityIcons name="timer-outline" size={20} color="#1976d2" />
+                <MaterialCommunityIcons name="timer-outline" size={20} color="#2B5EA7" />
                 <Text style={styles.scheduleText}>{quote.estimatedDuration} {t.common?.estimated || 'estimated'}</Text>
               </View>
             </View>
@@ -391,7 +391,7 @@ const styles = StyleSheet.create({
   backButton: {
     paddingHorizontal: 24,
     paddingVertical: 12,
-    backgroundColor: '#1976d2',
+    backgroundColor: '#2B5EA7',
     borderRadius: 8,
   },
   backButtonText: {

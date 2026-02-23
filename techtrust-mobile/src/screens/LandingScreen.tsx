@@ -587,7 +587,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
     >
       <View style={styles.providerHeader}>
         <View style={styles.providerIcon}>
-          <MaterialCommunityIcons name="store" size={24} color="#1976d2" />
+          <MaterialCommunityIcons name="store" size={24} color="#2B5EA7" />
         </View>
         <View style={styles.providerMainInfo}>
           <View style={styles.providerNameRow}>
@@ -705,7 +705,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                 onPress={() => navigation.navigate('DashboardMain')}
               >
                 <Text style={styles.goToDashboardText}>My Dashboard</Text>
-                <Ionicons name="arrow-forward" size={14} color="#1976d2" />
+                <Ionicons name="arrow-forward" size={14} color="#2B5EA7" />
               </TouchableOpacity>
             </View>
           )}
@@ -721,7 +721,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
               <View style={styles.logoTextContainer}>
                 <Text style={styles.logoText}>TechTrust</Text>
                 <Text style={styles.logoTagline}>
-                  Your trusted auto care partner
+                  Driven by Technology. Trusted by You.
                 </Text>
               </View>
             </View>
@@ -769,8 +769,8 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                   setSelectedService("");
                   await loadHomeData();
                 }}
-                colors={["#1976d2"]}
-                tintColor="#1976d2"
+                colors={["#2B5EA7"]}
+                tintColor="#2B5EA7"
               />
             }
           >
@@ -821,7 +821,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
             {/* Popular Services Grid */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Ionicons name="grid" size={18} color="#1976d2" />
+                <Ionicons name="grid" size={18} color="#2B5EA7" />
                 <Text style={styles.sectionLabel}>{(t.landing as any)?.popularServices || 'Popular Services'}</Text>
               </View>
               <View style={styles.servicesGrid}>
@@ -858,7 +858,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
             {/* Search Providers Section */}
             <View style={styles.section}>
               <View style={styles.sectionHeaderLarge}>
-                <Ionicons name="search" size={24} color="#1976d2" />
+                <Ionicons name="search" size={24} color="#2B5EA7" />
                 <View>
                   <Text style={styles.sectionTitle}>
                     {t.landing?.search?.title || "Find Service Providers"}
@@ -973,7 +973,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                         <Ionicons
                           name="arrow-forward"
                           size={16}
-                          color="#1976d2"
+                          color="#2B5EA7"
                         />
                       </TouchableOpacity>
                     )}
@@ -1053,7 +1053,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                             {
                               backgroundColor: "transparent",
                               borderWidth: 1,
-                              borderColor: "#1976d2",
+                              borderColor: "#2B5EA7",
                             },
                           ]}
                           onPress={() => navigation.navigate("Login")}
@@ -1061,7 +1061,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                           <Text
                             style={[
                               styles.registerCTAButtonText,
-                              { color: "#1976d2" },
+                              { color: "#2B5EA7" },
                             ]}
                           >
                             {t.auth?.login || "Login"}
@@ -1069,7 +1069,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                           <Ionicons
                             name="log-in-outline"
                             size={18}
-                            color="#1976d2"
+                            color="#2B5EA7"
                           />
                         </TouchableOpacity>
                       </View>
@@ -1087,7 +1087,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                 { value: '', label: (t.landing as any)?.trustGuarantee || 'Satisfaction Guarantee', icon: 'ribbon' as const },
               ].map((stat, idx) => (
                 <View key={idx} style={styles.trustItem}>
-                  <Ionicons name={stat.icon} size={20} color="#1976d2" />
+                  <Ionicons name={stat.icon} size={20} color="#2B5EA7" />
                   <Text style={styles.trustLabel}>{stat.label}</Text>
                 </View>
               ))}
@@ -1166,7 +1166,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                       <Ionicons
                         name={benefit.icon as any}
                         size={28}
-                        color="#1976d2"
+                        color="#2B5EA7"
                       />
                     </View>
                     <Text style={styles.benefitTitle}>
@@ -1264,7 +1264,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                   <Ionicons
                     name="information-circle"
                     size={24}
-                    color="#1976d2"
+                    color="#2B5EA7"
                   />
                 </View>
                 <View style={styles.noticeContent}>
@@ -1277,7 +1277,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                   </Text>
                   <View style={styles.noticeAction}>
                     <Text style={styles.noticeActionText}>{(t.landing as any)?.notices?.checkHours || 'Check Provider Hours'}</Text>
-                    <Ionicons name="arrow-forward" size={14} color="#1976d2" />
+                    <Ionicons name="arrow-forward" size={14} color="#2B5EA7" />
                   </View>
                 </View>
               </TouchableOpacity>
@@ -1353,7 +1353,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                 <Text style={styles.footerDot}>·</Text>
                 <TouchableOpacity><Text style={styles.footerLinkText}>{(t.landing as any)?.footer?.contact || 'Contact'}</Text></TouchableOpacity>
               </View>
-              <Text style={styles.footerCopyright}>© {new Date().getFullYear()} TechTrust AutoSolutions</Text>
+              <Text style={styles.footerCopyright}>© {new Date().getFullYear()} TechTrust AutoSolutions LLC</Text>
             </View>
 
             <View style={{ height: 30 }} />
@@ -1446,7 +1446,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                     )}
                   </View>
                   {selectedState === state && (
-                    <Ionicons name="checkmark" size={20} color="#1976d2" />
+                    <Ionicons name="checkmark" size={20} color="#2B5EA7" />
                   )}
                 </TouchableOpacity>
               );
@@ -1512,7 +1512,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                     )}
                   </View>
                   {selectedCity === city && (
-                    <Ionicons name="checkmark" size={20} color="#1976d2" />
+                    <Ionicons name="checkmark" size={20} color="#2B5EA7" />
                   )}
                 </TouchableOpacity>
                   );
@@ -1555,7 +1555,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                     {label}
                   </Text>
                   {selectedService === id && (
-                    <Ionicons name="checkmark" size={20} color="#1976d2" />
+                    <Ionicons name="checkmark" size={20} color="#2B5EA7" />
                   )}
                 </TouchableOpacity>
               ))}
@@ -1681,7 +1681,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
         >
           <View style={styles.languageModalContent}>
             <View style={styles.languageModalHeader}>
-              <Ionicons name="globe" size={24} color="#1976d2" />
+              <Ionicons name="globe" size={24} color="#2B5EA7" />
               <Text style={styles.languageModalTitle}>
                 {t.settings?.selectLanguage || "Select Language"}
               </Text>
@@ -1706,7 +1706,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                   <Text style={styles.languageOptionNameEn}>{lang.name}</Text>
                 </View>
                 {language === lang.code && (
-                  <Ionicons name="checkmark-circle" size={24} color="#1976d2" />
+                  <Ionicons name="checkmark-circle" size={24} color="#2B5EA7" />
                 )}
               </TouchableOpacity>
             ))}
@@ -2090,7 +2090,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                     {state}
                   </Text>
                   {offerProviderState === state && (
-                    <Ionicons name="checkmark" size={20} color="#1976d2" />
+                    <Ionicons name="checkmark" size={20} color="#2B5EA7" />
                   )}
                 </TouchableOpacity>
               ))}
@@ -2132,7 +2132,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                     {city}
                   </Text>
                   {offerProviderCity === city && (
-                    <Ionicons name="checkmark" size={20} color="#1976d2" />
+                    <Ionicons name="checkmark" size={20} color="#2B5EA7" />
                   )}
                 </TouchableOpacity>
               ))}
@@ -2180,11 +2180,11 @@ const styles = StyleSheet.create({
   loggedInText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#1976d2",
+    color: "#2B5EA7",
   },
   loggedInName: {
     fontWeight: "600",
-    color: "#1976d2",
+    color: "#2B5EA7",
   },
   goToDashboardBtn: {
     flexDirection: "row",
@@ -2195,12 +2195,12 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#1976d2",
+    borderColor: "#2B5EA7",
   },
   goToDashboardText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#1976d2",
+    color: "#2B5EA7",
   },
   header: {
     flexDirection: "row",
@@ -2228,7 +2228,7 @@ const styles = StyleSheet.create({
   logoText: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#1976d2",
+    color: "#2B5EA7",
     lineHeight: 22,
   },
   logoTagline: {
@@ -2340,7 +2340,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#d1d5db",
   },
   paginationDotActive: {
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     width: 24,
   },
   // Search/Filter styles
@@ -2381,7 +2381,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     borderRadius: 12,
     paddingVertical: 14,
   },
@@ -2423,7 +2423,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   viewAllButtonText: {
-    color: "#1976d2",
+    color: "#2B5EA7",
     fontWeight: "600",
     fontSize: 13,
   },
@@ -2569,7 +2569,7 @@ const styles = StyleSheet.create({
   registerCTATitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#1976d2",
+    color: "#2B5EA7",
     marginBottom: 8,
   },
   registerCTAText: {
@@ -2583,7 +2583,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     borderRadius: 12,
     paddingVertical: 14,
   },
@@ -2820,7 +2820,7 @@ const styles = StyleSheet.create({
   },
   // Footer CTA styles
   footerCTA: {
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     margin: 16,
     borderRadius: 20,
     padding: 24,
@@ -2853,7 +2853,7 @@ const styles = StyleSheet.create({
   footerCTAButtonPrimaryText: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#1976d2",
+    color: "#2B5EA7",
   },
   footerCTAButtonSecondary: {
     flex: 1,
@@ -2911,7 +2911,7 @@ const styles = StyleSheet.create({
     color: "#374151",
   },
   dropdownItemTextSelected: {
-    color: "#1976d2",
+    color: "#2B5EA7",
     fontWeight: "600",
   },
   // Menu styles
@@ -2947,7 +2947,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
     fontWeight: "700",
-    color: "#1976d2",
+    color: "#2B5EA7",
     marginLeft: 10,
   },
   menuLanguageSelector: {
@@ -3019,7 +3019,7 @@ const styles = StyleSheet.create({
   },
   menuSignupButton: {
     flex: 1,
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: "center",
@@ -3104,7 +3104,7 @@ const styles = StyleSheet.create({
   requestServiceButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
@@ -3245,7 +3245,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
     borderWidth: 2,
-    borderColor: "#1976d2",
+    borderColor: "#2B5EA7",
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: "center",
@@ -3253,11 +3253,11 @@ const styles = StyleSheet.create({
   offerModalLoginButtonText: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#1976d2",
+    color: "#2B5EA7",
   },
   offerModalSignupButton: {
     flex: 1,
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: "center",
@@ -3274,7 +3274,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     borderRadius: 12,
     paddingVertical: 14,
     gap: 8,
@@ -3364,7 +3364,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     paddingVertical: 14,
     borderRadius: 12,
     gap: 8,
@@ -3493,7 +3493,7 @@ const styles = StyleSheet.create({
   noticeActionText: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#1976d2",
+    color: "#2B5EA7",
   },
   // Footer Links
   footerLinks: {

@@ -137,9 +137,7 @@ export default function LoginPage() {
           {/* Logo */}
           <div className="flex items-center justify-between gap-3 mb-6">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-primary-600 rounded-xl flex items-center justify-center">
-                <Car className="w-7 h-7 text-white" />
-              </div>
+              <img src="/favicon.png" alt="TechTrust" className="w-12 h-12 rounded-xl" />
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">
                   {tr("brand.name")}
@@ -360,6 +358,7 @@ export default function LoginPage() {
       {/* Right Side - Features */}
       <div className="hidden lg:flex flex-1 bg-gradient-to-br from-primary-600 to-primary-800 p-12 items-center justify-center">
         <div className="max-w-md text-white">
+          <img src="/logo-white.png" alt="TechTrust" className="w-16 h-16 mb-6 drop-shadow-lg" />
           <h2 className="text-3xl font-bold mb-6">{tr("client.heroTitle")}</h2>
           <p className="text-primary-100 mb-10 text-lg">
             {tr("client.heroDescription")}

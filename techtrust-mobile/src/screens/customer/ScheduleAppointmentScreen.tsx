@@ -429,7 +429,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
               {loadingVehicles ? (
                 <ActivityIndicator
                   size="large"
-                  color="#1976d2"
+                  color="#2B5EA7"
                   style={{ marginTop: 40 }}
                 />
               ) : vehicles.length === 0 ? (
@@ -454,7 +454,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
                       <Ionicons
                         name="car"
                         size={24}
-                        color={selectedVehicle === v.id ? "#1976d2" : "#6b7280"}
+                        color={selectedVehicle === v.id ? "#2B5EA7" : "#6b7280"}
                       />
                     </View>
                     <View style={{ flex: 1 }}>
@@ -467,7 +467,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
                       <Ionicons
                         name="checkmark-circle"
                         size={24}
-                        color="#1976d2"
+                        color="#2B5EA7"
                       />
                     )}
                   </TouchableOpacity>
@@ -497,7 +497,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
                       name={svc.icon as any}
                       size={22}
                       color={
-                        selectedServiceType === svc.id ? "#1976d2" : "#6b7280"
+                        selectedServiceType === svc.id ? "#2B5EA7" : "#6b7280"
                       }
                     />
                     <Text
@@ -600,7 +600,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
                       color={
                         selectedProvider === prov.id ||
                         selectedProvider === prov.userId
-                          ? "#1976d2"
+                          ? "#2B5EA7"
                           : "#6b7280"
                       }
                     />
@@ -639,7 +639,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
                     <Ionicons
                       name="checkmark-circle"
                       size={24}
-                      color="#1976d2"
+                      color="#2B5EA7"
                     />
                   )}
                 </TouchableOpacity>
@@ -658,7 +658,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
                   style={[styles.dateBtn, { flex: 1 }]}
                   onPress={() => setShowDatePicker(true)}
                 >
-                  <Ionicons name="calendar-outline" size={18} color="#1976d2" />
+                  <Ionicons name="calendar-outline" size={18} color="#2B5EA7" />
                   <Text style={styles.dateBtnText}>
                     {date.toLocaleDateString()}
                   </Text>
@@ -667,7 +667,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
                   style={[styles.dateBtn, { flex: 1 }]}
                   onPress={() => setShowTimePicker(true)}
                 >
-                  <Ionicons name="time-outline" size={18} color="#1976d2" />
+                  <Ionicons name="time-outline" size={18} color="#2B5EA7" />
                   <Text style={styles.dateBtnText}>
                     {date.toLocaleTimeString([], {
                       hour: "2-digit",
@@ -690,7 +690,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
               {/* App Service Fee Card */}
               <View style={styles.feeCard}>
                 <View style={styles.feeHeader}>
-                  <Ionicons name="cash-outline" size={22} color="#1976d2" />
+                  <Ionicons name="cash-outline" size={22} color="#2B5EA7" />
                   <Text style={styles.feeTitle}>
                     {sa.appServiceFee || "App Service Fee"}
                   </Text>
@@ -758,7 +758,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
 
               {/* FDACS Info */}
               <View style={styles.fdacsInfo}>
-                <Ionicons name="shield-checkmark" size={20} color="#1976d2" />
+                <Ionicons name="shield-checkmark" size={20} color="#2B5EA7" />
                 <Text style={styles.fdacsText}>
                   {sa.fdacsProtection ||
                     "Your diagnostic visit is protected under Florida FDACS regulations. You will receive a Written Estimate valid for 15 days before any work begins."}
@@ -887,7 +887,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
 
               {/* Security badge */}
               <View style={styles.securityBadge}>
-                <Ionicons name="lock-closed" size={18} color="#1976d2" />
+                <Ionicons name="lock-closed" size={18} color="#2B5EA7" />
                 <Text style={styles.securityText}>
                   {sa.securityNote ||
                     "Your payment is secured. Provider details shared only after confirmation. All transactions are FDACS compliant."}
@@ -975,12 +975,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  stepCircleActive: { backgroundColor: "#1976d2" },
+  stepCircleActive: { backgroundColor: "#2B5EA7" },
   stepCircleDone: { backgroundColor: "#059669" },
   stepNumber: { fontSize: 12, fontWeight: "700", color: "#9ca3af" },
   stepNumberActive: { color: "#fff" },
   stepLabel: { fontSize: 10, color: "#9ca3af", marginTop: 4 },
-  stepLabelActive: { color: "#1976d2", fontWeight: "600" },
+  stepLabelActive: { color: "#2B5EA7", fontWeight: "600" },
 
   // Section title
   sectionTitle: {
@@ -1003,7 +1003,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   selectionCardActive: {
-    borderColor: "#1976d2",
+    borderColor: "#2B5EA7",
     backgroundColor: "#f0f7ff",
   },
   selectionIcon: {
@@ -1034,7 +1034,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   serviceChipActive: {
-    borderColor: "#1976d2",
+    borderColor: "#2B5EA7",
     backgroundColor: "#f0f7ff",
   },
   serviceChipText: {
@@ -1044,7 +1044,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontWeight: "500",
   },
-  serviceChipTextActive: { color: "#1976d2", fontWeight: "700" },
+  serviceChipTextActive: { color: "#2B5EA7", fontWeight: "700" },
 
   // Radius
   radiusRow: { marginBottom: 16 },
@@ -1064,9 +1064,9 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: "#e5e7eb",
   },
-  radiusBtnActive: { borderColor: "#1976d2", backgroundColor: "#f0f7ff" },
+  radiusBtnActive: { borderColor: "#2B5EA7", backgroundColor: "#f0f7ff" },
   radiusBtnText: { fontSize: 13, fontWeight: "600", color: "#6b7280" },
-  radiusBtnTextActive: { color: "#1976d2" },
+  radiusBtnTextActive: { color: "#2B5EA7" },
 
   // Search button
   searchBtn: {
@@ -1074,7 +1074,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     borderRadius: 12,
     paddingVertical: 12,
     marginBottom: 16,
@@ -1150,7 +1150,7 @@ const styles = StyleSheet.create({
   feeAmount: {
     fontSize: 28,
     fontWeight: "800",
-    color: "#1976d2",
+    color: "#2B5EA7",
     marginBottom: 12,
   },
   feeDisclaimer: {
@@ -1233,7 +1233,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     borderRadius: 12,
     paddingVertical: 14,
   },

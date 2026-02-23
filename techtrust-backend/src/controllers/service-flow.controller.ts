@@ -28,9 +28,12 @@ import {
   CANCELLATION_RULES,
   SUPPLEMENT_RULES,
   SERVICE_FLOW,
+  PROVIDER_POINTS,
   calculateProcessorFee,
   calculateCancellationFee,
   compareProcessorFees,
+  calculatePlatformFee,
+  getAppServiceFee,
 } from "../config/businessRules";
 
 // ============================================
@@ -77,7 +80,8 @@ export const approveQuoteWithPaymentHold = async (
   if (quote.serviceRequest.userId !== customerId) {
     throw new AppError("Sem permissão", 403, "FORBIDDEN");
   }
-  if (quote.status !== "PENDING") {
+  // BUG 5 FIX: Allow ACCEPTED status (from prior /quotes/:id/accept call)
+  if (quote.status !== "PENDING" && quote.status !== "ACCEPTED") {
     throw new AppError(
       "Este orçamento não está mais disponível",
       400,
@@ -117,17 +121,26 @@ export const approveQuoteWithPaymentHold = async (
   if (!customer)
     throw new AppError("Usuário não encontrado", 404, "USER_NOT_FOUND");
 
-  // 4. Calcular valores
+  // 4. Calcular valores (com cap de platform fee por plano)
   const serviceAmount = Number(quote.totalAmount);
-  const platformFee =
-    (serviceAmount * PAYMENT_RULES.PLATFORM_FEE_PERCENT) / 100;
+
+  // Buscar plano do cliente para aplicar cap na taxa
+  const subscription = await prisma.subscription.findFirst({
+    where: { userId: customerId, status: 'ACTIVE' },
+    select: { plan: true },
+  });
+  const clientPlan = subscription?.plan || 'FREE';
+
+  const platformFee = calculatePlatformFee(serviceAmount, clientPlan);
+  const appServiceFee = getAppServiceFee(clientPlan);
+
   const cardType = (paymentMethod.type as "credit" | "debit") || "credit";
   const processorFee = calculateProcessorFee(
     serviceAmount,
     paymentProcessor as "STRIPE" | "CHASE",
     cardType,
   );
-  const totalAmount = serviceAmount + platformFee + processorFee.feeAmount;
+  const totalAmount = serviceAmount + platformFee + appServiceFee + processorFee.feeAmount;
   const providerAmount = serviceAmount - platformFee;
 
   try {
@@ -166,12 +179,19 @@ export const approveQuoteWithPaymentHold = async (
       holdResult.paymentIntentId,
     );
 
-    // 8. Transaction: aceitar quote + criar work order + criar payment
+    // 8. Transaction: aceitar quote + criar/reusar work order + criar payment
     const paymentNumber = `PAY-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-    const orderNumber = `WO-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+
+    // BUG 5 FIX: Check if a WorkOrder already exists for this quote
+    // (created by prior POST /quotes/:id/accept call from mobile)
+    const existingWorkOrder = await prisma.workOrder.findFirst({
+      where: { quoteId: quote.id },
+    });
+
+    const orderNumber = existingWorkOrder?.orderNumber || `WO-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
     const result = await prisma.$transaction(async (tx) => {
-      // Aceitar orçamento
+      // Aceitar orçamento (idempotent — may already be ACCEPTED)
       await tx.quote.update({
         where: { id: quoteId },
         data: { status: "ACCEPTED", acceptedAt: new Date() },
@@ -193,22 +213,35 @@ export const approveQuoteWithPaymentHold = async (
         data: { status: "QUOTE_ACCEPTED", acceptedQuoteId: quoteId },
       });
 
-      // Criar work order com status PAYMENT_HOLD
-      const workOrder = await tx.workOrder.create({
-        data: {
-          orderNumber,
-          serviceRequestId: quote.serviceRequestId,
-          quoteId: quote.id,
-          customerId,
-          providerId: quote.providerId,
-          vehicleId: quote.serviceRequest.vehicleId,
-          status: SERVICE_FLOW.STATUSES.PAYMENT_HOLD,
-          originalAmount: quote.totalAmount,
-          finalAmount: quote.totalAmount,
-          warrantyMonths: quote.warrantyMonths,
-          warrantyMileage: quote.warrantyMileage,
-        },
-      });
+      // BUG 5 FIX: Reuse existing WorkOrder or create new one
+      let workOrder;
+      if (existingWorkOrder) {
+        // Update existing WO to PAYMENT_HOLD status
+        workOrder = await tx.workOrder.update({
+          where: { id: existingWorkOrder.id },
+          data: {
+            status: SERVICE_FLOW.STATUSES.PAYMENT_HOLD,
+          },
+        });
+        logger.info(`Reusing existing WorkOrder ${existingWorkOrder.orderNumber} for payment hold`);
+      } else {
+        // Create new work order com status PAYMENT_HOLD
+        workOrder = await tx.workOrder.create({
+          data: {
+            orderNumber,
+            serviceRequestId: quote.serviceRequestId,
+            quoteId: quote.id,
+            customerId,
+            providerId: quote.providerId,
+            vehicleId: quote.serviceRequest.vehicleId,
+            status: SERVICE_FLOW.STATUSES.PAYMENT_HOLD,
+            originalAmount: quote.totalAmount,
+            finalAmount: quote.totalAmount,
+            warrantyMonths: quote.warrantyMonths,
+            warrantyMileage: quote.warrantyMileage,
+          },
+        });
+      }
 
       // Criar payment com status AUTHORIZED
       const payment = await tx.payment.create({
@@ -891,16 +924,18 @@ export const validateCancellation = async (req: Request, res: Response) => {
     ]);
 
     // Notificar cliente
-    await prisma.notification.create({
-      data: {
-        userId: cancellation.requestedByCustomerId,
-        type: "CANCELLATION_VALIDATED",
-        title: "Cancellation Approved",
-        message:
-          "Your cancellation request has been approved. All payment holds have been released.",
-        relatedWorkOrderId: cancellation.workOrderId,
-      },
-    });
+    if (cancellation.requestedByCustomerId) {
+      await prisma.notification.create({
+        data: {
+          userId: cancellation.requestedByCustomerId,
+          type: "CANCELLATION_VALIDATED",
+          title: "Cancellation Approved",
+          message:
+            "Your cancellation request has been approved. All payment holds have been released.",
+          relatedWorkOrderId: cancellation.workOrderId,
+        },
+      });
+    }
 
     return res.json({
       success: true,
@@ -910,20 +945,22 @@ export const validateCancellation = async (req: Request, res: Response) => {
   }
 
   // Fornecedor reportou custos → notificar admin e cliente para resolução
-  await prisma.notification.create({
-    data: {
-      userId: cancellation.requestedByCustomerId,
-      type: "CANCELLATION_VALIDATED",
-      title: "Cancellation Under Review",
-      message: `The provider reported costs of $${Number(reportedCosts).toFixed(2)} for work already performed. Our team will review and contact you.`,
-      relatedWorkOrderId: cancellation.workOrderId,
-      data: JSON.stringify({
-        cancellationRequestId,
-        reportedCosts: Number(reportedCosts),
-        providerValidation: validation,
-      }),
-    },
-  });
+  if (cancellation.requestedByCustomerId) {
+    await prisma.notification.create({
+      data: {
+        userId: cancellation.requestedByCustomerId,
+        type: "CANCELLATION_VALIDATED",
+        title: "Cancellation Under Review",
+        message: `The provider reported costs of $${Number(reportedCosts).toFixed(2)} for work already performed. Our team will review and contact you.`,
+        relatedWorkOrderId: cancellation.workOrderId,
+        data: JSON.stringify({
+          cancellationRequestId,
+          reportedCosts: Number(reportedCosts),
+          providerValidation: validation,
+        }),
+      },
+    });
+  }
 
   logger.info(
     `Cancellation request: provider reported costs $${reportedCosts} for WO ${cancellation.workOrderId}`,
@@ -1007,6 +1044,352 @@ export const uploadServicePhotos = async (req: Request, res: Response) => {
     data: { totalPhotos: updatedPhotos.length },
   });
 };
+
+// ============================================
+// 4.5 PROVIDER STARTS SERVICE (antes de iniciar trabalho)
+// ============================================
+
+/**
+ * POST /api/v1/service-flow/start-service
+ * Provider clica "Iniciar Serviço" — deve inserir before-photos ou waiver
+ */
+export const startService = async (req: Request, res: Response) => {
+  const providerId = req.user!.id;
+  const {
+    workOrderId,
+    beforePhotoUrls,
+    skipBeforePhotos,
+    waiveBeforePhotosReason,
+    startMileage,
+  } = req.body;
+
+  const workOrder = await prisma.workOrder.findFirst({
+    where: { id: workOrderId, providerId },
+  });
+
+  if (!workOrder)
+    throw new AppError("Ordem não encontrada", 404, "ORDER_NOT_FOUND");
+  if (workOrder.status !== SERVICE_FLOW.STATUSES.PAYMENT_HOLD) {
+    throw new AppError(
+      "Serviço não está com hold ativo. Verifique o status.",
+      400,
+      "INVALID_STATUS",
+    );
+  }
+
+  // Before-photos or waiver required
+  if (SERVICE_FLOW.REQUIRE_BEFORE_PHOTOS_ON_START) {
+    const hasPhotos = beforePhotoUrls && beforePhotoUrls.length > 0;
+    const hasWaiver = skipBeforePhotos === true;
+
+    if (!hasPhotos && !hasWaiver) {
+      throw new AppError(
+        "You must either upload before-photos of the vehicle or acknowledge the waiver to proceed.",
+        400,
+        "BEFORE_PHOTOS_OR_WAIVER_REQUIRED",
+      );
+    }
+
+    if (hasWaiver && !hasPhotos) {
+      logger.warn(
+        `Provider ${providerId} skipped before-photos for WO ${workOrder.orderNumber}. Reason: ${waiveBeforePhotosReason || 'none given'}. Assumes full responsibility.`,
+      );
+    }
+  }
+
+  // Save before photos
+  const beforePhotos = beforePhotoUrls
+    ? beforePhotoUrls.map((url: string) => ({
+        url,
+        uploadedAt: new Date().toISOString(),
+        uploadedBy: providerId,
+      }))
+    : [];
+
+  await prisma.workOrder.update({
+    where: { id: workOrderId },
+    data: {
+      status: SERVICE_FLOW.STATUSES.IN_PROGRESS,
+      startedAt: new Date(),
+      startMileage: startMileage ? Number(startMileage) : null,
+      beforePhotos: beforePhotos,
+      beforePhotosWaived: skipBeforePhotos === true,
+      beforePhotosWaiverReason: waiveBeforePhotosReason || null,
+    },
+  });
+
+  // Notify customer
+  await prisma.notification.create({
+    data: {
+      userId: workOrder.customerId,
+      type: "SERVICE_STARTED",
+      title: "Service Started!",
+      message: "Your provider has started working on your vehicle.",
+      relatedWorkOrderId: workOrderId,
+    },
+  });
+
+  logger.info(`Service started by provider: WO ${workOrder.orderNumber}`);
+
+  return res.json({
+    success: true,
+    message: "Serviço iniciado com sucesso!",
+    data: {
+      status: SERVICE_FLOW.STATUSES.IN_PROGRESS,
+      beforePhotosUploaded: beforePhotos.length,
+      beforePhotosWaived: skipBeforePhotos === true,
+    },
+  });
+};
+
+// ============================================
+// 4.6 PROVIDER CANCELS SERVICE
+// ============================================
+
+/**
+ * POST /api/v1/service-flow/provider-cancel
+ * Provider cancela serviço (com penalidades)
+ */
+export const providerCancelService = async (req: Request, res: Response) => {
+  const providerId = req.user!.id;
+  const {
+    workOrderId,
+    reason,
+    hasIncurredCosts,
+    reportedCosts,
+    evidencePhotoUrls,
+  } = req.body;
+
+  const workOrder = await prisma.workOrder.findFirst({
+    where: { id: workOrderId, providerId },
+    include: {
+      quote: { select: { totalAmount: true } },
+      payments: { where: { status: { in: ["AUTHORIZED", "PENDING"] } } },
+    },
+  });
+
+  if (!workOrder)
+    throw new AppError("Ordem não encontrada", 404, "ORDER_NOT_FOUND");
+
+  if (["COMPLETED", "CANCELLED"].includes(workOrder.status)) {
+    throw new AppError(
+      "Não é possível cancelar uma ordem já finalizada",
+      400,
+      "INVALID_STATUS",
+    );
+  }
+
+  const serviceStarted = !!workOrder.startedAt;
+  const cancelRules = CANCELLATION_RULES.PROVIDER_CANCEL;
+
+  if (serviceStarted) {
+    // Provider cancela DEPOIS de iniciar → penalidade maior
+    const maxCostPercent = cancelRules.AFTER_START.MAX_COST_PERCENT_OF_QUOTE;
+    const quoteTotal = Number(workOrder.quote?.totalAmount || 0);
+    const maxAllowedCost = (quoteTotal * maxCostPercent) / 100;
+
+    if (hasIncurredCosts && Number(reportedCosts) > maxAllowedCost) {
+      throw new AppError(
+        `Reported costs ($${reportedCosts}) cannot exceed ${maxCostPercent}% of quoted value ($${maxAllowedCost.toFixed(2)}). Admin review required for higher amounts.`,
+        400,
+        "COST_EXCEEDS_LIMIT",
+      );
+    }
+
+    // Requer fotos de evidência se reportou custos
+    if (hasIncurredCosts && cancelRules.AFTER_START.REQUIRES_EVIDENCE_PHOTOS) {
+      if (!evidencePhotoUrls || evidencePhotoUrls.length === 0) {
+        throw new AppError(
+          "Evidence photos are required when reporting incurred costs.",
+          400,
+          "EVIDENCE_PHOTOS_REQUIRED",
+        );
+      }
+    }
+
+    // Create cancellation request for admin review
+    const cancellationRequest = await prisma.cancellationRequest.create({
+      data: {
+        workOrderId,
+        requestedByProviderId: providerId,
+        reason: reason || "Provider cancelled after service started",
+        status: hasIncurredCosts
+          ? "PROVIDER_REPORTED_COSTS"
+          : "PROVIDER_CONFIRMED_NO_COST",
+        providerHasIncurredCosts: hasIncurredCosts || false,
+        providerReportedCosts: hasIncurredCosts ? Number(reportedCosts) : 0,
+        providerEvidencePhotos: evidencePhotoUrls || [],
+        providerValidatedAt: new Date(),
+      },
+    });
+
+    // Apply points penalty
+    await applyProviderPointsPenalty(
+      providerId,
+      cancelRules.AFTER_START.PROVIDER_POINTS_PENALTY,
+      `Service cancelled after start: WO ${workOrder.orderNumber}`,
+    );
+
+    // Notify customer
+    if (cancelRules.NOTIFY_CLIENT_WITH_REASON) {
+      await prisma.notification.create({
+        data: {
+          userId: workOrder.customerId,
+          type: "SERVICE_CANCELLED_BY_PROVIDER",
+          title: "Service Cancelled by Provider",
+          message: `Your provider has cancelled the service. Reason: ${reason || 'Not specified'}. ${cancelRules.OFFER_REOPEN_TO_CLIENT ? 'You can re-open this request to find another provider.' : ''}`,
+          relatedWorkOrderId: workOrderId,
+          data: JSON.stringify({
+            cancellationRequestId: cancellationRequest.id,
+            canReopen: cancelRules.OFFER_REOPEN_TO_CLIENT,
+          }),
+        },
+      });
+    }
+
+    logger.info(
+      `Provider cancelled service after start: WO ${workOrder.orderNumber}, penalty: ${cancelRules.AFTER_START.PROVIDER_POINTS_PENALTY} points`,
+    );
+
+    return res.json({
+      success: true,
+      message: "Cancelamento registrado. Custos serão avaliados pelo admin.",
+      data: {
+        cancellationRequestId: cancellationRequest.id,
+        pointsPenalty: cancelRules.AFTER_START.PROVIDER_POINTS_PENALTY,
+        status: "PENDING_ADMIN_REVIEW",
+        clientCanReopen: cancelRules.OFFER_REOPEN_TO_CLIENT,
+      },
+    });
+  }
+
+  // Provider cancela ANTES de iniciar → 100% refund ao cliente
+  // Release all holds
+  for (const payment of workOrder.payments) {
+    try {
+      const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+      await stripe.paymentIntents.cancel(payment.stripePaymentIntentId);
+
+      await prisma.payment.update({
+        where: { id: payment.id },
+        data: {
+          status: "CANCELLED",
+          refundReason: `Provider cancelled before service start: ${reason || 'No reason'}`,
+        },
+      });
+    } catch (err: any) {
+      logger.error(`Error voiding payment ${payment.id}: ${err.message}`);
+    }
+  }
+
+  // Cancel work order and reopen service request
+  await prisma.$transaction([
+    prisma.workOrder.update({
+      where: { id: workOrderId },
+      data: { status: "CANCELLED", cancelledAt: new Date() },
+    }),
+    prisma.serviceRequest.update({
+      where: { id: workOrder.serviceRequestId },
+      data: cancelRules.BEFORE_START.OFFER_REOPEN
+        ? { status: "SEARCHING_PROVIDERS", acceptedQuoteId: null }
+        : { status: "CANCELLED", cancelledAt: new Date(), cancellationReason: `Provider cancelled: ${reason}` },
+    }),
+  ]);
+
+  // Apply points penalty
+  await applyProviderPointsPenalty(
+    providerId,
+    cancelRules.BEFORE_START.PROVIDER_POINTS_PENALTY,
+    `Service cancelled before start: WO ${workOrder.orderNumber}`,
+  );
+
+  // Notify customer
+  if (cancelRules.NOTIFY_CLIENT_WITH_REASON) {
+    await prisma.notification.create({
+      data: {
+        userId: workOrder.customerId,
+        type: "SERVICE_CANCELLED_BY_PROVIDER",
+        title: "Service Cancelled by Provider",
+        message: `Your provider has cancelled the service. Reason: ${reason || 'Not specified'}. ${cancelRules.OFFER_REOPEN_TO_CLIENT ? 'Your service request has been re-opened to find another provider.' : ''}`,
+        relatedWorkOrderId: workOrderId,
+      },
+    });
+  }
+
+  logger.info(
+    `Provider cancelled service before start: WO ${workOrder.orderNumber}, penalty: ${cancelRules.BEFORE_START.PROVIDER_POINTS_PENALTY} points`,
+  );
+
+  return res.json({
+    success: true,
+    message: "Serviço cancelado. Cliente reembolsado integralmente.",
+    data: {
+      pointsPenalty: cancelRules.BEFORE_START.PROVIDER_POINTS_PENALTY,
+      clientRefundPercent: cancelRules.BEFORE_START.CLIENT_REFUND_PERCENT,
+      requestReopened: cancelRules.BEFORE_START.OFFER_REOPEN,
+    },
+  });
+};
+
+/**
+ * Helper: Apply points penalty to provider profile.
+ * Auto-suspends provider if reputation drops below threshold (-100).
+ */
+async function applyProviderPointsPenalty(
+  providerId: string,
+  points: number,
+  reason: string,
+): Promise<void> {
+  try {
+    await prisma.providerProfile.updateMany({
+      where: { userId: providerId },
+      data: {
+        reputationPoints: { increment: points },
+      },
+    });
+    logger.info(`Provider ${providerId}: ${points} points applied. Reason: ${reason}`);
+
+    // Check for auto-suspension threshold
+    const profile = await prisma.providerProfile.findUnique({
+      where: { userId: providerId },
+      select: { reputationPoints: true, suspendedAt: true },
+    });
+
+    if (
+      profile &&
+      profile.reputationPoints <= PROVIDER_POINTS.AUTO_SUSPENSION_THRESHOLD &&
+      !profile.suspendedAt
+    ) {
+      await prisma.$transaction([
+        prisma.providerProfile.update({
+          where: { userId: providerId },
+          data: {
+            suspendedAt: new Date(),
+            suspensionReason: `Auto-suspended: reputation points (${profile.reputationPoints}) below threshold (${PROVIDER_POINTS.AUTO_SUSPENSION_THRESHOLD})`,
+          },
+        }),
+        prisma.user.update({
+          where: { id: providerId },
+          data: { status: "SUSPENDED" },
+        }),
+        prisma.notification.create({
+          data: {
+            userId: providerId,
+            type: "SYSTEM_ALERT",
+            title: "Account Suspended",
+            message: `Your account has been automatically suspended due to low reputation score (${profile.reputationPoints} points). Please contact support to discuss reinstatement.`,
+          },
+        }),
+      ]);
+
+      logger.warn(
+        `Provider ${providerId} AUTO-SUSPENDED: reputation=${profile.reputationPoints}, threshold=${PROVIDER_POINTS.AUTO_SUSPENSION_THRESHOLD}`,
+      );
+    }
+  } catch (err: any) {
+    logger.error(`Failed to apply points penalty: ${err.message}`);
+  }
+}
 
 // ============================================
 // 5. FORNECEDOR FINALIZA SERVIÇO
@@ -1264,6 +1647,90 @@ export const approveServiceAndProcessPayment = async (
   const mainPayment = capturedPayments[0];
   let receipt = null;
 
+  // ===== Referral Fee: Pay original diagnostic provider if competing quote won =====
+  let referralFeeInfo: { amount: number; providerId: string } | null = null;
+
+  try {
+    // Check if this work order's quote was a COMPETING quote from EstimateShare
+    const acceptedQuote = await prisma.quote.findFirst({
+      where: {
+        workOrders: { some: { id: workOrderId } },
+      },
+      select: { id: true, originalEstimateId: true, providerId: true },
+    });
+
+    if (acceptedQuote?.originalEstimateId) {
+      // Find the EstimateShare that originated this competing quote
+      const estimateShare = await prisma.estimateShare.findFirst({
+        where: {
+          originalEstimateId: acceptedQuote.originalEstimateId,
+          referralFeeAmount: { gt: 0 },
+          referralFeePaid: false,
+          originalProviderId: { not: null },
+        },
+        select: {
+          id: true,
+          referralFeeAmount: true,
+          originalProviderId: true,
+          originalDiagnosticFee: true,
+        },
+      });
+
+      if (
+        estimateShare &&
+        estimateShare.originalProviderId &&
+        estimateShare.originalProviderId !== acceptedQuote.providerId // Don't pay referral to self
+      ) {
+        const referralAmount = Number(estimateShare.referralFeeAmount);
+
+        // Mark referral as paid
+        await prisma.estimateShare.update({
+          where: { id: estimateShare.id },
+          data: {
+            referralFeePaid: true,
+            referralFeePaidAt: now,
+          },
+        });
+
+        // Record referral fee on the main payment
+        if (mainPayment) {
+          await prisma.payment.update({
+            where: { id: mainPayment.id },
+            data: {
+              referralFee: referralAmount,
+              referralProviderId: estimateShare.originalProviderId,
+            },
+          });
+        }
+
+        // Notify original provider about referral fee
+        await prisma.notification.create({
+          data: {
+            userId: estimateShare.originalProviderId,
+            type: "PAYMENT_RECEIVED",
+            title: "Referral Fee Earned!",
+            message: `You earned a $${referralAmount.toFixed(2)} referral fee for your diagnostic estimate. The service was completed by another provider.`,
+            data: JSON.stringify({
+              referralFee: referralAmount,
+              workOrderId,
+              estimateShareId: estimateShare.id,
+            }),
+          },
+        });
+
+        referralFeeInfo = {
+          amount: referralAmount,
+          providerId: estimateShare.originalProviderId,
+        };
+        logger.info(
+          `Referral fee of $${referralAmount.toFixed(2)} recorded for provider ${estimateShare.originalProviderId} (EstimateShare ${estimateShare.id})`,
+        );
+      }
+    }
+  } catch (refErr: any) {
+    logger.warn(`Referral fee processing failed (non-critical): ${refErr.message}`);
+  }
+
   if (mainPayment) {
     const vehicle = workOrder.serviceRequest.vehicle;
     const vehicleInfo = `${vehicle.year} ${vehicle.make} ${vehicle.model}${vehicle.plateNumber ? ` (${vehicle.plateNumber})` : ""}`;
@@ -1359,6 +1826,7 @@ export const approveServiceAndProcessPayment = async (
       paymentsCaptured: capturedPayments.length,
       totalCharged: totalCaptured,
       supplementsTotal,
+      referralFee: referralFeeInfo,
       receipt: receipt
         ? {
             id: receipt.id,

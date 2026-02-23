@@ -1,33 +1,44 @@
 /**
- * TechTrust Brand Images
- * All brand assets and images
+ * TechTrust AutoSolutions LLC - Brand Images
+ * Updated brand assets — "Driven by Technology. Trusted by You."
  */
 
 // Logo variations
 export const logos = {
-  // High resolution logo with text
-  fullColor: require('../../assets/images/logo_altareso_comtexto.jpg'),
-  
-  // Logo with text (smaller/optimized)
-  withText: require('../../assets/images/logo_altareso_comtexto_menor.png'),
-  
-  // Horizontal white logo with text
-  horizontalWhite: require('../../assets/images/logo_deitada_branco_comtexto.jpg'),
-  
-  // Horizontal white logo without text
-  horizontalWhiteNoText: require('../../assets/images/Logo_deitado_branco.jpg'),
-  
-  // Black logo without text
-  blackNoText: require('../../assets/images/logo_preto_sem texto.jpg'),
-  
-  // Logo without text (default)
-  noText: require('../../assets/images/logo_semtexto.jpg'),
+  // Logo with text horizontal (name beside icon)
+  fullColor: require('../../assets/images/logo_horizontal.png'),
+
+  // Logo with text vertical (name below icon)
+  withText: require('../../assets/images/logo_vertical.png'),
+
+  // Logo embossed / 3D effect
+  emboss: require('../../assets/images/logo_emboss.png'),
+
+  // Icon only — blue (primary, default)
+  noText: require('../../assets/images/logo_icon_blue.png'),
+
+  // Icon only — white (for dark backgrounds)
+  iconWhite: require('../../assets/images/logo_icon_white.png'),
+
+  // Icon only — red (accent variant)
+  iconRed: require('../../assets/images/logo_icon_red.png'),
+
+  // Icon only — red variant 2
+  iconRed2: require('../../assets/images/logo_icon_red2.png'),
+
+  // Icon only — red variant 3
+  iconRed3: require('../../assets/images/logo_icon_red3.png'),
+
+  // ── Legacy aliases (kept for backward compatibility) ──
+  horizontalWhite: require('../../assets/images/logo_icon_white.png'),
+  horizontalWhiteNoText: require('../../assets/images/logo_icon_white.png'),
+  blackNoText: require('../../assets/images/logo_icon_blue.png'),
 };
 
 // Default logo to use
 export const logo = logos.fullColor;
-export const logoWhite = logos.horizontalWhite;
-export const logoBlack = logos.blackNoText;
+export const logoWhite = logos.iconWhite;
+export const logoBlack = logos.noText;
 
 // Placeholder images
 export const placeholders = {

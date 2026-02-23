@@ -6,6 +6,7 @@ import { View, Text, StyleSheet } from "react-native";
 import { useI18n } from "../i18n";
 import { useNotifications } from "../contexts/NotificationsContext";
 import { CommonActions } from "@react-navigation/native";
+import { colors } from "../constants/theme";
 
 // Customer Screens
 import LandingScreen from "../screens/LandingScreen";
@@ -276,15 +277,15 @@ export default function CustomerNavigator() {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#1976d2",
-        tabBarInactiveTintColor: "#9ca3af",
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.gray400,
         tabBarStyle: {
           height: 85,
           paddingTop: 8,
           paddingBottom: 25,
-          backgroundColor: "#fff",
+          backgroundColor: colors.white,
           borderTopWidth: 1,
-          borderTopColor: "#f3f4f6",
+          borderTopColor: colors.gray100,
         },
         tabBarLabelStyle: {
           fontSize: 11,
@@ -435,7 +436,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: -8,
     top: -4,
-    backgroundColor: "#ef4444",
+    backgroundColor: colors.accent,
     borderRadius: 10,
     minWidth: 18,
     height: 18,

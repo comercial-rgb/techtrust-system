@@ -272,7 +272,7 @@ export default function CustomerProfileScreen({ navigation }: any) {
             <Text style={styles.userEmail}>{user?.email}</Text>
 
             <View style={styles.memberBadge}>
-              <Ionicons name="shield-checkmark" size={14} color="#1976d2" />
+              <Ionicons name="shield-checkmark" size={14} color="#2B5EA7" />
               <Text style={styles.memberBadgeText}>
                 Member since {stats?.memberSince || new Date().getFullYear()}
               </Text>
@@ -787,7 +787,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -831,7 +831,7 @@ const styles = StyleSheet.create({
   },
   memberBadgeText: {
     fontSize: 12,
-    color: "#1976d2",
+    color: "#2B5EA7",
     fontWeight: "500",
   },
   statsContainer: {
@@ -964,7 +964,7 @@ const styles = StyleSheet.create({
     color: "#ef4444",
   },
   subscriptionCard: {
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     borderRadius: 16,
     padding: 16,
   },

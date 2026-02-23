@@ -77,7 +77,7 @@ export default function ProviderWorkingHoursScreen({ navigation }: any) {
         {/* Summary */}
         <View style={styles.summaryCard}>
           <View style={styles.summaryIcon}>
-            <MaterialCommunityIcons name="clock-outline" size={28} color="#1976d2" />
+            <MaterialCommunityIcons name="clock-outline" size={28} color="#2B5EA7" />
           </View>
           <View style={styles.summaryInfo}>
             <Text style={styles.summaryTitle}>
@@ -102,7 +102,7 @@ export default function ProviderWorkingHoursScreen({ navigation }: any) {
             value={is24Hours}
             onValueChange={setIs24Hours}
             trackColor={{ false: '#e5e7eb', true: '#93c5fd' }}
-            thumbColor={is24Hours ? '#1976d2' : '#9ca3af'}
+            thumbColor={is24Hours ? '#2B5EA7' : '#9ca3af'}
           />
         </View>
 
@@ -184,7 +184,7 @@ export default function ProviderWorkingHoursScreen({ navigation }: any) {
             <Switch
               value={true}
               trackColor={{ false: '#e5e7eb', true: '#93c5fd' }}
-              thumbColor="#1976d2"
+              thumbColor="#2B5EA7"
             />
           </View>
         </View>
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
   saveBtn: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1976d2',
+    color: '#2B5EA7',
     padding: 8,
   },
   summaryCard: {
@@ -328,8 +328,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dayCheckboxActive: {
-    backgroundColor: '#1976d2',
-    borderColor: '#1976d2',
+    backgroundColor: '#2B5EA7',
+    borderColor: '#2B5EA7',
   },
   dayName: {
     fontSize: 15,
@@ -368,7 +368,7 @@ const styles = StyleSheet.create({
   badge24hText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#1976d2',
+    color: '#2B5EA7',
   },
   closedText: {
     fontSize: 14,
@@ -400,7 +400,7 @@ const styles = StyleSheet.create({
   },
   manageText: {
     fontSize: 14,
-    color: '#1976d2',
+    color: '#2B5EA7',
     fontWeight: '500',
   },
   holidaysBanner: {

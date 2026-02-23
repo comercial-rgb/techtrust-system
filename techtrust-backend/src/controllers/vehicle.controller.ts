@@ -3,13 +3,30 @@
  * VEHICLE CONTROLLER
  * ============================================
  * CRUD de veículos do usuário
+ * Enhanced: vPIC 144 variables, mileage reminders, organic catalog
  */
 
 import { Request, Response } from "express";
 import { prisma } from "../config/database";
 import { AppError } from "../middleware/error-handler";
 import { logger } from "../config/logger";
-import { decodeVIN, isValidVINFormat, getRecallsByVehicle } from "../services/nhtsa.service";
+import { isValidVINFormat } from "../services/nhtsa.service";
+import {
+  SUBSCRIPTION_PLANS,
+  type PlanKey,
+} from "../config/businessRules";
+import {
+  decodeVIN_vPIC,
+  vpicToVehicleFields,
+  getRecalls_NHTSA,
+} from "../services/nhtsa-vpic.service";
+import {
+  updateMileageManual,
+  getMileageBannerData,
+  getMileageHistory,
+  setMileageReminderOptOut,
+} from "../services/mileage-reminder.service";
+import { getCatalogByVehicle } from "../services/organic-catalog.service";
 
 /**
  * GET /api/v1/vehicles
@@ -48,6 +65,21 @@ export const getVehicles = async (req: Request, res: Response) => {
       countryOfManufacturer: true,
       category: true,
       transmission: true,
+      // Enhanced vPIC fields
+      engineCylinders: true,
+      displacementL: true,
+      displacementCC: true,
+      engineHP: true,
+      engineConfiguration: true,
+      turbo: true,
+      electrificationLevel: true,
+      vehicleType: true,
+      doors: true,
+      manufacturer: true,
+      fuelTypeSecondary: true,
+      transmissionSpeeds: true,
+      vpicCompleteness: true,
+      lastMileageUpdate: true,
     },
   });
 
@@ -115,10 +147,13 @@ export const createVehicle = async (req: Request, res: Response) => {
     },
   });
 
-  // Verificar limite
-  if (vehicleCount >= subscription.maxVehicles) {
+  // Verificar limite (businessRules SUBSCRIPTION_PLANS como source of truth)
+  const planConfig = SUBSCRIPTION_PLANS[subscription.plan as PlanKey];
+  const maxVehicles = planConfig?.maxVehicles ?? subscription.maxVehicles;
+
+  if (vehicleCount >= maxVehicles) {
     throw new AppError(
-      `Você atingiu o limite de ${subscription.maxVehicles} veículo(s) do seu plano ${subscription.plan}. Faça upgrade para adicionar mais.`,
+      `You've reached the limit of ${maxVehicles} vehicle(s) for your ${subscription.plan} plan. Upgrade to add more.`,
       403,
       "VEHICLE_LIMIT_REACHED",
     );
@@ -456,10 +491,14 @@ export const deleteVehicle = async (req: Request, res: Response) => {
 
 /**
  * POST /api/v1/vehicles/decode-vin
- * Decodificar VIN usando API NHTSA vPIC
+ * Decodificar VIN usando API NHTSA vPIC (Enhanced — 144 variables)
+ *
+ * Se saveToVehicle=true e vehicleId fornecido, salva automaticamente
+ * todos os campos decodificados no veículo.
  */
 export const decodeVehicleVIN = async (req: Request, res: Response) => {
-  const { vin } = req.body;
+  const { vin, saveToVehicle, vehicleId } = req.body;
+  const userId = req.user!.id;
 
   if (!vin) {
     throw new AppError("VIN é obrigatório", 400, "VIN_REQUIRED");
@@ -474,28 +513,49 @@ export const decodeVehicleVIN = async (req: Request, res: Response) => {
     );
   }
 
-  // Decodificar VIN via NHTSA
-  const result = await decodeVIN(vin);
+  // Decodificar VIN via NHTSA vPIC Enhanced (144 variables + cache)
+  const decoded = await decodeVIN_vPIC(vin);
 
-  if (!result.success) {
+  if (!decoded.success || !decoded.vehicle?.make) {
     throw new AppError(
-      result.error || "Erro ao decodificar VIN",
+      decoded.error || "VIN não pôde ser decodificado. Verifique se o VIN está correto.",
       400,
       "VIN_DECODE_FAILED",
     );
   }
 
-  logger.info(`VIN decodificado com sucesso: ${vin}`);
+  // Se solicitado, salvar no veículo existente
+  if (saveToVehicle && vehicleId) {
+    const vehicle = await prisma.vehicle.findFirst({
+      where: { id: vehicleId, userId, isActive: true },
+    });
+
+    if (vehicle) {
+      const fields = vpicToVehicleFields(decoded.vehicle);
+      await prisma.vehicle.update({
+        where: { id: vehicleId },
+        data: {
+          ...fields,
+          vin: vin.toUpperCase(),
+          vinDecoded: true,
+          vinDecodedAt: new Date(),
+        },
+      });
+      logger.info(`VIN decoded and saved to vehicle ${vehicleId}: ${vin}`);
+    }
+  }
+
+  logger.info(`VIN decodificado com sucesso: ${vin} (completeness: ${decoded.completeness}%)`);
 
   res.json({
     success: true,
-    data: result.data,
+    data: decoded,
   });
 };
 
 /**
  * GET /api/v1/vehicles/:vehicleId/recalls
- * Fetch NHTSA safety recalls for a vehicle
+ * Fetch NHTSA safety recalls for a vehicle (Enhanced)
  */
 export const getVehicleRecalls = async (req: Request, res: Response) => {
   const userId = req.user!.id;
@@ -510,18 +570,130 @@ export const getVehicleRecalls = async (req: Request, res: Response) => {
     throw new AppError("Vehicle not found", 404, "VEHICLE_NOT_FOUND");
   }
 
-  // Clean model name — remove series suffix for API call (e.g., "Sierra 1500" → "Sierra 1500")
-  const result = await getRecallsByVehicle(vehicle.make, vehicle.model, vehicle.year);
-
-  if (!result.success) {
-    throw new AppError(result.error || "Failed to fetch recalls", 502, "RECALLS_FETCH_FAILED");
-  }
+  // Use enhanced recalls API
+  const result = await getRecalls_NHTSA(vehicle.make, vehicle.model, vehicle.year);
 
   logger.info(`Recalls fetched: ${result.count} for ${vehicle.year} ${vehicle.make} ${vehicle.model}`);
 
   res.json({
     success: true,
-    data: result.data,
+    data: result.recalls,
     count: result.count,
+  });
+};
+
+// ═══════════════════════════════════════════════
+// MILEAGE ENDPOINTS
+// ═══════════════════════════════════════════════
+
+/**
+ * POST /api/v1/vehicles/:vehicleId/mileage
+ * Atualizar mileagem manualmente
+ */
+export const updateVehicleMileage = async (req: Request, res: Response) => {
+  const userId = req.user!.id;
+  const { vehicleId } = req.params;
+  const { mileage } = req.body;
+
+  if (!mileage || isNaN(Number(mileage))) {
+    throw new AppError("Mileage is required and must be a number", 400, "INVALID_MILEAGE");
+  }
+
+  const result = await updateMileageManual({
+    userId,
+    vehicleId,
+    mileage: parseInt(mileage),
+  });
+
+  res.json({
+    success: true,
+    message: "Mileage updated",
+    data: result,
+  });
+};
+
+/**
+ * GET /api/v1/vehicles/:vehicleId/mileage-history
+ * Histórico de mileagem
+ */
+export const getVehicleMileageHistory = async (req: Request, res: Response) => {
+  const userId = req.user!.id;
+  const { vehicleId } = req.params;
+
+  const history = await getMileageHistory({
+    userId,
+    vehicleId,
+    limit: parseInt(req.query.limit as string) || 20,
+  });
+
+  res.json({
+    success: true,
+    data: history,
+  });
+};
+
+/**
+ * GET /api/v1/vehicles/mileage-banner
+ * Banner data para app open (Trigger 3)
+ */
+export const getMileageBanner = async (req: Request, res: Response) => {
+  const userId = req.user!.id;
+  const banner = await getMileageBannerData(userId);
+
+  res.json({
+    success: true,
+    data: banner,
+  });
+};
+
+/**
+ * POST /api/v1/vehicles/mileage-reminder-opt-out
+ * Opt-out de lembretes de mileagem
+ */
+export const mileageReminderOptOut = async (req: Request, res: Response) => {
+  const userId = req.user!.id;
+  const { optOut } = req.body;
+
+  await setMileageReminderOptOut(userId, optOut !== false);
+
+  res.json({
+    success: true,
+    message: optOut !== false ? "Mileage reminders disabled" : "Mileage reminders enabled",
+  });
+};
+
+// ═══════════════════════════════════════════════
+// CATALOG ENDPOINTS
+// ═══════════════════════════════════════════════
+
+/**
+ * GET /api/v1/vehicles/:vehicleId/catalog
+ * Peças do catálogo orgânico para este veículo
+ */
+export const getVehicleCatalog = async (req: Request, res: Response) => {
+  const userId = req.user!.id;
+  const { vehicleId } = req.params;
+
+  const vehicle = await prisma.vehicle.findFirst({
+    where: { id: vehicleId, userId, isActive: true },
+    select: { make: true, model: true, year: true },
+  });
+
+  if (!vehicle) {
+    throw new AppError("Vehicle not found", 404, "VEHICLE_NOT_FOUND");
+  }
+
+  const catalog = await getCatalogByVehicle({
+    make: vehicle.make,
+    model: vehicle.model,
+    year: vehicle.year,
+    searchTerm: req.query.search as string,
+    limit: parseInt(req.query.limit as string) || 20,
+  });
+
+  res.json({
+    success: true,
+    data: catalog,
+    count: catalog.length,
   });
 };

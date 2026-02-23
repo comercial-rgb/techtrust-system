@@ -435,7 +435,7 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
             <MaterialCommunityIcons
               name={step.icon as any}
               size={48}
-              color="#1976d2"
+              color="#2B5EA7"
             />
           </View>
 
@@ -477,7 +477,7 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
                 activeOpacity={0.7}
               >
                 {uploading ? (
-                  <ActivityIndicator size="small" color="#1976d2" />
+                  <ActivityIndicator size="small" color="#2B5EA7" />
                 ) : (
                   <>
                     <View
@@ -490,12 +490,12 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
                       <MaterialCommunityIcons
                         name="camera"
                         size={28}
-                        color="#1976d2"
+                        color="#2B5EA7"
                       />
                       <MaterialCommunityIcons
                         name="folder-open"
                         size={28}
-                        color="#1976d2"
+                        color="#2B5EA7"
                       />
                     </View>
                     <Text style={styles.uploadBtnTitle}>
@@ -590,7 +590,7 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
                   <MaterialCommunityIcons
                     name="magnify-scan"
                     size={20}
-                    color="#1976d2"
+                    color="#2B5EA7"
                   />
                   <Text style={styles.nextStepText}>
                     Our team reviews your documents (typically 1-2 business
@@ -601,7 +601,7 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
                   <MaterialCommunityIcons
                     name="bell-ring"
                     size={20}
-                    color="#1976d2"
+                    color="#2B5EA7"
                   />
                   <Text style={styles.nextStepText}>
                     You'll receive a notification once approved
@@ -611,7 +611,7 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
                   <MaterialCommunityIcons
                     name="clipboard-text"
                     size={20}
-                    color="#1976d2"
+                    color="#2B5EA7"
                   />
                   <Text style={styles.nextStepText}>
                     Service requests matching your capabilities will appear
@@ -699,7 +699,7 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
               <MaterialCommunityIcons
                 name="camera-retake"
                 size={20}
-                color="#1976d2"
+                color="#2B5EA7"
               />
               <Text style={styles.previewRetakeText}>
                 {t.provider?.retake || "Retake"}
@@ -775,7 +775,7 @@ const styles = StyleSheet.create({
   },
   progressBarFill: {
     height: 4,
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     borderRadius: 2,
   },
   content: {
@@ -835,7 +835,7 @@ const styles = StyleSheet.create({
   },
   uploadBtn: {
     borderWidth: 2,
-    borderColor: "#1976d2",
+    borderColor: "#2B5EA7",
     borderStyle: "dashed",
     borderRadius: 16,
     padding: 28,
@@ -846,7 +846,7 @@ const styles = StyleSheet.create({
   uploadBtnTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#1976d2",
+    color: "#2B5EA7",
   },
   uploadBtnHint: {
     fontSize: 12,
@@ -874,7 +874,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     paddingVertical: 16,
     paddingHorizontal: 24,
     borderRadius: 14,
@@ -916,7 +916,7 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 28,
     fontWeight: "700",
-    color: "#1976d2",
+    color: "#2B5EA7",
   },
   statLabel: {
     fontSize: 12,
@@ -964,7 +964,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     paddingVertical: 16,
     borderRadius: 14,
     gap: 8,
@@ -1035,13 +1035,13 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: "#1976d2",
+    borderColor: "#2B5EA7",
     backgroundColor: "transparent",
   },
   previewRetakeText: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#1976d2",
+    color: "#2B5EA7",
   },
   previewConfirmBtn: {
     flex: 1,

@@ -67,7 +67,7 @@ export function LoadingOverlay({
             },
           ]}
         >
-          <ActivityIndicator size="large" color="#1976d2" />
+          <ActivityIndicator size="large" color="#2B5EA7" />
           <Text style={styles.loadingText}>{message}</Text>
         </Animated.View>
       </View>
@@ -79,7 +79,7 @@ export function LoadingOverlay({
 // Spinner Dots - Loading com pontos animados
 // ============================================
 
-export function SpinnerDots({ color = '#1976d2', size = 10 }) {
+export function SpinnerDots({ color = '#2B5EA7', size = 10 }) {
   const dot1 = useRef(new Animated.Value(0)).current;
   const dot2 = useRef(new Animated.Value(0)).current;
   const dot3 = useRef(new Animated.Value(0)).current;
@@ -146,10 +146,10 @@ interface EnhancedButtonProps {
 }
 
 const variantStyles: Record<ButtonVariant, { bg: string; text: string; border: string }> = {
-  primary: { bg: '#1976d2', text: '#ffffff', border: '#1976d2' },
+  primary: { bg: '#2B5EA7', text: '#ffffff', border: '#2B5EA7' },
   secondary: { bg: '#6b7280', text: '#ffffff', border: '#6b7280' },
-  outline: { bg: 'transparent', text: '#1976d2', border: '#1976d2' },
-  ghost: { bg: 'transparent', text: '#1976d2', border: 'transparent' },
+  outline: { bg: 'transparent', text: '#2B5EA7', border: '#2B5EA7' },
+  ghost: { bg: 'transparent', text: '#2B5EA7', border: 'transparent' },
   danger: { bg: '#ef4444', text: '#ffffff', border: '#ef4444' },
 };
 
@@ -282,7 +282,7 @@ export function RefreshIndicator({ refreshing }: RefreshIndicatorProps) {
   return (
     <View style={styles.refreshContainer}>
       <Animated.View style={{ transform: [{ rotate: spin }] }}>
-        <MaterialCommunityIcons name="loading" size={24} color="#1976d2" />
+        <MaterialCommunityIcons name="loading" size={24} color="#2B5EA7" />
       </Animated.View>
       <Text style={styles.refreshText}>Atualizando...</Text>
     </View>

@@ -103,7 +103,7 @@ export default function CustomerReportsScreen({ navigation }: any) {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t.customer?.reports || 'Reports'}</Text>
         <TouchableOpacity style={styles.exportBtn}>
-          <Ionicons name="share-outline" size={22} color="#1976d2" />
+          <Ionicons name="share-outline" size={22} color="#2B5EA7" />
         </TouchableOpacity>
       </View>
 
@@ -227,7 +227,7 @@ export default function CustomerReportsScreen({ navigation }: any) {
               })}
             >
               <View style={styles.vehicleIconContainer}>
-                <Ionicons name="car-sport" size={28} color="#1976d2" />
+                <Ionicons name="car-sport" size={28} color="#2B5EA7" />
               </View>
               <View style={styles.vehicleInfo}>
                 <Text style={styles.vehicleName}>{vehicle.name}</Text>
@@ -329,8 +329,8 @@ const styles = StyleSheet.create({
     borderColor: '#e5e7eb',
   },
   periodBtnActive: {
-    backgroundColor: '#1976d2',
-    borderColor: '#1976d2',
+    backgroundColor: '#2B5EA7',
+    borderColor: '#2B5EA7',
   },
   periodText: {
     fontSize: 14,
@@ -421,7 +421,7 @@ const styles = StyleSheet.create({
     minHeight: 8,
   },
   chartBarCurrent: {
-    backgroundColor: '#1976d2',
+    backgroundColor: '#2B5EA7',
   },
   chartLabel: {
     fontSize: 12,

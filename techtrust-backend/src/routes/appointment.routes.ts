@@ -34,6 +34,12 @@ router.patch(
   asyncHandler(appointmentController.confirmAppointment),
 );
 
+// Provider marks as en route
+router.patch(
+  "/:id/en-route",
+  asyncHandler(appointmentController.providerEnRoute),
+);
+
 // Provider checks in
 router.patch(
   "/:id/check-in",
@@ -50,6 +56,12 @@ router.patch(
 router.patch(
   "/:id/cancel",
   asyncHandler(appointmentController.cancelAppointment),
+);
+
+// Report provider no-show (customer)
+router.post(
+  "/:id/no-show",
+  asyncHandler(appointmentController.reportProviderNoShow),
 );
 
 export default router;

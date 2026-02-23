@@ -152,7 +152,7 @@ export default function VehicleTransferScreen({ navigation, route }: any) {
         {/* Vehicle Info Card */}
         <View style={styles.vehicleCard}>
           <View style={styles.vehicleIconContainer}>
-            <Ionicons name="car-sport" size={40} color="#1976d2" />
+            <Ionicons name="car-sport" size={40} color="#2B5EA7" />
           </View>
           <View style={styles.vehicleInfo}>
             <Text style={styles.vehicleName}>
@@ -447,8 +447,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   checkboxChecked: {
-    backgroundColor: '#1976d2',
-    borderColor: '#1976d2',
+    backgroundColor: '#2B5EA7',
+    borderColor: '#2B5EA7',
   },
   optionInfo: {
     flex: 1,

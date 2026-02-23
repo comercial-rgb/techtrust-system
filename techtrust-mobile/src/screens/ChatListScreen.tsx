@@ -113,7 +113,7 @@ export default function ChatListScreen({ navigation }: any) {
         >
           <View style={styles.avatarContainer}>
             <View style={styles.avatar}>
-              <Ionicons name="business" size={24} color="#1976d2" />
+              <Ionicons name="business" size={24} color="#2B5EA7" />
             </View>
           </View>
 
@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
   },
   chatTimeUnread: {
-    color: '#1976d2',
+    color: '#2B5EA7',
     fontWeight: '600',
   },
   chatFooter: {
@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   unreadBadge: {
-    backgroundColor: '#1976d2',
+    backgroundColor: '#2B5EA7',
     borderRadius: 10,
     minWidth: 20,
     height: 20,

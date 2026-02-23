@@ -414,8 +414,8 @@ const styles = StyleSheet.create({
     borderColor: "#e5e7eb",
   },
   filterTabActive: {
-    backgroundColor: "#1976d2",
-    borderColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
+    borderColor: "#2B5EA7",
   },
   filterTabUrgent: {
     backgroundColor: "#fef2f2",
@@ -572,7 +572,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingHorizontal: 20,
     paddingVertical: 10,
-    backgroundColor: '#1976d2',
+    backgroundColor: '#2B5EA7',
     borderRadius: 20,
   },
   emptyActionText: {

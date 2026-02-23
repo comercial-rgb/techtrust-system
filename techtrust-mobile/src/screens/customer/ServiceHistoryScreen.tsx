@@ -102,14 +102,14 @@ export default function ServiceHistoryScreen({ navigation }: any) {
         <head>
           <style>
             body { font-family: -apple-system, Helvetica, Arial, sans-serif; padding: 40px; color: #111827; }
-            h1 { color: #1976d2; font-size: 24px; margin-bottom: 4px; }
+            h1 { color: #2B5EA7; font-size: 24px; margin-bottom: 4px; }
             .subtitle { color: #6b7280; font-size: 14px; margin-bottom: 24px; }
             .stats { display: flex; gap: 24px; margin-bottom: 24px; padding: 16px; background: #f8fafc; border-radius: 8px; }
             .stat { text-align: center; }
-            .stat-value { font-size: 20px; font-weight: 700; color: #1976d2; }
+            .stat-value { font-size: 20px; font-weight: 700; color: #2B5EA7; }
             .stat-label { font-size: 12px; color: #6b7280; }
             table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-            th { background: #1976d2; color: white; padding: 10px 12px; text-align: left; font-size: 12px; }
+            th { background: #2B5EA7; color: white; padding: 10px 12px; text-align: left; font-size: 12px; }
             td { padding: 10px 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px; }
             tr:nth-child(even) { background: #f9fafb; }
             .footer { margin-top: 24px; text-align: center; font-size: 11px; color: #9ca3af; }
@@ -245,7 +245,7 @@ export default function ServiceHistoryScreen({ navigation }: any) {
         <Text style={styles.orderNumber}>#{item.orderNumber}</Text>
         <View style={styles.viewDetails}>
           <Text style={styles.viewDetailsText}>{t.common?.viewDetails || 'View Details'}</Text>
-          <Ionicons name="chevron-forward" size={16} color="#1976d2" />
+          <Ionicons name="chevron-forward" size={16} color="#2B5EA7" />
         </View>
       </View>
     </TouchableOpacity>
@@ -262,7 +262,7 @@ export default function ServiceHistoryScreen({ navigation }: any) {
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#1976d2" />
+          <ActivityIndicator size="large" color="#2B5EA7" />
         </View>
       </SafeAreaView>
     );
@@ -277,7 +277,7 @@ export default function ServiceHistoryScreen({ navigation }: any) {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t.customer?.serviceHistory || 'Service History'}</Text>
         <TouchableOpacity onPress={handleExportPDF} style={styles.backBtn}>
-          <Ionicons name="download-outline" size={24} color="#1976d2" />
+          <Ionicons name="download-outline" size={24} color="#2B5EA7" />
         </TouchableOpacity>
       </View>
 
@@ -372,7 +372,7 @@ const styles = StyleSheet.create({
   },
   statsBanner: {
     flexDirection: 'row',
-    backgroundColor: '#1976d2',
+    backgroundColor: '#2B5EA7',
     marginHorizontal: 16,
     marginTop: 16,
     borderRadius: 16,
@@ -412,8 +412,8 @@ const styles = StyleSheet.create({
     borderColor: '#e5e7eb',
   },
   filterButtonActive: {
-    backgroundColor: '#1976d2',
-    borderColor: '#1976d2',
+    backgroundColor: '#2B5EA7',
+    borderColor: '#2B5EA7',
   },
   filterButtonText: {
     fontSize: 14,
@@ -530,7 +530,7 @@ const styles = StyleSheet.create({
   },
   viewDetailsText: {
     fontSize: 13,
-    color: '#1976d2',
+    color: '#2B5EA7',
     fontWeight: '500',
   },
   emptyState: {

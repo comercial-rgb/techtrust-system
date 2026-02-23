@@ -194,7 +194,7 @@ export default function ProviderTermsAndPoliciesScreen({ navigation }: any) {
 
             <View style={styles.feeCard}>
               <View style={styles.feeHeader}>
-                <MaterialCommunityIcons name="percent" size={24} color="#1976d2" />
+                <MaterialCommunityIcons name="percent" size={24} color="#2B5EA7" />
                 <Text style={styles.feeTitle}>{t.provider?.serviceFee || 'Service Fee'}</Text>
               </View>
               <Text style={styles.feeValue}>10%</Text>
@@ -276,7 +276,7 @@ export default function ProviderTermsAndPoliciesScreen({ navigation }: any) {
               <MaterialCommunityIcons
                 name={tab.icon as any}
                 size={18}
-                color={activeTab === tab.key ? '#1976d2' : '#6b7280'}
+                color={activeTab === tab.key ? '#2B5EA7' : '#6b7280'}
               />
               <Text style={[
                 styles.tabText,
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
     color: '#6b7280',
   },
   tabTextActive: {
-    color: '#1976d2',
+    color: '#2B5EA7',
   },
   contentContainer: {
     padding: 20,
@@ -399,12 +399,12 @@ const styles = StyleSheet.create({
   feeTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1976d2',
+    color: '#2B5EA7',
   },
   feeValue: {
     fontSize: 48,
     fontWeight: '700',
-    color: '#1976d2',
+    color: '#2B5EA7',
   },
   feeDescription: {
     fontSize: 14,

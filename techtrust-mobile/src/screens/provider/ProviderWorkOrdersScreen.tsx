@@ -450,7 +450,7 @@ export default function ProviderWorkOrdersScreen({ navigation }: any) {
             </Text>
             {filter !== 'all' && (
               <TouchableOpacity
-                style={{ marginTop: 16, paddingHorizontal: 20, paddingVertical: 10, backgroundColor: '#1976d2', borderRadius: 20 }}
+                style={{ marginTop: 16, paddingHorizontal: 20, paddingVertical: 10, backgroundColor: '#2B5EA7', borderRadius: 20 }}
                 onPress={() => setFilter('all')}
               >
                 <Text style={{ fontSize: 14, color: '#fff', fontWeight: '600' }}>
@@ -507,8 +507,8 @@ const styles = StyleSheet.create({
     borderColor: "#e5e7eb",
   },
   filterTabActive: {
-    backgroundColor: "#1976d2",
-    borderColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
+    borderColor: "#2B5EA7",
   },
   filterTabText: {
     fontSize: 14,

@@ -380,7 +380,7 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
             <Ionicons
               name="pricetags"
               size={18}
-              color={activeTab === "requests" ? "#1976d2" : "#9ca3af"}
+              color={activeTab === "requests" ? "#2B5EA7" : "#9ca3af"}
             />
             <Text
               style={[
@@ -419,7 +419,7 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
             <Ionicons
               name="construct"
               size={18}
-              color={activeTab === "orders" ? "#1976d2" : "#9ca3af"}
+              color={activeTab === "orders" ? "#2B5EA7" : "#9ca3af"}
             />
             <Text
               style={[
@@ -963,7 +963,7 @@ const styles = StyleSheet.create({
   newRequestButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
@@ -1005,7 +1005,7 @@ const styles = StyleSheet.create({
     color: "#9ca3af",
   },
   tabTextActive: {
-    color: "#1976d2",
+    color: "#2B5EA7",
     fontWeight: "600",
   },
   tabBadge: {
@@ -1017,7 +1017,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   tabBadgeActive: {
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
   },
   tabBadgeText: {
     fontSize: 11,
@@ -1088,8 +1088,8 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   filterButtonActive: {
-    backgroundColor: "#1976d2",
-    borderColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
+    borderColor: "#2B5EA7",
   },
   filterButtonText: {
     fontSize: 14,
@@ -1123,7 +1123,7 @@ const styles = StyleSheet.create({
   emptyButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 12,
@@ -1262,7 +1262,7 @@ const styles = StyleSheet.create({
   amount: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#1976d2",
+    color: "#2B5EA7",
   },
   paymentHint: {
     flexDirection: "row",

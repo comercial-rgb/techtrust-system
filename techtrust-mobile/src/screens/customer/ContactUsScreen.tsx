@@ -47,7 +47,7 @@ export default function ContactUsScreen({ navigation }: any) {
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.heroSection}>
           <View style={styles.heroIcon}>
-            <Ionicons name="headset" size={48} color="#1976d2" />
+            <Ionicons name="headset" size={48} color="#2B5EA7" />
           </View>
           <Text style={styles.heroTitle}>{t.customer?.howCanWeHelp || 'How can we help you?'}</Text>
           <Text style={styles.heroSubtitle}>
@@ -58,7 +58,7 @@ export default function ContactUsScreen({ navigation }: any) {
         {contactOptions.map((option, index) => (
           <TouchableOpacity key={index} style={styles.optionCard} onPress={option.onPress}>
             <View style={styles.optionIcon}>
-              <Ionicons name={option.icon} size={24} color="#1976d2" />
+              <Ionicons name={option.icon} size={24} color="#2B5EA7" />
             </View>
             <View style={styles.optionInfo}>
               <Text style={styles.optionTitle}>{option.title}</Text>
@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1976d2',
+    backgroundColor: '#2B5EA7',
     paddingVertical: 16,
     borderRadius: 12,
     marginTop: 24,

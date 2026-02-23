@@ -253,10 +253,10 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 20,
-    backgroundColor: '#1976d2',
+    backgroundColor: '#2B5EA7',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#1976d2',
+    shadowColor: '#2B5EA7',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -314,14 +314,14 @@ const styles = StyleSheet.create({
   },
   tagSelected: {
     backgroundColor: '#dbeafe',
-    borderColor: '#1976d2',
+    borderColor: '#2B5EA7',
   },
   tagText: {
     fontSize: 14,
     color: '#6b7280',
   },
   tagTextSelected: {
-    color: '#1976d2',
+    color: '#2B5EA7',
     fontWeight: '500',
   },
   feedbackSection: {
@@ -349,7 +349,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   submitButton: {
-    backgroundColor: '#1976d2',
+    backgroundColor: '#2B5EA7',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -418,7 +418,7 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   doneButton: {
-    backgroundColor: '#1976d2',
+    backgroundColor: '#2B5EA7',
     paddingHorizontal: 48,
     paddingVertical: 14,
     borderRadius: 12,

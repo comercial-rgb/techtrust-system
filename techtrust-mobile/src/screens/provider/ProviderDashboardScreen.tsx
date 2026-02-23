@@ -426,7 +426,7 @@ export default function ProviderDashboardScreen({ navigation }: any) {
         {showNewProvider && (
           <View style={styles.onboardingContainer}>
             <View style={styles.onboardingHeader}>
-              <MaterialCommunityIcons name="rocket-launch" size={24} color="#1976d2" />
+              <MaterialCommunityIcons name="rocket-launch" size={24} color="#2B5EA7" />
               <View style={{ flex: 1, marginLeft: 12 }}>
                 <Text style={styles.onboardingTitle}>
                   {t.provider?.getStarted || 'Get Started'}
@@ -692,7 +692,7 @@ export default function ProviderDashboardScreen({ navigation }: any) {
                   <MaterialCommunityIcons
                     name={request.serviceLocationType === 'MOBILE' ? 'home-map-marker' : request.serviceLocationType === 'REMOTE' ? 'car-emergency' : 'store'}
                     size={14}
-                    color={request.serviceLocationType === 'MOBILE' ? '#10b981' : request.serviceLocationType === 'REMOTE' ? '#f59e0b' : '#1976d2'}
+                    color={request.serviceLocationType === 'MOBILE' ? '#10b981' : request.serviceLocationType === 'REMOTE' ? '#f59e0b' : '#2B5EA7'}
                   />
                   <Text style={styles.locationText}>
                     {request.serviceLocationType === 'MOBILE'
@@ -855,7 +855,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f8fafc",
   },
   header: {
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     paddingHorizontal: 20,
     paddingTop: 10,
     paddingBottom: 25,
@@ -904,7 +904,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: "#ef4444",
     borderWidth: 2,
-    borderColor: "#1976d2",
+    borderColor: "#2B5EA7",
   },
   businessBadgeRow: {
     flexDirection: 'row',
@@ -962,7 +962,7 @@ const styles = StyleSheet.create({
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: '#1976d2',
+    backgroundColor: '#2B5EA7',
     borderRadius: 3,
   },
   checklistItem: {
@@ -1030,7 +1030,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#1976d2',
+    backgroundColor: '#2B5EA7',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 14,
@@ -1114,7 +1114,7 @@ const styles = StyleSheet.create({
   },
   seeAll: {
     fontSize: 14,
-    color: "#1976d2",
+    color: "#2B5EA7",
     fontWeight: "600",
   },
   requestCard: {

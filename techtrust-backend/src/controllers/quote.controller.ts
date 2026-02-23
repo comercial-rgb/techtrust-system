@@ -11,6 +11,10 @@ import { AppError } from "../middleware/error-handler";
 import { logger } from "../config/logger";
 import { calculateRoadDistance } from "../utils/distance";
 import { generateEstimateNumber } from "../utils/number-generators";
+import {
+  FDACS_RULES,
+  QUOTE_VALIDITY,
+} from "../config/businessRules";
 
 /**
  * POST /api/v1/quotes
@@ -20,6 +24,7 @@ export const createQuote = async (req: Request, res: Response) => {
   const providerId = req.user!.id;
   const {
     serviceRequestId,
+    appointmentId, // BUG 1+3 FIX: Link to diagnostic appointment
     partsCost,
     laborCost,
     additionalFees = 0,
@@ -160,9 +165,9 @@ export const createQuote = async (req: Request, res: Response) => {
     );
   }
 
-  // Calculate mandated fees (FDACS)
-  const tireFee = Number(newTireCount) * 1.0; // FS 403.718: $1.00 per new tire
-  const batteryFee = Number(newBatteryCount) * 1.5; // FS 403.7185: $1.50 per new/reman battery
+  // Calculate mandated fees (FDACS — from businessRules)
+  const tireFee = Number(newTireCount) * FDACS_RULES.TIRE_FEE_PER_UNIT; // FS 403.718
+  const batteryFee = Number(newBatteryCount) * FDACS_RULES.BATTERY_FEE_PER_UNIT; // FS 403.7185
 
   // Calcular total (incluindo taxa de deslocamento + FDACS fees)
   const totalAmount =
@@ -181,18 +186,56 @@ export const createQuote = async (req: Request, res: Response) => {
   // Gerar Written Estimate number (FDACS)
   const estimateNumber = await generateEstimateNumber();
 
-  // Validade do orçamento (15 dias conforme FDACS)
+  // Validade do orçamento conforme FDACS (businessRules)
   const validUntil = new Date();
-  validUntil.setDate(validUntil.getDate() + 15);
+  validUntil.setDate(validUntil.getDate() + QUOTE_VALIDITY.DIRECT_DAYS);
+
+  // ===== BUG 1+3 FIX: Determine estimateType and diagnosticFee from appointment =====
+  let estimateType: "DIRECT" | "DIAGNOSTIC" | "COMPETING" = "DIRECT";
+  let linkedAppointmentId: string | null = null;
+  let appointmentDiagnosticFee = 0;
+
+  if (appointmentId) {
+    const appointment = await prisma.appointment.findFirst({
+      where: {
+        id: appointmentId,
+        providerId,
+        status: "COMPLETED",
+      },
+      select: {
+        id: true,
+        diagnosticFee: true,
+        feeWaivedOnService: true,
+        customerId: true,
+        vehicleId: true,
+      },
+    });
+
+    if (appointment) {
+      estimateType = "DIAGNOSTIC";
+      linkedAppointmentId = appointment.id;
+      appointmentDiagnosticFee = Number(appointment.diagnosticFee) || 0;
+      logger.info(
+        `Quote linked to diagnostic appointment ${appointmentId}, diagnosticFee: $${appointmentDiagnosticFee}`,
+      );
+    } else {
+      logger.warn(
+        `Appointment ${appointmentId} not found or not completed for provider ${providerId}`,
+      );
+    }
+  }
 
   // Criar orçamento
   const quote = await prisma.quote.create({
     data: {
       quoteNumber,
       estimateNumber,
-      estimateType: "DIRECT",
+      estimateType,
       serviceRequestId,
       providerId,
+      appointmentId: linkedAppointmentId,
+      diagnosticFee: appointmentDiagnosticFee,
+      diagnosticFeeWaived: false,
       partsCost,
       laborCost,
       additionalFees,

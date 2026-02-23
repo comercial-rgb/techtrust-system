@@ -214,7 +214,7 @@ export default function PaymentScreen({ navigation, route }: any) {
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#1976d2" />
+          <ActivityIndicator size="large" color="#2B5EA7" />
           <Text style={styles.loadingText}>
             {t.payment?.loadingPayment || "Preparing payment..."}
           </Text>
@@ -353,7 +353,7 @@ export default function PaymentScreen({ navigation, route }: any) {
                 navigation.navigate("PaymentMethods", { addCardMode: true })
               }
             >
-              <Ionicons name="add-circle" size={20} color="#1976d2" />
+              <Ionicons name="add-circle" size={20} color="#2B5EA7" />
               <Text style={styles.addMethodBtnText}>
                 {t.payment?.addPaymentMethod || "Add Payment Method"}
               </Text>
@@ -377,7 +377,7 @@ export default function PaymentScreen({ navigation, route }: any) {
                       : (getCardIcon(method.cardBrand) as any)
                   }
                   size={24}
-                  color={selectedMethodId === method.id ? "#1976d2" : "#6b7280"}
+                  color={selectedMethodId === method.id ? "#2B5EA7" : "#6b7280"}
                 />
                 <View style={styles.methodInfo}>
                   {method.type === "pix" ? (
@@ -417,7 +417,7 @@ export default function PaymentScreen({ navigation, route }: any) {
                   )}
                 </View>
                 {selectedMethodId === method.id && (
-                  <Ionicons name="checkmark-circle" size={20} color="#1976d2" />
+                  <Ionicons name="checkmark-circle" size={20} color="#2B5EA7" />
                 )}
               </TouchableOpacity>
             ))}
@@ -427,7 +427,7 @@ export default function PaymentScreen({ navigation, route }: any) {
                 navigation.navigate("PaymentMethods", { addCardMode: true })
               }
             >
-              <Ionicons name="add" size={20} color="#1976d2" />
+              <Ionicons name="add" size={20} color="#2B5EA7" />
               <Text style={styles.addAnotherText}>
                 {t.payment?.addAnother || "Add another method"}
               </Text>
@@ -510,7 +510,7 @@ const styles = StyleSheet.create({
   errorTitle: { fontSize: 20, fontWeight: "700", color: "#ef4444" },
   errorText: { fontSize: 14, color: "#6b7280", textAlign: "center" },
   retryBtn: {
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 10,
@@ -519,7 +519,7 @@ const styles = StyleSheet.create({
   retryText: { color: "#fff", fontWeight: "600", fontSize: 16 },
   // Summary
   summaryCard: {
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     margin: 16,
     padding: 20,
     borderRadius: 16,
@@ -611,7 +611,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 10,
   },
-  addMethodBtnText: { color: "#1976d2", fontWeight: "600" },
+  addMethodBtnText: { color: "#2B5EA7", fontWeight: "600" },
   // Methods
   methodsContainer: { paddingHorizontal: 16, marginBottom: 16 },
   methodCard: {
@@ -624,10 +624,10 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#e5e7eb",
   },
-  methodCardSelected: { borderColor: "#1976d2", backgroundColor: "#eff6ff" },
+  methodCardSelected: { borderColor: "#2B5EA7", backgroundColor: "#eff6ff" },
   methodInfo: { flex: 1, marginLeft: 12 },
   methodLabel: { fontSize: 16, color: "#374151" },
-  methodLabelSelected: { color: "#1976d2", fontWeight: "600" },
+  methodLabelSelected: { color: "#2B5EA7", fontWeight: "600" },
   methodExpiry: { fontSize: 12, color: "#9ca3af", marginTop: 2 },
   defaultBadge: {
     fontSize: 11,
@@ -642,7 +642,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 12,
   },
-  addAnotherText: { color: "#1976d2", fontWeight: "500" },
+  addAnotherText: { color: "#2B5EA7", fontWeight: "500" },
   // Security
   securityInfo: {
     flexDirection: "row",

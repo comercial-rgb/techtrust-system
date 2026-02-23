@@ -203,7 +203,7 @@ export default function ProviderSecurityScreen({ navigation }: any) {
             <View style={styles.optionRow}>
               <View style={styles.optionInfo}>
                 <View style={[styles.optionIcon, { backgroundColor: '#dbeafe' }]}>
-                  <MaterialCommunityIcons name="shield-check" size={22} color="#1976d2" />
+                  <MaterialCommunityIcons name="shield-check" size={22} color="#2B5EA7" />
                 </View>
                 <View style={styles.optionTextContainer}>
                   <Text style={styles.optionLabel}>{t.provider?.twoFactorAuth || 'Two-Factor Authentication'}</Text>
@@ -216,7 +216,7 @@ export default function ProviderSecurityScreen({ navigation }: any) {
                 value={twoFactorEnabled}
                 onValueChange={setTwoFactorEnabled}
                 trackColor={{ false: '#d1d5db', true: '#93c5fd' }}
-                thumbColor={twoFactorEnabled ? '#1976d2' : '#fff'}
+                thumbColor={twoFactorEnabled ? '#2B5EA7' : '#fff'}
               />
             </View>
 
@@ -317,7 +317,7 @@ export default function ProviderSecurityScreen({ navigation }: any) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t.provider?.recentActivity || 'Recent Activity'}</Text>
           <TouchableOpacity style={styles.activityCard}>
-            <MaterialCommunityIcons name="history" size={24} color="#1976d2" />
+            <MaterialCommunityIcons name="history" size={24} color="#2B5EA7" />
             <View style={styles.activityContent}>
               <Text style={styles.activityTitle}>{t.provider?.viewActivityHistory || 'View Activity History'}</Text>
               <Text style={styles.activitySubtitle}>
@@ -495,7 +495,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     borderRadius: 10,
-    backgroundColor: '#1976d2',
+    backgroundColor: '#2B5EA7',
     alignItems: 'center',
   },
   confirmBtnText: {
@@ -579,7 +579,7 @@ const styles = StyleSheet.create({
   currentText: {
     fontSize: 11,
     fontWeight: '500',
-    color: '#1976d2',
+    color: '#2B5EA7',
   },
   deviceLocation: {
     fontSize: 13,

@@ -2596,7 +2596,7 @@ export default function CreateRequestScreen({ navigation }: any) {
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#1976d2" />
+          <ActivityIndicator size="large" color="#2B5EA7" />
           <Text style={styles.loadingText}>
             {t.common?.loading || "Loading..."}
           </Text>
@@ -2778,7 +2778,7 @@ export default function CreateRequestScreen({ navigation }: any) {
           {/* Selected Provider Banner */}
           {(selectedProvider || preSelectedProviderName) && (
             <View style={styles.selectedProviderBanner}>
-              <Ionicons name="star" size={20} color="#1976d2" />
+              <Ionicons name="star" size={20} color="#2B5EA7" />
               <View style={{ flex: 1, marginLeft: 12 }}>
                 <Text style={styles.selectedProviderLabel}>
                   {t.createRequest?.sendingTo || "Sending request to"}
@@ -2837,7 +2837,7 @@ export default function CreateRequestScreen({ navigation }: any) {
                 <Ionicons
                   name="car"
                   size={24}
-                  color={selectedVehicle === vehicle.id ? "#1976d2" : "#6b7280"}
+                  color={selectedVehicle === vehicle.id ? "#2B5EA7" : "#6b7280"}
                 />
                 <View style={{ flex: 1, marginLeft: 12 }}>
                   <Text
@@ -2856,7 +2856,7 @@ export default function CreateRequestScreen({ navigation }: any) {
                   </Text>
                 </View>
                 {selectedVehicle === vehicle.id && (
-                  <Ionicons name="checkmark-circle" size={24} color="#1976d2" />
+                  <Ionicons name="checkmark-circle" size={24} color="#2B5EA7" />
                 )}
               </TouchableOpacity>
             ))}
@@ -2898,7 +2898,7 @@ export default function CreateRequestScreen({ navigation }: any) {
               <Ionicons
                 name="information-circle-outline"
                 size={20}
-                color="#1976d2"
+                color="#2B5EA7"
               />
             </TouchableOpacity>
           </View>
@@ -2915,7 +2915,7 @@ export default function CreateRequestScreen({ navigation }: any) {
                 <Ionicons
                   name={service.icon as any}
                   size={24}
-                  color={selectedService === service.id ? "#1976d2" : "#6b7280"}
+                  color={selectedService === service.id ? "#2B5EA7" : "#6b7280"}
                 />
                 <Text
                   style={[
@@ -2939,13 +2939,13 @@ export default function CreateRequestScreen({ navigation }: any) {
                   ({ car: "car-side", suv: "car-estate", truck: "car-pickup", van: "van-passenger", heavy_truck: "truck", bus: "rv-truck" } as Record<string, string>)[vehicleType] || "car"
                 }
                 size={22}
-                color="#1976d2"
+                color="#2B5EA7"
               />
               <View style={{ flex: 1, marginLeft: 10 }}>
                 <Text style={{ fontSize: 14, fontWeight: "600", color: "#111827" }}>
                   {t.createRequest?.vehicleTypeLabel || "Vehicle Type"}
                 </Text>
-                <Text style={{ fontSize: 13, color: "#1976d2" }}>
+                <Text style={{ fontSize: 13, color: "#2B5EA7" }}>
                   {({ car: t.createRequest?.vtCar || "Car / Sedan", suv: t.createRequest?.vtSuv || "SUV / Crossover", truck: t.createRequest?.vtTruck || "Pickup Truck", van: t.createRequest?.vtVan || "Van / Minivan", heavy_truck: t.createRequest?.vtHeavyTruck || "Heavy Truck / Semi", bus: t.createRequest?.vtBus || "Bus / RV" } as Record<string, string>)[vehicleType] || vehicleType}
                 </Text>
               </View>
@@ -3027,7 +3027,7 @@ export default function CreateRequestScreen({ navigation }: any) {
                 <MaterialCommunityIcons
                   name={vt.mciIcon as any}
                   size={26}
-                  color={vehicleType === vt.id ? "#1976d2" : "#6b7280"}
+                  color={vehicleType === vt.id ? "#2B5EA7" : "#6b7280"}
                 />
                 <Text
                   style={[
@@ -3088,7 +3088,7 @@ export default function CreateRequestScreen({ navigation }: any) {
                   <Ionicons
                     name={scope.icon as any}
                     size={24}
-                    color={serviceScope === scope.id ? "#1976d2" : "#6b7280"}
+                    color={serviceScope === scope.id ? "#2B5EA7" : "#6b7280"}
                   />
                 </View>
                 <View style={styles.locationInfo}>
@@ -3103,7 +3103,7 @@ export default function CreateRequestScreen({ navigation }: any) {
                   <Text style={styles.locationDescription}>{scope.desc}</Text>
                 </View>
                 {serviceScope === scope.id && (
-                  <Ionicons name="checkmark-circle" size={24} color="#1976d2" />
+                  <Ionicons name="checkmark-circle" size={24} color="#2B5EA7" />
                 )}
               </TouchableOpacity>
             ))}
@@ -3174,7 +3174,7 @@ export default function CreateRequestScreen({ navigation }: any) {
                     name={option.icon as any}
                     size={24}
                     color={
-                      serviceLocation === option.id ? "#1976d2" : "#6b7280"
+                      serviceLocation === option.id ? "#2B5EA7" : "#6b7280"
                     }
                   />
                 </View>
@@ -3193,7 +3193,7 @@ export default function CreateRequestScreen({ navigation }: any) {
                   </Text>
                 </View>
                 {serviceLocation === option.id && (
-                  <Ionicons name="checkmark-circle" size={24} color="#1976d2" />
+                  <Ionicons name="checkmark-circle" size={24} color="#2B5EA7" />
                 )}
               </TouchableOpacity>
             ))}
@@ -3239,7 +3239,7 @@ export default function CreateRequestScreen({ navigation }: any) {
                     style={styles.viewOnMapBtn}
                     onPress={openInMaps}
                   >
-                    <Ionicons name="map" size={18} color="#1976d2" />
+                    <Ionicons name="map" size={18} color="#2B5EA7" />
                     <Text style={styles.viewOnMapText}>
                       {t.createRequest?.viewOnMap || "View on Map"}
                     </Text>
@@ -3389,7 +3389,7 @@ export default function CreateRequestScreen({ navigation }: any) {
               <Ionicons
                 name={responsibilityAccepted ? "checkbox" : "square-outline"}
                 size={24}
-                color={responsibilityAccepted ? "#1976d2" : "#9ca3af"}
+                color={responsibilityAccepted ? "#2B5EA7" : "#9ca3af"}
               />
               <Text style={styles.disclaimerCheckboxText}>
                 {t.createRequest?.iUnderstand ||
@@ -3455,7 +3455,7 @@ export default function CreateRequestScreen({ navigation }: any) {
 
           {/* Info Box */}
           <View style={styles.infoBox}>
-            <Ionicons name="information-circle" size={20} color="#1976d2" />
+            <Ionicons name="information-circle" size={20} color="#2B5EA7" />
             <Text style={styles.infoText}>
               {t.createRequest?.infoText ||
                 "You will receive quotes from verified service providers within 48 hours."}
@@ -3473,7 +3473,7 @@ export default function CreateRequestScreen({ navigation }: any) {
             {selectedProvider ? (
               <View style={styles.selectedProviderRow}>
                 <View style={styles.providerAvatarSmall}>
-                  <Ionicons name="business" size={20} color="#1976d2" />
+                  <Ionicons name="business" size={20} color="#2B5EA7" />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.selectedProviderNameText}>
@@ -3518,7 +3518,7 @@ export default function CreateRequestScreen({ navigation }: any) {
           {hasPaymentMethod && defaultPaymentMethod && (
             <View style={[styles.paymentMethodCard, { marginTop: 8 }]}>
               <View style={styles.paymentMethodInfo}>
-                <Ionicons name="card" size={20} color="#1976d2" />
+                <Ionicons name="card" size={20} color="#2B5EA7" />
                 <View style={{ flex: 1, marginLeft: 10 }}>
                   <Text style={styles.paymentMethodLabel}>
                     {t.createRequest?.paymentMethod || "Payment Method"}
@@ -3581,7 +3581,7 @@ export default function CreateRequestScreen({ navigation }: any) {
               style={styles.wizardBackBtn}
               onPress={handlePrevStep}
             >
-              <Ionicons name="arrow-back" size={20} color="#1976d2" />
+              <Ionicons name="arrow-back" size={20} color="#2B5EA7" />
               <Text style={styles.wizardBackText}>
                 {t.common?.back || "Back"}
               </Text>
@@ -3667,7 +3667,7 @@ export default function CreateRequestScreen({ navigation }: any) {
                     }}
                   >
                     <View style={styles.providerListAvatar}>
-                      <Ionicons name="business" size={24} color="#1976d2" />
+                      <Ionicons name="business" size={24} color="#2B5EA7" />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.providerListName}>
@@ -3691,7 +3691,7 @@ export default function CreateRequestScreen({ navigation }: any) {
                       <Ionicons
                         name="checkmark-circle"
                         size={24}
-                        color="#1976d2"
+                        color="#2B5EA7"
                       />
                     )}
                   </TouchableOpacity>
@@ -3707,7 +3707,7 @@ export default function CreateRequestScreen({ navigation }: any) {
                 setShowProviderModal(false);
               }}
             >
-              <Ionicons name="globe-outline" size={20} color="#1976d2" />
+              <Ionicons name="globe-outline" size={20} color="#2B5EA7" />
               <Text style={styles.sendToAllText}>
                 {t.createRequest?.sendToAll || "Send to all providers"}
               </Text>
@@ -3793,7 +3793,7 @@ export default function CreateRequestScreen({ navigation }: any) {
                                   : "square-outline"
                             }
                             size={22}
-                            color={isSelected ? "#1976d2" : "#d1d5db"}
+                            color={isSelected ? "#2B5EA7" : "#d1d5db"}
                           />
                         </TouchableOpacity>
                       );
@@ -3856,12 +3856,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 4,
   },
-  stepCircleActive: { backgroundColor: "#1976d2" },
+  stepCircleActive: { backgroundColor: "#2B5EA7" },
   stepCircleCompleted: { backgroundColor: "#10b981" },
   stepNumber: { fontSize: 13, fontWeight: "700", color: "#9ca3af" },
   stepNumberActive: { color: "#fff" },
   stepLabel: { fontSize: 11, color: "#9ca3af", textAlign: "center" },
-  stepLabelActive: { color: "#1976d2", fontWeight: "600" },
+  stepLabelActive: { color: "#2B5EA7", fontWeight: "600" },
   stepLine: {
     height: 2,
     flex: 1,
@@ -3885,10 +3885,10 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: "#1976d2",
+    borderColor: "#2B5EA7",
     backgroundColor: "#fff",
   },
-  wizardBackText: { fontSize: 16, fontWeight: "600", color: "#1976d2" },
+  wizardBackText: { fontSize: 16, fontWeight: "600", color: "#2B5EA7" },
   wizardNextBtn: {
     flex: 2,
     flexDirection: "row",
@@ -3897,7 +3897,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 16,
     borderRadius: 12,
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
   },
   wizardNextText: { fontSize: 16, fontWeight: "600", color: "#fff" },
   // ASAP Toggle
@@ -4012,10 +4012,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: "#1976d2",
+    borderColor: "#2B5EA7",
   },
   selectedProviderLabel: { fontSize: 12, color: "#6b7280" },
-  selectedProviderName: { fontSize: 16, fontWeight: "600", color: "#1976d2" },
+  selectedProviderName: { fontSize: 16, fontWeight: "600", color: "#2B5EA7" },
   sectionTitle: {
     fontSize: 16,
     fontWeight: "600",
@@ -4033,9 +4033,9 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#e5e7eb",
   },
-  vehicleCardSelected: { borderColor: "#1976d2", backgroundColor: "#eff6ff" },
+  vehicleCardSelected: { borderColor: "#2B5EA7", backgroundColor: "#eff6ff" },
   vehicleName: { fontSize: 16, fontWeight: "500", color: "#374151" },
-  vehicleNameSelected: { color: "#1976d2" },
+  vehicleNameSelected: { color: "#2B5EA7" },
   vehiclePlate: { fontSize: 13, color: "#6b7280", marginTop: 2 },
   servicesGrid: {
     flexDirection: "row",
@@ -4053,14 +4053,14 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#e5e7eb",
   },
-  serviceCardSelected: { borderColor: "#1976d2", backgroundColor: "#eff6ff" },
+  serviceCardSelected: { borderColor: "#2B5EA7", backgroundColor: "#eff6ff" },
   serviceLabel: {
     fontSize: 10,
     color: "#6b7280",
     marginTop: 4,
     textAlign: "center",
   },
-  serviceLabelSelected: { color: "#1976d2", fontWeight: "500" },
+  serviceLabelSelected: { color: "#2B5EA7", fontWeight: "500" },
   locationContainer: { marginBottom: 16 },
   locationCard: {
     flexDirection: "row",
@@ -4072,7 +4072,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#e5e7eb",
   },
-  locationCardSelected: { borderColor: "#1976d2", backgroundColor: "#eff6ff" },
+  locationCardSelected: { borderColor: "#2B5EA7", backgroundColor: "#eff6ff" },
   locationIcon: {
     width: 48,
     height: 48,
@@ -4085,7 +4085,7 @@ const styles = StyleSheet.create({
   locationIconSelected: { backgroundColor: "#dbeafe" },
   locationInfo: { flex: 1 },
   locationLabel: { fontSize: 16, fontWeight: "500", color: "#374151" },
-  locationLabelSelected: { color: "#1976d2" },
+  locationLabelSelected: { color: "#2B5EA7" },
   locationDescription: { fontSize: 12, color: "#6b7280", marginTop: 2 },
   // Roadside Location Sharing
   roadsideContainer: { marginBottom: 24 },
@@ -4128,7 +4128,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
   },
-  viewOnMapText: { fontSize: 14, fontWeight: "600", color: "#1976d2" },
+  viewOnMapText: { fontSize: 14, fontWeight: "600", color: "#2B5EA7" },
   roadsideInfo: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -4173,7 +4173,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
   },
-  infoText: { flex: 1, fontSize: 14, color: "#1976d2", lineHeight: 20 },
+  infoText: { flex: 1, fontSize: 14, color: "#2B5EA7", lineHeight: 20 },
   footer: {
     position: "absolute",
     bottom: 0,
@@ -4189,7 +4189,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     paddingVertical: 16,
     borderRadius: 12,
   },
@@ -4277,7 +4277,7 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
   },
   providerListItemSelected: {
-    borderColor: "#1976d2",
+    borderColor: "#2B5EA7",
     backgroundColor: "#eff6ff",
   },
   providerListAvatar: {
@@ -4322,7 +4322,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: "#eff6ff",
   },
-  sendToAllText: { fontSize: 15, fontWeight: "600", color: "#1976d2" },
+  sendToAllText: { fontSize: 15, fontWeight: "600", color: "#2B5EA7" },
   // Loading & No Payment Styles
   loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
   loadingText: { fontSize: 16, color: "#6b7280", marginTop: 12 },
@@ -4374,7 +4374,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     paddingVertical: 16,
     paddingHorizontal: 32,
     borderRadius: 12,
@@ -4422,7 +4422,7 @@ const styles = StyleSheet.create({
   paymentMethodInfo: { flexDirection: "row", alignItems: "center" },
   paymentMethodLabel: { fontSize: 12, color: "#6b7280" },
   paymentMethodValue: { fontSize: 14, fontWeight: "600", color: "#111827" },
-  changePaymentText: { fontSize: 14, fontWeight: "600", color: "#1976d2" },
+  changePaymentText: { fontSize: 14, fontWeight: "600", color: "#2B5EA7" },
   paymentMethodNote: {
     fontSize: 12,
     color: "#166534",
@@ -4515,7 +4515,7 @@ const styles = StyleSheet.create({
   },
   subOptionItemSelected: {
     backgroundColor: "#eff6ff",
-    borderColor: "#1976d2",
+    borderColor: "#2B5EA7",
   },
   subOptionIcon: {
     width: 36,
@@ -4527,7 +4527,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   subOptionIconSelected: {
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
   },
   subOptionLabel: {
     flex: 1,
@@ -4535,7 +4535,7 @@ const styles = StyleSheet.create({
     color: "#374151",
   },
   subOptionLabelSelected: {
-    color: "#1976d2",
+    color: "#2B5EA7",
     fontWeight: "600",
   },
   subOptionsHint: {
@@ -4574,7 +4574,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 12,
     borderRadius: 10,
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
   },
   subOptionsConfirmText: {
     fontSize: 14,

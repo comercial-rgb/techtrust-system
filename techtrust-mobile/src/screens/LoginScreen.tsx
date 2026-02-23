@@ -296,7 +296,7 @@ export default function LoginScreen({ navigation }: any) {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color="#1976d2" />
+          <Ionicons name="arrow-back" size={24} color="#2B5EA7" />
         </TouchableOpacity>
 
         {/* Language Selector Button */}
@@ -352,7 +352,7 @@ export default function LoginScreen({ navigation }: any) {
                   <MaterialCommunityIcons
                     name="check"
                     size={20}
-                    color="#1976d2"
+                    color="#2B5EA7"
                   />
                 )}
               </TouchableOpacity>
@@ -391,7 +391,7 @@ export default function LoginScreen({ navigation }: any) {
               <MaterialCommunityIcons
                 name="account"
                 size={20}
-                color={loginType === "customer" ? "#1976d2" : "#9ca3af"}
+                color={loginType === "customer" ? "#2B5EA7" : "#9ca3af"}
               />
               <Text
                 style={[
@@ -409,7 +409,7 @@ export default function LoginScreen({ navigation }: any) {
               <MaterialCommunityIcons
                 name="store"
                 size={20}
-                color={loginType === "provider" ? "#1976d2" : "#9ca3af"}
+                color={loginType === "provider" ? "#2B5EA7" : "#9ca3af"}
               />
               <Text
                 style={[
@@ -562,7 +562,7 @@ export default function LoginScreen({ navigation }: any) {
                   <MaterialCommunityIcons
                     name={getBiometricIcon() as any}
                     size={24}
-                    color="#1976d2"
+                    color="#2B5EA7"
                   />
                   <Text style={styles.biometricButtonText}>
                     {t.biometric?.loginWith || "Log in with"}{" "}
@@ -677,7 +677,7 @@ const styles = StyleSheet.create({
   languageOptionSelected: {
     backgroundColor: "#eff6ff",
     borderWidth: 1,
-    borderColor: "#1976d2",
+    borderColor: "#2B5EA7",
   },
   languageOptionFlag: {
     fontSize: 24,
@@ -690,7 +690,7 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   languageOptionTextSelected: {
-    color: "#1976d2",
+    color: "#2B5EA7",
     fontWeight: "600",
   },
   keyboardView: {
@@ -712,7 +712,7 @@ const styles = StyleSheet.create({
   },
   tagline: {
     fontSize: 16,
-    color: "#1976d2",
+    color: "#2B5EA7",
     fontWeight: "600",
     marginTop: 8,
     textAlign: "center",
@@ -748,7 +748,7 @@ const styles = StyleSheet.create({
     color: "#9ca3af",
   },
   tabTextActive: {
-    color: "#1976d2",
+    color: "#2B5EA7",
   },
   form: {
     flex: 1,
@@ -782,11 +782,11 @@ const styles = StyleSheet.create({
   },
   forgotText: {
     fontSize: 14,
-    color: "#1976d2",
+    color: "#2B5EA7",
     fontWeight: "500",
   },
   loginButton: {
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -850,7 +850,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   biometricButtonText: {
-    color: "#1976d2",
+    color: "#2B5EA7",
     fontSize: 15,
     fontWeight: "600",
   },
@@ -864,7 +864,7 @@ const styles = StyleSheet.create({
   },
   signupLink: {
     fontSize: 14,
-    color: "#1976d2",
+    color: "#2B5EA7",
     fontWeight: "600",
   },
 });

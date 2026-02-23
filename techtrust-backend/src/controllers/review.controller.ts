@@ -9,10 +9,18 @@ import { Request, Response } from "express";
 import { prisma } from "../config/database";
 import { AppError } from "../middleware/error-handler";
 import { logger } from "../config/logger";
+import {
+  REVIEW_RULES,
+  PROVIDER_POINTS,
+  calculateWeightedRating,
+  getProviderReputationSummary,
+} from "../config/businessRules";
 
 /**
  * POST /api/v1/reviews
- * Cliente avalia fornecedor após serviço
+ * Cliente avalia fornecedor após serviço.
+ * Supports reviewType: "SERVICE" (default) or "DIAGNOSTIC".
+ * When SEPARATE_DIAGNOSTIC_SERVICE_REVIEW is enabled, allows one of each per workOrder.
  */
 export const createReview = async (req: Request, res: Response) => {
   const customerId = req.user!.id;
@@ -25,7 +33,14 @@ export const createReview = async (req: Request, res: Response) => {
     ratingCommunication,
     ratingValue,
     customerComment,
+    reviewType = "SERVICE",
   } = req.body;
+
+  // Validate reviewType
+  const validTypes = ["SERVICE", "DIAGNOSTIC"];
+  const resolvedReviewType = validTypes.includes(reviewType?.toUpperCase())
+    ? reviewType.toUpperCase()
+    : "SERVICE";
 
   // Verificar work order
   const workOrder = await prisma.workOrder.findFirst({
@@ -44,15 +59,30 @@ export const createReview = async (req: Request, res: Response) => {
     );
   }
 
-  // Verificar se já avaliou
-  const existingReview = await prisma.review.findFirst({
-    where: {
-      workOrderId: workOrderId,
-    },
-  });
+  // Check existing reviews — allow separate diagnostic + service reviews
+  if (REVIEW_RULES.SEPARATE_DIAGNOSTIC_SERVICE_REVIEW) {
+    const existingReview = await prisma.review.findFirst({
+      where: {
+        workOrderId: workOrderId,
+        reviewType: resolvedReviewType,
+      },
+    });
 
-  if (existingReview) {
-    throw new AppError("Você já avaliou este serviço", 409, "ALREADY_REVIEWED");
+    if (existingReview) {
+      throw new AppError(
+        `You already submitted a ${resolvedReviewType.toLowerCase()} review for this service`,
+        409,
+        "ALREADY_REVIEWED",
+      );
+    }
+  } else {
+    const existingReview = await prisma.review.findFirst({
+      where: { workOrderId: workOrderId },
+    });
+
+    if (existingReview) {
+      throw new AppError("Você já avaliou este serviço", 409, "ALREADY_REVIEWED");
+    }
   }
 
   // Support both simple rating and detailed ratings
@@ -61,8 +91,14 @@ export const createReview = async (req: Request, res: Response) => {
   const tRating = Number(ratingTimeliness) || simpleRating;
   const cRating = Number(ratingCommunication) || simpleRating;
   const vRating = Number(ratingValue) || simpleRating;
-  const overallRating =
-    simpleRating || (qRating + tRating + cRating + vRating) / 4;
+
+  // Calculate WEIGHTED overall rating (businessRules weights)
+  const overallRating = simpleRating || calculateWeightedRating({
+    quality: qRating,
+    timeliness: tRating,
+    communication: cRating,
+    value: vRating,
+  });
   const finalComment = customerComment || comment || null;
 
   // Criar avaliação
@@ -77,6 +113,7 @@ export const createReview = async (req: Request, res: Response) => {
       communicationRating: cRating,
       valueRating: vRating,
       customerComment: finalComment,
+      reviewType: resolvedReviewType,
     },
   });
 
@@ -98,6 +135,19 @@ export const createReview = async (req: Request, res: Response) => {
         totalServicesCompleted: provider.totalServicesCompleted + 1,
       },
     });
+
+    // Apply provider points for good reviews
+    if (overallRating >= 5) {
+      await prisma.providerProfile.updateMany({
+        where: { userId: workOrder.providerId },
+        data: { reputationPoints: { increment: PROVIDER_POINTS.FIVE_STAR_REVIEW } },
+      });
+    } else if (overallRating >= 4) {
+      await prisma.providerProfile.updateMany({
+        where: { userId: workOrder.providerId },
+        data: { reputationPoints: { increment: PROVIDER_POINTS.GOOD_REVIEW } },
+      });
+    }
   }
 
   logger.info(`Avaliação criada para work order: ${workOrder.orderNumber}`);
@@ -161,11 +211,31 @@ export const getProviderReviews = async (req: Request, res: Response) => {
     },
   });
 
+  // Generate weighted overall + reputation insights
+  const weightedOverall = calculateWeightedRating({
+    quality: averages._avg.qualityRating || 0,
+    timeliness: averages._avg.timelinessRating || 0,
+    communication: averages._avg.communicationRating || 0,
+    value: averages._avg.valueRating || 0,
+  });
+
+  const reputationInsights = getProviderReputationSummary({
+    quality: averages._avg.qualityRating || 0,
+    timeliness: averages._avg.timelinessRating || 0,
+    communication: averages._avg.communicationRating || 0,
+    value: averages._avg.valueRating || 0,
+  });
+
   res.json({
     success: true,
     data: {
       reviews,
-      averages: averages._avg,
+      averages: {
+        ...averages._avg,
+        weightedOverall,
+      },
+      reputationInsights,
+      weights: REVIEW_RULES.WEIGHTS,
       pagination: {
         page: Number(page),
         limit: Number(limit),

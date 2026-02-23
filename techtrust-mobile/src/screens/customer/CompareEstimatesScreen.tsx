@@ -67,7 +67,7 @@ export default function CompareEstimatesScreen({ route, navigation }: any) {
       <SafeAreaView style={styles.container}>
         <ActivityIndicator
           size="large"
-          color="#1976d2"
+          color="#2B5EA7"
           style={{ marginTop: 40 }}
         />
       </SafeAreaView>
@@ -180,7 +180,7 @@ export default function CompareEstimatesScreen({ route, navigation }: any) {
             <Text style={styles.viewDetailText}>
               {t.fdacs.viewFullEstimate}
             </Text>
-            <Ionicons name="chevron-forward" size={16} color="#1976d2" />
+            <Ionicons name="chevron-forward" size={16} color="#2B5EA7" />
           </TouchableOpacity>
         </View>
 
@@ -273,7 +273,7 @@ export default function CompareEstimatesScreen({ route, navigation }: any) {
                   <Text style={styles.viewDetailText}>
                     {t.fdacs.viewFullEstimate}
                   </Text>
-                  <Ionicons name="chevron-forward" size={16} color="#1976d2" />
+                  <Ionicons name="chevron-forward" size={16} color="#2B5EA7" />
                 </TouchableOpacity>
               </View>
             );
@@ -326,14 +326,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e5e7eb",
   },
-  originalCard: { borderColor: "#1976d2", borderWidth: 2 },
+  originalCard: { borderColor: "#2B5EA7", borderWidth: 2 },
   estimateHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
     marginBottom: 12,
   },
-  estimateNumber: { fontSize: 14, fontWeight: "600", color: "#1976d2" },
+  estimateNumber: { fontSize: 14, fontWeight: "600", color: "#2B5EA7" },
   providerName: {
     fontSize: 15,
     fontWeight: "500",
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 8,
   },
-  originalBadgeText: { fontSize: 11, fontWeight: "700", color: "#1976d2" },
+  originalBadgeText: { fontSize: 11, fontWeight: "700", color: "#2B5EA7" },
   savingsBadge: {
     backgroundColor: "#d1fae5",
     paddingHorizontal: 8,
@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "#f3f4f6",
   },
-  viewDetailText: { fontSize: 14, fontWeight: "600", color: "#1976d2" },
+  viewDetailText: { fontSize: 14, fontWeight: "600", color: "#2B5EA7" },
   emptyCompeting: {
     alignItems: "center",
     padding: 24,

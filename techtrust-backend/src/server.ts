@@ -303,6 +303,16 @@ httpServer.listen(PORT, async () => {
     logger.warn("⚠️ Expiration checker failed to start:", error);
   }
 
+  // Start quote & estimate share expiration checker (BUG 4 FIX)
+  try {
+    const { scheduleQuoteExpirationCheck } =
+      await import("./services/quote-expiration.service");
+    scheduleQuoteExpirationCheck();
+    logger.info("🔄 Quote expiration checker: Ativo (every 1h)");
+  } catch (error) {
+    logger.warn("⚠️ Quote expiration checker failed to start:", error);
+  }
+
   logger.info(`🚀 TechTrust API rodando em http://localhost:${PORT}`);
   logger.info(`📚 API version: ${API_VERSION}`);
   logger.info(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);

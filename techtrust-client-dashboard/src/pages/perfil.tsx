@@ -248,7 +248,7 @@ export default function PerfilPage() {
 
         {/* Version */}
         <p className="text-center text-sm text-gray-400 mt-6 mb-8">
-          TechTrust v1.0.0
+          TechTrust AutoSolutions LLC v1.0.0
         </p>
       </div>
     </DashboardLayout>

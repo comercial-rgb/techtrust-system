@@ -117,6 +117,7 @@ enum NotificationType {
   ESTIMATE_SHARED
   COMPETING_ESTIMATE_RECEIVED
   REPAIR_INVOICE_GENERATED
+  SERVICE_CANCELLED_BY_PROVIDER
 }
 
 enum PaymentProcessor {
@@ -335,6 +336,10 @@ model User {
 
   // Notificações
   fcmToken           String?
+
+  // Mileage Reminder preferences
+  mileageReminderOptOut Boolean   @default(false) // Opt-out de reminders
+  lastAppOpenAt         DateTime? // Última vez que abriu o app
   pushEnabled        Boolean @default(true)
   emailNotifications Boolean @default(true)
   smsNotifications   Boolean @default(false)
@@ -453,6 +458,12 @@ model ProviderProfile {
   // Whether provider sells parts (for parts-only requests)
   sellsParts Boolean @default(false)
 
+  // PartsTech Integration (B2B — Camada 2)
+  partsTechApiKey      String?   // API key da conta PartsTech do provider
+  partsTechAccountId   String?   // Account ID no PartsTech
+  partsTechConnected   Boolean   @default(false) // Se conectou com sucesso
+  partsTechConnectedAt DateTime? // Quando conectou
+
   // Tipos de serviço oferecidos (legacy)
   mobileService      Boolean @default(false)
   roadsideAssistance Boolean @default(false)
@@ -489,6 +500,15 @@ model ProviderProfile {
   averageRating          Decimal @default(0) @db.Decimal(3, 2)
   totalReviews           Int     @default(0)
   totalServicesCompleted Int     @default(0)
+  reputationPoints       Int     @default(0)
+
+  // No-show tracking
+  noShowCount    Int       @default(0)
+
+  // Suspension
+  suspendedAt     DateTime?
+  suspendedUntil  DateTime?
+  suspensionReason String?
 
   // ===== Relations =====
   complianceItems      ComplianceItem[]
@@ -526,18 +546,65 @@ model Vehicle {
   // Dados adicionais (auto-preenchidos via NHTSA vPIC ou manual)
   engineType            String? // Tipo de motor (e.g., "5.3L V8 (L84)")
   fuelType              String? // Tipo de combustível
+  fuelTypeSecondary     String? // Combustível secundário (híbridos, flex)
   bodyType              String? // Tipo de carroceria
   trim                  String? // Versão/acabamento
   driveType             String? // Tração (FWD, RWD, AWD, 4WD)
   transmission          String? // Transmissão (e.g., "10-Speed Automatic")
+  transmissionSpeeds    String? // Número de marchas
   numberOfRows          Int? // Número de fileiras de assentos
   seatingCapacity       Int? // Capacidade de passageiros
   countryOfManufacturer String? // País de fabricação
   category              String? // Categoria do veículo (Passenger, Truck, MPV, etc.)
 
+  // Engine Details (NHTSA vPIC extended - Camada 0)
+  engineCylinders      Int?     // Número de cilindros
+  displacementL        Float?   // Cilindrada em litros
+  displacementCC       Float?   // Cilindrada em CC
+  engineHP             Int?     // Cavalos de potência
+  engineConfiguration  String?  // Inline, V, Flat, Rotary
+  turbo                String?  // Turbo/supercharger info
+  electrificationLevel String?  // BEV, PHEV, Hybrid, etc.
+  engineDescription    String?  // Formatted: "3.0L Inline-6 300HP Turbo Gasoline"
+
+  // Body Details
+  vehicleType     String? // NHTSA vehicle type classification
+  doors           Int?    // Número de portas
+  gvwr            String? // Gross Vehicle Weight Rating
+  manufacturer    String? // Nome completo do fabricante
+  plantCity       String? // Cidade da fábrica
+
+  // Safety (NHTSA vPIC)
+  frontAirBags    String?
+  sideAirBags     String?
+  curtainAirBags  String?
+  kneeAirBags     String?
+  abs             String?
+  esc             String?
+  tractionControl String?
+  tpms            String? // Tire Pressure Monitoring System type
+
+  // ADAS - Advanced Driver Assistance Systems (NHTSA vPIC)
+  adaptiveCruiseControl    String?
+  forwardCollisionWarning  String?
+  blindSpotWarning         String?
+  laneDepartureWarning     String?
+  laneKeepingAssist        String?
+  backupCamera             String?
+  parkingAssist            String?
+  rearCrossTrafficAlert    String?
+  pedestrianAEB            String? // Pedestrian Automatic Emergency Braking
+
+  // vPIC decode quality
+  vpicCompleteness   Int?  // Percentual de campos preenchidos (0-100)
+  vpicErrorCode      String? // Código de erro vPIC
+  vpicErrorText      String? // Texto de erro vPIC
+
   // Hodômetro
-  currentMileage    Int?
-  lastMileageUpdate DateTime?
+  currentMileage              Int?
+  lastMileageUpdate           DateTime?
+  mileageReminderLastSentAt   DateTime? // Último reminder de mileage enviado
+  mileageReminderStreak       Int       @default(0) // Vezes que ignorou reminder (reset ao atualizar)
 
   // Foto
   photoUrl String?
@@ -659,6 +726,13 @@ model ServiceRequest {
   workOrders   WorkOrder[]
   chatMessages ChatMessage[] @relation("ServiceRequestChats")
   appointments Appointment[]
+
+  // Renewal tracking
+  renewalCount  Int       @default(0)
+  lastRenewedAt DateTime?
+
+  // RoadAssist towing consent
+  towingConsentAt DateTime?
 
   // Customer responsibility for their request
   customerResponsibilityAccepted   Boolean   @default(false)
@@ -848,6 +922,7 @@ model Appointment {
   status AppointmentStatus @default(REQUESTED)
 
   // Provider check-in / Customer confirmation
+  providerEnRouteAt   DateTime?
   providerCheckedInAt DateTime?
   customerConfirmedAt DateTime?
 
@@ -911,10 +986,20 @@ model EstimateShare {
   // Resulting competing estimates count
   competingEstimatesCount Int @default(0)
 
+  // ===== Referral Fee (compensate original diagnostic provider) =====
+  // If the customer used a paid diagnostic from Provider A, and a competing
+  // provider wins the job, Provider A receives a fixed referral fee.
+  originalDiagnosticFee   Decimal  @default(0) @db.Decimal(10, 2) // Fee the original provider charged for diagnostic
+  referralFeeAmount       Decimal  @default(0) @db.Decimal(10, 2) // Referral fee to pay original provider (auto-calculated)
+  referralFeePaid         Boolean  @default(false)
+  referralFeePaidAt       DateTime?
+  originalProviderId      String?  // Provider who did the original diagnostic
+
   @@index([originalEstimateId])
   @@index([customerId])
   @@index([shareType])
   @@index([isActive])
+  @@index([originalProviderId])
   @@map("estimate_shares")
 }
 
@@ -1062,6 +1147,10 @@ model WorkOrder {
   duringPhotos Json @default("[]")
   afterPhotos  Json @default("[]")
 
+  // Before-photos waiver (provider assumes risk if skipped)
+  beforePhotosWaived       Boolean @default(false)
+  beforePhotosWaiverReason String?
+
   // Notas
   providerNotes String?
   customerNotes String?
@@ -1135,6 +1224,10 @@ model Payment {
   processingFee  Decimal @db.Decimal(10, 2) // Stripe ou Chase fee
   totalAmount    Decimal @db.Decimal(10, 2)
   providerAmount Decimal @db.Decimal(10, 2)
+
+  // Referral fee (paid to original diagnostic provider if competing quote won)
+  referralFee       Decimal  @default(0) @db.Decimal(10, 2)
+  referralProviderId String?  // Provider who receives the referral fee
 
   // Status
   status PaymentStatus @default(PENDING)
@@ -1236,6 +1329,9 @@ model Review {
   timelinessRating    Int?
   communicationRating Int?
   valueRating         Int?
+
+  // Type: SERVICE (default) or DIAGNOSTIC
+  reviewType String @default("SERVICE")
 
   // Flags
   isVerified             Boolean @default(true)
@@ -1806,7 +1902,9 @@ model CancellationRequest {
   workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
 
   // Cliente que pediu cancelamento
-  requestedByCustomerId String
+  requestedByCustomerId String?
+  // Fornecedor que pediu cancelamento
+  requestedByProviderId String?
   reason                String?
 
   // Status do pedido
@@ -2879,4 +2977,101 @@ model ClientInsurancePolicy {
   @@index([userId])
   @@index([expiryDate])
   @@map("client_insurance_policies")
+}
+
+// ============================================
+// ORGANIC CATALOG — Catálogo interno TechTrust (Camada 3)
+// ============================================
+// Alimentado por quotes completadas via feedCatalogFromCompletedService()
+// Agrupado por: vehicle_fingerprint + part_name
+// Resultado: "ACDelco PF63E usado 12x para BMW X3, avg $12.99"
+model QuoteCatalogEntry {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  vehicleFingerprint String // e.g., "2011_bmw_x3"
+  partName           String // e.g., "oil filter" (lowercase)
+  partNumber         String? // e.g., "ACDelco PF63E"
+  brand              String?
+  serviceType        String? // e.g., "Oil Change"
+
+  usageCount Int   @default(1)
+  avgPrice   Float
+  minPrice   Float
+  maxPrice   Float
+
+  // Região para pricing regional
+  county String?
+  state  String @default("FL")
+
+  lastSeenAt DateTime @default(now())
+
+  @@unique([vehicleFingerprint, partName])
+  @@index([vehicleFingerprint])
+  @@index([partName])
+  @@index([serviceType])
+  @@map("quote_catalog_entries")
+}
+
+// ============================================
+// MILEAGE LOG — Histórico de quilometragem
+// ============================================
+model MileageLog {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  vehicleId String
+  userId    String
+
+  mileage       Int
+  source        String // 'MANUAL' | 'SERVICE_COMPLETION' | 'WORK_ORDER' | 'OCR'
+  sourceId      String? // ID do workOrder/service que originou
+  previousMileage Int?
+
+  @@index([vehicleId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("mileage_logs")
+}
+
+// ============================================
+// API CREDIT LOG — Monitoramento VehicleDatabases (Circuit Breaker)
+// ============================================
+model ApiCreditLog {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  provider      String // 'VEHICLE_DATABASES' | 'PARTSTECH' | 'NHTSA'
+  planName      String?
+  creditsTotal  Int?
+  creditsLeft   Int?
+  percentLeft   Float?
+  dailyAverage  Float?
+  daysRemaining Int?
+
+  @@index([provider])
+  @@index([createdAt])
+  @@map("api_credit_logs")
+}
+
+// ============================================
+// VIN DECODE CACHE — Cache de decodificações NHTSA vPIC
+// ============================================
+model VinDecodeCache {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  vin       String   @unique
+  modelYear Int?
+  rawData   Json     // Dados brutos da API
+  parsed    Json     // Dados parseados/estruturados
+  source    String   @default("NHTSA_VPIC") // 'NHTSA_VPIC' | 'VDB'
+  completeness Int   @default(0) // 0-100
+
+  expiresAt DateTime // Cache 30 dias para NHTSA
+
+  @@index([vin])
+  @@index([expiresAt])
+  @@map("vin_decode_cache")
 }

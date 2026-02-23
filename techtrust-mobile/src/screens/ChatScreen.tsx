@@ -370,7 +370,7 @@ export default function ChatScreen({ navigation, route }: any) {
                 <Ionicons
                   name={getStatusIcon(item.status) as any}
                   size={14}
-                  color={item.status === "read" ? "#1976d2" : "#bfdbfe"}
+                  color={item.status === "read" ? "#2B5EA7" : "#bfdbfe"}
                   style={styles.statusIcon}
                 />
               )}
@@ -402,7 +402,7 @@ export default function ChatScreen({ navigation, route }: any) {
           >
             <View style={styles.avatarContainer}>
               <View style={styles.avatar}>
-                <Ionicons name="business" size={20} color="#1976d2" />
+                <Ionicons name="business" size={20} color="#2B5EA7" />
               </View>
               {chatParticipant.isOnline && (
                 <View style={styles.onlineIndicator} />
@@ -418,7 +418,7 @@ export default function ChatScreen({ navigation, route }: any) {
             </View>
           </TouchableOpacity>
           <TouchableOpacity style={styles.headerAction} onPress={handleCall}>
-            <Ionicons name="call-outline" size={22} color="#1976d2" />
+            <Ionicons name="call-outline" size={22} color="#2B5EA7" />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.headerAction}
@@ -440,7 +440,7 @@ export default function ChatScreen({ navigation, route }: any) {
             style={styles.quickActionBtn}
             onPress={handleViewProfile}
           >
-            <Ionicons name="person" size={16} color="#1976d2" />
+            <Ionicons name="person" size={16} color="#2B5EA7" />
             <Text style={styles.quickActionText}>
               {t.chat?.viewProfile || "Profile"}
             </Text>
@@ -473,12 +473,12 @@ export default function ChatScreen({ navigation, route }: any) {
             style={styles.requestBanner}
             onPress={() => navigation.navigate("RequestDetails", { requestId })}
           >
-            <Ionicons name="document-text-outline" size={18} color="#1976d2" />
+            <Ionicons name="document-text-outline" size={18} color="#2B5EA7" />
             <Text style={styles.requestBannerText}>
               {t.chat?.relatedToRequest || "Related to: Service Request"} #
               {requestId}
             </Text>
-            <Ionicons name="chevron-forward" size={18} color="#1976d2" />
+            <Ionicons name="chevron-forward" size={18} color="#2B5EA7" />
           </TouchableOpacity>
         )}
 
@@ -543,7 +543,7 @@ export default function ChatScreen({ navigation, route }: any) {
 
             <View style={styles.profileSection}>
               <View style={styles.profileAvatar}>
-                <Ionicons name="business" size={40} color="#1976d2" />
+                <Ionicons name="business" size={40} color="#2B5EA7" />
               </View>
               <Text style={styles.profileName}>{userProfile.name}</Text>
               {userProfile.verified && (
@@ -604,7 +604,7 @@ export default function ChatScreen({ navigation, route }: any) {
                   handleCall();
                 }}
               >
-                <Ionicons name="call" size={20} color="#1976d2" />
+                <Ionicons name="call" size={20} color="#2B5EA7" />
                 <Text style={styles.profileActionText}>
                   {t.common?.call || "Call"}
                 </Text>
@@ -708,7 +708,7 @@ const styles = StyleSheet.create({
   requestBannerText: {
     flex: 1,
     fontSize: 13,
-    color: "#1976d2",
+    color: "#2B5EA7",
     fontWeight: "500",
   },
   messagesList: {
@@ -742,7 +742,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   ownBubble: {
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     borderBottomRightRadius: 4,
   },
   otherBubble: {
@@ -807,7 +807,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -956,7 +956,7 @@ const styles = StyleSheet.create({
   profileActionText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#1976d2",
+    color: "#2B5EA7",
   },
   closeModalBtn: {
     backgroundColor: "#111827",

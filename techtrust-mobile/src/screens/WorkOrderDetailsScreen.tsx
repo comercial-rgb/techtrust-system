@@ -284,7 +284,7 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>{t.workOrder?.provider || 'Fornecedor'}</Text>
           <View style={styles.providerRow}>
-            <View style={styles.providerAvatar}><Ionicons name="business" size={24} color="#1976d2" /></View>
+            <View style={styles.providerAvatar}><Ionicons name="business" size={24} color="#2B5EA7" /></View>
             <View style={{ flex: 1 }}>
               <Text style={styles.providerName}>{workOrder?.provider.businessName}</Text>
               <View style={styles.ratingRow}>
@@ -304,7 +304,7 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
             </View>
           </View>
           <View style={styles.providerActions}>
-            <TouchableOpacity style={styles.callBtn}><Ionicons name="call" size={18} color="#1976d2" /><Text style={styles.callText}>{t.common?.call || 'Call'}</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.callBtn}><Ionicons name="call" size={18} color="#2B5EA7" /><Text style={styles.callText}>{t.common?.call || 'Call'}</Text></TouchableOpacity>
             <TouchableOpacity 
               style={styles.internalChatBtn}
               onPress={() => navigation.navigate('Messages', { 
@@ -317,7 +317,7 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
                 }
               })}
             >
-              <Ionicons name="chatbubbles" size={18} color="#1976d2" />
+              <Ionicons name="chatbubbles" size={18} color="#2B5EA7" />
               <Text style={styles.internalChatText}>{t.nav?.chat || 'Chat'}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.chatBtn}><Ionicons name="logo-whatsapp" size={18} color="#25D366" /><Text style={styles.chatText}>WhatsApp</Text></TouchableOpacity>
@@ -604,7 +604,7 @@ const styles = StyleSheet.create({
   providerDetailText: { fontSize: 14, color: '#374151' },
   providerActions: { flexDirection: 'row', gap: 8 },
   callBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, backgroundColor: '#dbeafe', paddingVertical: 10, borderRadius: 10 },
-  callText: { fontSize: 13, fontWeight: '600', color: '#1976d2' },
+  callText: { fontSize: 13, fontWeight: '600', color: '#2B5EA7' },
   internalChatBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, backgroundColor: '#e0e7ff', paddingVertical: 10, borderRadius: 10 },
   internalChatText: { fontSize: 13, fontWeight: '600', color: '#4f46e5' },
   chatBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, backgroundColor: '#dcfce7', paddingVertical: 10, borderRadius: 10 },
@@ -617,9 +617,9 @@ const styles = StyleSheet.create({
   priceValue: { fontSize: 14, color: '#374151', fontWeight: '500' },
   totalRow: { marginTop: 8, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#e5e7eb', marginBottom: 0 },
   totalLabel: { fontSize: 16, fontWeight: '600', color: '#111827' },
-  totalValue: { fontSize: 20, fontWeight: '700', color: '#1976d2' },
+  totalValue: { fontSize: 20, fontWeight: '700', color: '#2B5EA7' },
   timelineItem: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 },
-  timelineDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#1976d2', marginRight: 12, marginTop: 4 },
+  timelineDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#2B5EA7', marginRight: 12, marginTop: 4 },
   timelineContent: { flex: 1 },
   timelineLabel: { fontSize: 14, fontWeight: '500', color: '#111827' },
   timelineDate: { fontSize: 12, color: '#6b7280', marginTop: 2 },
@@ -677,7 +677,7 @@ const styles = StyleSheet.create({
   disputeInfoText: { fontSize: 12, color: '#6b7280', flex: 1 },
   
   // Detailed Quote Styles
-  sectionSubtitle: { fontSize: 13, fontWeight: '600', color: '#1976d2', marginTop: 12, marginBottom: 8, textTransform: 'uppercase' },
+  sectionSubtitle: { fontSize: 13, fontWeight: '600', color: '#2B5EA7', marginTop: 12, marginBottom: 8, textTransform: 'uppercase' },
   lineItemRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
   lineItemInfo: { flex: 1, marginRight: 12 },
   lineItemDesc: { fontSize: 14, color: '#374151', marginBottom: 2 },

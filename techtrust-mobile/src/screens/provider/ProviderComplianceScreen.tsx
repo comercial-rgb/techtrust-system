@@ -200,7 +200,7 @@ export default function ProviderComplianceScreen({ navigation }: any) {
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#1976d2" />
+          <ActivityIndicator size="large" color="#2B5EA7" />
         </View>
       </SafeAreaView>
     );
@@ -252,7 +252,7 @@ export default function ProviderComplianceScreen({ navigation }: any) {
                 style={styles.autoCreateBtn}
                 onPress={isFloridaProvider ? handleFloridaAutoCreate : handleAutoCreate}
               >
-                <Ionicons name="add-circle" size={18} color="#1976d2" />
+                <Ionicons name="add-circle" size={18} color="#2B5EA7" />
                 <Text style={styles.autoCreateText}>
                   {isFloridaProvider ? 'FL Auto-Create' : 'Auto-Create'}
                 </Text>
@@ -265,8 +265,8 @@ export default function ProviderComplianceScreen({ navigation }: any) {
               {isFloridaProvider && (
                 <View style={styles.flRequirementsCard}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 8 }}>
-                    <Ionicons name="flag" size={18} color="#1976d2" />
-                    <Text style={{ fontSize: 15, fontWeight: '700', color: '#1976d2' }}>Florida Requirements</Text>
+                    <Ionicons name="flag" size={18} color="#2B5EA7" />
+                    <Text style={{ fontSize: 15, fontWeight: '700', color: '#2B5EA7' }}>Florida Requirements</Text>
                   </View>
                   {FLORIDA_REQUIREMENTS.map((req) => (
                     <View key={req.type} style={styles.flReqItem}>
@@ -312,7 +312,7 @@ export default function ProviderComplianceScreen({ navigation }: any) {
                         : "document"
                     }
                     size={20}
-                    color="#1976d2"
+                    color="#2B5EA7"
                   />
                   <Text style={styles.cardTitle}>
                     {getComplianceDisplayName(item, requiredItems)}
@@ -350,7 +350,7 @@ export default function ProviderComplianceScreen({ navigation }: any) {
               onPress={() => navigation.navigate("InsuranceManagement")}
             >
               <Text style={styles.manageBtnText}>Manage</Text>
-              <Ionicons name="chevron-forward" size={16} color="#1976d2" />
+              <Ionicons name="chevron-forward" size={16} color="#2B5EA7" />
             </TouchableOpacity>
           </View>
 
@@ -415,7 +415,7 @@ export default function ProviderComplianceScreen({ navigation }: any) {
               onPress={() => navigation.navigate("TechnicianManagement")}
             >
               <Text style={styles.manageBtnText}>Manage</Text>
-              <Ionicons name="chevron-forward" size={16} color="#1976d2" />
+              <Ionicons name="chevron-forward" size={16} color="#2B5EA7" />
             </TouchableOpacity>
           </View>
 
@@ -437,7 +437,7 @@ export default function ProviderComplianceScreen({ navigation }: any) {
               .map((tech) => (
                 <View key={tech.id} style={styles.card}>
                   <View style={styles.cardHeader}>
-                    <Ionicons name="person" size={20} color="#1976d2" />
+                    <Ionicons name="person" size={20} color="#2B5EA7" />
                     <Text style={styles.cardTitle}>{tech.fullName}</Text>
                     {getStatusBadge(tech.epa609Status)}
                   </View>
@@ -573,19 +573,19 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 14, color: "#6b7280", marginTop: 8 },
   emptySubtext: { fontSize: 12, color: "#9ca3af", marginTop: 4 },
   autoCreateBtn: { flexDirection: "row", alignItems: "center", gap: 4 },
-  autoCreateText: { fontSize: 13, color: "#1976d2", fontWeight: "600" },
+  autoCreateText: { fontSize: 13, color: "#2B5EA7", fontWeight: "600" },
   manageBtn: { flexDirection: "row", alignItems: "center", gap: 2 },
-  manageBtnText: { fontSize: 13, color: "#1976d2", fontWeight: "600" },
+  manageBtnText: { fontSize: 13, color: "#2B5EA7", fontWeight: "600" },
   addButton: {
     marginTop: 12,
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
   },
   addButtonText: { color: "#fff", fontWeight: "600", fontSize: 14 },
   viewAllBtn: { alignItems: "center", paddingVertical: 8 },
-  viewAllText: { color: "#1976d2", fontSize: 13, fontWeight: "600" },
+  viewAllText: { color: "#2B5EA7", fontSize: 13, fontWeight: "600" },
   gateCard: {
     flexDirection: "row",
     alignItems: "center",

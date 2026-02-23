@@ -159,7 +159,7 @@ export default function RepairInvoiceDetailsScreen({ route, navigation }: any) {
       <SafeAreaView style={styles.container}>
         <ActivityIndicator
           size="large"
-          color="#1976d2"
+          color="#2B5EA7"
           style={{ marginTop: 40 }}
         />
       </SafeAreaView>
@@ -297,7 +297,7 @@ export default function RepairInvoiceDetailsScreen({ route, navigation }: any) {
         <View
           style={[
             styles.section,
-            { backgroundColor: "#f0f9ff", borderColor: "#1976d2" },
+            { backgroundColor: "#f0f9ff", borderColor: "#2B5EA7" },
           ]}
         >
           <View
@@ -307,11 +307,11 @@ export default function RepairInvoiceDetailsScreen({ route, navigation }: any) {
               marginBottom: 6,
             }}
           >
-            <Ionicons name="shield-checkmark" size={18} color="#1976d2" />
+            <Ionicons name="shield-checkmark" size={18} color="#2B5EA7" />
             <Text
               style={[
                 styles.sectionTitle,
-                { color: "#1976d2", marginLeft: 6, marginBottom: 0 },
+                { color: "#2B5EA7", marginLeft: 6, marginBottom: 0 },
               ]}
             >
               {t.fdacs.fdacsCompliance}

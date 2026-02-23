@@ -107,7 +107,7 @@ export default function PriceBreakdownCard({
         disabled={!compact}
       >
         <View style={styles.headerLeft}>
-          <Ionicons name="receipt-outline" size={20} color="#1976d2" />
+          <Ionicons name="receipt-outline" size={20} color="#2B5EA7" />
           <Text style={styles.headerTitle}>{title || "Price Breakdown"}</Text>
         </View>
         {compact && (
@@ -152,7 +152,7 @@ export default function PriceBreakdownCard({
                       )}
                       {item.partCondition && (
                         <Text
-                          style={[styles.lineItemCode, { color: "#1976d2" }]}
+                          style={[styles.lineItemCode, { color: "#2B5EA7" }]}
                         >
                           {item.partCondition}
                         </Text>
@@ -300,7 +300,7 @@ export default function PriceBreakdownCard({
                     <Ionicons
                       name="shield-checkmark-outline"
                       size={14}
-                      color="#1976d2"
+                      color="#2B5EA7"
                     />
                     <Text style={styles.totalLabel}>
                       Platform fee ({PLATFORM_FEE_PERCENT}%)
@@ -344,7 +344,7 @@ export default function PriceBreakdownCard({
               <Ionicons
                 name="information-circle-outline"
                 size={16}
-                color="#1976d2"
+                color="#2B5EA7"
               />
               <Text style={styles.infoNoteText}>
                 A temporary hold will be placed on your card. You will only be
@@ -396,7 +396,7 @@ const styles = StyleSheet.create({
   headerTotal: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#1976d2",
+    color: "#2B5EA7",
   },
   content: {
     padding: 16,
@@ -434,7 +434,7 @@ const styles = StyleSheet.create({
   },
   lineItemCode: {
     fontSize: 11,
-    color: "#1976d2",
+    color: "#2B5EA7",
     marginTop: 1,
   },
   lineItemRight: {
@@ -513,7 +513,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     borderTopWidth: 2,
-    borderTopColor: "#1976d2",
+    borderTopColor: "#2B5EA7",
     marginTop: 10,
     paddingTop: 12,
   },
@@ -525,7 +525,7 @@ const styles = StyleSheet.create({
   grandTotalValue: {
     fontSize: 22,
     fontWeight: "800",
-    color: "#1976d2",
+    color: "#2B5EA7",
   },
   infoNote: {
     flexDirection: "row",

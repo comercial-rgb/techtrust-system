@@ -6,6 +6,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { useI18n } from "../i18n";
 import { useNotifications } from "../contexts/NotificationsContext";
 import { CommonActions } from "@react-navigation/native";
+import { colors } from "../constants/theme";
 
 // Provider Screens
 import ProviderDashboardScreen from "../screens/provider/ProviderDashboardScreen";
@@ -177,7 +178,7 @@ function RequestsAndQuotesScreen({ navigation }: any) {
             <Text style={{
               fontSize: 14,
               fontWeight: activeTab === 'requests' ? '700' : '500',
-              color: activeTab === 'requests' ? '#1976d2' : '#6b7280',
+              color: activeTab === 'requests' ? colors.primary : colors.gray500,
             }}>
               {t.nav?.requests || 'Requests'}
             </Text>
@@ -200,7 +201,7 @@ function RequestsAndQuotesScreen({ navigation }: any) {
             <Text style={{
               fontSize: 14,
               fontWeight: activeTab === 'quotes' ? '700' : '500',
-              color: activeTab === 'quotes' ? '#1976d2' : '#6b7280',
+              color: activeTab === 'quotes' ? colors.primary : colors.gray500,
             }}>
               {t.nav?.quotes || 'Quotes'}
             </Text>
@@ -350,15 +351,15 @@ export default function ProviderNavigator() {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#1976d2",
-        tabBarInactiveTintColor: "#9ca3af",
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.gray400,
         tabBarStyle: {
           height: 85,
           paddingTop: 8,
           paddingBottom: 25,
-          backgroundColor: "#fff",
+          backgroundColor: colors.white,
           borderTopWidth: 1,
-          borderTopColor: "#f3f4f6",
+          borderTopColor: colors.gray100,
         },
         tabBarLabelStyle: {
           fontSize: 11,
@@ -484,7 +485,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: -4,
     right: -8,
-    backgroundColor: "#ef4444",
+    backgroundColor: colors.accent,
     borderRadius: 10,
     minWidth: 18,
     height: 18,

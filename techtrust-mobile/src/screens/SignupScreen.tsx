@@ -811,7 +811,7 @@ export default function SignupScreen({ navigation }: any) {
                       value={providerSellsParts}
                       onValueChange={setProviderSellsParts}
                       trackColor={{ false: "#e5e7eb", true: "#93c5fd" }}
-                      thumbColor={providerSellsParts ? "#1976d2" : "#9ca3af"}
+                      thumbColor={providerSellsParts ? "#2B5EA7" : "#9ca3af"}
                     />
                   </View>
                 </SlideInView>
@@ -915,7 +915,7 @@ export default function SignupScreen({ navigation }: any) {
                   <Text style={styles.countryItemName}>{item.name}</Text>
                   <Text style={styles.countryItemCode}>{item.dialCode}</Text>
                   {selectedCountry.code === item.code && (
-                    <Ionicons name="checkmark" size={20} color="#1976d2" />
+                    <Ionicons name="checkmark" size={20} color="#2B5EA7" />
                   )}
                 </TouchableOpacity>
               )}
@@ -1161,7 +1161,7 @@ const signupCapStyles = StyleSheet.create({
   sectionLabel: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#1976d2",
+    color: "#2B5EA7",
     marginBottom: 4,
   },
   sectionHint: {
@@ -1186,8 +1186,8 @@ const signupCapStyles = StyleSheet.create({
     gap: 4,
   },
   chipActive: {
-    backgroundColor: "#1976d2",
-    borderColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
+    borderColor: "#2B5EA7",
   },
   chipText: {
     fontSize: 12,

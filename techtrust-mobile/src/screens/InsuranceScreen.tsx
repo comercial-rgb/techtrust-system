@@ -429,7 +429,7 @@ export default function InsuranceScreen({ navigation, route }: any) {
           {t.insurance?.title || "Insurance"}
         </Text>
         <TouchableOpacity style={styles.addBtn} onPress={openAddModal}>
-          <Ionicons name="add" size={24} color="#1976d2" />
+          <Ionicons name="add" size={24} color="#2B5EA7" />
         </TouchableOpacity>
       </View>
 
@@ -581,7 +581,7 @@ export default function InsuranceScreen({ navigation, route }: any) {
                           <Ionicons
                             name="shield-checkmark"
                             size={24}
-                            color="#1976d2"
+                            color="#2B5EA7"
                           />
                         </View>
                         <View>
@@ -698,7 +698,7 @@ export default function InsuranceScreen({ navigation, route }: any) {
                         <Ionicons
                           name="create-outline"
                           size={18}
-                          color="#1976d2"
+                          color="#2B5EA7"
                         />
                         <Text style={styles.actionBtnText}>Edit</Text>
                       </TouchableOpacity>
@@ -760,9 +760,9 @@ export default function InsuranceScreen({ navigation, route }: any) {
                 disabled={scanningCard}
               >
                 {scanningCard ? (
-                  <ActivityIndicator size="small" color="#1976d2" />
+                  <ActivityIndicator size="small" color="#2B5EA7" />
                 ) : (
-                  <Ionicons name="camera" size={22} color="#1976d2" />
+                  <Ionicons name="camera" size={22} color="#2B5EA7" />
                 )}
                 <View style={{ flex: 1, marginLeft: 12 }}>
                   <Text style={styles.scanCardTitle}>
@@ -812,7 +812,7 @@ export default function InsuranceScreen({ navigation, route }: any) {
                               setShowProviderSuggestions(false);
                             }}
                           >
-                            <Ionicons name="business-outline" size={16} color="#1976d2" />
+                            <Ionicons name="business-outline" size={16} color="#2B5EA7" />
                             <Text style={styles.autocompleteText}>{provider}</Text>
                           </TouchableOpacity>
                         ))
@@ -1183,7 +1183,7 @@ const styles = StyleSheet.create({
   emptyButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderRadius: 12,
@@ -1305,7 +1305,7 @@ const styles = StyleSheet.create({
   actionBtnText: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#1976d2",
+    color: "#2B5EA7",
   },
   fab: {
     position: "absolute",
@@ -1314,10 +1314,10 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 16,
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#1976d2",
+    shadowColor: "#2B5EA7",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -1344,7 +1344,7 @@ const styles = StyleSheet.create({
   saveText: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#1976d2",
+    color: "#2B5EA7",
   },
   modalContent: {
     flex: 1,
@@ -1385,7 +1385,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   optionChipSelected: {
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
   },
   optionChipText: {
     fontSize: 14,
@@ -1407,7 +1407,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   frequencyBtnSelected: {
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
   },
   frequencyText: {
     fontSize: 12,
@@ -1462,7 +1462,7 @@ const styles = StyleSheet.create({
   scanCardTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1976d2',
+    color: '#2B5EA7',
   },
   scanCardSubtitle: {
     fontSize: 12,

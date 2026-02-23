@@ -149,7 +149,7 @@ export default function RepairInvoicesScreen({ navigation }: any) {
       <SafeAreaView style={styles.container}>
         <ActivityIndicator
           size="large"
-          color="#1976d2"
+          color="#2B5EA7"
           style={{ marginTop: 40 }}
         />
       </SafeAreaView>
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 8,
   },
-  invoiceNumber: { fontSize: 14, fontWeight: "600", color: "#1976d2" },
+  invoiceNumber: { fontSize: 14, fontWeight: "600", color: "#2B5EA7" },
   statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
   statusText: { fontSize: 12, fontWeight: "600" },
   vehicleInfo: {

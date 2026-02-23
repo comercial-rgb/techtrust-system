@@ -120,7 +120,7 @@ export default function CompleteSocialSignupScreen({ navigation, route }: any) {
               <Ionicons
                 name="shield-checkmark-outline"
                 size={48}
-                color="#1976d2"
+                color="#2B5EA7"
               />
             </View>
           </View>
@@ -364,13 +364,13 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   button: {
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     borderRadius: 12,
     height: 52,
     alignItems: "center",
     justifyContent: "center",
     marginTop: 16,
-    shadowColor: "#1976d2",
+    shadowColor: "#2B5EA7",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

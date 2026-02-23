@@ -161,7 +161,7 @@ const ebStyles = StyleSheet.create({
   },
   copyText: { color: "#374151", fontWeight: "500", fontSize: 13 },
   retryBtn: {
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     paddingHorizontal: 32,
     paddingVertical: 14,
     borderRadius: 12,

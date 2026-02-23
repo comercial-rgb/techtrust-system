@@ -190,7 +190,7 @@ export default function InsuranceManagementScreen({ navigation }: any) {
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#1976d2" />
+          <ActivityIndicator size="large" color="#2B5EA7" />
         </View>
       </SafeAreaView>
     );
@@ -282,7 +282,7 @@ export default function InsuranceManagementScreen({ navigation }: any) {
                       value={form.hasCoverage}
                       onValueChange={(v) => updateForm(type, "hasCoverage", v)}
                       trackColor={{ false: "#d1d5db", true: "#bbdefb" }}
-                      thumbColor={form.hasCoverage ? "#1976d2" : "#f4f3f4"}
+                      thumbColor={form.hasCoverage ? "#2B5EA7" : "#f4f3f4"}
                     />
                   </View>
 
@@ -368,7 +368,7 @@ export default function InsuranceManagementScreen({ navigation }: any) {
                             <Ionicons
                               name="document-attach"
                               size={16}
-                              color="#1976d2"
+                              color="#2B5EA7"
                             />
                             <Text style={styles.docText}>
                               COI Document {i + 1}
@@ -395,13 +395,13 @@ export default function InsuranceManagementScreen({ navigation }: any) {
                           disabled={uploading === type}
                         >
                           {uploading === type ? (
-                            <ActivityIndicator size="small" color="#1976d2" />
+                            <ActivityIndicator size="small" color="#2B5EA7" />
                           ) : (
                             <>
                               <Ionicons
                                 name="cloud-upload"
                                 size={18}
-                                color="#1976d2"
+                                color="#2B5EA7"
                               />
                               <Text style={styles.uploadText}>Upload COI</Text>
                             </>
@@ -518,7 +518,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     marginTop: 6,
   },
-  docText: { flex: 1, fontSize: 12, color: "#1976d2" },
+  docText: { flex: 1, fontSize: 12, color: "#2B5EA7" },
   uploadBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -528,12 +528,12 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 8,
     borderWidth: 1.5,
-    borderColor: "#1976d2",
+    borderColor: "#2B5EA7",
     borderStyle: "dashed",
   },
-  uploadText: { fontSize: 13, fontWeight: "600", color: "#1976d2" },
+  uploadText: { fontSize: 13, fontWeight: "600", color: "#2B5EA7" },
   saveBtn: {
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: "center",

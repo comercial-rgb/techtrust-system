@@ -382,8 +382,8 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
         <title>Quote ${quote.quoteNumber}</title>
         <style>
           body { font-family: Arial, sans-serif; padding: 40px; color: #1f2937; }
-          .header { display: flex; justify-content: space-between; margin-bottom: 30px; border-bottom: 2px solid #1976d2; padding-bottom: 20px; }
-          .logo { font-size: 24px; font-weight: bold; color: #1976d2; }
+          .header { display: flex; justify-content: space-between; margin-bottom: 30px; border-bottom: 2px solid #2B5EA7; padding-bottom: 20px; }
+          .logo { font-size: 24px; font-weight: bold; color: #2B5EA7; }
           .quote-info { text-align: right; }
           .quote-number { font-size: 18px; font-weight: bold; }
           .section { margin-bottom: 25px; }
@@ -398,8 +398,8 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
           .totals-row { display: flex; justify-content: flex-end; margin-bottom: 8px; }
           .totals-label { width: 150px; text-align: right; padding-right: 20px; color: #6b7280; }
           .totals-value { width: 100px; text-align: right; font-weight: 500; }
-          .grand-total { font-size: 18px; color: #1976d2; border-top: 2px solid #1976d2; padding-top: 10px; margin-top: 10px; }
-          .warranty-box { background: #eff6ff; padding: 15px; border-radius: 8px; border-left: 4px solid #1976d2; }
+          .grand-total { font-size: 18px; color: #2B5EA7; border-top: 2px solid #2B5EA7; padding-top: 10px; margin-top: 10px; }
+          .warranty-box { background: #eff6ff; padding: 15px; border-radius: 8px; border-left: 4px solid #2B5EA7; }
           .footer { margin-top: 40px; text-align: center; font-size: 12px; color: #6b7280; border-top: 1px solid #e5e7eb; padding-top: 20px; }
         </style>
       </head>
@@ -661,7 +661,7 @@ Valid until: ${formatDate(quote.validUntil)}
           </View>
         </View>
         <TouchableOpacity style={styles.shareBtn} onPress={handleSharePdf}>
-          <Ionicons name="share-outline" size={24} color="#1976d2" />
+          <Ionicons name="share-outline" size={24} color="#2B5EA7" />
         </TouchableOpacity>
       </View>
 
@@ -671,7 +671,7 @@ Valid until: ${formatDate(quote.validUntil)}
           <Text style={styles.sectionTitle}>Provider</Text>
           <View style={styles.providerCard}>
             <View style={styles.providerAvatar}>
-              <Ionicons name="business" size={24} color="#1976d2" />
+              <Ionicons name="business" size={24} color="#2B5EA7" />
             </View>
             <View style={styles.providerInfo}>
               <Text style={styles.providerName}>{quote.provider.name}</Text>
@@ -684,7 +684,7 @@ Valid until: ${formatDate(quote.validUntil)}
               </Text>
             </View>
             <TouchableOpacity style={styles.callBtn}>
-              <Ionicons name="call" size={18} color="#1976d2" />
+              <Ionicons name="call" size={18} color="#2B5EA7" />
             </TouchableOpacity>
           </View>
 
@@ -774,7 +774,7 @@ Valid until: ${formatDate(quote.validUntil)}
                 borderRadius: 6,
               }}
             >
-              <Ionicons name="location" size={14} color="#1976d2" />
+              <Ionicons name="location" size={14} color="#2B5EA7" />
               <Text style={{ fontSize: 12, color: "#1e40af" }}>
                 {(quote.distanceKm * 0.621371).toFixed(1)} mi away
                 {quote.travelFee > 0
@@ -789,8 +789,8 @@ Valid until: ${formatDate(quote.validUntil)}
         {quote.request && (
           <View style={[styles.section, { backgroundColor: "#eff6ff", borderRadius: 12, padding: 14, borderWidth: 1, borderColor: "#bfdbfe" }]}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
-              <Ionicons name="document-text" size={18} color="#1976d2" />
-              <Text style={{ fontSize: 14, fontWeight: "700", color: "#1976d2" }}>Your Request</Text>
+              <Ionicons name="document-text" size={18} color="#2B5EA7" />
+              <Text style={{ fontSize: 14, fontWeight: "700", color: "#2B5EA7" }}>Your Request</Text>
             </View>
             <Text style={{ fontSize: 15, fontWeight: "600", color: "#1f2937", marginBottom: 4 }}>
               {quote.request.title}
@@ -839,7 +839,7 @@ Valid until: ${formatDate(quote.validUntil)}
           <View style={styles.warrantyCard}>
             <View style={styles.warrantyRow}>
               <View style={styles.warrantyItem}>
-                <Ionicons name="shield-checkmark" size={20} color="#1976d2" />
+                <Ionicons name="shield-checkmark" size={20} color="#2B5EA7" />
                 <Text style={styles.warrantyLabel}>Parts</Text>
                 <Text style={styles.warrantyValue}>
                   {quote.warranty.partsMonths} months
@@ -847,7 +847,7 @@ Valid until: ${formatDate(quote.validUntil)}
               </View>
               <View style={styles.warrantyDivider} />
               <View style={styles.warrantyItem}>
-                <Ionicons name="construct" size={20} color="#1976d2" />
+                <Ionicons name="construct" size={20} color="#2B5EA7" />
                 <Text style={styles.warrantyLabel}>Service</Text>
                 <Text style={styles.warrantyValue}>
                   {quote.warranty.serviceDays} days
@@ -1087,7 +1087,7 @@ const styles = StyleSheet.create({
   },
   lineItemCode: {
     fontSize: 11,
-    color: "#1976d2",
+    color: "#2B5EA7",
     marginTop: 2,
   },
   lineItemQty: {
@@ -1158,14 +1158,14 @@ const styles = StyleSheet.create({
   grandTotalValue: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#1976d2",
+    color: "#2B5EA7",
   },
   warrantyCard: {
     backgroundColor: "#eff6ff",
     borderRadius: 16,
     padding: 16,
     borderLeftWidth: 4,
-    borderLeftColor: "#1976d2",
+    borderLeftColor: "#2B5EA7",
   },
   warrantyRow: {
     flexDirection: "row",
@@ -1188,7 +1188,7 @@ const styles = StyleSheet.create({
   warrantyValue: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#1976d2",
+    color: "#2B5EA7",
     marginTop: 2,
   },
   warrantyTerms: {
@@ -1266,7 +1266,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
   },
   acceptBtnText: {
     fontSize: 16,

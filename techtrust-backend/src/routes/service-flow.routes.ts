@@ -30,9 +30,13 @@ router.post('/respond-supplement', asyncHandler(serviceFlowController.respondToS
 // 3. Cancelamento
 router.post('/request-cancellation', asyncHandler(serviceFlowController.requestCancellation));
 router.post('/validate-cancellation', asyncHandler(serviceFlowController.validateCancellation));
+router.post('/provider-cancel', asyncHandler(serviceFlowController.providerCancelService));
 
 // 4. Fotos do serviço
 router.post('/upload-service-photos', asyncHandler(serviceFlowController.uploadServicePhotos));
+
+// 4.5 Provider starts service (with before-photos or waiver)
+router.post('/start-service', asyncHandler(serviceFlowController.startService));
 
 // 5. Fornecedor finaliza serviço
 router.post('/complete-service', asyncHandler(serviceFlowController.completeService));

@@ -197,7 +197,7 @@ export default function ForgotPasswordScreen({ navigation }: any) {
                       : "lock-closed-outline"
                 }
                 size={48}
-                color="#1976d2"
+                color="#2B5EA7"
               />
             </View>
           </View>
@@ -406,7 +406,7 @@ export default function ForgotPasswordScreen({ navigation }: any) {
             style={styles.backToLogin}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="arrow-back" size={16} color="#1976d2" />
+            <Ionicons name="arrow-back" size={16} color="#2B5EA7" />
             <Text style={styles.backToLoginText}>
               {t.auth?.backToLogin || "Back to Login"}
             </Text>
@@ -471,7 +471,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   stepDotActive: {
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
   },
   stepDotDone: {
     backgroundColor: "#10b981",
@@ -550,7 +550,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   button: {
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     height: 56,
     borderRadius: 12,
     alignItems: "center",
@@ -571,7 +571,7 @@ const styles = StyleSheet.create({
   },
   resendText: {
     fontSize: 14,
-    color: "#1976d2",
+    color: "#2B5EA7",
     fontWeight: "600",
   },
   backToLogin: {
@@ -584,7 +584,7 @@ const styles = StyleSheet.create({
   },
   backToLoginText: {
     fontSize: 14,
-    color: "#1976d2",
+    color: "#2B5EA7",
     fontWeight: "600",
   },
 });

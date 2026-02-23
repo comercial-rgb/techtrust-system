@@ -187,7 +187,7 @@ export default function AppointmentDetailsScreen({ navigation, route }: any) {
       <SafeAreaView style={styles.container}>
         <ActivityIndicator
           size="large"
-          color="#1976d2"
+          color="#2B5EA7"
           style={{ marginTop: 40 }}
         />
       </SafeAreaView>
@@ -387,7 +387,7 @@ export default function AppointmentDetailsScreen({ navigation, route }: any) {
           {/* Provider actions */}
           {isProvider && appointment.status === "REQUESTED" && (
             <TouchableOpacity
-              style={[styles.actionBtn, { backgroundColor: "#1976d2" }]}
+              style={[styles.actionBtn, { backgroundColor: "#2B5EA7" }]}
               onPress={handleConfirm}
               disabled={processing}
             >
@@ -519,7 +519,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#f3f4f6",
   },
-  estimateNumber: { fontSize: 14, fontWeight: "600", color: "#1976d2" },
+  estimateNumber: { fontSize: 14, fontWeight: "600", color: "#2B5EA7" },
   estimateAmount: { fontSize: 13, color: "#111827", marginTop: 2 },
   actions: { marginTop: 8, gap: 10 },
   actionBtn: {

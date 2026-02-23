@@ -176,7 +176,7 @@ export default function ProviderPaymentHistoryScreen({ navigation }: any) {
           <View style={{ width: 40 }} />
         </View>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator size="large" color="#1976d2" />
+          <ActivityIndicator size="large" color="#2B5EA7" />
         </View>
       </SafeAreaView>
     );
@@ -191,7 +191,7 @@ export default function ProviderPaymentHistoryScreen({ navigation }: any) {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t.provider?.paymentHistory || 'Payment History'}</Text>
         <TouchableOpacity style={styles.filterIconBtn}>
-          <MaterialCommunityIcons name="download" size={24} color="#1976d2" />
+          <MaterialCommunityIcons name="download" size={24} color="#2B5EA7" />
         </TouchableOpacity>
       </View>
 
@@ -262,7 +262,7 @@ export default function ProviderPaymentHistoryScreen({ navigation }: any) {
         renderItem={renderPaymentItem}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#1976d2']} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#2B5EA7']} />}
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <MaterialCommunityIcons name="cash-remove" size={60} color="#d1d5db" />
@@ -344,8 +344,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   filterTabActive: {
-    backgroundColor: '#1976d2',
-    borderColor: '#1976d2',
+    backgroundColor: '#2B5EA7',
+    borderColor: '#2B5EA7',
   },
   filterTabText: {
     fontSize: 14,
@@ -393,7 +393,7 @@ const styles = StyleSheet.create({
   orderId: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1976d2',
+    color: '#2B5EA7',
   },
   clientName: {
     fontSize: 16,

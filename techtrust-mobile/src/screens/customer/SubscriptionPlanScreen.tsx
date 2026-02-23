@@ -394,7 +394,7 @@ export default function SubscriptionPlanScreen({ navigation }: any) {
                     <Ionicons
                       name="checkmark-circle"
                       size={18}
-                      color={plan.popular ? "#1976d2" : "#10b981"}
+                      color={plan.popular ? "#2B5EA7" : "#10b981"}
                     />
                     <Text style={styles.featureText}>{feature}</Text>
                   </View>
@@ -442,7 +442,7 @@ export default function SubscriptionPlanScreen({ navigation }: any) {
               <View
                 style={[styles.benefitIcon, { backgroundColor: "#dbeafe" }]}
               >
-                <Ionicons name="flash" size={24} color="#1976d2" />
+                <Ionicons name="flash" size={24} color="#2B5EA7" />
               </View>
               <Text style={styles.benefitLabel}>
                 {t.customer?.priorityService || "Priority Service"}
@@ -521,7 +521,7 @@ const styles = StyleSheet.create({
     color: "#111827",
   },
   currentPlanBanner: {
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     margin: 16,
     borderRadius: 16,
     padding: 20,
@@ -631,7 +631,7 @@ const styles = StyleSheet.create({
     borderColor: "#e5e7eb",
   },
   planCardPopular: {
-    borderColor: "#1976d2",
+    borderColor: "#2B5EA7",
   },
   planCardCurrent: {
     borderColor: "#10b981",
@@ -639,7 +639,7 @@ const styles = StyleSheet.create({
   popularBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
@@ -662,7 +662,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   planNamePopular: {
-    color: "#1976d2",
+    color: "#2B5EA7",
   },
   priceContainer: {
     flexDirection: "row",
@@ -674,7 +674,7 @@ const styles = StyleSheet.create({
     color: "#111827",
   },
   planPricePopular: {
-    color: "#1976d2",
+    color: "#2B5EA7",
   },
   planInterval: {
     fontSize: 16,
@@ -707,7 +707,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#dcfce7",
   },
   planButtonPopular: {
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
   },
   planButtonText: {
     fontSize: 16,

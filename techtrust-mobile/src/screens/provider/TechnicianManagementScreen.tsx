@@ -212,7 +212,7 @@ export default function TechnicianManagementScreen({ navigation }: any) {
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#1976d2" />
+          <ActivityIndicator size="large" color="#2B5EA7" />
         </View>
       </SafeAreaView>
     );
@@ -232,7 +232,7 @@ export default function TechnicianManagementScreen({ navigation }: any) {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Technicians</Text>
         <TouchableOpacity onPress={openAddModal} style={styles.addBtn}>
-          <Ionicons name="add" size={24} color="#1976d2" />
+          <Ionicons name="add" size={24} color="#2B5EA7" />
         </TouchableOpacity>
       </View>
 
@@ -267,7 +267,7 @@ export default function TechnicianManagementScreen({ navigation }: any) {
               >
                 <View style={styles.cardHeader}>
                   <View style={styles.avatar}>
-                    <Ionicons name="person" size={24} color="#1976d2" />
+                    <Ionicons name="person" size={24} color="#2B5EA7" />
                   </View>
                   <View style={styles.cardInfo}>
                     <Text style={styles.cardName}>{tech.fullName}</Text>
@@ -368,7 +368,7 @@ export default function TechnicianManagementScreen({ navigation }: any) {
             </Text>
             <TouchableOpacity onPress={handleSave} disabled={saving}>
               {saving ? (
-                <ActivityIndicator size="small" color="#1976d2" />
+                <ActivityIndicator size="small" color="#2B5EA7" />
               ) : (
                 <Text style={styles.saveBtn}>Save</Text>
               )}
@@ -481,7 +481,7 @@ export default function TechnicianManagementScreen({ navigation }: any) {
               <Text style={styles.fieldLabel}>Certificate Upload</Text>
               {epa609CertUploads.map((url, i) => (
                 <View key={i} style={styles.docRow}>
-                  <Ionicons name="document-attach" size={18} color="#1976d2" />
+                  <Ionicons name="document-attach" size={18} color="#2B5EA7" />
                   <Text style={styles.docText}>Certificate {i + 1}</Text>
                   <TouchableOpacity
                     onPress={() =>
@@ -500,10 +500,10 @@ export default function TechnicianManagementScreen({ navigation }: any) {
                 disabled={uploading}
               >
                 {uploading ? (
-                  <ActivityIndicator size="small" color="#1976d2" />
+                  <ActivityIndicator size="small" color="#2B5EA7" />
                 ) : (
                   <>
-                    <Ionicons name="cloud-upload" size={18} color="#1976d2" />
+                    <Ionicons name="cloud-upload" size={18} color="#2B5EA7" />
                     <Text style={styles.uploadText}>Upload Certificate</Text>
                   </>
                 )}
@@ -591,7 +591,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   primaryBtn: {
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 10,
@@ -612,7 +612,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: { fontSize: 16, fontWeight: "700", color: "#1f2937" },
   cancelBtn: { fontSize: 15, color: "#6b7280" },
-  saveBtn: { fontSize: 15, color: "#1976d2", fontWeight: "700" },
+  saveBtn: { fontSize: 15, color: "#2B5EA7", fontWeight: "700" },
   modalContent: { flex: 1, padding: 16 },
   field: { marginBottom: 18 },
   fieldLabel: {
@@ -640,9 +640,9 @@ const styles = StyleSheet.create({
     borderColor: "#d1d5db",
     backgroundColor: "#fff",
   },
-  roleChipActive: { borderColor: "#1976d2", backgroundColor: "#e8f0fe" },
+  roleChipActive: { borderColor: "#2B5EA7", backgroundColor: "#e8f0fe" },
   roleChipText: { fontSize: 13, color: "#6b7280" },
-  roleChipTextActive: { color: "#1976d2", fontWeight: "600" },
+  roleChipTextActive: { color: "#2B5EA7", fontWeight: "600" },
   docRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -652,7 +652,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginTop: 6,
   },
-  docText: { flex: 1, fontSize: 13, color: "#1976d2" },
+  docText: { flex: 1, fontSize: 13, color: "#2B5EA7" },
   uploadBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -662,8 +662,8 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 10,
     borderWidth: 1.5,
-    borderColor: "#1976d2",
+    borderColor: "#2B5EA7",
     borderStyle: "dashed",
   },
-  uploadText: { fontSize: 13, fontWeight: "600", color: "#1976d2" },
+  uploadText: { fontSize: 13, fontWeight: "600", color: "#2B5EA7" },
 });

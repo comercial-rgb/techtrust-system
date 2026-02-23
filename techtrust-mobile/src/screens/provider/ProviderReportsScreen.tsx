@@ -93,7 +93,7 @@ export default function ProviderReportsScreen({ navigation }: any) {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t.provider?.reports || 'Reports'}</Text>
         <TouchableOpacity style={styles.exportBtn}>
-          <MaterialCommunityIcons name="download" size={24} color="#1976d2" />
+          <MaterialCommunityIcons name="download" size={24} color="#2B5EA7" />
         </TouchableOpacity>
       </View>
 
@@ -133,7 +133,7 @@ export default function ProviderReportsScreen({ navigation }: any) {
         <View style={styles.statsGrid}>
           <View style={styles.statCard}>
             <View style={[styles.statIcon, { backgroundColor: '#dbeafe' }]}>
-              <MaterialCommunityIcons name="wrench" size={22} color="#1976d2" />
+              <MaterialCommunityIcons name="wrench" size={22} color="#2B5EA7" />
             </View>
             <Text style={styles.statValue}>{totalServices}</Text>
             <Text style={styles.statLabel}>{t.provider?.services || 'Services'}</Text>
@@ -213,7 +213,7 @@ export default function ProviderReportsScreen({ navigation }: any) {
                       styles.bar,
                       { 
                         height: Math.max((item.amount / maxAmount) * 120, 4),
-                        backgroundColor: index === earnings.length - 1 ? '#1976d2' : '#93c5fd',
+                        backgroundColor: index === earnings.length - 1 ? '#2B5EA7' : '#93c5fd',
                       },
                     ]} 
                   />
@@ -237,7 +237,7 @@ export default function ProviderReportsScreen({ navigation }: any) {
                           {chartMetric === 'revenue' ? `$${(item.amount / 1000).toFixed(1)}k` : ''}
                         </Text>
                         <View style={{ height: barH }}>
-                          <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#1976d2', marginTop: barH - 10, borderWidth: 2, borderColor: '#fff', shadowColor: '#1976d2', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.4, shadowRadius: 4, elevation: 3 }} />
+                          <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#2B5EA7', marginTop: barH - 10, borderWidth: 2, borderColor: '#fff', shadowColor: '#2B5EA7', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.4, shadowRadius: 4, elevation: 3 }} />
                         </View>
                         <Text style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>{item.month}</Text>
                       </View>
@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
     color: '#111827',
   },
   summaryCard: {
-    backgroundColor: '#1976d2',
+    backgroundColor: '#2B5EA7',
     marginHorizontal: 16,
     borderRadius: 16,
     padding: 20,
@@ -557,7 +557,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   chartToggleActive: {
-    backgroundColor: '#1976d2',
+    backgroundColor: '#2B5EA7',
   },
   metricChip: {
     flexDirection: 'row',
@@ -569,7 +569,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   metricChipActive: {
-    backgroundColor: '#1976d2',
+    backgroundColor: '#2B5EA7',
   },
   metricChipText: {
     fontSize: 12,

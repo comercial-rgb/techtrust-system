@@ -159,7 +159,7 @@ export default {
   // Landing Page
   landing: {
     banners: {
-      title1: "TechTrust AutoSolutions",
+      title1: "TechTrust AutoSolutions LLC",
       subtitle1: "Your Trusted Auto Service Partner",
       title2: "Quality Service Guaranteed",
       subtitle2: "Certified Mechanics Near You",
@@ -221,7 +221,7 @@ export default {
     selectLocationPrompt: "Select a location to find participating providers",
     tryDifferentLocation: "Try selecting a different location",
     connectedMessage: "You are now connected to your most trusted car hub",
-    tagline: "Your trusted auto care partner",
+    tagline: "Driven by Technology. Trusted by You.",
     adsPromotions: "Ads & Promotions",
     featuredDeals: "Featured Deals",
     popularServices: "Popular Services",
@@ -297,7 +297,7 @@ export default {
     welcome: "Welcome",
     welcomeBack: "Welcome back!",
     orContinueWith: "or continue with",
-    tagline: "Your most trusted automotive hub",
+    tagline: "Driven by Technology. Trusted by You.",
     selectCountry: "Select Country",
     invalidPhone: "Invalid phone number. Please check and try again.",
     socialLoginComingSoon: "login will be available soon!",

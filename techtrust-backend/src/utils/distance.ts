@@ -2,7 +2,15 @@
  * Distance Calculation Utilities for Backend
  * OSRM road distance (primary) + Haversine fallback
  * Calculates REAL driving distance via road network
+ *
+ * NOTE: Travel fees are calculated in MILES (US market).
+ * Internal distance calculations use km (OSRM returns meters),
+ * but travel fee functions accept miles. Use kmToMiles() to convert.
  */
+
+import {
+  calculateTravelFee as calculateTravelFeeFromRules,
+} from "../config/businessRules";
 
 export interface Location {
   latitude: number;
@@ -171,7 +179,7 @@ export async function getRoadDistanceBetweenLocations(
 }
 
 /**
- * Calculate travel fee based on distance
+ * Calculate travel fee based on distance in kilometers (legacy)
  * @param distanceKm Distance in kilometers
  * @param freeKm Free kilometers (no charge)
  * @param feePerKm Fee per extra kilometer
@@ -188,6 +196,29 @@ export function calculateTravelFee(
 
   const extraKm = distanceKm - freeKm;
   return extraKm * feePerKm;
+}
+
+/**
+ * Calculate travel fee based on distance in MILES (US market — preferred).
+ * Uses businessRules TRAVEL_FEE_RULES as defaults, with provider overrides.
+ * @param distanceMiles Distance in miles
+ * @param providerFreeMiles Provider's free miles override (default: TRAVEL_FEE_RULES.DEFAULT_FREE_MILES)
+ * @param providerFeePerMile Provider's per-mile fee override (default: TRAVEL_FEE_RULES.DEFAULT_EXTRA_FEE_PER_MILE)
+ * @param providerMaxFee Provider's max fee cap override (default: TRAVEL_FEE_RULES.DEFAULT_MAX_FEE)
+ * @returns Travel fee amount in USD
+ */
+export function calculateTravelFeeMiles(
+  distanceMiles: number,
+  providerFreeMiles?: number,
+  providerFeePerMile?: number,
+  providerMaxFee?: number,
+): number {
+  return calculateTravelFeeFromRules(
+    distanceMiles,
+    providerFreeMiles,
+    providerFeePerMile,
+    providerMaxFee,
+  );
 }
 
 /**
@@ -242,13 +273,19 @@ export function milesToKm(miles: number): number {
 
 /**
  * Calculate complete distance information (sync, Haversine with correction)
+ * Travel fee is calculated in MILES using businessRules defaults.
  */
 export function calculateServiceDistance(
   providerLocation: Location,
   serviceLocation: Location,
   providerConfig: {
     serviceRadiusKm: number;
+    freeMiles?: number;
+    feePerMile?: number;
+    maxFee?: number;
+    /** @deprecated Use freeMiles/feePerMile instead */
     freeKm?: number;
+    /** @deprecated Use freeMiles/feePerMile instead */
     feePerKm?: number;
     averageSpeedKmh?: number;
   },
@@ -259,11 +296,19 @@ export function calculateServiceDistance(
   );
   const distanceMiles = kmToMiles(distanceKm);
 
-  const travelFee = calculateTravelFee(
-    distanceKm,
-    providerConfig.freeKm || 0,
-    providerConfig.feePerKm || 0,
-  );
+  // Prefer miles-based fee calculation; fall back to legacy km if only km params provided
+  const travelFee = (providerConfig.freeMiles !== undefined || providerConfig.feePerMile !== undefined)
+    ? calculateTravelFeeMiles(
+        distanceMiles,
+        providerConfig.freeMiles,
+        providerConfig.feePerMile,
+        providerConfig.maxFee,
+      )
+    : calculateTravelFee(
+        distanceKm,
+        providerConfig.freeKm || 0,
+        providerConfig.feePerKm || 0,
+      );
 
   const estimatedTimeMinutes = estimateTravelTime(
     distanceKm,
@@ -285,13 +330,19 @@ export function calculateServiceDistance(
 /**
  * Calculate complete distance information using REAL road distance (async, OSRM)
  * Falls back to corrected Haversine if OSRM is unavailable.
+ * Travel fee is calculated in MILES using businessRules defaults.
  */
 export async function calculateServiceRoadDistance(
   providerLocation: Location,
   serviceLocation: Location,
   providerConfig: {
     serviceRadiusKm: number;
+    freeMiles?: number;
+    feePerMile?: number;
+    maxFee?: number;
+    /** @deprecated Use freeMiles/feePerMile instead */
     freeKm?: number;
+    /** @deprecated Use freeMiles/feePerMile instead */
     feePerKm?: number;
   },
 ): Promise<DistanceCalculationResult> {
@@ -303,11 +354,19 @@ export async function calculateServiceRoadDistance(
   const distanceKm = roadResult.distanceKm;
   const distanceMiles = kmToMiles(distanceKm);
 
-  const travelFee = calculateTravelFee(
-    distanceKm,
-    providerConfig.freeKm || 0,
-    providerConfig.feePerKm || 0,
-  );
+  // Prefer miles-based fee calculation
+  const travelFee = (providerConfig.freeMiles !== undefined || providerConfig.feePerMile !== undefined)
+    ? calculateTravelFeeMiles(
+        distanceMiles,
+        providerConfig.freeMiles,
+        providerConfig.feePerMile,
+        providerConfig.maxFee,
+      )
+    : calculateTravelFee(
+        distanceKm,
+        providerConfig.freeKm || 0,
+        providerConfig.feePerKm || 0,
+      );
 
   const withinRadius = distanceKm <= providerConfig.serviceRadiusKm;
 
@@ -331,8 +390,11 @@ export function findProvidersWithinRadius<
   T extends {
     baseLocation: Location;
     serviceRadiusKm: number;
-    freeKm?: number;
-    feePerKm?: number;
+    freeMiles?: number;
+    feePerMile?: number;
+    maxFee?: number;
+    /** @deprecated */ freeKm?: number;
+    /** @deprecated */ feePerKm?: number;
   },
 >(
   serviceLocation: Location,
@@ -345,6 +407,9 @@ export function findProvidersWithinRadius<
         serviceLocation,
         {
           serviceRadiusKm: provider.serviceRadiusKm,
+          freeMiles: provider.freeMiles,
+          feePerMile: provider.feePerMile,
+          maxFee: provider.maxFee,
           freeKm: provider.freeKm,
           feePerKm: provider.feePerKm,
         },

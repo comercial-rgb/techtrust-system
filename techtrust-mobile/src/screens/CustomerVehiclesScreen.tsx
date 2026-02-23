@@ -183,7 +183,7 @@ export default function CustomerVehiclesScreen({ navigation }: any) {
           style={styles.addButton}
           onPress={() => navigation.navigate("AddVehicle")}
         >
-          <Ionicons name="add" size={24} color="#1976d2" />
+          <Ionicons name="add" size={24} color="#2B5EA7" />
         </TouchableOpacity>
       </View>
 
@@ -251,7 +251,7 @@ export default function CustomerVehiclesScreen({ navigation }: any) {
                 {/* Header */}
                 <View style={styles.cardHeader}>
                   <View style={styles.vehicleIconContainer}>
-                    <Ionicons name="car-sport" size={28} color="#1976d2" />
+                    <Ionicons name="car-sport" size={28} color="#2B5EA7" />
                   </View>
                   <View style={styles.vehicleInfo}>
                     <View style={styles.vehicleNameRow}>
@@ -384,7 +384,7 @@ export default function CustomerVehiclesScreen({ navigation }: any) {
                     <Ionicons
                       name="add-circle-outline"
                       size={18}
-                      color="#1976d2"
+                      color="#2B5EA7"
                     />
                     <Text style={styles.actionButtonText}>
                       {t.customer?.requestService || "Request Service"}
@@ -541,7 +541,7 @@ const styles = StyleSheet.create({
   emptyButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderRadius: 12,
@@ -677,7 +677,7 @@ const styles = StyleSheet.create({
   actionButtonText: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#1976d2",
+    color: "#2B5EA7",
   },
   actionButtonEdit: {
     flex: 1,

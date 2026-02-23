@@ -794,7 +794,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
               >
                 <View style={styles.vehicleCard}>
                   <View style={styles.vehicleIconContainer}>
-                    <Ionicons name="car-sport" size={32} color="#1976d2" />
+                    <Ionicons name="car-sport" size={32} color="#2B5EA7" />
                   </View>
                   <Text style={styles.vehicleName}>
                     {vehicle.year} {vehicle.make} {vehicle.model}{" "}
@@ -1303,7 +1303,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                           <Ionicons
                             name="storefront"
                             size={28}
-                            color="#1976d2"
+                            color="#2B5EA7"
                           />
                         </View>
                         <View style={styles.providerInfo}>
@@ -1414,7 +1414,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                     {state}
                   </Text>
                   {offerProviderState === state && (
-                    <Ionicons name="checkmark" size={20} color="#1976d2" />
+                    <Ionicons name="checkmark" size={20} color="#2B5EA7" />
                   )}
                 </TouchableOpacity>
               ))}
@@ -1465,7 +1465,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                     {city}
                   </Text>
                   {offerProviderCity === city && (
-                    <Ionicons name="checkmark" size={20} color="#1976d2" />
+                    <Ionicons name="checkmark" size={20} color="#2B5EA7" />
                   )}
                 </TouchableOpacity>
               ))}
@@ -1560,7 +1560,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     marginHorizontal: 20,
     marginBottom: 20,
     padding: 16,
@@ -1704,7 +1704,7 @@ const styles = StyleSheet.create({
   },
   seeAllText: {
     fontSize: 14,
-    color: "#1976d2",
+    color: "#2B5EA7",
     fontWeight: "600",
   },
   vehiclesContainer: {
@@ -1878,7 +1878,7 @@ const styles = StyleSheet.create({
   emptyButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 12,
@@ -1921,10 +1921,10 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 16,
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#1976d2",
+    shadowColor: "#2B5EA7",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -2130,7 +2130,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     paddingVertical: 16,
     borderRadius: 12,
   },
@@ -2227,7 +2227,7 @@ const styles = StyleSheet.create({
   offerProvidersSearchButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
@@ -2323,7 +2323,7 @@ const styles = StyleSheet.create({
     color: "#6b7280",
   },
   providerRequestButton: {
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
@@ -2372,7 +2372,7 @@ const styles = StyleSheet.create({
     color: "#374151",
   },
   dropdownItemTextSelected: {
-    color: "#1976d2",
+    color: "#2B5EA7",
     fontWeight: "600",
   },
   // Empty stats card for new users
@@ -2409,7 +2409,7 @@ const styles = StyleSheet.create({
   emptyStatsButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 12,

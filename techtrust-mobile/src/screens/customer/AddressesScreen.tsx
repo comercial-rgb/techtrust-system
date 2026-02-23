@@ -438,7 +438,7 @@ export default function AddressesScreen({ navigation }: any) {
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#1976d2" />
+          <ActivityIndicator size="large" color="#2B5EA7" />
         </View>
       </SafeAreaView>
     );
@@ -461,7 +461,7 @@ export default function AddressesScreen({ navigation }: any) {
           onPress={() => handleOpenModal()}
           style={styles.addBtn}
         >
-          <Ionicons name="add" size={24} color="#1976d2" />
+          <Ionicons name="add" size={24} color="#2B5EA7" />
         </TouchableOpacity>
       </View>
 
@@ -497,7 +497,7 @@ export default function AddressesScreen({ navigation }: any) {
                     <Ionicons
                       name={getAddressIcon(address.label) as any}
                       size={20}
-                      color="#1976d2"
+                      color="#2B5EA7"
                     />
                   </View>
                   <View style={styles.addressLabelContainer}>
@@ -532,7 +532,7 @@ export default function AddressesScreen({ navigation }: any) {
                       style={styles.actionButton}
                       onPress={() => handleSetDefault(address.id)}
                     >
-                      <Ionicons name="star-outline" size={16} color="#1976d2" />
+                      <Ionicons name="star-outline" size={16} color="#2B5EA7" />
                       <Text style={styles.actionButtonText}>
                         {t.common?.setAsDefault || "Set as Default"}
                       </Text>
@@ -597,11 +597,11 @@ export default function AddressesScreen({ navigation }: any) {
                 disabled={gettingLocation}
               >
                 {gettingLocation ? (
-                  <ActivityIndicator size="small" color="#1976d2" />
+                  <ActivityIndicator size="small" color="#2B5EA7" />
                 ) : (
-                  <Ionicons name="navigate" size={20} color="#1976d2" />
+                  <Ionicons name="navigate" size={20} color="#2B5EA7" />
                 )}
-                <Text style={{ fontSize: 14, fontWeight: '600', color: '#1976d2', flex: 1 }}>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#2B5EA7', flex: 1 }}>
                   {gettingLocation ? 'Getting location...' : 'Use Current Location'}
                 </Text>
                 <Ionicons name="chevron-forward" size={16} color="#93c5fd" />
@@ -621,7 +621,7 @@ export default function AddressesScreen({ navigation }: any) {
                 />
                 {searching && (
                   <View style={{ paddingVertical: 8, alignItems: 'center' }}>
-                    <ActivityIndicator size="small" color="#1976d2" />
+                    <ActivityIndicator size="small" color="#2B5EA7" />
                   </View>
                 )}
                 {searchResults.length > 0 && (
@@ -632,7 +632,7 @@ export default function AddressesScreen({ navigation }: any) {
                         style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f3f4f6', gap: 10 }}
                         onPress={() => selectSuggestion(item)}
                       >
-                        <Ionicons name="location" size={18} color="#1976d2" />
+                        <Ionicons name="location" size={18} color="#2B5EA7" />
                         <View style={{ flex: 1 }}>
                           <Text style={{ fontSize: 14, color: '#1f2937' }} numberOfLines={1}>
                             {item.number ? `${item.number} ${item.street}` : item.street || item.displayName}
@@ -661,7 +661,7 @@ export default function AddressesScreen({ navigation }: any) {
                     <Ionicons
                       name={getAddressIcon(label) as any}
                       size={18}
-                      color={formData.label === label ? "#1976d2" : "#6b7280"}
+                      color={formData.label === label ? "#2B5EA7" : "#6b7280"}
                     />
                     <Text
                       style={[
@@ -771,7 +771,7 @@ export default function AddressesScreen({ navigation }: any) {
                               setShowStateDropdown(false);
                             }}
                           >
-                            <Text style={{ fontSize: 14, fontWeight: formData.state === st.code ? '600' : '400', color: formData.state === st.code ? '#1976d2' : '#374151' }}>
+                            <Text style={{ fontSize: 14, fontWeight: formData.state === st.code ? '600' : '400', color: formData.state === st.code ? '#2B5EA7' : '#374151' }}>
                               {st.code} — {st.name}
                             </Text>
                           </TouchableOpacity>
@@ -871,7 +871,7 @@ const styles = StyleSheet.create({
   emptyButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderRadius: 12,
@@ -955,7 +955,7 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     fontSize: 13,
-    color: "#1976d2",
+    color: "#2B5EA7",
     fontWeight: "500",
   },
   deleteActionButton: {
@@ -1031,18 +1031,18 @@ const styles = StyleSheet.create({
   },
   labelOptionActive: {
     backgroundColor: "#dbeafe",
-    borderColor: "#1976d2",
+    borderColor: "#2B5EA7",
   },
   labelOptionText: {
     fontSize: 14,
     color: "#6b7280",
   },
   labelOptionTextActive: {
-    color: "#1976d2",
+    color: "#2B5EA7",
     fontWeight: "600",
   },
   saveButton: {
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: "center",

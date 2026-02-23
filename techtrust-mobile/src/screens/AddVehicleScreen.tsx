@@ -727,7 +727,7 @@ export default function AddVehicleScreen({ navigation }: any) {
         {/* Vehicle Icon */}
         <View style={styles.iconContainer}>
           <View style={styles.vehicleIcon}>
-            <Ionicons name="car-sport" size={48} color="#1976d2" />
+            <Ionicons name="car-sport" size={48} color="#2B5EA7" />
           </View>
         </View>
 
@@ -840,9 +840,9 @@ export default function AddVehicleScreen({ navigation }: any) {
               }}
               onPress={openVinScanner}
             >
-              <Ionicons name="scan" size={18} color="#1976d2" />
+              <Ionicons name="scan" size={18} color="#2B5EA7" />
               <Text
-                style={{ fontSize: 13, color: "#1976d2", fontWeight: "600" }}
+                style={{ fontSize: 13, color: "#2B5EA7", fontWeight: "600" }}
               >
                 Scan VIN Barcode
               </Text>
@@ -868,7 +868,7 @@ export default function AddVehicleScreen({ navigation }: any) {
             style={styles.manualEntryBtn}
             onPress={enableManualEntry}
           >
-            <Ionicons name="create-outline" size={20} color="#1976d2" />
+            <Ionicons name="create-outline" size={20} color="#2B5EA7" />
             <Text style={styles.manualEntryText}>
               {t.vehicle?.manualEntry || "Enter details manually (without VIN)"}
             </Text>
@@ -1311,7 +1311,7 @@ export default function AddVehicleScreen({ navigation }: any) {
                   width: width - 48,
                   height: 120,
                   borderWidth: 2,
-                  borderColor: "#1976d2",
+                  borderColor: "#2B5EA7",
                   borderRadius: 12,
                   backgroundColor: "transparent",
                 }}
@@ -1323,7 +1323,7 @@ export default function AddVehicleScreen({ navigation }: any) {
                     left: 20,
                     right: 20,
                     height: 2,
-                    backgroundColor: "#1976d2",
+                    backgroundColor: "#2B5EA7",
                   }}
                 />
               </View>
@@ -1429,7 +1429,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginRight: 8,
   },
-  quickOptionSelected: { backgroundColor: "#1976d2" },
+  quickOptionSelected: { backgroundColor: "#2B5EA7" },
   quickOptionText: { fontSize: 14, color: "#374151" },
   quickOptionTextSelected: { color: "#fff", fontWeight: "500" },
   optionsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
@@ -1440,7 +1440,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginBottom: 4,
   },
-  optionChipSelected: { backgroundColor: "#1976d2" },
+  optionChipSelected: { backgroundColor: "#2B5EA7" },
   optionChipText: { fontSize: 14, color: "#374151" },
   optionChipTextSelected: { color: "#fff", fontWeight: "500" },
   footer: {
@@ -1458,7 +1458,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     paddingVertical: 16,
     borderRadius: 12,
   },
@@ -1533,7 +1533,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 8,
@@ -1575,7 +1575,7 @@ const styles = StyleSheet.create({
     borderColor: "#bfdbfe",
   },
   manualEntryText: {
-    color: "#1976d2",
+    color: "#2B5EA7",
     fontSize: 14,
     fontWeight: "500",
     flex: 1,

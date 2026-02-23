@@ -21,6 +21,10 @@ import { prisma } from "../config/database";
 import { AppError } from "../middleware/error-handler";
 import { logger } from "../config/logger";
 import { generateAppointmentNumber } from "../utils/number-generators";
+import {
+  CANCELLATION_RULES,
+  PROVIDER_POINTS,
+} from "../config/businessRules";
 
 // ============================================
 // 1. SCHEDULE APPOINTMENT
@@ -358,11 +362,12 @@ export const confirmAppointment = async (req: Request, res: Response) => {
 };
 
 // ============================================
-// 5. PROVIDER CHECK-IN
+// 4.5 PROVIDER EN ROUTE
 // ============================================
-export const checkInAppointment = async (req: Request, res: Response) => {
+export const providerEnRoute = async (req: Request, res: Response) => {
   const providerId = req.user!.id;
   const { id } = req.params;
+  const { estimatedArrivalMinutes } = req.body;
 
   const appointment = await prisma.appointment.findFirst({
     where: { id, providerId, status: "CONFIRMED" },
@@ -374,6 +379,66 @@ export const checkInAppointment = async (req: Request, res: Response) => {
   if (!appointment)
     throw new AppError(
       "Appointment not found or not in confirmed state",
+      404,
+      "NOT_FOUND",
+    );
+
+  const updated = await prisma.appointment.update({
+    where: { id },
+    data: {
+      status: "PROVIDER_EN_ROUTE" as any,
+      providerEnRouteAt: new Date(),
+    },
+  });
+
+  // Notify customer that provider is on the way
+  await prisma.notification.create({
+    data: {
+      userId: appointment.customerId,
+      type: "APPOINTMENT_CONFIRMED",
+      title: "Provider Is On The Way",
+      message: estimatedArrivalMinutes
+        ? `Your provider is on the way! Estimated arrival: ${estimatedArrivalMinutes} minutes.`
+        : "Your provider is on the way!",
+      data: JSON.stringify({
+        appointmentId: id,
+        estimatedArrivalMinutes,
+      }),
+    },
+  });
+
+  logger.info(
+    `Provider en route for appointment: ${appointment.appointmentNumber}`,
+  );
+
+  return res.json({
+    success: true,
+    message: "Provider en route status set.",
+    data: { appointment: updated },
+  });
+};
+
+// ============================================
+// 5. PROVIDER CHECK-IN
+// ============================================
+export const checkInAppointment = async (req: Request, res: Response) => {
+  const providerId = req.user!.id;
+  const { id } = req.params;
+
+  const appointment = await prisma.appointment.findFirst({
+    where: {
+      id,
+      providerId,
+      status: { in: ["CONFIRMED", "PROVIDER_EN_ROUTE"] as any },
+    },
+    include: {
+      customer: { select: { id: true, fullName: true } },
+    },
+  });
+
+  if (!appointment)
+    throw new AppError(
+      "Appointment not found or not ready for check-in",
       404,
       "NOT_FOUND",
     );
@@ -421,7 +486,7 @@ export const completeAppointment = async (req: Request, res: Response) => {
     where: { id, providerId, status: "IN_PROGRESS" },
     include: {
       customer: { select: { id: true, fullName: true } },
-      vehicle: { select: { make: true, model: true, year: true } },
+      vehicle: { select: { id: true, make: true, model: true, year: true, plateNumber: true } },
     },
   });
 
@@ -431,6 +496,41 @@ export const completeAppointment = async (req: Request, res: Response) => {
       404,
       "NOT_FOUND",
     );
+
+  // BUG 2 FIX: Auto-create ServiceRequest if none is linked
+  let serviceRequestId = appointment.serviceRequestId;
+
+  if (!serviceRequestId) {
+    const requestNumber = `SR-${Date.now()}-${Math.random().toString(36).substring(7).toUpperCase()}`;
+    const serviceRequest = await prisma.serviceRequest.create({
+      data: {
+        requestNumber,
+        userId: appointment.customerId,
+        vehicleId: appointment.vehicleId,
+        serviceType: appointment.serviceType || "DIAGNOSTIC",
+        title: `Diagnostic: ${appointment.vehicle.year} ${appointment.vehicle.make} ${appointment.vehicle.model}`,
+        description: appointment.serviceDescription || "Diagnostic inspection completed",
+        serviceLocationType: appointment.locationType || "IN_SHOP",
+        customerAddress: appointment.address || null,
+        serviceLatitude: appointment.latitude,
+        serviceLongitude: appointment.longitude,
+        status: "QUOTES_RECEIVED",
+        maxQuotes: 5,
+      },
+    });
+
+    serviceRequestId = serviceRequest.id;
+
+    // Link the appointment to the new ServiceRequest
+    await prisma.appointment.update({
+      where: { id },
+      data: { serviceRequestId },
+    });
+
+    logger.info(
+      `Auto-created ServiceRequest ${requestNumber} from diagnostic appointment ${appointment.appointmentNumber}`,
+    );
+  }
 
   const updated = await prisma.appointment.update({
     where: { id },
@@ -448,7 +548,7 @@ export const completeAppointment = async (req: Request, res: Response) => {
       type: "ESTIMATE_CREATED",
       title: "Diagnostic Complete",
       message: `The diagnostic inspection for your ${appointment.vehicle.year} ${appointment.vehicle.make} ${appointment.vehicle.model} is complete. A Written Estimate will be sent shortly.`,
-      data: JSON.stringify({ appointmentId: id }),
+      data: JSON.stringify({ appointmentId: id, serviceRequestId }),
     },
   });
 
@@ -457,7 +557,7 @@ export const completeAppointment = async (req: Request, res: Response) => {
   return res.json({
     success: true,
     message: "Appointment completed. You can now create a Written Estimate.",
-    data: { appointment: updated },
+    data: { appointment: updated, serviceRequestId },
   });
 };
 
@@ -623,6 +723,164 @@ export const getProviderSlots = async (req: Request, res: Response) => {
       bookedSlots: bookedAppointments,
       availableSlots,
       businessHours: businessHours || null,
+    },
+  });
+};
+
+// ============================================
+// 9. REPORT PROVIDER NO-SHOW
+// ============================================
+
+/**
+ * POST /api/v1/appointments/:id/no-show
+ * Customer or admin reports that the provider didn't show up.
+ * Applies progressive hold: 24h for first offense, +24h for each subsequent.
+ * Penalty: -50 reputation points per no-show.
+ * Auto-suspends if reputation drops below -100.
+ */
+export const reportProviderNoShow = async (req: Request, res: Response) => {
+  const userId = req.user!.id;
+  const { id } = req.params;
+  const { reason } = req.body;
+
+  const appointment = await prisma.appointment.findFirst({
+    where: {
+      id,
+      customerId: userId,
+      status: { in: ["CONFIRMED", "PROVIDER_EN_ROUTE"] as any },
+    },
+    include: {
+      provider: {
+        select: {
+          id: true,
+          fullName: true,
+          providerProfile: {
+            select: {
+              noShowCount: true,
+              reputationPoints: true,
+              suspendedAt: true,
+            },
+          },
+        },
+      },
+      customer: { select: { id: true, fullName: true } },
+    },
+  });
+
+  if (!appointment) {
+    throw new AppError(
+      "Appointment not found or not in a valid state for no-show report",
+      404,
+      "NOT_FOUND",
+    );
+  }
+
+  const providerId = appointment.providerId;
+  const profile = appointment.provider.providerProfile;
+  const currentNoShowCount = profile?.noShowCount ?? 0;
+  const newNoShowCount = currentNoShowCount + 1;
+
+  // Progressive hold: first offense 24h, then +24h per subsequent offense
+  const noShowConfig = CANCELLATION_RULES.PROVIDER_CANCEL.NO_SHOW;
+  const holdHours =
+    noShowConfig.HOLD_HOURS_FIRST_OFFENSE +
+    (currentNoShowCount * noShowConfig.HOLD_INCREMENT_HOURS);
+  const holdUntil = new Date(Date.now() + holdHours * 60 * 60 * 1000);
+
+  // Apply all changes in a transaction
+  await prisma.$transaction([
+    // Mark appointment as NO_SHOW
+    prisma.appointment.update({
+      where: { id },
+      data: {
+        status: "NO_SHOW",
+        cancelledAt: new Date(),
+        cancellationReason: reason || "Provider no-show",
+        cancelledBy: "SYSTEM",
+      },
+    }),
+
+    // Update provider profile: increment noShowCount, apply points penalty, set hold
+    prisma.providerProfile.update({
+      where: { userId: providerId },
+      data: {
+        noShowCount: newNoShowCount,
+        reputationPoints: { increment: noShowConfig.PROVIDER_POINTS_PENALTY },
+        // Hold the provider from new appointments until holdUntil
+        suspendedUntil: holdUntil,
+        suspensionReason: `No-show #${newNoShowCount}: held for ${holdHours}h until ${holdUntil.toISOString()}`,
+      },
+    }),
+
+    // Notify provider
+    prisma.notification.create({
+      data: {
+        userId: providerId,
+        type: "SYSTEM_ALERT",
+        title: "No-Show Reported",
+        message: `A no-show has been reported for appointment ${appointment.appointmentNumber}. ${noShowConfig.PROVIDER_POINTS_PENALTY} reputation points applied. You are on hold for ${holdHours} hours (until ${holdUntil.toLocaleDateString()}).`,
+        data: JSON.stringify({
+          appointmentId: id,
+          noShowCount: newNoShowCount,
+          pointsPenalty: noShowConfig.PROVIDER_POINTS_PENALTY,
+          holdHours,
+          holdUntil: holdUntil.toISOString(),
+        }),
+      },
+    }),
+
+    // Notify customer
+    prisma.notification.create({
+      data: {
+        userId: appointment.customerId,
+        type: "APPOINTMENT_CANCELLED",
+        title: "No-Show Confirmed",
+        message: `The provider did not show up for your appointment. We've taken action and you can schedule with another provider.`,
+        data: JSON.stringify({ appointmentId: id }),
+      },
+    }),
+  ]);
+
+  // Check auto-suspension threshold
+  const updatedPoints = (profile?.reputationPoints ?? 0) + noShowConfig.PROVIDER_POINTS_PENALTY;
+  if (updatedPoints <= PROVIDER_POINTS.AUTO_SUSPENSION_THRESHOLD && !profile?.suspendedAt) {
+    await prisma.$transaction([
+      prisma.providerProfile.update({
+        where: { userId: providerId },
+        data: {
+          suspendedAt: new Date(),
+          suspensionReason: `Auto-suspended: reputation points (${updatedPoints}) below threshold (${PROVIDER_POINTS.AUTO_SUSPENSION_THRESHOLD})`,
+        },
+      }),
+      prisma.user.update({
+        where: { id: providerId },
+        data: { status: "SUSPENDED" },
+      }),
+      prisma.notification.create({
+        data: {
+          userId: providerId,
+          type: "SYSTEM_ALERT",
+          title: "Account Suspended",
+          message: `Your account has been suspended due to repeated no-shows and low reputation score (${updatedPoints} points). Contact support for reinstatement.`,
+        },
+      }),
+    ]);
+
+    logger.warn(`Provider ${providerId} AUTO-SUSPENDED after no-show #${newNoShowCount}`);
+  }
+
+  logger.info(
+    `No-show reported: appointment ${appointment.appointmentNumber}, provider ${providerId}, count=${newNoShowCount}, hold=${holdHours}h`,
+  );
+
+  return res.json({
+    success: true,
+    message: "No-show report submitted. Provider has been penalized.",
+    data: {
+      noShowCount: newNoShowCount,
+      pointsPenalty: noShowConfig.PROVIDER_POINTS_PENALTY,
+      holdHours,
+      holdUntil: holdUntil.toISOString(),
     },
   });
 };

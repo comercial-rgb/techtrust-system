@@ -150,9 +150,7 @@ export default function LoginPage() {
           {/* Logo */}
           <div className="flex items-center justify-between gap-3 mb-8">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-primary-500 flex items-center justify-center shadow-lg shadow-primary-500/30">
-                <Wrench className="w-6 h-6 text-white" />
-              </div>
+              <img src="/favicon.png" alt="TechTrust" className="w-12 h-12 rounded-2xl shadow-lg shadow-primary-500/30" />
               <div>
                 <h1 className="text-xl font-bold text-gray-900">{tr('brand.name')}</h1>
                 <p className="text-sm text-gray-500">{tr('provider.subtitle')}</p>
@@ -359,9 +357,7 @@ export default function LoginPage() {
       <div className="hidden lg:flex lg:flex-1 bg-gradient-to-br from-primary-500 to-primary-700 p-12 items-center justify-center">
         <div className="max-w-md text-white">
           <div className="mb-8">
-            <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center mb-6">
-              <Wrench className="w-8 h-8" />
-            </div>
+            <img src="/logo-white.png" alt="TechTrust" className="w-16 h-16 mb-6 drop-shadow-lg" />
               <h2 className="text-3xl font-bold mb-4">
               {tr('provider.heroTitle')}
             </h2>

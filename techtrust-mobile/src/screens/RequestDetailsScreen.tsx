@@ -1,5 +1,5 @@
-﻿/**
- * RequestDetailsScreen â€” Service Request Details (Redesigned)
+/**
+ * RequestDetailsScreen — Service Request Details (Redesigned)
  * Progress stepper, key-value layout, action buttons,
  * photos/notes prompt, contextual progress text, grouped info
  */
@@ -345,7 +345,7 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
     }
     if (st === "SEARCHING_PROVIDERS") {
       if (hrs < 2) return td.progressSearchingNew || "Your request was sent to nearby service providers. Most quotes arrive within 2-4 hours.";
-      if (hrs < 24) return td.progressSearchingWait || "Still searching for quotes. Hang tight â€” providers are reviewing your request.";
+      if (hrs < 24) return td.progressSearchingWait || "Still searching for quotes. Hang tight — providers are reviewing your request.";
       return td.progressSearchingLong || "Taking longer than usual? You can edit your request details or contact support.";
     }
     return "";
@@ -444,7 +444,7 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: canEdit || canCancel ? 100 : 40 }}>
 
-        {/* â•â•â• PROGRESS STEPPER â•â•â• */}
+        {/* ═══ PROGRESS STEPPER ═══ */}
         {!isCancelled && (
           <View style={s.stepperWrap}>
             <View style={s.stepperRow}>
@@ -494,7 +494,7 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
           </View>
         )}
 
-        {/* â•â•â• CONTEXTUAL PROGRESS MESSAGE â•â•â• */}
+        {/* ═══ CONTEXTUAL PROGRESS MESSAGE ═══ */}
         {getProgressMessage() !== "" && (
           <View style={s.progressMsg}>
             <Ionicons name={quotes.length > 0 && request?.status !== "COMPLETED" ? "pricetags" : "information-circle"} size={18} color={quotes.length > 0 ? "#3b82f6" : "#6b7280"} />
@@ -502,10 +502,10 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
           </View>
         )}
 
-        {/* â•â•â• SERVICE REQUESTED CARD â•â•â• */}
+        {/* ═══ SERVICE REQUESTED CARD ═══ */}
         <View style={s.card}>
           <View style={s.cardHeader}>
-            <View style={s.cardIconWrap}><Ionicons name="construct" size={20} color="#1976d2" /></View>
+            <View style={s.cardIconWrap}><Ionicons name="construct" size={20} color="#2B5EA7" /></View>
             <Text style={s.cardTitle}>{td.serviceRequested || "Service Requested"}</Text>
             <View style={[s.statusBadge, { backgroundColor: getStatusColor(request?.status) + "20" }]}>
               <View style={[s.statusDot, { backgroundColor: getStatusColor(request?.status) }]} />
@@ -529,7 +529,7 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
                         <View style={{ flex: 1.5, flexDirection: "row", flexWrap: "wrap", justifyContent: "flex-end", gap: 6 }}>
                           {item.value.split(",").map((f: string, fi: number) => (
                             <View key={fi} style={s.chip}>
-                              <Ionicons name="funnel" size={12} color="#1976d2" />
+                              <Ionicons name="funnel" size={12} color="#2B5EA7" />
                               <Text style={s.chipText}>{f.trim()}</Text>
                             </View>
                           ))}
@@ -563,7 +563,7 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
           </View>
         </View>
 
-        {/* â•â•â• YOUR VEHICLE â•â•â• */}
+        {/* ═══ YOUR VEHICLE ═══ */}
         {request?.vehicle && (
           <View style={s.card}>
             <View style={s.cardHeader}>
@@ -573,7 +573,7 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
             <Text style={s.vehicleName}>{request.vehicle.year} {request.vehicle.make} {request.vehicle.model} {request.vehicle.trim || ""}</Text>
             <View style={s.vehicleBadges}>
               {request.vehicle.fuelType && (
-                <View style={s.vehicleBadge}><Ionicons name="flash" size={12} color="#1976d2" /><Text style={s.vehicleBadgeText}>{request.vehicle.fuelType}</Text></View>
+                <View style={s.vehicleBadge}><Ionicons name="flash" size={12} color="#2B5EA7" /><Text style={s.vehicleBadgeText}>{request.vehicle.fuelType}</Text></View>
               )}
               {request.vehicle.vehicleType && (
                 <View style={[s.vehicleBadge, { backgroundColor: "#f0fdf4" }]}><Ionicons name="car" size={12} color="#059669" /><Text style={[s.vehicleBadgeText, { color: "#059669" }]}>{request.vehicle.vehicleType}</Text></View>
@@ -585,14 +585,14 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
           </View>
         )}
 
-        {/* ═══ PHOTOS & NOTES ═══ */}
+        {/* --- PHOTOS & NOTES --- */}
         {photos.length > 0 && (
           <View style={{ marginHorizontal: 16, marginTop: 16 }}>
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
               <Text style={s.sectionTitle}>{"Photos"} ({photos.length})</Text>
               {canEdit && (
                 <TouchableOpacity onPress={handleAddPhotos} disabled={uploadingPhotos}>
-                  <Text style={{ color: "#1976d2", fontWeight: "600", fontSize: 14 }}>+ Add More</Text>
+                  <Text style={{ color: "#2B5EA7", fontWeight: "600", fontSize: 14 }}>+ Add More</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -606,9 +606,9 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
         {photos.length === 0 && !request?.customerNotes && canEdit && (
           <TouchableOpacity style={s.addPhotosPrompt} onPress={handleAddPhotos} disabled={uploadingPhotos}>
             {uploadingPhotos ? (
-              <ActivityIndicator size="small" color="#1976d2" />
+              <ActivityIndicator size="small" color="#2B5EA7" />
             ) : (
-              <Ionicons name="camera-outline" size={24} color="#1976d2" />
+              <Ionicons name="camera-outline" size={24} color="#2B5EA7" />
             )}
             <View style={{ flex: 1, marginLeft: 12 }}>
               <Text style={s.addPhotosTitle}>{td.addPhotos || "Add Photos & Notes"}</Text>
@@ -618,7 +618,7 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
           </TouchableOpacity>
         )}
 
-        {/* â•â•â• QUOTES â•â•â• */}
+        {/* ═══ QUOTES ═══ */}
         <View style={s.sectionHeader}>
           <Text style={s.sectionTitle}>{(t.common as any)?.quotes || "Quotes"} ({quotes.length})</Text>
           {quotes.length > 0 && (
@@ -642,7 +642,7 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
               <View style={s.bestBadge}><Ionicons name="trophy" size={12} color="#047857" /><Text style={s.bestText}>{(t.common as any)?.bestValue || "Best Value"}</Text></View>
             )}
             <View style={s.providerRow}>
-              <View style={s.avatar}><Ionicons name="business" size={20} color="#1976d2" /></View>
+              <View style={s.avatar}><Ionicons name="business" size={20} color="#2B5EA7" /></View>
               <View style={{ flex: 1 }}>
                 <Text style={s.providerName}>{quote.provider.businessName}</Text>
                 <View style={s.ratingRow}>
@@ -662,7 +662,7 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
 
             <View style={s.quoteActions}>
               <TouchableOpacity style={s.chatBtn} onPress={(e) => { e.stopPropagation(); handleChat(quote); }}>
-                <Ionicons name="chatbubble-outline" size={16} color="#1976d2" /><Text style={s.chatText}>{(t.common as any)?.chat || "Chat"}</Text>
+                <Ionicons name="chatbubble-outline" size={16} color="#2B5EA7" /><Text style={s.chatText}>{(t.common as any)?.chat || "Chat"}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={s.acceptBtn} onPress={(e) => { e.stopPropagation(); handleAcceptQuote(quote); }}>
                 <Ionicons name="checkmark" size={16} color="#fff" /><Text style={s.acceptText}>{(t.common as any)?.accept || "Accept"}</Text>
@@ -679,11 +679,11 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
               { text: (t.common as any)?.renew || "Renew", onPress: async () => { try { await api.post(`/service-requests/${requestId}/renew`); Alert.alert(t.common?.success || "Success!", (t.common as any)?.renewSuccess || "Your request has been renewed."); loadDetails(); } catch (err: any) { Alert.alert(t.common?.error || "Error", err?.response?.data?.message || "Could not renew request"); } } },
             ]);
           }}>
-            <Ionicons name="refresh" size={20} color="#1976d2" /><Text style={s.renewBtnText}>{(t.common as any)?.renewForMoreQuotes || "Renew Request for More Quotes"}</Text>
+            <Ionicons name="refresh" size={20} color="#2B5EA7" /><Text style={s.renewBtnText}>{(t.common as any)?.renewForMoreQuotes || "Renew Request for More Quotes"}</Text>
           </TouchableOpacity>
         )}
 
-        {/* â•â•â• REFERENCE NUMBER (bottom) â•â•â• */}
+        {/* ═══ REFERENCE NUMBER (bottom) ═══ */}
         {request?.requestNumber && (
           <View style={s.refSection}>
             <Text style={s.refLabel}>{td.referenceNumber || "Reference Number"}</Text>
@@ -692,12 +692,12 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
         )}
       </ScrollView>
 
-      {/* â•â•â• BOTTOM ACTIONS â•â•â• */}
+      {/* ═══ BOTTOM ACTIONS ═══ */}
       {(canEdit || canCancel) && (
         <View style={s.bottomActions}>
           {canEdit && (
             <TouchableOpacity style={s.actionBtnEdit} onPress={handleEdit}>
-              <Ionicons name="create-outline" size={18} color="#1976d2" /><Text style={s.actionBtnEditText}>{td.editRequest || "Edit Request"}</Text>
+              <Ionicons name="create-outline" size={18} color="#2B5EA7" /><Text style={s.actionBtnEditText}>{td.editRequest || "Edit Request"}</Text>
             </TouchableOpacity>
           )}
           {canCancel && (
@@ -762,21 +762,21 @@ const s = StyleSheet.create({
   chipsSection: { marginTop: 14, backgroundColor: "#f8fafc", borderRadius: 12, padding: 14 },
   chipsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#dbeafe", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
-  chipText: { fontSize: 13, color: "#1976d2", fontWeight: "500" },
+  chipText: { fontSize: 13, color: "#2B5EA7", fontWeight: "500" },
   // Vehicle
   vehicleName: { fontSize: 17, fontWeight: "700", color: "#111827", marginBottom: 10 },
   vehicleBadges: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   vehicleBadge: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#eff6ff", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  vehicleBadgeText: { fontSize: 12, color: "#1976d2", fontWeight: "500" },
+  vehicleBadgeText: { fontSize: 12, color: "#2B5EA7", fontWeight: "500" },
   // Photos
   addPhotosPrompt: { flexDirection: "row", alignItems: "center", marginHorizontal: 16, marginTop: 16, padding: 16, backgroundColor: "#fff", borderRadius: 14, borderWidth: 1, borderColor: "#dbeafe", borderStyle: "dashed" },
-  addPhotosTitle: { fontSize: 14, fontWeight: "600", color: "#1976d2", marginBottom: 2 },
+  addPhotosTitle: { fontSize: 14, fontWeight: "600", color: "#2B5EA7", marginBottom: 2 },
   addPhotosDesc: { fontSize: 12, color: "#6b7280", lineHeight: 18 },
   // Section
   sectionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginHorizontal: 16, marginTop: 24, marginBottom: 12 },
   sectionTitle: { fontSize: 18, fontWeight: "700", color: "#111827" },
   quoteBadge: { backgroundColor: "#dbeafe", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
-  quoteBadgeText: { fontSize: 12, fontWeight: "600", color: "#1976d2" },
+  quoteBadgeText: { fontSize: 12, fontWeight: "600", color: "#2B5EA7" },
   // Empty
   emptyQuotes: { alignItems: "center", padding: 32, marginHorizontal: 16, backgroundColor: "#fff", borderRadius: 16 },
   emptyQuotesTitle: { fontSize: 16, fontWeight: "600", color: "#374151", marginTop: 12 },
@@ -791,7 +791,7 @@ const s = StyleSheet.create({
   providerName: { fontSize: 15, fontWeight: "600", color: "#111827" },
   ratingRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
   ratingText: { fontSize: 12, color: "#6b7280" },
-  quoteTotal: { fontSize: 20, fontWeight: "800", color: "#1976d2" },
+  quoteTotal: { fontSize: 20, fontWeight: "800", color: "#2B5EA7" },
   costBreakdown: { flexDirection: "row", backgroundColor: "#f8fafc", borderRadius: 10, padding: 12, marginBottom: 12, alignItems: "center" },
   costItem: { flex: 1, alignItems: "center" },
   costLabel: { fontSize: 11, color: "#9ca3af", marginBottom: 2 },
@@ -799,12 +799,12 @@ const s = StyleSheet.create({
   costDividerV: { width: 1, height: 28, backgroundColor: "#e5e7eb" },
   quoteActions: { flexDirection: "row", gap: 10 },
   chatBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#eff6ff", paddingVertical: 11, borderRadius: 10 },
-  chatText: { fontSize: 13, fontWeight: "600", color: "#1976d2" },
+  chatText: { fontSize: 13, fontWeight: "600", color: "#2B5EA7" },
   acceptBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#10b981", paddingVertical: 11, borderRadius: 10 },
   acceptText: { fontSize: 13, fontWeight: "600", color: "#fff" },
   // Renew
   renewBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginHorizontal: 16, marginTop: 16, paddingVertical: 14, backgroundColor: "#eff6ff", borderRadius: 12, borderWidth: 1, borderColor: "#bfdbfe" },
-  renewBtnText: { fontSize: 15, fontWeight: "600", color: "#1976d2" },
+  renewBtnText: { fontSize: 15, fontWeight: "600", color: "#2B5EA7" },
   // Ref
   refSection: { alignItems: "center", marginTop: 24, paddingTop: 16, borderTopWidth: 1, borderTopColor: "#e5e7eb", marginHorizontal: 32 },
   refLabel: { fontSize: 11, color: "#9ca3af", marginBottom: 4 },
@@ -812,7 +812,7 @@ const s = StyleSheet.create({
   // Bottom
   bottomActions: { flexDirection: "row", gap: 12, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: "#fff", borderTopWidth: 1, borderTopColor: "#f3f4f6" },
   actionBtnEdit: { flex: 2, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#eff6ff", paddingVertical: 14, borderRadius: 12 },
-  actionBtnEditText: { fontSize: 14, fontWeight: "600", color: "#1976d2" },
+  actionBtnEditText: { fontSize: 14, fontWeight: "600", color: "#2B5EA7" },
   actionBtnCancel: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#fef2f2", paddingVertical: 14, borderRadius: 12 },
   actionBtnCancelText: { fontSize: 14, fontWeight: "600", color: "#ef4444" },
 });

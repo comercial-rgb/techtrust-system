@@ -240,7 +240,7 @@ export default function TermsAndPoliciesScreen({ navigation }: any) {
               <Ionicons
                 name={documents[doc].icon as any}
                 size={18}
-                color={activeDocument === doc ? '#1976d2' : '#6b7280'}
+                color={activeDocument === doc ? '#2B5EA7' : '#6b7280'}
               />
               <Text style={[
                 styles.tabText,
@@ -272,7 +272,7 @@ export default function TermsAndPoliciesScreen({ navigation }: any) {
 
         {/* Contact Section */}
         <View style={styles.contactSection}>
-          <Ionicons name="mail" size={24} color="#1976d2" />
+          <Ionicons name="mail" size={24} color="#2B5EA7" />
           <View style={styles.contactInfo}>
             <Text style={styles.contactTitle}>{t.customer?.questionsAboutPolicies || 'Questions about our policies?'}</Text>
             <Text style={styles.contactSubtitle}>{t.customer?.contactUsAt || 'Contact us at'} legal@techtrust.com</Text>
@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
     color: '#6b7280',
   },
   tabTextActive: {
-    color: '#1976d2',
+    color: '#2B5EA7',
   },
   content: {
     flex: 1,

@@ -12,6 +12,14 @@ import { AppError } from "../middleware/error-handler";
 import { logger } from "../config/logger";
 import { geocodeAddress } from "../services/geocoding.service";
 import { SERVICE_TYPE_MAP } from "../config/service-type-mapping";
+import {
+  SUBSCRIPTION_PLANS,
+  QUOTE_VALIDITY,
+  RENEWAL_RULES,
+  SERVICE_FLOW,
+  getServiceRequestExpirationHours,
+  type PlanKey,
+} from "../config/businessRules";
 
 function resolveServiceType(raw: string): ServiceType {
   // If it already matches a Prisma enum value, use it directly
@@ -138,15 +146,9 @@ export const createServiceRequest = async (req: Request, res: Response) => {
     },
   });
 
-  // Limites de solicitações ativas por plano
-  const activeLimits: Record<string, number> = {
-    FREE: 2,
-    BASIC: 5,
-    PREMIUM: 10,
-    ENTERPRISE: 999,
-  };
-
-  const maxActive = activeLimits[subscription.plan] || 2;
+  // Limites de solicitações ativas por plano (from businessRules SUBSCRIPTION_PLANS)
+  const planConfig = SUBSCRIPTION_PLANS[subscription.plan as PlanKey];
+  const maxActive = planConfig?.maxActiveSimultaneous ?? 2;
 
   if (activeRequests >= maxActive) {
     throw new AppError(
@@ -159,13 +161,13 @@ export const createServiceRequest = async (req: Request, res: Response) => {
   // Gerar número da solicitação
   const requestNumber = `SR-${Date.now()}-${Math.random().toString(36).substring(7).toUpperCase()}`;
 
-  // Calcular deadline para quotes (2 horas)
+  // Calcular deadline para quotes (48 horas — businessRules.QUOTE_VALIDITY)
   const quoteDeadline = new Date();
-  quoteDeadline.setHours(quoteDeadline.getHours() + 2);
+  quoteDeadline.setHours(quoteDeadline.getHours() + QUOTE_VALIDITY.PROVIDER_SUBMIT_HOURS);
 
-  // Calcular expiração (24 horas se não receber quotes)
-  const expiresAt = new Date();
-  expiresAt.setHours(expiresAt.getHours() + 24);
+  // Calcular expiração conforme plano (FREE/BASIC=72h renewable, PREMIUM=never)
+  const expirationHours = getServiceRequestExpirationHours(subscription.plan);
+  const expiresAt = expirationHours !== null ? new Date(Date.now() + expirationHours * 60 * 60 * 1000) : null;
 
   // Resolve GPS coordinates for the service location
   let finalLatitude: number | null = null;
@@ -251,7 +253,7 @@ export const createServiceRequest = async (req: Request, res: Response) => {
       flexibleSchedule: isAsap,
       isUrgent: resolvedIsUrgent,
       status: "SEARCHING_PROVIDERS",
-      maxQuotes: 5,
+      maxQuotes: QUOTE_VALIDITY.MAX_QUOTES_PER_REQUEST,
       quoteDeadline,
       expiresAt,
     },
@@ -515,7 +517,9 @@ export const cancelServiceRequest = async (req: Request, res: Response) => {
 
 /**
  * POST /api/v1/service-requests/:requestId/renew
- * Renew (reopen) a request to receive more quotes
+ * Renew (reopen) an expired/cancelled request to receive more quotes.
+ * Charges $0.99 renewal fee (FREE/BASIC plans) billed on next invoice.
+ * PREMIUM/ENTERPRISE: free renewal.
  */
 export const renewServiceRequest = async (req: Request, res: Response) => {
   const userId = req.user!.id;
@@ -532,26 +536,154 @@ export const renewServiceRequest = async (req: Request, res: Response) => {
     throw new AppError("Request not found", 404, "REQUEST_NOT_FOUND");
   }
 
-  // Only allow renewal for requests that are not in-progress or completed
+  // Only allow renewal for expired or cancelled requests
   if (["IN_PROGRESS", "COMPLETED"].includes(request.status)) {
     throw new AppError("This request cannot be renewed", 400, "CANNOT_RENEW");
   }
 
-  // Reopen the request
-  await prisma.serviceRequest.update({
+  // Get client subscription to determine fee and new expiration
+  const subscription = await prisma.subscription.findFirst({
+    where: { userId, status: "ACTIVE" },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (!subscription) {
+    throw new AppError("Active subscription required", 404, "SUBSCRIPTION_NOT_FOUND");
+  }
+
+  const plan = subscription.plan as PlanKey;
+  const renewalFee = SUBSCRIPTION_PLANS[plan]?.renewalFee ?? RENEWAL_RULES.FEE;
+
+  // Calculate new expiration based on plan
+  const expirationHours = getServiceRequestExpirationHours(plan);
+  const newExpiresAt = expirationHours !== null
+    ? new Date(Date.now() + expirationHours * 60 * 60 * 1000)
+    : null;
+
+  // New quote deadline
+  const newQuoteDeadline = new Date();
+  newQuoteDeadline.setHours(newQuoteDeadline.getHours() + QUOTE_VALIDITY.PROVIDER_SUBMIT_HOURS);
+
+  // Reopen the request with fresh deadlines
+  const renewed = await prisma.serviceRequest.update({
     where: { id: requestId },
     data: {
       status: "SEARCHING_PROVIDERS",
       cancelledAt: null,
       cancellationReason: null,
       acceptedQuoteId: null,
+      expiresAt: newExpiresAt,
+      quoteDeadline: newQuoteDeadline,
+      renewalCount: { increment: 1 },
+      lastRenewedAt: new Date(),
     },
   });
 
-  logger.info(`Request renewed by client: ${request.requestNumber}`);
+  // Log the renewal fee for billing
+  if (renewalFee > 0) {
+    logger.info(
+      `Renewal fee $${renewalFee} for request ${request.requestNumber} — billed via ${RENEWAL_RULES.BILLING_METHOD}`,
+    );
+    // TODO: integrate with Stripe billing to add $0.99 to next invoice
+  }
+
+  logger.info(
+    `Request renewed: ${request.requestNumber}, count=${renewed.renewalCount}, plan=${plan}`,
+  );
 
   res.json({
     success: true,
-    message: "Request renewed successfully. You will receive new quotes.",
+    message: renewalFee > 0
+      ? `Request renewed! A $${renewalFee.toFixed(2)} fee will be added to your next invoice.`
+      : "Request renewed successfully. You will receive new quotes.",
+    data: {
+      renewalFee,
+      renewalCount: renewed.renewalCount,
+      newExpiresAt: newExpiresAt?.toISOString() ?? null,
+      billingMethod: renewalFee > 0 ? RENEWAL_RULES.BILLING_METHOD : null,
+    },
+  });
+};
+
+/**
+ * POST /api/v1/service-requests/:requestId/towing-consent
+ * RoadAssist: Customer gives consent for towing.
+ * Required when serviceType is ROADSIDE_SOS and towing is needed.
+ */
+export const giveTowingConsent = async (req: Request, res: Response) => {
+  const userId = req.user!.id;
+  const { requestId } = req.params;
+  const { towingDestination, customerLocation } = req.body;
+
+  if (!SERVICE_FLOW.ROADASSIST_REQUIRES_TOWING_CONSENT) {
+    throw new AppError(
+      "Towing consent is not required in current configuration",
+      400,
+      "TOWING_CONSENT_NOT_REQUIRED",
+    );
+  }
+
+  const request = await prisma.serviceRequest.findFirst({
+    where: {
+      id: requestId,
+      userId: userId,
+      serviceType: "ROADSIDE_SOS",
+    },
+  });
+
+  if (!request) {
+    throw new AppError(
+      "Roadside service request not found",
+      404,
+      "REQUEST_NOT_FOUND",
+    );
+  }
+
+  if (request.towingConsentAt) {
+    throw new AppError(
+      "Towing consent already provided",
+      409,
+      "CONSENT_ALREADY_GIVEN",
+    );
+  }
+
+  // Validate client location is present (required by businessRules)
+  if (SERVICE_FLOW.ROADASSIST_REQUIRES_CLIENT_LOCATION && !customerLocation) {
+    throw new AppError(
+      "Your current GPS location is required for roadside assistance",
+      400,
+      "LOCATION_REQUIRED",
+    );
+  }
+
+  // Update service request with towing consent + location
+  const updated = await prisma.serviceRequest.update({
+    where: { id: requestId },
+    data: {
+      towingConsentAt: new Date(),
+      ...(customerLocation?.lat && customerLocation?.lng
+        ? {
+            serviceLatitude: Number(customerLocation.lat),
+            serviceLongitude: Number(customerLocation.lng),
+          }
+        : {}),
+      ...(towingDestination
+        ? { customerAddress: towingDestination }
+        : {}),
+    },
+  });
+
+  logger.info(
+    `Towing consent given for request ${request.requestNumber} by user ${userId}`,
+  );
+
+  res.json({
+    success: true,
+    message: "Towing consent recorded. A towing provider will be dispatched.",
+    data: {
+      requestId: updated.id,
+      towingConsentAt: updated.towingConsentAt,
+      suggestTowingProviders: SERVICE_FLOW.ROADASSIST_SUGGEST_TOWING_PROVIDERS,
+    },
   });
 };

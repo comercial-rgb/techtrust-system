@@ -65,4 +65,14 @@ router.post(
   asyncHandler(serviceRequestController.renewServiceRequest),
 );
 
+/**
+ * POST /api/v1/service-requests/:requestId/towing-consent
+ * RoadAssist: Customer gives towing consent
+ */
+router.post(
+  "/:requestId/towing-consent",
+  validate(requestIdValidation),
+  asyncHandler(serviceRequestController.giveTowingConsent),
+);
+
 export default router;

@@ -1,24 +1,37 @@
 /**
  * TechTrust Brand Theme
  * Brand colors and design tokens
+ * 
+ * Brand Identity:
+ *   Primary Navy: #1B3A6B (TechTrust text)
+ *   Primary Blue: #2B5EA7 (interactive elements)
+ *   Accent Red:   #C0392B (AutoSolutions LLC, CTAs)
+ *   Dark BG:      #0D1B2E (tech/circuit backgrounds)
+ *   Tagline: "Driven by Technology. Trusted by You."
  */
 
 export const colors = {
   // Brand Colors
-  primary: 'rgb(0, 91, 237)',      // Main brand blue
-  secondary: 'rgb(37, 28, 89)',    // Dark purple
+  primary: '#2B5EA7',              // Main brand blue
+  secondary: '#1B3A6B',            // Dark navy
+  accent: '#C0392B',               // Brand red (AutoSolutions)
   black: 'rgb(0, 0, 0)',           // Pure black
   white: 'rgb(255, 255, 255)',     // Pure white
 
   // Primary variations
-  primaryLight: 'rgba(0, 91, 237, 0.1)',
-  primaryMedium: 'rgba(0, 91, 237, 0.5)',
-  primaryDark: 'rgb(0, 70, 180)',
+  primaryLight: 'rgba(43, 94, 167, 0.1)',
+  primaryMedium: 'rgba(43, 94, 167, 0.5)',
+  primaryDark: '#1B3A6B',
 
   // Secondary variations
-  secondaryLight: 'rgba(37, 28, 89, 0.1)',
-  secondaryMedium: 'rgba(37, 28, 89, 0.5)',
-  secondaryDark: 'rgb(25, 18, 60)',
+  secondaryLight: 'rgba(27, 58, 107, 0.1)',
+  secondaryMedium: 'rgba(27, 58, 107, 0.5)',
+  secondaryDark: '#0D1B2E',
+
+  // Accent variations
+  accentLight: 'rgba(192, 57, 43, 0.1)',
+  accentMedium: 'rgba(192, 57, 43, 0.5)',
+  accentDark: '#A63025',
 
   // Semantic colors
   success: '#10b981',
@@ -138,8 +151,9 @@ export const shadows = {
 
 // Hex versions for compatibility
 export const colorsHex = {
-  primary: '#005BED',
-  secondary: '#251C59',
+  primary: '#2B5EA7',
+  secondary: '#1B3A6B',
+  accent: '#C0392B',
   black: '#000000',
   white: '#FFFFFF',
 };

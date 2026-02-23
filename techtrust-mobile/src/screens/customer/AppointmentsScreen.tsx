@@ -219,7 +219,7 @@ export default function AppointmentsScreen({ navigation }: any) {
       <SafeAreaView style={styles.container}>
         <ActivityIndicator
           size="large"
-          color="#1976d2"
+          color="#2B5EA7"
           style={{ marginTop: 40 }}
         />
       </SafeAreaView>
@@ -413,7 +413,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 8,
   },
-  appointmentNumber: { fontSize: 14, fontWeight: "600", color: "#1976d2" },
+  appointmentNumber: { fontSize: 14, fontWeight: "600", color: "#2B5EA7" },
   statusBadge: {
     flexDirection: "row",
     alignItems: "center",

@@ -348,7 +348,7 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
           style={styles.editBtn}
           onPress={() => navigation.navigate("AddVehicle", { vehicle })}
         >
-          <Ionicons name="create-outline" size={24} color="#1976d2" />
+          <Ionicons name="create-outline" size={24} color="#2B5EA7" />
         </TouchableOpacity>
       </View>
 
@@ -381,9 +381,9 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
                           ? 'bus'
                           : 'car-sport'}
                     size={64}
-                    color="#1976d2"
+                    color="#2B5EA7"
                   />
-                  <View style={{ position: 'absolute', bottom: -4, right: -4, backgroundColor: '#1976d2', borderRadius: 14, width: 28, height: 28, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#fff' }}>
+                  <View style={{ position: 'absolute', bottom: -4, right: -4, backgroundColor: '#2B5EA7', borderRadius: 14, width: 28, height: 28, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#fff' }}>
                     <Ionicons name="camera" size={14} color="#fff" />
                   </View>
                 </View>
@@ -412,11 +412,11 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
                       borderRadius: 12,
                     }}
                   >
-                    <Ionicons name="flash" size={12} color="#1976d2" />
+                    <Ionicons name="flash" size={12} color="#2B5EA7" />
                     <Text
                       style={{
                         fontSize: 12,
-                        color: "#1976d2",
+                        color: "#2B5EA7",
                         fontWeight: "600",
                         marginLeft: 4,
                       }}
@@ -510,7 +510,7 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
         <FadeInView delay={100}>
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
-              <Ionicons name="speedometer-outline" size={24} color="#1976d2" />
+              <Ionicons name="speedometer-outline" size={24} color="#2B5EA7" />
               <Text style={styles.statValue}>
                 {formatMileage(vehicle.currentMileage)}
               </Text>
@@ -1028,7 +1028,7 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
               <Ionicons
                 name="shield-checkmark-outline"
                 size={20}
-                color="#1976d2"
+                color="#2B5EA7"
               />
               <Text style={styles.secondaryButtonText}>
                 {t.vehicle?.manageInsurance || "Manage Insurance"}
@@ -1110,7 +1110,7 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Add Past Service</Text>
             <TouchableOpacity onPress={handleSavePastService}>
-              <Text style={{ fontSize: 16, fontWeight: '600', color: '#1976d2' }}>Save</Text>
+              <Text style={{ fontSize: 16, fontWeight: '600', color: '#2B5EA7' }}>Save</Text>
             </TouchableOpacity>
           </View>
           <ScrollView style={{ padding: 16 }} showsVerticalScrollIndicator={false}>
@@ -1306,7 +1306,7 @@ const styles = StyleSheet.create({
   },
   seeAllText: {
     fontSize: 14,
-    color: "#1976d2",
+    color: "#2B5EA7",
     fontWeight: "600",
   },
   historyCount: {
@@ -1541,7 +1541,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     paddingVertical: 16,
     borderRadius: 12,
     gap: 8,
@@ -1563,7 +1563,7 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#1976d2",
+    color: "#2B5EA7",
   },
   transferButton: {
     flexDirection: "row",
@@ -1661,8 +1661,8 @@ const styles = StyleSheet.create({
     borderColor: "#e5e7eb",
   },
   pastServiceChipActive: {
-    backgroundColor: "#1976d2",
-    borderColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
+    borderColor: "#2B5EA7",
   },
   pastServiceChipText: {
     fontSize: 13,

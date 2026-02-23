@@ -26,6 +26,8 @@ export interface ThemeColors {
   primaryLight: string;
   primaryDark: string;
   secondary: string;
+  accent: string;
+  accentLight: string;
 
   // Background
   background: string;
@@ -74,10 +76,12 @@ export interface ThemeColors {
 // COLOR SCHEMES
 // ============================================
 const lightColors: ThemeColors = {
-  primary: "rgb(0, 91, 237)",
-  primaryLight: "rgba(0, 91, 237, 0.1)",
-  primaryDark: "rgb(0, 70, 180)",
-  secondary: "rgb(37, 28, 89)",
+  primary: '#2B5EA7',
+  primaryLight: 'rgba(43, 94, 167, 0.1)',
+  primaryDark: '#1B3A6B',
+  secondary: '#0D1B2E',
+  accent: '#C0392B',
+  accentLight: 'rgba(192, 57, 43, 0.1)',
 
   background: "#f8fafc",
   backgroundSecondary: "#f1f5f9",
@@ -117,10 +121,12 @@ const lightColors: ThemeColors = {
 };
 
 const darkColors: ThemeColors = {
-  primary: "rgb(59, 130, 246)",
-  primaryLight: "rgba(59, 130, 246, 0.15)",
-  primaryDark: "rgb(96, 165, 250)",
-  secondary: "rgb(139, 92, 246)",
+  primary: '#4F78B3',
+  primaryLight: 'rgba(79, 120, 179, 0.15)',
+  primaryDark: '#7092C2',
+  secondary: '#9BB2D4',
+  accent: '#D65240',
+  accentLight: 'rgba(214, 82, 64, 0.15)',
 
   background: "#0f172a",
   backgroundSecondary: "#1e293b",

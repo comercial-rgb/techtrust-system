@@ -36,7 +36,7 @@ export default function ProviderHelpScreen({ navigation }: any) {
   const [expandedFAQ, setExpandedFAQ] = useState<string | null>(null);
 
   const helpCategories: HelpCategory[] = [
-    { id: '1', title: t.provider?.gettingStarted || 'Getting Started', icon: 'rocket-launch', color: '#1976d2', backgroundColor: '#dbeafe' },
+    { id: '1', title: t.provider?.gettingStarted || 'Getting Started', icon: 'rocket-launch', color: '#2B5EA7', backgroundColor: '#dbeafe' },
     { id: '2', title: t.nav?.quotes || 'Quotes', icon: 'file-document-edit', color: '#16a34a', backgroundColor: '#dcfce7' },
     { id: '3', title: t.common?.payments || 'Payments', icon: 'cash-multiple', color: '#d97706', backgroundColor: '#fef3c7' },
     { id: '4', title: t.nav?.workOrders || 'Work Orders', icon: 'clipboard-list', color: '#8b5cf6', backgroundColor: '#ede9fe' },
@@ -254,7 +254,7 @@ export default function ProviderHelpScreen({ navigation }: any) {
               onPress={() => navigation.navigate('SupportChat')}
             >
               <View style={[styles.contactIcon, { backgroundColor: '#dbeafe' }]}>
-                <MaterialCommunityIcons name="chat" size={24} color="#1976d2" />
+                <MaterialCommunityIcons name="chat" size={24} color="#2B5EA7" />
               </View>
               <View style={styles.contactContent}>
                 <Text style={styles.contactTitle}>{t.provider?.chatWithSupport || 'Chat with Support'}</Text>
@@ -292,7 +292,7 @@ export default function ProviderHelpScreen({ navigation }: any) {
           <Text style={styles.sectionTitle}>{t.common?.resources || 'Resources'}</Text>
           <View style={styles.resourcesList}>
             <TouchableOpacity style={styles.resourceCard}>
-              <MaterialCommunityIcons name="book-open-variant" size={24} color="#1976d2" />
+              <MaterialCommunityIcons name="book-open-variant" size={24} color="#2B5EA7" />
               <View style={styles.resourceContent}>
                 <Text style={styles.resourceTitle}>{t.provider?.providerGuide || 'Provider Guide'}</Text>
                 <Text style={styles.resourceSubtitle}>{t.provider?.learnPlatform || 'Learn everything about the platform'}</Text>
@@ -300,7 +300,7 @@ export default function ProviderHelpScreen({ navigation }: any) {
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.resourceCard}>
-              <MaterialCommunityIcons name="video" size={24} color="#1976d2" />
+              <MaterialCommunityIcons name="video" size={24} color="#2B5EA7" />
               <View style={styles.resourceContent}>
                 <Text style={styles.resourceTitle}>{t.provider?.videoTutorials || 'Video Tutorials'}</Text>
                 <Text style={styles.resourceSubtitle}>{t.provider?.watchDemos || 'Watch video demonstrations'}</Text>
@@ -308,7 +308,7 @@ export default function ProviderHelpScreen({ navigation }: any) {
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.resourceCard}>
-              <MaterialCommunityIcons name="lightbulb-on" size={24} color="#1976d2" />
+              <MaterialCommunityIcons name="lightbulb-on" size={24} color="#2B5EA7" />
               <View style={styles.resourceContent}>
                 <Text style={styles.resourceTitle}>{t.provider?.successTips || 'Success Tips'}</Text>
                 <Text style={styles.resourceSubtitle}>{t.provider?.increaseEarnings || 'How to increase your earnings'}</Text>
@@ -415,7 +415,7 @@ const styles = StyleSheet.create({
   },
   faqCategory: {
     fontSize: 12,
-    color: '#1976d2',
+    color: '#2B5EA7',
     fontWeight: '500',
     backgroundColor: '#dbeafe',
     paddingHorizontal: 10,

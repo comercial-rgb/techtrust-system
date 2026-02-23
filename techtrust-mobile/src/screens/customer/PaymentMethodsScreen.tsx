@@ -585,7 +585,7 @@ export default function PaymentMethodsScreen({ navigation }: any) {
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#1976d2" />
+          <ActivityIndicator size="large" color="#2B5EA7" />
         </View>
       </SafeAreaView>
     );
@@ -602,14 +602,14 @@ export default function PaymentMethodsScreen({ navigation }: any) {
           {t.customer?.paymentMethods || "Payment Methods"}
         </Text>
         <TouchableOpacity onPress={handleOpenModal} style={styles.addBtn}>
-          <Ionicons name="add" size={24} color="#1976d2" />
+          <Ionicons name="add" size={24} color="#2B5EA7" />
         </TouchableOpacity>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Info Banner */}
         <View style={styles.infoBanner}>
-          <Ionicons name="shield-checkmark" size={20} color="#1976d2" />
+          <Ionicons name="shield-checkmark" size={20} color="#2B5EA7" />
           <Text style={styles.infoBannerText}>
             {t.customer?.paymentInfoSecure ||
               "Your payment information is encrypted and secure"}
@@ -621,7 +621,7 @@ export default function PaymentMethodsScreen({ navigation }: any) {
           <View style={styles.walletCard}>
             <View style={styles.walletHeader}>
               <View style={styles.walletIconContainer}>
-                <Ionicons name="wallet" size={28} color="#1976d2" />
+                <Ionicons name="wallet" size={28} color="#2B5EA7" />
               </View>
               <View style={styles.walletInfo}>
                 <Text style={styles.walletLabel}>
@@ -794,7 +794,7 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                               {
                                 color:
                                   method.type === "credit"
-                                    ? "#1976d2"
+                                    ? "#2B5EA7"
                                     : "#92400e",
                               },
                             ]}
@@ -832,7 +832,7 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                       style={styles.actionButton}
                       onPress={() => handleSetDefault(method.id)}
                     >
-                      <Ionicons name="star-outline" size={16} color="#1976d2" />
+                      <Ionicons name="star-outline" size={16} color="#2B5EA7" />
                       <Text style={styles.actionButtonText}>
                         {t.common?.setAsDefault || "Set as Default"}
                       </Text>
@@ -973,7 +973,7 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                       name={option.icon as any}
                       size={20}
                       color={
-                        formData.type === option.type ? "#1976d2" : "#6b7280"
+                        formData.type === option.type ? "#2B5EA7" : "#6b7280"
                       }
                     />
                     <Text
@@ -1116,7 +1116,7 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                   || paymentMethods.find((pm) => pm.type === "credit" || pm.type === "debit");
                 return defaultCard ? (
                   <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: "#f0f9ff", padding: 12, borderRadius: 10, marginBottom: 12, borderWidth: 1, borderColor: "#bfdbfe" }}>
-                    <Ionicons name="card" size={20} color="#1976d2" />
+                    <Ionicons name="card" size={20} color="#2B5EA7" />
                     <Text style={{ flex: 1, marginLeft: 10, fontSize: 14, color: "#1e3a5f", fontWeight: "500" }}>
                       {defaultCard.brand || "Card"} •••• {defaultCard.lastFour || "****"}
                     </Text>
@@ -1173,7 +1173,7 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                       name={option.icon as any}
                       size={24}
                       color={
-                        addBalanceMethod === option.type ? "#1976d2" : "#6b7280"
+                        addBalanceMethod === option.type ? "#2B5EA7" : "#6b7280"
                       }
                     />
                     <Text
@@ -1286,7 +1286,7 @@ const styles = StyleSheet.create({
   emptyButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderRadius: 12,
@@ -1387,7 +1387,7 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     fontSize: 13,
-    color: "#1976d2",
+    color: "#2B5EA7",
     fontWeight: "500",
   },
   deleteActionButton: {
@@ -1466,14 +1466,14 @@ const styles = StyleSheet.create({
   },
   typeOptionActive: {
     backgroundColor: "#dbeafe",
-    borderColor: "#1976d2",
+    borderColor: "#2B5EA7",
   },
   typeOptionText: {
     fontSize: 14,
     color: "#6b7280",
   },
   typeOptionTextActive: {
-    color: "#1976d2",
+    color: "#2B5EA7",
     fontWeight: "600",
   },
   securityNote: {
@@ -1492,7 +1492,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   saveButton: {
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: "center",
@@ -1510,7 +1510,7 @@ const styles = StyleSheet.create({
     margin: 16,
   },
   walletCard: {
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
@@ -1668,14 +1668,14 @@ const styles = StyleSheet.create({
   },
   balanceMethodOptionActive: {
     backgroundColor: "#dbeafe",
-    borderColor: "#1976d2",
+    borderColor: "#2B5EA7",
   },
   balanceMethodText: {
     fontSize: 15,
     color: "#374151",
   },
   balanceMethodTextActive: {
-    color: "#1976d2",
+    color: "#2B5EA7",
     fontWeight: "600",
   },
   pixInstructions: {
@@ -1699,7 +1699,7 @@ const styles = StyleSheet.create({
   },
   pixQRText: {
     fontSize: 14,
-    color: "#1976d2",
+    color: "#2B5EA7",
     fontWeight: "500",
     marginTop: 8,
   },

@@ -249,7 +249,7 @@ export default function ProviderServicesScreen({ navigation }: any) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#1976d2" />
+          <ActivityIndicator size="large" color="#2B5EA7" />
           <Text style={styles.loadingText}>{t.common?.loading || 'Loading...'}</Text>
         </View>
       </SafeAreaView>
@@ -266,7 +266,7 @@ export default function ProviderServicesScreen({ navigation }: any) {
         <Text style={styles.headerTitle}>{t.provider?.servicesOffered || 'My Capabilities'}</Text>
         <TouchableOpacity onPress={handleSave} disabled={saving}>
           {saving ? (
-            <ActivityIndicator size="small" color="#1976d2" />
+            <ActivityIndicator size="small" color="#2B5EA7" />
           ) : (
             <Text style={styles.saveBtn}>{t.common?.save || 'Save'}</Text>
           )}
@@ -285,7 +285,7 @@ export default function ProviderServicesScreen({ navigation }: any) {
         {/* ━━━━━━━ SECTION 1: Services Offered ━━━━━━━ */}
         <View style={styles.sectionHeader}>
           <View style={styles.sectionHeaderLeft}>
-            <MaterialCommunityIcons name="wrench" size={20} color="#1976d2" />
+            <MaterialCommunityIcons name="wrench" size={20} color="#2B5EA7" />
             <Text style={styles.sectionTitle}>{t.provider?.servicesYouOffer || 'Services You Offer'}</Text>
           </View>
           <TouchableOpacity onPress={toggleSelectAllServices}>
@@ -319,7 +319,7 @@ export default function ProviderServicesScreen({ navigation }: any) {
                       <MaterialCommunityIcons
                         name={service.icon as any}
                         size={22}
-                        color={enabledServices.has(service.key) ? '#1976d2' : '#9ca3af'}
+                        color={enabledServices.has(service.key) ? '#2B5EA7' : '#9ca3af'}
                       />
                     </View>
                     <View style={styles.itemInfo}>
@@ -339,7 +339,7 @@ export default function ProviderServicesScreen({ navigation }: any) {
                       value={enabledServices.has(service.key)}
                       onValueChange={() => toggleService(service.key)}
                       trackColor={{ false: '#e5e7eb', true: '#93c5fd' }}
-                      thumbColor={enabledServices.has(service.key) ? '#1976d2' : '#9ca3af'}
+                      thumbColor={enabledServices.has(service.key) ? '#2B5EA7' : '#9ca3af'}
                     />
                   </View>
                 ))}
@@ -351,7 +351,7 @@ export default function ProviderServicesScreen({ navigation }: any) {
         {/* ━━━━━━━ SECTION 2: Vehicle Types ━━━━━━━ */}
         <View style={[styles.sectionHeader, { marginTop: 8 }]}>
           <View style={styles.sectionHeaderLeft}>
-            <MaterialCommunityIcons name="car-multiple" size={20} color="#1976d2" />
+            <MaterialCommunityIcons name="car-multiple" size={20} color="#2B5EA7" />
             <Text style={styles.sectionTitle}>{t.provider?.vehicleTypesServed || 'Vehicle Types You Serve'}</Text>
           </View>
           <TouchableOpacity onPress={toggleSelectAllVehicles}>
@@ -376,14 +376,14 @@ export default function ProviderServicesScreen({ navigation }: any) {
                 <MaterialCommunityIcons
                   name={vt.icon as any}
                   size={28}
-                  color={isActive ? '#1976d2' : '#9ca3af'}
+                  color={isActive ? '#2B5EA7' : '#9ca3af'}
                 />
                 <Text style={[styles.vehicleLabel, isActive && styles.vehicleLabelActive]}>
                   {vt.label}
                 </Text>
                 {isActive && (
                   <View style={styles.vehicleCheck}>
-                    <MaterialCommunityIcons name="check-circle" size={18} color="#1976d2" />
+                    <MaterialCommunityIcons name="check-circle" size={18} color="#2B5EA7" />
                   </View>
                 )}
               </TouchableOpacity>
@@ -394,7 +394,7 @@ export default function ProviderServicesScreen({ navigation }: any) {
         {/* ━━━━━━━ SECTION 3: Parts Sales ━━━━━━━ */}
         <View style={[styles.sectionHeader, { marginTop: 8 }]}>
           <View style={styles.sectionHeaderLeft}>
-            <MaterialCommunityIcons name="package-variant" size={20} color="#1976d2" />
+            <MaterialCommunityIcons name="package-variant" size={20} color="#2B5EA7" />
             <Text style={styles.sectionTitle}>{t.provider?.partsSales || 'Parts Sales'}</Text>
           </View>
         </View>
@@ -405,7 +405,7 @@ export default function ProviderServicesScreen({ navigation }: any) {
               <MaterialCommunityIcons
                 name="package-variant-closed"
                 size={24}
-                color={sellsParts ? '#1976d2' : '#9ca3af'}
+                color={sellsParts ? '#2B5EA7' : '#9ca3af'}
               />
             </View>
             <View style={styles.itemInfo}>
@@ -420,7 +420,7 @@ export default function ProviderServicesScreen({ navigation }: any) {
               value={sellsParts}
               onValueChange={setSellsParts}
               trackColor={{ false: '#e5e7eb', true: '#93c5fd' }}
-              thumbColor={sellsParts ? '#1976d2' : '#9ca3af'}
+              thumbColor={sellsParts ? '#2B5EA7' : '#9ca3af'}
             />
           </View>
         </View>
@@ -475,7 +475,7 @@ const styles = StyleSheet.create({
   saveBtn: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1976d2',
+    color: '#2B5EA7',
     padding: 8,
   },
   statsBar: {
@@ -512,7 +512,7 @@ const styles = StyleSheet.create({
   selectAllText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#1976d2',
+    color: '#2B5EA7',
   },
   categorySection: {
     padding: 16,
@@ -585,7 +585,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   vehicleCardActive: {
-    borderColor: '#1976d2',
+    borderColor: '#2B5EA7',
     backgroundColor: '#eff6ff',
   },
   vehicleLabel: {
@@ -595,7 +595,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   vehicleLabelActive: {
-    color: '#1976d2',
+    color: '#2B5EA7',
   },
   vehicleCheck: {
     position: 'absolute',

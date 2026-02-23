@@ -247,7 +247,7 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#1976d2" />
+        <ActivityIndicator size="large" color="#2B5EA7" />
       </View>
     );
   }
@@ -342,7 +342,7 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
 
           <View style={styles.contactButtons}>
             <TouchableOpacity style={styles.contactButton} onPress={handleCallCustomer}>
-              <MaterialCommunityIcons name="phone" size={20} color="#1976d2" />
+              <MaterialCommunityIcons name="phone" size={20} color="#2B5EA7" />
               <Text style={styles.contactButtonText}>{t.common?.call || 'Call'}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.contactButton} onPress={handleWhatsApp}>
@@ -367,7 +367,7 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
           {/* Contact Actions */}
           <View style={styles.customerContactRow}>
             <TouchableOpacity style={styles.contactBtn} onPress={handleCallCustomer}>
-              <MaterialCommunityIcons name="phone" size={18} color="#1976d2" />
+              <MaterialCommunityIcons name="phone" size={18} color="#2B5EA7" />
               <Text style={styles.contactBtnText}>{t.workOrder?.call || 'Call'}</Text>
             </TouchableOpacity>
             <TouchableOpacity 
@@ -390,7 +390,7 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
                 participantName: workOrder.customer.name 
               })}
             >
-              <MaterialCommunityIcons name="chat" size={18} color="#1976d2" />
+              <MaterialCommunityIcons name="chat" size={18} color="#2B5EA7" />
               <Text style={styles.contactBtnText}>{t.workOrder?.chat || 'Chat'}</Text>
             </TouchableOpacity>
           </View>
@@ -427,7 +427,7 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
           {workOrder.quote.lineItems.filter(item => item.type === 'part').length > 0 && (
             <View style={styles.lineItemsSection}>
               <View style={styles.lineItemsSectionHeader}>
-                <MaterialCommunityIcons name="cog" size={16} color="#1976d2" />
+                <MaterialCommunityIcons name="cog" size={16} color="#2B5EA7" />
                 <Text style={styles.lineItemsSectionTitle}>{t.workOrder?.parts || 'Parts'}</Text>
               </View>
               {workOrder.quote.lineItems.filter(item => item.type === 'part').map((item) => (
@@ -525,7 +525,7 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
             return (
               <View key={index} style={styles.timelineItem}>
                 <View style={styles.timelineLine}>
-                  <View style={[styles.timelineDot, { backgroundColor: isLast ? '#1976d2' : '#d1d5db' }]} />
+                  <View style={[styles.timelineDot, { backgroundColor: isLast ? '#2B5EA7' : '#d1d5db' }]} />
                   {!isLast && <View style={styles.timelineConnector} />}
                 </View>
                 <View style={styles.timelineContent}>
@@ -802,7 +802,7 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
                 style={styles.addPartBtn}
                 onPress={() => setAdditionalItems([...additionalItems, { type: 'part', description: '', quantity: '1', unitPrice: '' }])}
               >
-                <MaterialCommunityIcons name="plus-circle" size={20} color="#1976d2" />
+                <MaterialCommunityIcons name="plus-circle" size={20} color="#2B5EA7" />
                 <Text style={styles.addPartBtnText}>{t.provider?.addAnotherItem || 'Add Another Item'}</Text>
               </TouchableOpacity>
 
@@ -968,7 +968,7 @@ const styles = StyleSheet.create({
   amountValue: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1976d2',
+    color: '#2B5EA7',
   },
   actionsContainer: {
     paddingHorizontal: 16,
@@ -1029,7 +1029,7 @@ const styles = StyleSheet.create({
   contactButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1976d2',
+    color: '#2B5EA7',
   },
   card: {
     backgroundColor: '#fff',
@@ -1101,7 +1101,7 @@ const styles = StyleSheet.create({
   lineItemTotal: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1976d2',
+    color: '#2B5EA7',
   },
   lineItemDetails: {
     flexDirection: 'row',
@@ -1181,7 +1181,7 @@ const styles = StyleSheet.create({
   totalValue: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1976d2',
+    color: '#2B5EA7',
   },
   notesBox: {
     flexDirection: 'row',
@@ -1368,8 +1368,8 @@ const styles = StyleSheet.create({
     borderColor: '#e5e7eb',
   },
   typeBtnActive: {
-    backgroundColor: '#1976d2',
-    borderColor: '#1976d2',
+    backgroundColor: '#2B5EA7',
+    borderColor: '#2B5EA7',
   },
   typeBtnText: {
     fontSize: 14,
@@ -1416,7 +1416,7 @@ const styles = StyleSheet.create({
   },
   addPartBtnText: {
     fontSize: 14,
-    color: '#1976d2',
+    color: '#2B5EA7',
     fontWeight: '500',
   },
   totalRow: {
@@ -1482,7 +1482,7 @@ const styles = StyleSheet.create({
   contactBtnText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#1976d2',
+    color: '#2B5EA7',
   },
   chatBtn: {
     backgroundColor: '#dcfce7',

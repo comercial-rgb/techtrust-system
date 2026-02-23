@@ -209,7 +209,7 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
         <View
           style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
         >
-          <ActivityIndicator size="large" color="#1976d2" />
+          <ActivityIndicator size="large" color="#2B5EA7" />
           <Text style={{ marginTop: 12, color: "#6b7280" }}>Loading...</Text>
         </View>
       </SafeAreaView>
@@ -248,7 +248,7 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
           <MaterialCommunityIcons
             name="information"
             size={24}
-            color="#1976d2"
+            color="#2B5EA7"
           />
         </TouchableOpacity>
       </View>
@@ -275,7 +275,7 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
               <Circle
                 center={{ latitude: providerCoords.lat, longitude: providerCoords.lng }}
                 radius={serviceRadius * 1609.34}
-                strokeColor="#1976d2" 
+                strokeColor="#2B5EA7" 
                 fillColor="rgba(25,118,210,0.1)"
                 strokeWidth={2}
               />
@@ -285,7 +285,7 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
               <MaterialCommunityIcons
                 name="map-marker-radius"
                 size={60}
-                color="#1976d2"
+                color="#2B5EA7"
               />
               <Text style={styles.mapText}>
                 {t.provider?.serviceRadius || "Service Radius"}: {serviceRadius}{" "}
@@ -309,7 +309,7 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
               <MaterialCommunityIcons
                 name="map-marker"
                 size={24}
-                color="#1976d2"
+                color="#2B5EA7"
               />
               <View style={styles.addressInfo}>
                 <Text style={styles.addressText}>
@@ -389,7 +389,7 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
                 value={mobileService}
                 onValueChange={setMobileService}
                 trackColor={{ false: "#d1d5db", true: "#93c5fd" }}
-                thumbColor={mobileService ? "#1976d2" : "#fff"}
+                thumbColor={mobileService ? "#2B5EA7" : "#fff"}
               />
             </View>
 
@@ -492,7 +492,7 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
               style={styles.addZoneBtn}
               onPress={() => setShowAddZoneModal(true)}
             >
-              <MaterialCommunityIcons name="plus" size={20} color="#1976d2" />
+              <MaterialCommunityIcons name="plus" size={20} color="#2B5EA7" />
               <Text style={styles.addZoneText}>{t.common?.add || "Add"}</Text>
             </TouchableOpacity>
           </View>
@@ -532,7 +532,7 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
                     value={zone.active}
                     onValueChange={() => toggleZone(zone.id)}
                     trackColor={{ false: "#d1d5db", true: "#93c5fd" }}
-                    thumbColor={zone.active ? "#1976d2" : "#fff"}
+                    thumbColor={zone.active ? "#2B5EA7" : "#fff"}
                   />
                   <TouchableOpacity
                     onPress={() => handleDeleteZone(zone.id, zone.name)}
@@ -733,7 +733,7 @@ const styles = StyleSheet.create({
   mapText: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#1976d2",
+    color: "#2B5EA7",
     marginTop: 8,
   },
   mapSubtext: {
@@ -786,7 +786,7 @@ const styles = StyleSheet.create({
   },
   changeAddressText: {
     fontSize: 14,
-    color: "#1976d2",
+    color: "#2B5EA7",
     fontWeight: "500",
   },
   radiusLabel: {
@@ -809,7 +809,7 @@ const styles = StyleSheet.create({
   },
   radiusOptionActive: {
     backgroundColor: "#dbeafe",
-    borderColor: "#1976d2",
+    borderColor: "#2B5EA7",
   },
   radiusOptionText: {
     fontSize: 14,
@@ -817,7 +817,7 @@ const styles = StyleSheet.create({
     color: "#6b7280",
   },
   radiusOptionTextActive: {
-    color: "#1976d2",
+    color: "#2B5EA7",
   },
   switchRow: {
     flexDirection: "row",
@@ -900,7 +900,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f0f9ff",
     borderRadius: 8,
     borderLeftWidth: 3,
-    borderLeftColor: "#1976d2",
+    borderLeftColor: "#2B5EA7",
   },
   distanceInfoText: {
     flex: 1,
@@ -915,7 +915,7 @@ const styles = StyleSheet.create({
   },
   addZoneText: {
     fontSize: 14,
-    color: "#1976d2",
+    color: "#2B5EA7",
     fontWeight: "500",
   },
   zoneRow: {
@@ -989,7 +989,7 @@ const styles = StyleSheet.create({
     borderTopColor: "#e5e7eb",
   },
   saveBtn: {
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: "center",
@@ -1089,7 +1089,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 8,
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     alignItems: "center",
   },
   modalAddText: {

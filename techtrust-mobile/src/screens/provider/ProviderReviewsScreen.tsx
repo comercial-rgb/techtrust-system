@@ -196,7 +196,7 @@ export default function ProviderReviewsScreen({ navigation }: any) {
       {item.reply && (
         <View style={styles.replyContainer}>
           <View style={styles.replyHeader}>
-            <MaterialCommunityIcons name="reply" size={14} color="#1976d2" />
+            <MaterialCommunityIcons name="reply" size={14} color="#2B5EA7" />
             <Text style={styles.replyLabel}>
               {t.reviews?.yourResponse || "Your Response"}
             </Text>
@@ -221,7 +221,7 @@ export default function ProviderReviewsScreen({ navigation }: any) {
           style={styles.replyButton}
           onPress={() => handleOpenReplyModal(item)}
         >
-          <MaterialCommunityIcons name="reply" size={16} color="#1976d2" />
+          <MaterialCommunityIcons name="reply" size={16} color="#2B5EA7" />
           <Text style={styles.replyButtonText}>
             {t.reviews?.reply || "Reply"}
           </Text>
@@ -557,8 +557,8 @@ const styles = StyleSheet.create({
     borderColor: "#e5e7eb",
   },
   filterTabActive: {
-    backgroundColor: "#1976d2",
-    borderColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
+    borderColor: "#2B5EA7",
   },
   filterText: {
     fontSize: 13,
@@ -596,7 +596,7 @@ const styles = StyleSheet.create({
   customerInitials: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#1976d2",
+    color: "#2B5EA7",
   },
   reviewInfo: {
     flex: 1,
@@ -646,7 +646,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     borderLeftWidth: 3,
-    borderLeftColor: "#1976d2",
+    borderLeftColor: "#2B5EA7",
   },
   replyHeader: {
     flexDirection: "row",
@@ -657,7 +657,7 @@ const styles = StyleSheet.create({
   replyLabel: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#1976d2",
+    color: "#2B5EA7",
   },
   replyText: {
     fontSize: 13,
@@ -688,7 +688,7 @@ const styles = StyleSheet.create({
   replyButtonText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#1976d2",
+    color: "#2B5EA7",
   },
   emptyState: {
     alignItems: "center",
@@ -804,7 +804,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 10,
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     alignItems: "center",
   },
   submitButtonDisabled: {

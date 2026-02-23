@@ -610,7 +610,7 @@ export default function ProviderRequestDetailsScreen({
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#1976d2" />
+        <ActivityIndicator size="large" color="#2B5EA7" />
       </View>
     );
   }
@@ -732,7 +732,7 @@ export default function ProviderRequestDetailsScreen({
                           <View style={{ flex: 1.5, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 6 }}>
                             {val.split(',').map((f: string, fi: number) => (
                               <View key={fi} style={{ backgroundColor: '#dbeafe', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 16 }}>
-                                <Text style={{ fontSize: 12, color: '#1976d2', fontWeight: '500' }}>{f.trim()}</Text>
+                                <Text style={{ fontSize: 12, color: '#2B5EA7', fontWeight: '500' }}>{f.trim()}</Text>
                               </View>
                             ))}
                           </View>
@@ -773,7 +773,7 @@ export default function ProviderRequestDetailsScreen({
               <MaterialCommunityIcons
                 name="calendar-clock"
                 size={18}
-                color="#1976d2"
+                color="#2B5EA7"
               />
               <Text style={styles.preferredScheduleText}>
                 {t.provider?.preference || "Preferred"}:{" "}
@@ -831,7 +831,7 @@ export default function ProviderRequestDetailsScreen({
                 size={14}
                 color={
                   request.serviceLocation.type === "shop"
-                    ? "#1976d2"
+                    ? "#2B5EA7"
                     : request.serviceLocation.type === "mobile"
                       ? "#10b981"
                       : "#f59e0b"
@@ -841,7 +841,7 @@ export default function ProviderRequestDetailsScreen({
                 style={[
                   styles.locationTypeText,
                   request.serviceLocation.type === "shop"
-                    ? { color: "#1976d2" }
+                    ? { color: "#2B5EA7" }
                     : request.serviceLocation.type === "mobile"
                       ? { color: "#10b981" }
                       : { color: "#f59e0b" },
@@ -1028,7 +1028,7 @@ export default function ProviderRequestDetailsScreen({
             <MaterialCommunityIcons
               name="chat-outline"
               size={18}
-              color="#1976d2"
+              color="#2B5EA7"
             />
             <Text style={styles.chatWithCustomerText}>
               {t.provider?.chatWithCustomer || "Chat with Customer"}
@@ -1048,7 +1048,7 @@ export default function ProviderRequestDetailsScreen({
               <MaterialCommunityIcons
                 name="car-side"
                 size={40}
-                color="#1976d2"
+                color="#2B5EA7"
               />
             </View>
             <View style={styles.vehicleMainInfo}>
@@ -1146,7 +1146,7 @@ export default function ProviderRequestDetailsScreen({
               <MaterialCommunityIcons
                 name="history"
                 size={18}
-                color="#1976d2"
+                color="#2B5EA7"
               />
               <View style={styles.lastServiceInfo}>
                 <Text style={styles.lastServiceTitle}>
@@ -1339,7 +1339,7 @@ export default function ProviderRequestDetailsScreen({
                                 <View style={{ flex: 1.5, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 4 }}>
                                   {val.split(',').map((f: string, fi: number) => (
                                     <View key={fi} style={{ backgroundColor: '#dbeafe', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 }}>
-                                      <Text style={{ fontSize: 11, color: '#1976d2', fontWeight: '500' }}>🔧 {f.trim()}</Text>
+                                      <Text style={{ fontSize: 11, color: '#2B5EA7', fontWeight: '500' }}>🔧 {f.trim()}</Text>
                                     </View>
                                   ))}
                                 </View>
@@ -1440,13 +1440,13 @@ export default function ProviderRequestDetailsScreen({
                       <MaterialCommunityIcons
                         name={item.type === "part" ? "cog" : "account-wrench"}
                         size={14}
-                        color={item.type === "part" ? "#1976d2" : "#16a34a"}
+                        color={item.type === "part" ? "#2B5EA7" : "#16a34a"}
                       />
                       <Text
                         style={[
                           styles.lineItemTypeText,
                           {
-                            color: item.type === "part" ? "#1976d2" : "#16a34a",
+                            color: item.type === "part" ? "#2B5EA7" : "#16a34a",
                           },
                         ]}
                       >
@@ -1555,7 +1555,7 @@ export default function ProviderRequestDetailsScreen({
                   <MaterialCommunityIcons
                     name="plus-circle"
                     size={18}
-                    color="#1976d2"
+                    color="#2B5EA7"
                   />
                   <Text style={styles.addItemButtonText}>
                     {t.quote?.addPart || "Add Part"}
@@ -1714,7 +1714,7 @@ export default function ProviderRequestDetailsScreen({
                     value={isMobileService}
                     onValueChange={setIsMobileService}
                     trackColor={{ false: "#d1d5db", true: "#93c5fd" }}
-                    thumbColor={isMobileService ? "#1976d2" : "#fff"}
+                    thumbColor={isMobileService ? "#2B5EA7" : "#fff"}
                   />
                 </View>
 
@@ -2003,8 +2003,8 @@ export default function ProviderRequestDetailsScreen({
                     style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, borderRadius: 10, borderWidth: 1, borderColor: '#dbeafe', backgroundColor: '#eff6ff', gap: 6 }}
                     onPress={() => setShowTemplatesModal(true)}
                   >
-                    <MaterialCommunityIcons name="lightning-bolt" size={16} color="#1976d2" />
-                    <Text style={{ fontSize: 13, fontWeight: '600', color: '#1976d2' }}>Use Template</Text>
+                    <MaterialCommunityIcons name="lightning-bolt" size={16} color="#2B5EA7" />
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: '#2B5EA7' }}>Use Template</Text>
                   </TouchableOpacity>
                 )}
                 <TouchableOpacity
@@ -2035,7 +2035,7 @@ export default function ProviderRequestDetailsScreen({
                     autoFocus
                   />
                   <TouchableOpacity
-                    style={{ backgroundColor: '#1976d2', borderRadius: 8, paddingHorizontal: 14, justifyContent: 'center' }}
+                    style={{ backgroundColor: '#2B5EA7', borderRadius: 8, paddingHorizontal: 14, justifyContent: 'center' }}
                     onPress={() => {
                       if (saveTemplateName.trim()) saveQuoteTemplate(saveTemplateName.trim());
                       else Alert.alert("Name Required", "Enter a name for the template.");
@@ -2547,7 +2547,7 @@ const styles = StyleSheet.create({
   },
   preferredScheduleText: {
     fontSize: 13,
-    color: "#1976d2",
+    color: "#2B5EA7",
     fontWeight: "500",
   },
   card: {
@@ -2637,7 +2637,7 @@ const styles = StyleSheet.create({
   chatWithCustomerText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#1976d2",
+    color: "#2B5EA7",
   },
   vehicleMain: {
     flexDirection: "row",
@@ -2701,7 +2701,7 @@ const styles = StyleSheet.create({
   },
   lastServiceTitle: {
     fontSize: 12,
-    color: "#1976d2",
+    color: "#2B5EA7",
     fontWeight: "600",
   },
   lastServiceText: {
@@ -2741,7 +2741,7 @@ const styles = StyleSheet.create({
     borderTopColor: "#f1f5f9",
   },
   quoteButton: {
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -2898,7 +2898,7 @@ const styles = StyleSheet.create({
   addItemButtonText: {
     fontSize: 13,
     fontWeight: "500",
-    color: "#1976d2",
+    color: "#2B5EA7",
   },
   input: {
     backgroundColor: "#f8fafc",
@@ -2925,7 +2925,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   durationOptionActive: {
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
   },
   durationOptionText: {
     fontSize: 14,
@@ -2946,7 +2946,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   dateOptionActive: {
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
   },
   dateOptionText: {
     fontSize: 14,
@@ -2970,7 +2970,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   timeOptionActive: {
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
   },
   timeOptionText: {
     fontSize: 14,
@@ -3419,7 +3419,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     paddingVertical: 12,
     borderRadius: 10,
   },

@@ -486,7 +486,7 @@ export default function PersonalInfoScreen({ navigation }: any) {
           <Ionicons
             name={isEditing ? "close" : "create-outline"}
             size={24}
-            color="#1976d2"
+            color="#2B5EA7"
           />
         </TouchableOpacity>
       </View>
@@ -526,7 +526,7 @@ export default function PersonalInfoScreen({ navigation }: any) {
                 style={styles.changePhotoBtn}
                 onPress={handleChangePhoto}
               >
-                <Ionicons name="camera" size={16} color="#1976d2" />
+                <Ionicons name="camera" size={16} color="#2B5EA7" />
                 <Text style={styles.changePhotoText}>
                   {t.profile?.changePhoto || "Change Photo"}
                 </Text>
@@ -860,7 +860,7 @@ export default function PersonalInfoScreen({ navigation }: any) {
             </Text>
 
             {sessionsLoading ? (
-              <ActivityIndicator size="small" color="#1976d2" style={{ padding: 20 }} />
+              <ActivityIndicator size="small" color="#2B5EA7" style={{ padding: 20 }} />
             ) : sessions.length === 0 ? (
               <Text style={{ fontSize: 13, color: '#9ca3af', textAlign: 'center', padding: 20 }}>
                 No active sessions found
@@ -1143,7 +1143,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -1178,7 +1178,7 @@ const styles = StyleSheet.create({
   },
   changePhotoText: {
     fontSize: 14,
-    color: "#1976d2",
+    color: "#2B5EA7",
     fontWeight: "600",
   },
   formContainer: {
@@ -1265,14 +1265,14 @@ const styles = StyleSheet.create({
   },
   genderOptionActive: {
     backgroundColor: "#dbeafe",
-    borderColor: "#1976d2",
+    borderColor: "#2B5EA7",
   },
   genderOptionText: {
     fontSize: 14,
     color: "#6b7280",
   },
   genderOptionTextActive: {
-    color: "#1976d2",
+    color: "#2B5EA7",
     fontWeight: "600",
   },
   securitySection: {
@@ -1340,7 +1340,7 @@ const styles = StyleSheet.create({
     borderTopColor: "#f3f4f6",
   },
   saveButton: {
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: "center",
@@ -1386,7 +1386,7 @@ const styles = StyleSheet.create({
   datePickerDone: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#1976d2",
+    color: "#2B5EA7",
   },
   datePickerContent: {
     flexDirection: "row",
@@ -1421,7 +1421,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   datePickerItemTextActive: {
-    color: "#1976d2",
+    color: "#2B5EA7",
     fontWeight: "600",
   },
 });

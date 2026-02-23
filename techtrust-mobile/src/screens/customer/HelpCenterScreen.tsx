@@ -570,8 +570,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   categoryChipActive: {
-    backgroundColor: '#1976d2',
-    borderColor: '#1976d2',
+    backgroundColor: '#2B5EA7',
+    borderColor: '#2B5EA7',
   },
   categoryChipText: {
     fontSize: 14,
@@ -634,7 +634,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   stillNeedHelp: {
-    backgroundColor: '#1976d2',
+    backgroundColor: '#2B5EA7',
     marginHorizontal: 16,
     marginTop: 24,
     borderRadius: 16,
@@ -665,7 +665,7 @@ const styles = StyleSheet.create({
   contactButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1976d2',
+    color: '#2B5EA7',
   },
 });
 
@@ -687,7 +687,7 @@ const chatStyles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#1976d2',
+    backgroundColor: '#2B5EA7',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -702,7 +702,7 @@ const chatStyles = StyleSheet.create({
     borderBottomLeftRadius: 4,
   },
   bubbleUser: {
-    backgroundColor: '#1976d2',
+    backgroundColor: '#2B5EA7',
     borderBottomRightRadius: 4,
   },
   bubbleAgent: {
@@ -762,12 +762,12 @@ const chatStyles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1.5,
-    borderColor: '#1976d2',
+    borderColor: '#2B5EA7',
     backgroundColor: '#fff',
   },
   quickReplyText: {
     fontSize: 13,
-    color: '#1976d2',
+    color: '#2B5EA7',
     fontWeight: '500',
   },
   inputBar: {
@@ -794,7 +794,7 @@ const chatStyles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#1976d2',
+    backgroundColor: '#2B5EA7',
     justifyContent: 'center',
     alignItems: 'center',
   },

@@ -154,10 +154,10 @@ export default function ProviderEditProfileScreen({ navigation }: any) {
         {/* Logo Section */}
         <View style={styles.logoSection}>
           <View style={styles.logoContainer}>
-            <MaterialCommunityIcons name="store" size={48} color="#1976d2" />
+            <MaterialCommunityIcons name="store" size={48} color="#2B5EA7" />
           </View>
           <TouchableOpacity style={styles.changeLogoBtn}>
-            <MaterialCommunityIcons name="camera" size={16} color="#1976d2" />
+            <MaterialCommunityIcons name="camera" size={16} color="#2B5EA7" />
             <Text style={styles.changeLogoText}>
               {t.provider?.changeLogo || "Change Logo"}
             </Text>
@@ -370,7 +370,7 @@ export default function ProviderEditProfileScreen({ navigation }: any) {
           </View>
 
           <TouchableOpacity style={styles.mapButton}>
-            <MaterialCommunityIcons name="map" size={20} color="#1976d2" />
+            <MaterialCommunityIcons name="map" size={20} color="#2B5EA7" />
             <Text style={styles.mapButtonText}>
               {t.provider?.adjustOnMap || "Adjust on Map"}
             </Text>
@@ -429,7 +429,7 @@ const styles = StyleSheet.create({
   saveBtn: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#1976d2",
+    color: "#2B5EA7",
     padding: 8,
   },
   saveBtnDisabled: {
@@ -456,7 +456,7 @@ const styles = StyleSheet.create({
   },
   changeLogoText: {
     fontSize: 14,
-    color: "#1976d2",
+    color: "#2B5EA7",
     fontWeight: "500",
   },
   formSection: {
@@ -526,14 +526,14 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#1976d2",
+    borderColor: "#2B5EA7",
     borderStyle: "dashed",
     gap: 8,
   },
   mapButtonText: {
     fontSize: 15,
     fontWeight: "500",
-    color: "#1976d2",
+    color: "#2B5EA7",
   },
   verificationCard: {
     flexDirection: "row",

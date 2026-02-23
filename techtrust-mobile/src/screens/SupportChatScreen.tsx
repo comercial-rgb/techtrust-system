@@ -385,7 +385,7 @@ export default function SupportChatScreen({ navigation, route }: any) {
           {/* Active tickets banner */}
           {activeTickets.length > 0 && (
             <View style={styles.activeTicketBanner}>
-              <Ionicons name="chatbubble-ellipses" size={20} color="#1976d2" />
+              <Ionicons name="chatbubble-ellipses" size={20} color="#2B5EA7" />
               <View style={{ flex: 1, marginLeft: 10 }}>
                 <Text style={styles.activeTicketTitle}>Active Support Tickets</Text>
                 {activeTickets.map((ticket) => (
@@ -419,7 +419,7 @@ export default function SupportChatScreen({ navigation, route }: any) {
               }}
             >
               <View style={styles.topicIcon}>
-                <Ionicons name={topic.icon as any} size={24} color="#1976d2" />
+                <Ionicons name={topic.icon as any} size={24} color="#2B5EA7" />
               </View>
               <View style={styles.topicInfo}>
                 <Text style={styles.topicTitle}>{topic.title}</Text>
@@ -463,7 +463,7 @@ export default function SupportChatScreen({ navigation, route }: any) {
           <View style={styles.faqContainer}>
             <View style={styles.faqHeader}>
               <View style={styles.faqHeaderIcon}>
-                <Ionicons name={selectedTopic.icon as any} size={28} color="#1976d2" />
+                <Ionicons name={selectedTopic.icon as any} size={28} color="#2B5EA7" />
               </View>
               <Text style={styles.faqHeaderTitle}>{selectedTopic.title}</Text>
             </View>
@@ -637,7 +637,7 @@ export default function SupportChatScreen({ navigation, route }: any) {
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#1976d2" />
+          <ActivityIndicator size="large" color="#2B5EA7" />
           <Text style={styles.loadingText}>Creating support ticket...</Text>
         </View>
       </SafeAreaView>
@@ -810,7 +810,7 @@ const styles = StyleSheet.create({
   activeTicketTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1976d2',
+    color: '#2B5EA7',
     marginBottom: 6,
   },
   activeTicketItem: {
@@ -859,7 +859,7 @@ const styles = StyleSheet.create({
   humanBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1976d2',
+    backgroundColor: '#2B5EA7',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 24,
@@ -943,7 +943,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#1976d2',
+    backgroundColor: '#2B5EA7',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 8,
@@ -963,7 +963,7 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   userBubble: {
-    backgroundColor: '#1976d2',
+    backgroundColor: '#2B5EA7',
     borderTopRightRadius: 4,
     marginLeft: 'auto',
   },
@@ -1029,6 +1029,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sendBtnActive: {
-    backgroundColor: '#1976d2',
+    backgroundColor: '#2B5EA7',
   },
 });

@@ -73,6 +73,17 @@ export const shareEstimate = async (req: Request, res: Response) => {
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + expiresInDays);
 
+  // ===== Referral Fee: Capture original provider info and diagnostic fee =====
+  const originalProviderId = estimate.providerId;
+  const originalDiagnosticFee = Number(estimate.diagnosticFee) || 0;
+
+  // Calculate referral fee: fixed $20 if diagnostic fee was >= $10
+  const { REFERRAL_FEE_RULES } = await import("../config/businessRules");
+  const referralFeeAmount =
+    originalDiagnosticFee >= REFERRAL_FEE_RULES.MIN_DIAGNOSTIC_FEE_FOR_REFERRAL
+      ? REFERRAL_FEE_RULES.FIXED_FEE_AMOUNT
+      : 0;
+
   const share = await prisma.estimateShare.create({
     data: {
       shareNumber,
@@ -86,6 +97,9 @@ export const shareEstimate = async (req: Request, res: Response) => {
       shareOriginalProviderName,
       isActive: true,
       expiresAt,
+      originalProviderId,
+      originalDiagnosticFee,
+      referralFeeAmount,
     },
   });
 

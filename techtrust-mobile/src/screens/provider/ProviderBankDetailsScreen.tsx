@@ -215,7 +215,7 @@ export default function ProviderBankDetailsScreen({ navigation }: any) {
 
         {/* Info Banner */}
         <View style={styles.infoBanner}>
-          <MaterialCommunityIcons name="information" size={20} color="#1976d2" />
+          <MaterialCommunityIcons name="information" size={20} color="#2B5EA7" />
           <Text style={styles.infoText}>
             {t.provider?.paymentInfo || 'Payments are automatically transferred to the primary account within 2 business days after service completion.'}
           </Text>
@@ -227,7 +227,7 @@ export default function ProviderBankDetailsScreen({ navigation }: any) {
             <View style={styles.accountHeader}>
               <View style={styles.bankInfo}>
                 <View style={styles.bankIcon}>
-                  <MaterialCommunityIcons name="bank" size={24} color="#1976d2" />
+                  <MaterialCommunityIcons name="bank" size={24} color="#2B5EA7" />
                 </View>
                 <View>
                   <Text style={styles.bankName}>{account.bankName}</Text>
@@ -283,7 +283,7 @@ export default function ProviderBankDetailsScreen({ navigation }: any) {
                   style={styles.actionBtn}
                   onPress={() => handleSetPrimary(account.id)}
                 >
-                  <MaterialCommunityIcons name="star-outline" size={18} color="#1976d2" />
+                  <MaterialCommunityIcons name="star-outline" size={18} color="#2B5EA7" />
                   <Text style={styles.actionBtnText}>{t.provider?.setAsPrimary || 'Set as Primary'}</Text>
                 </TouchableOpacity>
               )}
@@ -425,7 +425,7 @@ export default function ProviderBankDetailsScreen({ navigation }: any) {
             style={styles.addAccountBtn}
             onPress={() => setIsAdding(true)}
           >
-            <MaterialCommunityIcons name="plus-circle" size={24} color="#1976d2" />
+            <MaterialCommunityIcons name="plus-circle" size={24} color="#2B5EA7" />
             <Text style={styles.addAccountText}>{t.provider?.addNewAccount || 'Add New Account'}</Text>
           </TouchableOpacity>
         )}
@@ -454,7 +454,7 @@ export default function ProviderBankDetailsScreen({ navigation }: any) {
         <View style={styles.modalOverlay}>
           <View style={styles.verifyModal}>
             <View style={styles.verifyModalHeader}>
-              <MaterialCommunityIcons name="bank-check" size={32} color="#1976d2" />
+              <MaterialCommunityIcons name="bank-check" size={32} color="#2B5EA7" />
               <Text style={styles.verifyModalTitle}>Verify Bank Account</Text>
               <Text style={styles.verifyModalSubtitle}>
                 Enter the two small deposit amounts that appeared in your bank account.
@@ -642,7 +642,7 @@ const styles = StyleSheet.create({
   actionBtnText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#1976d2',
+    color: '#2B5EA7',
   },
   deleteBtn: {
     backgroundColor: '#fef2f2',
@@ -658,12 +658,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 2,
     borderStyle: 'dashed',
-    borderColor: '#1976d2',
+    borderColor: '#2B5EA7',
   },
   addAccountText: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#1976d2',
+    color: '#2B5EA7',
   },
   addForm: {
     backgroundColor: '#fff',
@@ -709,14 +709,14 @@ const styles = StyleSheet.create({
   },
   bankChipActive: {
     backgroundColor: '#dbeafe',
-    borderColor: '#1976d2',
+    borderColor: '#2B5EA7',
   },
   bankChipText: {
     fontSize: 14,
     color: '#6b7280',
   },
   bankChipTextActive: {
-    color: '#1976d2',
+    color: '#2B5EA7',
     fontWeight: '500',
   },
   inputRow: {
@@ -741,7 +741,7 @@ const styles = StyleSheet.create({
   },
   typeOptionActive: {
     backgroundColor: '#dbeafe',
-    borderColor: '#1976d2',
+    borderColor: '#2B5EA7',
   },
   typeOptionText: {
     fontSize: 14,
@@ -749,7 +749,7 @@ const styles = StyleSheet.create({
     color: '#6b7280',
   },
   typeOptionTextActive: {
-    color: '#1976d2',
+    color: '#2B5EA7',
   },
   formActions: {
     flexDirection: 'row',
@@ -773,7 +773,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 10,
-    backgroundColor: '#1976d2',
+    backgroundColor: '#2B5EA7',
     alignItems: 'center',
   },
   confirmBtnText: {
@@ -818,7 +818,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#1976d2',
+    backgroundColor: '#2B5EA7',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -960,7 +960,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingVertical: 14,
     borderRadius: 10,
-    backgroundColor: '#1976d2',
+    backgroundColor: '#2B5EA7',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,

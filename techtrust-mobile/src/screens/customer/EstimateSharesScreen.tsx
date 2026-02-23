@@ -172,7 +172,7 @@ export default function EstimateSharesScreen({ navigation }: any) {
       {loading ? (
         <ActivityIndicator
           size="large"
-          color="#1976d2"
+          color="#2B5EA7"
           style={{ marginTop: 40 }}
         />
       ) : shares.length === 0 ? (
@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
   },
-  tabActive: { backgroundColor: "#1976d2" },
+  tabActive: { backgroundColor: "#2B5EA7" },
   tabText: { fontSize: 14, fontWeight: "600", color: "#6b7280" },
   tabTextActive: { color: "#fff" },
   card: {
@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 8,
   },
-  shareNumber: { fontSize: 14, fontWeight: "600", color: "#1976d2" },
+  shareNumber: { fontSize: 14, fontWeight: "600", color: "#2B5EA7" },
   statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
   statusText: { fontSize: 12, fontWeight: "600" },
   vehicleInfo: {

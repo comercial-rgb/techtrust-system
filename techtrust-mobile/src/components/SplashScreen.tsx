@@ -57,7 +57,7 @@ export default function SplashScreen({ onFinish }: SplashScreenProps) {
 
   return (
     <LinearGradient
-      colors={['#1976d2', '#1565c0', '#0d47a1']}
+      colors={['#2B5EA7', '#1B3A6B', '#0D1B2E']}
       style={styles.container}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
@@ -83,7 +83,7 @@ export default function SplashScreen({ onFinish }: SplashScreenProps) {
         {/* App Name */}
         <Animated.View style={[styles.textContainer, { opacity: textOpacity }]}>
           <Text style={styles.appName}>TechTrust</Text>
-          <Text style={styles.tagline}>AutoSolutions</Text>
+          <Text style={styles.tagline}>AutoSolutions LLC</Text>
         </Animated.View>
 
         {/* Loading Bar */}

@@ -79,7 +79,7 @@ const pt = {
     adminPortal: "Painel Administrativo",
     providerPortal: "Portal do Fornecedor",
     clientPortal: "Portal do Cliente",
-    subtitleAdmin: "TechTrust AutoSolutions",
+    subtitleAdmin: "TechTrust AutoSolutions LLC",
     metaDescription:
       "TechTrust Provider Dashboard - Gerencie seus serviços automotivos",
   },

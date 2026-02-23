@@ -13,7 +13,7 @@ const en = {
     adminPortal: 'Admin Panel',
     providerPortal: 'Supplier Portal',
     clientPortal: 'Customer Portal',
-    subtitleAdmin: 'TechTrust AutoSolutions',
+    subtitleAdmin: 'TechTrust AutoSolutions LLC',
   },
   auth: {
     email: 'Email',

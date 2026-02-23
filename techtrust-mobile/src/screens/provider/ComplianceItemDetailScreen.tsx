@@ -201,7 +201,7 @@ export default function ComplianceItemDetailScreen({ route, navigation }: any) {
 
           {documentUploads.map((url, index) => (
             <View key={index} style={styles.documentRow}>
-              <Ionicons name="document-attach" size={18} color="#1976d2" />
+              <Ionicons name="document-attach" size={18} color="#2B5EA7" />
               <Text style={styles.documentText} numberOfLines={1}>
                 Document {index + 1}
               </Text>
@@ -217,10 +217,10 @@ export default function ComplianceItemDetailScreen({ route, navigation }: any) {
             disabled={uploading}
           >
             {uploading ? (
-              <ActivityIndicator size="small" color="#1976d2" />
+              <ActivityIndicator size="small" color="#2B5EA7" />
             ) : (
               <>
-                <Ionicons name="cloud-upload" size={20} color="#1976d2" />
+                <Ionicons name="cloud-upload" size={20} color="#2B5EA7" />
                 <Text style={styles.uploadBtnText}>Upload Document</Text>
               </>
             )}
@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     gap: 8,
   },
-  documentText: { flex: 1, fontSize: 13, color: "#1976d2" },
+  documentText: { flex: 1, fontSize: 13, color: "#2B5EA7" },
   uploadBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -317,12 +317,12 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 10,
     borderWidth: 1.5,
-    borderColor: "#1976d2",
+    borderColor: "#2B5EA7",
     borderStyle: "dashed",
   },
-  uploadBtnText: { fontSize: 14, fontWeight: "600", color: "#1976d2" },
+  uploadBtnText: { fontSize: 14, fontWeight: "600", color: "#2B5EA7" },
   saveBtn: {
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: "center",

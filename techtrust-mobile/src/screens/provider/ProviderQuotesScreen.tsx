@@ -312,7 +312,7 @@ export default function ProviderQuotesScreen({ navigation }: any) {
           </Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={[styles.statValue, { color: "#1976d2" }]}>
+          <Text style={[styles.statValue, { color: "#2B5EA7" }]}>
             {conversionRate}%
           </Text>
           <Text style={styles.statLabel}>
@@ -403,7 +403,7 @@ export default function ProviderQuotesScreen({ navigation }: any) {
             </Text>
             {filter === 'all' && (
               <TouchableOpacity
-                style={{ marginTop: 16, paddingHorizontal: 20, paddingVertical: 10, backgroundColor: '#1976d2', borderRadius: 20 }}
+                style={{ marginTop: 16, paddingHorizontal: 20, paddingVertical: 10, backgroundColor: '#2B5EA7', borderRadius: 20 }}
                 onPress={() => navigation.navigate('ProviderRequests')}
               >
                 <Text style={{ fontSize: 14, color: '#fff', fontWeight: '600' }}>
@@ -467,8 +467,8 @@ const filterStyles = StyleSheet.create({
     borderColor: "#e5e7eb",
   },
   optionActive: {
-    backgroundColor: "#1976d2",
-    borderColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
+    borderColor: "#2B5EA7",
   },
   optionText: {
     fontSize: 13,

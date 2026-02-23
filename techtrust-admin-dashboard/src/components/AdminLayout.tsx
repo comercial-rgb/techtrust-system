@@ -76,9 +76,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
       >
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-100">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-admin-600 rounded-lg flex items-center justify-center">
-              <Shield className="w-5 h-5 text-white" />
-            </div>
+            <img src="/favicon.png" alt="TechTrust" className="w-8 h-8 rounded-lg" />
             <span className="font-bold text-gray-900">TechTrust</span>
             <span className="text-xs bg-admin-100 text-admin-700 px-2 py-0.5 rounded-full font-medium">
               {tr('brand.adminPortal')}

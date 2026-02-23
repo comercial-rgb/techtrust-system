@@ -169,7 +169,7 @@ export default function ProviderProfileScreen({ navigation }: any) {
                 <MaterialCommunityIcons
                   name="store"
                   size={40}
-                  color="#1976d2"
+                  color="#2B5EA7"
                 />
               )}
             </View>
@@ -194,12 +194,12 @@ export default function ProviderProfileScreen({ navigation }: any) {
             {businessTypeCat === 'BOTH' && (
               <View style={{ flexDirection: 'row', gap: 4 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#dbeafe', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, gap: 3 }}>
-                  <MaterialCommunityIcons name="wrench" size={12} color="#1976d2" />
-                  <Text style={{ fontSize: 11, color: '#1976d2', fontWeight: '600' }}>{t.provider?.repairShop || 'Repair'}</Text>
+                  <MaterialCommunityIcons name="wrench" size={12} color="#2B5EA7" />
+                  <Text style={{ fontSize: 11, color: '#2B5EA7', fontWeight: '600' }}>{t.provider?.repairShop || 'Repair'}</Text>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#dbeafe', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, gap: 3 }}>
-                  <MaterialCommunityIcons name="car-wash" size={12} color="#1976d2" />
-                  <Text style={{ fontSize: 11, color: '#1976d2', fontWeight: '600' }}>{t.provider?.carWash || 'Car Wash'}</Text>
+                  <MaterialCommunityIcons name="car-wash" size={12} color="#2B5EA7" />
+                  <Text style={{ fontSize: 11, color: '#2B5EA7', fontWeight: '600' }}>{t.provider?.carWash || 'Car Wash'}</Text>
                 </View>
               </View>
             )}
@@ -500,7 +500,7 @@ export default function ProviderProfileScreen({ navigation }: any) {
                   <MaterialCommunityIcons
                     name="check"
                     size={20}
-                    color="#1976d2"
+                    color="#2B5EA7"
                   />
                 )}
               </TouchableOpacity>
@@ -603,7 +603,7 @@ function NotificationItem({
         value={value}
         onValueChange={onToggle}
         trackColor={{ false: "#d1d5db", true: "#93c5fd" }}
-        thumbColor={value ? "#1976d2" : "#9ca3af"}
+        thumbColor={value ? "#2B5EA7" : "#9ca3af"}
       />
     </View>
   );
@@ -678,7 +678,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 0,
     right: 0,
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     borderRadius: 12,
     padding: 6,
     borderWidth: 2,
@@ -838,7 +838,7 @@ const styles = StyleSheet.create({
   languageOptionSelected: {
     backgroundColor: "#eff6ff",
     borderWidth: 1,
-    borderColor: "#1976d2",
+    borderColor: "#2B5EA7",
   },
   languageOptionFlag: {
     fontSize: 24,
@@ -851,7 +851,7 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   languageOptionTextSelected: {
-    color: "#1976d2",
+    color: "#2B5EA7",
     fontWeight: "600",
   },
 });

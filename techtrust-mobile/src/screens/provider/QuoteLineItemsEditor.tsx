@@ -328,7 +328,7 @@ const styles = StyleSheet.create({
   },
   addButton: {
     flexDirection: "row",
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 8,
@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   typeOptionActive: {
-    backgroundColor: "#1976d2",
+    backgroundColor: "#2B5EA7",
   },
   typeOptionText: {
     fontSize: 12,
