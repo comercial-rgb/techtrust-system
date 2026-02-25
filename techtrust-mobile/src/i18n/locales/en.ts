@@ -302,6 +302,13 @@ export default {
     invalidPhone: "Invalid phone number. Please check and try again.",
     socialLoginComingSoon: "login will be available soon!",
     biometricLoginComingSoon: "Biometric login will be available soon!",
+    otpMethodLabel: "How would you like to verify your account?",
+    otpViaSms: "Code via text",
+    otpViaEmail: "Code via email",
+    switchToEmail: "📧 Switch to Email verification",
+    switchToSms: "📱 Switch to SMS verification",
+    codeSentToEmail: "Code sent to your email!",
+    codeSentToPhone: "Code sent to your phone!",
   },
 
   // Service Request

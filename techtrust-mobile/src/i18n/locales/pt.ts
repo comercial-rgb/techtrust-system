@@ -304,6 +304,13 @@ export default {
     invalidPhone: "Telefone inválido. Verifique o número e tente novamente.",
     socialLoginComingSoon: "login estará disponível em breve!",
     biometricLoginComingSoon: "Login biométrico estará disponível em breve!",
+    otpMethodLabel: "Como deseja verificar sua conta?",
+    otpViaSms: "Código via SMS",
+    otpViaEmail: "Código via e-mail",
+    switchToEmail: "📧 Mudar para verificação por E-mail",
+    switchToSms: "📱 Mudar para verificação por SMS",
+    codeSentToEmail: "Código enviado para seu e-mail!",
+    codeSentToPhone: "Código enviado para seu telefone!",
   },
 
   // Service Request

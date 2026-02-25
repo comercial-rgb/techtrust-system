@@ -9,6 +9,7 @@ import {
   StyleSheet,
   TextInput as RNTextInput,
   Alert,
+  TouchableOpacity,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Text, useTheme } from "react-native-paper";
@@ -237,6 +238,51 @@ export default function OTPScreen({ route, navigation }: any) {
                   "SMS was unavailable. Code sent via email instead."}
               </Text>
             )}
+
+            {/* Switch OTP method */}
+            <TouchableOpacity
+              onPress={() => {
+                const newMethod = otpMethod === "sms" ? "email" : "sms";
+                setOtpMethod(newMethod);
+                setOtp(["", "", "", "", "", ""]);
+                setCanResend(false);
+                setResendTimer(60);
+                if (userId) {
+                  setLoading(true);
+                  resendOTP(userId, newMethod)
+                    .then(() => {
+                      success(
+                        newMethod === "email"
+                          ? (t.auth?.codeSentToEmail || "Code sent to your email!")
+                          : (t.auth?.codeSentToPhone || "Code sent to your phone!")
+                      );
+                    })
+                    .catch(() => {})
+                    .finally(() => setLoading(false));
+                }
+              }}
+              style={{
+                marginTop: 12,
+                alignSelf: "center",
+                backgroundColor: "#f0f9ff",
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                borderRadius: 20,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontWeight: "600",
+                  color: theme.colors.primary,
+                }}
+              >
+                {otpMethod === "sms"
+                  ? (t.auth?.switchToEmail || "📧 Switch to Email verification")
+                  : (t.auth?.switchToSms || "📱 Switch to SMS verification")
+                }
+              </Text>
+            </TouchableOpacity>
           </View>
         </FadeInView>
 

@@ -93,6 +93,7 @@ interface SignupData {
   businessCity?: string;
   businessState?: string;
   businessZipCode?: string;
+  preferredOtpMethod?: "sms" | "email";
 }
 
 // ============================================

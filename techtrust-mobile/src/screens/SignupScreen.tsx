@@ -90,6 +90,7 @@ export default function SignupScreen({ navigation }: any) {
     new Set(["CAR", "SUV", "TRUCK", "VAN"]), // common defaults
   );
   const [providerSellsParts, setProviderSellsParts] = useState(false);
+  const [otpMethod, setOtpMethod] = useState<"sms" | "email">("sms");
 
   // ✨ Toast hook
   const { toast, error, hideToast } = useToast();
@@ -280,7 +281,7 @@ export default function SignupScreen({ navigation }: any) {
 
       const {
         userId,
-        otpMethod,
+        otpMethod: responseOtpMethod,
         email: responseEmail,
       } = await signUp({
         fullName,
@@ -289,6 +290,7 @@ export default function SignupScreen({ navigation }: any) {
         password,
         language: "PT",
         role: selectedRole,
+        preferredOtpMethod: otpMethod,
         ...(selectedRole === "PROVIDER"
           ? {
               businessName,
@@ -306,7 +308,7 @@ export default function SignupScreen({ navigation }: any) {
       navigation.navigate("OTP", {
         userId,
         phone: normalizedPhone,
-        otpMethod: otpMethod || "sms",
+        otpMethod: responseOtpMethod || otpMethod || "sms",
         email: responseEmail || email,
       });
     } catch (err: any) {
@@ -818,6 +820,59 @@ export default function SignupScreen({ navigation }: any) {
               </>
             )}
 
+            {/* ── OTP Method Choice ── */}
+            <SlideInView direction="left" delay={365}>
+              <View style={signupCapStyles.otpMethodContainer}>
+                <Text style={signupCapStyles.otpMethodLabel}>
+                  {t.auth?.otpMethodLabel || "How would you like to verify your account?"}
+                </Text>
+                <View style={signupCapStyles.otpMethodRow}>
+                  <TouchableOpacity
+                    style={[
+                      signupCapStyles.otpMethodCard,
+                      otpMethod === "sms" && signupCapStyles.otpMethodCardActive,
+                    ]}
+                    onPress={() => setOtpMethod("sms")}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={signupCapStyles.otpMethodIcon}>📱</Text>
+                    <Text
+                      style={[
+                        signupCapStyles.otpMethodTitle,
+                        otpMethod === "sms" && signupCapStyles.otpMethodTitleActive,
+                      ]}
+                    >
+                      SMS
+                    </Text>
+                    <Text style={signupCapStyles.otpMethodDesc}>
+                      {t.auth?.otpViaSms || "Code via text"}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      signupCapStyles.otpMethodCard,
+                      otpMethod === "email" && signupCapStyles.otpMethodCardActive,
+                    ]}
+                    onPress={() => setOtpMethod("email")}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={signupCapStyles.otpMethodIcon}>📧</Text>
+                    <Text
+                      style={[
+                        signupCapStyles.otpMethodTitle,
+                        otpMethod === "email" && signupCapStyles.otpMethodTitleActive,
+                      ]}
+                    >
+                      Email
+                    </Text>
+                    <Text style={signupCapStyles.otpMethodDesc}>
+                      {t.auth?.otpViaEmail || "Code via email"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </SlideInView>
+
             {/* Botões */}
             <FadeInView delay={370}>
               <View style={styles.buttonsContainer}>
@@ -1219,6 +1274,49 @@ const signupCapStyles = StyleSheet.create({
   partsHint: {
     fontSize: 12,
     color: "#6b7280",
+    marginTop: 2,
+  },
+  otpMethodContainer: {
+    marginBottom: 8,
+  },
+  otpMethodLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#374151",
+    marginBottom: 10,
+  },
+  otpMethodRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  otpMethodCard: {
+    flex: 1,
+    alignItems: "center",
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: "#e5e7eb",
+    backgroundColor: "#fff",
+  },
+  otpMethodCardActive: {
+    borderColor: "#2B5EA7",
+    backgroundColor: "#eff6ff",
+  },
+  otpMethodIcon: {
+    fontSize: 24,
+    marginBottom: 4,
+  },
+  otpMethodTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#374151",
+  },
+  otpMethodTitleActive: {
+    color: "#2B5EA7",
+  },
+  otpMethodDesc: {
+    fontSize: 11,
+    color: "#9ca3af",
     marginTop: 2,
   },
 });

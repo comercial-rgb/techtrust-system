@@ -306,6 +306,13 @@ export default {
     socialLoginComingSoon: "¡login estará disponible pronto!",
     biometricLoginComingSoon:
       "¡El inicio de sesión biométrico estará disponible pronto!",
+    otpMethodLabel: "¿Cómo deseas verificar tu cuenta?",
+    otpViaSms: "Código por SMS",
+    otpViaEmail: "Código por correo",
+    switchToEmail: "📧 Cambiar a verificación por Correo",
+    switchToSms: "📱 Cambiar a verificación por SMS",
+    codeSentToEmail: "¡Código enviado a tu correo!",
+    codeSentToPhone: "¡Código enviado a tu teléfono!",
   },
 
   // Service Request
