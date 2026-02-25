@@ -202,7 +202,7 @@ export default function ServicosPage() {
               placeholder={t('services.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="input pl-12"
+              className="input !pl-12"
             />
           </div>
 

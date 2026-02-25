@@ -194,7 +194,7 @@ export default function UsuariosPage() {
               placeholder="Buscar por nome, email ou telefone..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="input pl-10"
+              className="input !pl-10"
             />
           </div>
           <select

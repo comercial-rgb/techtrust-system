@@ -98,6 +98,8 @@ export default function CadastroPage() {
   const [otpCode, setOtpCode] = useState('')
   const [resending, setResending] = useState(false)
   const [showLoginLink, setShowLoginLink] = useState(false)
+  const [otpMethod, setOtpMethod] = useState<'sms' | 'email'>('sms')
+  const [activeOtpMethod, setActiveOtpMethod] = useState<'sms' | 'email'>('sms')
 
   // ─── Validation ───
   const validateStep1 = () => {
@@ -195,16 +197,18 @@ export default function CadastroPage() {
         servicesOffered: Array.from(selectedServices),
         vehicleTypesServed: Array.from(selectedVehicles),
         sellsParts,
+        preferredOtpMethod: otpMethod,
       })
 
       const data = response.data?.data
       if (data?.userId) {
         setUserId(data.userId)
+        setActiveOtpMethod(data.otpMethod || otpMethod)
         setStep('otp')
         // If OTP was not sent during signup, auto-trigger resend
         if (data.otpSent === false) {
           try {
-            await api.post('/auth/resend-otp', { userId: data.userId, method: 'sms' })
+            await api.post('/auth/resend-otp', { userId: data.userId, method: otpMethod })
           } catch {}
         }
       } else {
@@ -237,7 +241,7 @@ export default function CadastroPage() {
       await api.post('/auth/verify-otp', {
         userId,
         otpCode: otpCode.trim(),
-        method: 'sms',
+        method: activeOtpMethod,
       })
       setStep('success')
     } catch (err: any) {
@@ -250,7 +254,7 @@ export default function CadastroPage() {
   const handleResendOtp = async () => {
     setResending(true)
     try {
-      await api.post('/auth/resend-otp', { userId, method: 'sms' })
+      await api.post('/auth/resend-otp', { userId, method: activeOtpMethod })
     } catch {}
     setTimeout(() => setResending(false), 30000)
   }
@@ -363,7 +367,7 @@ export default function CadastroPage() {
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="John Doe"
-                    className="input pl-11"
+                    className="input !pl-11"
                   />
                 </div>
               </div>
@@ -379,7 +383,7 @@ export default function CadastroPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="your@email.com"
-                    className="input pl-11"
+                    className="input !pl-11"
                   />
                 </div>
               </div>
@@ -399,7 +403,7 @@ export default function CadastroPage() {
                       value={phone}
                       onChange={(e) => setPhone(formatPhone(e.target.value))}
                       placeholder="(305) 555-0123"
-                      className="input rounded-l-none pl-3"
+                      className="input rounded-l-none !pl-3"
                     />
                   </div>
                 </div>
@@ -416,7 +420,7 @@ export default function CadastroPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="input pl-11 pr-12"
+                    className="input !pl-11 !pr-12"
                   />
                   <button
                     type="button"
@@ -442,7 +446,7 @@ export default function CadastroPage() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="input pl-11"
+                    className="input !pl-11"
                   />
                 </div>
               </div>
@@ -491,7 +495,7 @@ export default function CadastroPage() {
                     value={businessName}
                     onChange={(e) => setBusinessName(e.target.value)}
                     placeholder="Joe's Auto Repair"
-                    className="input pl-11"
+                    className="input !pl-11"
                   />
                 </div>
               </div>
@@ -507,7 +511,7 @@ export default function CadastroPage() {
                     value={businessAddress}
                     onChange={(e) => setBusinessAddress(e.target.value)}
                     placeholder="123 Main Street"
-                    className="input pl-11"
+                    className="input !pl-11"
                   />
                 </div>
               </div>
@@ -657,6 +661,45 @@ export default function CadastroPage() {
                 </button>
               </div>
 
+              {/* OTP Method Choice */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {tr('signup.otpMethodLabel') || 'How would you like to verify your account?'}
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setOtpMethod('sms')}
+                    className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${
+                      otpMethod === 'sms'
+                        ? 'border-primary-500 bg-primary-50'
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                    }`}
+                  >
+                    <Phone className={`w-5 h-5 ${otpMethod === 'sms' ? 'text-primary-600' : 'text-gray-400'}`} />
+                    <div className="text-left">
+                      <p className={`text-sm font-semibold ${otpMethod === 'sms' ? 'text-primary-700' : 'text-gray-700'}`}>SMS</p>
+                      <p className="text-xs text-gray-400">{tr('signup.otpViaSms') || 'Code via text'}</p>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOtpMethod('email')}
+                    className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${
+                      otpMethod === 'email'
+                        ? 'border-primary-500 bg-primary-50'
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                    }`}
+                  >
+                    <Mail className={`w-5 h-5 ${otpMethod === 'email' ? 'text-primary-600' : 'text-gray-400'}`} />
+                    <div className="text-left">
+                      <p className={`text-sm font-semibold ${otpMethod === 'email' ? 'text-primary-700' : 'text-gray-700'}`}>Email</p>
+                      <p className="text-xs text-gray-400">{tr('signup.otpViaEmail') || 'Code via email'}</p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
               <button
                 type="submit"
                 disabled={loading}
@@ -678,18 +721,51 @@ export default function CadastroPage() {
           {step === 'otp' && (
             <form onSubmit={handleVerifyOtp} className="space-y-5">
               <div className="text-center">
-                <div className="w-16 h-16 rounded-full bg-primary-100 flex items-center justify-center mx-auto mb-4">
-                  <Phone className="w-8 h-8 text-primary-600" />
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
+                  activeOtpMethod === 'email' ? 'bg-blue-100' : 'bg-primary-100'
+                }`}>
+                  {activeOtpMethod === 'email'
+                    ? <Mail className="w-8 h-8 text-blue-600" />
+                    : <Phone className="w-8 h-8 text-primary-600" />
+                  }
                 </div>
                 <h2 className="text-xl font-bold text-gray-900 mb-2">
-                  {tr('signup.verifyTitle') || 'Verify Your Phone'}
+                  {activeOtpMethod === 'email'
+                    ? (tr('signup.verifyTitleEmail') || 'Verify Your Email')
+                    : (tr('signup.verifyTitle') || 'Verify Your Phone')
+                  }
                 </h2>
                 <p className="text-sm text-gray-500">
-                  {tr('signup.verifyDesc') || 'We sent a verification code to your phone number'}
+                  {activeOtpMethod === 'email'
+                    ? (tr('signup.verifyDescEmail') || 'We sent a verification code to your email address')
+                    : (tr('signup.verifyDesc') || 'We sent a verification code to your phone number')
+                  }
                 </p>
                 <p className="text-sm font-semibold text-gray-700 mt-1">
-                  +1 {phone}
+                  {activeOtpMethod === 'email' ? email : `+1 ${phone}`}
                 </p>
+              </div>
+
+              {/* Switch method */}
+              <div className="flex items-center justify-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newMethod = activeOtpMethod === 'sms' ? 'email' : 'sms'
+                    setActiveOtpMethod(newMethod)
+                    setOtpCode('')
+                    setError('')
+                    setResending(true)
+                    api.post('/auth/resend-otp', { userId, method: newMethod }).catch(() => {})
+                    setTimeout(() => setResending(false), 30000)
+                  }}
+                  className="text-xs text-primary-600 hover:text-primary-700 font-medium bg-primary-50 px-3 py-1.5 rounded-lg"
+                >
+                  {activeOtpMethod === 'sms'
+                    ? (tr('signup.switchToEmail') || '📧 Switch to Email verification')
+                    : (tr('signup.switchToSms') || '📱 Switch to SMS verification')
+                  }
+                </button>
               </div>
 
               <div>

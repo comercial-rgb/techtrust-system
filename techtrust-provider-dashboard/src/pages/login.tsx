@@ -267,7 +267,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="seu@email.com"
-                  className="input pl-12"
+                  className="input !pl-12"
                   disabled={loading}
                 />
               </div>
@@ -284,7 +284,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="input pl-12 pr-12"
+                  className="input !pl-12 !pr-12"
                   disabled={loading}
                 />
                 <button
@@ -335,7 +335,7 @@ export default function LoginPage() {
 
           {/* Register link */}
           <Link
-            href="/cadastro"
+            href="/register"
             className="btn btn-outline w-full py-3 text-base"
           >
             {tr('provider.registerCta')}

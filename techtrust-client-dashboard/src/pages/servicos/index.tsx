@@ -164,7 +164,7 @@ export default function ServicosPage() {
       <div className="flex flex-col md:flex-row gap-4 mb-6">
         <div className="flex-1 relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input type="text" placeholder="Buscar serviços..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="input pl-12" />
+          <input type="text" placeholder="Buscar serviços..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="input !pl-12" />
         </div>
         <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
           {filterOptions.map((option) => (

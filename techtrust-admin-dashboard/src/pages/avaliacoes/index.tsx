@@ -82,7 +82,7 @@ export default function AvaliacoesPage() {
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input type="text" placeholder="Buscar por comentário, cliente ou fornecedor..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="input pl-10" />
+            <input type="text" placeholder="Buscar por comentário, cliente ou fornecedor..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="input !pl-10" />
           </div>
           <select value={ratingFilter} onChange={(e) => setRatingFilter(e.target.value)} className="input w-auto">
             <option value="all">Todas</option>

@@ -222,7 +222,7 @@ export default function FaturasPage() {
               placeholder={t("invoices.searchPlaceholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="input pl-12"
+              className="input !pl-12"
             />
           </div>
           <select

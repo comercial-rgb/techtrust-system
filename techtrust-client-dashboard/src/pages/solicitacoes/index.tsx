@@ -173,7 +173,7 @@ export default function SolicitacoesPage() {
             placeholder="Buscar solicitações..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="input pl-12"
+            className="input !pl-12"
           />
         </div>
         <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">

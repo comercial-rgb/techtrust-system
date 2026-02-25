@@ -34,7 +34,8 @@ body {
   }
   
   .input {
-    @apply w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-admin-500 focus:border-transparent transition-all outline-none;
+    @apply w-full pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-admin-500 focus:border-transparent transition-all outline-none;
+    padding-left: 1rem; /* default pl-4, overridden by utility pl-* classes */
   }
   
   .card {

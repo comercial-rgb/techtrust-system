@@ -447,7 +447,7 @@ export default function ServicoDetalhesPage() {
                       step="0.01"
                       value={finalAmount}
                       onChange={(e) => setFinalAmount(e.target.value)}
-                      className="input pl-12"
+                      className="input !pl-12"
                     />
                   </div>
                   <p className="text-xs text-gray-500 mt-1">

@@ -140,7 +140,7 @@ export default function PedidosPage() {
               placeholder={t('requests.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="input pl-12"
+              className="input !pl-12"
             />
           </div>
 

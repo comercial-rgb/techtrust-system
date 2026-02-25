@@ -502,7 +502,7 @@ export default function PedidoDetalhesPage() {
                         value={partsCost}
                         onChange={(e) => setPartsCost(e.target.value)}
                         placeholder="0.00"
-                        className="input pl-12"
+                        className="input !pl-12"
                         required
                       />
                     </div>
@@ -521,7 +521,7 @@ export default function PedidoDetalhesPage() {
                         value={laborCost}
                         onChange={(e) => setLaborCost(e.target.value)}
                         placeholder="0.00"
-                        className="input pl-12"
+                        className="input !pl-12"
                         required
                       />
                     </div>
@@ -653,7 +653,7 @@ export default function PedidoDetalhesPage() {
                           value={hourlyRate}
                           onChange={(e) => setHourlyRate(e.target.value)}
                           placeholder="0.00"
-                          className="input pl-12"
+                          className="input !pl-12"
                         />
                       </div>
                     </div>
@@ -673,7 +673,7 @@ export default function PedidoDetalhesPage() {
                           value={shopSuppliesFee}
                           onChange={(e) => setShopSuppliesFee(e.target.value)}
                           placeholder="0.00"
-                          className="input pl-12"
+                          className="input !pl-12"
                         />
                       </div>
                       <p className="text-xs text-gray-400 mt-1">
@@ -753,7 +753,7 @@ export default function PedidoDetalhesPage() {
                             setDailyStorageCharge(e.target.value)
                           }
                           placeholder="0.00"
-                          className="input pl-12"
+                          className="input !pl-12"
                         />
                       </div>
                       <p className="text-xs text-gray-400 mt-1">
