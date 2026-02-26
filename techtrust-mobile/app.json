@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "techtrust-mobile",
+    "name": "TechTrust Auto Solutions",
     "slug": "techtrust-mobile",
     "version": "1.0.15",
     "orientation": "portrait",
@@ -15,11 +15,14 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.techtrustautosolutions.mobile",
-      "buildNumber": "22",
+      "buildNumber": "23",
       "usesAppleSignIn": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSFaceIDUsageDescription": "Use Face ID to securely log in to your TechTrust account"
+        "NSFaceIDUsageDescription": "Use Face ID to securely log in to your TechTrust account",
+        "NSCameraUsageDescription": "TechTrust needs camera access to take photos of vehicles and documents for service requests",
+        "NSPhotoLibraryUsageDescription": "TechTrust needs photo library access to upload vehicle photos and documents",
+        "NSLocationWhenInUseUsageDescription": "TechTrust uses your location to find nearby auto service providers and show accurate service areas"
       }
     },
     "android": {
@@ -30,7 +33,7 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.techtrustautosolutions.mobile",
-      "versionCode": 22,
+      "versionCode": 23,
       "softwareKeyboardLayoutMode": "pan",
       "config": {
         "googleMaps": {
