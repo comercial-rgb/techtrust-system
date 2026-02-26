@@ -678,6 +678,15 @@ export default {
     estimatedTravelCost: "Costo estimado de desplazamiento",
     availableAfterAccept: "Disponible después de la aceptación",
     chatWithCustomer: "Chatear con Cliente",
+    // OE Parts (17vin)
+    oeParts: "Piezas Originales (OE)",
+    oePartsHint: "Toca para buscar los números de piezas originales por VIN",
+    oePartsSearch: "Buscar piezas...",
+    oePartCopied: "Número de Pieza Copiado",
+    oePartsMore: "más piezas...",
+    oePartsNoResults: "No se encontraron piezas",
+    oePartsLoading: "Buscando piezas originales...",
+    oePartsError: "No se pudieron obtener las piezas",
     // Edit Profile
     profileUpdated: "¡Perfil actualizado exitosamente!",
     changeLogo: "Cambiar Logo",

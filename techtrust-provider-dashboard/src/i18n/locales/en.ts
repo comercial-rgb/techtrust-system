@@ -290,6 +290,9 @@ const en = {
       plate: "Plate",
       color: "Color",
       mileage: "Mileage",
+      oeParts: "OE Part Numbers",
+      oePartsHint: "Click to lookup factory part numbers for this VIN",
+      oePartsSearch: "Search part numbers...",
       quotesCount: "provider(s) have already sent a quote. Be competitive!",
     },
     quoteModal: {

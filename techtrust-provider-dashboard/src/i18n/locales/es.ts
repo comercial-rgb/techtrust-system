@@ -290,6 +290,9 @@ const es = {
       plate: "Placa",
       color: "Color",
       mileage: "Km",
+      oeParts: "Piezas Originales (OE)",
+      oePartsHint: "Haga clic para buscar los números de piezas originales por VIN",
+      oePartsSearch: "Buscar piezas...",
       quotesCount: "proveedor(es) ya enviaron cotización. ¡Sé competitivo!",
     },
     quoteModal: {

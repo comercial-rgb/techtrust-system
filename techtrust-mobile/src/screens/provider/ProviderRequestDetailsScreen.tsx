@@ -27,6 +27,7 @@ import { useI18n } from "../../i18n";
 import { useNotifications } from "../../contexts/NotificationsContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import api from "../../services/api";
+import { getOePartsByVin } from "../../services/oe-parts.service";
 import { getServiceTypeInfo as getServiceTypeInfoFromTree } from "../../constants/serviceTree";
 
 const QUOTE_TEMPLATES_KEY = "@TechTrust:quoteTemplates";
@@ -118,6 +119,13 @@ export default function ProviderRequestDetailsScreen({
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [requestDetailsExpanded, setRequestDetailsExpanded] = useState(false);
 
+  // OE Parts lookup state
+  const [oePartsExpanded, setOePartsExpanded] = useState(false);
+  const [oePartsLoading, setOePartsLoading] = useState(false);
+  const [oePartNumbers, setOePartNumbers] = useState<string[]>([]);
+  const [oePartsError, setOePartsError] = useState("");
+  const [oePartsSearchQuery, setOePartsSearchQuery] = useState("");
+
   // D6: Quick Quote Templates
   const [quoteTemplates, setQuoteTemplates] = useState<QuoteTemplate[]>([]);
   const [showTemplatesModal, setShowTemplatesModal] = useState(false);
@@ -193,6 +201,30 @@ export default function ProviderRequestDetailsScreen({
       if (saved) setQuoteTemplates(JSON.parse(saved));
     } catch { /* silent */ }
   };
+
+  // OE Parts lookup
+  const handleLookupOeParts = async () => {
+    if (!request?.vehicle?.vin) {
+      Alert.alert("VIN Required", "This vehicle doesn't have a VIN registered.");
+      return;
+    }
+    setOePartsLoading(true);
+    setOePartsError("");
+    setOePartsExpanded(true);
+    try {
+      const result = await getOePartsByVin(request.vehicle.vin);
+      setOePartNumbers(result.parts.partNumbers);
+    } catch (error: any) {
+      const msg = error.response?.data?.message || error.message || "Failed to fetch OE parts";
+      setOePartsError(msg);
+    } finally {
+      setOePartsLoading(false);
+    }
+  };
+
+  const filteredOeParts = oePartsSearchQuery
+    ? oePartNumbers.filter(p => p.toLowerCase().includes(oePartsSearchQuery.toLowerCase()))
+    : oePartNumbers;
 
   const saveQuoteTemplate = async (name: string) => {
     const template: QuoteTemplate = {
@@ -1160,6 +1192,132 @@ export default function ProviderRequestDetailsScreen({
             </View>
           )}
         </View>
+
+        {/* OE Parts Lookup Card */}
+        {request.vehicle.vin ? (
+          <View style={styles.card}>
+            <TouchableOpacity
+              style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+              onPress={() => {
+                if (oePartNumbers.length === 0 && !oePartsLoading) {
+                  handleLookupOeParts();
+                } else {
+                  setOePartsExpanded(!oePartsExpanded);
+                }
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <MaterialCommunityIcons name="cog-box" size={22} color="#2B5EA7" />
+                <Text style={styles.cardTitle}>
+                  {t.provider?.oeParts || "OE Part Numbers"}
+                </Text>
+                {oePartNumbers.length > 0 && (
+                  <View style={{ backgroundColor: '#dbeafe', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 }}>
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: '#2563eb' }}>
+                      {filteredOeParts.length}
+                    </Text>
+                  </View>
+                )}
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                {oePartsLoading && <ActivityIndicator size="small" color="#2B5EA7" />}
+                <MaterialCommunityIcons
+                  name={oePartsExpanded ? "chevron-up" : "chevron-down"}
+                  size={22}
+                  color="#6b7280"
+                />
+              </View>
+            </TouchableOpacity>
+
+            {!oePartsExpanded && oePartNumbers.length === 0 && !oePartsLoading && (
+              <Text style={{ fontSize: 13, color: '#6b7280', marginTop: 8 }}>
+                {t.provider?.oePartsHint || "Tap to lookup factory part numbers for this vehicle's VIN"}
+              </Text>
+            )}
+
+            {oePartsError ? (
+              <View style={{ marginTop: 12, padding: 12, backgroundColor: '#fef2f2', borderRadius: 10 }}>
+                <Text style={{ fontSize: 13, color: '#dc2626' }}>{oePartsError}</Text>
+                <TouchableOpacity onPress={handleLookupOeParts} style={{ marginTop: 8 }}>
+                  <Text style={{ fontSize: 13, color: '#2B5EA7', fontWeight: '600' }}>
+                    {t.common?.tryAgain || "Try Again"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
+
+            {oePartsExpanded && oePartNumbers.length > 0 && (
+              <View style={{ marginTop: 12 }}>
+                {/* Search filter */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#f3f4f6', borderRadius: 10, paddingHorizontal: 12, marginBottom: 10 }}>
+                  <MaterialCommunityIcons name="magnify" size={18} color="#9ca3af" />
+                  <TextInput
+                    style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 8, fontSize: 14, color: '#111827' }}
+                    placeholder={t.provider?.oePartsSearch || "Search part numbers..."}
+                    placeholderTextColor="#9ca3af"
+                    value={oePartsSearchQuery}
+                    onChangeText={setOePartsSearchQuery}
+                    autoCapitalize="characters"
+                  />
+                  {oePartsSearchQuery ? (
+                    <TouchableOpacity onPress={() => setOePartsSearchQuery("")}>
+                      <MaterialCommunityIcons name="close-circle" size={18} color="#9ca3af" />
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+
+                {/* Parts list */}
+                <View style={{ maxHeight: 300 }}>
+                  <ScrollView nestedScrollEnabled style={{ maxHeight: 300 }}>
+                    {filteredOeParts.slice(0, 100).map((part, index) => (
+                      <TouchableOpacity
+                        key={`${part}-${index}`}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          paddingVertical: 8,
+                          paddingHorizontal: 10,
+                          borderBottomWidth: index < filteredOeParts.length - 1 ? 1 : 0,
+                          borderBottomColor: '#f3f4f6',
+                        }}
+                        onPress={() => {
+                          // Copy part number to clipboard
+                          import('react-native').then(({ Clipboard }) => {
+                            if (Clipboard?.setString) Clipboard.setString(part);
+                          }).catch(() => {});
+                          Alert.alert(
+                            t.provider?.oePartCopied || "Part Number Copied",
+                            part,
+                          );
+                        }}
+                      >
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                          <MaterialCommunityIcons name="cog-outline" size={14} color="#6b7280" />
+                          <Text style={{ fontSize: 13, color: '#111827', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
+                            {part}
+                          </Text>
+                        </View>
+                        <MaterialCommunityIcons name="content-copy" size={14} color="#9ca3af" />
+                      </TouchableOpacity>
+                    ))}
+                    {filteredOeParts.length > 100 && (
+                      <Text style={{ textAlign: 'center', padding: 12, fontSize: 12, color: '#6b7280' }}>
+                        {`+${filteredOeParts.length - 100} ${t.provider?.oePartsMore || "more parts..."}`}
+                      </Text>
+                    )}
+                  </ScrollView>
+                </View>
+
+                {oePartsSearchQuery && filteredOeParts.length === 0 && (
+                  <Text style={{ textAlign: 'center', padding: 16, fontSize: 13, color: '#9ca3af' }}>
+                    {t.provider?.oePartsNoResults || "No parts matching your search"}
+                  </Text>
+                )}
+              </View>
+            )}
+          </View>
+        ) : null}
 
         {/* Competition Info */}
         <View style={styles.competitionCard}>

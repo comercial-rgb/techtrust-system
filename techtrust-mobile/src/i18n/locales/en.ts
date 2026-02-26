@@ -666,6 +666,15 @@ export default {
     estimatedTravelCost: "Estimated travel cost",
     availableAfterAccept: "Available after acceptance",
     chatWithCustomer: "Chat with Customer",
+    // OE Parts (17vin)
+    oeParts: "OE Part Numbers",
+    oePartsHint: "Tap to lookup factory part numbers for this vehicle's VIN",
+    oePartsSearch: "Search part numbers...",
+    oePartCopied: "Part Number Copied",
+    oePartsMore: "more parts...",
+    oePartsNoResults: "No parts matching your search",
+    oePartsLoading: "Looking up OE parts...",
+    oePartsError: "Could not fetch OE parts",
     // Additional Parts Request
     requestAdditionalParts: "Request Additional Parts",
     additionalPartsInfo:

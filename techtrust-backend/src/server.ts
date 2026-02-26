@@ -55,6 +55,7 @@ import verificationRoutes from "./routes/verification.routes";
 import multiStateRoutes from "./routes/multi-state.routes";
 import carWashRoutes from "./routes/car-wash.routes";
 import partsStoreRoutes from "./routes/parts-store.routes";
+import oePartsRoutes from "./routes/oe-parts.routes";
 
 // Carregar variáveis de ambiente
 dotenv.config();
@@ -273,6 +274,7 @@ app.use(`/api/${API_VERSION}/verification`, verificationRoutes); // Verification
 app.use(`/api/${API_VERSION}/multi-state`, multiStateRoutes); // Multi-state compliance management
 app.use(`/api/${API_VERSION}/car-wash`, carWashRoutes); // Car Wash discovery & management
 app.use(`/api/${API_VERSION}/parts-store`, partsStoreRoutes); // Auto Parts Store discovery & management
+app.use(`/api/${API_VERSION}/oe-parts`, oePartsRoutes); // OE Parts lookup via 17vin API
 
 // ============================================
 // ERROR HANDLER (deve ser o último middleware)
