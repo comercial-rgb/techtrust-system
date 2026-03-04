@@ -223,10 +223,11 @@ export const signup = async (req: Request, res: Response) => {
       );
     }
 
-    // Verificar se telefone já existe
-    const existingPhone = await prisma.user.findUnique({
-      where: { phone },
-    });
+    // Verificar se telefone já existe (only if phone was provided)
+    if (phone) {
+      const existingPhone = await prisma.user.findUnique({
+        where: { phone },
+      });
 
     if (existingPhone) {
       // Se o usuário existe mas NÃO verificou → reenviar OTP
@@ -370,6 +371,7 @@ export const signup = async (req: Request, res: Response) => {
         "PHONE_ALREADY_EXISTS",
       );
     }
+    } // end if (phone)
 
     // Hash da senha
     const passwordHash = await hashPassword(password);
@@ -384,7 +386,7 @@ export const signup = async (req: Request, res: Response) => {
       data: {
         fullName,
         email: email.toLowerCase(),
-        phone,
+        phone: phone || null,
         passwordHash,
         language: language || "EN",
         otpCode: isVerifyEnabled() ? null : otpCode,
@@ -426,8 +428,9 @@ export const signup = async (req: Request, res: Response) => {
     });
 
     // Enviar OTP — respeita preferência do usuário (sms ou email)
+    // If no phone provided, force email verification
     let otpSent = false;
-    let otpMethod: "sms" | "email" = userPreferredMethod;
+    let otpMethod: "sms" | "email" = !phone ? "email" : userPreferredMethod;
 
     if (userPreferredMethod === "email") {
       // ── Usuário escolheu receber por EMAIL ──

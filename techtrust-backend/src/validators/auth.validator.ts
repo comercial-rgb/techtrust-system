@@ -23,8 +23,8 @@ export const signupValidation = [
     .normalizeEmail(),
 
   body('phone')
+    .optional({ values: 'falsy' })
     .trim()
-    .notEmpty().withMessage('Telefone é obrigatório')
     .matches(/^\+\d{10,15}$/).withMessage('Telefone deve estar no formato E.164 (ex: +5511999999999)'),
 
   body('password')

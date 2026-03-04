@@ -895,7 +895,7 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                   {Platform.OS === 'ios' ? 'Apple Pay' : 'Google Pay'}
                 </Text>
                 <Text style={styles.digitalWalletSubtitle}>
-                  Pay faster with {Platform.OS === 'ios' ? 'Apple Pay' : 'Google Pay'}
+                  Pay faster with {Platform.OS === 'ios' ? 'Apple Pay' : 'Google Pay'} at checkout
                 </Text>
                 <TouchableOpacity
                   style={[
@@ -905,7 +905,7 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                   onPress={() => {
                     Alert.alert(
                       Platform.OS === 'ios' ? 'Apple Pay' : 'Google Pay',
-                      `${Platform.OS === 'ios' ? 'Apple Pay' : 'Google Pay'} is available for payments. When checking out, select "Pay with ${Platform.OS === 'ios' ? 'Apple Pay' : 'Google Pay'}" for a quick, secure transaction.`,
+                      `${Platform.OS === 'ios' ? 'Apple Pay' : 'Google Pay'} is integrated into the payment flow. When you proceed to pay for a service, you will see the ${Platform.OS === 'ios' ? 'Apple Pay' : 'Google Pay'} option if your device supports it. No additional setup is needed here.`,
                       [{ text: 'Got It' }]
                     );
                   }}

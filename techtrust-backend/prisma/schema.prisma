@@ -306,7 +306,7 @@ model User {
   // Dados pessoais
   fullName     String
   email        String    @unique
-  phone        String    @unique
+  phone        String?   @unique
   passwordHash String
   cpf          String? // CPF (BR) or SSN (US)
   dateOfBirth  DateTime?

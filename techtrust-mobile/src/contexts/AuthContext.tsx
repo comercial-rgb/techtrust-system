@@ -84,7 +84,7 @@ interface AuthContextType {
 interface SignupData {
   fullName: string;
   email: string;
-  phone: string;
+  phone?: string;
   password: string;
   language?: string;
   role?: "CLIENT" | "PROVIDER";

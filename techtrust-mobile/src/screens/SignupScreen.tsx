@@ -98,10 +98,9 @@ export default function SignupScreen({ navigation }: any) {
   // ✨ Calcular progresso do formulário
   const calculateProgress = () => {
     let filled = 0;
-    const totalFields = selectedRole === "PROVIDER" ? 8 : 5;
+    const totalFields = selectedRole === "PROVIDER" ? 7 : 4;
     if (fullName.length > 0) filled++;
     if (email.length > 0) filled++;
-    if (phone.length > 0) filled++;
     if (password.length >= 8) filled++;
     if (confirmPassword.length > 0 && confirmPassword === password) filled++;
     if (selectedRole === "PROVIDER") {
@@ -204,7 +203,7 @@ export default function SignupScreen({ navigation }: any) {
   };
 
   async function handleSignup() {
-    if (!fullName || !email || !phone || !password || !confirmPassword) {
+    if (!fullName || !email || !password || !confirmPassword) {
       setHasError(true);
       error(t.auth?.fillAllFields || "Please fill all fields");
       setTimeout(() => setHasError(false), 500);
@@ -268,16 +267,22 @@ export default function SignupScreen({ navigation }: any) {
 
     setLoading(true);
     try {
-      // Limpar telefone e adicionar código do país
-      const cleanedPhone = phone.trim().replace(/[^\d]/g, "");
-      const normalizedPhone = `${selectedCountry.dialCode}${cleanedPhone}`;
+      // Limpar telefone e adicionar código do país (if provided)
+      let normalizedPhone: string | undefined;
+      if (phone.trim()) {
+        const cleanedPhone = phone.trim().replace(/[^\d]/g, "");
+        normalizedPhone = `${selectedCountry.dialCode}${cleanedPhone}`;
 
-      if (!/^\+\d{10,15}$/.test(normalizedPhone)) {
-        throw new Error(
-          t.auth?.invalidPhone ||
-            "Telefone inválido. Verifique o número e tente novamente.",
-        );
+        if (!/^\+\d{10,15}$/.test(normalizedPhone)) {
+          throw new Error(
+            t.auth?.invalidPhone ||
+              "Invalid phone number. Please check and try again.",
+          );
+        }
       }
+
+      // If no phone provided, default to email OTP
+      const effectiveOtpMethod = normalizedPhone ? otpMethod : "email";
 
       const {
         userId,
@@ -286,11 +291,11 @@ export default function SignupScreen({ navigation }: any) {
       } = await signUp({
         fullName,
         email,
-        phone: normalizedPhone,
+        ...(normalizedPhone ? { phone: normalizedPhone } : {}),
         password,
         language: "PT",
         role: selectedRole,
-        preferredOtpMethod: otpMethod,
+        preferredOtpMethod: effectiveOtpMethod,
         ...(selectedRole === "PROVIDER"
           ? {
               businessName,
@@ -307,8 +312,8 @@ export default function SignupScreen({ navigation }: any) {
 
       navigation.navigate("OTP", {
         userId,
-        phone: normalizedPhone,
-        otpMethod: responseOtpMethod || otpMethod || "sms",
+        phone: normalizedPhone || "",
+        otpMethod: responseOtpMethod || effectiveOtpMethod || "email",
         email: responseEmail || email,
       });
     } catch (err: any) {
@@ -472,7 +477,10 @@ export default function SignupScreen({ navigation }: any) {
             <SlideInView direction="left" delay={200}>
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>
-                  📱 {t.auth?.phone || "Phone"}
+                  📱 {t.auth?.phoneOptional || "Phone (Optional)"}
+                </Text>
+                <Text style={styles.optionalHint}>
+                  {t.auth?.phoneOptionalHint || "Add your phone number to receive SMS notifications"}
                 </Text>
                 <View style={styles.phoneContainer}>
                   {/* Seletor de País */}
@@ -498,7 +506,6 @@ export default function SignupScreen({ navigation }: any) {
                     style={[styles.input, styles.phoneInput]}
                     outlineStyle={styles.inputOutline}
                     textColor="#000"
-                    error={hasError && !phone}
                   />
                 </View>
               </View>
@@ -831,9 +838,15 @@ export default function SignupScreen({ navigation }: any) {
                     style={[
                       signupCapStyles.otpMethodCard,
                       otpMethod === "sms" && signupCapStyles.otpMethodCardActive,
+                      !phone.trim() && { opacity: 0.4 },
                     ]}
-                    onPress={() => setOtpMethod("sms")}
+                    onPress={() => {
+                      if (phone.trim()) {
+                        setOtpMethod("sms");
+                      }
+                    }}
                     activeOpacity={0.7}
+                    disabled={!phone.trim()}
                   >
                     <Text style={signupCapStyles.otpMethodIcon}>📱</Text>
                     <Text
@@ -845,7 +858,9 @@ export default function SignupScreen({ navigation }: any) {
                       SMS
                     </Text>
                     <Text style={signupCapStyles.otpMethodDesc}>
-                      {t.auth?.otpViaSms || "Code via text"}
+                      {!phone.trim()
+                        ? (t.auth?.otpSmsRequiresPhone || "Requires phone number")
+                        : (t.auth?.otpViaSms || "Code via text")}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -1061,6 +1076,12 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#374151",
     marginBottom: 8,
+  },
+  optionalHint: {
+    fontSize: 12,
+    color: "#9ca3af",
+    marginBottom: 8,
+    fontStyle: "italic",
   },
   input: {
     backgroundColor: "#fff",

@@ -578,6 +578,17 @@ export default function LoginScreen({ navigation }: any) {
                 <Text style={styles.signupLink}>{t.auth.signup}</Text>
               </TouchableOpacity>
             </View>
+
+            {/* Continue as Guest */}
+            <TouchableOpacity
+              style={styles.guestContainer}
+              onPress={() => navigation.navigate("Landing")}
+            >
+              <Ionicons name="eye-outline" size={18} color="#6b7280" />
+              <Text style={styles.guestText}>
+                {t.auth?.continueAsGuest || "Continue as Guest"}
+              </Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -866,5 +877,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#2B5EA7",
     fontWeight: "600",
+  },
+  guestContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    marginTop: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    backgroundColor: "#f9fafb",
+  },
+  guestText: {
+    fontSize: 14,
+    color: "#6b7280",
+    fontWeight: "500",
   },
 });

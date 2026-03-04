@@ -11,6 +11,10 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StripeProvider } from "@stripe/stripe-react-native";
 import { Alert, AppState, Platform } from "react-native";
 import * as Updates from "expo-updates";
+import {
+  requestTrackingPermissionsAsync,
+  getTrackingPermissionsAsync,
+} from "expo-tracking-transparency";
 import { AuthProvider } from "./src/contexts/AuthContext";
 import { ThemeProvider } from "./src/contexts/ThemeContext";
 import { NotificationsProvider } from "./src/contexts/NotificationsContext";
@@ -49,7 +53,33 @@ export default function App() {
     fetchStripeConfig();
   }, []);
 
-  // 🔄 OTA Updates — safe check that won't crash iOS on first launch
+  // � App Tracking Transparency — request permission on iOS
+  useEffect(() => {
+    async function requestTracking() {
+      if (Platform.OS !== "ios") return;
+      try {
+        const { status: existingStatus } = await getTrackingPermissionsAsync();
+        if (existingStatus === "undetermined") {
+          // Small delay to ensure app is fully rendered before showing the prompt
+          setTimeout(async () => {
+            try {
+              const { status } = await requestTrackingPermissionsAsync();
+              console.log("🔒 [ATT] Tracking permission status:", status);
+            } catch (e) {
+              console.warn("🔒 [ATT] Failed to request tracking permission:", e);
+            }
+          }, 1000);
+        } else {
+          console.log("🔒 [ATT] Tracking permission already set:", existingStatus);
+        }
+      } catch (e) {
+        console.warn("🔒 [ATT] Error checking tracking permissions:", e);
+      }
+    }
+    requestTracking();
+  }, []);
+
+  // �🔄 OTA Updates — safe check that won't crash iOS on first launch
   useEffect(() => {
     let isMounted = true;
 

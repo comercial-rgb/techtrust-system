@@ -12,16 +12,26 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useConfirmPayment } from "@stripe/stripe-react-native";
+import {
+  useConfirmPayment,
+  useApplePay,
+  ApplePayButton,
+} from "@stripe/stripe-react-native";
 import { useI18n } from "../i18n";
 import * as paymentService from "../services/payment.service";
 
 export default function PaymentScreen({ navigation, route }: any) {
   const { t } = useI18n();
   const { confirmPayment: stripeConfirmPayment } = useConfirmPayment();
+  const {
+    presentApplePay,
+    confirmApplePayPayment,
+    isApplePaySupported,
+  } = useApplePay();
   const workOrderId = route.params?.workOrderId;
   const orderNumber = route.params?.orderNumber;
   const serviceTitle = route.params?.serviceTitle || "Service";
@@ -185,6 +195,81 @@ export default function PaymentScreen({ navigation, route }: any) {
     }
   }
 
+  // ============================================
+  // APPLE PAY PAYMENT
+  // ============================================
+  async function handleApplePay() {
+    if (!paymentIntent) {
+      Alert.alert(
+        t.common?.error || "Error",
+        "No payment intent created. Please try again.",
+      );
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      const { error: applePayError } = await presentApplePay({
+        cartItems: [
+          {
+            label: serviceTitle,
+            amount: String(displayAmount.toFixed(2)),
+            paymentType: "Immediate",
+          },
+        ],
+        country: "US",
+        currency: "USD",
+      });
+
+      if (applePayError) {
+        if (applePayError.code !== "Canceled") {
+          Alert.alert(
+            t.common?.error || "Error",
+            applePayError.message || "Apple Pay failed",
+          );
+        }
+        return;
+      }
+
+      // Confirm the payment with the client secret
+      const { error: confirmError } = await confirmApplePayPayment(
+        paymentIntent.clientSecret,
+      );
+
+      if (confirmError) {
+        Alert.alert(
+          t.common?.error || "Error",
+          confirmError.message || "Payment confirmation failed",
+        );
+        return;
+      }
+
+      // Notify backend of successful payment
+      const result = await paymentService.confirmPayment(
+        paymentIntent.paymentId,
+      );
+
+      if (result.success) {
+        Alert.alert(
+          t.payment?.paymentConfirmed || "Payment Authorized!",
+          "Payment completed successfully via Apple Pay.",
+          [
+            {
+              text: t.common?.ok || "OK",
+              onPress: () => navigation.navigate("Rating", { workOrderId }),
+            },
+          ],
+        );
+      }
+    } catch (err: any) {
+      const msg =
+        err.response?.data?.message || err.message || "Apple Pay failed";
+      Alert.alert(t.common?.error || "Error", msg);
+    } finally {
+      setProcessing(false);
+    }
+  }
+
   function getCardIcon(brand?: string | null): string {
     switch (brand?.toLowerCase()) {
       case "visa":
@@ -341,6 +426,24 @@ export default function PaymentScreen({ navigation, route }: any) {
           {t.payment?.paymentMethod || "Payment Method"}
         </Text>
 
+        {/* Apple Pay Button - shown on iOS when supported */}
+        {Platform.OS === "ios" && isApplePaySupported && paymentIntent && (
+          <View style={styles.applePayContainer}>
+            <ApplePayButton
+              onPress={handleApplePay}
+              type="plain"
+              buttonStyle="black"
+              borderRadius={12}
+              style={styles.applePayButton}
+            />
+            <View style={styles.applePayDivider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or pay with card</Text>
+              <View style={styles.dividerLine} />
+            </View>
+          </View>
+        )}
+
         {savedMethods.length === 0 ? (
           <View style={styles.noMethodsContainer}>
             <Ionicons name="card-outline" size={48} color="#9ca3af" />
@@ -480,6 +583,31 @@ export default function PaymentScreen({ navigation, route }: any) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f8fafc" },
+  // Apple Pay
+  applePayContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  applePayButton: {
+    width: "100%",
+    height: 50,
+  },
+  applePayDivider: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#e5e7eb",
+  },
+  dividerText: {
+    fontSize: 13,
+    color: "#9ca3af",
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",
