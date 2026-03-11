@@ -45,9 +45,7 @@ export default function LoginPage() {
 
     setLoading(true)
     try {
-      // Call API directly to get the raw response (AuthContext re-formats errors)
-      const response = await api.post('/auth/login', { email, password })
-      // Success — now let AuthContext handle cookies/state/redirect
+      // AuthContext handles API call, cookies, state, and redirect
       await login(email, password)
     } catch (err: any) {
       const data = err.response?.data

@@ -108,6 +108,10 @@ function generateToken(urlParameters: string): string {
  */
 export async function decodeVin17(vin: string): Promise<Vin17DecodeResult> {
   try {
+    if (!isVin17Configured()) {
+      return { success: false, error: "OE parts service is not configured. Please contact support." };
+    }
+
     const vinUpper = vin.toUpperCase().trim();
     const urlParameters = `/?vin=${vinUpper}`;
     const token = generateToken(urlParameters);
@@ -117,7 +121,7 @@ export async function decodeVin17(vin: string): Promise<Vin17DecodeResult> {
     logger.info(`🔍 17vin API 3001 - Decoding VIN: ${vinUpper}`);
 
     const response = await axios.get<Vin17ApiResponse>(url, {
-      timeout: 15000,
+      timeout: 20000,
       headers: { Accept: "application/json" },
     });
 
@@ -162,11 +166,18 @@ export async function decodeVin17(vin: string): Promise<Vin17DecodeResult> {
       },
     };
   } catch (error: any) {
+    if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND' || error.code === 'ETIMEDOUT') {
+      logger.error(`❌ 17vin API 3001 connection error: ${error.code}`);
+      return {
+        success: false,
+        error: "OE parts service is temporarily unavailable. Please try again later.",
+      };
+    }
     const message = error.response?.data?.msg || error.message;
     logger.error(`❌ 17vin API 3001 error: ${message}`);
     return {
       success: false,
-      error: `17vin VIN decode failed: ${message}`,
+      error: `VIN decode failed: ${message}`,
     };
   }
 }
@@ -191,6 +202,10 @@ export async function getAllOePartNumbers(
   isVinFilterOpen: string = "1"
 ): Promise<Vin17OePartsResult> {
   try {
+    if (!isVin17Configured()) {
+      return { success: false, error: "OE parts service is not configured. Please contact support." };
+    }
+
     const vinUpper = vin.toUpperCase().trim();
     const epcLower = epc.toLowerCase().trim();
 
@@ -241,11 +256,18 @@ export async function getAllOePartNumbers(
       },
     };
   } catch (error: any) {
+    if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND' || error.code === 'ETIMEDOUT') {
+      logger.error(`❌ 17vin API 5109 connection error: ${error.code}`);
+      return {
+        success: false,
+        error: "OE parts service is temporarily unavailable. Please try again later.",
+      };
+    }
     const message = error.response?.data?.msg || error.message;
     logger.error(`❌ 17vin API 5109 error: ${message}`);
     return {
       success: false,
-      error: `17vin OE parts lookup failed: ${message}`,
+      error: `OE parts lookup failed: ${message}`,
     };
   }
 }

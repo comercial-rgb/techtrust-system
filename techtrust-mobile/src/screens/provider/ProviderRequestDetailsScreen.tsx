@@ -215,8 +215,15 @@ export default function ProviderRequestDetailsScreen({
       const result = await getOePartsByVin(request.vehicle.vin);
       setOePartNumbers(result.parts.partNumbers);
     } catch (error: any) {
+      const status = error.response?.status;
       const msg = error.response?.data?.message || error.message || "Failed to fetch OE parts";
-      setOePartsError(msg);
+      if (status === 503) {
+        setOePartsError("OE parts lookup is currently unavailable. Please try again later.");
+      } else if (status === 400) {
+        setOePartsError(msg);
+      } else {
+        setOePartsError(msg);
+      }
     } finally {
       setOePartsLoading(false);
     }
@@ -225,6 +232,34 @@ export default function ProviderRequestDetailsScreen({
   const filteredOeParts = oePartsSearchQuery
     ? oePartNumbers.filter(p => p.toLowerCase().includes(oePartsSearchQuery.toLowerCase()))
     : oePartNumbers;
+
+  // Parse requested items from service request description for coverage check
+  const getRequestedItems = (): string[] => {
+    if (!request?.description) return [];
+    const rawDesc = request.description;
+    const parts = rawDesc.split('\n---\n');
+    const detailsPart = parts[0] || "";
+    const items: string[] = [];
+    detailsPart.split(' | ').forEach((segment: string) => {
+      const colonIdx = segment.indexOf(':');
+      if (colonIdx === -1) return;
+      const val = segment.substring(colonIdx + 1).trim();
+      val.split(',').forEach((v: string) => {
+        const trimmed = v.trim();
+        if (trimmed && trimmed !== 'Not Sure / Let provider decide') items.push(trimmed);
+      });
+    });
+    return items;
+  };
+
+  // Check if a requested item is covered by the quote line items
+  const checkItemCoverage = (requestedItem: string, quoteItems: QuoteLineItem[]): boolean => {
+    const keywords = requestedItem.toLowerCase().split(/[\s()\/]+/).filter(w => w.length > 2);
+    return quoteItems.some(qi => {
+      const desc = (qi.description || '').toLowerCase();
+      return keywords.some(kw => desc.includes(kw));
+    });
+  };
 
   const saveQuoteTemplate = async (name: string) => {
     const template: QuoteTemplate = {
@@ -2386,6 +2421,42 @@ export default function ProviderRequestDetailsScreen({
                         <Text style={styles.feeBreakdownReceiveValue}>${youReceive.toFixed(2)}</Text>
                       </View>
                     </View>
+                  </View>
+                );
+              })()}
+
+              {/* Requested Items Coverage Check */}
+              {(() => {
+                const requestedItems = getRequestedItems();
+                if (requestedItems.length === 0) return null;
+                const validItems = lineItems.filter(i => i.description && i.unitPrice > 0);
+                const coverage = requestedItems.map(item => ({
+                  item,
+                  covered: checkItemCoverage(item, validItems),
+                }));
+                const allCovered = coverage.every(c => c.covered);
+                return (
+                  <View style={{ marginTop: 16, backgroundColor: allCovered ? '#f0fdf4' : '#fffbeb', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: allCovered ? '#bbf7d0' : '#fde68a' }}>
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: allCovered ? '#166534' : '#92400e', marginBottom: 10 }}>
+                      {allCovered ? '✅ All customer requested items covered' : '⚠️ Customer Requested Items'}
+                    </Text>
+                    {coverage.map((c, i) => (
+                      <View key={i} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 4 }}>
+                        <MaterialCommunityIcons
+                          name={c.covered ? 'checkbox-marked-circle' : 'alert-circle-outline'}
+                          size={18}
+                          color={c.covered ? '#16a34a' : '#d97706'}
+                        />
+                        <Text style={{ fontSize: 13, color: c.covered ? '#166534' : '#92400e', marginLeft: 8 }}>
+                          {c.item}
+                        </Text>
+                      </View>
+                    ))}
+                    {!allCovered && (
+                      <Text style={{ fontSize: 12, color: '#92400e', marginTop: 8, fontStyle: 'italic' }}>
+                        Some items may not be covered. You can still submit, or go back to add missing items.
+                      </Text>
+                    )}
                   </View>
                 );
               })()}

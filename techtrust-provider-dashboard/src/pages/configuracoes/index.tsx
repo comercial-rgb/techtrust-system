@@ -71,6 +71,28 @@ export default function ConfiguracoesPage() {
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("profile");
   const [successMessage, setSuccessMessage] = useState("");
+  const [activeCities, setActiveCities] = useState<Record<string, string[]>>({});
+  const [cityOptions, setCityOptions] = useState<string[]>([]);
+
+  const US_STATES = [
+    { code: "AL", name: "Alabama" }, { code: "AK", name: "Alaska" }, { code: "AZ", name: "Arizona" },
+    { code: "AR", name: "Arkansas" }, { code: "CA", name: "California" }, { code: "CO", name: "Colorado" },
+    { code: "CT", name: "Connecticut" }, { code: "DE", name: "Delaware" }, { code: "FL", name: "Florida" },
+    { code: "GA", name: "Georgia" }, { code: "HI", name: "Hawaii" }, { code: "ID", name: "Idaho" },
+    { code: "IL", name: "Illinois" }, { code: "IN", name: "Indiana" }, { code: "IA", name: "Iowa" },
+    { code: "KS", name: "Kansas" }, { code: "KY", name: "Kentucky" }, { code: "LA", name: "Louisiana" },
+    { code: "ME", name: "Maine" }, { code: "MD", name: "Maryland" }, { code: "MA", name: "Massachusetts" },
+    { code: "MI", name: "Michigan" }, { code: "MN", name: "Minnesota" }, { code: "MS", name: "Mississippi" },
+    { code: "MO", name: "Missouri" }, { code: "MT", name: "Montana" }, { code: "NE", name: "Nebraska" },
+    { code: "NV", name: "Nevada" }, { code: "NH", name: "New Hampshire" }, { code: "NJ", name: "New Jersey" },
+    { code: "NM", name: "New Mexico" }, { code: "NY", name: "New York" }, { code: "NC", name: "North Carolina" },
+    { code: "ND", name: "North Dakota" }, { code: "OH", name: "Ohio" }, { code: "OK", name: "Oklahoma" },
+    { code: "OR", name: "Oregon" }, { code: "PA", name: "Pennsylvania" }, { code: "RI", name: "Rhode Island" },
+    { code: "SC", name: "South Carolina" }, { code: "SD", name: "South Dakota" }, { code: "TN", name: "Tennessee" },
+    { code: "TX", name: "Texas" }, { code: "UT", name: "Utah" }, { code: "VT", name: "Vermont" },
+    { code: "VA", name: "Virginia" }, { code: "WA", name: "Washington" }, { code: "WV", name: "West Virginia" },
+    { code: "WI", name: "Wisconsin" }, { code: "WY", name: "Wyoming" }, { code: "DC", name: "District of Columbia" },
+  ];
 
   const [profile, setProfile] = useState<ProviderProfile>({
     businessName: "",
@@ -115,6 +137,7 @@ export default function ConfiguracoesPage() {
   useEffect(() => {
     if (isAuthenticated) {
       loadProfile();
+      loadActiveCities();
     }
   }, [isAuthenticated]);
 
@@ -177,6 +200,27 @@ export default function ConfiguracoesPage() {
       setLoading(false);
     }
   }
+
+  async function loadActiveCities() {
+    try {
+      const response = await api.get("/providers/active-cities");
+      const data = response.data.data;
+      setActiveCities(data.activeCities || {});
+    } catch (error) {
+      console.error("Erro ao carregar cidades ativas:", error);
+    }
+  }
+
+  // Update city options when state changes
+  useEffect(() => {
+    if (profile.state) {
+      const stateCode = profile.state.toUpperCase();
+      const cities = activeCities[stateCode] || [];
+      setCityOptions(cities.sort());
+    } else {
+      setCityOptions([]);
+    }
+  }, [profile.state, activeCities]);
 
   async function handleSave() {
     setSaving(true);
@@ -472,14 +516,33 @@ export default function ConfiguracoesPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Cidade
                   </label>
-                  <input
-                    type="text"
-                    value={profile.city}
-                    onChange={(e) =>
-                      setProfile({ ...profile, city: e.target.value })
-                    }
-                    className="input"
-                  />
+                  {cityOptions.length > 0 ? (
+                    <select
+                      value={profile.city}
+                      onChange={(e) =>
+                        setProfile({ ...profile, city: e.target.value })
+                      }
+                      className="input"
+                    >
+                      <option value="">Select a city</option>
+                      {cityOptions.map((city) => (
+                        <option key={city} value={city}>{city}</option>
+                      ))}
+                      {profile.city && !cityOptions.includes(profile.city) && (
+                        <option value={profile.city}>{profile.city}</option>
+                      )}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={profile.city}
+                      onChange={(e) =>
+                        setProfile({ ...profile, city: e.target.value })
+                      }
+                      className="input"
+                      placeholder={profile.state ? "Enter city name" : "Select a state first"}
+                    />
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -487,14 +550,18 @@ export default function ConfiguracoesPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Estado
                     </label>
-                    <input
-                      type="text"
+                    <select
                       value={profile.state}
                       onChange={(e) =>
-                        setProfile({ ...profile, state: e.target.value })
+                        setProfile({ ...profile, state: e.target.value, city: "" })
                       }
                       className="input"
-                    />
+                    >
+                      <option value="">Select a state</option>
+                      {US_STATES.map((s) => (
+                        <option key={s.code} value={s.code}>{s.code} - {s.name}</option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">

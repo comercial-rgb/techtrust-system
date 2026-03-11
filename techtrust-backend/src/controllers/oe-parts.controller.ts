@@ -29,13 +29,18 @@ export const getOePartsByVinHandler = async (req: Request, res: Response) => {
   }
 
   if (!isVin17Configured()) {
-    throw new AppError("17vin API not configured. Contact administrator.", 503);
+    throw new AppError("OE parts lookup is not available at this time. The service requires API credentials to be configured.", 503);
   }
 
   // Validar formato do VIN (17 caracteres alfanuméricos)
   const vinClean = vin.toUpperCase().trim();
   if (vinClean.length !== 17) {
-    throw new AppError("Invalid VIN format. Must be 17 characters.", 400);
+    throw new AppError("Invalid VIN format. Must be exactly 17 characters.", 400);
+  }
+
+  // VINs cannot contain I, O, Q
+  if (/[IOQ]/i.test(vinClean)) {
+    throw new AppError("Invalid VIN. VINs cannot contain the letters I, O, or Q.", 400);
   }
 
   logger.info(`🔧 OE Parts lookup for VIN: ${vinClean} by user: ${req.user?.id}`);
@@ -46,7 +51,8 @@ export const getOePartsByVinHandler = async (req: Request, res: Response) => {
   );
 
   if (!result.success) {
-    throw new AppError(result.error || "Failed to retrieve OE parts", 502);
+    // Return the error message from the service with a 502 status
+    throw new AppError(result.error || "Failed to retrieve OE parts. Please try again.", 502);
   }
 
   res.json({
@@ -70,12 +76,16 @@ export const decodeVin17Handler = async (req: Request, res: Response) => {
   }
 
   if (!isVin17Configured()) {
-    throw new AppError("17vin API not configured. Contact administrator.", 503);
+    throw new AppError("OE parts lookup is not available at this time.", 503);
   }
 
   const vinClean = vin.toUpperCase().trim();
   if (vinClean.length !== 17) {
-    throw new AppError("Invalid VIN format. Must be 17 characters.", 400);
+    throw new AppError("Invalid VIN format. Must be exactly 17 characters.", 400);
+  }
+
+  if (/[IOQ]/i.test(vinClean)) {
+    throw new AppError("Invalid VIN. VINs cannot contain the letters I, O, or Q.", 400);
   }
 
   logger.info(`🔍 17vin VIN decode for: ${vinClean} by user: ${req.user?.id}`);
@@ -83,7 +93,7 @@ export const decodeVin17Handler = async (req: Request, res: Response) => {
   const result = await decodeVin17(vinClean);
 
   if (!result.success) {
-    throw new AppError(result.error || "Failed to decode VIN", 502);
+    throw new AppError(result.error || "Failed to decode VIN. Please verify the VIN and try again.", 502);
   }
 
   res.json({
@@ -105,12 +115,16 @@ export const getOePartsDirectHandler = async (req: Request, res: Response) => {
   }
 
   if (!isVin17Configured()) {
-    throw new AppError("17vin API not configured. Contact administrator.", 503);
+    throw new AppError("OE parts lookup is not available at this time.", 503);
   }
 
   const vinClean = vin.toUpperCase().trim();
   if (vinClean.length !== 17) {
-    throw new AppError("Invalid VIN format. Must be 17 characters.", 400);
+    throw new AppError("Invalid VIN format. Must be exactly 17 characters.", 400);
+  }
+
+  if (/[IOQ]/i.test(vinClean)) {
+    throw new AppError("Invalid VIN. VINs cannot contain the letters I, O, or Q.", 400);
   }
 
   logger.info(`🔧 OE Parts direct lookup - epc: ${epc}, VIN: ${vinClean} by user: ${req.user?.id}`);
@@ -122,7 +136,7 @@ export const getOePartsDirectHandler = async (req: Request, res: Response) => {
   );
 
   if (!result.success) {
-    throw new AppError(result.error || "Failed to retrieve OE parts", 502);
+    throw new AppError(result.error || "Failed to retrieve OE parts. Please try again.", 502);
   }
 
   res.json({

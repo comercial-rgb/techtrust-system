@@ -93,7 +93,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const response = await api.post('/auth/login', { email, password })
-      const { accessToken, refreshToken, user: userData } = response.data.data
+      const data = response.data.data
+      const accessToken = data.accessToken || data.token
+      const refreshToken = data.refreshToken
+      const userData = data.user
       
       if (userData.role !== 'PROVIDER') {
         throw new Error('Acesso negado. Este portal é apenas para fornecedores.')
