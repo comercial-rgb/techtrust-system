@@ -66,6 +66,35 @@ export interface Vin17OePartsResult {
 }
 
 // ============================================
+// ERROR MESSAGE TRANSLATION
+// ============================================
+
+/**
+ * Translate known Chinese error messages from 17vin API to English
+ */
+function translateApiError(msg: string): string {
+  if (!msg) return "Unknown error from OE parts service.";
+  if (msg.includes("账号已过期") || msg.includes("过期")) {
+    return "OE parts service subscription has expired. Please contact TechTrust support.";
+  }
+  if (msg.includes("token") && (msg.includes("错误") || msg.includes("生成"))) {
+    return "OE parts service authentication failed. Please contact TechTrust support.";
+  }
+  if (msg.includes("没有找到") || msg.includes("not found")) {
+    return "No data found for this VIN. The vehicle may not be supported.";
+  }
+  if (msg.includes("频率") || msg.includes("限制")) {
+    return "Too many requests. Please wait a moment and try again.";
+  }
+  // If message contains Chinese characters, return a generic user-friendly message
+  if (/[\u4e00-\u9fff]/.test(msg)) {
+    logger.warn(`Untranslated 17vin API message: ${msg}`);
+    return "OE parts lookup failed. Please try again or contact support.";
+  }
+  return msg;
+}
+
+// ============================================
 // TOKEN GENERATION
 // ============================================
 
@@ -131,7 +160,7 @@ export async function decodeVin17(vin: string): Promise<Vin17DecodeResult> {
       logger.warn(`⚠️ 17vin API 3001 failed: ${result.msg}`);
       return {
         success: false,
-        error: result.msg || "VIN decode failed",
+        error: translateApiError(result.msg),
       };
     }
 
@@ -233,7 +262,7 @@ export async function getAllOePartNumbers(
       logger.warn(`⚠️ 17vin API 5109 failed: ${result.msg}`);
       return {
         success: false,
-        error: result.msg || "Failed to retrieve OE part numbers",
+        error: translateApiError(result.msg),
       };
     }
 

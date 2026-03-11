@@ -128,7 +128,7 @@ export const signup = async (req: Request, res: Response) => {
         if (isVerifyEnabled()) {
           // Twilio Verify: não precisa gerar/salvar OTP no DB
           try {
-            await sendVerifyOTP(existingEmail.phone, "sms");
+            await sendVerifyOTP(existingEmail.phone || "", "sms");
             otpSent = true;
           } catch (smsError: any) {
             logger.error("Erro ao enviar Verify OTP:", smsError.message);
@@ -166,7 +166,7 @@ export const signup = async (req: Request, res: Response) => {
             data: { otpCode, otpExpiresAt },
           });
           try {
-            await sendOTP(existingEmail.phone, otpCode, existingEmail.language);
+            await sendOTP(existingEmail.phone || "", otpCode, existingEmail.language);
             otpSent = true;
           } catch (smsError: any) {
             logger.error("Erro ao reenviar OTP via SMS:", smsError.message);
@@ -1089,7 +1089,7 @@ export const verifyOTP = async (req: Request, res: Response) => {
     // Verificar código via Twilio Verify ou DB
     if (isVerifyEnabled()) {
       // Twilio Verify: validação é feita pela API do Twilio
-      const verifyResult = await checkVerifyOTP(user.phone, cleanOtpCode);
+      const verifyResult = await checkVerifyOTP(user.phone || "", cleanOtpCode);
       if (!verifyResult.valid) {
         if (verifyResult.status === "expired") {
           throw new AppError(
@@ -1232,7 +1232,7 @@ export const resendOTP = async (req: Request, res: Response) => {
       if (isVerifyEnabled()) {
         // Twilio Verify: reenvia automaticamente
         try {
-          await sendVerifyOTP(user.phone, "sms");
+          await sendVerifyOTP(user.phone || "", "sms");
           logger.info(`Verify OTP reenviado para: ${user.phone}`);
         } catch (smsError: any) {
           logger.error("Erro ao reenviar Verify OTP:", smsError.message);
@@ -1267,7 +1267,7 @@ export const resendOTP = async (req: Request, res: Response) => {
           data: { otpCode, otpExpiresAt },
         });
         try {
-          await sendOTP(user.phone, otpCode, user.language);
+          await sendOTP(user.phone || "", otpCode, user.language);
           logger.info(`OTP reenviado via SMS para: ${user.phone}`);
         } catch (smsError: any) {
           logger.error("Erro ao reenviar OTP via SMS:", smsError.message);
@@ -1374,7 +1374,7 @@ export const login = async (req: Request, res: Response) => {
       if (isVerifyEnabled()) {
         // Twilio Verify: envia automaticamente
         try {
-          await sendVerifyOTP(user.phone, "sms");
+          await sendVerifyOTP(user.phone || "", "sms");
           otpSent = true;
         } catch (err) {
           logger.error("Erro ao enviar Verify OTP no login:", err);
@@ -1388,7 +1388,7 @@ export const login = async (req: Request, res: Response) => {
           data: { otpCode, otpExpiresAt },
         });
         try {
-          await sendOTP(user.phone, otpCode);
+          await sendOTP(user.phone || "", otpCode);
           otpSent = true;
         } catch (err) {
           logger.error("Erro ao enviar OTP no login:", err);
