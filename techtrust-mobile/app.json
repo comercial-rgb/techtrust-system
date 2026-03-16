@@ -15,7 +15,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.techtrustautosolutions.mobile",
-      "buildNumber": "24",
+      "buildNumber": "25",
       "usesAppleSignIn": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -34,7 +34,7 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.techtrustautosolutions.mobile",
-      "versionCode": 24,
+      "versionCode": 25,
       "softwareKeyboardLayoutMode": "pan",
       "config": {
         "googleMaps": {
