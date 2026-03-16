@@ -15,15 +15,14 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.techtrustautosolutions.mobile",
-      "buildNumber": "25",
+      "buildNumber": "26",
       "usesAppleSignIn": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSFaceIDUsageDescription": "Use Face ID to securely log in to your TechTrust account",
         "NSCameraUsageDescription": "TechTrust needs camera access to take photos of vehicles and documents for service requests",
         "NSPhotoLibraryUsageDescription": "TechTrust needs photo library access to upload vehicle photos and documents",
-        "NSLocationWhenInUseUsageDescription": "TechTrust uses your location to find nearby auto service providers and show accurate service areas",
-        "NSUserTrackingUsageDescription": "TechTrust uses your data to provide personalized service recommendations and improve your experience. Your data is never sold to third parties."
+        "NSLocationWhenInUseUsageDescription": "TechTrust uses your location to find nearby auto service providers and show accurate service areas"
       }
     },
     "android": {
@@ -34,7 +33,7 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.techtrustautosolutions.mobile",
-      "versionCode": 25,
+      "versionCode": 26,
       "softwareKeyboardLayoutMode": "pan",
       "config": {
         "googleMaps": {
@@ -59,12 +58,6 @@
     "plugins": [
       "expo-web-browser",
       "expo-secure-store",
-      [
-        "expo-tracking-transparency",
-        {
-          "userTrackingPermission": "TechTrust uses your data to provide personalized service recommendations and improve your experience. Your data is never sold to third parties."
-        }
-      ],
       [
         "@stripe/stripe-react-native",
         {
