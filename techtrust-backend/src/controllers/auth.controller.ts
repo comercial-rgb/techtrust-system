@@ -776,6 +776,53 @@ export const socialLogin = async (req: Request, res: Response) => {
       user &&
       (!user.passwordHash || user.status === "PENDING_VERIFICATION")
     ) {
+      // Apple Sign In: auto-activate without requiring password (Apple Guideline 4)
+      if (provider.toUpperCase() === "APPLE") {
+        // Generate a random password hash so the user can always auth via Apple
+        const crypto = await import("crypto");
+        const randomPass = crypto.randomBytes(32).toString("hex");
+        const randomHash = await hashPassword(randomPass);
+
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            passwordHash: randomHash,
+            status: "ACTIVE",
+            emailVerified: true,
+            lastLoginAt: new Date(),
+            avatarUrl: user.avatarUrl || socialUser.picture || undefined,
+          },
+        });
+
+        const tokens = generateTokens({
+          userId: user.id,
+          email: user.email,
+          role: user.role,
+        });
+
+        logger.info(`Apple auto-activated existing user: ${user.email}`);
+
+        return res.json({
+          success: true,
+          data: {
+            status: "AUTHENTICATED",
+            token: tokens.accessToken,
+            refreshToken: tokens.refreshToken,
+            expiresIn: tokens.expiresIn,
+            user: {
+              id: user.id,
+              fullName: user.fullName,
+              email: user.email,
+              phone: user.phone,
+              role: user.role,
+              language: user.language,
+              phoneVerified: user.phoneVerified,
+              avatarUrl: user.avatarUrl,
+            },
+          },
+        });
+      }
+
       return res.json({
         success: true,
         data: {
@@ -794,6 +841,15 @@ export const socialLogin = async (req: Request, res: Response) => {
     // Require phone for new accounts (can be sent in request body or set later)
     const newUserPhone = phone || `+0${Date.now()}`; // Temporary placeholder if no phone
     const hasRealPhone = !!phone;
+    const isApple = provider.toUpperCase() === "APPLE";
+
+    // Apple Sign In: generate random password and auto-activate (Guideline 4)
+    let newPasswordHash = "";
+    if (isApple) {
+      const crypto = await import("crypto");
+      const randomPass = crypto.randomBytes(32).toString("hex");
+      newPasswordHash = await hashPassword(randomPass);
+    }
 
     const newUser = await prisma.user.create({
       data: {
@@ -801,13 +857,13 @@ export const socialLogin = async (req: Request, res: Response) => {
           socialUser.name || providedName || socialUser.email.split("@")[0],
         email: socialUser.email.toLowerCase(),
         phone: newUserPhone,
-        passwordHash: "", // Will be set when user defines password
+        passwordHash: newPasswordHash,
         authProvider: provider.toUpperCase(),
         [socialIdField]: socialUser.id,
         avatarUrl: socialUser.picture || null,
         emailVerified: true, // Verified by social provider
         phoneVerified: hasRealPhone,
-        status: "PENDING_VERIFICATION", // Needs password setup
+        status: isApple ? "ACTIVE" : "PENDING_VERIFICATION",
         role: "CLIENT",
         language: "EN",
       },
@@ -827,6 +883,44 @@ export const socialLogin = async (req: Request, res: Response) => {
     });
 
     logger.info(`New social user created (${provider}): ${newUser.email}`);
+
+    // Apple: return AUTHENTICATED directly (no password screen)
+    if (isApple) {
+      const tokens = generateTokens({
+        userId: newUser.id,
+        email: newUser.email,
+        role: newUser.role,
+      });
+
+      // Send welcome email
+      sendWelcomeEmail(
+        newUser.email,
+        newUser.fullName,
+        newUser.language,
+      ).catch((err) => {
+        logger.error("Failed to send welcome email:", err);
+      });
+
+      return res.status(201).json({
+        success: true,
+        data: {
+          status: "AUTHENTICATED",
+          token: tokens.accessToken,
+          refreshToken: tokens.refreshToken,
+          expiresIn: tokens.expiresIn,
+          user: {
+            id: newUser.id,
+            fullName: newUser.fullName,
+            email: newUser.email,
+            phone: hasRealPhone ? newUser.phone : null,
+            role: newUser.role,
+            language: newUser.language,
+            phoneVerified: hasRealPhone,
+            avatarUrl: newUser.avatarUrl,
+          },
+        },
+      });
+    }
 
     return res.status(201).json({
       success: true,
@@ -853,18 +947,12 @@ export const completeSocialSignup = async (req: Request, res: Response) => {
   try {
     const { userId, password, phone } = req.body;
 
-    if (!userId || !password) {
+    if (!userId) {
       throw new AppError(
-        "User ID and password are required",
+        "User ID is required",
         400,
         "MISSING_FIELDS",
       );
-    }
-
-    // Validate password
-    const passwordValidation = validatePasswordStrength(password);
-    if (!passwordValidation.valid) {
-      throw new AppError(passwordValidation.message!, 400, "WEAK_PASSWORD");
     }
 
     const user = await prisma.user.findUnique({
@@ -875,14 +963,24 @@ export const completeSocialSignup = async (req: Request, res: Response) => {
       throw new AppError("User not found", 404, "USER_NOT_FOUND");
     }
 
-    // Hash password
-    const passwordHash = await hashPassword(password);
-
     // Prepare update data
     const updateData: any = {
-      passwordHash,
       status: "ACTIVE",
     };
+
+    // Hash password if provided (optional for Apple users)
+    if (password) {
+      const passwordValidation = validatePasswordStrength(password);
+      if (!passwordValidation.valid) {
+        throw new AppError(passwordValidation.message!, 400, "WEAK_PASSWORD");
+      }
+      updateData.passwordHash = await hashPassword(password);
+    } else if (!user.passwordHash || user.passwordHash === "") {
+      // No password provided and no existing password — generate random one
+      const crypto = await import("crypto");
+      const randomPass = crypto.randomBytes(32).toString("hex");
+      updateData.passwordHash = await hashPassword(randomPass);
+    }
 
     // Update phone if provided
     if (phone) {
@@ -1366,7 +1464,12 @@ export const login = async (req: Request, res: Response) => {
     }
 
     // Verificar se telefone foi verificado (usuário precisa completar cadastro)
-    if (user.status === "PENDING_VERIFICATION" || !user.phoneVerified) {
+    // Skip phone verification check if user has no real phone (phone is optional per Guideline 5.1.1v)
+    const hasRealPhone = user.phone && !user.phone.startsWith("+0");
+    if (
+      hasRealPhone &&
+      (user.status === "PENDING_VERIFICATION" || !user.phoneVerified)
+    ) {
       console.log("⚠️ Telefone não verificado para:", email);
 
       let otpSent = false;
@@ -1409,6 +1512,14 @@ export const login = async (req: Request, res: Response) => {
           useVerify: isVerifyEnabled(),
           needsVerification: true,
         },
+      });
+    }
+
+    // Auto-activate PENDING_VERIFICATION users without a real phone (they passed password check)
+    if (user.status === "PENDING_VERIFICATION" && !hasRealPhone) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { status: "ACTIVE" },
       });
     }
 

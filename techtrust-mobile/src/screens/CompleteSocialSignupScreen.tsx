@@ -40,29 +40,40 @@ export default function CompleteSocialSignupScreen({ navigation, route }: any) {
   const [loading, setLoading] = useState(false);
 
   const handleComplete = async () => {
-    // Validate
-    if (!password || password.length < 8) {
+    // Password is optional for Apple users (Guideline 4)
+    const isAppleProvider = provider?.toUpperCase() === "APPLE";
+
+    if (password) {
+      // Validate only if user chose to set a password
+      if (password.length < 8) {
+        Alert.alert(
+          t.common?.error || "Error",
+          t.auth?.passwordMinLength || "Password must be at least 8 characters",
+        );
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        Alert.alert(
+          t.common?.error || "Error",
+          t.auth?.passwordMismatch || "Passwords do not match",
+        );
+        return;
+      }
+
+      if (!/[a-zA-Z]/.test(password) || !/\d/.test(password)) {
+        Alert.alert(
+          t.common?.error || "Error",
+          t.auth?.passwordRequirements ||
+            "Password must contain at least 1 letter and 1 number",
+        );
+        return;
+      }
+    } else if (!isAppleProvider) {
+      // Non-Apple providers still require password
       Alert.alert(
         t.common?.error || "Error",
         t.auth?.passwordMinLength || "Password must be at least 8 characters",
-      );
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      Alert.alert(
-        t.common?.error || "Error",
-        t.auth?.passwordMismatch || "Passwords do not match",
-      );
-      return;
-    }
-
-    // Check password has at least 1 letter and 1 number
-    if (!/[a-zA-Z]/.test(password) || !/\d/.test(password)) {
-      Alert.alert(
-        t.common?.error || "Error",
-        t.auth?.passwordRequirements ||
-          "Password must contain at least 1 letter and 1 number",
       );
       return;
     }
@@ -71,7 +82,7 @@ export default function CompleteSocialSignupScreen({ navigation, route }: any) {
     try {
       const result = await completeSocialSignup(
         userId,
-        password,
+        password || undefined,
         phone && phone.startsWith("+") ? phone : undefined,
       );
 
@@ -130,8 +141,11 @@ export default function CompleteSocialSignupScreen({ navigation, route }: any) {
             {t.auth?.completeSetup || "Complete Your Account"}
           </Text>
           <Text style={styles.description}>
-            {t.auth?.completeSetupDesc ||
-              `Signed in with ${provider || "social account"}. Set a password to secure your account.`}
+            {provider?.toUpperCase() === "APPLE"
+              ? t.auth?.completeSetupDescApple ||
+                "Signed in with Apple. You can optionally add a phone number below."
+              : t.auth?.completeSetupDesc ||
+                `Signed in with ${provider || "social account"}. Set a password to secure your account.`}
           </Text>
 
           {/* User info */}
@@ -176,7 +190,8 @@ export default function CompleteSocialSignupScreen({ navigation, route }: any) {
             </View>
           )}
 
-          {/* Password */}
+          {/* Password - hidden for Apple users (Guideline 4) */}
+          {provider?.toUpperCase() !== "APPLE" && (
           <View style={styles.inputGroup}>
             <Text style={styles.label}>{t.auth?.password || "Password"}</Text>
             <View style={styles.inputWrapper}>
@@ -210,8 +225,10 @@ export default function CompleteSocialSignupScreen({ navigation, route }: any) {
               {t.auth?.passwordHint || "Min. 8 characters, 1 letter, 1 number"}
             </Text>
           </View>
+          )}
 
-          {/* Confirm Password */}
+          {/* Confirm Password - hidden for Apple users */}
+          {provider?.toUpperCase() !== "APPLE" && (
           <View style={styles.inputGroup}>
             <Text style={styles.label}>
               {t.auth?.confirmPassword || "Confirm Password"}
@@ -234,6 +251,7 @@ export default function CompleteSocialSignupScreen({ navigation, route }: any) {
               />
             </View>
           </View>
+          )}
 
           {/* Submit */}
           <TouchableOpacity

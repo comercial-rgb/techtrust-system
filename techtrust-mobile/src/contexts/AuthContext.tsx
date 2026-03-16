@@ -67,7 +67,7 @@ interface AuthContextType {
   ) => Promise<SocialLoginResult>;
   completeSocialSignup: (
     userId: string,
-    password: string,
+    password?: string,
     phone?: string,
   ) => Promise<SocialLoginResult>;
   verifyOTP: (
@@ -534,13 +534,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const completeSocialSignup = async (
     userId: string,
-    password: string,
+    password?: string,
     phone?: string,
   ): Promise<SocialLoginResult> => {
     try {
       const response = await api.post("/auth/social/complete", {
         userId,
-        password,
+        ...(password ? { password } : {}),
         phone,
       });
 
