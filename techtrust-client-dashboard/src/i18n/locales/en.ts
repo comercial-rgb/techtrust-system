@@ -128,6 +128,7 @@ const en = {
       services: "My Services",
       payments: "Payments",
       receipts: "Receipts",
+      plans: "Plans",
       profile: "My Profile",
       settings: "Settings",
       logout: "Sign out",

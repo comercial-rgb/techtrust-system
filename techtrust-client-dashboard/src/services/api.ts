@@ -358,25 +358,6 @@ class ApiService {
   }
 
   // ============================================
-  // SUBSCRIPTION
-  // ============================================
-
-  async getSubscription() {
-    return this.request<any>("/subscriptions/current");
-  }
-
-  async getSubscriptionPlans() {
-    return this.request<any[]>("/subscriptions/plans");
-  }
-
-  async subscribeToPlan(planId: string) {
-    return this.request("/subscriptions/subscribe", {
-      method: "POST",
-      body: JSON.stringify({ planId }),
-    });
-  }
-
-  // ============================================
   // CHAT
   // ============================================
 
@@ -417,6 +398,53 @@ class ApiService {
 
   async getProviderReviews(id: string) {
     return this.request<any[]>(`/providers/${id}/reviews`);
+  }
+
+  // ============================================
+  // SUBSCRIPTIONS
+  // ============================================
+
+  async getSubscriptionPlans() {
+    return this.request<any[]>("/content/subscription-plans");
+  }
+
+  async getMySubscription() {
+    return this.request<any>("/subscriptions/me");
+  }
+
+  async getSubscriptionUsage() {
+    return this.request<any>("/subscriptions/usage");
+  }
+
+  async subscribeToPlan(planKey: string, billingPeriod: 'monthly' | 'yearly' = 'monthly') {
+    return this.request<any>("/subscriptions/subscribe", {
+      method: "POST",
+      body: JSON.stringify({ planKey, billingPeriod }),
+    });
+  }
+
+  async cancelSubscription(immediately: boolean = false, reason?: string) {
+    return this.request<any>("/subscriptions/cancel", {
+      method: "POST",
+      body: JSON.stringify({ immediately, reason }),
+    });
+  }
+
+  async getVehicleAddOns() {
+    return this.request<any[]>("/subscriptions/vehicle-addons");
+  }
+
+  async addVehicleAddOn(vehicleId: string) {
+    return this.request<any>("/subscriptions/vehicle-addon", {
+      method: "POST",
+      body: JSON.stringify({ vehicleId }),
+    });
+  }
+
+  async removeVehicleAddOn(addOnId: string) {
+    return this.request<any>(`/subscriptions/vehicle-addon/${addOnId}`, {
+      method: "DELETE",
+    });
   }
 }
 

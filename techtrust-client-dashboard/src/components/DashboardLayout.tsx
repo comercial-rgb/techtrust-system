@@ -16,6 +16,7 @@ import {
   ChevronDown,
   CreditCard,
   Receipt,
+  Crown,
 } from "lucide-react";
 
 interface DashboardLayoutProps {
@@ -32,6 +33,7 @@ const menuItems = [
   { href: "/servicos", labelKey: "client.nav.services", icon: Briefcase },
   { href: "/pagamentos", labelKey: "client.nav.payments", icon: CreditCard },
   { href: "/recibos", labelKey: "client.nav.receipts", icon: Receipt },
+  { href: "/planos", labelKey: "client.nav.plans", icon: Crown },
   { href: "/perfil", labelKey: "client.nav.profile", icon: User },
 ];
 

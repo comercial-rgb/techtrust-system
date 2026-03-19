@@ -130,6 +130,7 @@ const pt = {
       services: "Meus Serviços",
       payments: "Pagamentos",
       receipts: "Recibos",
+      plans: "Planos",
       profile: "Meu Perfil",
       settings: "Configurações",
       logout: "Sair",

@@ -130,6 +130,7 @@ const es = {
       services: "Mis Servicios",
       payments: "Pagos",
       receipts: "Recibos",
+      plans: "Planes",
       profile: "Mi Perfil",
       settings: "Configuración",
       logout: "Salir",
