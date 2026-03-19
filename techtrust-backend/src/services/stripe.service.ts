@@ -684,6 +684,45 @@ export async function updateSubscription(params: {
 /**
  * Verificar assinatura do webhook
  */
+/**
+ * Add item to existing subscription (for vehicle add-ons)
+ */
+export async function addSubscriptionItem(params: {
+  subscriptionId: string;
+  priceId: string;
+  metadata?: Record<string, string>;
+}): Promise<{ subscriptionItemId: string }> {
+  if (MOCK_STRIPE) {
+    return { subscriptionItemId: `mock_si_${Date.now()}` };
+  }
+
+  const s = getStripe();
+  const item = await s.subscriptionItems.create({
+    subscription: params.subscriptionId,
+    price: params.priceId,
+    metadata: params.metadata || {},
+  });
+
+  logger.info(`Subscription item adicionado: ${item.id} à subscription ${params.subscriptionId}`);
+  return { subscriptionItemId: item.id };
+}
+
+/**
+ * Remove item from subscription (for vehicle add-on removal)
+ */
+export async function removeSubscriptionItem(subscriptionItemId: string): Promise<void> {
+  if (MOCK_STRIPE) {
+    return;
+  }
+
+  const s = getStripe();
+  await s.subscriptionItems.del(subscriptionItemId, {
+    proration_behavior: 'create_prorations',
+  });
+
+  logger.info(`Subscription item removido: ${subscriptionItemId}`);
+}
+
 export function constructWebhookEvent(
   payload: Buffer,
   signature: string,
@@ -715,5 +754,7 @@ export default {
   createSubscription,
   cancelSubscription,
   updateSubscription,
+  addSubscriptionItem,
+  removeSubscriptionItem,
   constructWebhookEvent,
 };

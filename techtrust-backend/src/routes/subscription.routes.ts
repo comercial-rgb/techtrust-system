@@ -12,6 +12,7 @@ import { prisma } from '../config/database';
 import { AppError } from '../middleware/error-handler';
 import { logger } from '../config/logger';
 import * as stripeService from '../services/stripe.service';
+import { VEHICLE_ADD_ON } from '../config/businessRules';
 
 const router = Router();
 
@@ -387,6 +388,16 @@ router.get(
       where: { userId },
     });
 
+    // Count active vehicle add-ons
+    const addOnCount = await prisma.vehicleAddOn.count({
+      where: { subscriptionId: subscription.id, isActive: true },
+    });
+
+    const addOns = await prisma.vehicleAddOn.findMany({
+      where: { subscriptionId: subscription.id, isActive: true },
+      select: { id: true, vehicleId: true, monthlyPrice: true },
+    });
+
     res.json({
       success: true,
       data: {
@@ -394,6 +405,8 @@ router.get(
         vehicles: {
           used: vehicleCount,
           limit: subscription.maxVehicles,
+          addOns: addOnCount,
+          effectiveLimit: (subscription.maxVehicles ?? 0) + addOnCount,
         },
         serviceRequests: {
           used: subscription.serviceRequestsThisMonth,
@@ -404,7 +417,169 @@ router.get(
           start: subscription.currentPeriodStart,
           end: subscription.currentPeriodEnd,
         },
+        vehicleAddOns: addOns.map((a) => ({
+          ...a,
+          monthlyPrice: Number(a.monthlyPrice),
+        })),
       },
+    });
+  })
+);
+
+// ============================================
+// VEHICLE ADD-ON ROUTES
+// ============================================
+
+/**
+ * POST /api/v1/subscriptions/vehicle-addon
+ * Add an extra vehicle slot ($6.99/month)
+ */
+router.post(
+  '/vehicle-addon',
+  asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user!.id;
+    const { vehicleId } = req.body;
+
+    if (!vehicleId) {
+      throw new AppError('vehicleId is required', 400, 'MISSING_VEHICLE_ID');
+    }
+
+    // Verify vehicle belongs to user
+    const vehicle = await prisma.vehicle.findFirst({
+      where: { id: vehicleId, userId },
+    });
+
+    if (!vehicle) {
+      throw new AppError('Vehicle not found', 404, 'VEHICLE_NOT_FOUND');
+    }
+
+    // Get active subscription
+    const subscription = await prisma.subscription.findFirst({
+      where: { userId, status: 'ACTIVE' },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!subscription) {
+      throw new AppError('No active subscription', 404, 'NO_SUBSCRIPTION');
+    }
+
+    // Only paid plans can add vehicles
+    const plan = subscription.plan as string;
+    if (!(VEHICLE_ADD_ON.AVAILABLE_PLANS as readonly string[]).includes(plan)) {
+      throw new AppError(
+        'Vehicle add-ons require a Starter plan or higher',
+        403,
+        'PLAN_NOT_ELIGIBLE',
+      );
+    }
+
+    // Check if vehicle already has an add-on
+    const existingAddOn = await prisma.vehicleAddOn.findFirst({
+      where: { vehicleId, subscriptionId: subscription.id, isActive: true },
+    });
+
+    if (existingAddOn) {
+      throw new AppError('This vehicle already has an active add-on', 400, 'ADDON_EXISTS');
+    }
+
+    // Add to Stripe subscription if it exists
+    let stripeItemId: string | null = null;
+    const addonPriceId = process.env.STRIPE_PRICE_VEHICLE_ADDON;
+
+    if (subscription.stripeSubscriptionId && addonPriceId) {
+      const result = await stripeService.addSubscriptionItem({
+        subscriptionId: subscription.stripeSubscriptionId,
+        priceId: addonPriceId,
+        metadata: { userId, vehicleId, type: 'vehicle_addon' },
+      });
+      stripeItemId = result.subscriptionItemId;
+    }
+
+    // Create add-on record
+    const addOn = await prisma.vehicleAddOn.create({
+      data: {
+        subscriptionId: subscription.id,
+        userId,
+        vehicleId,
+        monthlyPrice: VEHICLE_ADD_ON.MONTHLY_PRICE,
+        stripeSubscriptionItemId: stripeItemId,
+        isActive: true,
+      },
+    });
+
+    logger.info(`Vehicle add-on created: ${addOn.id} for vehicle ${vehicleId} (user ${userId})`);
+
+    res.json({
+      success: true,
+      data: { ...addOn, monthlyPrice: Number(addOn.monthlyPrice) },
+      message: `Vehicle add-on activated ($${VEHICLE_ADD_ON.MONTHLY_PRICE}/month)`,
+    });
+  })
+);
+
+/**
+ * DELETE /api/v1/subscriptions/vehicle-addon/:addOnId
+ * Remove a vehicle add-on
+ */
+router.delete(
+  '/vehicle-addon/:addOnId',
+  asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user!.id;
+    const { addOnId } = req.params;
+
+    const addOn = await prisma.vehicleAddOn.findFirst({
+      where: { id: addOnId, userId, isActive: true },
+    });
+
+    if (!addOn) {
+      throw new AppError('Add-on not found', 404, 'ADDON_NOT_FOUND');
+    }
+
+    // Remove from Stripe
+    if (addOn.stripeSubscriptionItemId) {
+      await stripeService.removeSubscriptionItem(addOn.stripeSubscriptionItemId);
+    }
+
+    // Mark as cancelled
+    await prisma.vehicleAddOn.update({
+      where: { id: addOnId },
+      data: { isActive: false, cancelledAt: new Date() },
+    });
+
+    logger.info(`Vehicle add-on cancelled: ${addOnId} (user ${userId})`);
+
+    res.json({
+      success: true,
+      message: 'Vehicle add-on cancelled',
+    });
+  })
+);
+
+/**
+ * GET /api/v1/subscriptions/vehicle-addons
+ * List active vehicle add-ons
+ */
+router.get(
+  '/vehicle-addons',
+  asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user!.id;
+
+    const addOns = await prisma.vehicleAddOn.findMany({
+      where: { userId, isActive: true },
+      include: {
+        vehicle: {
+          select: { id: true, make: true, model: true, year: true, plateNumber: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.json({
+      success: true,
+      data: addOns.map((a) => ({
+        ...a,
+        monthlyPrice: Number(a.monthlyPrice),
+      })),
     });
   })
 );
