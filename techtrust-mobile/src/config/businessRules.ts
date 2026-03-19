@@ -343,6 +343,47 @@ export const NOTIFICATION_RULES = {
 };
 
 // ============================================
+// SUBSCRIPTION PLANS (mirrors backend)
+// ============================================
+
+export const SUBSCRIPTION_PLANS = {
+  FREE: {
+    name: 'Free',
+    monthlyPrice: 0,
+    annualPrice: 0,
+    maxVehicles: 1,
+    sosDiscountPercent: 0,
+    sosFreePerMonth: 0,
+  },
+  STARTER: {
+    name: 'Starter',
+    monthlyPrice: 9.99,
+    annualPrice: 99.99,
+    maxVehicles: 2,
+    sosDiscountPercent: 10,
+    sosFreePerMonth: 0,
+  },
+  PRO: {
+    name: 'Pro',
+    monthlyPrice: 19.99,
+    annualPrice: 199.99,
+    maxVehicles: 4,
+    sosDiscountPercent: 20,
+    sosFreePerMonth: 0,
+  },
+  ENTERPRISE: {
+    name: 'Enterprise',
+    monthlyPrice: 49.99,
+    annualPrice: 499.99,
+    maxVehicles: 10,
+    sosDiscountPercent: 30,
+    sosFreePerMonth: 2,
+  },
+} as const;
+
+export const VEHICLE_ADD_ON_PRICE = 6.99;
+
+// ============================================
 // HELPERS / UTILITIES
 // ============================================
 
@@ -354,12 +395,10 @@ export function calculateCancellationFee(
   hoursBeforeService: number,
   serviceStarted: boolean
 ): { canCancel: boolean; feePercent: number; feeAmount: number } {
-  // Serviço já iniciado
   if (serviceStarted) {
     return { canCancel: false, feePercent: 0, feeAmount: 0 };
   }
   
-  // Menos de 24h antes
   if (hoursBeforeService < CANCELLATION_RULES.REDUCED_FEE_HOURS_THRESHOLD) {
     const feePercent = CANCELLATION_RULES.LESS_THAN_24H_FEE_PERCENT;
     return {
@@ -369,7 +408,6 @@ export function calculateCancellationFee(
     };
   }
   
-  // Mais de 24h antes
   const feePercent = CANCELLATION_RULES.AFTER_ACCEPT_24H_PLUS_FEE_PERCENT;
   return {
     canCancel: true,
@@ -379,14 +417,21 @@ export function calculateCancellationFee(
 }
 
 /**
- * Calcula preço do SOS/Guincho
+ * Calcula preço do SOS/Guincho com desconto por plano
  */
 export function calculateSOSPrice(
   distanceMiles: number,
   isNight: boolean,
   isHoliday: boolean,
-  isWeekend: boolean
-): number {
+  isWeekend: boolean,
+  clientPlan: string = 'FREE',
+  freeUsesRemaining: number = 0,
+): { price: number; discount: number; isFreeUse: boolean } {
+  // Enterprise free uses
+  if (freeUsesRemaining > 0) {
+    return { price: 0, discount: 100, isFreeUse: true };
+  }
+
   let price = SOS_RULES.PRICING.BASE_FEE + (distanceMiles * SOS_RULES.PRICING.PER_MILE);
   
   if (isNight) {
@@ -398,8 +443,17 @@ export function calculateSOSPrice(
   } else if (isWeekend) {
     price *= 1 + (SOS_RULES.PRICING.WEEKEND_SURCHARGE_PERCENT / 100);
   }
+
+  const planConfig = SUBSCRIPTION_PLANS[clientPlan as keyof typeof SUBSCRIPTION_PLANS];
+  const discountPercent = planConfig?.sosDiscountPercent ?? 0;
+  const discount = (price * discountPercent) / 100;
+  price = price - discount;
   
-  return Math.round(price * 100) / 100; // Arredondar para 2 casas decimais
+  return {
+    price: Math.round(price * 100) / 100,
+    discount: discountPercent,
+    isFreeUse: false,
+  };
 }
 
 /**
@@ -466,4 +520,6 @@ export default {
   DISPUTE_RULES,
   SOS_RULES,
   NOTIFICATION_RULES,
+  SUBSCRIPTION_PLANS,
+  VEHICLE_ADD_ON_PRICE,
 };

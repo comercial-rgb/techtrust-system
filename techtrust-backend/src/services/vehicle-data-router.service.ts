@@ -61,7 +61,7 @@ export async function checkUserPremium(userId: string): Promise<boolean> {
     where: {
       userId,
       status: 'ACTIVE',
-      plan: { in: ['PREMIUM', 'ENTERPRISE'] },
+      plan: { in: ['PRO', 'ENTERPRISE'] },
       currentPeriodEnd: { gt: new Date() },
     },
   });

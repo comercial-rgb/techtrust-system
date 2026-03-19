@@ -225,7 +225,7 @@ export async function removePaymentMethod(id: string): Promise<void> {
 
 export interface SubscriptionInfo {
   id: string;
-  plan: "FREE" | "BASIC" | "PREMIUM" | "ENTERPRISE";
+  plan: "FREE" | "STARTER" | "PRO" | "ENTERPRISE";
   price: number;
   status: "ACTIVE" | "PAST_DUE" | "CANCELLED" | "EXPIRED";
   maxVehicles: number;

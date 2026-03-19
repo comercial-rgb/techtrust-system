@@ -130,7 +130,7 @@ router.post(
       orderBy: { createdAt: 'desc' },
     });
 
-    const planEnum = planKey.toUpperCase() as 'FREE' | 'BASIC' | 'PREMIUM' | 'ENTERPRISE';
+    const planEnum = planKey.toUpperCase() as 'FREE' | 'STARTER' | 'PRO' | 'ENTERPRISE';
     const price = billingPeriod === 'yearly' ? Number(template.yearlyPrice) : Number(template.monthlyPrice);
 
     // Se é plano FREE
@@ -187,8 +187,8 @@ router.post(
 
     // Determinar Stripe Price ID baseado no plano
     const priceIdMap: Record<string, string | undefined> = {
-      basic: process.env.STRIPE_PRICE_BASIC,
-      premium: process.env.STRIPE_PRICE_PREMIUM,
+      starter: process.env.STRIPE_PRICE_STARTER,
+      pro: process.env.STRIPE_PRICE_PRO,
       enterprise: process.env.STRIPE_PRICE_ENTERPRISE,
     };
 

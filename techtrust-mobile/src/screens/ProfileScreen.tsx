@@ -130,8 +130,8 @@ export default function ProfileScreen({ navigation }: any) {
   const getPlanName = (plan: string) => {
     const names: any = {
       FREE: t.profile?.planFree || "Free",
-      BASIC: t.profile?.planBasic || "Basic",
-      PREMIUM: t.profile?.planPremium || "Premium",
+      STARTER: t.profile?.planStarter || "Starter",
+      PRO: t.profile?.planPro || "Pro",
       ENTERPRISE: t.profile?.planEnterprise || "Enterprise",
     };
     return names[plan] || plan;
@@ -140,8 +140,8 @@ export default function ProfileScreen({ navigation }: any) {
   const getPlanEmoji = (plan: string) => {
     const emojis: any = {
       FREE: "🆓",
-      BASIC: "⭐",
-      PREMIUM: "👑",
+      STARTER: "⭐",
+      PRO: "👑",
       ENTERPRISE: "🏢",
     };
     return emojis[plan] || "📋";

@@ -79,9 +79,17 @@ enum PaymentStatus {
 
 enum SubscriptionPlan {
   FREE
-  BASIC
-  PREMIUM
+  STARTER
+  PRO
   ENTERPRISE
+}
+
+// Provider commission tier based on completed orders + tenure
+enum ProviderLevel {
+  ENTRY       // 0-29 orders — 15% commission
+  INTERMEDIATE // 30-99 orders — 12% commission
+  ADVANCED    // 100-249 orders OR 6+ months — 10% commission
+  PREMIUM_TIER // 250+ orders OR 12+ months — 8% commission
 }
 
 enum SubscriptionStatus {
@@ -396,6 +404,10 @@ model User {
   loginSessions          LoginSession[]
   clientInsurancePolicies ClientInsurancePolicy[]
 
+  // Plan service balances & vehicle add-ons
+  serviceBalances VehicleAddOn[] @relation("UserVehicleAddOns")
+  serviceCredits  ServiceBalance[]
+
   @@index([email])
   @@index([phone])
   @@index([role])
@@ -510,6 +522,11 @@ model ProviderProfile {
   suspendedUntil  DateTime?
   suspensionReason String?
 
+  // ===== Commission Tier System =====
+  providerLevel       ProviderLevel @default(ENTRY)
+  commissionRate      Decimal       @default(15) @db.Decimal(5, 2) // Current commission %
+  levelCalculatedAt   DateTime?     // Last time level was auto-calculated
+
   // ===== Relations =====
   complianceItems      ComplianceItem[]
   technicians          Technician[]
@@ -622,6 +639,7 @@ model Vehicle {
   workOrders          WorkOrder[]
   maintenanceSchedule VehicleMaintenanceSchedule[]
   appointments        Appointment[]
+  vehicleAddOns       VehicleAddOn[]
 
   @@index([userId])
   @@index([vin])
@@ -1296,9 +1314,76 @@ model Subscription {
   vehiclesRegistered       Int @default(0)
   serviceRequestsThisMonth Int @default(0)
 
+  // Service balance (included services per plan)
+  serviceBalances ServiceBalance[]
+
+  // Vehicle add-ons
+  vehicleAddOns VehicleAddOn[]
+
   @@index([userId])
   @@index([status])
   @@map("subscriptions")
+}
+
+// Included service credits per subscription cycle (oil changes, brake inspections, etc.)
+model ServiceBalance {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Service type key: OIL_CHANGE, BRAKE_INSPECTION, AC_DISCOUNT, TIRE_DISCOUNT
+  serviceType String
+
+  // Credits per cycle
+  totalCredits Int @default(0) // Total included in plan per cycle
+  usedCredits  Int @default(0) // Used this cycle
+
+  // Discount percentage (for discount-type benefits like AC, tires)
+  discountPercent Int @default(0)
+
+  // Cycle tracking (credits reset on anniversary, do NOT accumulate)
+  cycleStart DateTime
+  cycleEnd   DateTime
+
+  @@unique([subscriptionId, serviceType])
+  @@index([userId])
+  @@map("service_balances")
+}
+
+// Extra vehicles beyond plan limit ($6.99/vehicle/month)
+model VehicleAddOn {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User @relation("UserVehicleAddOns", fields: [userId], references: [id], onDelete: Cascade)
+
+  vehicleId String
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  // Pricing
+  monthlyPrice Decimal @default(6.99) @db.Decimal(10, 2)
+
+  // Stripe
+  stripeSubscriptionItemId String?
+
+  // Status
+  isActive    Boolean   @default(true)
+  cancelledAt DateTime?
+
+  @@unique([subscriptionId, vehicleId])
+  @@index([userId])
+  @@map("vehicle_add_ons")
 }
 
 model Review {
@@ -1791,7 +1876,7 @@ model SubscriptionPlanTemplate {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Identificador único do plano (free, basic, premium, enterprise)
+  // Identificador único do plano (free, starter, pro, enterprise)
   planKey String @unique
 
   // Informações do plano

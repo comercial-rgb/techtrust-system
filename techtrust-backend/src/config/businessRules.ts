@@ -4,9 +4,10 @@
  * ============================================
  * FONTE ÚNICA DE VERDADE — não duplicar em controllers.
  *
- * Last updated: 2025-02-22
+ * Last updated: 2025-07-17
  * Covers: Plans, Fees, Cancellation, Expiration, Provider Points,
- *         Review Weights, FDACS, Stripe, RFQ, Auto Parts Store
+ *         Review Weights, FDACS, Stripe, RFQ, Auto Parts Store,
+ *         Commission Tiers, Service Balance, SOS Pricing
  * ============================================
  */
 
@@ -21,17 +22,33 @@ export const SUBSCRIPTION_PLANS = {
     maxRequestsPerMonth: 3,
     maxActiveSimultaneous: 2,
     features: {
+      // Always available on ALL plans
       vinDecode: true,
       nhtsaRecalls: true,
       organicCatalog: true,
+      fdacsCompliance: true,
+      disputes: true,
+      pdfReceipts: true,
+      // Gated features
+      multiLanguage: false,
+      mileageTracker: false,
+      quoteSharing: false,
       plateDecoder: false,
       ocrScan: false,
       scheduledMaintenance: false,
       warrantyStatus: false,
       marketValue: false,
+      wallet: false,
+      oemLookup: false,
+      expenseReports: false,
+      fleetDashboard: false,
+      obd2Basic: false,
+      obd2Advanced: false,
+      supplementApproval: false,
+      vehicleTransfer: false,
     },
     appServiceFee: 9.89,
-    platformFeeMaxCap: null,   // No cap — full 10% always
+    platformFeeMaxCap: null,
     requestExpiration: 'EXPIRES' as const,
     requestExpirationHours: 72,
     renewalFee: 0.99,
@@ -39,26 +56,52 @@ export const SUBSCRIPTION_PLANS = {
     requestHighlight: false,
     specialOffers: false,
     prioritySupport: false,
+    // SOS discount
+    sosDiscountPercent: 0,
+    sosPriority: false,
+    sosFreePerMonth: 0,
+    // Service balance (included services per year)
+    serviceBalance: {
+      oilChangesPerYear: 0,
+      brakeInspectionsPerYear: 0,
+      acDiscountPercent: 0,
+      tireDiscountPercent: 0,
+      brakeServiceDiscountPercent: 0,
+    },
   },
-  BASIC: {
-    name: 'Basic',
+  STARTER: {
+    name: 'Starter',
     monthlyPrice: 9.99,
     annualPrice: 99.99,
-    maxVehicles: 3,
+    maxVehicles: 2,
     maxRequestsPerMonth: 10,
     maxActiveSimultaneous: 6,
     features: {
       vinDecode: true,
       nhtsaRecalls: true,
       organicCatalog: true,
+      fdacsCompliance: true,
+      disputes: true,
+      pdfReceipts: true,
+      multiLanguage: true,
+      mileageTracker: true,
+      quoteSharing: true,
       plateDecoder: false,
       ocrScan: false,
       scheduledMaintenance: true,
       warrantyStatus: false,
       marketValue: false,
+      wallet: false,
+      oemLookup: false,
+      expenseReports: false,
+      fleetDashboard: false,
+      obd2Basic: false,
+      obd2Advanced: false,
+      supplementApproval: false,
+      vehicleTransfer: false,
     },
     appServiceFee: 4.99,
-    platformFeeMaxCap: 300,    // Max $300 platform fee
+    platformFeeMaxCap: 300,
     requestExpiration: 'EXPIRES' as const,
     requestExpirationHours: 72,
     renewalFee: 0.99,
@@ -66,50 +109,47 @@ export const SUBSCRIPTION_PLANS = {
     requestHighlight: false,
     specialOffers: false,
     prioritySupport: false,
+    sosDiscountPercent: 10,
+    sosPriority: false,
+    sosFreePerMonth: 0,
+    serviceBalance: {
+      oilChangesPerYear: 1,
+      brakeInspectionsPerYear: 0,
+      acDiscountPercent: 0,
+      tireDiscountPercent: 0,
+      brakeServiceDiscountPercent: 0,
+    },
   },
-  PREMIUM: {
-    name: 'Premium (Membership)',
+  PRO: {
+    name: 'Pro',
     monthlyPrice: 19.99,
     annualPrice: 199.99,
-    maxVehicles: 10,
+    maxVehicles: 4,
     maxRequestsPerMonth: null,
     maxActiveSimultaneous: 10,
     features: {
       vinDecode: true,
       nhtsaRecalls: true,
       organicCatalog: true,
+      fdacsCompliance: true,
+      disputes: true,
+      pdfReceipts: true,
+      multiLanguage: true,
+      mileageTracker: true,
+      quoteSharing: true,
       plateDecoder: true,
       ocrScan: true,
       scheduledMaintenance: true,
       warrantyStatus: true,
       marketValue: true,
-    },
-    appServiceFee: 0,
-    platformFeeMaxCap: 150,     // Max $150 platform fee
-    requestExpiration: 'NEVER' as const,
-    requestExpirationHours: null,
-    renewalFee: 0,
-    renewalLimit: null,
-    requestHighlight: true,
-    specialOffers: true,
-    prioritySupport: true,
-  },
-  ENTERPRISE: {
-    name: 'Enterprise',
-    monthlyPrice: null,
-    annualPrice: null,
-    maxVehicles: null,
-    maxRequestsPerMonth: null,
-    maxActiveSimultaneous: null,
-    features: {
-      vinDecode: true,
-      nhtsaRecalls: true,
-      organicCatalog: true,
-      plateDecoder: true,
-      ocrScan: true,
-      scheduledMaintenance: true,
-      warrantyStatus: true,
-      marketValue: true,
+      wallet: true,
+      oemLookup: true,
+      expenseReports: true,
+      fleetDashboard: false,
+      obd2Basic: true,
+      obd2Advanced: false,
+      supplementApproval: true,
+      vehicleTransfer: true,
     },
     appServiceFee: 0,
     platformFeeMaxCap: 150,
@@ -120,10 +160,191 @@ export const SUBSCRIPTION_PLANS = {
     requestHighlight: true,
     specialOffers: true,
     prioritySupport: true,
+    sosDiscountPercent: 20,
+    sosPriority: true,
+    sosFreePerMonth: 0,
+    serviceBalance: {
+      oilChangesPerYear: 2,
+      brakeInspectionsPerYear: 1,
+      acDiscountPercent: 10,
+      tireDiscountPercent: 5,
+      brakeServiceDiscountPercent: 10,
+    },
+  },
+  ENTERPRISE: {
+    name: 'Enterprise',
+    monthlyPrice: 49.99,
+    annualPrice: 499.99,
+    maxVehicles: 10,
+    maxRequestsPerMonth: null,
+    maxActiveSimultaneous: null,
+    features: {
+      vinDecode: true,
+      nhtsaRecalls: true,
+      organicCatalog: true,
+      fdacsCompliance: true,
+      disputes: true,
+      pdfReceipts: true,
+      multiLanguage: true,
+      mileageTracker: true,
+      quoteSharing: true,
+      plateDecoder: true,
+      ocrScan: true,
+      scheduledMaintenance: true,
+      warrantyStatus: true,
+      marketValue: true,
+      wallet: true,
+      oemLookup: true,
+      expenseReports: true,
+      fleetDashboard: true,
+      obd2Basic: true,
+      obd2Advanced: true,
+      supplementApproval: true,
+      vehicleTransfer: true,
+    },
+    appServiceFee: 0,
+    platformFeeMaxCap: 150,
+    requestExpiration: 'NEVER' as const,
+    requestExpirationHours: null,
+    renewalFee: 0,
+    renewalLimit: null,
+    requestHighlight: true,
+    specialOffers: true,
+    prioritySupport: true,
+    sosDiscountPercent: 30,
+    sosPriority: true,
+    sosFreePerMonth: 2,
+    serviceBalance: {
+      oilChangesPerYear: 4,
+      brakeInspectionsPerYear: -1, // -1 = unlimited
+      acDiscountPercent: 15,
+      tireDiscountPercent: 10,
+      brakeServiceDiscountPercent: 15,
+    },
   },
 } as const;
 
 export type PlanKey = keyof typeof SUBSCRIPTION_PLANS;
+
+// ─── VEHICLE ADD-ON ─────────────────────────────────────────────────────────
+
+export const VEHICLE_ADD_ON = {
+  /** Price per additional vehicle per month (beyond plan limit) */
+  MONTHLY_PRICE: 6.99,
+  /** Only available for paid plans (STARTER, PRO, ENTERPRISE) */
+  AVAILABLE_PLANS: ['STARTER', 'PRO', 'ENTERPRISE'] as const,
+};
+
+// ─── PROVIDER COMMISSION TIERS ──────────────────────────────────────────────
+
+export const PROVIDER_COMMISSION = {
+  /** Commission tiers based on completed orders and account tenure */
+  TIERS: {
+    ENTRY: {
+      name: 'Entry',
+      commissionPercent: 15,
+      minOrders: 0,
+      minMonths: 0,
+    },
+    INTERMEDIATE: {
+      name: 'Intermediate',
+      commissionPercent: 12,
+      minOrders: 30,
+      minMonths: 0,
+    },
+    ADVANCED: {
+      name: 'Advanced',
+      commissionPercent: 10,
+      minOrders: 100,
+      minMonths: 6, // OR condition: 100 orders OR 6 months
+    },
+    PREMIUM_TIER: {
+      name: 'Premium',
+      commissionPercent: 8,
+      minOrders: 250,
+      minMonths: 12, // OR condition: 250 orders OR 12 months
+    },
+  } as const,
+
+  /** SOS services always 12% commission regardless of tier */
+  SOS_COMMISSION_PERCENT: 12,
+
+  /** Parts fee: percentage-based with floor/ceiling */
+  PARTS_FEE: {
+    PERCENT: 8,
+    FLOOR: 2.00,
+    CEILING_BY_LEVEL: {
+      ENTRY: 10.00,
+      INTERMEDIATE: 12.00,
+      ADVANCED: 13.00,
+      PREMIUM_TIER: 15.00,
+    } as Record<string, number>,
+  },
+
+  /** Marketplace listing fee for providers */
+  LISTING_FEE: {
+    MONTHLY: 29.99,
+    ANNUAL: 299.99,
+  },
+} as const;
+
+// ─── SOS / ROADSIDE PRICING ────────────────────────────────────────────────
+
+export const SOS_PRICING = {
+  BASE_FEE: 65.00,
+  PER_MILE: 2.50,
+  NIGHT_SURCHARGE_PERCENT: 30,    // 22h-6h: +30%
+  HOLIDAY_SURCHARGE_PERCENT: 50,  // Holidays: +50%
+  WEEKEND_SURCHARGE_PERCENT: 19,  // Weekends: +19%
+  NIGHT_START_HOUR: 22,
+  NIGHT_END_HOUR: 6,
+  MAX_ARRIVAL_MINUTES: 60,
+  LATE_DISCOUNTS: {
+    15: 10,
+    30: 20,
+    45: 30,
+  } as Record<number, number>,
+  FREE_CANCEL_AFTER_MINUTES: 60,
+} as const;
+
+/**
+ * Calculate SOS price with plan discount applied.
+ */
+export function calculateSOSPrice(
+  distanceMiles: number,
+  isNight: boolean,
+  isHoliday: boolean,
+  isWeekend: boolean,
+  clientPlan: string = 'FREE',
+  freeUsesRemaining: number = 0,
+): { price: number; discount: number; isFreeUse: boolean } {
+  // Enterprise free uses
+  if (freeUsesRemaining > 0) {
+    return { price: 0, discount: 100, isFreeUse: true };
+  }
+
+  let price = SOS_PRICING.BASE_FEE + (distanceMiles * SOS_PRICING.PER_MILE);
+
+  if (isNight) {
+    price *= 1 + (SOS_PRICING.NIGHT_SURCHARGE_PERCENT / 100);
+  }
+  if (isHoliday) {
+    price *= 1 + (SOS_PRICING.HOLIDAY_SURCHARGE_PERCENT / 100);
+  } else if (isWeekend) {
+    price *= 1 + (SOS_PRICING.WEEKEND_SURCHARGE_PERCENT / 100);
+  }
+
+  const planConfig = SUBSCRIPTION_PLANS[clientPlan as PlanKey];
+  const discountPercent = planConfig?.sosDiscountPercent ?? 0;
+  const discount = (price * discountPercent) / 100;
+  price = price - discount;
+
+  return {
+    price: Math.round(price * 100) / 100,
+    discount: discountPercent,
+    isFreeUse: false,
+  };
+}
 
 // ─── PAYMENT RULES ──────────────────────────────────────────────────────────
 
@@ -136,11 +357,11 @@ export const PAYMENT_RULES = {
 
   /**
    * App Service Fee — cobrado do CLIENTE, varia por plano:
-   * FREE=$9.89, BASIC=$4.99, PREMIUM/ENTERPRISE=$0.00
+   * FREE=$9.89, STARTER=$4.99, PRO/ENTERPRISE=$0.00
    */
   APP_SERVICE_FEE_FREE: 9.89,
-  APP_SERVICE_FEE_BASIC: 4.99,
-  APP_SERVICE_FEE_PREMIUM: 0.00,
+  APP_SERVICE_FEE_STARTER: 4.99,
+  APP_SERVICE_FEE_PRO: 0.00,
 
   /** Dias para payout ao fornecedor */
   PROVIDER_PAYOUT_DAYS: 2,
@@ -238,11 +459,11 @@ export const QUOTE_VALIDITY = {
   COMPETING_DAYS: 15,
   /**
    * Tempo que ServiceRequest aguarda quotes antes de expirar
-   * conforme plano: FREE/BASIC=72h renewable, PREMIUM=never
+   * conforme plano: FREE/STARTER=72h renewable, PRO/ENTERPRISE=never
    */
   SERVICE_REQUEST_HOURS_FREE: 72,
-  SERVICE_REQUEST_HOURS_BASIC: 72,
-  SERVICE_REQUEST_HOURS_PREMIUM: null as number | null,  // Never expires
+  SERVICE_REQUEST_HOURS_STARTER: 72,
+  SERVICE_REQUEST_HOURS_PRO: null as number | null,  // Never expires
   /** Prazo para provider submeter quote (48h da criação do request) */
   PROVIDER_SUBMIT_HOURS: 48,
   /** Validade de EstimateShare (RFQ aberto) */
@@ -536,7 +757,7 @@ export const SUPPORT_RULES = {
 
 export const VEHICLE_DATA_LAYERS = {
   LAYER_0: { source: 'NHTSA vPIC', cost: 0, access: 'ALL', variables: 144 },
-  LAYER_1: { source: 'VehicleDatabases.com', cost: 100, access: 'PREMIUM_ENTERPRISE', credits: 500 },
+  LAYER_1: { source: 'VehicleDatabases.com', cost: 100, access: 'PRO_ENTERPRISE', credits: 500 },
   LAYER_2: { source: 'PartsTech (B2B)', cost: 0, access: 'PROVIDERS_ONLY' },
   LAYER_3: { source: 'Organic Catalog', cost: 0, access: 'ALL' },
 };
@@ -596,11 +817,11 @@ export const UPLOAD_RULES = {
  */
 export function getAppServiceFee(plan: string): number {
   switch (plan) {
-    case 'PREMIUM':
+    case 'PRO':
     case 'ENTERPRISE':
-      return PAYMENT_RULES.APP_SERVICE_FEE_PREMIUM;
-    case 'BASIC':
-      return PAYMENT_RULES.APP_SERVICE_FEE_BASIC;
+      return PAYMENT_RULES.APP_SERVICE_FEE_PRO;
+    case 'STARTER':
+      return PAYMENT_RULES.APP_SERVICE_FEE_STARTER;
     case 'FREE':
     default:
       return PAYMENT_RULES.APP_SERVICE_FEE_FREE;
@@ -754,7 +975,7 @@ export interface FeeBreakdown {
  *
  * REGRAS:
  * - Platform Fee = 10% do serviceAmount (sem imposto), capped por plano
- * - App Service Fee = varia por plano (FREE=$9.89, BASIC=$4.99, PREMIUM/ENT=$0)
+ * - App Service Fee = varia por plano (FREE=$9.89, STARTER=$4.99, PRO/ENT=$0)
  * - Diagnostic Fee = 0% para plataforma, 100% provider
  * - Travel Fee = 0% para plataforma, 100% provider
  * - Stripe Fee = 2.9% + $0.30 — CLIENTE paga
@@ -913,10 +1134,81 @@ export function getServiceRequestExpirationHours(plan: string): number | null {
   return planConfig?.requestExpirationHours ?? QUOTE_VALIDITY.SERVICE_REQUEST_HOURS_FREE;
 }
 
+// ─── PROVIDER COMMISSION FUNCTIONS ──────────────────────────────────────────
+
+export type ProviderLevelKey = 'ENTRY' | 'INTERMEDIATE' | 'ADVANCED' | 'PREMIUM_TIER';
+
+/**
+ * Determine provider level based on completed orders and account age in months.
+ * Tiers upgrade by EITHER orders OR tenure (whichever qualifies first).
+ */
+export function calculateProviderLevel(
+  completedOrders: number,
+  accountAgeMonths: number,
+): { level: ProviderLevelKey; commissionPercent: number } {
+  const tiers = PROVIDER_COMMISSION.TIERS;
+
+  // Check from highest to lowest
+  if (completedOrders >= tiers.PREMIUM_TIER.minOrders || accountAgeMonths >= tiers.PREMIUM_TIER.minMonths) {
+    return { level: 'PREMIUM_TIER', commissionPercent: tiers.PREMIUM_TIER.commissionPercent };
+  }
+  if (completedOrders >= tiers.ADVANCED.minOrders || accountAgeMonths >= tiers.ADVANCED.minMonths) {
+    return { level: 'ADVANCED', commissionPercent: tiers.ADVANCED.commissionPercent };
+  }
+  if (completedOrders >= tiers.INTERMEDIATE.minOrders) {
+    return { level: 'INTERMEDIATE', commissionPercent: tiers.INTERMEDIATE.commissionPercent };
+  }
+  return { level: 'ENTRY', commissionPercent: tiers.ENTRY.commissionPercent };
+}
+
+/**
+ * Calculate the commission amount for a service (labor portion).
+ * SOS services always pay 12% regardless of provider level.
+ */
+export function calculateProviderCommission(
+  laborAmount: number,
+  providerLevel: ProviderLevelKey,
+  isSOS: boolean = false,
+): number {
+  const rate = isSOS
+    ? PROVIDER_COMMISSION.SOS_COMMISSION_PERCENT
+    : PROVIDER_COMMISSION.TIERS[providerLevel].commissionPercent;
+  return Math.round((laborAmount * rate) / 100 * 100) / 100;
+}
+
+/**
+ * Calculate the parts fee for a transaction.
+ * 8% with floor ($2) and level-based ceiling ($10-$15).
+ */
+export function calculatePartsFee(
+  partsAmount: number,
+  providerLevel: ProviderLevelKey,
+): number {
+  if (partsAmount <= 0) return 0;
+
+  const rawFee = (partsAmount * PROVIDER_COMMISSION.PARTS_FEE.PERCENT) / 100;
+  const floor = PROVIDER_COMMISSION.PARTS_FEE.FLOOR;
+  const ceiling = PROVIDER_COMMISSION.PARTS_FEE.CEILING_BY_LEVEL[providerLevel] ?? 10;
+
+  return Math.round(Math.max(floor, Math.min(rawFee, ceiling)) * 100) / 100;
+}
+
+/**
+ * Check if a feature is available for a given plan.
+ */
+export function isFeatureAvailable(plan: string, feature: string): boolean {
+  const planConfig = SUBSCRIPTION_PLANS[plan as PlanKey];
+  if (!planConfig) return false;
+  return (planConfig.features as Record<string, boolean>)[feature] === true;
+}
+
 // ─── DEFAULT EXPORT ─────────────────────────────────────────────────────────
 
 export default {
   SUBSCRIPTION_PLANS,
+  VEHICLE_ADD_ON,
+  PROVIDER_COMMISSION,
+  SOS_PRICING,
   PAYMENT_RULES,
   PROCESSOR_FEES,
   CANCELLATION_RULES,
@@ -958,4 +1250,9 @@ export default {
   calculateWeightedRating,
   getProviderReputationSummary,
   getServiceRequestExpirationHours,
+  calculateSOSPrice,
+  calculateProviderLevel,
+  calculateProviderCommission,
+  calculatePartsFee,
+  isFeatureAvailable,
 };

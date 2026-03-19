@@ -434,7 +434,7 @@ export default function CustomerProfileScreen({ navigation }: any) {
                   <Ionicons name="chevron-forward" size={20} color="#93c5fd" />
                 </View>
                 <View style={styles.subscriptionFeatures}>
-                  {subscription?.plan === "PREMIUM" ||
+                  {subscription?.plan === "PRO" ||
                   subscription?.plan === "ENTERPRISE" ? (
                     <>
                       <View style={styles.subscriptionFeature}>

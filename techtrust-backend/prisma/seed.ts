@@ -40,6 +40,86 @@ async function main() {
   console.log(`   ✅ Admin criado: ${admin.email}`);
 
   // ===========================================
+  // 1.5 Seed Subscription Plan Templates
+  // ===========================================
+  console.log("\n📋 Seeding subscription plan templates...");
+
+  const planTemplates = [
+    {
+      planKey: "free",
+      name: "Free",
+      description: "Perfect for getting started",
+      monthlyPrice: 0,
+      yearlyPrice: 0,
+      vehicleLimit: 1,
+      serviceRequestsPerMonth: 3,
+      features: ["1 vehicle", "3 service requests/month", "VIN decode & NHTSA recalls", "FDACS compliance", "PDF receipts"],
+      isActive: true,
+      isFeatured: false,
+      position: 0,
+    },
+    {
+      planKey: "starter",
+      name: "Starter",
+      description: "For individuals who want more",
+      monthlyPrice: 9.99,
+      yearlyPrice: 99.99,
+      vehicleLimit: 2,
+      serviceRequestsPerMonth: 10,
+      features: ["2 vehicles (+$6.99/extra)", "10 service requests/month", "Multi-language support", "Mileage tracker", "Quote sharing", "1 oil change/year included", "10% SOS discount"],
+      isActive: true,
+      isFeatured: false,
+      position: 1,
+    },
+    {
+      planKey: "pro",
+      name: "Pro",
+      description: "Best value for families",
+      monthlyPrice: 19.99,
+      yearlyPrice: 199.99,
+      vehicleLimit: 4,
+      serviceRequestsPerMonth: null,
+      features: ["4 vehicles (+$6.99/extra)", "Unlimited service requests", "OEM parts lookup", "Digital wallet", "Expense reports", "OBD2 basic diagnostics", "2 oil changes + 1 brake inspection/year", "20% SOS discount + priority", "Priority support 24/7"],
+      isActive: true,
+      isFeatured: true,
+      position: 2,
+    },
+    {
+      planKey: "enterprise",
+      name: "Enterprise",
+      description: "For fleets and businesses",
+      monthlyPrice: 49.99,
+      yearlyPrice: 499.99,
+      vehicleLimit: 10,
+      serviceRequestsPerMonth: null,
+      features: ["10 vehicles (+$6.99/extra)", "Unlimited service requests", "Fleet dashboard", "Advanced OBD2 diagnostics", "4 oil changes + unlimited inspections/year", "2 free SOS/month + 30% discount", "All Pro features included", "Dedicated account manager"],
+      isActive: true,
+      isFeatured: false,
+      position: 3,
+    },
+  ];
+
+  for (const template of planTemplates) {
+    await prisma.subscriptionPlanTemplate.upsert({
+      where: { planKey: template.planKey },
+      update: {
+        name: template.name,
+        description: template.description,
+        monthlyPrice: template.monthlyPrice,
+        yearlyPrice: template.yearlyPrice,
+        vehicleLimit: template.vehicleLimit,
+        serviceRequestsPerMonth: template.serviceRequestsPerMonth,
+        features: template.features,
+        isActive: template.isActive,
+        isFeatured: template.isFeatured,
+        position: template.position,
+      },
+      create: template,
+    });
+  }
+  console.log("   ✅ Plan templates seeded (Free, Starter, Pro, Enterprise)");
+
+  // ===========================================
   // 2. Criar usuário CLIENT de teste
   // ===========================================
   console.log("\n2️⃣ Criando usuário CLIENT de teste...");

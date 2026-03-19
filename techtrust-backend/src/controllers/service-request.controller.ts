@@ -165,7 +165,7 @@ export const createServiceRequest = async (req: Request, res: Response) => {
   const quoteDeadline = new Date();
   quoteDeadline.setHours(quoteDeadline.getHours() + QUOTE_VALIDITY.PROVIDER_SUBMIT_HOURS);
 
-  // Calcular expiração conforme plano (FREE/BASIC=72h renewable, PREMIUM=never)
+  // Calcular expiração conforme plano (FREE/STARTER=72h renewable, PRO/ENTERPRISE=never)
   const expirationHours = getServiceRequestExpirationHours(subscription.plan);
   const expiresAt = expirationHours !== null ? new Date(Date.now() + expirationHours * 60 * 60 * 1000) : null;
 
@@ -518,8 +518,8 @@ export const cancelServiceRequest = async (req: Request, res: Response) => {
 /**
  * POST /api/v1/service-requests/:requestId/renew
  * Renew (reopen) an expired/cancelled request to receive more quotes.
- * Charges $0.99 renewal fee (FREE/BASIC plans) billed on next invoice.
- * PREMIUM/ENTERPRISE: free renewal.
+ * Charges $0.99 renewal fee (FREE/STARTER plans) billed on next invoice.
+ * PRO/ENTERPRISE: free renewal.
  */
 export const renewServiceRequest = async (req: Request, res: Response) => {
   const userId = req.user!.id;
