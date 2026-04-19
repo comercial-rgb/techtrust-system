@@ -18,8 +18,8 @@ export const SUBSCRIPTION_PLANS = {
     name: 'Free',
     monthlyPrice: 0,
     annualPrice: 0,
-    maxVehicles: 1,
-    maxRequestsPerMonth: 3,
+    maxVehicles: 2,
+    maxRequestsPerMonth: 4,
     maxActiveSimultaneous: 2,
     features: {
       // Always available on ALL plans
@@ -47,8 +47,8 @@ export const SUBSCRIPTION_PLANS = {
       supplementApproval: false,
       vehicleTransfer: false,
     },
-    appServiceFee: 9.89,
-    platformFeeMaxCap: null,
+    appServiceFee: 5.89,
+    vehicleAddOnPrice: 6.99,
     requestExpiration: 'EXPIRES' as const,
     requestExpirationHours: 72,
     renewalFee: 0.99,
@@ -60,20 +60,19 @@ export const SUBSCRIPTION_PLANS = {
     sosDiscountPercent: 0,
     sosPriority: false,
     sosFreePerMonth: 0,
-    // Service balance (included services per year)
-    serviceBalance: {
+    // Service discounts — earned over time (unlock 1 every 3 months, reset on plan renewal)
+    serviceDiscounts: {
       oilChangesPerYear: 0,
       brakeInspectionsPerYear: 0,
-      acDiscountPercent: 0,
-      tireDiscountPercent: 0,
-      brakeServiceDiscountPercent: 0,
+      // No discounts on FREE plan
+      discountSlots: [] as readonly { type: string; percent: number; unlockMonth: number }[],
     },
   },
   STARTER: {
     name: 'Starter',
     monthlyPrice: 9.99,
     annualPrice: 99.99,
-    maxVehicles: 2,
+    maxVehicles: 3,
     maxRequestsPerMonth: 10,
     maxActiveSimultaneous: 6,
     features: {
@@ -100,8 +99,8 @@ export const SUBSCRIPTION_PLANS = {
       supplementApproval: false,
       vehicleTransfer: false,
     },
-    appServiceFee: 4.99,
-    platformFeeMaxCap: 300,
+    appServiceFee: 2.99,
+    vehicleAddOnPrice: 5.99,
     requestExpiration: 'EXPIRES' as const,
     requestExpirationHours: 72,
     renewalFee: 0.99,
@@ -112,19 +111,21 @@ export const SUBSCRIPTION_PLANS = {
     sosDiscountPercent: 10,
     sosPriority: false,
     sosFreePerMonth: 0,
-    serviceBalance: {
+    serviceDiscounts: {
       oilChangesPerYear: 1,
       brakeInspectionsPerYear: 0,
-      acDiscountPercent: 0,
-      tireDiscountPercent: 0,
-      brakeServiceDiscountPercent: 0,
+      // 1 discount unlocked every 3 months (max 2/year), resets on renewal
+      discountSlots: [
+        { type: 'SOS', percent: 10, unlockMonth: 3 },
+        { type: 'SOS', percent: 10, unlockMonth: 6 },
+      ] as readonly { type: string; percent: number; unlockMonth: number }[],
     },
   },
   PRO: {
     name: 'Pro',
     monthlyPrice: 19.99,
     annualPrice: 199.99,
-    maxVehicles: 4,
+    maxVehicles: 5,
     maxRequestsPerMonth: null,
     maxActiveSimultaneous: 10,
     features: {
@@ -152,7 +153,7 @@ export const SUBSCRIPTION_PLANS = {
       vehicleTransfer: true,
     },
     appServiceFee: 0,
-    platformFeeMaxCap: 150,
+    vehicleAddOnPrice: 3.99,
     requestExpiration: 'NEVER' as const,
     requestExpirationHours: null,
     renewalFee: 0,
@@ -163,19 +164,23 @@ export const SUBSCRIPTION_PLANS = {
     sosDiscountPercent: 20,
     sosPriority: true,
     sosFreePerMonth: 0,
-    serviceBalance: {
+    serviceDiscounts: {
       oilChangesPerYear: 2,
       brakeInspectionsPerYear: 1,
-      acDiscountPercent: 10,
-      tireDiscountPercent: 5,
-      brakeServiceDiscountPercent: 10,
+      // 1 discount unlocked every 3 months (max 4/year), resets on renewal
+      discountSlots: [
+        { type: 'AC', percent: 10, unlockMonth: 3 },
+        { type: 'TIRE', percent: 5, unlockMonth: 6 },
+        { type: 'BRAKE', percent: 10, unlockMonth: 9 },
+        { type: 'SOS', percent: 20, unlockMonth: 12 },
+      ] as readonly { type: string; percent: number; unlockMonth: number }[],
     },
   },
   ENTERPRISE: {
     name: 'Enterprise',
     monthlyPrice: 49.99,
     annualPrice: 499.99,
-    maxVehicles: 10,
+    maxVehicles: 14,
     maxRequestsPerMonth: null,
     maxActiveSimultaneous: null,
     features: {
@@ -203,7 +208,7 @@ export const SUBSCRIPTION_PLANS = {
       vehicleTransfer: true,
     },
     appServiceFee: 0,
-    platformFeeMaxCap: 150,
+    vehicleAddOnPrice: 0, // Enterprise: custom pricing for 14+ vehicles
     requestExpiration: 'NEVER' as const,
     requestExpirationHours: null,
     renewalFee: 0,
@@ -214,12 +219,16 @@ export const SUBSCRIPTION_PLANS = {
     sosDiscountPercent: 30,
     sosPriority: true,
     sosFreePerMonth: 2,
-    serviceBalance: {
+    serviceDiscounts: {
       oilChangesPerYear: 4,
       brakeInspectionsPerYear: -1, // -1 = unlimited
-      acDiscountPercent: 15,
-      tireDiscountPercent: 10,
-      brakeServiceDiscountPercent: 15,
+      // 1 discount unlocked every 3 months (max 4/year), resets on renewal
+      discountSlots: [
+        { type: 'AC', percent: 15, unlockMonth: 3 },
+        { type: 'TIRE', percent: 10, unlockMonth: 3 },
+        { type: 'BRAKE', percent: 15, unlockMonth: 6 },
+        { type: 'SOS', percent: 30, unlockMonth: 6 },
+      ] as readonly { type: string; percent: number; unlockMonth: number }[],
     },
   },
 } as const;
@@ -229,10 +238,15 @@ export type PlanKey = keyof typeof SUBSCRIPTION_PLANS;
 // ─── VEHICLE ADD-ON ─────────────────────────────────────────────────────────
 
 export const VEHICLE_ADD_ON = {
-  /** Price per additional vehicle per month (beyond plan limit) */
-  MONTHLY_PRICE: 6.99,
-  /** Only available for paid plans (STARTER, PRO, ENTERPRISE) */
-  AVAILABLE_PLANS: ['STARTER', 'PRO', 'ENTERPRISE'] as const,
+  /** Price per additional vehicle per month — varies by plan */
+  PRICE_BY_PLAN: {
+    FREE: 6.99,
+    STARTER: 5.99,
+    PRO: 3.99,
+    ENTERPRISE: 0, // Custom pricing for 14+ vehicles
+  } as Record<string, number>,
+  /** All plans can add vehicles */
+  AVAILABLE_PLANS: ['FREE', 'STARTER', 'PRO', 'ENTERPRISE'] as const,
 };
 
 // ─── PROVIDER COMMISSION TIERS ──────────────────────────────────────────────
@@ -269,9 +283,14 @@ export const PROVIDER_COMMISSION = {
   /** SOS services always 12% commission regardless of tier */
   SOS_COMMISSION_PERCENT: 12,
 
-  /** Parts fee: percentage-based with floor/ceiling */
+  /** Parts fee: percentage-based tiered by provider level with floor/ceiling */
   PARTS_FEE: {
-    PERCENT: 8,
+    PERCENT_BY_LEVEL: {
+      ENTRY: 11,
+      INTERMEDIATE: 10,
+      ADVANCED: 9,
+      PREMIUM_TIER: 8,
+    } as Record<string, number>,
     FLOOR: 2.00,
     CEILING_BY_LEVEL: {
       ENTRY: 10.00,
@@ -281,10 +300,67 @@ export const PROVIDER_COMMISSION = {
     } as Record<string, number>,
   },
 
-  /** Marketplace listing fee for providers */
-  LISTING_FEE: {
-    MONTHLY: 29.99,
-    ANNUAL: 299.99,
+  /** Marketplace listing fee for providers (auto parts & car wash) */
+  LISTING_PLANS: {
+    BASIC: {
+      name: 'Basic',
+      monthlyPrice: 29.99,
+      annualPrice: 299.99,
+      features: {
+        /** Standard listing in search results */
+        standardListing: true,
+        /** Business profile page with photos, hours, description */
+        businessProfile: true,
+        /** Receive service requests from nearby customers */
+        receiveRequests: true,
+        /** Basic analytics: views, clicks, request count */
+        basicAnalytics: true,
+        /** Reply to customer reviews */
+        reviewReplies: true,
+        /** Maximum photos in listing */
+        maxPhotos: 5,
+        /** Search result boost (1x = no boost) */
+        searchBoost: 1,
+        /** Radius of ad visibility in miles */
+        adReachMiles: 15,
+        /** Featured/highlighted listing in search */
+        featuredListing: false,
+        /** Priority placement in search results */
+        prioritySearch: false,
+        /** Advanced analytics: conversion rate, competitor insights */
+        advancedAnalytics: false,
+        /** Promotional offers & coupons creation */
+        promotionalOffers: false,
+        /** Badge "Verified Business" in listing */
+        verifiedBadge: false,
+        /** Social media integration */
+        socialIntegration: false,
+        /** Dedicated account support */
+        dedicatedSupport: false,
+      },
+    },
+    BEST: {
+      name: 'Best',
+      monthlyPrice: 39.99,
+      annualPrice: 399.99,
+      features: {
+        standardListing: true,
+        businessProfile: true,
+        receiveRequests: true,
+        basicAnalytics: true,
+        reviewReplies: true,
+        maxPhotos: 20,
+        searchBoost: 3, // 3x higher ranking in search results
+        adReachMiles: 50,
+        featuredListing: true, // Highlighted with badge in search
+        prioritySearch: true, // Shown first in search results
+        advancedAnalytics: true, // Conversion rates, competitor insights, trends
+        promotionalOffers: true, // Create coupons & special offers
+        verifiedBadge: true, // "Verified Business" trust badge
+        socialIntegration: true, // Share listings to social media
+        dedicatedSupport: true, // Priority customer support
+      },
+    },
   },
 } as const;
 
@@ -305,10 +381,39 @@ export const SOS_PRICING = {
     45: 30,
   } as Record<number, number>,
   FREE_CANCEL_AFTER_MINUTES: 60,
+
+  /**
+   * Fleet / Rental Car pricing — reduced fixed-price structure.
+   * When client is ENTERPRISE or a Rental Car company, they set a MAX_PRICE.
+   * Provider sees the max price and can offer equal or lower.
+   * This incentivizes competitive pricing for high-volume clients.
+   */
+  FLEET_PRICING: {
+    /** Whether fleet pricing is enabled */
+    ENABLED: true,
+    /** Client types that qualify for fleet pricing */
+    QUALIFYING_TYPES: ['RENTAL_CAR', 'BIG_ENTERPRISE'] as readonly string[],
+    /** Fixed max prices by service type (provider can offer less but not more) */
+    MAX_PRICES: {
+      TOWING: 85.00,         // Max tow price for fleet clients
+      JUMP_START: 45.00,
+      TIRE_CHANGE: 55.00,
+      LOCKOUT: 50.00,
+      FUEL_DELIVERY: 40.00,
+      GENERAL: 70.00,        // Fallback for other SOS types
+    } as Record<string, number>,
+    /** Reduced per-mile rate for fleet clients */
+    PER_MILE: 1.50,          // vs $2.50 standard
+    /** No surcharges for fleet clients (they pay flat rate) */
+    SURCHARGES_APPLY: false,
+    /** Platform commission on fleet SOS (lower to attract volume) */
+    COMMISSION_PERCENT: 10,  // vs 12% standard SOS
+  },
 } as const;
 
 /**
  * Calculate SOS price with plan discount applied.
+ * For fleet/rental clients, returns the fixed max price (provider can offer less).
  */
 export function calculateSOSPrice(
   distanceMiles: number,
@@ -317,12 +422,33 @@ export function calculateSOSPrice(
   isWeekend: boolean,
   clientPlan: string = 'FREE',
   freeUsesRemaining: number = 0,
-): { price: number; discount: number; isFreeUse: boolean } {
+  options?: { clientType?: string; serviceType?: string },
+): { price: number; discount: number; isFreeUse: boolean; isFleetPricing: boolean; maxPrice?: number } {
   // Enterprise free uses
   if (freeUsesRemaining > 0) {
-    return { price: 0, discount: 100, isFreeUse: true };
+    return { price: 0, discount: 100, isFreeUse: true, isFleetPricing: false };
   }
 
+  // Fleet / Rental Car pricing — fixed max price, no surcharges
+  const fleet = SOS_PRICING.FLEET_PRICING;
+  if (fleet.ENABLED && options?.clientType && fleet.QUALIFYING_TYPES.includes(options.clientType)) {
+    const serviceKey = options?.serviceType ?? 'GENERAL';
+    const maxPrice = fleet.MAX_PRICES[serviceKey] ?? fleet.MAX_PRICES.GENERAL;
+    // Calculate distance-based price with reduced per-mile
+    const fleetPrice = Math.min(
+      maxPrice,
+      SOS_PRICING.BASE_FEE + (distanceMiles * fleet.PER_MILE),
+    );
+    return {
+      price: Math.round(fleetPrice * 100) / 100,
+      discount: 0,
+      isFreeUse: false,
+      isFleetPricing: true,
+      maxPrice,
+    };
+  }
+
+  // Standard pricing
   let price = SOS_PRICING.BASE_FEE + (distanceMiles * SOS_PRICING.PER_MILE);
 
   if (isNight) {
@@ -343,6 +469,7 @@ export function calculateSOSPrice(
     price: Math.round(price * 100) / 100,
     discount: discountPercent,
     isFreeUse: false,
+    isFleetPricing: false,
   };
 }
 
@@ -352,15 +479,22 @@ export const PAYMENT_RULES = {
   /** Modelo de pagamento: pré-autorização (hold no cartão) */
   PAYMENT_MODEL: 'PRE_AUTHORIZATION' as const,
 
-  /** Taxa da plataforma em percentual — SEMPRE 10%, sem exceção */
-  PLATFORM_FEE_PERCENT: 10,
+  /**
+   * Platform Commission — tiered, based on PROVIDER level (replaces old flat 10%).
+   * Applied to labor/service amount. Parts have a separate fee (PARTS_FEE).
+   * The provider's tier determines the rate: ENTRY=15%, INTERMEDIATE=12%, ADVANCED=10%, PREMIUM=8%.
+   * For SOS services, always 12% regardless of tier.
+   * This is deducted from the provider's payout; the client pays the quote price + appServiceFee + processorFee.
+   */
+  COMMISSION_USE_PROVIDER_TIER: true,
 
   /**
-   * App Service Fee — cobrado do CLIENTE, varia por plano:
+   * App Service Fee — cobrado do CLIENTE por transação, varia por plano:
    * FREE=$9.89, STARTER=$4.99, PRO/ENTERPRISE=$0.00
+   * Incentiva upgrade de plano.
    */
-  APP_SERVICE_FEE_FREE: 9.89,
-  APP_SERVICE_FEE_STARTER: 4.99,
+  APP_SERVICE_FEE_FREE: 5.89,
+  APP_SERVICE_FEE_STARTER: 2.99,
   APP_SERVICE_FEE_PRO: 0.00,
 
   /** Dias para payout ao fornecedor */
@@ -418,8 +552,16 @@ export const DIAGNOSTIC_FEE_RULES = {
   MIN: 0,
   SUGGESTED_MAX: 200,
   DEFAULT: 0,
-  /** 100% do diagnostic fee vai para o provider — 0% para plataforma */
-  PLATFORM_CUT_PERCENT: 0,
+  /**
+   * Platform cut on diagnostic fee:
+   * - ON_PLATFORM: client converts diagnostic to quote with SAME provider = 5% platform
+   * - OFF_PLATFORM: client converts to quote with OTHER provider or leaves = 8% platform
+   * Provider may offer discount when client converts diagnostic → quote with them.
+   */
+  ON_PLATFORM_CUT_PERCENT: 5,
+  OFF_PLATFORM_CUT_PERCENT: 8,
+  /** Provider can offer discount if diagnostic converts to quote with them */
+  ALLOW_CONVERSION_DISCOUNT: true,
 };
 
 // ─── TRAVEL FEE ─────────────────────────────────────────────────────────────
@@ -831,22 +973,165 @@ export function getAppServiceFee(plan: string): number {
 /**
  * Get the platform fee cap based on the client's subscription plan.
  * Returns null if no cap (Free plan).
+ * @deprecated Platform fee is now tiered by provider level, not capped by client plan.
  */
-export function getPlatformFeeCap(plan: string): number | null {
-  const planConfig = SUBSCRIPTION_PLANS[plan as PlanKey];
-  return planConfig?.platformFeeMaxCap ?? null;
+export function getPlatformFeeCap(_plan: string): number | null {
+  return null; // Caps removed — commission is now tiered by provider level
 }
 
 /**
- * Calculate platform fee with plan-based cap applied.
+ * @deprecated Use calculateServiceCommission() instead.
+ * Kept for backward compatibility — returns 10% flat fee.
  */
-export function calculatePlatformFee(serviceAmount: number, plan: string): number {
-  const rawFee = (serviceAmount * PAYMENT_RULES.PLATFORM_FEE_PERCENT) / 100;
-  const cap = getPlatformFeeCap(plan);
-  if (cap !== null && rawFee > cap) {
-    return cap;
-  }
+export function calculatePlatformFee(serviceAmount: number, _plan: string): number {
+  // Fallback: returns 10% (ENTRY-level midpoint) — should NOT be used in new flows
+  const rawFee = (serviceAmount * 10) / 100;
   return parseFloat(rawFee.toFixed(2));
+}
+
+/**
+ * Calculate the platform commission on labor/service based on provider tier.
+ * This is the SINGLE commission that replaces both old platformFee and providerCommission.
+ * Applied to labor + additionalFees (NOT parts — parts have their own fee).
+ */
+export function calculateServiceCommission(
+  laborAmount: number,
+  providerLevel: ProviderLevelKey,
+  isSOS: boolean = false,
+): { commissionAmount: number; commissionPercent: number } {
+  const commissionPercent = isSOS
+    ? PROVIDER_COMMISSION.SOS_COMMISSION_PERCENT
+    : PROVIDER_COMMISSION.TIERS[providerLevel].commissionPercent;
+  const commissionAmount = Math.round((laborAmount * commissionPercent) / 100 * 100) / 100;
+  return { commissionAmount, commissionPercent };
+}
+
+/**
+ * Calculate the full fee breakdown for a service transaction.
+ * This is the SINGLE SOURCE OF TRUTH for all fee calculations.
+ *
+ * Commission model:
+ * - Service commission: 8-15% of labor (tiered by provider level)
+ * - Parts fee: 8% of parts ($2 floor, $10-$15 ceiling by provider level)
+ * - App service fee: $0-$9.89 (by client plan, charged to client)
+ * - Processing fee: Stripe 2.9% + $0.30 (charged to client)
+ *
+ * Client pays: quoteTotal + appServiceFee + processorFee
+ * Provider receives: quoteTotal - serviceCommission - partsFee
+ * Platform receives: serviceCommission + partsFee + appServiceFee
+ */
+export function calculateFullFeeBreakdown(input: {
+  laborAmount: number;
+  partsAmount: number;
+  additionalFees?: number;
+  travelFee?: number;
+  diagnosticFee?: number;
+  shopSuppliesFee?: number;
+  tireFee?: number;
+  batteryFee?: number;
+  taxAmount?: number;
+  quoteTotal: number;
+  clientPlan: string;
+  providerLevel: ProviderLevelKey;
+  isSOS?: boolean;
+  processor?: 'STRIPE' | 'CHASE';
+  cardType?: 'credit' | 'debit';
+}): FullFeeBreakdown {
+  const {
+    laborAmount, partsAmount, additionalFees = 0,
+    travelFee = 0, diagnosticFee = 0, shopSuppliesFee = 0,
+    tireFee = 0, batteryFee = 0, taxAmount = 0,
+    quoteTotal, clientPlan, providerLevel,
+    isSOS = false, processor = 'STRIPE', cardType = 'credit',
+  } = input;
+
+  // 1. Service commission (8-15% of labor + additionalFees)
+  const commissionBase = laborAmount + additionalFees;
+  const { commissionAmount: serviceCommission, commissionPercent: serviceCommissionPercent } =
+    calculateServiceCommission(commissionBase, providerLevel, isSOS);
+
+  // 2. Parts fee (8%, with floor/ceiling)
+  const partsFee = calculatePartsFee(partsAmount, providerLevel);
+
+  // 3. Total platform commission (what platform takes from provider)
+  const totalPlatformCommission = serviceCommission + partsFee;
+
+  // 4. App service fee (by client plan, charged ON TOP to client)
+  const appServiceFee = getAppServiceFee(clientPlan);
+
+  // 5. Processing fee (on the total the client pays)
+  const clientSubtotal = quoteTotal + appServiceFee;
+  const processorFee = calculateProcessorFee(clientSubtotal, processor, cardType);
+
+  // 6. Total client pays
+  const totalClientPays = parseFloat((clientSubtotal + processorFee.feeAmount).toFixed(2));
+
+  // 7. Provider receives (quoteTotal minus platform commission)
+  const providerReceives = parseFloat((quoteTotal - totalPlatformCommission).toFixed(2));
+
+  // 8. Platform receives (commission + appServiceFee; Stripe takes its cut from this)
+  const platformReceives = parseFloat((totalPlatformCommission + appServiceFee).toFixed(2));
+
+  return {
+    // Quote breakdown
+    laborAmount,
+    partsAmount,
+    additionalFees,
+    travelFee,
+    diagnosticFee,
+    shopSuppliesFee,
+    tireFee,
+    batteryFee,
+    taxAmount,
+    quoteTotal,
+    // Commission
+    serviceCommissionPercent,
+    serviceCommission,
+    partsFeePercent: partsAmount > 0 ? (PROVIDER_COMMISSION.PARTS_FEE.PERCENT_BY_LEVEL[providerLevel] ?? 11) : 0,
+    partsFee,
+    totalPlatformCommission,
+    providerLevel,
+    // Client fees
+    appServiceFee,
+    clientPlan,
+    processorFee: processorFee.feeAmount,
+    processorFeePercent: processorFee.feePercent,
+    // Totals
+    totalClientPays,
+    providerReceives,
+    platformReceives,
+    // Stripe Connect amounts (in cents)
+    stripeChargeAmountCents: Math.round(totalClientPays * 100),
+    stripeApplicationFeeCents: Math.round((totalPlatformCommission + appServiceFee + processorFee.feeAmount) * 100),
+  };
+}
+
+export interface FullFeeBreakdown {
+  laborAmount: number;
+  partsAmount: number;
+  additionalFees: number;
+  travelFee: number;
+  diagnosticFee: number;
+  shopSuppliesFee: number;
+  tireFee: number;
+  batteryFee: number;
+  taxAmount: number;
+  quoteTotal: number;
+  serviceCommissionPercent: number;
+  serviceCommission: number;
+  partsFeePercent: number;
+  partsFee: number;
+  totalPlatformCommission: number;
+  providerLevel: string;
+  appServiceFee: number;
+  clientPlan: string;
+  processorFee: number;
+  processorFeePercent: number;
+  totalClientPays: number;
+  providerReceives: number;
+  platformReceives: number;
+  stripeChargeAmountCents: number;
+  stripeApplicationFeeCents: number;
 }
 
 /**
@@ -907,7 +1192,7 @@ export function compareProcessorFees(amount: number, cardType: 'credit' | 'debit
   const stripeFee = calculateProcessorFee(amount, 'STRIPE', cardType);
   const chaseFee = calculateProcessorFee(amount, 'CHASE', cardType);
 
-  const platformFee = (amount * PAYMENT_RULES.PLATFORM_FEE_PERCENT) / 100;
+  const platformFee = (amount * 10) / 100; // Legacy: flat 10% estimate for comparison
   const stripeTotal = amount + platformFee + stripeFee.feeAmount;
   const chaseTotal = amount + platformFee + chaseFee.feeAmount;
 
@@ -1003,8 +1288,8 @@ export function calculateFees(input: FeeCalculationInput): FeeBreakdown {
   // 2. App service fee by plan
   const appServiceFee = getAppServiceFee(clientPlan);
 
-  // 3. Platform fee with cap
-  const platformFeePercent = PAYMENT_RULES.PLATFORM_FEE_PERCENT;
+  // 3. Platform fee (legacy: 10% flat — new flows use calculateFullFeeBreakdown)
+  const platformFeePercent = 10;
   const platformFeeAmount = calculatePlatformFee(serviceAmount, clientPlan);
   const rawPlatformFee = (serviceAmount * platformFeePercent) / 100;
   const platformFeeCap = getPlatformFeeCap(clientPlan);
@@ -1178,7 +1463,8 @@ export function calculateProviderCommission(
 
 /**
  * Calculate the parts fee for a transaction.
- * 8% with floor ($2) and level-based ceiling ($10-$15).
+ * Tiered: ENTRY=11%, INTERMEDIATE=10%, ADVANCED=9%, PREMIUM=8%
+ * With floor ($2) and level-based ceiling ($10-$15).
  */
 export function calculatePartsFee(
   partsAmount: number,
@@ -1186,11 +1472,53 @@ export function calculatePartsFee(
 ): number {
   if (partsAmount <= 0) return 0;
 
-  const rawFee = (partsAmount * PROVIDER_COMMISSION.PARTS_FEE.PERCENT) / 100;
+  const percent = PROVIDER_COMMISSION.PARTS_FEE.PERCENT_BY_LEVEL[providerLevel] ?? 11;
+  const rawFee = (partsAmount * percent) / 100;
   const floor = PROVIDER_COMMISSION.PARTS_FEE.FLOOR;
   const ceiling = PROVIDER_COMMISSION.PARTS_FEE.CEILING_BY_LEVEL[providerLevel] ?? 10;
 
   return Math.round(Math.max(floor, Math.min(rawFee, ceiling)) * 100) / 100;
+}
+
+/**
+ * Calculate diagnostic fee split between provider and platform.
+ * ON_PLATFORM (5%): client converts diagnostic to quote with SAME provider.
+ * OFF_PLATFORM (8%): client goes to another provider or leaves.
+ */
+export function calculateDiagnosticFeeSplit(
+  diagnosticFee: number,
+  convertedToSameProvider: boolean,
+): { providerReceives: number; platformReceives: number; platformPercent: number } {
+  if (diagnosticFee <= 0) return { providerReceives: 0, platformReceives: 0, platformPercent: 0 };
+
+  const platformPercent = convertedToSameProvider
+    ? DIAGNOSTIC_FEE_RULES.ON_PLATFORM_CUT_PERCENT
+    : DIAGNOSTIC_FEE_RULES.OFF_PLATFORM_CUT_PERCENT;
+
+  const platformReceives = Math.round((diagnosticFee * platformPercent) / 100 * 100) / 100;
+  const providerReceives = Math.round((diagnosticFee - platformReceives) * 100) / 100;
+
+  return { providerReceives, platformReceives, platformPercent };
+}
+
+/**
+ * Get available (unlocked) service discounts for a client based on their
+ * plan and how many months they've been subscribed in the current cycle.
+ * Discounts unlock progressively: 1 per 3 months. Reset on plan renewal.
+ */
+export function getUnlockedDiscounts(
+  plan: string,
+  monthsInCurrentCycle: number,
+): { type: string; percent: number }[] {
+  const planConfig = SUBSCRIPTION_PLANS[plan as PlanKey];
+  if (!planConfig) return [];
+
+  const slots = planConfig.serviceDiscounts?.discountSlots;
+  if (!slots) return [];
+
+  return slots
+    .filter(slot => monthsInCurrentCycle >= slot.unlockMonth)
+    .map(slot => ({ type: slot.type, percent: slot.percent }));
 }
 
 /**
@@ -1253,6 +1581,10 @@ export default {
   calculateSOSPrice,
   calculateProviderLevel,
   calculateProviderCommission,
+  calculateServiceCommission,
+  calculateFullFeeBreakdown,
   calculatePartsFee,
+  calculateDiagnosticFeeSplit,
+  getUnlockedDiscounts,
   isFeatureAvailable,
 };
