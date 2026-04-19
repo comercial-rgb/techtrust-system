@@ -538,6 +538,71 @@ export async function createLoginLink(accountId: string): Promise<string> {
 }
 
 // ============================================
+// CHECKOUT SESSIONS
+// ============================================
+
+/**
+ * Create a Stripe Checkout Session for subscription payment.
+ * Supports Card, Apple Pay, and Google Pay natively.
+ */
+export async function createCheckoutSession(params: {
+  customerId: string;
+  priceId: string;
+  userId: string;
+  planKey: string;
+  successUrl: string;
+  cancelUrl: string;
+  trialDays?: number;
+}): Promise<{
+  sessionId: string;
+  url: string;
+}> {
+  if (MOCK_STRIPE) {
+    return {
+      sessionId: `mock_cs_${Date.now()}`,
+      url: params.successUrl,
+    };
+  }
+
+  const s = getStripe();
+
+  const sessionParams: Stripe.Checkout.SessionCreateParams = {
+    customer: params.customerId,
+    mode: 'subscription',
+    line_items: [{ price: params.priceId, quantity: 1 }],
+    success_url: params.successUrl,
+    cancel_url: params.cancelUrl,
+    payment_method_types: ['card'],
+    metadata: {
+      userId: params.userId,
+      planKey: params.planKey,
+    },
+    subscription_data: {
+      metadata: {
+        userId: params.userId,
+        planKey: params.planKey,
+      },
+    },
+    allow_promotion_codes: true,
+  };
+
+  if (params.trialDays) {
+    sessionParams.subscription_data!.trial_period_days = params.trialDays;
+  }
+
+  const session = await s.checkout.sessions.create(sessionParams);
+
+  logger.info(
+    `Checkout Session criada: ${session.id} para user ${params.userId} (plan: ${params.planKey})`,
+  );
+
+  return {
+    sessionId: session.id,
+    url: session.url!,
+  };
+}
+
+// ============================================
 // SUBSCRIPTIONS
 // ============================================
 
@@ -751,6 +816,7 @@ export default {
   createAccountLink,
   getConnectAccountStatus,
   createLoginLink,
+  createCheckoutSession,
   createSubscription,
   cancelSubscription,
   updateSubscription,

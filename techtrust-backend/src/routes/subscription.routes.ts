@@ -431,6 +431,101 @@ router.get(
 // ============================================
 
 /**
+ * POST /api/v1/subscriptions/checkout-session
+ * Create a Stripe Checkout Session for paid plan selection.
+ * Supports Card, Apple Pay, and Google Pay.
+ */
+router.post(
+  '/checkout-session',
+  asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user!.id;
+    const { planKey, successUrl, cancelUrl } = req.body;
+
+    if (!planKey) {
+      throw new AppError('planKey is required', 400, 'MISSING_PLAN');
+    }
+
+    // Buscar template do plano
+    const template = await prisma.subscriptionPlanTemplate.findUnique({
+      where: { planKey },
+    });
+
+    if (!template || !template.isActive) {
+      throw new AppError('Plan not found or inactive', 404, 'PLAN_NOT_FOUND');
+    }
+
+    if (planKey === 'free') {
+      throw new AppError('Free plan does not require payment', 400, 'FREE_NO_PAYMENT');
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true, fullName: true },
+    });
+
+    if (!user) {
+      throw new AppError('User not found', 404, 'USER_NOT_FOUND');
+    }
+
+    // Get existing subscription for Stripe Customer ID
+    const currentSub = await prisma.subscription.findFirst({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Get or create Stripe Customer
+    const stripeCustomerId = await stripeService.getOrCreateCustomer({
+      userId,
+      email: user.email,
+      name: user.fullName,
+      existingStripeCustomerId: currentSub?.stripeCustomerId,
+    });
+
+    // Map plan to Stripe Price ID
+    const priceIdMap: Record<string, string | undefined> = {
+      starter: process.env.STRIPE_PRICE_STARTER,
+      pro: process.env.STRIPE_PRICE_PRO,
+      enterprise: process.env.STRIPE_PRICE_ENTERPRISE,
+    };
+
+    const stripePriceId = priceIdMap[planKey];
+    if (!stripePriceId) {
+      throw new AppError(`Stripe Price ID not configured for plan: ${planKey}`, 500, 'PRICE_NOT_CONFIGURED');
+    }
+
+    const defaultSuccessUrl = successUrl || 'https://techtrust-client.vercel.app/dashboard?checkout=success';
+    const defaultCancelUrl = cancelUrl || 'https://techtrust-client.vercel.app/dashboard?checkout=cancelled';
+
+    const session = await stripeService.createCheckoutSession({
+      customerId: stripeCustomerId,
+      priceId: stripePriceId,
+      userId,
+      planKey,
+      successUrl: defaultSuccessUrl,
+      cancelUrl: defaultCancelUrl,
+    });
+
+    // Save the Stripe Customer ID on existing subscription if not set
+    if (currentSub && !currentSub.stripeCustomerId) {
+      await prisma.subscription.update({
+        where: { id: currentSub.id },
+        data: { stripeCustomerId },
+      });
+    }
+
+    logger.info(`Checkout session criada: ${session.sessionId} para user ${userId} (${planKey})`);
+
+    res.json({
+      success: true,
+      data: {
+        sessionId: session.sessionId,
+        checkoutUrl: session.url,
+      },
+    });
+  })
+);
+
+/**
  * POST /api/v1/subscriptions/vehicle-addon
  * Add an extra vehicle slot ($6.99/month)
  */
@@ -495,13 +590,15 @@ router.post(
       stripeItemId = result.subscriptionItemId;
     }
 
+    const addOnPrice = VEHICLE_ADD_ON.PRICE_BY_PLAN[plan] ?? 6.99;
+
     // Create add-on record
     const addOn = await prisma.vehicleAddOn.create({
       data: {
         subscriptionId: subscription.id,
         userId,
         vehicleId,
-        monthlyPrice: VEHICLE_ADD_ON.MONTHLY_PRICE,
+        monthlyPrice: addOnPrice,
         stripeSubscriptionItemId: stripeItemId,
         isActive: true,
       },
@@ -512,7 +609,7 @@ router.post(
     res.json({
       success: true,
       data: { ...addOn, monthlyPrice: Number(addOn.monthlyPrice) },
-      message: `Vehicle add-on activated ($${VEHICLE_ADD_ON.MONTHLY_PRICE}/month)`,
+      message: `Vehicle add-on activated ($${addOnPrice}/month)`,
     });
   })
 );
