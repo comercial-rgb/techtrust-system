@@ -79,7 +79,9 @@ enum PaymentStatus {
 
 enum SubscriptionPlan {
   FREE
+  BASIC       // @deprecated — kept for backward compatibility
   STARTER
+  PREMIUM     // @deprecated — kept for backward compatibility
   PRO
   ENTERPRISE
 }
@@ -1238,10 +1240,16 @@ model Payment {
 
   // Valores
   subtotal       Decimal @db.Decimal(10, 2)
-  platformFee    Decimal @db.Decimal(10, 2)
-  processingFee  Decimal @db.Decimal(10, 2) // Stripe ou Chase fee
+  platformFee    Decimal @db.Decimal(10, 2)  // Total platform commission (service + parts)
+  processingFee  Decimal @db.Decimal(10, 2)  // Stripe ou Chase fee
   totalAmount    Decimal @db.Decimal(10, 2)
   providerAmount Decimal @db.Decimal(10, 2)
+
+  // Detailed fee breakdown (new tiered commission system)
+  appServiceFee             Decimal  @default(0) @db.Decimal(10, 2) // $0-$9.89 by client plan
+  serviceCommission         Decimal  @default(0) @db.Decimal(10, 2) // 8-15% of labor
+  serviceCommissionPercent  Decimal  @default(0) @db.Decimal(5, 2)  // The % applied
+  partsFee                  Decimal  @default(0) @db.Decimal(10, 2) // 8% of parts
 
   // Referral fee (paid to original diagnostic provider if competing quote won)
   referralFee       Decimal  @default(0) @db.Decimal(10, 2)

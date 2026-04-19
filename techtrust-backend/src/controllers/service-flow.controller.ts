@@ -32,8 +32,7 @@ import {
   calculateProcessorFee,
   calculateCancellationFee,
   compareProcessorFees,
-  calculatePlatformFee,
-  getAppServiceFee,
+  calculateFullFeeBreakdown,
 } from "../config/businessRules";
 
 // ============================================
@@ -68,6 +67,8 @@ export const approveQuoteWithPaymentHold = async (
               stripeAccountId: true,
               stripeOnboardingCompleted: true,
               businessName: true,
+              providerLevel: true,
+              commissionRate: true,
             },
           },
         },
@@ -121,27 +122,44 @@ export const approveQuoteWithPaymentHold = async (
   if (!customer)
     throw new AppError("Usuário não encontrado", 404, "USER_NOT_FOUND");
 
-  // 4. Calcular valores (com cap de platform fee por plano)
+  // 4. Calcular valores com novo sistema de comissão tiered
   const serviceAmount = Number(quote.totalAmount);
+  const laborAmount = Number(quote.laborCost);
+  const partsAmount = Number(quote.partsCost);
+  const additionalFees = Number(quote.additionalFees || 0);
 
-  // Buscar plano do cliente para aplicar cap na taxa
+  // Buscar plano do cliente para aplicar appServiceFee
   const subscription = await prisma.subscription.findFirst({
     where: { userId: customerId, status: 'ACTIVE' },
     select: { plan: true },
   });
   const clientPlan = subscription?.plan || 'FREE';
 
-  const platformFee = calculatePlatformFee(serviceAmount, clientPlan);
-  const appServiceFee = getAppServiceFee(clientPlan);
+  // Provider level para comissão tiered (8-15%)
+  const providerLevel = (quote.provider.providerProfile?.providerLevel || 'ENTRY') as any;
 
   const cardType = (paymentMethod.type as "credit" | "debit") || "credit";
-  const processorFee = calculateProcessorFee(
-    serviceAmount,
-    paymentProcessor as "STRIPE" | "CHASE",
+  
+  // Calcular breakdown completo usando a fonte única de verdade
+  const fees = calculateFullFeeBreakdown({
+    laborAmount,
+    partsAmount,
+    additionalFees,
+    travelFee: Number(quote.travelFee || 0),
+    diagnosticFee: Number(quote.diagnosticFee || 0),
+    shopSuppliesFee: Number(quote.shopSuppliesFee || 0),
+    tireFee: Number(quote.tireFee || 0),
+    batteryFee: Number(quote.batteryFee || 0),
+    taxAmount: Number(quote.taxAmount || 0),
+    quoteTotal: serviceAmount,
+    clientPlan,
+    providerLevel,
+    isSOS: false,
+    processor: paymentProcessor as 'STRIPE' | 'CHASE',
     cardType,
-  );
-  const totalAmount = serviceAmount + platformFee + appServiceFee + processorFee.feeAmount;
-  const providerAmount = serviceAmount - platformFee;
+  });
+
+  // fees.totalClientPays, fees.providerReceives, etc. used directly below
 
   try {
     // 5. Criar customer no Stripe se necessário
@@ -158,11 +176,11 @@ export const approveQuoteWithPaymentHold = async (
 
     // 6. Criar HOLD (pré-autorização) no cartão
     const holdResult = await stripeService.createPaymentIntent({
-      amount: Math.round(totalAmount * 100),
+      amount: fees.stripeChargeAmountCents,
       customerId: stripeCustomerId,
       paymentMethodId: paymentMethod.stripePaymentMethodId || undefined,
       providerStripeAccountId: providerStripeAccountId,
-      platformFeeAmount: Math.round(platformFee * 100),
+      platformFeeAmount: fees.stripeApplicationFeeCents,
       captureMethod: "manual", // PRÉ-AUTORIZAÇÃO
       metadata: {
         quoteId: quote.id,
@@ -254,10 +272,14 @@ export const approveQuoteWithPaymentHold = async (
           stripePaymentIntentId: holdResult.paymentIntentId,
           stripeChargeId: confirmResult.chargeId || null,
           subtotal: serviceAmount,
-          platformFee,
-          processingFee: processorFee.feeAmount,
-          totalAmount,
-          providerAmount,
+          platformFee: fees.totalPlatformCommission,
+          processingFee: fees.processorFee,
+          totalAmount: fees.totalClientPays,
+          providerAmount: fees.providerReceives,
+          appServiceFee: fees.appServiceFee,
+          serviceCommission: fees.serviceCommission,
+          serviceCommissionPercent: fees.serviceCommissionPercent,
+          partsFee: fees.partsFee,
           status: "AUTHORIZED",
           authorizedAt: new Date(),
           paymentMethodId: paymentMethodId,
@@ -315,11 +337,31 @@ export const approveQuoteWithPaymentHold = async (
           paymentNumber,
           status: "AUTHORIZED",
           breakdown: {
-            serviceAmount,
-            platformFee,
-            processingFee: processorFee.feeAmount,
-            totalAmount,
-            providerWillReceive: providerAmount,
+            // Quote components
+            laborAmount: fees.laborAmount,
+            partsAmount: fees.partsAmount,
+            additionalFees: fees.additionalFees,
+            travelFee: fees.travelFee,
+            diagnosticFee: fees.diagnosticFee,
+            shopSuppliesFee: fees.shopSuppliesFee,
+            tireFee: fees.tireFee,
+            batteryFee: fees.batteryFee,
+            taxAmount: fees.taxAmount,
+            quoteTotal: fees.quoteTotal,
+            // Commission (deducted from provider)
+            serviceCommissionPercent: fees.serviceCommissionPercent,
+            serviceCommission: fees.serviceCommission,
+            partsFeePercent: fees.partsFeePercent,
+            partsFee: fees.partsFee,
+            totalPlatformCommission: fees.totalPlatformCommission,
+            // Client fees
+            appServiceFee: fees.appServiceFee,
+            clientPlan: fees.clientPlan,
+            processorFee: fees.processorFee,
+            // Totals
+            totalClientPays: fees.totalClientPays,
+            providerWillReceive: fees.providerReceives,
+            platformReceives: fees.platformReceives,
           },
         },
         holdInfo: {
@@ -528,11 +570,10 @@ export const respondToSupplement = async (req: Request, res: Response) => {
 
   // Cliente aprovou → tentar criar hold adicional
   const additionalAmount = Number(supplement.additionalAmount);
-  const platformFee =
-    (additionalAmount * PAYMENT_RULES.PLATFORM_FEE_PERCENT) / 100;
+  const supplementPlatformFee = (additionalAmount * 10) / 100; // Legacy: 10% flat estimate for supplements
   const processorFee = calculateProcessorFee(additionalAmount, "STRIPE");
   const totalAdditional =
-    additionalAmount + platformFee + processorFee.feeAmount;
+    additionalAmount + supplementPlatformFee + processorFee.feeAmount;
 
   try {
     // Buscar ou criar customer Stripe
@@ -564,7 +605,7 @@ export const respondToSupplement = async (req: Request, res: Response) => {
       customerId: stripeCustomerId,
       paymentMethodId: stripePaymentMethodId,
       providerStripeAccountId,
-      platformFeeAmount: Math.round(platformFee * 100),
+      platformFeeAmount: Math.round(supplementPlatformFee * 100),
       captureMethod: "manual",
       metadata: {
         workOrderId: supplement.workOrderId,
@@ -611,10 +652,10 @@ export const respondToSupplement = async (req: Request, res: Response) => {
         paymentProcessor: "STRIPE",
         stripePaymentIntentId: holdResult.paymentIntentId,
         subtotal: additionalAmount,
-        platformFee,
+        platformFee: supplementPlatformFee,
         processingFee: processorFee.feeAmount,
         totalAmount: totalAdditional,
-        providerAmount: additionalAmount - platformFee,
+        providerAmount: additionalAmount - supplementPlatformFee,
         status: "AUTHORIZED",
         authorizedAt: new Date(),
         paymentType: "SUPPLEMENT",

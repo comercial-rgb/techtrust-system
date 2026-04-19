@@ -10,7 +10,7 @@ import { prisma } from '../config/database';
 import { AppError } from '../middleware/error-handler';
 import { logger } from '../config/logger';
 import * as stripeService from '../services/stripe.service';
-import { PAYMENT_RULES, calculateProcessorFee, REFUND_RULES } from '../config/businessRules';
+import { REFUND_RULES, calculateFullFeeBreakdown } from '../config/businessRules';
 
 /**
  * POST /api/v1/payments/create-intent
@@ -34,6 +34,7 @@ export const createPaymentIntent = async (req: Request, res: Response) => {
             select: {
               stripeAccountId: true,
               stripeOnboardingCompleted: true,
+              providerLevel: true,
             },
           },
         },
@@ -42,6 +43,20 @@ export const createPaymentIntent = async (req: Request, res: Response) => {
         select: {
           email: true,
           fullName: true,
+        },
+      },
+      quote: {
+        select: {
+          laborCost: true,
+          partsCost: true,
+          additionalFees: true,
+          travelFee: true,
+          diagnosticFee: true,
+          shopSuppliesFee: true,
+          tireFee: true,
+          batteryFee: true,
+          taxAmount: true,
+          totalAmount: true,
         },
       },
     },
@@ -81,17 +96,40 @@ export const createPaymentIntent = async (req: Request, res: Response) => {
     });
   }
 
-  // Calcular valores
+  // Calcular valores com sistema de comissão tiered
   const serviceAmount = Number(workOrder.finalAmount);
-  
-  // Comissão da plataforma
-  const platformFee = (serviceAmount * PAYMENT_RULES.PLATFORM_FEE_PERCENT) / 100;
-  
-  // Taxa do processador (Stripe) — cobrada do cliente
-  const processorFee = calculateProcessorFee(serviceAmount, 'STRIPE');
-  
-  const totalAmount = serviceAmount + platformFee + processorFee.feeAmount;
-  const providerAmount = serviceAmount - platformFee;
+  const quote = workOrder.quote;
+  const laborAmount = quote ? Number(quote.laborCost) : serviceAmount;
+  const partsAmount = quote ? Number(quote.partsCost) : 0;
+  const additionalFees = quote ? Number(quote.additionalFees || 0) : 0;
+
+  // Provider level para comissão tiered
+  const providerLevel = (workOrder.provider.providerProfile?.providerLevel || 'ENTRY') as any;
+
+  // Client plan para appServiceFee
+  const subscription = await prisma.subscription.findFirst({
+    where: { userId: customerId, status: 'ACTIVE' },
+    select: { plan: true },
+  });
+  const clientPlan = subscription?.plan || 'FREE';
+
+  const fees = calculateFullFeeBreakdown({
+    laborAmount,
+    partsAmount,
+    additionalFees,
+    travelFee: quote ? Number(quote.travelFee || 0) : 0,
+    diagnosticFee: quote ? Number(quote.diagnosticFee || 0) : 0,
+    shopSuppliesFee: quote ? Number(quote.shopSuppliesFee || 0) : 0,
+    tireFee: quote ? Number(quote.tireFee || 0) : 0,
+    batteryFee: quote ? Number(quote.batteryFee || 0) : 0,
+    taxAmount: quote ? Number(quote.taxAmount || 0) : 0,
+    quoteTotal: serviceAmount,
+    clientPlan,
+    providerLevel,
+    processor: 'STRIPE',
+  });
+
+  // fees.totalPlatformCommission, fees.totalClientPays, fees.providerReceives used directly below
 
   // Gerar número de pagamento
   const paymentNumber = `PAY-${Date.now()}-${Math.random().toString(36).substring(7).toUpperCase()}`;
@@ -122,11 +160,11 @@ export const createPaymentIntent = async (req: Request, res: Response) => {
 
     // Criar PaymentIntent via Stripe Service
     const result = await stripeService.createPaymentIntent({
-      amount: Math.round(totalAmount * 100), // centavos
+      amount: fees.stripeChargeAmountCents,
       customerId: stripeCustomerId,
       paymentMethodId: stripePaymentMethodId,
       providerStripeAccountId: providerStripeAccountId,
-      platformFeeAmount: Math.round(platformFee * 100),
+      platformFeeAmount: fees.stripeApplicationFeeCents,
       metadata: {
         workOrderId: workOrder.id,
         orderNumber: workOrder.orderNumber,
@@ -145,10 +183,14 @@ export const createPaymentIntent = async (req: Request, res: Response) => {
         providerId: workOrder.providerId,
         paymentProcessor: 'STRIPE',
         subtotal: serviceAmount,
-        platformFee,
-        processingFee: processorFee.feeAmount,
-        totalAmount,
-        providerAmount,
+        platformFee: fees.totalPlatformCommission,
+        processingFee: fees.processorFee,
+        totalAmount: fees.totalClientPays,
+        providerAmount: fees.providerReceives,
+        appServiceFee: fees.appServiceFee,
+        serviceCommission: fees.serviceCommission,
+        serviceCommissionPercent: fees.serviceCommissionPercent,
+        partsFee: fees.partsFee,
         status: 'PENDING',
         stripePaymentIntentId: result.paymentIntentId,
         paymentMethodId: paymentMethodId || null,
@@ -164,13 +206,17 @@ export const createPaymentIntent = async (req: Request, res: Response) => {
         paymentNumber: payment.paymentNumber,
         clientSecret: result.clientSecret,
         publishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
-        totalAmount,
+        totalAmount: fees.totalClientPays,
         breakdown: {
-          serviceAmount,
-          platformFee,
-          processingFee: processorFee.feeAmount,
-          totalAmount,
-          providerWillReceive: providerAmount,
+          quoteTotal: serviceAmount,
+          serviceCommissionPercent: fees.serviceCommissionPercent,
+          serviceCommission: fees.serviceCommission,
+          partsFee: fees.partsFee,
+          totalPlatformCommission: fees.totalPlatformCommission,
+          appServiceFee: fees.appServiceFee,
+          processorFee: fees.processorFee,
+          totalClientPays: fees.totalClientPays,
+          providerWillReceive: fees.providerReceives,
         },
       },
     });
