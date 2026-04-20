@@ -48,6 +48,7 @@ export const signup = async (req: Request, res: Response) => {
       password,
       language,
       role,
+      accountType, // 'INDIVIDUAL' | 'BUSINESS'
       businessName,
       businessAddress,
       businessCity,
@@ -56,6 +57,7 @@ export const signup = async (req: Request, res: Response) => {
       servicesOffered,
       vehicleTypesServed,
       sellsParts,
+      selectedPlan, // plan selected during registration
       preferredOtpMethod, // 'sms' | 'email' — user chooses verification method
     } = req.body;
 
@@ -420,10 +422,11 @@ export const signup = async (req: Request, res: Response) => {
         userId: user.id,
         plan: "FREE",
         price: 0,
-        maxVehicles: 1,
+        maxVehicles: 2,
+        maxServiceRequestsPerMonth: 4,
         status: "ACTIVE",
         currentPeriodStart: new Date(),
-        currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 dias
+        currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year auto-renew
       },
     });
 

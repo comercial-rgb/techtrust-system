@@ -429,7 +429,7 @@ export default function CarWashMapScreen({ navigation }: any) {
                 textStyle={[styles.chipText, filters.sortBy === s && styles.chipTextSelected]}
                 compact
               >
-                {s === 'distance' ? 'Nearest' : s === 'rating' ? 'Top Rated' : 'Lowest Price'}
+                {s === 'distance' ? 'Nearest' : s === 'rating' ? 'Highest Rated' : 'Lowest Price'}
               </Chip>
             ))}
           </View>

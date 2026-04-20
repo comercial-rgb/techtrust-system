@@ -572,7 +572,12 @@ export async function createCheckoutSession(params: {
     line_items: [{ price: params.priceId, quantity: 1 }],
     success_url: params.successUrl,
     cancel_url: params.cancelUrl,
-    payment_method_types: ['card'],
+    payment_method_types: ['card', 'us_bank_account'],
+    payment_method_options: {
+      us_bank_account: {
+        financial_connections: { permissions: ['payment_method'] },
+      },
+    },
     metadata: {
       userId: params.userId,
       planKey: params.planKey,

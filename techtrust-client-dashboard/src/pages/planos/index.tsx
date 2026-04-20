@@ -158,8 +158,8 @@ export default function PlanosPage() {
         <div className="text-center mb-10">
           <h1 className="text-3xl font-bold text-gray-900 mb-3">Choose Your Plan</h1>
           <p className="text-gray-500 max-w-xl mx-auto">
-            From basic coverage to full fleet management. Pick the plan that fits
-            your needs and upgrade anytime.
+            From basic vehicle management to complete control. Pick the plan that fits
+            your needs and upgrade anytime. 7-day free trial on paid plans.
           </p>
         </div>
 

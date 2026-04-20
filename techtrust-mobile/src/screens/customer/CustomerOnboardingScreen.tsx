@@ -216,7 +216,7 @@ export default function CustomerOnboardingScreen({ navigation }: any) {
           title: ob.serviceTitle || "Request a Service",
           subtitle:
             ob.serviceSubtitle ||
-            "Describe what you need, and we'll send your request to qualified shops nearby. Compare quotes and choose the best deal.",
+            "Describe what you need, and we'll send your request to qualified shops nearby. Compare quotes and choose your preferred option.",
           features: [
             {
               icon: "flash",

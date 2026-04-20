@@ -161,14 +161,14 @@ export default {
     banners: {
       title1: "TechTrust AutoSolutions LLC",
       subtitle1: "Your Trusted Auto Service Partner",
-      title2: "Quality Service Guaranteed",
+      title2: "Reliable Auto Service",
       subtitle2: "Certified Mechanics Near You",
       title3: "Fast & Reliable",
       subtitle3: "24/7 Roadside Assistance",
     },
     offers: {
-      title: "Special Offers",
-      subtitle: "Limited time deals",
+      title: "Current Offers",
+      subtitle: "Available deals near you",
       oilChange: "Oil Change Special",
       oilChangeDesc: "Full synthetic oil change with filter",
       brakeService: "Brake Service",
@@ -201,7 +201,7 @@ export default {
       pricingDesc: "Compare quotes upfront — no hidden fees or surprises",
       time: "Save Time",
       timeDesc: "Request quotes from multiple shops at once, 24/7",
-      quality: "Quality Guaranteed",
+      quality: "Verified Quality",
       qualityDesc: "Real reviews from verified customers you can trust",
     },
     articles: {
@@ -220,9 +220,9 @@ export default {
     participatingProviders: "{count} Participating Provider(s)",
     selectLocationPrompt: "Select a location to find participating providers",
     tryDifferentLocation: "Try selecting a different location",
-    connectedMessage: "You are now connected to your most trusted car hub",
+    connectedMessage: "You are now connected to your trusted car hub",
     tagline: "Driven by Technology. Trusted by You.",
-    adsPromotions: "Ads & Promotions",
+    adsPromotions: "Deals & Offers",
     featuredDeals: "Featured Deals",
     popularServices: "Popular Services",
     serviceOilChange: "Oil Change",
@@ -470,12 +470,12 @@ export default {
     monthly: "Monthly",
     yearly: "Yearly",
     save17: "Save 17%",
-    mostPopular: "Most Popular",
+    mostPopular: "Popular Choice",
     downgrade: "Downgrade",
     upgrade: "Upgrade",
     premiumBenefits: "Premium Benefits",
     priorityService: "Priority Service",
-    exclusiveDiscounts: "Exclusive Discounts",
+    exclusiveDiscounts: "Member Savings",
     roadsideAssist: "Roadside Assist",
     support247: "24/7 Support",
     // Reports
@@ -922,7 +922,7 @@ export default {
     goodEvening: "Good evening",
     howCanWeHelp: "How can we help you today?",
     needService: "Need a service?",
-    requestQuotes: "Request free quotes now",
+    requestQuotes: "Request quotes now",
     activeServices: "Active Services",
     activeServiceSingular: "Active Service",
     pendingQuotes: "Pending Quotes",
@@ -955,7 +955,7 @@ export default {
     getStarted: "Get Started",
     nextTip: "Next tip",
     tipReviewQuotes:
-      "You have pending quotes! Review them to get the best deal.",
+      "You have pending quotes! Review them to find a great deal.",
     tipSyntheticOil:
       "Synthetic oil lasts 7,500-10,000 miles. Check your last oil change date.",
     tipBrakes: "Brake pads should be inspected every 12,000 miles for safety.",
@@ -968,7 +968,7 @@ export default {
       "Keep an emergency kit in your car: jumper cables, flashlight, first aid.",
     // Special Offers
     specialOffers: "Special Offers",
-    limitedTimeDeals: "Limited time deals",
+    limitedTimeDeals: "Available deals",
     tapForDetails: "Tap for details",
     validUntil: "Valid until",
     regularPrice: "Regular Price",
@@ -986,7 +986,7 @@ export default {
     // Tips
     tips: "Tips",
     tipCompareQuotes:
-      "Compare at least 3 quotes before accepting to ensure the best price",
+      "Compare at least 3 quotes before accepting to ensure a fair price",
     // Status labels
     statusSearching: "Searching",
     statusQuotes: "Quotes",
@@ -1382,7 +1382,7 @@ export default {
     expenses: "Expenses",
     netIncome: "Net Income",
     servicesByType: "Services by Type",
-    topServices: "Top Services",
+    topServices: "Popular Services",
     monthlyComparison: "Monthly Comparison",
     exportReport: "Export Report",
   },
@@ -1761,10 +1761,10 @@ export default {
   // Service Choice Screen
   serviceChoice: {
     title: "How can we help?",
-    subtitle: "Choose the option that best fits your needs",
+    subtitle: "Choose the option that fits your needs",
     requestService: "Request Service",
     requestServiceDesc:
-      "Already know what you need? Request quotes from certified providers in your area. Compare prices and choose the best option.",
+      "Already know what you need? Request quotes from certified providers in your area. Compare prices and choose your preferred option.",
     getQuotes: "Get Quotes",
     diagnostic: "Diagnostic & Estimate",
     diagnosticDesc:
@@ -1842,7 +1842,7 @@ export default {
     sortDistance: "Nearest",
     sortRating: "Highest Rated",
     sortPrice: "Lowest Price",
-    sortPopularity: "Most Popular",
+    sortPopularity: "Popularity",
     startingAt: "Starting at",
     reviews: "reviews",
     mile: "mi",
@@ -1857,7 +1857,7 @@ export default {
     findCarWashes: "Find Car Washes",
     // Profile
     washPackages: "Wash Packages",
-    mostPopular: "Most Popular",
+    mostPopular: "Popular Choice",
     unlimitedPlans: "Unlimited Plans",
     perMonth: "/mo",
     validAllLocations: "Valid at all locations",
@@ -1989,7 +1989,7 @@ export default {
     addVehicleNow: "Add Vehicle Now",
     serviceTitle: "Request a Service",
     serviceSubtitle:
-      "Describe what you need, and we'll send your request to qualified shops nearby. Compare quotes and choose the best deal.",
+      "Describe what you need, and we'll send your request to qualified shops nearby. Compare quotes and choose your preferred option.",
     featureFast: "Quick quote requests",
     featureRatings: "Shop ratings & reviews",
     featureChat: "Chat directly with shops",
@@ -2069,7 +2069,7 @@ export default {
       "Are you sure you want to cancel this request? This action cannot be undone.",
     requestCancelledMsg: "Your request has been cancelled.",
     note: "Note",
-    bestValue: "Best Value",
+    bestValue: "Great Value",
     parts: "Parts",
     labor: "Labor",
     estTime: "Est. Time",

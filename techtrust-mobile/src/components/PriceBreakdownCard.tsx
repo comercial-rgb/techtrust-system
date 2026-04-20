@@ -1,6 +1,6 @@
 /**
  * PriceBreakdownCard - Full transparent price breakdown
- * Shows all cost components: parts, labor, travel, tax, platform fee, processing fee, total
+ * Shows all cost components: parts, labor, travel, tax, app service fee, processing fee, total
  * Used in CustomerQuoteDetailsScreen (before acceptance) and ServiceApprovalScreen (at approval)
  */
 
@@ -9,9 +9,16 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 /** Platform business rules (must match backend businessRules.ts) */
-const PLATFORM_FEE_PERCENT = 10;
 const STRIPE_FEE_PERCENT = 2.9;
 const STRIPE_FEE_FIXED = 0.3;
+
+// App service fee by plan (must match backend)
+const APP_SERVICE_FEE: Record<string, number> = {
+  FREE: 5.89,
+  STARTER: 2.99,
+  PRO: 0.00,
+  ENTERPRISE: 0.00,
+};
 
 export interface PriceLineItem {
   description: string;
@@ -36,6 +43,8 @@ export interface PriceBreakdownData {
   isMobileService?: boolean;
   /** Distance in km (for display) */
   distanceKm?: number;
+  /** Client subscription plan (FREE, STARTER, PRO, ENTERPRISE) */
+  clientPlan?: string;
 }
 
 interface PriceBreakdownCardProps {
@@ -49,10 +58,10 @@ interface PriceBreakdownCardProps {
 }
 
 /**
- * Calculate platform fee (10% of service total)
+ * Get the app service fee based on the client plan
  */
-export function calculatePlatformFee(serviceTotal: number): number {
-  return Math.round(((serviceTotal * PLATFORM_FEE_PERCENT) / 100) * 100) / 100;
+export function getAppServiceFee(plan: string): number {
+  return APP_SERVICE_FEE[plan] ?? APP_SERVICE_FEE.FREE;
 }
 
 /**
@@ -67,19 +76,29 @@ export function calculateProcessingFee(chargeAmount: number): number {
 }
 
 /**
- * Calculate full customer total
+ * Calculate full customer total with the new fee structure:
+ * Client pays: quoteTotal + appServiceFee + processorFee
+ * (Commission is deducted from provider, not added to client)
  */
-export function calculateCustomerTotal(serviceTotal: number): {
-  platformFee: number;
+export function calculateCustomerTotal(
+  serviceTotal: number,
+  clientPlan: string = "FREE",
+): {
+  appServiceFee: number;
   processingFee: number;
   customerTotal: number;
 } {
-  const platformFee = calculatePlatformFee(serviceTotal);
-  const subtotalWithPlatform = serviceTotal + platformFee;
-  const processingFee = calculateProcessingFee(subtotalWithPlatform);
+  const appServiceFee = getAppServiceFee(clientPlan);
+  const subtotalWithFee = serviceTotal + appServiceFee;
+  const processingFee = calculateProcessingFee(subtotalWithFee);
   const customerTotal =
-    Math.round((subtotalWithPlatform + processingFee) * 100) / 100;
-  return { platformFee, processingFee, customerTotal };
+    Math.round((subtotalWithFee + processingFee) * 100) / 100;
+  return { appServiceFee, processingFee, customerTotal };
+}
+
+/** @deprecated Use calculateCustomerTotal with clientPlan instead */
+export function calculatePlatformFee(serviceTotal: number): number {
+  return 0; // Platform fee is no longer added to client — it's deducted from provider
 }
 
 export default function PriceBreakdownCard({
@@ -90,8 +109,10 @@ export default function PriceBreakdownCard({
 }: PriceBreakdownCardProps) {
   const [expanded, setExpanded] = useState(!compact);
 
-  const { platformFee, processingFee, customerTotal } = calculateCustomerTotal(
+  const clientPlan = data.clientPlan || "FREE";
+  const { appServiceFee, processingFee, customerTotal } = calculateCustomerTotal(
     data.serviceTotal,
+    clientPlan,
   );
 
   const partsItems = data.items.filter((i) => i.type === "PART");
@@ -294,22 +315,41 @@ export default function PriceBreakdownCard({
 
             {showPlatformFees && (
               <>
-                {/* Platform fee */}
-                <View style={styles.totalRow}>
-                  <View style={styles.totalRowLeft}>
-                    <Ionicons
-                      name="shield-checkmark-outline"
-                      size={14}
-                      color="#2B5EA7"
-                    />
-                    <Text style={styles.totalLabel}>
-                      Platform fee ({PLATFORM_FEE_PERCENT}%)
+                {/* App Service Fee */}
+                {appServiceFee > 0 && (
+                  <View style={styles.totalRow}>
+                    <View style={styles.totalRowLeft}>
+                      <Ionicons
+                        name="shield-checkmark-outline"
+                        size={14}
+                        color="#2B5EA7"
+                      />
+                      <Text style={styles.totalLabel}>
+                        App service fee
+                      </Text>
+                    </View>
+                    <Text style={styles.totalValue}>
+                      ${appServiceFee.toFixed(2)}
                     </Text>
                   </View>
-                  <Text style={styles.totalValue}>
-                    ${platformFee.toFixed(2)}
-                  </Text>
-                </View>
+                )}
+                {appServiceFee === 0 && (
+                  <View style={styles.totalRow}>
+                    <View style={styles.totalRowLeft}>
+                      <Ionicons
+                        name="shield-checkmark-outline"
+                        size={14}
+                        color="#10b981"
+                      />
+                      <Text style={[styles.totalLabel, { color: "#10b981" }]}>
+                        App service fee
+                      </Text>
+                    </View>
+                    <Text style={[styles.totalValue, { color: "#10b981" }]}>
+                      Included
+                    </Text>
+                  </View>
+                )}
 
                 {/* Processing fee */}
                 <View style={styles.totalRow}>

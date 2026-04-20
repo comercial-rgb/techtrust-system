@@ -235,6 +235,17 @@ export const SUBSCRIPTION_PLANS = {
 
 export type PlanKey = keyof typeof SUBSCRIPTION_PLANS;
 
+// ─── TRIAL PERIOD ───────────────────────────────────────────────────────────
+
+export const TRIAL_POLICY = {
+  /** Number of free trial days for paid plans */
+  TRIAL_DAYS: 7,
+  /** Whether to require payment method before starting trial */
+  REQUIRE_PAYMENT_METHOD: true,
+  /** Plans eligible for free trial (exclude FREE plan) */
+  ELIGIBLE_PLANS: ['STARTER', 'PRO', 'ENTERPRISE'] as const,
+} as const;
+
 // ─── VEHICLE ADD-ON ─────────────────────────────────────────────────────────
 
 export const VEHICLE_ADD_ON = {

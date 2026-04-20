@@ -351,8 +351,8 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Right side - Image/Branding */}
-      <div className="hidden lg:flex lg:flex-1 bg-gradient-to-br from-primary-500 to-primary-700 p-12 items-center justify-center">
+      {/* Right side - Image/Branding & Provider Info */}
+      <div className="hidden lg:flex lg:flex-1 bg-gradient-to-br from-primary-500 to-primary-700 p-12 items-center justify-center overflow-y-auto">
         <div className="max-w-md text-white">
           <div className="mb-8">
             <img src="/logo-white.png" alt="TechTrust" className="w-16 h-16 mb-6 drop-shadow-lg" />
@@ -364,22 +364,110 @@ export default function LoginPage() {
             </p>
           </div>
 
+          {/* Provider Benefits */}
+          <div className="space-y-3 mb-8">
+            <div className="bg-white/10 rounded-lg p-3 flex items-center gap-3">
+              <span className="text-2xl">🆓</span>
+              <div>
+                <div className="font-semibold text-sm">{tr('provider.benefit.freeRegistration') || 'Free Registration'}</div>
+                <div className="text-primary-200 text-xs">{tr('provider.benefit.freeRegistrationDesc') || 'No monthly fees. Pay only when you earn.'}</div>
+              </div>
+            </div>
+            <div className="bg-white/10 rounded-lg p-3 flex items-center gap-3">
+              <span className="text-2xl">📲</span>
+              <div>
+                <div className="font-semibold text-sm">{tr('provider.benefit.receiveRequests') || 'Receive Service Requests'}</div>
+                <div className="text-primary-200 text-xs">{tr('provider.benefit.receiveRequestsDesc') || 'Get connected to vehicle owners looking for your services.'}</div>
+              </div>
+            </div>
+            <div className="bg-white/10 rounded-lg p-3 flex items-center gap-3">
+              <span className="text-2xl">💰</span>
+              <div>
+                <div className="font-semibold text-sm">{tr('provider.benefit.growBusiness') || 'Grow Your Business'}</div>
+                <div className="text-primary-200 text-xs">{tr('provider.benefit.growBusinessDesc') || 'Build reputation with reviews, get featured, earn more.'}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Marketplace Plans */}
+          <div className="pt-6 border-t border-white/20 mb-8">
+            <h3 className="font-semibold text-lg mb-3">
+              {tr('provider.listingPlans') || 'Marketplace Listing Plans'}
+            </h3>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="bg-white/10 rounded-lg p-3">
+                <div className="font-semibold text-sm">Basic</div>
+                <div className="text-primary-200 text-xs">$29.99/mo • 5 photos</div>
+                <div className="text-primary-200 text-xs">15 mi reach</div>
+              </div>
+              <div className="bg-white/15 rounded-lg p-3 ring-1 ring-white/30">
+                <div className="font-semibold text-sm">Best ⭐</div>
+                <div className="text-primary-200 text-xs">$39.99/mo • 20 photos</div>
+                <div className="text-primary-200 text-xs">50 mi reach • Featured</div>
+              </div>
+            </div>
+          </div>
+
           {/* Stats */}
-          <div className="grid grid-cols-2 gap-6 mt-12">
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5">
-              <p className="text-3xl font-bold">500+</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4">
+              <p className="text-2xl font-bold">500+</p>
               <p className="text-primary-100 text-sm">{tr('provider.stats.suppliers')}</p>
             </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5">
-              <p className="text-3xl font-bold">10k+</p>
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4">
+              <p className="text-2xl font-bold">10k+</p>
               <p className="text-primary-100 text-sm">{tr('provider.stats.services')}</p>
             </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5">
-              <p className="text-3xl font-bold">4.8</p>
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4">
+              <p className="text-2xl font-bold">4.8</p>
               <p className="text-primary-100 text-sm">{tr('provider.stats.rating')}</p>
             </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5">
-              <p className="text-3xl font-bold">$2M+</p>
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4">
+              <p className="text-2
+            <div className="bg-white/10 rounded-lg p-3 flex items-center gap-3">
+              <span className="text-2xl">💰</span>
+              <div>
+                <div className="font-semibold text-sm">{tr('provider.benefit.growBusiness') || 'Grow Your Business'}</div>
+                <div className="text-primary-200 text-xs">{tr('provider.benefit.growBusinessDesc') || 'Build reputation with reviews, get featured, earn more.'}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Marketplace Plans */}
+          <div className="pt-6 border-t border-white/20 mb-8">
+            <h3 className="font-semibold text-lg mb-3">
+              {tr('provider.listingPlans') || 'Marketplace Listing Plans'}
+            </h3>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="bg-white/10 rounded-lg p-3">
+                <div className="font-semibold text-sm">Basic</div>
+                <div className="text-primary-200 text-xs">$29.99/mo • 5 photos</div>
+                <div className="text-primary-200 text-xs">15 mi reach</div>
+              </div>
+              <div className="bg-white/15 rounded-lg p-3 ring-1 ring-white/30">
+                <div className="font-semibold text-sm">Best ⭐</div>
+                <div className="text-primary-200 text-xs">$39.99/mo • 20 photos</div>
+                <div className="text-primary-200 text-xs">50 mi reach • Featured</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4">
+              <p className="text-2xl font-bold">500+</p>
+              <p className="text-primary-100 text-sm">{tr('provider.stats.suppliers')}</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4">
+              <p className="text-2xl font-bold">10k+</p>
+              <p className="text-primary-100 text-sm">{tr('provider.stats.services')}</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4">
+              <p className="text-2xl font-bold">4.8</p>
+              <p className="text-primary-100 text-sm">{tr('provider.stats.rating')}</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4">
+              <p className="text-2xl font-bold">$2M+</p>
               <p className="text-primary-100 text-sm">{tr('provider.stats.paid')}</p>
             </div>
           </div>

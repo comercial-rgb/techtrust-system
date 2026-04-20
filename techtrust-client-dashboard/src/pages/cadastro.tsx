@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import {
@@ -19,23 +19,52 @@ import {
   Shield,
   Clock,
   Star,
+  Building2,
+  Zap,
+  Crown,
+  CreditCard,
 } from 'lucide-react'
 import { useI18n, languages, Language } from '../i18n'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1'
 
-type Step = 'info' | 'otp' | 'success'
+type Step = 'plan' | 'info' | 'otp' | 'success'
+type AccountType = 'INDIVIDUAL' | 'BUSINESS'
+
+interface PlanOption {
+  id: string
+  name: string
+  price: number
+  yearlyPrice: number
+  vehicleLimit: number
+  features: string[]
+  isFeatured?: boolean
+}
+
+const DEFAULT_PLANS: PlanOption[] = [
+  { id: 'free', name: 'Free', price: 0, yearlyPrice: 0, vehicleLimit: 2, features: ['2 vehicles', '4 service requests/month', 'VIN decode & NHTSA recalls', 'PDF receipts', 'Mobile app access'] },
+  { id: 'starter', name: 'Starter', price: 9.99, yearlyPrice: 99.99, vehicleLimit: 3, features: ['3 vehicles (+$5.99/extra)', '10 service requests/month', 'Multi-language support', 'Mileage tracker', 'Scheduled maintenance'] },
+  { id: 'pro', name: 'Pro', price: 19.99, yearlyPrice: 199.99, vehicleLimit: 5, isFeatured: true, features: ['5 vehicles (+$3.99/extra)', 'Unlimited service requests', 'OBD2 diagnostics', 'Expense reports & wallet', 'Priority support 24/7'] },
+  { id: 'enterprise', name: 'Enterprise', price: 49.99, yearlyPrice: 499.99, vehicleLimit: 14, features: ['14 vehicles included', 'All Pro features', 'Vehicle dashboard & analytics', 'Dedicated account manager', '24/7 priority support'] },
+]
+
+const planIcons: Record<string, any> = { free: Shield, starter: Zap, pro: Star, enterprise: Crown }
 
 export default function CadastroPage() {
   const router = useRouter()
   const { translate, language, setLanguage } = useI18n()
   const tr = translate
 
-  const [step, setStep] = useState<Step>('info')
+  const [step, setStep] = useState<Step>('plan')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  // Step 0: Plan selection
+  const [selectedPlan, setSelectedPlan] = useState<string>('')
+  const [plans, setPlans] = useState<PlanOption[]>(DEFAULT_PLANS)
+
   // Step 1: Personal info
+  const [accountType, setAccountType] = useState<AccountType>('INDIVIDUAL')
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -50,6 +79,33 @@ export default function CadastroPage() {
   const [resendCooldown, setResendCooldown] = useState(0)
 
   const [showLoginLink, setShowLoginLink] = useState(false)
+
+  // Load plans from API and check URL params
+  useEffect(() => {
+    async function loadPlans() {
+      try {
+        const res = await fetch(`${API_BASE_URL}/subscriptions/plans`)
+        if (res.ok) {
+          const data = await res.json()
+          const apiPlans = (data.data || data).map((p: any) => ({
+            id: p.planKey,
+            name: p.name,
+            price: Number(p.monthlyPrice),
+            yearlyPrice: Number(p.yearlyPrice),
+            vehicleLimit: p.vehicleLimit,
+            features: typeof p.features === 'string' ? JSON.parse(p.features) : p.features,
+            isFeatured: p.isFeatured,
+          }))
+          if (apiPlans.length > 0) setPlans(apiPlans)
+        }
+      } catch {}
+    }
+    loadPlans()
+
+    // Check for plan in URL params
+    const urlPlan = router.query.plan as string
+    if (urlPlan) setSelectedPlan(urlPlan)
+  }, [router.query.plan])
 
   // ─── Phone formatting ───
   function formatPhoneDisplay(value: string) {
@@ -106,6 +162,8 @@ export default function CadastroPage() {
           phone: phoneToE164(phone),
           password,
           role: 'CLIENT',
+          accountType,
+          selectedPlan: selectedPlan || 'free',
           language: language.toUpperCase(),
         }),
       })
@@ -209,6 +267,7 @@ export default function CadastroPage() {
 
   // ─── Step indicators ───
   const steps: { key: Step; label: string }[] = [
+    { key: 'plan', label: tr('signup.stepPlan') || 'Choose Plan' },
     { key: 'info', label: tr('signup.stepInfo') },
     { key: 'otp', label: tr('signup.stepVerify') },
   ]
@@ -297,13 +356,124 @@ export default function CadastroPage() {
             </div>
           )}
 
+          {/* ─── Step 0: Plan Selection ─── */}
+          {step === 'plan' && (
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">{tr('signup.choosePlan') || 'Choose Your Plan'}</h2>
+              <p className="text-gray-600 mb-6">{tr('signup.choosePlanDesc') || 'Free plan forever. Paid plans include a 7-day free trial.'}</p>
+
+              <div className="space-y-3">
+                {plans.map((plan) => {
+                  const Icon = planIcons[plan.id] || Shield
+                  const isSelected = selectedPlan === plan.id
+                  return (
+                    <button
+                      key={plan.id}
+                      onClick={() => setSelectedPlan(plan.id)}
+                      className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
+                        isSelected
+                          ? 'border-primary-500 bg-primary-50 ring-2 ring-primary-200'
+                          : 'border-gray-200 hover:border-gray-300'
+                      } ${plan.isFeatured ? 'relative' : ''}`}
+                    >
+                      {plan.isFeatured && (
+                        <span className="absolute -top-2.5 right-4 bg-primary-600 text-white text-xs px-2 py-0.5 rounded-full font-medium">
+                          {tr('plans.popular') || 'MOST POPULAR'}
+                        </span>
+                      )}
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isSelected ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-500'}`}>
+                          <Icon className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <h3 className="font-semibold text-gray-900">{plan.name}</h3>
+                            <span className="font-bold text-gray-900">
+                              {plan.price === 0 ? (tr('plans.free') || 'Free') : `$${plan.price}/mo`}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-500 mt-0.5">
+                            {tr('plans.upToVehicles') || 'Up to'} {plan.vehicleLimit} {tr('plans.vehicles') || 'vehicles'}
+                            {plan.price > 0 && ` • 7-day free trial`}
+                          </p>
+                        </div>
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${isSelected ? 'border-primary-600 bg-primary-600' : 'border-gray-300'}`}>
+                          {isSelected && <CheckCircle className="w-4 h-4 text-white" />}
+                        </div>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+
+              <button
+                onClick={() => {
+                  if (!selectedPlan) { setError(tr('signup.selectPlan') || 'Please select a plan'); return }
+                  setError('')
+                  setStep('info')
+                }}
+                className="btn btn-primary w-full py-3 text-base mt-6"
+              >
+                <span className="flex items-center justify-center gap-2">
+                  {tr('common.continue') || 'Continue'}
+                  <ArrowRight className="w-5 h-5" />
+                </span>
+              </button>
+
+              <p className="mt-6 text-center text-gray-600">
+                {tr('signup.alreadyHaveAccount')}{' '}
+                <Link href="/login" className="text-primary-600 hover:text-primary-700 font-medium">
+                  {tr('auth.signIn')}
+                </Link>
+              </p>
+            </div>
+          )}
+
           {/* ─── Step 1: Personal Info ─── */}
           {step === 'info' && (
             <div>
+              <button
+                onClick={() => setStep('plan')}
+                className="flex items-center gap-2 text-gray-500 hover:text-gray-700 mb-4"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                {tr('signup.stepPlan') || 'Choose Plan'}
+              </button>
+
               <h2 className="text-2xl font-bold text-gray-900 mb-2">{tr('signup.personalInfo')}</h2>
               <p className="text-gray-600 mb-6">{tr('signup.personalInfoDesc')}</p>
 
               <div className="space-y-4">
+                {/* Account Type */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{tr('signup.accountType') || 'Account Type'}</label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setAccountType('INDIVIDUAL')}
+                      className={`flex-1 py-2.5 px-4 rounded-lg border-2 text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                        accountType === 'INDIVIDUAL'
+                          ? 'border-primary-500 bg-primary-50 text-primary-700'
+                          : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                      }`}
+                    >
+                      <User className="w-4 h-4" />
+                      {tr('signup.individual') || 'Individual'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAccountType('BUSINESS')}
+                      className={`flex-1 py-2.5 px-4 rounded-lg border-2 text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                        accountType === 'BUSINESS'
+                          ? 'border-primary-500 bg-primary-50 text-primary-700'
+                          : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                      }`}
+                    >
+                      <Building2 className="w-4 h-4" />
+                      {tr('signup.business') || 'Business'}
+                    </button>
+                  </div>
+                </div>
                 {/* Full Name */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{tr('signup.fullName')}</label>
@@ -486,7 +656,13 @@ export default function CadastroPage() {
               </div>
 
               <h2 className="text-2xl font-bold text-gray-900 mb-3">{tr('signup.successTitle')}</h2>
-              <p className="text-gray-600 mb-4">{tr('signup.successDesc')}</p>
+              <p className="text-gray-600 mb-2">{tr('signup.successDesc')}</p>
+              {selectedPlan && selectedPlan !== 'free' && (
+                <p className="text-sm text-primary-600 font-medium mb-2">
+                  {tr('signup.selectedPlan') || 'Selected plan'}: {plans.find(p => p.id === selectedPlan)?.name || selectedPlan}
+                  {' — '}{tr('signup.trialInfo') || 'You will have 7 days free to try before being charged.'}
+                </p>
+              )}
               <p className="text-sm text-gray-500 mb-8">{tr('signup.successMobile')}</p>
 
               <button

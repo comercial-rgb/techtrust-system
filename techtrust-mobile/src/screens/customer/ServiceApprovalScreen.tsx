@@ -405,7 +405,7 @@ const ServiceApprovalScreen: React.FC<ServiceApprovalScreenProps> = ({ navigatio
               <View style={[styles.processorCard, processorComparison.recommendation.processor === 'STRIPE' && styles.processorRecommended]}>
                 {processorComparison.recommendation.processor === 'STRIPE' && (
                   <View style={styles.recommendedBadge}>
-                    <Text style={styles.recommendedText}>Best for you</Text>
+                    <Text style={styles.recommendedText}>Recommended</Text>
                   </View>
                 )}
                 <Text style={styles.processorName}>Stripe</Text>
@@ -424,7 +424,7 @@ const ServiceApprovalScreen: React.FC<ServiceApprovalScreenProps> = ({ navigatio
               <View style={[styles.processorCard, processorComparison.recommendation.processor === 'CHASE' && styles.processorRecommended]}>
                 {processorComparison.recommendation.processor === 'CHASE' && (
                   <View style={styles.recommendedBadge}>
-                    <Text style={styles.recommendedText}>Best for you</Text>
+                    <Text style={styles.recommendedText}>Recommended</Text>
                   </View>
                 )}
                 <Text style={styles.processorName}>Chase</Text>

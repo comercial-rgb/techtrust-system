@@ -17,7 +17,7 @@ Encontre mecânicos, oficinas e profissionais automotivos verificados perto de v
 
 ## 📄 Descrição Completa (4000 caracteres)
 ```
-TechTrust é a plataforma que conecta você aos melhores prestadores de serviços automotivos da sua região. Seja para manutenção preventiva, reparos de emergência ou melhorias no seu veículo, encontre profissionais qualificados e obtenha orçamentos transparentes em poucos minutos.
+TechTrust é a plataforma que conecta você a prestadores de serviços automotivos verificados da sua região. Seja para manutenção preventiva, reparos de emergência ou melhorias no seu veículo, encontre profissionais qualificados e obtenha orçamentos transparentes em poucos minutos.
 
 🔧 PRINCIPAIS RECURSOS:
 
@@ -28,7 +28,7 @@ Descreva o serviço que você precisa, adicione fotos e receba múltiplos orçam
 Todos os profissionais passam por processo de verificação rigoroso. Confira avaliações de outros clientes antes de contratar.
 
 • Compare Preços e Serviços
-Analise diferentes orçamentos lado a lado, compare preços, prazos e avaliações para tomar a melhor decisão.
+Analise diferentes orçamentos lado a lado, compare preços, prazos e avaliações para tomar uma decisão informada.
 
 • Chat Direto com Prestadores
 Tire dúvidas, negocie valores e combine detalhes diretamente pelo app com total segurança.
@@ -81,7 +81,7 @@ Nossa missão é trazer transparência, segurança e praticidade para o mercado 
 
 Nossa equipe está sempre disponível para ajudar. Entre em contato através do app ou visite nosso site para mais informações.
 
-Baixe agora e descubra como é fácil cuidar do seu veículo com confiança!
+Descubra como é fácil cuidar do seu veículo com confiança!
 
 ---
 

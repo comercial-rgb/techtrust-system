@@ -163,14 +163,14 @@ export default {
     banners: {
       title1: "TechTrust AutoSolutions LLC",
       subtitle1: "Tu Socio de Confianza en Servicios Automotrices",
-      title2: "Calidad Garantizada",
+      title2: "Servicio Automotriz Confiable",
       subtitle2: "Mecánicos Certificados Cerca de Ti",
       title3: "Rápido y Confiable",
       subtitle3: "Asistencia 24/7",
     },
     offers: {
-      title: "Ofertas Especiales",
-      subtitle: "Promociones por tiempo limitado",
+      title: "Ofertas Actuales",
+      subtitle: "Ofertas disponibles cerca de ti",
       oilChange: "Cambio de Aceite",
       oilChangeDesc: "Cambio de aceite sintético completo con filtro",
       brakeService: "Servicio de Frenos",
@@ -203,7 +203,7 @@ export default {
       pricingDesc: "Compara cotizaciones y paga solo por lo que necesitas",
       time: "Ahorra Tiempo",
       timeDesc: "Agenda citas y sigue servicios en tiempo real",
-      quality: "Calidad Garantizada",
+      quality: "Calidad Verificada",
       qualityDesc: "Servicios calificados con protección de garantía",
     },
     articles: {
@@ -237,7 +237,7 @@ export default {
     tryDifferentLocation: "Intenta seleccionar una ubicación diferente",
     connectedMessage: "Estás conectado a tu hub automotriz de confianza",
     tagline: "Impulsado por Tecnología. Confiado por Usted.",
-    adsPromotions: "Anuncios y Promociones",
+    adsPromotions: "Ofertas y Descuentos",
     featuredDeals: "Ofertas Destacadas",
     popularServices: "Servicios Populares",
     serviceOilChange: "Cambio de Aceite",
@@ -477,12 +477,12 @@ export default {
     monthly: "Mensual",
     yearly: "Anual",
     save17: "Ahorra 17%",
-    mostPopular: "Más Popular",
+    mostPopular: "Elección Popular",
     downgrade: "Reducir",
     upgrade: "Mejorar",
     premiumBenefits: "Beneficios Premium",
     priorityService: "Servicio Prioritario",
-    exclusiveDiscounts: "Descuentos Exclusivos",
+    exclusiveDiscounts: "Ahorros de Membresía",
     roadsideAssist: "Asistencia en Carretera",
     support247: "Soporte 24/7",
     // Reports
@@ -938,7 +938,7 @@ export default {
     goodEvening: "Buenas noches",
     howCanWeHelp: "¿Cómo podemos ayudarte hoy?",
     needService: "¿Necesitas un servicio?",
-    requestQuotes: "Solicita cotizaciones gratis ahora",
+    requestQuotes: "Solicita cotizaciones ahora",
     activeServices: "Servicios Activos",
     activeServiceSingular: "Servicio Activo",
     pendingQuotes: "Cotizaciones Pendientes",
@@ -971,7 +971,7 @@ export default {
     getStarted: "Comenzar",
     nextTip: "Siguiente consejo",
     tipReviewQuotes:
-      "¡Tienes cotizaciones pendientes! Revísalas para obtener el mejor precio.",
+      "¡Tienes cotizaciones pendientes! Revísalas para encontrar una buena oferta.",
     tipSyntheticOil:
       "El aceite sintético dura de 12,000 a 16,000 km. Verifica la fecha de tu último cambio.",
     tipBrakes:
@@ -986,7 +986,7 @@ export default {
       "Mantén un kit de emergencia en tu auto: cables de batería, linterna, primeros auxilios.",
     // Special Offers
     specialOffers: "Ofertas Especiales",
-    limitedTimeDeals: "Ofertas por tiempo limitado",
+    limitedTimeDeals: "Ofertas disponibles",
     tapForDetails: "Toca para detalles",
     validUntil: "Válido hasta",
     regularPrice: "Precio Regular",
@@ -1005,7 +1005,7 @@ export default {
     // Tips
     tips: "Consejos",
     tipCompareQuotes:
-      "Compara al menos 3 cotizaciones antes de aceptar para asegurar el mejor precio",
+      "Compara al menos 3 cotizaciones antes de aceptar para asegurar un precio justo",
     // Status labels
     statusSearching: "Buscando",
     statusQuotes: "Cotizaciones",
@@ -1381,7 +1381,7 @@ export default {
     expenses: "Gastos",
     netIncome: "Ingreso Neto",
     servicesByType: "Servicios por Tipo",
-    topServices: "Servicios Principales",
+    topServices: "Servicios Populares",
     monthlyComparison: "Comparación Mensual",
     exportReport: "Exportar Reporte",
   },
@@ -1757,10 +1757,10 @@ export default {
   // Service Choice Screen
   serviceChoice: {
     title: "¿Cómo podemos ayudar?",
-    subtitle: "Elige la opción que mejor se adapte a tus necesidades",
+    subtitle: "Elige la opción que se adapte a tus necesidades",
     requestService: "Solicitar Servicio",
     requestServiceDesc:
-      "¿Ya sabes lo que necesitas? Solicita cotizaciones de proveedores certificados en tu área. Compara precios y elige la mejor opción.",
+      "¿Ya sabes lo que necesitas? Solicita cotizaciones de proveedores certificados en tu área. Compara precios y elige tu opción preferida.",
     getQuotes: "Obtener Cotizaciones",
     diagnostic: "Diagnóstico y Estimación",
     diagnosticDesc:
@@ -1837,9 +1837,9 @@ export default {
     freeVacuum: "Aspiradora Gratis",
     sortBy: "Ordenar Por",
     sortDistance: "Más Cercano",
-    sortRating: "Mejor Calificado",
+    sortRating: "Calificación",
     sortPrice: "Precio Más Bajo",
-    sortPopularity: "Más Popular",
+    sortPopularity: "Popularidad",
     startingAt: "Desde",
     reviews: "reseñas",
     mile: "mi",
@@ -1853,7 +1853,7 @@ export default {
       "Toca el ícono del corazón en cualquier lavado para guardarlo aquí.",
     findCarWashes: "Encontrar Lavados",
     washPackages: "Paquetes de Lavado",
-    mostPopular: "Más Popular",
+    mostPopular: "Elección Popular",
     unlimitedPlans: "Planes Ilimitados",
     perMonth: "/mes",
     validAllLocations: "Válido en todas las ubicaciones",
@@ -1890,7 +1890,7 @@ export default {
     // All Reviews page
     allReviews: "Todas las Reseñas",
     sortRecent: "Más Recientes",
-    sortHighest: "Mejor Calificados",
+    sortHighest: "Mayor Calificación",
     sortLowest: "Peor Calificados",
     noReviewsYet: "Sin reseñas aún",
     ownerResponse: "Respuesta del Propietario",
@@ -1983,7 +1983,7 @@ export default {
     addVehicleNow: "Agregar Vehículo Ahora",
     serviceTitle: "Solicita un Servicio",
     serviceSubtitle:
-      "Describe lo que necesitas y enviaremos tu solicitud a talleres calificados cercanos. Compara cotizaciones y elige la mejor.",
+      "Describe lo que necesitas y enviaremos tu solicitud a talleres calificados cercanos. Compara cotizaciones y elige tu preferida.",
     featureFast: "Solicitudes rápidas de cotización",
     featureRatings: "Calificaciones y reseñas de talleres",
     featureChat: "Chat directo con los talleres",
@@ -2063,7 +2063,7 @@ export default {
       "¿Estás seguro que deseas cancelar esta solicitud? Esta acción no se puede deshacer.",
     requestCancelledMsg: "Tu solicitud ha sido cancelada.",
     note: "Nota",
-    bestValue: "Mejor Valor",
+    bestValue: "Buen Valor",
     parts: "Repuestos",
     labor: "Mano de Obra",
     estTime: "Tiempo Est.",

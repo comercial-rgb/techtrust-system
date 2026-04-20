@@ -281,7 +281,7 @@ export default function CarWashProfileScreen({ route, navigation }: any) {
                 {pkg.isMostPopular && (
                   <View style={styles.popularBadge}>
                     <Ionicons name="star" size={10} color="#fff" />
-                    <Text style={styles.popularBadgeText}>Most Popular</Text>
+                    <Text style={styles.popularBadgeText}>Popular Choice</Text>
                   </View>
                 )}
                 <View style={styles.packageHeader}>

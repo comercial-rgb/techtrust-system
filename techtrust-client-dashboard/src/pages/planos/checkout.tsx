@@ -202,7 +202,8 @@ export default function CheckoutPage() {
         </div>
 
         <p className="text-center text-xs text-gray-400 mt-4">
-          Secure payment processed by Stripe. You can cancel anytime.
+          Secure payment processed by Stripe. We accept credit cards, debit cards, Apple Pay, Google Pay, and bank transfers.
+          <br />7-day free trial on paid plans. You can cancel anytime.
         </p>
       </div>
     </DashboardLayout>

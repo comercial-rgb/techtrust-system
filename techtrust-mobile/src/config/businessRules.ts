@@ -351,7 +351,9 @@ export const SUBSCRIPTION_PLANS = {
     name: 'Free',
     monthlyPrice: 0,
     annualPrice: 0,
-    maxVehicles: 1,
+    maxVehicles: 2,
+    vehicleAddOnPrice: 6.99,
+    appServiceFee: 5.89,
     sosDiscountPercent: 0,
     sosFreePerMonth: 0,
   },
@@ -359,7 +361,9 @@ export const SUBSCRIPTION_PLANS = {
     name: 'Starter',
     monthlyPrice: 9.99,
     annualPrice: 99.99,
-    maxVehicles: 2,
+    maxVehicles: 3,
+    vehicleAddOnPrice: 5.99,
+    appServiceFee: 2.99,
     sosDiscountPercent: 10,
     sosFreePerMonth: 0,
   },
@@ -367,7 +371,9 @@ export const SUBSCRIPTION_PLANS = {
     name: 'Pro',
     monthlyPrice: 19.99,
     annualPrice: 199.99,
-    maxVehicles: 4,
+    maxVehicles: 5,
+    vehicleAddOnPrice: 3.99,
+    appServiceFee: 0,
     sosDiscountPercent: 20,
     sosFreePerMonth: 0,
   },
@@ -375,12 +381,15 @@ export const SUBSCRIPTION_PLANS = {
     name: 'Enterprise',
     monthlyPrice: 49.99,
     annualPrice: 499.99,
-    maxVehicles: 10,
+    maxVehicles: 14,
+    vehicleAddOnPrice: 0, // Custom pricing for 14+ vehicles
+    appServiceFee: 0,
     sosDiscountPercent: 30,
     sosFreePerMonth: 2,
   },
 } as const;
 
+/** @deprecated Use SUBSCRIPTION_PLANS[plan].vehicleAddOnPrice instead */
 export const VEHICLE_ADD_ON_PRICE = 6.99;
 
 // ============================================

@@ -17,7 +17,7 @@ Find verified mechanics, auto shops, and automotive professionals near you. Get 
 
 ## 📄 Full Description (4000 characters — iOS & Google Play)
 ```
-TechTrust Auto Solutions connects you with the best automotive service providers in your area. Whether you need routine maintenance, emergency repairs, or vehicle upgrades, find qualified professionals and get transparent quotes in minutes.
+TechTrust Auto Solutions connects you with trusted automotive service providers in your area. Whether you need routine maintenance, emergency repairs, or vehicle upgrades, find qualified professionals and get transparent quotes in minutes.
 
 🔧 KEY FEATURES:
 
@@ -28,7 +28,7 @@ Describe the service you need, add photos, and receive multiple quotes from veri
 All professionals go through a rigorous verification process. Check reviews from other customers before hiring.
 
 • Compare Prices & Services
-Analyze different quotes side by side — compare prices, timelines, and ratings to make the best decision.
+Analyze different quotes side by side — compare prices, timelines, and ratings to make an informed decision.
 
 • Direct Chat with Providers
 Ask questions, negotiate prices, and arrange details directly through the app with full security.

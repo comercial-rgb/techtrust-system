@@ -673,12 +673,12 @@ export default function RegisterPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-1.5">
                         {tr('register.phone') || 'Phone Number'} *
                       </label>
-                      <div className="relative">
-                        <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                        <div className="flex">
-                          <span className="inline-flex items-center px-3 border border-r-0 border-gray-200 bg-gray-50 text-gray-500 text-sm rounded-l-xl">+1</span>
-                          <input type="tel" value={phone} onChange={(e) => setPhone(formatPhone(e.target.value))} placeholder="(305) 555-0123" className="input rounded-l-none !pl-3" />
-                        </div>
+                      <div className="flex">
+                        <span className="inline-flex items-center gap-1.5 px-3 border border-r-0 border-gray-200 bg-gray-50 text-gray-500 text-sm rounded-l-xl">
+                          <Phone className="w-4 h-4 text-gray-400" />
+                          +1
+                        </span>
+                        <input type="tel" value={phone} onChange={(e) => setPhone(formatPhone(e.target.value))} placeholder="(305) 555-0123" className="input rounded-l-none !pl-3" />
                       </div>
                     </div>
 

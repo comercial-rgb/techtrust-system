@@ -252,14 +252,14 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
   const handleAcceptQuote = () => {
     if (!quote) return;
 
-    const { platformFee, processingFee, customerTotal } =
+    const { appServiceFee, processingFee, customerTotal } =
       calculateCustomerTotal(quote.grandTotal);
 
     Alert.alert(
       t.quote?.acceptQuote || "Accept Quote",
       `${t.quote?.acceptQuoteConfirm || "By accepting this quote, a payment hold will be placed on your card:"}\n\n` +
         `Service: $${quote.grandTotal.toFixed(2)}\n` +
-        `Platform fee (10%): $${platformFee.toFixed(2)}\n` +
+        (appServiceFee > 0 ? `App service fee: $${appServiceFee.toFixed(2)}\n` : "") +
         `Processing fee: $${processingFee.toFixed(2)}\n` +
         `━━━━━━━━━━━━━━━━\n` +
         `Total hold: $${customerTotal.toFixed(2)}\n\n` +
@@ -354,7 +354,7 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
   const generatePdfHtml = () => {
     if (!quote) return "";
 
-    const { platformFee, processingFee, customerTotal } =
+    const { appServiceFee, processingFee, customerTotal } =
       calculateCustomerTotal(quote.grandTotal);
 
     const itemsHtml = quote.items
@@ -492,8 +492,8 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
             <span class="totals-value" style="font-weight: 600;">$${quote.grandTotal.toFixed(2)}</span>
           </div>
           <div class="totals-row">
-            <span class="totals-label">Platform Fee (10%):</span>
-            <span class="totals-value">$${platformFee.toFixed(2)}</span>
+            <span class="totals-label">App Service Fee:</span>
+            <span class="totals-value">${appServiceFee > 0 ? `$${appServiceFee.toFixed(2)}` : "Included"}</span>
           </div>
           <div class="totals-row">
             <span class="totals-label">Processing Fee:</span>
@@ -564,7 +564,7 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
   const handleShareText = async () => {
     if (!quote) return;
 
-    const { platformFee, processingFee, customerTotal } =
+    const { appServiceFee, processingFee, customerTotal } =
       calculateCustomerTotal(quote.grandTotal);
 
     const text = `
@@ -576,8 +576,7 @@ Vehicle: ${quote.vehicle.year} ${quote.vehicle.make} ${quote.vehicle.model}
 Parts: $${quote.partsTotal.toFixed(2)}
 Labor: $${quote.laborTotal.toFixed(2)}${quote.travelFee > 0 ? `\nTravel Fee: $${quote.travelFee.toFixed(2)}` : ""}${quote.discount > 0 ? `\nDiscount: -$${quote.discount.toFixed(2)}` : ""}
 Tax: $${quote.tax.toFixed(2)}
-Service Subtotal: $${quote.grandTotal.toFixed(2)}
-Platform Fee (10%): $${platformFee.toFixed(2)}
+Service Subtotal: $${quote.grandTotal.toFixed(2)}${appServiceFee > 0 ? `\nApp Service Fee: $${appServiceFee.toFixed(2)}` : ""}
 Processing Fee: $${processingFee.toFixed(2)}
 ━━━━━━━━━━━━━━━━
 Total: $${customerTotal.toFixed(2)}
@@ -626,6 +625,7 @@ Valid until: ${formatDate(quote.validUntil)}
     serviceTotal: quote.grandTotal,
     isMobileService: quote.isMobileService,
     distanceKm: quote.distanceKm ?? undefined,
+    clientPlan: "FREE", // TODO: get from user subscription context
   };
 
   const { customerTotal: finalCustomerTotal } = calculateCustomerTotal(

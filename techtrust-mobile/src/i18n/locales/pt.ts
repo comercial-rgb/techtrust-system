@@ -162,14 +162,14 @@ export default {
     banners: {
       title1: "TechTrust AutoSolutions LLC",
       subtitle1: "Seu Parceiro de Confiança em Serviços Automotivos",
-      title2: "Qualidade Garantida",
+      title2: "Serviço Automotivo Confiável",
       subtitle2: "Mecânicos Certificados Perto de Você",
       title3: "Rápido e Confiável",
       subtitle3: "Assistência 24/7",
     },
     offers: {
-      title: "Ofertas Especiais",
-      subtitle: "Promoções por tempo limitado",
+      title: "Ofertas Atuais",
+      subtitle: "Ofertas disponíveis perto de você",
       oilChange: "Troca de Óleo",
       oilChangeDesc: "Troca de óleo sintético completa com filtro",
       brakeService: "Serviço de Freios",
@@ -202,7 +202,7 @@ export default {
       pricingDesc: "Compare orçamentos e pague apenas pelo que precisa",
       time: "Economize Tempo",
       timeDesc: "Agende compromissos e acompanhe serviços em tempo real",
-      quality: "Qualidade Garantida",
+      quality: "Qualidade Verificada",
       qualityDesc: "Serviços avaliados com proteção de garantia",
     },
     articles: {
@@ -236,7 +236,7 @@ export default {
     tryDifferentLocation: "Tente selecionar uma localização diferente",
     connectedMessage: "Você está conectado ao seu hub automotivo de confiança",
     tagline: "Movido por Tecnologia. Confiado por Você.",
-    adsPromotions: "Anúncios e Promoções",
+    adsPromotions: "Ofertas e Destaques",
     featuredDeals: "Destaques",
     popularServices: "Serviços Populares",
     serviceOilChange: "Troca de Óleo",
@@ -475,12 +475,12 @@ export default {
     monthly: "Mensal",
     yearly: "Anual",
     save17: "Economize 17%",
-    mostPopular: "Mais Popular",
+    mostPopular: "Escolha Popular",
     downgrade: "Reduzir",
     upgrade: "Upgrade",
     premiumBenefits: "Benefícios Premium",
     priorityService: "Atendimento Prioritário",
-    exclusiveDiscounts: "Descontos Exclusivos",
+    exclusiveDiscounts: "Economia de Assinante",
     roadsideAssist: "Assistência na Estrada",
     support247: "Suporte 24/7",
     // Reports
@@ -935,7 +935,7 @@ export default {
     goodEvening: "Boa noite",
     howCanWeHelp: "Como podemos ajudar você hoje?",
     needService: "Precisa de um serviço?",
-    requestQuotes: "Solicite orçamentos grátis agora",
+    requestQuotes: "Solicite orçamentos agora",
     activeServices: "Serviços Ativos",
     activeServiceSingular: "Serviço Ativo",
     pendingQuotes: "Orçamentos Pendentes",
@@ -968,7 +968,7 @@ export default {
     getStarted: "Começar",
     nextTip: "Próxima dica",
     tipReviewQuotes:
-      "Você tem orçamentos pendentes! Revise-os para garantir o melhor preço.",
+      "Você tem orçamentos pendentes! Revise-os para encontrar uma boa oferta.",
     tipSyntheticOil:
       "Óleo sintético dura de 12.000 a 16.000 km. Verifique a data da sua última troca.",
     tipBrakes:
@@ -983,7 +983,7 @@ export default {
       "Mantenha um kit de emergência no carro: cabos de bateria, lanterna, primeiros socorros.",
     // Special Offers
     specialOffers: "Ofertas Especiais",
-    limitedTimeDeals: "Ofertas por tempo limitado",
+    limitedTimeDeals: "Ofertas disponíveis",
     tapForDetails: "Toque para detalhes",
     validUntil: "Válido até",
     regularPrice: "Preço Normal",
@@ -1002,7 +1002,7 @@ export default {
     // Tips
     tips: "Dicas",
     tipCompareQuotes:
-      "Compare pelo menos 3 orçamentos antes de aceitar para garantir o melhor preço",
+      "Compare pelo menos 3 orçamentos antes de aceitar para garantir um preço justo",
     // Status labels
     statusSearching: "Buscando",
     statusQuotes: "Orçamentos",
@@ -1395,7 +1395,7 @@ export default {
     expenses: "Despesas",
     netIncome: "Lucro Líquido",
     servicesByType: "Serviços por Tipo",
-    topServices: "Principais Serviços",
+    topServices: "Serviços Populares",
     monthlyComparison: "Comparação Mensal",
     exportReport: "Exportar Relatório",
   },
@@ -1768,10 +1768,10 @@ export default {
   // Service Choice Screen
   serviceChoice: {
     title: "Como podemos ajudar?",
-    subtitle: "Escolha a opção que melhor se encaixa na sua necessidade",
+    subtitle: "Escolha a opção que se encaixa na sua necessidade",
     requestService: "Solicitar Serviço",
     requestServiceDesc:
-      "Já sabe o que precisa? Solicite orçamentos de prestadores certificados na sua região. Compare preços e escolha a melhor opção.",
+      "Já sabe o que precisa? Solicite orçamentos de prestadores certificados na sua região. Compare preços e escolha sua opção preferida.",
     getQuotes: "Solicitar Orçamentos",
     diagnostic: "Diagnóstico e Estimativa",
     diagnosticDesc:
@@ -1847,9 +1847,9 @@ export default {
     freeVacuum: "Aspirador Grátis",
     sortBy: "Ordenar Por",
     sortDistance: "Mais Perto",
-    sortRating: "Melhor Avaliado",
+    sortRating: "Avaliação",
     sortPrice: "Menor Preço",
-    sortPopularity: "Mais Popular",
+    sortPopularity: "Popularidade",
     startingAt: "A partir de",
     reviews: "avaliações",
     mile: "mi",
@@ -1863,7 +1863,7 @@ export default {
       "Toque no ícone do coração em qualquer lava jato para salvá-lo aqui.",
     findCarWashes: "Encontrar Lava Jatos",
     washPackages: "Pacotes de Lavagem",
-    mostPopular: "Mais Popular",
+    mostPopular: "Escolha Popular",
     unlimitedPlans: "Planos Ilimitados",
     perMonth: "/mês",
     validAllLocations: "Válido em todas as unidades",
@@ -1900,7 +1900,7 @@ export default {
     // All Reviews page
     allReviews: "Todas as Avaliações",
     sortRecent: "Mais Recentes",
-    sortHighest: "Melhor Avaliados",
+    sortHighest: "Maior Avaliação",
     sortLowest: "Pior Avaliados",
     noReviewsYet: "Nenhuma avaliação ainda",
     ownerResponse: "Resposta do Proprietário",
@@ -1993,7 +1993,7 @@ export default {
     addVehicleNow: "Adicionar Veículo Agora",
     serviceTitle: "Solicite um Serviço",
     serviceSubtitle:
-      "Descreva o que você precisa e enviaremos sua solicitação para oficinas qualificadas próximas. Compare orçamentos e escolha o melhor.",
+      "Descreva o que você precisa e enviaremos sua solicitação para oficinas qualificadas próximas. Compare orçamentos e escolha sua preferida.",
     featureFast: "Solicitações rápidas de orçamento",
     featureRatings: "Avaliações e reviews das oficinas",
     featureChat: "Chat direto com as oficinas",
@@ -2072,7 +2072,7 @@ export default {
       "Tem certeza que deseja cancelar esta solicitação? Esta ação não pode ser desfeita.",
     requestCancelledMsg: "Sua solicitação foi cancelada.",
     note: "Observação",
-    bestValue: "Melhor Custo-Benefício",
+    bestValue: "Bom Custo-Benefício",
     parts: "Peças",
     labor: "Mão de Obra",
     estTime: "Tempo Est.",

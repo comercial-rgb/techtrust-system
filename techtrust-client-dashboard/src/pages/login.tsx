@@ -355,78 +355,86 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Right Side - Features */}
-      <div className="hidden lg:flex flex-1 bg-gradient-to-br from-primary-600 to-primary-800 p-12 items-center justify-center">
+      {/* Right Side - Features & Plans */}
+      <div className="hidden lg:flex flex-1 bg-gradient-to-br from-primary-600 to-primary-800 p-12 items-center justify-center overflow-y-auto">
         <div className="max-w-md text-white">
           <img src="/logo-white.png" alt="TechTrust" className="w-16 h-16 mb-6 drop-shadow-lg" />
           <h2 className="text-3xl font-bold mb-6">{tr("client.heroTitle")}</h2>
-          <p className="text-primary-100 mb-10 text-lg">
+          <p className="text-primary-100 mb-8 text-lg">
             {tr("client.heroDescription")}
           </p>
 
-          <div className="space-y-6">
+          <div className="space-y-4">
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                <Shield className="w-6 h-6" />
+              <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Shield className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-semibold text-lg mb-1">
-                  {tr("client.features.verified")}
-                </h3>
-                <p className="text-primary-100">
-                  {tr("client.features.verified")}
-                </p>
+                <h3 className="font-semibold mb-0.5">{tr("client.features.verified")}</h3>
+                <p className="text-primary-200 text-sm">{tr("client.features.verified")}</p>
               </div>
             </div>
-
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                <Clock className="w-6 h-6" />
+              <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Clock className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-semibold text-lg mb-1">
-                  {tr("client.features.quotes")}
-                </h3>
-                <p className="text-primary-100">
-                  {tr("client.features.quotes")}
-                </p>
+                <h3 className="font-semibold mb-0.5">{tr("client.features.quotes")}</h3>
+                <p className="text-primary-200 text-sm">{tr("client.features.quotes")}</p>
               </div>
             </div>
-
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                <Star className="w-6 h-6" />
+              <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Star className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-semibold text-lg mb-1">
-                  {tr("client.features.quality")}
-                </h3>
-                <p className="text-primary-100">
-                  {tr("client.features.quality")}
-                </p>
+                <h3 className="font-semibold mb-0.5">{tr("client.features.quality")}</h3>
+                <p className="text-primary-200 text-sm">{tr("client.features.quality")}</p>
               </div>
             </div>
           </div>
 
-          <div className="mt-12 pt-8 border-t border-white/20">
+          {/* Plans Overview */}
+          <div className="mt-8 pt-6 border-t border-white/20">
+            <h3 className="font-semibold text-lg mb-3">
+              {tr("plans.ourPlans") || "Our Plans"}
+            </h3>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="bg-white/10 rounded-lg p-3">
+                <div className="font-semibold text-sm">Free</div>
+                <div className="text-primary-200 text-xs">2 vehicles • $0/mo</div>
+              </div>
+              <div className="bg-white/10 rounded-lg p-3">
+                <div className="font-semibold text-sm">Starter</div>
+                <div className="text-primary-200 text-xs">3 vehicles • $9.99/mo</div>
+              </div>
+              <div className="bg-white/15 rounded-lg p-3 ring-1 ring-white/30">
+                <div className="font-semibold text-sm">Pro ⭐</div>
+                <div className="text-primary-200 text-xs">5 vehicles • $19.99/mo</div>
+              </div>
+              <div className="bg-white/10 rounded-lg p-3">
+                <div className="font-semibold text-sm">Enterprise</div>
+                <div className="text-primary-200 text-xs">14 vehicles • $49.99/mo</div>
+              </div>
+            </div>
+            <p className="text-primary-200 text-xs mt-2">
+              {tr("plans.trialNote") || "7-day free trial on paid plans. Free plan forever."}
+            </p>
+          </div>
+
+          <div className="mt-6 pt-6 border-t border-white/20">
             <div className="flex items-center gap-8">
               <div>
-                <p className="text-3xl font-bold">50k+</p>
-                <p className="text-primary-200 text-sm">
-                  {tr("client.stats.customers")}
-                </p>
+                <p className="text-2xl font-bold">50k+</p>
+                <p className="text-primary-200 text-sm">{tr("client.stats.customers")}</p>
               </div>
               <div>
-                <p className="text-3xl font-bold">500+</p>
-                <p className="text-primary-200 text-sm">
-                  {tr("client.stats.providers")}
-                </p>
+                <p className="text-2xl font-bold">500+</p>
+                <p className="text-primary-200 text-sm">{tr("client.stats.providers")}</p>
               </div>
               <div>
-                <p className="text-3xl font-bold">4.9</p>
-                <p className="text-primary-200 text-sm">
-                  {tr("client.stats.rating")}
-                </p>
+                <p className="text-2xl font-bold">4.9</p>
+                <p className="text-primary-200 text-sm">{tr("client.stats.rating")}</p>
               </div>
             </div>
           </div>
