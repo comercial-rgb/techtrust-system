@@ -423,50 +423,6 @@ export default function LoginPage() {
               <p className="text-primary-100 text-sm">{tr('provider.stats.rating')}</p>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4">
-              <p className="text-2
-            <div className="bg-white/10 rounded-lg p-3 flex items-center gap-3">
-              <span className="text-2xl">💰</span>
-              <div>
-                <div className="font-semibold text-sm">{tr('provider.benefit.growBusiness') || 'Grow Your Business'}</div>
-                <div className="text-primary-200 text-xs">{tr('provider.benefit.growBusinessDesc') || 'Build reputation with reviews, get featured, earn more.'}</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Marketplace Plans */}
-          <div className="pt-6 border-t border-white/20 mb-8">
-            <h3 className="font-semibold text-lg mb-3">
-              {tr('provider.listingPlans') || 'Marketplace Listing Plans'}
-            </h3>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="bg-white/10 rounded-lg p-3">
-                <div className="font-semibold text-sm">Basic</div>
-                <div className="text-primary-200 text-xs">$29.99/mo • 5 photos</div>
-                <div className="text-primary-200 text-xs">15 mi reach</div>
-              </div>
-              <div className="bg-white/15 rounded-lg p-3 ring-1 ring-white/30">
-                <div className="font-semibold text-sm">Best ⭐</div>
-                <div className="text-primary-200 text-xs">$39.99/mo • 20 photos</div>
-                <div className="text-primary-200 text-xs">50 mi reach • Featured</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4">
-              <p className="text-2xl font-bold">500+</p>
-              <p className="text-primary-100 text-sm">{tr('provider.stats.suppliers')}</p>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4">
-              <p className="text-2xl font-bold">10k+</p>
-              <p className="text-primary-100 text-sm">{tr('provider.stats.services')}</p>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4">
-              <p className="text-2xl font-bold">4.8</p>
-              <p className="text-primary-100 text-sm">{tr('provider.stats.rating')}</p>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4">
               <p className="text-2xl font-bold">$2M+</p>
               <p className="text-primary-100 text-sm">{tr('provider.stats.paid')}</p>
             </div>
