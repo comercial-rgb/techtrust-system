@@ -48,7 +48,7 @@ export const signup = async (req: Request, res: Response) => {
       password,
       language,
       role,
-      accountType, // 'INDIVIDUAL' | 'BUSINESS'
+      _accountType, // 'INDIVIDUAL' | 'BUSINESS'
       businessName,
       businessAddress,
       businessCity,
@@ -57,7 +57,7 @@ export const signup = async (req: Request, res: Response) => {
       servicesOffered,
       vehicleTypesServed,
       sellsParts,
-      selectedPlan, // plan selected during registration
+      _selectedPlan, // plan selected during registration
       preferredOtpMethod, // 'sms' | 'email' — user chooses verification method
     } = req.body;
 
