@@ -129,6 +129,15 @@ const en = {
       rating: "Average rating",
       paid: "Paid to suppliers",
     },
+    benefit: {
+      freeRegistration: "Free Registration",
+      freeRegistrationDesc: "No monthly fees. Pay only when you earn.",
+      receiveRequests: "Receive Service Requests",
+      receiveRequestsDesc: "Get connected to vehicle owners looking for your services.",
+      growBusiness: "Grow Your Business",
+      growBusinessDesc: "Build reputation with reviews, get featured, earn more.",
+    },
+    listingPlans: "Marketplace Listing Plans",
     nav: {
       dashboard: "Dashboard",
       requests: "Requests",

@@ -129,6 +129,15 @@ const es = {
       rating: "Calificación promedio",
       paid: "Pagado a proveedores",
     },
+    benefit: {
+      freeRegistration: "Registro Gratuito",
+      freeRegistrationDesc: "Sin cuotas mensuales. Paga solo cuando ganes.",
+      receiveRequests: "Recibe Solicitudes",
+      receiveRequestsDesc: "Conéctate con dueños de vehículos que buscan tus servicios.",
+      growBusiness: "Haz Crecer Tu Negocio",
+      growBusinessDesc: "Construye reputación con reseñas, destaca y gana más.",
+    },
+    listingPlans: "Planes de Listado en Marketplace",
     nav: {
       dashboard: "Dashboard",
       requests: "Pedidos",

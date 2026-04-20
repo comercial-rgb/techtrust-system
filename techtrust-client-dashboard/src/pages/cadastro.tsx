@@ -66,6 +66,7 @@ export default function CadastroPage() {
   // Step 1: Personal info
   const [accountType, setAccountType] = useState<AccountType>('INDIVIDUAL')
   const [fullName, setFullName] = useState('')
+  const [businessName, setBusinessName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
@@ -122,6 +123,10 @@ export default function CadastroPage() {
 
   // ─── Validate Step ───
   function validateInfo(): boolean {
+    if (accountType === 'BUSINESS' && !businessName.trim()) {
+      setError(tr('signup.businessNameRequired') || 'Please enter your business name')
+      return false
+    }
     if (!fullName.trim() || fullName.trim().split(' ').length < 2) {
       setError(tr('signup.fullNameRequired'))
       return false
@@ -163,6 +168,7 @@ export default function CadastroPage() {
           password,
           role: 'CLIENT',
           accountType,
+          businessName: accountType === 'BUSINESS' ? businessName.trim() : undefined,
           selectedPlan: selectedPlan || 'free',
           language: language.toUpperCase(),
         }),
@@ -474,6 +480,22 @@ export default function CadastroPage() {
                     </button>
                   </div>
                 </div>
+                {/* Business Name (only for BUSINESS) */}
+                {accountType === 'BUSINESS' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{tr('signup.businessName') || 'Business Name'}</label>
+                    <div className="relative">
+                      <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                      <input
+                        type="text"
+                        value={businessName}
+                        onChange={(e) => { setBusinessName(e.target.value); setError('') }}
+                        placeholder="TechTrust Auto LLC"
+                        className="w-full pl-12 pr-4 py-3 rounded-lg border border-gray-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all"
+                      />
+                    </div>
+                  </div>
+                )}
                 {/* Full Name */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{tr('signup.fullName')}</label>
