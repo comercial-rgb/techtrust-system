@@ -67,6 +67,9 @@ import CarWashReviewScreen from "../screens/CarWashReviewScreen";
 import CarWashAllReviewsScreen from "../screens/CarWashAllReviewsScreen";
 import CarWashFavoritesScreen from "../screens/CarWashFavoritesScreen";
 
+// Auto Services Wrapper
+import AutoServicesScreen from "../screens/AutoServicesScreen";
+
 // Parts Store Screens
 import PartsStoreScreen from "../screens/PartsStoreScreen";
 import PartsCategoryScreen from "../screens/PartsCategoryScreen";
@@ -207,7 +210,7 @@ function WorkOrdersStack() {
 function CarWashStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="CarWashMapMain" component={CarWashMapScreen} />
+      <Stack.Screen name="CarWashMapMain" component={AutoServicesScreen} />
       <Stack.Screen name="CarWashProfile" component={CarWashProfileScreen} />
       <Stack.Screen name="CarWashReview" component={CarWashReviewScreen} />
       <Stack.Screen name="CarWashAllReviews" component={CarWashAllReviewsScreen} />
@@ -348,9 +351,9 @@ export default function CustomerNavigator() {
         name="CarWash"
         component={CarWashStack}
         options={{
-          tabBarLabel: (t as any).carWash?.tabLabel || "Car Wash",
+          tabBarLabel: (t as any).carWash?.tabLabel || "Auto Care",
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="car-wash" size={size} color={color} />
+            <MaterialCommunityIcons name="car-wrench" size={size} color={color} />
           ),
         }}
         listeners={({ navigation }) => ({

@@ -20,6 +20,11 @@ import {
   Image as ImageIcon,
   CheckCircle,
   X,
+  Eye,
+  BarChart3,
+  TrendingUp,
+  Phone,
+  Globe,
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -73,6 +78,7 @@ export default function CarWashDetailPage() {
   const [loading, setLoading] = useState(!isNew)
   const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState('info')
+  const [dashMetrics, setDashMetrics] = useState<any>(null)
 
   // Service & Amenity catalogs
   const [serviceCatalog, setServiceCatalog] = useState<any[]>([])
@@ -215,6 +221,11 @@ export default function CarWashDetailPage() {
           description: a.description || '',
         })))
       }
+      // Load analytics metrics
+      try {
+        const metricsRes = await api.get(`/car-wash/provider/${id}/dashboard`)
+        if (metricsRes?.data?.data) setDashMetrics(metricsRes.data.data)
+      } catch {}
     } catch (error) {
       console.error('Error loading car wash:', error)
     } finally {
@@ -329,6 +340,7 @@ export default function CarWashDetailPage() {
     { key: 'packages', label: 'Packages', icon: DollarSign },
     { key: 'memberships', label: 'Memberships', icon: Star },
     { key: 'amenities', label: 'Amenities & Payments', icon: CheckCircle },
+    ...(!isNew ? [{ key: 'analytics', label: 'Analytics', icon: BarChart3 }] : []),
   ]
 
   return (
@@ -886,6 +898,88 @@ export default function CarWashDetailPage() {
                     {form.selectedPaymentMethods.includes(pm.id) && '✓ '}{pm.name}
                   </button>
                 ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB: Analytics */}
+        {activeTab === 'analytics' && !isNew && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-white rounded-xl border p-4 text-center">
+                <Eye className="w-5 h-5 text-blue-500 mx-auto mb-1" />
+                <p className="text-2xl font-bold">{dashMetrics?.totalProfileViews || 0}</p>
+                <p className="text-xs text-gray-500">Profile Views</p>
+              </div>
+              <div className="bg-white rounded-xl border p-4 text-center">
+                <MapPin className="w-5 h-5 text-green-500 mx-auto mb-1" />
+                <p className="text-2xl font-bold">{dashMetrics?.totalDirectionClicks || 0}</p>
+                <p className="text-xs text-gray-500">Map Routes</p>
+              </div>
+              <div className="bg-white rounded-xl border p-4 text-center">
+                <Phone className="w-5 h-5 text-orange-500 mx-auto mb-1" />
+                <p className="text-2xl font-bold">{dashMetrics?.totalPhoneCalls || 0}</p>
+                <p className="text-xs text-gray-500">Phone Calls</p>
+              </div>
+              <div className="bg-white rounded-xl border p-4 text-center">
+                <Globe className="w-5 h-5 text-purple-500 mx-auto mb-1" />
+                <p className="text-2xl font-bold">{dashMetrics?.totalWebsiteClicks || 0}</p>
+                <p className="text-xs text-gray-500">Website Clicks</p>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl border p-6">
+              <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-blue-500" />
+                Performance Summary — Last 30 Days
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="text-sm font-medium text-gray-600 mb-3">Customer Engagement</h4>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">View-to-Route Rate</span>
+                      <span className="font-medium">
+                        {dashMetrics?.totalProfileViews
+                          ? `${((dashMetrics.totalDirectionClicks / dashMetrics.totalProfileViews) * 100).toFixed(1)}%`
+                          : '0%'}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="bg-green-500 rounded-full h-2" style={{ width: `${Math.min(100, dashMetrics?.totalProfileViews ? (dashMetrics.totalDirectionClicks / dashMetrics.totalProfileViews) * 100 : 0)}%` }} />
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">View-to-Call Rate</span>
+                      <span className="font-medium">
+                        {dashMetrics?.totalProfileViews
+                          ? `${((dashMetrics.totalPhoneCalls / dashMetrics.totalProfileViews) * 100).toFixed(1)}%`
+                          : '0%'}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="bg-blue-500 rounded-full h-2" style={{ width: `${Math.min(100, dashMetrics?.totalProfileViews ? (dashMetrics.totalPhoneCalls / dashMetrics.totalProfileViews) * 100 : 0)}%` }} />
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-gray-600 mb-3">Rating Summary</h4>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="text-4xl font-bold text-gray-900">{Number(dashMetrics?.averageRating || 0).toFixed(1)}</div>
+                    <div>
+                      <div className="flex gap-0.5">
+                        {[1,2,3,4,5].map(s => (
+                          <Star key={s} className={`w-4 h-4 ${s <= Math.round(dashMetrics?.averageRating || 0) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />
+                        ))}
+                      </div>
+                      <p className="text-sm text-gray-500 mt-1">{dashMetrics?.totalReviews || 0} total reviews</p>
+                    </div>
+                  </div>
+                  <ul className="space-y-1 text-sm text-gray-600">
+                    <li className="flex items-start gap-2"><TrendingUp className="w-4 h-4 text-blue-500 mt-0.5" />Respond to reviews to increase engagement</li>
+                    <li className="flex items-start gap-2"><TrendingUp className="w-4 h-4 text-blue-500 mt-0.5" />Upgrade to Best plan for featured listing</li>
+                  </ul>
+                </div>
               </div>
             </div>
           </div>

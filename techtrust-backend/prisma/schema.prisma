@@ -79,9 +79,7 @@ enum PaymentStatus {
 
 enum SubscriptionPlan {
   FREE
-  BASIC       // @deprecated — kept for backward compatibility
   STARTER
-  PREMIUM     // @deprecated — kept for backward compatibility
   PRO
   ENTERPRISE
 }
@@ -2436,6 +2434,7 @@ model DisclaimerVersion {
 enum BusinessType {
   REPAIR_SHOP
   CAR_WASH
+  AUTO_PARTS
   BOTH
 }
 

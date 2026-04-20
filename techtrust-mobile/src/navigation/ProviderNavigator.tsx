@@ -42,6 +42,7 @@ import SupportChatScreen from "../screens/SupportChatScreen";
 import ChatScreen from "../screens/ChatScreen";
 import ChatListScreen from "../screens/ChatListScreen";
 import ProviderReviewsScreen from "../screens/provider/ProviderReviewsScreen";
+import ProviderBusinessScreen from "../screens/provider/ProviderBusinessScreen";
 
 // FDACS Screens (shared with customer)
 import AppointmentsScreen from "../screens/customer/AppointmentsScreen";
@@ -67,6 +68,7 @@ function DashboardStack() {
       <Stack.Screen name="ChatList" component={ChatListScreen} />
       <Stack.Screen name="Chat" component={ChatScreen} />
       <Stack.Screen name="ProviderReviews" component={ProviderReviewsScreen} />
+      <Stack.Screen name="ProviderBusiness" component={ProviderBusinessScreen} />
       <Stack.Screen name="Appointments" component={AppointmentsScreen} />
       <Stack.Screen
         name="AppointmentDetails"
@@ -283,6 +285,7 @@ function ProfileStack() {
         component={ProviderProfileScreen}
       />
       <Stack.Screen name="EditProfile" component={ProviderEditProfileScreen} />
+      <Stack.Screen name="ProviderBusiness" component={ProviderBusinessScreen} />
       <Stack.Screen name="Services" component={ProviderServicesScreen} />
       <Stack.Screen
         name="WorkingHours"

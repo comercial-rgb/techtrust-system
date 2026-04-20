@@ -145,6 +145,7 @@ const pt = {
       invoices: "Faturas",
       services: "Serviços",
       carWash: "Lava Jato",
+      autoParts: "Auto Peças",
       compliance: "Conformidade",
       settings: "Configurações",
     },

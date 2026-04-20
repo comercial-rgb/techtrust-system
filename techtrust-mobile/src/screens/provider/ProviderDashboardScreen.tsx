@@ -233,7 +233,7 @@ export default function ProviderDashboardScreen({ navigation }: any) {
           bg: '#dbeafe',
           color: '#2563eb',
           label: 'Inventory',
-          action: () => navigation.navigate('ProviderProfile'),
+          action: () => navigation.navigate('ProviderBusiness'),
         },
         {
           icon: 'truck-delivery',
@@ -247,7 +247,7 @@ export default function ProviderDashboardScreen({ navigation }: any) {
           bg: '#ede9fe',
           color: '#7c3aed',
           label: t.provider?.analytics || 'Analytics',
-          action: () => navigation.navigate('ProviderProfile'),
+          action: () => navigation.navigate('ProviderBusiness'),
         },
         {
           icon: 'star-outline',
@@ -273,14 +273,14 @@ export default function ProviderDashboardScreen({ navigation }: any) {
           bg: '#d1fae5',
           color: '#059669',
           label: 'Memberships',
-          action: () => navigation.navigate('ProviderProfile'),
+          action: () => navigation.navigate('ProviderBusiness'),
         },
         {
           icon: 'chart-line',
           bg: '#ede9fe',
           color: '#7c3aed',
           label: t.provider?.analytics || 'Analytics',
-          action: () => navigation.navigate('ProviderProfile'),
+          action: () => navigation.navigate('ProviderBusiness'),
         },
         {
           icon: 'star-outline',
@@ -313,7 +313,7 @@ export default function ProviderDashboardScreen({ navigation }: any) {
         bg: '#ede9fe',
         color: '#7c3aed',
         label: t.provider?.analytics || 'Analytics',
-        action: () => navigation.navigate('ProviderProfile'),
+        action: () => navigation.navigate('ProviderBusiness'),
       },
       {
         icon: 'star-outline',

@@ -145,6 +145,7 @@ const es = {
       invoices: "Facturas",
       services: "Servicios",
       carWash: "Lavado de Autos",
+      autoParts: "Auto Partes",
       compliance: "Cumplimiento",
       settings: "Configuración",
     },
