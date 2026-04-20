@@ -389,6 +389,9 @@ model User {
   appointmentsAsProvider Appointment[]           @relation("ProviderAppointments")
   riskAcceptanceLogs     UserRiskAcceptanceLog[]
 
+  // Marketplace promotions
+  marketplacePromotions MarketplacePromotion[] @relation("ProviderPromotions")
+
   // Car Wash relations
   carWashes        CarWash[]         @relation("ProviderCarWashes")
   carWashReviews   CarWashReview[]   @relation("UserCarWashReviews")
@@ -2438,6 +2441,12 @@ enum BusinessType {
   BOTH
 }
 
+enum MarketplaceListingPlan {
+  BASIC
+  PRO
+  PRO_PLUS
+}
+
 enum CarWashType {
   AUTOMATIC_TUNNEL
   EXPRESS_EXTERIOR
@@ -2503,6 +2512,11 @@ model CarWash {
   averageRating Decimal @default(0) @db.Decimal(3, 2)
   totalReviews  Int     @default(0)
 
+  // Marketplace Plan
+  listingPlan  MarketplaceListingPlan @default(BASIC)
+  searchRadius Int @default(10) // miles
+  maxPhotos    Int @default(5)
+
   // Monetization
   isFeatured    Boolean   @default(false)
   isPromoted    Boolean   @default(false)
@@ -2510,6 +2524,7 @@ model CarWash {
   promotedUntil DateTime?
 
   // Relations
+  promotions      MarketplacePromotion[] @relation("CarWashPromotions")
   photos          CarWashPhoto[]
   operatingHours  CarWashOperatingHours[]
   holidayHours    CarWashHolidayHours[]
@@ -2825,11 +2840,18 @@ model PartsStore {
   deliveryRadius  Float?
   deliveryFee     Float?
 
+  // Marketplace Plan
+  listingPlan    MarketplaceListingPlan @default(BASIC)
+  searchRadius   Int     @default(10) // miles
+  maxProducts    Int     @default(50)
+  transactionFee Float   @default(8.0) // percentage
+
   // Ratings
   averageRating  Float  @default(0)
   totalReviews   Int    @default(0)
 
   // Relations
+  promotions     MarketplacePromotion[] @relation("PartsStorePromotions")
   products       PartsProduct[]
   reviews        PartsStoreReview[]
   favorites      PartsStoreFavorite[]
@@ -3012,6 +3034,57 @@ model PartsStoreMetric {
   @@unique([storeId, date])
   @@index([storeId])
   @@map("parts_store_metrics")
+}
+
+// ============================================
+// MARKETPLACE PROMOTIONS / ADS
+// ============================================
+model MarketplacePromotion {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Owner
+  providerId String
+  provider   User @relation("ProviderPromotions", fields: [providerId], references: [id], onDelete: Cascade)
+
+  // Target business (one of these)
+  carWashId    String?
+  carWash      CarWash?    @relation("CarWashPromotions", fields: [carWashId], references: [id], onDelete: Cascade)
+  partsStoreId String?
+  partsStore   PartsStore? @relation("PartsStorePromotions", fields: [partsStoreId], references: [id], onDelete: Cascade)
+
+  // Content
+  title       String
+  description String? @db.Text
+  imageUrl    String?
+  ctaText     String? // "Book Now", "Shop Now", "Get Discount"
+  ctaUrl      String?
+
+  // Promo details
+  discountType  String?  // PERCENTAGE, FIXED, BOGO, FREE_SERVICE
+  discountValue Float?   // 10 (for 10% or $10)
+  promoCode     String?
+  minPurchase   Float?
+
+  // Display
+  type     String @default("BANNER") // BANNER, CARD, STORY, POPUP
+  position String @default("PROFILE") // PROFILE, SEARCH, HOME, FEED
+
+  // Schedule
+  isActive Boolean  @default(true)
+  startsAt DateTime @default(now())
+  endsAt   DateTime?
+
+  // Metrics
+  impressions Int @default(0)
+  clicks      Int @default(0)
+
+  @@index([providerId])
+  @@index([carWashId])
+  @@index([partsStoreId])
+  @@index([isActive])
+  @@map("marketplace_promotions")
 }
 
 // ============================================

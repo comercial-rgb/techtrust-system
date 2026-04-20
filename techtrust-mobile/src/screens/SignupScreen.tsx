@@ -74,7 +74,7 @@ export default function SignupScreen({ navigation }: any) {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [hasError, setHasError] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<"CLIENT" | "PROVIDER">(
+  const [selectedRole, setSelectedRole] = useState<"CLIENT" | "PROVIDER" | "MARKETPLACE">(
     "CLIENT",
   );
   // Provider-specific fields
@@ -92,13 +92,17 @@ export default function SignupScreen({ navigation }: any) {
   const [providerSellsParts, setProviderSellsParts] = useState(false);
   const [otpMethod, setOtpMethod] = useState<"sms" | "email">("sms");
 
+  // Marketplace-specific fields
+  const [marketplaceType, setMarketplaceType] = useState<"CAR_WASH" | "AUTO_PARTS">("CAR_WASH");
+  const [marketplacePlan, setMarketplacePlan] = useState<"basic" | "pro" | "pro_plus">("basic");
+
   // ✨ Toast hook
   const { toast, error, hideToast } = useToast();
 
   // ✨ Calcular progresso do formulário
   const calculateProgress = () => {
     let filled = 0;
-    const totalFields = selectedRole === "PROVIDER" ? 7 : 4;
+    const totalFields = selectedRole === "PROVIDER" ? 7 : selectedRole === "MARKETPLACE" ? 5 : 4;
     if (fullName.length > 0) filled++;
     if (email.length > 0) filled++;
     if (password.length >= 8) filled++;
@@ -107,6 +111,9 @@ export default function SignupScreen({ navigation }: any) {
       if (businessName.length > 0) filled++;
       if (businessAddress.length > 0) filled++;
       if (businessZipCode.length > 0) filled++;
+    }
+    if (selectedRole === "MARKETPLACE") {
+      if (businessName.length > 0) filled++;
     }
     return filled / totalFields;
   };
@@ -229,6 +236,13 @@ export default function SignupScreen({ navigation }: any) {
       return;
     }
 
+    if (selectedRole === "MARKETPLACE" && !businessName) {
+      setHasError(true);
+      error(t.auth?.fillBusinessFields || "Please fill your business name");
+      setTimeout(() => setHasError(false), 500);
+      return;
+    }
+
     if (selectedRole === "PROVIDER" && providerServices.size === 0) {
       setHasError(true);
       error(
@@ -294,7 +308,7 @@ export default function SignupScreen({ navigation }: any) {
         ...(normalizedPhone ? { phone: normalizedPhone } : {}),
         password,
         language: "PT",
-        role: selectedRole,
+        role: selectedRole === "MARKETPLACE" ? "PROVIDER" : selectedRole,
         preferredOtpMethod: effectiveOtpMethod,
         ...(selectedRole === "PROVIDER"
           ? {
@@ -306,6 +320,17 @@ export default function SignupScreen({ navigation }: any) {
               servicesOffered: Array.from(providerServices),
               vehicleTypesServed: Array.from(providerVehicleTypes),
               sellsParts: providerSellsParts,
+            }
+          : {}),
+        ...(selectedRole === "MARKETPLACE"
+          ? {
+              businessName,
+              businessAddress,
+              businessCity: businessCity,
+              businessState: businessState,
+              businessZipCode,
+              marketplaceType,
+              marketplacePlan,
             }
           : {}),
       });
@@ -427,6 +452,30 @@ export default function SignupScreen({ navigation }: any) {
                   ]}
                 >
                   {t.auth?.provider || "Service Provider"}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.roleButton,
+                  selectedRole === "MARKETPLACE" && {
+                    backgroundColor: '#0891b2',
+                    borderColor: '#0891b2',
+                  },
+                ]}
+                onPress={() => setSelectedRole("MARKETPLACE")}
+              >
+                <Ionicons
+                  name="storefront"
+                  size={20}
+                  color={selectedRole === "MARKETPLACE" ? "#fff" : "#6b7280"}
+                />
+                <Text
+                  style={[
+                    styles.roleButtonText,
+                    selectedRole === "MARKETPLACE" && styles.roleButtonTextActive,
+                  ]}
+                >
+                  {t.auth?.marketplace || "Marketplace"}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -822,6 +871,211 @@ export default function SignupScreen({ navigation }: any) {
                       trackColor={{ false: "#e5e7eb", true: "#93c5fd" }}
                       thumbColor={providerSellsParts ? "#2B5EA7" : "#9ca3af"}
                     />
+                  </View>
+                </SlideInView>
+              </>
+            )}
+
+            {/* Marketplace Business Fields */}
+            {selectedRole === "MARKETPLACE" && (
+              <>
+                <SlideInView direction="right" delay={310}>
+                  <View
+                    style={[
+                      styles.inputContainer,
+                      {
+                        backgroundColor: "#f0fdfa",
+                        padding: 12,
+                        borderRadius: 12,
+                        marginBottom: 8,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.inputLabel,
+                        {
+                          color: '#0891b2',
+                          fontWeight: "700",
+                          fontSize: 15,
+                          marginBottom: 8,
+                        },
+                      ]}
+                    >
+                      🏪 {t.auth?.marketplaceInfo || "Marketplace Registration"}
+                    </Text>
+
+                    {/* Business Type Selector */}
+                    <Text style={[styles.inputLabel, { marginBottom: 6 }]}>
+                      {t.auth?.businessType || "Business Type"}
+                    </Text>
+                    <View style={[styles.roleButtons, { marginBottom: 12 }]}>
+                      <TouchableOpacity
+                        style={[
+                          styles.roleButton,
+                          marketplaceType === "CAR_WASH" && {
+                            backgroundColor: '#06b6d4',
+                            borderColor: '#06b6d4',
+                          },
+                        ]}
+                        onPress={() => setMarketplaceType("CAR_WASH")}
+                      >
+                        <Ionicons
+                          name="water"
+                          size={18}
+                          color={marketplaceType === "CAR_WASH" ? "#fff" : "#6b7280"}
+                        />
+                        <Text
+                          style={[
+                            styles.roleButtonText,
+                            marketplaceType === "CAR_WASH" && styles.roleButtonTextActive,
+                          ]}
+                        >
+                          {t.auth?.carWash || "Car Wash"}
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[
+                          styles.roleButton,
+                          marketplaceType === "AUTO_PARTS" && {
+                            backgroundColor: '#f97316',
+                            borderColor: '#f97316',
+                          },
+                        ]}
+                        onPress={() => setMarketplaceType("AUTO_PARTS")}
+                      >
+                        <Ionicons
+                          name="cube"
+                          size={18}
+                          color={marketplaceType === "AUTO_PARTS" ? "#fff" : "#6b7280"}
+                        />
+                        <Text
+                          style={[
+                            styles.roleButtonText,
+                            marketplaceType === "AUTO_PARTS" && styles.roleButtonTextActive,
+                          ]}
+                        >
+                          {t.auth?.autoParts || "Auto Parts"}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    <TextInput
+                      value={businessName}
+                      onChangeText={setBusinessName}
+                      mode="outlined"
+                      label={marketplaceType === "CAR_WASH"
+                        ? (t.auth?.carWashName || "Car Wash Name")
+                        : (t.auth?.storeName || "Store Name")}
+                      placeholder={marketplaceType === "CAR_WASH" ? "Ex: Shine & Go Car Wash" : "Ex: FastParts Auto Store"}
+                      style={styles.input}
+                      outlineStyle={styles.inputOutline}
+                      textColor="#000"
+                      error={hasError && selectedRole === "MARKETPLACE" && !businessName}
+                    />
+                  </View>
+                </SlideInView>
+                <SlideInView direction="left" delay={320}>
+                  <View style={styles.inputContainer}>
+                    <TextInput
+                      value={businessAddress}
+                      onChangeText={setBusinessAddress}
+                      mode="outlined"
+                      label={t.auth?.businessAddress || "Business Address"}
+                      placeholder="123 Main St"
+                      style={styles.input}
+                      outlineStyle={styles.inputOutline}
+                      textColor="#000"
+                    />
+                  </View>
+                </SlideInView>
+                <SlideInView direction="right" delay={330}>
+                  <View style={{ flexDirection: "row", gap: 8 }}>
+                    <View style={[styles.inputContainer, { flex: 2 }]}>
+                      <TextInput
+                        value={businessCity}
+                        onChangeText={setBusinessCity}
+                        mode="outlined"
+                        label={t.auth?.city || "City"}
+                        placeholder="Miami"
+                        style={styles.input}
+                        outlineStyle={styles.inputOutline}
+                        textColor="#000"
+                      />
+                    </View>
+                    <View style={[styles.inputContainer, { flex: 1 }]}>
+                      <TextInput
+                        value={businessState}
+                        onChangeText={setBusinessState}
+                        mode="outlined"
+                        label={t.auth?.state || "State"}
+                        placeholder="FL"
+                        maxLength={2}
+                        autoCapitalize="characters"
+                        style={styles.input}
+                        outlineStyle={styles.inputOutline}
+                        textColor="#000"
+                      />
+                    </View>
+                    <View style={[styles.inputContainer, { flex: 1 }]}>
+                      <TextInput
+                        value={businessZipCode}
+                        onChangeText={setBusinessZipCode}
+                        mode="outlined"
+                        label={t.auth?.zipCode || "ZIP"}
+                        placeholder="33101"
+                        keyboardType="numeric"
+                        maxLength={5}
+                        style={styles.input}
+                        outlineStyle={styles.inputOutline}
+                        textColor="#000"
+                      />
+                    </View>
+                  </View>
+                </SlideInView>
+
+                {/* Plan Selection */}
+                <SlideInView direction="left" delay={340}>
+                  <View style={[signupCapStyles.sectionContainer, { backgroundColor: '#f0fdfa', padding: 12, borderRadius: 12 }]}>
+                    <Text style={[signupCapStyles.sectionLabel, { color: '#0891b2' }]}>
+                      📋 {t.auth?.selectPlan || "Select Your Plan"}
+                    </Text>
+                    {[
+                      { key: 'basic' as const, name: 'Basic', price: '$29.99/mo', icon: '⭐', color: '#6b7280', desc: marketplaceType === 'CAR_WASH' ? '10mi • 5 photos • 1 package' : '10mi • 50 products • 8% fee' },
+                      { key: 'pro' as const, name: 'Pro', price: '$49.99/mo', icon: '🚀', color: '#8b5cf6', desc: marketplaceType === 'CAR_WASH' ? '20mi • 15 photos • 5 packages • Verified' : '20mi • 200 products • 6% fee • Verified', badge: 'POPULAR' },
+                      { key: 'pro_plus' as const, name: 'Pro+', price: '$89.99/mo', icon: '👑', color: '#f59e0b', desc: marketplaceType === 'CAR_WASH' ? '50mi • 30 photos • Unlimited • Featured' : '50mi • Unlimited • 4% fee • Featured', badge: 'BEST VALUE' },
+                    ].map(plan => (
+                      <TouchableOpacity
+                        key={plan.key}
+                        style={[
+                          {
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            padding: 12,
+                            borderRadius: 10,
+                            borderWidth: 2,
+                            borderColor: marketplacePlan === plan.key ? plan.color : '#e5e7eb',
+                            backgroundColor: marketplacePlan === plan.key ? `${plan.color}10` : '#fff',
+                            marginBottom: 8,
+                          },
+                        ]}
+                        onPress={() => setMarketplacePlan(plan.key)}
+                      >
+                        <Text style={{ fontSize: 22, marginRight: 10 }}>{plan.icon}</Text>
+                        <View style={{ flex: 1 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <Text style={{ fontWeight: '700', fontSize: 15, color: '#111' }}>{plan.name}</Text>
+                            {plan.badge && (
+                              <View style={{ backgroundColor: plan.color, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                                <Text style={{ color: '#fff', fontSize: 9, fontWeight: '700' }}>{plan.badge}</Text>
+                              </View>
+                            )}
+                          </View>
+                          <Text style={{ color: '#6b7280', fontSize: 12, marginTop: 2 }}>{plan.desc}</Text>
+                        </View>
+                        <Text style={{ fontWeight: '700', color: plan.color, fontSize: 14 }}>{plan.price}</Text>
+                      </TouchableOpacity>
+                    ))}
                   </View>
                 </SlideInView>
               </>

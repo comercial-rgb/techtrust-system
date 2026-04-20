@@ -91,7 +91,7 @@ export default function RegisterCarWashPage() {
   const [selectedAmenities, setSelectedAmenities] = useState<Set<string>>(new Set())
 
   // Plan
-  const [selectedPlan, setSelectedPlan] = useState<'basic' | 'best'>('basic')
+  const [selectedPlan, setSelectedPlan] = useState<'basic' | 'pro' | 'pro_plus'>('basic')
 
   // OTP
   const [userId, setUserId] = useState('')
@@ -472,10 +472,11 @@ export default function RegisterCarWashPage() {
               <button onClick={() => setStep('services')} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-3">
                 <ArrowLeft className="w-4 h-4" /> Back
               </button>
-              <h2 className="text-xl font-bold text-gray-900 mb-1">Choose Your Listing Plan</h2>
+              <h2 className="text-xl font-bold text-gray-900 mb-1">Choose Your Car Wash Plan</h2>
               <p className="text-sm text-gray-500 mb-4">Get discovered by vehicle owners in your area</p>
 
               <div className="space-y-3 mb-6">
+                {/* Basic Plan */}
                 <button
                   onClick={() => setSelectedPlan('basic')}
                   className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
@@ -487,31 +488,66 @@ export default function RegisterCarWashPage() {
                     <span className="font-bold text-gray-900">$29.99/mo</span>
                   </div>
                   <ul className="text-sm text-gray-600 space-y-1">
+                    <li>• Business profile with logo & description</li>
                     <li>• Up to 5 photos</li>
-                    <li>• 15-mile search radius</li>
-                    <li>• Standard search ranking</li>
-                    <li>• Basic analytics</li>
+                    <li>• 10-mile search radius</li>
+                    <li>• 1 wash package listed</li>
+                    <li>• Basic analytics (views & clicks)</li>
+                    <li>• Customer reviews</li>
                   </ul>
                 </button>
 
+                {/* Pro Plan */}
                 <button
-                  onClick={() => setSelectedPlan('best')}
+                  onClick={() => setSelectedPlan('pro')}
                   className={`w-full p-4 rounded-xl border-2 text-left transition-all relative ${
-                    selectedPlan === 'best' ? 'border-cyan-500 bg-cyan-50' : 'border-gray-200 hover:border-gray-300'
+                    selectedPlan === 'pro' ? 'border-cyan-500 bg-cyan-50' : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
-                  <span className="absolute -top-2.5 right-4 bg-cyan-600 text-white text-xs px-2 py-0.5 rounded-full font-medium">RECOMMENDED</span>
+                  <span className="absolute -top-2.5 right-4 bg-cyan-600 text-white text-xs px-2 py-0.5 rounded-full font-medium">POPULAR</span>
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold text-gray-900">Best</h3>
-                    <span className="font-bold text-gray-900">$39.99/mo</span>
+                    <h3 className="font-semibold text-gray-900">Pro</h3>
+                    <span className="font-bold text-gray-900">$49.99/mo</span>
                   </div>
                   <ul className="text-sm text-gray-600 space-y-1">
-                    <li>• Up to 20 photos</li>
-                    <li>• 50-mile search radius</li>
-                    <li>• 3x search boost + Featured badge</li>
-                    <li>• Priority search ranking</li>
-                    <li>• Advanced analytics + Promo offers</li>
-                    <li>• Verified badge</li>
+                    <li>• Everything in Basic</li>
+                    <li>• Up to 15 photos</li>
+                    <li>• <strong>20-mile search radius</strong></li>
+                    <li>• Up to 5 wash packages</li>
+                    <li>• Membership plans creation</li>
+                    <li>• Priority search ranking (2x boost)</li>
+                    <li>• Advanced analytics (conversion rates)</li>
+                    <li>• 1 promotion/ad per month</li>
+                    <li>• Verified badge ✓</li>
+                    <li>• Add-on services listing</li>
+                  </ul>
+                </button>
+
+                {/* Pro+ Plan */}
+                <button
+                  onClick={() => setSelectedPlan('pro_plus')}
+                  className={`w-full p-4 rounded-xl border-2 text-left transition-all relative ${
+                    selectedPlan === 'pro_plus' ? 'border-yellow-500 bg-yellow-50' : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <span className="absolute -top-2.5 right-4 bg-yellow-500 text-white text-xs px-2 py-0.5 rounded-full font-medium">BEST VALUE</span>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-semibold text-gray-900">Pro+ ⭐</h3>
+                    <span className="font-bold text-gray-900">$89.99/mo</span>
+                  </div>
+                  <ul className="text-sm text-gray-600 space-y-1">
+                    <li>• Everything in Pro</li>
+                    <li>• Up to 30 photos</li>
+                    <li>• <strong>50-mile search radius</strong></li>
+                    <li>• Unlimited wash packages & memberships</li>
+                    <li>• Featured listing (top of search results)</li>
+                    <li>• 5 promotions/ads per month</li>
+                    <li>• Featured + Verified badges ⭐✓</li>
+                    <li>• Coupon & discount system</li>
+                    <li>• Custom branding (banner, colors)</li>
+                    <li>• Priority customer support</li>
+                    <li>• Appointment scheduling</li>
+                    <li>• Social media links</li>
                   </ul>
                 </button>
               </div>

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '@/contexts/AuthContext'
 import api from '@/services/api'
-import { Wrench, Mail, Lock, Eye, EyeOff, Loader2, Globe2, ArrowLeft } from 'lucide-react'
+import { Wrench, Mail, Lock, Eye, EyeOff, Loader2, Globe2, ArrowLeft, Droplets, Package, Store, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import { useI18n, languages, Language } from '@/i18n'
 
@@ -25,6 +25,9 @@ export default function LoginPage() {
   const [verifyPhone, setVerifyPhone] = useState('')
   const [otpCode, setOtpCode] = useState('')
   const [resending, setResending] = useState(false)
+
+  // Login mode: provider (repair shops) vs marketplace (car wash / auto parts)
+  const [loginMode, setLoginMode] = useState<'provider' | 'marketplace'>('provider')
 
   const tr = translate
 
@@ -172,13 +175,53 @@ export default function LoginPage() {
             </div>
           </div>
 
+          {/* Login Mode Toggle */}
+          <div className="mb-6">
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+              {tr('login.accessType') || 'Access Type'}
+            </label>
+            <div className="flex rounded-xl border border-gray-200 overflow-hidden">
+              <button
+                onClick={() => setLoginMode('provider')}
+                className={`flex-1 py-2.5 px-3 text-sm font-medium flex items-center justify-center gap-2 transition-all ${
+                  loginMode === 'provider'
+                    ? 'bg-primary-600 text-white'
+                    : 'bg-white text-gray-500 hover:bg-gray-50'
+                }`}
+              >
+                <Wrench className="w-4 h-4" />
+                {tr('login.providerMode') || 'Repair Shop'}
+              </button>
+              <button
+                onClick={() => setLoginMode('marketplace')}
+                className={`flex-1 py-2.5 px-3 text-sm font-medium flex items-center justify-center gap-2 transition-all ${
+                  loginMode === 'marketplace'
+                    ? 'bg-cyan-600 text-white'
+                    : 'bg-white text-gray-500 hover:bg-gray-50'
+                }`}
+              >
+                <Store className="w-4 h-4" />
+                {tr('login.marketplaceMode') || 'Marketplace'}
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 mt-1.5">
+              {loginMode === 'provider'
+                ? (tr('login.providerHint') || 'For auto repair shops and service providers.')
+                : (tr('login.marketplaceHint') || 'For car wash and auto parts store owners.')
+              }
+            </p>
+          </div>
+
           {/* Welcome text */}
-          <div className="mb-8">
+          <div className="mb-6">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
               {tr('auth.welcomeBack')}
             </h2>
             <p className="text-gray-600">
-              {tr('auth.providerIntro')}
+              {loginMode === 'provider'
+                ? tr('auth.providerIntro')
+                : (tr('auth.marketplaceIntro') || 'Sign in to manage your car wash or auto parts store.')
+              }
             </p>
           </div>
 
@@ -327,17 +370,41 @@ export default function LoginPage() {
               <div className="w-full border-t border-gray-200" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-gray-500">{tr('provider.notPartner')}</span>
+              <span className="px-4 bg-white text-gray-500">
+                {loginMode === 'provider'
+                  ? (tr('provider.notPartner') || 'Not a partner yet?')
+                  : (tr('marketplace.notRegistered') || 'New to marketplace?')
+                }
+              </span>
             </div>
           </div>
 
-          {/* Register link */}
-          <Link
-            href="/register"
-            className="btn btn-outline w-full py-3 text-base"
-          >
-            {tr('provider.registerCta')}
-          </Link>
+          {/* Register links */}
+          {loginMode === 'provider' ? (
+            <Link
+              href="/register"
+              className="btn btn-outline w-full py-3 text-base"
+            >
+              {tr('provider.registerCta')}
+            </Link>
+          ) : (
+            <div className="space-y-2">
+              <Link
+                href="/register-car-wash"
+                className="flex items-center justify-center gap-2 w-full py-3 rounded-xl border-2 border-cyan-200 text-cyan-700 hover:bg-cyan-50 font-medium transition-all"
+              >
+                <Droplets className="w-5 h-5" />
+                {tr('marketplace.registerCarWash') || 'Register Car Wash'}
+              </Link>
+              <Link
+                href="/register-auto-parts"
+                className="flex items-center justify-center gap-2 w-full py-3 rounded-xl border-2 border-orange-200 text-orange-700 hover:bg-orange-50 font-medium transition-all"
+              >
+                <Package className="w-5 h-5" />
+                {tr('marketplace.registerAutoParts') || 'Register Auto Parts Store'}
+              </Link>
+            </div>
+          )}
           </>
           )}
 
@@ -351,80 +418,133 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Right side - Image/Branding & Provider Info */}
-      <div className="hidden lg:flex lg:flex-1 bg-gradient-to-br from-primary-500 to-primary-700 p-12 items-center justify-center overflow-y-auto">
+      {/* Right side - Image/Branding */}
+      <div className={`hidden lg:flex lg:flex-1 p-12 items-center justify-center overflow-y-auto transition-all duration-500 ${
+        loginMode === 'provider'
+          ? 'bg-gradient-to-br from-primary-500 to-primary-700'
+          : 'bg-gradient-to-br from-cyan-500 to-blue-700'
+      }`}>
         <div className="max-w-md text-white">
           <div className="mb-8">
             <img src="/logo-white.png" alt="TechTrust" className="w-16 h-16 mb-6 drop-shadow-lg" />
-              <h2 className="text-3xl font-bold mb-4">
-              {tr('provider.heroTitle')}
-            </h2>
-            <p className="text-lg text-primary-100 leading-relaxed">
-              {tr('provider.heroDescription')}
-            </p>
+            {loginMode === 'provider' ? (
+              <>
+                <h2 className="text-3xl font-bold mb-4">
+                  {tr('provider.heroTitle')}
+                </h2>
+                <p className="text-lg text-primary-100 leading-relaxed">
+                  {tr('provider.heroDescription')}
+                </p>
+              </>
+            ) : (
+              <>
+                <h2 className="text-3xl font-bold mb-4">
+                  {tr('marketplace.heroTitle') || 'Grow Your Business on TechTrust Marketplace'}
+                </h2>
+                <p className="text-lg text-white/80 leading-relaxed">
+                  {tr('marketplace.heroDesc') || 'List your car wash or auto parts store. Reach thousands of vehicle owners in Florida.'}
+                </p>
+              </>
+            )}
           </div>
 
-          {/* Provider Benefits */}
-          <div className="space-y-3 mb-8">
-            <div className="bg-white/10 rounded-lg p-3 flex items-center gap-3">
-              <span className="text-2xl">🆓</span>
-              <div>
-                <div className="font-semibold text-sm">{tr('provider.benefit.freeRegistration') || 'Free Registration'}</div>
-                <div className="text-primary-200 text-xs">{tr('provider.benefit.freeRegistrationDesc') || 'No monthly fees. Pay only when you earn.'}</div>
+          {loginMode === 'provider' ? (
+            <>
+              {/* Provider Benefits */}
+              <div className="space-y-3 mb-8">
+                <div className="bg-white/10 rounded-lg p-3 flex items-center gap-3">
+                  <span className="text-2xl">🆓</span>
+                  <div>
+                    <div className="font-semibold text-sm">{tr('provider.benefit.freeRegistration') || 'Free Registration'}</div>
+                    <div className="text-primary-200 text-xs">{tr('provider.benefit.freeRegistrationDesc') || 'No monthly fees. Pay only when you earn.'}</div>
+                  </div>
+                </div>
+                <div className="bg-white/10 rounded-lg p-3 flex items-center gap-3">
+                  <span className="text-2xl">📲</span>
+                  <div>
+                    <div className="font-semibold text-sm">{tr('provider.benefit.receiveRequests') || 'Receive Service Requests'}</div>
+                    <div className="text-primary-200 text-xs">{tr('provider.benefit.receiveRequestsDesc') || 'Get connected to vehicle owners looking for your services.'}</div>
+                  </div>
+                </div>
+                <div className="bg-white/10 rounded-lg p-3 flex items-center gap-3">
+                  <span className="text-2xl">💰</span>
+                  <div>
+                    <div className="font-semibold text-sm">{tr('provider.benefit.growBusiness') || 'Grow Your Business'}</div>
+                    <div className="text-primary-200 text-xs">{tr('provider.benefit.growBusinessDesc') || 'Build reputation with reviews, get featured, earn more.'}</div>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="bg-white/10 rounded-lg p-3 flex items-center gap-3">
-              <span className="text-2xl">📲</span>
-              <div>
-                <div className="font-semibold text-sm">{tr('provider.benefit.receiveRequests') || 'Receive Service Requests'}</div>
-                <div className="text-primary-200 text-xs">{tr('provider.benefit.receiveRequestsDesc') || 'Get connected to vehicle owners looking for your services.'}</div>
+            </>
+          ) : (
+            <>
+              {/* Marketplace Plans Preview */}
+              <div className="space-y-3 mb-8">
+                <div className="bg-white/10 rounded-lg p-3 flex items-center gap-3">
+                  <span className="text-2xl">🚿</span>
+                  <div>
+                    <div className="font-semibold text-sm">{tr('marketplace.benefit.carWash') || 'Car Wash Owners'}</div>
+                    <div className="text-white/70 text-xs">{tr('marketplace.benefit.carWashDesc') || 'List your services, packages, memberships. Get booked online.'}</div>
+                  </div>
+                </div>
+                <div className="bg-white/10 rounded-lg p-3 flex items-center gap-3">
+                  <span className="text-2xl">🏪</span>
+                  <div>
+                    <div className="font-semibold text-sm">{tr('marketplace.benefit.autoParts') || 'Auto Parts Stores'}</div>
+                    <div className="text-white/70 text-xs">{tr('marketplace.benefit.autoPartsDesc') || 'Catalog your products, manage inventory, reach repair shops.'}</div>
+                  </div>
+                </div>
+                <div className="bg-white/10 rounded-lg p-3 flex items-center gap-3">
+                  <span className="text-2xl">📊</span>
+                  <div>
+                    <div className="font-semibold text-sm">{tr('marketplace.benefit.analytics') || 'Analytics & Promotions'}</div>
+                    <div className="text-white/70 text-xs">{tr('marketplace.benefit.analyticsDesc') || 'Track views, clicks, and create targeted promotions.'}</div>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="bg-white/10 rounded-lg p-3 flex items-center gap-3">
-              <span className="text-2xl">💰</span>
-              <div>
-                <div className="font-semibold text-sm">{tr('provider.benefit.growBusiness') || 'Grow Your Business'}</div>
-                <div className="text-primary-200 text-xs">{tr('provider.benefit.growBusinessDesc') || 'Build reputation with reviews, get featured, earn more.'}</div>
-              </div>
-            </div>
-          </div>
 
-          {/* Marketplace Plans */}
-          <div className="pt-6 border-t border-white/20 mb-8">
-            <h3 className="font-semibold text-lg mb-3">
-              {tr('provider.listingPlans') || 'Marketplace Listing Plans'}
-            </h3>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="bg-white/10 rounded-lg p-3">
-                <div className="font-semibold text-sm">Basic</div>
-                <div className="text-primary-200 text-xs">$29.99/mo • 5 photos</div>
-                <div className="text-primary-200 text-xs">15 mi reach</div>
+              {/* Marketplace Plans */}
+              <div className="pt-6 border-t border-white/20 mb-8">
+                <h3 className="font-semibold text-lg mb-3">
+                  {tr('marketplace.plans') || 'Marketplace Plans'}
+                </h3>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="bg-white/10 rounded-lg p-2.5 text-center">
+                    <div className="font-bold text-sm">Basic</div>
+                    <div className="text-white/70 text-xs">$29.99/mo</div>
+                    <div className="text-white/60 text-xs mt-1">10 mi</div>
+                  </div>
+                  <div className="bg-white/15 rounded-lg p-2.5 text-center ring-1 ring-white/30">
+                    <div className="font-bold text-sm">Pro</div>
+                    <div className="text-white/70 text-xs">$49.99/mo</div>
+                    <div className="text-white/60 text-xs mt-1">20 mi</div>
+                  </div>
+                  <div className="bg-white/20 rounded-lg p-2.5 text-center ring-2 ring-yellow-400/50">
+                    <div className="font-bold text-sm">Pro+ ⭐</div>
+                    <div className="text-white/70 text-xs">$89.99/mo</div>
+                    <div className="text-white/60 text-xs mt-1">50 mi</div>
+                  </div>
+                </div>
               </div>
-              <div className="bg-white/15 rounded-lg p-3 ring-1 ring-white/30">
-                <div className="font-semibold text-sm">Best ⭐</div>
-                <div className="text-primary-200 text-xs">$39.99/mo • 20 photos</div>
-                <div className="text-primary-200 text-xs">50 mi reach • Featured</div>
-              </div>
-            </div>
-          </div>
+            </>
+          )}
 
           {/* Stats */}
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4">
               <p className="text-2xl font-bold">500+</p>
-              <p className="text-primary-100 text-sm">{tr('provider.stats.suppliers')}</p>
+              <p className="text-white/70 text-sm">{tr('provider.stats.suppliers')}</p>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4">
               <p className="text-2xl font-bold">10k+</p>
-              <p className="text-primary-100 text-sm">{tr('provider.stats.services')}</p>
+              <p className="text-white/70 text-sm">{tr('provider.stats.services')}</p>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4">
               <p className="text-2xl font-bold">4.8</p>
-              <p className="text-primary-100 text-sm">{tr('provider.stats.rating')}</p>
+              <p className="text-white/70 text-sm">{tr('provider.stats.rating')}</p>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4">
               <p className="text-2xl font-bold">$2M+</p>
-              <p className="text-primary-100 text-sm">{tr('provider.stats.paid')}</p>
+              <p className="text-white/70 text-sm">{tr('provider.stats.paid')}</p>
             </div>
           </div>
         </div>

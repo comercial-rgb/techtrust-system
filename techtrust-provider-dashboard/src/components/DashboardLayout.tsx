@@ -23,6 +23,7 @@ import {
   Receipt,
   Droplets,
   Package,
+  Megaphone,
 } from "lucide-react";
 
 interface DashboardLayoutProps {
@@ -38,6 +39,7 @@ const menuItems = [
   { href: "/servicos", icon: Briefcase, key: "provider.nav.services" },
   { href: "/car-wash", icon: Droplets, key: "provider.nav.carWash" },
   { href: "/auto-parts", icon: Package, key: "provider.nav.autoParts" },
+  { href: "/promotions", icon: Megaphone, key: "provider.nav.promotions" },
   { href: "/compliance", icon: Shield, key: "provider.nav.compliance" },
   { href: "/configuracoes", icon: Settings, key: "provider.nav.settings" },
 ];

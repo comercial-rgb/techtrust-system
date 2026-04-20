@@ -18,6 +18,9 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
+  Droplets,
+  Package,
+  Store,
 } from 'lucide-react';
 
 interface UserData {
@@ -29,6 +32,8 @@ interface UserData {
   status: 'PENDING_VERIFICATION' | 'ACTIVE' | 'SUSPENDED' | 'INACTIVE';
   createdAt: string;
   lastLoginAt?: string;
+  carWashes?: { id: string; businessName: string; listingPlan?: string }[];
+  partsStores?: { id: string; storeName: string; listingPlan?: string }[];
 }
 
 export default function UsuariosPage() {
@@ -39,6 +44,7 @@ export default function UsuariosPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [businessTypeFilter, setBusinessTypeFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -108,6 +114,9 @@ export default function UsuariosPage() {
     if (roleFilter !== 'all' && user.role !== roleFilter) return false;
     if (statusFilter === 'active' && user.status !== 'ACTIVE') return false;
     if (statusFilter === 'inactive' && user.status === 'ACTIVE') return false;
+    if (businessTypeFilter === 'car_wash' && !(user.carWashes && user.carWashes.length > 0)) return false;
+    if (businessTypeFilter === 'auto_parts' && !(user.partsStores && user.partsStores.length > 0)) return false;
+    if (businessTypeFilter === 'marketplace' && !(user.carWashes?.length || user.partsStores?.length)) return false;
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       return (
@@ -179,8 +188,8 @@ export default function UsuariosPage() {
           <p className="text-sm text-gray-500">Fornecedores</p>
         </div>
         <div className="card p-4 text-center">
-          <p className="text-2xl font-bold text-red-600">{users.filter(u => u.status !== 'ACTIVE').length}</p>
-          <p className="text-sm text-gray-500">Inativos/Pendentes</p>
+          <p className="text-2xl font-bold text-cyan-600">{users.filter(u => u.carWashes?.length || u.partsStores?.length).length}</p>
+          <p className="text-sm text-gray-500">Marketplace</p>
         </div>
       </div>
 
@@ -206,6 +215,16 @@ export default function UsuariosPage() {
             <option value="CUSTOMER">Clientes</option>
             <option value="PROVIDER">Fornecedores</option>
             <option value="ADMIN">Admins</option>
+          </select>
+          <select
+            value={businessTypeFilter}
+            onChange={(e) => setBusinessTypeFilter(e.target.value)}
+            className="input w-auto"
+          >
+            <option value="all">Marketplace: Todos</option>
+            <option value="marketplace">Marketplace Only</option>
+            <option value="car_wash">Car Wash</option>
+            <option value="auto_parts">Auto Parts</option>
           </select>
           <select
             value={statusFilter}
@@ -268,9 +287,27 @@ export default function UsuariosPage() {
                     </div>
                   </td>
                   <td className="table-cell">
-                    <span className={`badge ${getRoleBadge(user.role)}`}>
-                      {getRoleLabel(user.role)}
-                    </span>
+                    <div className="flex flex-col gap-1">
+                      <span className={`badge ${getRoleBadge(user.role)}`}>
+                        {getRoleLabel(user.role)}
+                      </span>
+                      {user.carWashes && user.carWashes.length > 0 && (
+                        <span className="badge bg-cyan-100 text-cyan-800 text-xs flex items-center gap-1">
+                          <Droplets className="w-3 h-3" /> Car Wash
+                          {user.carWashes[0]?.listingPlan && (
+                            <span className="ml-1 font-bold">({user.carWashes[0].listingPlan})</span>
+                          )}
+                        </span>
+                      )}
+                      {user.partsStores && user.partsStores.length > 0 && (
+                        <span className="badge bg-orange-100 text-orange-800 text-xs flex items-center gap-1">
+                          <Package className="w-3 h-3" /> Auto Parts
+                          {user.partsStores[0]?.listingPlan && (
+                            <span className="ml-1 font-bold">({user.partsStores[0].listingPlan})</span>
+                          )}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="table-cell">
                     <span className={`badge ${getStatusBadge(user.status).color}`}>

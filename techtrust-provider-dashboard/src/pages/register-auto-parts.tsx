@@ -91,7 +91,7 @@ export default function RegisterAutoPartsPage() {
   const [selectedBrandTypes, setSelectedBrandTypes] = useState<Set<string>>(new Set())
 
   // Plan
-  const [selectedPlan, setSelectedPlan] = useState<'basic' | 'best'>('basic')
+  const [selectedPlan, setSelectedPlan] = useState<'basic' | 'pro' | 'pro_plus'>('basic')
 
   // OTP
   const [userId, setUserId] = useState('')
@@ -464,10 +464,11 @@ export default function RegisterAutoPartsPage() {
               <button onClick={() => setStep('catalog')} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-3">
                 <ArrowLeft className="w-4 h-4" /> Back
               </button>
-              <h2 className="text-xl font-bold text-gray-900 mb-1">Choose Your Listing Plan</h2>
+              <h2 className="text-xl font-bold text-gray-900 mb-1">Choose Your Auto Parts Plan</h2>
               <p className="text-sm text-gray-500 mb-4">Get your store discovered by repair shops and vehicle owners</p>
 
               <div className="space-y-3 mb-4">
+                {/* Basic Plan */}
                 <button onClick={() => setSelectedPlan('basic')}
                   className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
                     selectedPlan === 'basic' ? 'border-orange-500 bg-orange-50' : 'border-gray-200 hover:border-gray-300'
@@ -478,36 +479,71 @@ export default function RegisterAutoPartsPage() {
                     <span className="font-bold text-gray-900">$29.99/mo</span>
                   </div>
                   <ul className="text-sm text-gray-600 space-y-1">
-                    <li>• Up to 5 product photos</li>
-                    <li>• 15-mile search radius</li>
-                    <li>• Standard search ranking</li>
-                    <li>• Basic analytics</li>
+                    <li>• Store profile with logo & description</li>
+                    <li>• Up to 50 product listings</li>
+                    <li>• 5 photos per product</li>
+                    <li>• 10-mile search radius</li>
+                    <li>• Basic analytics (views & clicks)</li>
+                    <li>• Store reviews</li>
+                    <li>• 8% transaction fee</li>
                   </ul>
                 </button>
 
-                <button onClick={() => setSelectedPlan('best')}
+                {/* Pro Plan */}
+                <button onClick={() => setSelectedPlan('pro')}
                   className={`w-full p-4 rounded-xl border-2 text-left transition-all relative ${
-                    selectedPlan === 'best' ? 'border-orange-500 bg-orange-50' : 'border-gray-200 hover:border-gray-300'
+                    selectedPlan === 'pro' ? 'border-orange-500 bg-orange-50' : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
-                  <span className="absolute -top-2.5 right-4 bg-orange-600 text-white text-xs px-2 py-0.5 rounded-full font-medium">RECOMMENDED</span>
+                  <span className="absolute -top-2.5 right-4 bg-orange-600 text-white text-xs px-2 py-0.5 rounded-full font-medium">POPULAR</span>
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold text-gray-900">Best</h3>
-                    <span className="font-bold text-gray-900">$39.99/mo</span>
+                    <h3 className="font-semibold text-gray-900">Pro</h3>
+                    <span className="font-bold text-gray-900">$49.99/mo</span>
                   </div>
                   <ul className="text-sm text-gray-600 space-y-1">
-                    <li>• Up to 20 product photos</li>
-                    <li>• 50-mile search radius</li>
-                    <li>• 3x search boost + Featured badge</li>
-                    <li>• Priority search ranking</li>
-                    <li>• Advanced analytics + Promo offers</li>
-                    <li>• Verified badge</li>
+                    <li>• Everything in Basic</li>
+                    <li>• Up to 200 product listings</li>
+                    <li>• 15 photos per product</li>
+                    <li>• <strong>20-mile search radius</strong></li>
+                    <li>• Priority search ranking (2x boost)</li>
+                    <li>• Delivery zone management</li>
+                    <li>• Warranty tracking</li>
+                    <li>• 1 promotion/ad per month</li>
+                    <li>• Verified badge ✓</li>
+                    <li>• <strong>6% transaction fee</strong></li>
+                  </ul>
+                </button>
+
+                {/* Pro+ Plan */}
+                <button onClick={() => setSelectedPlan('pro_plus')}
+                  className={`w-full p-4 rounded-xl border-2 text-left transition-all relative ${
+                    selectedPlan === 'pro_plus' ? 'border-yellow-500 bg-yellow-50' : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <span className="absolute -top-2.5 right-4 bg-yellow-500 text-white text-xs px-2 py-0.5 rounded-full font-medium">BEST VALUE</span>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-semibold text-gray-900">Pro+ ⭐</h3>
+                    <span className="font-bold text-gray-900">$89.99/mo</span>
+                  </div>
+                  <ul className="text-sm text-gray-600 space-y-1">
+                    <li>• Everything in Pro</li>
+                    <li>• Unlimited product listings & photos</li>
+                    <li>• <strong>50-mile search radius</strong></li>
+                    <li>• Featured listing (top of search)</li>
+                    <li>• 5 promotions/ads per month</li>
+                    <li>• Featured + Verified badges ⭐✓</li>
+                    <li>• Custom storefront branding</li>
+                    <li>• Priority customer support</li>
+                    <li>• Cross-sell with repair shops</li>
+                    <li>• Bulk product import</li>
+                    <li>• Advanced market analytics</li>
+                    <li>• <strong>4% transaction fee</strong></li>
                   </ul>
                 </button>
               </div>
 
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-6 text-sm text-amber-700">
-                <strong>Transaction fee:</strong> 8-11% per sale depending on your volume tier. The more you sell, the lower the fee.
+                <strong>Transaction fee:</strong> Varies by plan (4-8%). The higher the plan, the lower the fee per sale.
               </div>
 
               {/* OTP Method */}
