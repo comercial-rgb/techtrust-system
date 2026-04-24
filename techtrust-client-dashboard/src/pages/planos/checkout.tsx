@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { useAuth } from '../../contexts/AuthContext';
 import DashboardLayout from '../../components/DashboardLayout';
+import { api } from '../../services/api';
 import { Loader2, CheckCircle, XCircle, CreditCard } from 'lucide-react';
 
 export default function CheckoutPage() {
@@ -22,16 +23,29 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (!secret) return;
 
-    // Load Stripe.js dynamically
-    const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
-    if (!publishableKey) {
-      setStatus('error');
-      setMessage('Stripe is not configured. Please contact support.');
-      return;
+    async function startCheckout() {
+      const publishableKey = await getStripePublishableKey();
+      if (!publishableKey) {
+        setStatus('error');
+        setMessage('Stripe is not configured. Please contact support.');
+        return;
+      }
+
+      loadStripeAndConfirm(publishableKey, secret as string);
     }
 
-    loadStripeAndConfirm(publishableKey, secret as string);
+    startCheckout();
   }, [secret]);
+
+  async function getStripePublishableKey() {
+    if (process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
+      return process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+    }
+
+    const response = await api.getStripeConfig();
+    const config = (response.data as any)?.data || response.data;
+    return config?.publishableKey;
+  }
 
   async function loadStripeAndConfirm(publishableKey: string, clientSecret: string) {
     try {

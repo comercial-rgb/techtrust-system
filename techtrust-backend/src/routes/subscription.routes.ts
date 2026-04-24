@@ -18,6 +18,39 @@ const router = Router();
 
 router.use(authenticate);
 
+function getStripePriceId(planKey: string, billingPeriod: 'monthly' | 'yearly' = 'monthly') {
+  const normalizedPlan = planKey.toLowerCase();
+  const normalizedPeriod = billingPeriod.toLowerCase() === 'yearly' ? 'yearly' : 'monthly';
+
+  const monthlyPriceIdMap: Record<string, string | undefined> = {
+    starter: process.env.STRIPE_PRICE_STARTER || process.env.STRIPE_PRICE_STARTER_MONTHLY,
+    pro: process.env.STRIPE_PRICE_PRO || process.env.STRIPE_PRICE_PRO_MONTHLY,
+    enterprise: process.env.STRIPE_PRICE_ENTERPRISE || process.env.STRIPE_PRICE_ENTERPRISE_MONTHLY,
+  };
+
+  const yearlyPriceIdMap: Record<string, string | undefined> = {
+    starter: process.env.STRIPE_PRICE_STARTER_YEARLY,
+    pro: process.env.STRIPE_PRICE_PRO_YEARLY,
+    enterprise: process.env.STRIPE_PRICE_ENTERPRISE_YEARLY,
+  };
+
+  return normalizedPeriod === 'yearly'
+    ? yearlyPriceIdMap[normalizedPlan] || monthlyPriceIdMap[normalizedPlan]
+    : monthlyPriceIdMap[normalizedPlan];
+}
+
+function getVehicleAddOnPriceId(plan: string) {
+  const normalizedPlan = plan.toUpperCase();
+  const priceIdMap: Record<string, string | undefined> = {
+    FREE: process.env.STRIPE_PRICE_VEHICLE_ADDON_FREE,
+    STARTER: process.env.STRIPE_PRICE_VEHICLE_ADDON_STARTER,
+    PRO: process.env.STRIPE_PRICE_VEHICLE_ADDON_PRO,
+    ENTERPRISE: process.env.STRIPE_PRICE_VEHICLE_ADDON_ENTERPRISE,
+  };
+
+  return priceIdMap[normalizedPlan] || process.env.STRIPE_PRICE_VEHICLE_ADDON;
+}
+
 /**
  * GET /api/v1/subscriptions/me
  * Obter assinatura atual do usuário
@@ -187,13 +220,7 @@ router.post(
     });
 
     // Determinar Stripe Price ID baseado no plano
-    const priceIdMap: Record<string, string | undefined> = {
-      starter: process.env.STRIPE_PRICE_STARTER,
-      pro: process.env.STRIPE_PRICE_PRO,
-      enterprise: process.env.STRIPE_PRICE_ENTERPRISE,
-    };
-
-    const stripePriceId = priceIdMap[planKey];
+    const stripePriceId = getStripePriceId(planKey, billingPeriod);
     if (!stripePriceId) {
       throw new AppError(`Stripe Price ID not configured for plan: ${planKey}`, 500, 'PRICE_NOT_CONFIGURED');
     }
@@ -278,6 +305,104 @@ router.post(
         plan: planEnum,
       },
       message: `Subscribed to ${template.name}`,
+    });
+  })
+);
+
+/**
+ * POST /api/v1/subscriptions/checkout-session
+ * Criar sessão Stripe Checkout para o site público/mobile deep links
+ */
+router.post(
+  '/checkout-session',
+  asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user!.id;
+    const {
+      planKey,
+      billingPeriod = 'monthly',
+      successUrl,
+      cancelUrl,
+    } = req.body;
+
+    if (!planKey) {
+      throw new AppError('planKey is required', 400, 'MISSING_PLAN');
+    }
+
+    if (!successUrl || !cancelUrl) {
+      throw new AppError('successUrl and cancelUrl are required', 400, 'MISSING_RETURN_URLS');
+    }
+
+    const template = await prisma.subscriptionPlanTemplate.findUnique({
+      where: { planKey },
+    });
+
+    if (!template || !template.isActive) {
+      throw new AppError('Plan not found or inactive', 404, 'PLAN_NOT_FOUND');
+    }
+
+    const planEnum = planKey.toUpperCase() as 'FREE' | 'STARTER' | 'PRO' | 'ENTERPRISE';
+    if (planEnum === 'FREE') {
+      throw new AppError('Free plan does not require checkout', 400, 'FREE_PLAN_CHECKOUT');
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true, fullName: true },
+    });
+
+    if (!user) {
+      throw new AppError('User not found', 404, 'USER_NOT_FOUND');
+    }
+
+    const currentSub = await prisma.subscription.findFirst({
+      where: { userId, status: 'ACTIVE' },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const stripePriceId = getStripePriceId(planKey, billingPeriod);
+    if (!stripePriceId) {
+      throw new AppError(`Stripe Price ID not configured for plan: ${planKey}`, 500, 'PRICE_NOT_CONFIGURED');
+    }
+
+    const stripeCustomerId = await stripeService.getOrCreateCustomer({
+      userId,
+      email: user.email,
+      name: user.fullName,
+      existingStripeCustomerId: currentSub?.stripeCustomerId,
+    });
+
+    if (currentSub && !currentSub.stripeCustomerId) {
+      await prisma.subscription.update({
+        where: { id: currentSub.id },
+        data: { stripeCustomerId },
+      });
+    }
+
+    const isFirstPaidSubscription = !currentSub || currentSub.plan === 'FREE';
+    const hasHadPaidBefore = await prisma.subscription.findFirst({
+      where: { userId, plan: { not: 'FREE' }, status: { in: ['ACTIVE', 'CANCELLED'] } },
+    });
+
+    const trialDays = isFirstPaidSubscription && !hasHadPaidBefore
+      ? TRIAL_POLICY.TRIAL_DAYS
+      : undefined;
+
+    const session = await stripeService.createCheckoutSession({
+      customerId: stripeCustomerId,
+      priceId: stripePriceId,
+      userId,
+      planKey,
+      successUrl,
+      cancelUrl,
+      trialDays,
+    });
+
+    res.json({
+      success: true,
+      data: {
+        sessionId: session.sessionId,
+        checkoutUrl: session.url,
+      },
     });
   })
 );
@@ -494,7 +619,7 @@ router.post(
 
     // Add to Stripe subscription if it exists
     let stripeItemId: string | null = null;
-    const addonPriceId = process.env.STRIPE_PRICE_VEHICLE_ADDON;
+    const addonPriceId = getVehicleAddOnPriceId(plan);
 
     if (subscription.stripeSubscriptionId && addonPriceId) {
       const result = await stripeService.addSubscriptionItem({

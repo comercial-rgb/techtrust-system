@@ -90,6 +90,8 @@ export interface CreatePaymentIntentParams {
   metadata?: Record<string, string>;
   description?: string;
   captureMethod?: "automatic" | "manual"; // manual = pré-autorização
+  confirm?: boolean;
+  offSession?: boolean;
 }
 
 /**
@@ -128,6 +130,13 @@ export async function createPaymentIntent(
   // Se tem payment method, anexar
   if (params.paymentMethodId) {
     intentParams.payment_method = params.paymentMethodId;
+  }
+
+  if (params.confirm) {
+    intentParams.confirm = true;
+    if (params.offSession) {
+      intentParams.off_session = true;
+    }
   }
 
   // Se Connect (tem provider), usar transfer_data
@@ -174,6 +183,40 @@ export async function confirmPaymentIntent(paymentIntentId: string): Promise<{
       typeof intent.latest_charge === "string"
         ? intent.latest_charge
         : intent.latest_charge?.id,
+  };
+}
+
+export async function retrieveSubscription(subscriptionId: string): Promise<{
+  id: string;
+  status: string;
+  currentPeriodStart: Date;
+  currentPeriodEnd: Date;
+  trialEnd?: Date | null;
+}> {
+  if (MOCK_STRIPE) {
+    const now = new Date();
+    const periodEnd = new Date(now);
+    periodEnd.setMonth(periodEnd.getMonth() + 1);
+    return {
+      id: subscriptionId,
+      status: "active",
+      currentPeriodStart: now,
+      currentPeriodEnd: periodEnd,
+      trialEnd: null,
+    };
+  }
+
+  const s = getStripe();
+  const subscription = await s.subscriptions.retrieve(subscriptionId);
+
+  return {
+    id: subscription.id,
+    status: subscription.status,
+    currentPeriodStart: new Date(subscription.current_period_start * 1000),
+    currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+    trialEnd: subscription.trial_end
+      ? new Date(subscription.trial_end * 1000)
+      : null,
   };
 }
 
@@ -813,6 +856,7 @@ export default {
   confirmPaymentIntent,
   capturePaymentIntent,
   retrievePaymentIntent,
+  retrieveSubscription,
   createSetupIntent,
   listPaymentMethods,
   detachPaymentMethod,

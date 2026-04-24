@@ -182,6 +182,8 @@ export const approveQuoteWithPaymentHold = async (
       providerStripeAccountId: providerStripeAccountId,
       platformFeeAmount: fees.stripeApplicationFeeCents,
       captureMethod: "manual", // PRÉ-AUTORIZAÇÃO
+      confirm: true,
+      offSession: true,
       metadata: {
         quoteId: quote.id,
         serviceRequestId: quote.serviceRequestId,
@@ -192,10 +194,18 @@ export const approveQuoteWithPaymentHold = async (
       description: `TechTrust - ${quote.serviceRequest.title}`,
     });
 
-    // 7. Confirmar o PaymentIntent para criar o hold efetivo
+    // 7. Verificar que o hold foi confirmado de fato
     const confirmResult = await stripeService.confirmPaymentIntent(
       holdResult.paymentIntentId,
     );
+
+    if (confirmResult.status !== "requires_capture") {
+      throw new AppError(
+        "Payment hold was not authorized. Please update the payment method or try another card.",
+        402,
+        "PAYMENT_HOLD_NOT_AUTHORIZED",
+      );
+    }
 
     // 8. Transaction: aceitar quote + criar/reusar work order + criar payment
     const paymentNumber = `PAY-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
@@ -607,6 +617,8 @@ export const respondToSupplement = async (req: Request, res: Response) => {
       providerStripeAccountId,
       platformFeeAmount: Math.round(supplementPlatformFee * 100),
       captureMethod: "manual",
+      confirm: true,
+      offSession: true,
       metadata: {
         workOrderId: supplement.workOrderId,
         supplementId: supplement.id,
@@ -615,8 +627,18 @@ export const respondToSupplement = async (req: Request, res: Response) => {
       description: `TechTrust - Supplement: ${supplement.description}`,
     });
 
-    // Confirmar o hold
-    await stripeService.confirmPaymentIntent(holdResult.paymentIntentId);
+    // Verificar que o hold foi confirmado de fato
+    const supplementConfirmResult = await stripeService.confirmPaymentIntent(
+      holdResult.paymentIntentId,
+    );
+
+    if (supplementConfirmResult.status !== "requires_capture") {
+      throw new AppError(
+        "Supplement payment hold was not authorized. Please update the payment method or try another card.",
+        402,
+        "SUPPLEMENT_HOLD_NOT_AUTHORIZED",
+      );
+    }
 
     // Atualizar suplemento e work order
     await prisma.$transaction([

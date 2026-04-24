@@ -292,6 +292,23 @@ class ApiService {
     });
   }
 
+  async createSetupIntent() {
+    return this.request<any>("/payments/setup-intent", {
+      method: "POST",
+    });
+  }
+
+  async addStripePaymentMethod(stripePaymentMethodId: string) {
+    return this.request<any>("/payment-methods/stripe", {
+      method: "POST",
+      body: JSON.stringify({ stripePaymentMethodId }),
+    });
+  }
+
+  async getStripeConfig() {
+    return this.request<any>("/config/stripe");
+  }
+
   async setDefaultPaymentMethod(id: string) {
     return this.request(`/payment-methods/${id}/default`, {
       method: "PATCH",

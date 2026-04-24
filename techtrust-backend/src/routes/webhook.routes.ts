@@ -70,6 +70,10 @@ router.post('/stripe', async (req: Request, res: Response): Promise<any> => {
       // ==========================================
       // SUBSCRIPTIONS
       // ==========================================
+      case 'checkout.session.completed':
+        await handleCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session);
+        break;
+
       case 'customer.subscription.created':
         await handleSubscriptionCreated(event.data.object as Stripe.Subscription);
         break;
@@ -316,6 +320,76 @@ async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
 async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
   logger.info(`Subscription created: ${subscription.id}`);
   // Tratado no handler de update para evitar duplicação
+}
+
+/**
+ * Checkout finalizado pelo site público/dashboard.
+ * Cria ou sincroniza a assinatura local após o Stripe criar a subscription.
+ */
+async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
+  if (session.mode !== 'subscription' || !session.subscription) {
+    return;
+  }
+
+  const userId = session.metadata?.userId;
+  const planKey = session.metadata?.planKey;
+  const stripeSubscriptionId = typeof session.subscription === 'string'
+    ? session.subscription
+    : session.subscription.id;
+  const stripeCustomerId = typeof session.customer === 'string'
+    ? session.customer
+    : session.customer?.id;
+
+  if (!userId || !planKey || !stripeCustomerId) {
+    logger.warn(`Checkout session sem metadata obrigatória: ${session.id}`);
+    return;
+  }
+
+  const existing = await prisma.subscription.findUnique({
+    where: { stripeSubscriptionId },
+  });
+
+  if (existing) {
+    logger.info(`Checkout session ${session.id} já sincronizada com subscription ${existing.id}`);
+    return;
+  }
+
+  const template = await prisma.subscriptionPlanTemplate.findUnique({
+    where: { planKey },
+  });
+
+  if (!template || !template.isActive) {
+    logger.warn(`Template de plano não encontrado para checkout: ${planKey}`);
+    return;
+  }
+
+  const stripeSub = await stripeService.retrieveSubscription(stripeSubscriptionId);
+  const planEnum = planKey.toUpperCase() as 'STARTER' | 'PRO' | 'ENTERPRISE';
+
+  await prisma.$transaction(async (tx) => {
+    await tx.subscription.updateMany({
+      where: { userId, status: 'ACTIVE' },
+      data: { status: 'CANCELLED', cancelledAt: new Date() },
+    });
+
+    await tx.subscription.create({
+      data: {
+        userId,
+        plan: planEnum,
+        price: Number(template.monthlyPrice),
+        status: stripeSub.status === 'past_due' ? 'PAST_DUE' : 'ACTIVE',
+        stripeSubscriptionId,
+        stripeCustomerId,
+        maxVehicles: template.vehicleLimit,
+        maxServiceRequestsPerMonth: template.serviceRequestsPerMonth,
+        currentPeriodStart: stripeSub.currentPeriodStart,
+        currentPeriodEnd: stripeSub.currentPeriodEnd,
+        trialEnd: stripeSub.trialEnd || null,
+      },
+    });
+  });
+
+  logger.info(`Checkout session ${session.id} sincronizada para user ${userId}, plan ${planKey}`);
 }
 
 /**

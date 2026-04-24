@@ -48,7 +48,7 @@ export const signup = async (req: Request, res: Response) => {
       password,
       language,
       role,
-      _accountType, // 'INDIVIDUAL' | 'BUSINESS'
+      accountType, // 'INDIVIDUAL' | 'BUSINESS'
       businessName,
       businessAddress,
       businessCity,
@@ -57,9 +57,12 @@ export const signup = async (req: Request, res: Response) => {
       servicesOffered,
       vehicleTypesServed,
       sellsParts,
-      _selectedPlan, // plan selected during registration
+      selectedPlan, // plan selected during registration
       preferredOtpMethod, // 'sms' | 'email' — user chooses verification method
     } = req.body;
+
+    void accountType;
+    void selectedPlan;
 
     // Validar role
     const userRole = role === "PROVIDER" ? "PROVIDER" : "CLIENT";
