@@ -20,6 +20,8 @@ import { logger } from "../config/logger";
 import * as stripeService from "../services/stripe.service";
 import * as receiptService from "../services/receipt.service";
 import * as taxService from "../services/tax.service";
+import * as quickBooksService from "../services/quickbooks.service";
+import { buildInsuranceRequirementChecklist } from "../utils/insurance-requirements";
 import {
   createRepairInvoiceFromQuote,
   updateInvoiceWithSupplement,
@@ -35,6 +37,7 @@ import {
   compareProcessorFees,
   calculateFullFeeBreakdown,
 } from "../config/businessRules";
+import { buildProviderDisclosure } from "../utils/provider-disclosures";
 
 // ============================================
 // 1. APROVAÇÃO DE ORÇAMENTO + HOLD NO CARTÃO
@@ -68,8 +71,21 @@ export const approveQuoteWithPaymentHold = async (
               stripeAccountId: true,
               stripeOnboardingCompleted: true,
               businessName: true,
+              businessType: true,
+              businessTypeCat: true,
+              servicesOffered: true,
               providerLevel: true,
               commissionRate: true,
+              payoutMethod: true,
+              insuranceVerified: true,
+              insuranceDisclosureAcceptedAt: true,
+              fdacsRegistrationNumber: true,
+              cityBusinessTaxReceiptNumber: true,
+              countyBusinessTaxReceiptNumber: true,
+              businessTaxReceiptStatus: true,
+              marketplaceFacilitatorTaxAcknowledged: true,
+              insurancePolicies: true,
+              complianceItems: true,
             },
           },
         },
@@ -118,7 +134,7 @@ export const approveQuoteWithPaymentHold = async (
   // 3. Buscar dados do cliente
   const customer = await prisma.user.findUnique({
     where: { id: customerId },
-    select: { email: true, fullName: true },
+    select: { email: true, fullName: true, zipCode: true, state: true },
   });
   if (!customer)
     throw new AppError("Usuário não encontrado", 404, "USER_NOT_FOUND");
@@ -160,8 +176,8 @@ export const approveQuoteWithPaymentHold = async (
       partsAmount,
       shopSuppliesFee: Number(quote.shopSuppliesFee || 0),
       customerCounty,
-      customerState: "FL",
-      customerZipCode: undefined, // TODO: get from customer profile when available
+      customerState: customer.state || "FL",
+      customerZipCode: customer.zipCode || undefined,
     });
 
     logger.info(
@@ -389,6 +405,16 @@ export const approveQuoteWithPaymentHold = async (
       `Quote approved with payment hold: ${quote.quoteNumber} → WO: ${orderNumber} → PAY: ${paymentNumber}`,
     );
 
+    const providerDisclosures = quote.provider.providerProfile
+      ? buildProviderDisclosure(quote.provider.providerProfile)
+      : null;
+    const providerInsuranceRequirements = quote.provider.providerProfile
+      ? buildInsuranceRequirementChecklist(quote.provider.providerProfile)
+      : [];
+    const missingRequiredInsurance = providerInsuranceRequirements.filter(
+      (item) => item.level === "REQUIRED" && !item.complete,
+    );
+
     return res.json({
       success: true,
       message: "Orçamento aprovado! Pagamento autorizado (hold no cartão).",
@@ -433,8 +459,29 @@ export const approveQuoteWithPaymentHold = async (
             totalClientPays: fees.totalClientPays,
             providerWillReceive: fees.providerReceives,
             platformReceives: fees.platformReceives,
+            providerPayoutMethod: quote.provider.providerProfile?.stripeOnboardingCompleted
+              ? "STRIPE_CONNECT"
+              : quote.provider.providerProfile?.payoutMethod || "MANUAL",
+            providerPayoutNote: quote.provider.providerProfile?.stripeOnboardingCompleted
+              ? "Provider payout will be routed through Stripe Connect."
+              : "Provider payout is recorded for manual disbursement by TechTrust via Zelle, bank transfer, check, or another approved method.",
           },
         },
+        providerDisclosures,
+        providerInsuranceRequirements,
+        customerProviderWarnings:
+          [
+            ...(providerDisclosures?.insurance.customerWarningRequired
+              ? [
+                  "This provider has not supplied insurance information. TechTrust does not provide insurance coverage for this provider's work.",
+                ]
+              : []),
+            ...(missingRequiredInsurance.length
+              ? [
+                  `Required insurance missing for this provider's services: ${missingRequiredInsurance.map((item) => item.label).join(", ")}.`,
+                ]
+              : []),
+          ],
         holdInfo: {
           message:
             "Funds have been placed on hold on your card. They will only be charged when the service is completed and approved.",
@@ -1974,6 +2021,12 @@ export const approveServiceAndProcessPayment = async (
         workOrder.serviceCompletionNotes ||
         workOrder.serviceRequest.title,
     });
+
+    try {
+      await quickBooksService.syncCapturedPaymentToQuickBooks(mainPayment.id);
+    } catch (qboErr: any) {
+      logger.warn(`QuickBooks sync skipped/failed for payment ${mainPayment.id}: ${qboErr.message}`);
+    }
   }
 
   // Notificar fornecedor

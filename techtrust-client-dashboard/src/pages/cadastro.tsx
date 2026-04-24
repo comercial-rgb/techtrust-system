@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
+import Cookies from 'js-cookie'
 import {
   Car,
   Mail,
@@ -229,6 +230,42 @@ export default function CadastroPage() {
 
       if (!res.ok) {
         throw new Error(data.message || data.error || 'Verification failed')
+      }
+
+      const responseData = data.data || data
+      const token = responseData.token
+      const userData = responseData.user
+
+      if (token && userData) {
+        Cookies.set('tt_client_token', token, { expires: 7 })
+        Cookies.set('tt_client_user', JSON.stringify(userData), { expires: 7 })
+      }
+
+      if (selectedPlan && selectedPlan !== 'free' && token) {
+        const checkoutRes = await fetch(`${API_BASE_URL}/subscriptions/checkout-session`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            planKey: selectedPlan,
+            billingPeriod: 'monthly',
+            successUrl: `${window.location.origin}/planos?stripe=success`,
+            cancelUrl: `${window.location.origin}/planos?stripe=cancelled`,
+          }),
+        })
+
+        const checkoutData = await checkoutRes.json()
+        if (!checkoutRes.ok) {
+          throw new Error(checkoutData.message || checkoutData.error || 'Could not start checkout')
+        }
+
+        const checkoutUrl = checkoutData.data?.checkoutUrl
+        if (checkoutUrl) {
+          window.location.href = checkoutUrl
+          return
+        }
       }
 
       setStep('success')

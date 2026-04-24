@@ -11,6 +11,8 @@ import { AppError } from "../middleware/error-handler";
 import { logger } from "../config/logger";
 import { calculateRoadDistance } from "../utils/distance";
 import { generateEstimateNumber } from "../utils/number-generators";
+import { buildProviderDisclosure } from "../utils/provider-disclosures";
+import { buildInsuranceRequirementChecklist } from "../utils/insurance-requirements";
 import {
   FDACS_RULES,
   QUOTE_VALIDITY,
@@ -28,7 +30,6 @@ export const createQuote = async (req: Request, res: Response) => {
     partsCost,
     laborCost,
     additionalFees = 0,
-    taxAmount = 0,
     partsList,
     laborDescription,
     estimatedHours,
@@ -168,13 +169,14 @@ export const createQuote = async (req: Request, res: Response) => {
   // Calculate mandated fees (FDACS — from businessRules)
   const tireFee = Number(newTireCount) * FDACS_RULES.TIRE_FEE_PER_UNIT; // FS 403.718
   const batteryFee = Number(newBatteryCount) * FDACS_RULES.BATTERY_FEE_PER_UNIT; // FS 403.7185
+  const platformCalculatedTaxAmount = 0;
 
-  // Calcular total (incluindo taxa de deslocamento + FDACS fees)
+  // Providers must not add sales tax to quotes. TechTrust calculates and
+  // collects marketplace facilitator tax at checkout based on the customer location.
   const totalAmount =
     Number(partsCost) +
     Number(laborCost) +
     Number(additionalFees) +
-    Number(taxAmount) +
     Number(shopSuppliesFee) +
     tireFee +
     batteryFee +
@@ -239,7 +241,7 @@ export const createQuote = async (req: Request, res: Response) => {
       partsCost,
       laborCost,
       additionalFees,
-      taxAmount,
+      taxAmount: platformCalculatedTaxAmount,
       totalAmount,
       distanceKm,
       travelFee,
@@ -335,6 +337,20 @@ export const getQuotesForRequest = async (req: Request, res: Response) => {
               totalServicesCompleted: true,
               city: true,
               state: true,
+              businessType: true,
+              businessTypeCat: true,
+              servicesOffered: true,
+              insuranceVerified: true,
+              insuranceDisclosureAcceptedAt: true,
+              fdacsRegistrationNumber: true,
+              cityBusinessTaxReceiptNumber: true,
+              countyBusinessTaxReceiptNumber: true,
+              businessTaxReceiptStatus: true,
+              marketplaceFacilitatorTaxAcknowledged: true,
+              stripeOnboardingCompleted: true,
+              payoutMethod: true,
+              insurancePolicies: true,
+              complianceItems: true,
             },
           },
         },
@@ -345,9 +361,25 @@ export const getQuotesForRequest = async (req: Request, res: Response) => {
     },
   });
 
+  const enrichedQuotes = quotes.map((quote) => ({
+    ...quote,
+    provider: quote.provider
+      ? {
+          ...quote.provider,
+          providerProfile: quote.provider.providerProfile
+            ? {
+                ...quote.provider.providerProfile,
+                disclosures: buildProviderDisclosure(quote.provider.providerProfile),
+                insuranceRequirements: buildInsuranceRequirementChecklist(quote.provider.providerProfile),
+              }
+            : null,
+        }
+      : quote.provider,
+  }));
+
   res.json({
     success: true,
-    data: quotes,
+    data: enrichedQuotes,
   });
 };
 
@@ -380,6 +412,19 @@ export const getQuote = async (req: Request, res: Response) => {
               state: true,
               fdacsRegistrationNumber: true,
               specialties: true,
+              businessType: true,
+              businessTypeCat: true,
+              servicesOffered: true,
+              insuranceVerified: true,
+              insuranceDisclosureAcceptedAt: true,
+              cityBusinessTaxReceiptNumber: true,
+              countyBusinessTaxReceiptNumber: true,
+              businessTaxReceiptStatus: true,
+              marketplaceFacilitatorTaxAcknowledged: true,
+              stripeOnboardingCompleted: true,
+              payoutMethod: true,
+              insurancePolicies: true,
+              complianceItems: true,
             },
           },
         },
@@ -394,6 +439,18 @@ export const getQuote = async (req: Request, res: Response) => {
   // Enrich response with computed fields for mobile consumption
   const enrichedQuote = {
     ...quote,
+    provider: quote.provider
+      ? {
+          ...quote.provider,
+          providerProfile: quote.provider.providerProfile
+            ? {
+                ...quote.provider.providerProfile,
+                disclosures: buildProviderDisclosure(quote.provider.providerProfile),
+                insuranceRequirements: buildInsuranceRequirementChecklist(quote.provider.providerProfile),
+              }
+            : null,
+        }
+      : quote.provider,
     // Map partsList JSON → items array for mobile
     items: Array.isArray(quote.partsList)
       ? (quote.partsList as any[]).map((item: any, idx: number) => ({

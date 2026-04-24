@@ -91,10 +91,20 @@ export default function RegisterPage() {
 
   // Step 2: Business info
   const [businessName, setBusinessName] = useState('')
+  const [legalName, setLegalName] = useState('')
+  const [ein, setEin] = useState('')
+  const [sunbizDocumentNumber, setSunbizDocumentNumber] = useState('')
   const [businessAddress, setBusinessAddress] = useState('')
   const [businessCity, setBusinessCity] = useState('')
   const [businessState, setBusinessState] = useState('FL')
   const [businessZipCode, setBusinessZipCode] = useState('')
+  const [payoutMethod, setPayoutMethod] = useState('MANUAL')
+  const [zelleContact, setZelleContact] = useState('')
+  const [bankTransferLabel, setBankTransferLabel] = useState('')
+  const [cityBusinessTaxReceiptNumber, setCityBusinessTaxReceiptNumber] = useState('')
+  const [countyBusinessTaxReceiptNumber, setCountyBusinessTaxReceiptNumber] = useState('')
+  const [insuranceDisclosureAccepted, setInsuranceDisclosureAccepted] = useState(false)
+  const [marketplaceFacilitatorTaxAcknowledged, setMarketplaceFacilitatorTaxAcknowledged] = useState(true)
 
   // Step 3: Services
   const [selectedServices, setSelectedServices] = useState<Set<string>>(new Set())
@@ -202,6 +212,9 @@ export default function RegisterPage() {
         language: language.toUpperCase(),
         role: 'PROVIDER',
         businessName: businessName.trim(),
+        legalName: legalName.trim() || undefined,
+        ein: ein.trim() || undefined,
+        sunbizDocumentNumber: sunbizDocumentNumber.trim() || undefined,
         businessAddress: businessAddress.trim(),
         businessCity: businessCity.trim() || undefined,
         businessState: businessState,
@@ -209,6 +222,14 @@ export default function RegisterPage() {
         servicesOffered: Array.from(selectedServices),
         vehicleTypesServed: Array.from(selectedVehicles),
         sellsParts,
+        payoutMethod,
+        zelleEmail: zelleContact.includes('@') ? zelleContact.trim() : undefined,
+        zellePhone: zelleContact && !zelleContact.includes('@') ? zelleContact.trim() : undefined,
+        bankTransferLabel: bankTransferLabel.trim() || undefined,
+        cityBusinessTaxReceiptNumber: cityBusinessTaxReceiptNumber.trim() || undefined,
+        countyBusinessTaxReceiptNumber: countyBusinessTaxReceiptNumber.trim() || undefined,
+        insuranceDisclosureAccepted,
+        marketplaceFacilitatorTaxAcknowledged,
         preferredOtpMethod: otpMethod,
       })
 
@@ -787,6 +808,118 @@ export default function RegisterPage() {
                         <input type="text" value={businessZipCode} onChange={(e) => setBusinessZipCode(e.target.value.replace(/\D/g, '').slice(0, 5))} placeholder="33101" className="input" maxLength={5} />
                       </div>
                     </div>
+
+                    <div className="rounded-xl border border-blue-100 bg-blue-50 p-4 space-y-3">
+                      <div className="flex items-start gap-3">
+                        <DollarSign className="w-5 h-5 text-blue-600 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900">Payout and Florida tax setup</p>
+                          <p className="text-xs text-gray-500">Optional now. You can finish or change this after signup.</p>
+                        </div>
+                      </div>
+
+                      <div className="rounded-lg border border-white/70 bg-white/70 p-3 space-y-3">
+                        <div>
+                          <p className="text-xs font-semibold text-gray-800">Business identity verification</p>
+                          <p className="text-[11px] text-gray-500">
+                            Optional now. We manually verify against official Sunbiz, FDACS, and local tax records.
+                          </p>
+                        </div>
+                        <input
+                          type="text"
+                          value={legalName}
+                          onChange={(e) => setLegalName(e.target.value)}
+                          placeholder="Legal business name (optional)"
+                          className="input"
+                        />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <input
+                            type="text"
+                            value={ein}
+                            onChange={(e) => setEin(e.target.value)}
+                            placeholder="EIN / FEI (optional)"
+                            className="input"
+                          />
+                          <input
+                            type="text"
+                            value={sunbizDocumentNumber}
+                            onChange={(e) => setSunbizDocumentNumber(e.target.value)}
+                            placeholder="Sunbiz document # (optional)"
+                            className="input"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1.5">Preferred payout</label>
+                        <select value={payoutMethod} onChange={(e) => setPayoutMethod(e.target.value)} className="input">
+                          <option value="MANUAL">Set up later / manual payout</option>
+                          <option value="ZELLE">Zelle</option>
+                          <option value="BANK_TRANSFER">Bank transfer</option>
+                          <option value="CHECK">Check</option>
+                        </select>
+                      </div>
+
+                      {payoutMethod === 'ZELLE' && (
+                        <input
+                          type="text"
+                          value={zelleContact}
+                          onChange={(e) => setZelleContact(e.target.value)}
+                          placeholder="Zelle email or phone"
+                          className="input"
+                        />
+                      )}
+
+                      {payoutMethod === 'BANK_TRANSFER' && (
+                        <input
+                          type="text"
+                          value={bankTransferLabel}
+                          onChange={(e) => setBankTransferLabel(e.target.value)}
+                          placeholder="Bank name or account nickname"
+                          className="input"
+                        />
+                      )}
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <input
+                          type="text"
+                          value={cityBusinessTaxReceiptNumber}
+                          onChange={(e) => setCityBusinessTaxReceiptNumber(e.target.value)}
+                          placeholder="City business tax receipt (optional)"
+                          className="input"
+                        />
+                        <input
+                          type="text"
+                          value={countyBusinessTaxReceiptNumber}
+                          onChange={(e) => setCountyBusinessTaxReceiptNumber(e.target.value)}
+                          placeholder="County business tax receipt (optional)"
+                          className="input"
+                        />
+                      </div>
+
+                      <label className="flex items-start gap-2 text-xs text-gray-600">
+                        <input
+                          type="checkbox"
+                          checked={marketplaceFacilitatorTaxAcknowledged}
+                          onChange={(e) => setMarketplaceFacilitatorTaxAcknowledged(e.target.checked)}
+                          className="mt-0.5"
+                        />
+                        <span>TechTrust may collect and record applicable Florida marketplace sales tax and prepare tax reports for remittance.</span>
+                      </label>
+                    </div>
+
+                    <label className="flex items-start gap-3 rounded-xl border border-amber-100 bg-amber-50 p-4">
+                      <input
+                        type="checkbox"
+                        checked={insuranceDisclosureAccepted}
+                        onChange={(e) => setInsuranceDisclosureAccepted(e.target.checked)}
+                        className="mt-1"
+                      />
+                      <Shield className="w-5 h-5 text-amber-600 mt-0.5" />
+                      <span className="text-xs text-gray-600">
+                        I understand that if I do not add insurance information, customers will see that TechTrust does not provide insurance coverage for my work.
+                      </span>
+                    </label>
 
                     <button type="submit" className="btn btn-primary w-full py-3 text-base mt-2">
                       {tr('common.next') || 'Next'} <ArrowRight className="w-4 h-4 ml-1" />

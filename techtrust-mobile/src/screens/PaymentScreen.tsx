@@ -399,6 +399,18 @@ export default function PaymentScreen({ navigation, route }: any) {
                 ${breakdown.stripeFee.toFixed(2)}
               </Text>
             </View>
+            {/* Sales Tax (Marketplace Facilitator) */}
+            {(breakdown.salesTaxAmount ?? 0) > 0 && (
+              <View style={styles.breakdownRow}>
+                <Text style={[styles.breakdownLabel, { color: "#dc2626" }]}>
+                  Sales Tax ({((breakdown.salesTaxRate || 0) * 100).toFixed(1)}%
+                  {breakdown.salesTaxCounty ? ` — ${breakdown.salesTaxCounty}` : ""})
+                </Text>
+                <Text style={[styles.breakdownValue, { color: "#dc2626" }]}>
+                  ${(breakdown.salesTaxAmount || 0).toFixed(2)}
+                </Text>
+              </View>
+            )}
             <View style={[styles.breakdownRow, styles.breakdownTotal]}>
               <Text style={styles.breakdownTotalLabel}>
                 {t.payment?.total || "Total"}
@@ -418,6 +430,17 @@ export default function PaymentScreen({ navigation, route }: any) {
                 {breakdown.providerWillReceive.toFixed(2)}
               </Text>
             </View>
+
+            {/* Marketplace Facilitator notice */}
+            {(breakdown.salesTaxAmount ?? 0) > 0 && (
+              <View style={styles.mpfNotice}>
+                <Ionicons name="shield-checkmark" size={16} color="#1d4ed8" />
+                <Text style={styles.mpfNoticeText}>
+                  Sales tax collected and remitted by TechTrust as a Marketplace
+                  Facilitator under Florida Statute §212.05965.
+                </Text>
+              </View>
+            )}
           </View>
         )}
 
@@ -705,6 +728,25 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   providerReceivesText: { fontSize: 12, color: "#6b7280" },
+  mpfNotice: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 6,
+    marginTop: 10,
+    paddingTop: 10,
+    paddingHorizontal: 10,
+    paddingBottom: 10,
+    backgroundColor: "#eff6ff",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#bfdbfe",
+  },
+  mpfNoticeText: {
+    flex: 1,
+    fontSize: 11,
+    lineHeight: 15,
+    color: "#1e3a8a",
+  },
   // Section
   sectionTitle: {
     fontSize: 16,

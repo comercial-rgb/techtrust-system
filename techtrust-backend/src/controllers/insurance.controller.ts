@@ -9,16 +9,36 @@ import {
   InsurancePolicyType,
   InsurancePolicyStatus,
 } from "@prisma/client";
+import { buildInsuranceRequirementChecklist } from "../utils/insurance-requirements";
 
 const prisma = new PrismaClient();
+
+async function resolveProviderProfileId(req: Request): Promise<string | null> {
+  const user = (req as any).user;
+  const requestedId = req.params.providerProfileId;
+  if (requestedId) return requestedId;
+
+  const profile = await prisma.providerProfile.findUnique({
+    where: { userId: user.userId || user.id },
+    select: { id: true },
+  });
+  return profile?.id || null;
+}
 
 // ============================================
 // GET /insurance/:providerProfileId
 // List all insurance policies for a provider
 // ============================================
-export const getInsurancePolicies = async (req: Request, res: Response) => {
+export const getInsurancePolicies = async (
+  req: Request,
+  res: Response,
+): Promise<any> => {
   try {
-    const { providerProfileId } = req.params;
+    const providerProfileId = await resolveProviderProfileId(req);
+
+    if (!providerProfileId) {
+      return res.status(404).json({ success: false, message: "Provider profile not found" });
+    }
 
     const policies = await prisma.insurancePolicy.findMany({
       where: { providerProfileId },
@@ -43,7 +63,7 @@ export const upsertInsurancePolicy = async (
   res: Response,
 ): Promise<any> => {
   try {
-    const { providerProfileId } = req.params;
+    const providerProfileId = await resolveProviderProfileId(req);
     const user = (req as any).user;
     const {
       type,
@@ -63,6 +83,10 @@ export const upsertInsurancePolicy = async (
         .json({ success: false, message: "Insurance type is required" });
     }
 
+    if (!providerProfileId) {
+      return res.status(404).json({ success: false, message: "Provider profile not found" });
+    }
+
     // Verify ownership
     const profile = await prisma.providerProfile.findUnique({
       where: { id: providerProfileId },
@@ -71,7 +95,7 @@ export const upsertInsurancePolicy = async (
       return res
         .status(404)
         .json({ success: false, message: "Provider profile not found" });
-    if (profile.userId !== user.userId && user.role !== "ADMIN") {
+    if (profile.userId !== (user.userId || user.id) && user.role !== "ADMIN") {
       return res
         .status(403)
         .json({ success: false, message: "Not authorized" });
@@ -80,23 +104,26 @@ export const upsertInsurancePolicy = async (
     // Determine status
     let status: InsurancePolicyStatus = "INS_NOT_PROVIDED";
     if (hasCoverage) {
-      // Validate required fields when hasCoverage is true
-      if (!carrierName || !policyNumber || !expirationDate) {
+      const hasCoi = Array.isArray(coiUploads) && coiUploads.length > 0;
+      // A COI upload can be reviewed by ops even when the provider has not typed all details yet.
+      if (!hasCoi && (!carrierName || !policyNumber || !expirationDate)) {
         return res.status(400).json({
           success: false,
           message:
-            "When coverage is declared, carrier name, policy number, and expiration date are required",
-        });
-      }
-      if (!coiUploads || coiUploads.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message:
-            "At least one Certificate of Insurance (COI) document is required",
+            "When coverage is declared, provide carrier/policy/expiration or upload a Certificate of Insurance (COI)",
         });
       }
       status = "INS_PROVIDED_UNVERIFIED";
     }
+
+    const existingPolicy = await prisma.insurancePolicy.findUnique({
+      where: {
+        providerProfileId_type: {
+          providerProfileId,
+          type: type as InsurancePolicyType,
+        },
+      },
+    });
 
     const policy = await prisma.insurancePolicy.upsert({
       where: {
@@ -108,15 +135,15 @@ export const upsertInsurancePolicy = async (
       update: {
         hasCoverage: hasCoverage ?? false,
         status,
-        carrierName: hasCoverage ? carrierName : null,
-        policyNumber: hasCoverage ? policyNumber : null,
+        carrierName: hasCoverage ? carrierName || existingPolicy?.carrierName || null : null,
+        policyNumber: hasCoverage ? policyNumber || existingPolicy?.policyNumber || null : null,
         effectiveDate:
-          hasCoverage && effectiveDate ? new Date(effectiveDate) : null,
+          hasCoverage && effectiveDate ? new Date(effectiveDate) : existingPolicy?.effectiveDate || null,
         expirationDate:
-          hasCoverage && expirationDate ? new Date(expirationDate) : null,
-        coverageLimit: hasCoverage ? coverageLimit : null,
-        deductible: hasCoverage ? deductible : null,
-        coiUploads: hasCoverage ? coiUploads : [],
+          hasCoverage && expirationDate ? new Date(expirationDate) : existingPolicy?.expirationDate || null,
+        coverageLimit: hasCoverage ? coverageLimit || existingPolicy?.coverageLimit || null : null,
+        deductible: hasCoverage ? deductible || existingPolicy?.deductible || null : null,
+        coiUploads: hasCoverage ? coiUploads || existingPolicy?.coiUploads || [] : [],
       },
       create: {
         providerProfileId,
@@ -131,7 +158,7 @@ export const upsertInsurancePolicy = async (
           hasCoverage && expirationDate ? new Date(expirationDate) : null,
         coverageLimit: hasCoverage ? coverageLimit : null,
         deductible: hasCoverage ? deductible : null,
-        coiUploads: hasCoverage ? coiUploads : [],
+        coiUploads: hasCoverage ? coiUploads || [] : [],
       },
     });
 
@@ -153,9 +180,13 @@ export const batchUpsertInsurance = async (
   res: Response,
 ): Promise<any> => {
   try {
-    const { providerProfileId } = req.params;
+    const providerProfileId = await resolveProviderProfileId(req);
     const user = (req as any).user;
     const { policies } = req.body;
+
+    if (!providerProfileId) {
+      return res.status(404).json({ success: false, message: "Provider profile not found" });
+    }
 
     const profile = await prisma.providerProfile.findUnique({
       where: { id: providerProfileId },
@@ -164,7 +195,7 @@ export const batchUpsertInsurance = async (
       return res
         .status(404)
         .json({ success: false, message: "Provider profile not found" });
-    if (profile.userId !== user.userId && user.role !== "ADMIN") {
+    if (profile.userId !== (user.userId || user.id) && user.role !== "ADMIN") {
       return res
         .status(403)
         .json({ success: false, message: "Not authorized" });
@@ -224,5 +255,59 @@ export const batchUpsertInsurance = async (
     res
       .status(500)
       .json({ success: false, message: "Failed to save insurance policies" });
+  }
+};
+
+// ============================================
+// GET /insurance/requirements
+// Recommended/required insurance by provider capability
+// ============================================
+export const getInsuranceRequirements = async (
+  req: Request,
+  res: Response,
+): Promise<any> => {
+  try {
+    const providerProfileId = await resolveProviderProfileId(req);
+    if (!providerProfileId) {
+      return res.status(404).json({ success: false, message: "Provider profile not found" });
+    }
+
+    const profile = await prisma.providerProfile.findUnique({
+      where: { id: providerProfileId },
+      include: { insurancePolicies: true },
+    });
+
+    if (!profile) {
+      return res.status(404).json({ success: false, message: "Provider profile not found" });
+    }
+
+    const requirements = buildInsuranceRequirementChecklist(profile);
+    const requiredMissing = requirements.filter(
+      (item) => item.level === "REQUIRED" && !item.complete,
+    );
+
+    res.json({
+      success: true,
+      data: {
+        providerProfileId,
+        businessType: profile.businessType,
+        businessTypeCat: profile.businessTypeCat,
+        servicesOffered: profile.servicesOffered,
+        requirements,
+        counts: {
+          required: requirements.filter((item) => item.level === "REQUIRED").length,
+          recommended: requirements.filter((item) => item.level === "RECOMMENDED").length,
+          requiredMissing: requiredMissing.length,
+          verified: requirements.filter((item) => item.verified).length,
+        },
+        customerBadgeEligible: requiredMissing.length === 0,
+      },
+    });
+  } catch (error: any) {
+    console.error("Error fetching insurance requirements:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch insurance requirements",
+    });
   }
 };

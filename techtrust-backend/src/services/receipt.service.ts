@@ -26,6 +26,12 @@ interface GenerateReceiptParams {
   paymentMethodInfo: string;
   termsAcceptedAt?: Date;
   fraudDisclaimerAcceptedAt?: Date;
+  // Sales tax (Marketplace Facilitator)
+  salesTaxAmount?: number;
+  salesTaxRate?: number;
+  salesTaxableAmount?: number;
+  salesTaxCounty?: string;
+  salesTaxState?: string;
   // FDACS Compliance fields
   lineItems?: any[]; // Itemized parts/labor/merchandise
   odometerReading?: number; // Vehicle odometer at time of service
@@ -56,6 +62,12 @@ export async function generateReceipt(params: GenerateReceiptParams) {
       processingFee: params.processingFee,
       totalAmount: params.totalAmount,
       supplementsTotal: params.supplementsTotal || 0,
+      // Sales tax (Marketplace Facilitator)
+      salesTaxAmount: params.salesTaxAmount || 0,
+      salesTaxRate: params.salesTaxRate || 0,
+      salesTaxableAmount: params.salesTaxableAmount || 0,
+      salesTaxCounty: params.salesTaxCounty || null,
+      salesTaxState: params.salesTaxState || "FL",
       paymentProcessor: params.paymentProcessor,
       paymentMethodInfo: params.paymentMethodInfo,
       termsAcceptedAt: params.termsAcceptedAt,
@@ -202,9 +214,12 @@ export function formatReceiptHtml(receipt: any): string {
         <h3>Payment Breakdown</h3>
         <div class="row"><span>Service Amount:</span><span>$${Number(receipt.subtotal).toFixed(2)}</span></div>
         ${Number(receipt.supplementsTotal) > 0 ? `<div class="row"><span>Additional Services:</span><span>$${Number(receipt.supplementsTotal).toFixed(2)}</span></div>` : ""}
+        ${Number(receipt.salesTaxAmount) > 0 ? `<div class="row"><span>Sales Tax (${(Number(receipt.salesTaxRate) * 100).toFixed(2)}%${receipt.salesTaxCounty ? ` — ${receipt.salesTaxCounty} County, ${receipt.salesTaxState || "FL"}` : ""}):</span><span>$${Number(receipt.salesTaxAmount).toFixed(2)}</span></div>` : ""}
+        ${Number(receipt.salesTaxAmount) > 0 ? `<div class="row" style="font-size:11px;color:#666;"><span>Taxable Amount (Parts/Supplies):</span><span>$${Number(receipt.salesTaxableAmount || 0).toFixed(2)}</span></div>` : ""}
         <div class="row"><span>Platform Fee:</span><span>$${Number(receipt.platformFee).toFixed(2)}</span></div>
         <div class="row"><span>Processing Fee (${receipt.paymentProcessor}):</span><span>$${Number(receipt.processingFee).toFixed(2)}</span></div>
         <div class="row total"><span>Total Charged:</span><span>$${Number(receipt.totalAmount).toFixed(2)}</span></div>
+        ${Number(receipt.salesTaxAmount) > 0 ? `<div style="margin-top:12px;padding:12px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;font-size:11px;color:#1e3a8a;line-height:1.5;"><strong>Marketplace Tax Collection</strong><br/>TechTrust AutoSolutions collected sales tax on this transaction as a Marketplace Facilitator, in accordance with <strong>Florida Statute §212.05965</strong>. The collected tax is remitted directly to the Florida Department of Revenue on behalf of the service provider.</div>` : ""}
       </div>
       
       ${warrantySection}

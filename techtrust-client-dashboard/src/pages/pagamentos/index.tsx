@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
 import DashboardLayout from '../../components/DashboardLayout';
@@ -37,13 +37,11 @@ export default function PagamentosPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const stripeRef = useRef<any>(null);
+  const cardElementRef = useRef<any>(null);
 
   // New card form
   const [newType, setNewType] = useState<'credit' | 'debit' | 'pix'>('credit');
-  const [cardBrand, setCardBrand] = useState('');
-  const [cardLast4, setCardLast4] = useState('');
-  const [cardExpMonth, setCardExpMonth] = useState('');
-  const [cardExpYear, setCardExpYear] = useState('');
   const [holderName, setHolderName] = useState('');
   const [pixKey, setPixKey] = useState('');
 
@@ -58,6 +56,20 @@ export default function PagamentosPage() {
       loadMethods();
     }
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!showAddModal || newType === 'pix') {
+      destroyCardElement();
+      return;
+    }
+
+    let cancelled = false;
+    loadStripeCardElement(cancelled);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [showAddModal, newType]);
 
   async function loadMethods() {
     try {
@@ -88,37 +100,144 @@ export default function PagamentosPage() {
     setSubmitting(true);
     setError('');
     try {
-      const data: any = { type: newType };
       if (newType === 'pix') {
+        const data: any = { type: newType };
         if (!pixKey) { setError('Enter PIX key'); setSubmitting(false); return; }
         data.pixKey = pixKey;
-      } else {
-        if (!cardLast4 || !holderName || !cardExpMonth || !cardExpYear) {
-          setError('Fill all card fields');
-          setSubmitting(false);
-          return;
+
+        const response = await api.addPaymentMethod(data);
+        if (response.error) {
+          setError(response.error);
+        } else {
+          setSuccess('Payment method added!');
+          setShowAddModal(false);
+          resetForm();
+          loadMethods();
+          setTimeout(() => setSuccess(''), 3000);
         }
-        data.cardBrand = cardBrand || (newType === 'credit' ? 'Visa' : 'Mastercard');
-        data.cardLast4 = cardLast4;
-        data.cardExpMonth = parseInt(cardExpMonth);
-        data.cardExpYear = parseInt(cardExpYear);
-        data.holderName = holderName;
+        return;
       }
 
-      const response = await api.addPaymentMethod(data);
+      if (!holderName.trim()) {
+        setError('Enter cardholder name');
+        return;
+      }
+
+      if (!stripeRef.current || !cardElementRef.current) {
+        setError('Payment processor is still loading. Try again in a moment.');
+        return;
+      }
+
+      const setupResponse = await api.createSetupIntent();
+      const setupData = (setupResponse.data as any)?.data || setupResponse.data;
+      const clientSecret = setupData?.clientSecret;
+
+      if (setupResponse.error || !clientSecret) {
+        setError(setupResponse.error || 'Could not prepare card verification.');
+        return;
+      }
+
+      const { setupIntent, error: stripeError } = await stripeRef.current.confirmCardSetup(
+        clientSecret,
+        {
+          payment_method: {
+            card: cardElementRef.current,
+            billing_details: { name: holderName.trim() },
+          },
+        },
+      );
+
+      if (stripeError) {
+        setError(stripeError.message || 'Card verification failed.');
+        return;
+      }
+
+      const stripePaymentMethodId = setupIntent?.payment_method;
+      if (!stripePaymentMethodId || typeof stripePaymentMethodId !== 'string') {
+        setError('Stripe did not return a reusable payment method.');
+        return;
+      }
+
+      const response = await api.addStripePaymentMethod(stripePaymentMethodId);
       if (response.error) {
         setError(response.error);
-      } else {
-        setSuccess('Payment method added!');
-        setShowAddModal(false);
-        resetForm();
-        loadMethods();
-        setTimeout(() => setSuccess(''), 3000);
+        return;
       }
+
+      setSuccess('Payment method added!');
+      setShowAddModal(false);
+      resetForm();
+      loadMethods();
+      setTimeout(() => setSuccess(''), 3000);
     } catch (err: any) {
       setError(err.message || 'Error adding payment method');
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function loadStripeCardElement(cancelled: boolean) {
+    const publishableKey = await getStripePublishableKey();
+    if (!publishableKey) {
+      setError('Stripe is not configured. Please contact support.');
+      return;
+    }
+
+    try {
+      // @ts-ignore — Stripe.js is loaded dynamically.
+      if (!window.Stripe) {
+        await new Promise<void>((resolve, reject) => {
+          const existingScript = document.querySelector<HTMLScriptElement>('script[src="https://js.stripe.com/v3/"]');
+          if (existingScript) {
+            existingScript.addEventListener('load', () => resolve(), { once: true });
+            existingScript.addEventListener('error', () => reject(new Error('Failed to load Stripe.js')), { once: true });
+            return;
+          }
+
+          const script = document.createElement('script');
+          script.src = 'https://js.stripe.com/v3/';
+          script.async = true;
+          script.onload = () => resolve();
+          script.onerror = () => reject(new Error('Failed to load Stripe.js'));
+          document.head.appendChild(script);
+        });
+      }
+
+      if (cancelled || cardElementRef.current) return;
+
+      // @ts-ignore
+      stripeRef.current = window.Stripe(publishableKey);
+      const elements = stripeRef.current.elements();
+      const cardElement = elements.create('card', {
+        style: {
+          base: {
+            fontSize: '16px',
+            color: '#111827',
+            '::placeholder': { color: '#9ca3af' },
+          },
+        },
+      });
+      cardElement.mount('#stripe-card-element');
+      cardElementRef.current = cardElement;
+    } catch (err: any) {
+      setError(err.message || 'Failed to load payment processor.');
+    }
+  }
+
+  async function getStripePublishableKey() {
+    if (process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
+      return process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+    }
+
+    const response = await api.getStripeConfig();
+    const config = (response.data as any)?.data || response.data;
+    return config?.publishableKey;
+  }
+
+  function destroyCardElement() {
+    if (cardElementRef.current) {
+      cardElementRef.current.destroy();
+      cardElementRef.current = null;
     }
   }
 
@@ -151,10 +270,6 @@ export default function PagamentosPage() {
 
   function resetForm() {
     setNewType('credit');
-    setCardBrand('');
-    setCardLast4('');
-    setCardExpMonth('');
-    setCardExpYear('');
     setHolderName('');
     setPixKey('');
     setError('');
@@ -382,55 +497,6 @@ export default function PagamentosPage() {
             {newType !== 'pix' ? (
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Card Brand</label>
-                  <select
-                    value={cardBrand}
-                    onChange={(e) => setCardBrand(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  >
-                    <option value="">Select brand</option>
-                    <option value="Visa">Visa</option>
-                    <option value="Mastercard">Mastercard</option>
-                    <option value="Amex">American Express</option>
-                    <option value="Elo">Elo</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Last 4 Digits</label>
-                  <input
-                    type="text"
-                    maxLength={4}
-                    value={cardLast4}
-                    onChange={(e) => setCardLast4(e.target.value.replace(/\D/g, ''))}
-                    placeholder="1234"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Exp. Month</label>
-                    <input
-                      type="text"
-                      maxLength={2}
-                      value={cardExpMonth}
-                      onChange={(e) => setCardExpMonth(e.target.value.replace(/\D/g, ''))}
-                      placeholder="MM"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Exp. Year</label>
-                    <input
-                      type="text"
-                      maxLength={4}
-                      value={cardExpYear}
-                      onChange={(e) => setCardExpYear(e.target.value.replace(/\D/g, ''))}
-                      placeholder="2028"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    />
-                  </div>
-                </div>
-                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Cardholder Name</label>
                   <input
                     type="text"
@@ -439,6 +505,16 @@ export default function PagamentosPage() {
                     placeholder="John Doe"
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Card Details</label>
+                  <div
+                    id="stripe-card-element"
+                    className="w-full px-4 py-3 min-h-[48px] border border-gray-300 rounded-xl focus-within:ring-2 focus-within:ring-primary-500 focus-within:border-transparent"
+                  />
+                  <p className="mt-2 text-xs text-gray-500">
+                    Card data is verified and stored by Stripe. TechTrust only saves the reusable Stripe payment method ID.
+                  </p>
                 </div>
               </div>
             ) : (

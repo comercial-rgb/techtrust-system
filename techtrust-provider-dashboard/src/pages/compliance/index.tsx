@@ -45,19 +45,31 @@ interface InsurancePolicy {
   id: string
   type: string
   hasCoverage: boolean
-  providerName?: string
+  carrierName?: string
   policyNumber?: string
   expirationDate?: string
-  coverageAmount?: number
+  coverageLimit?: string
   coiUploads?: string[]
   status: string
   createdAt: string
   updatedAt: string
 }
 
+interface InsuranceRequirement {
+  type: string
+  label: string
+  level: 'REQUIRED' | 'RECOMMENDED'
+  reason: string
+  status: string
+  complete: boolean
+  verified: boolean
+  customerVisibleBadge: string
+}
+
 interface ComplianceSummary {
   complianceItems: ComplianceItem[]
   insurancePolicies: InsurancePolicy[]
+  insuranceRequirements?: InsuranceRequirement[]
   overallStatus: string
   jurisdiction?: string
 }
@@ -76,7 +88,7 @@ const COMPLIANCE_TYPE_LABELS: Record<string, string> = {
 const INSURANCE_TYPE_LABELS: Record<string, string> = {
   GENERAL_LIABILITY: 'General Liability',
   GARAGE_LIABILITY: 'Garage Liability',
-  GARAGE_KEEPERS: 'Garage Keepers',
+  GARAGEKEEPERS: 'Garagekeepers',
   COMMERCIAL_AUTO: 'Commercial Auto',
   ON_HOOK: 'On-Hook / Towing',
   WORKERS_COMP: 'Workers\' Compensation',
@@ -89,6 +101,10 @@ const STATUS_CONFIG: Record<string, { color: string; bg: string; icon: any; labe
   COMPLIANCE_PENDING: { color: 'text-yellow-700', bg: 'bg-yellow-50 border-yellow-200', icon: AlertTriangle, label: 'Pending' },
   NOT_APPLICABLE: { color: 'text-gray-500', bg: 'bg-gray-50 border-gray-200', icon: XCircle, label: 'N/A' },
   EXPIRED: { color: 'text-red-700', bg: 'bg-red-50 border-red-200', icon: XCircle, label: 'Expired' },
+  INS_VERIFIED: { color: 'text-green-700', bg: 'bg-green-50 border-green-200', icon: CheckCircle, label: 'Verified' },
+  INS_PROVIDED_UNVERIFIED: { color: 'text-blue-700', bg: 'bg-blue-50 border-blue-200', icon: Clock, label: 'Under Review' },
+  INS_NOT_PROVIDED: { color: 'text-yellow-700', bg: 'bg-yellow-50 border-yellow-200', icon: AlertTriangle, label: 'Missing' },
+  INS_EXPIRED: { color: 'text-red-700', bg: 'bg-red-50 border-red-200', icon: XCircle, label: 'Expired' },
 }
 
 export default function CompliancePage() {
@@ -234,6 +250,7 @@ export default function CompliancePage() {
   const overallInfo = getOverallStatusInfo()
   const complianceItems = summary?.complianceItems || []
   const insurancePolicies = summary?.insurancePolicies || []
+  const insuranceRequirements = summary?.insuranceRequirements || []
 
   return (
     <DashboardLayout title={translate('provider.nav.compliance') || 'Compliance & Documents'}>
@@ -303,6 +320,18 @@ export default function CompliancePage() {
                insurancePolicies.filter(i => i.status === 'VERIFIED').length}
             </p>
             <p className="text-xs text-gray-500">Verified</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5 mb-6">
+        <div className="flex gap-3">
+          <FileText className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+          <div>
+            <h4 className="text-sm font-semibold text-blue-900 mb-1">Marketplace tax collection</h4>
+            <p className="text-sm text-blue-700 leading-relaxed">
+              TechTrust collects applicable Florida marketplace sales tax on taxable parts and supplies, stores transaction-level tax records, and prepares QuickBooks reporting for remittance. Do not add sales tax on top of your quote price; enter parts, labor, fees, and supplies separately so tax is calculated at checkout.
+            </p>
           </div>
         </div>
       </div>
@@ -407,6 +436,68 @@ export default function CompliancePage() {
         )}
       </div>
 
+      {insuranceRequirements.length > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-100 mb-6 overflow-hidden">
+          <button
+            onClick={() => setExpandedSection(expandedSection === 'insurance-guide' ? null : 'insurance-guide')}
+            className="w-full flex items-center justify-between p-6 hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
+                <ShieldCheck className="w-5 h-5 text-amber-600" />
+              </div>
+              <div className="text-left">
+                <h3 className="text-base font-semibold text-gray-900">Insurance Guide for Your Services</h3>
+                <p className="text-sm text-gray-500">
+                  {insuranceRequirements.filter(i => i.level === 'REQUIRED').length} required • {insuranceRequirements.filter(i => i.verified).length} verified
+                </p>
+              </div>
+            </div>
+            {expandedSection === 'insurance-guide' ? (
+              <ChevronUp className="w-5 h-5 text-gray-400" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-gray-400" />
+            )}
+          </button>
+
+          {expandedSection === 'insurance-guide' && (
+            <div className="border-t border-gray-100 divide-y divide-gray-50">
+              {insuranceRequirements.map((item) => (
+                <div key={item.type} className="p-4 hover:bg-gray-50 transition-colors">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="text-sm font-semibold text-gray-900">{item.label}</h4>
+                        <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${
+                          item.level === 'REQUIRED'
+                            ? 'bg-red-50 text-red-700 border border-red-100'
+                            : 'bg-blue-50 text-blue-700 border border-blue-100'
+                        }`}>
+                          {item.level === 'REQUIRED' ? 'Required' : 'Recommended'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 leading-relaxed">{item.reason}</p>
+                      <p className="text-xs text-gray-400 mt-1">Customer badge: {item.customerVisibleBadge}</p>
+                    </div>
+                    <StatusBadge status={item.status === 'VERIFIED' ? 'INS_VERIFIED' : item.status === 'PROVIDED_UNVERIFIED' ? 'INS_PROVIDED_UNVERIFIED' : item.status === 'EXPIRED' ? 'INS_EXPIRED' : 'INS_NOT_PROVIDED'} />
+                  </div>
+                  {!item.complete && (
+                    <button
+                      onClick={() => triggerUpload('insurance', item.type)}
+                      disabled={uploading === item.type}
+                      className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      {uploading === item.type ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                      Add COI / policy
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Insurance Section */}
       <div className="bg-white rounded-2xl border border-gray-100 mb-6 overflow-hidden">
         <button
@@ -452,9 +543,9 @@ export default function CompliancePage() {
                         <h4 className="text-sm font-semibold text-gray-900">
                           {INSURANCE_TYPE_LABELS[policy.type] || policy.type}
                         </h4>
-                        {policy.providerName && (
+                        {policy.carrierName && (
                           <p className="text-xs text-gray-500 mt-0.5">
-                            Provider: {policy.providerName}
+                            Carrier: {policy.carrierName}
                           </p>
                         )}
                         {policy.policyNumber && (
@@ -467,9 +558,9 @@ export default function CompliancePage() {
                     </div>
 
                     <div className="flex items-center gap-4 mb-2">
-                      {policy.coverageAmount && (
+                      {policy.coverageLimit && (
                         <span className="text-xs text-gray-500">
-                          Coverage: ${policy.coverageAmount.toLocaleString()}
+                          Coverage: {policy.coverageLimit}
                         </span>
                       )}
                       {policy.expirationDate && (
@@ -551,9 +642,9 @@ function AddInsuranceButton({ onAdd }: { onAdd: () => void }) {
   const [showForm, setShowForm] = useState(false)
   const [formData, setFormData] = useState({
     type: 'GENERAL_LIABILITY',
-    providerName: '',
+    carrierName: '',
     policyNumber: '',
-    coverageAmount: '',
+    coverageLimit: '',
     expirationDate: '',
   })
   const [submitting, setSubmitting] = useState(false)
@@ -564,13 +655,13 @@ function AddInsuranceButton({ onAdd }: { onAdd: () => void }) {
       await api.post('/insurance', {
         type: formData.type,
         hasCoverage: true,
-        providerName: formData.providerName || undefined,
+        carrierName: formData.carrierName || undefined,
         policyNumber: formData.policyNumber || undefined,
-        coverageAmount: formData.coverageAmount ? parseFloat(formData.coverageAmount) : undefined,
+        coverageLimit: formData.coverageLimit || undefined,
         expirationDate: formData.expirationDate || undefined,
       })
       setShowForm(false)
-      setFormData({ type: 'GENERAL_LIABILITY', providerName: '', policyNumber: '', coverageAmount: '', expirationDate: '' })
+      setFormData({ type: 'GENERAL_LIABILITY', carrierName: '', policyNumber: '', coverageLimit: '', expirationDate: '' })
       onAdd()
     } catch (err) {
       console.error('Error adding insurance:', err)
@@ -613,8 +704,8 @@ function AddInsuranceButton({ onAdd }: { onAdd: () => void }) {
           <label className="block text-xs font-medium text-gray-600 mb-1">Insurance Provider</label>
           <input
             type="text"
-            value={formData.providerName}
-            onChange={(e) => setFormData(prev => ({ ...prev, providerName: e.target.value }))}
+            value={formData.carrierName}
+            onChange={(e) => setFormData(prev => ({ ...prev, carrierName: e.target.value }))}
             placeholder="e.g. State Farm"
             className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-200"
           />
@@ -633,12 +724,12 @@ function AddInsuranceButton({ onAdd }: { onAdd: () => void }) {
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Coverage Amount ($)</label>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Coverage Limit</label>
           <input
-            type="number"
-            value={formData.coverageAmount}
-            onChange={(e) => setFormData(prev => ({ ...prev, coverageAmount: e.target.value }))}
-            placeholder="1000000"
+            type="text"
+            value={formData.coverageLimit}
+            onChange={(e) => setFormData(prev => ({ ...prev, coverageLimit: e.target.value }))}
+            placeholder="$1,000,000 / $2,000,000 agg"
             className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-200"
           />
         </div>

@@ -28,6 +28,10 @@ interface Payment {
   cardLast4?: string;
   cardBrand?: string;
   createdAt: string;
+  // Sales tax (Marketplace Facilitator)
+  salesTaxAmount?: number;
+  salesTaxRate?: number;
+  salesTaxCounty?: string;
   workOrder?: {
     id: string;
     orderNumber: string;
@@ -78,6 +82,9 @@ export default function RecibosPage() {
           totalAmount: p.totalAmount || 0,
           platformFee: p.platformFee || 0,
           providerAmount: p.providerAmount || 0,
+          salesTaxAmount: p.salesTaxAmount || 0,
+          salesTaxRate: p.salesTaxRate || 0,
+          salesTaxCounty: p.salesTaxCounty || null,
           cardLast4: p.cardLast4,
           cardBrand: p.cardBrand,
           createdAt: p.createdAt,
@@ -404,10 +411,32 @@ export default function RecibosPage() {
                   <span className="text-gray-500">Platform Fee</span>
                   <span className="text-gray-900">{formatCurrency(selectedPayment.platformFee)}</span>
                 </div>
+                {(selectedPayment.salesTaxAmount ?? 0) > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-red-600">
+                      Sales Tax ({((selectedPayment.salesTaxRate || 0) * 100).toFixed(1)}%
+                      {selectedPayment.salesTaxCounty ? ` — ${selectedPayment.salesTaxCounty} Co.` : ''})
+                    </span>
+                    <span className="text-red-600">{formatCurrency(selectedPayment.salesTaxAmount!)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between font-bold border-t border-gray-100 pt-2">
                   <span className="text-gray-900">Total</span>
                   <span className="text-gray-900">{formatCurrency(selectedPayment.totalAmount)}</span>
                 </div>
+                {(selectedPayment.salesTaxAmount ?? 0) > 0 && (
+                  <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-2">
+                    <svg className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                    <div className="text-xs text-blue-900">
+                      <p className="font-semibold">Marketplace Tax Collection</p>
+                      <p className="mt-0.5 text-blue-800">
+                        TechTrust collected sales tax on this transaction on behalf of the service provider, in accordance with Florida Statute §212.05965 (Marketplace Facilitator law). The collected tax is remitted directly to the Florida Department of Revenue.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

@@ -16,7 +16,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useI18n } from "../../i18n";
 import { useRoute } from "@react-navigation/native";
-import api from "../../services/api";
+import * as WebBrowser from "expo-web-browser";
+import * as paymentService from "../../services/payment.service";
 
 interface Plan {
   id: string;
@@ -39,6 +40,8 @@ export default function SubscriptionPlanScreen({ navigation }: any) {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [backendPlansData, setBackendPlansData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [changingPlan, setChangingPlan] = useState<string | null>(null);
+  const [endingTrial, setEndingTrial] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -48,21 +51,20 @@ export default function SubscriptionPlanScreen({ navigation }: any) {
     try {
       console.log("🔄 Loading subscription plans from API...");
       // Load subscription and plans in parallel
-      const [userResponse, plansResponse] = await Promise.all([
-        api.get("/users/me"),
-        api.get("/content/subscription-plans"),
+      const [subscriptionData, plansResponse] = await Promise.all([
+        paymentService.getMySubscription(),
+        paymentService.getSubscriptionPlans(),
       ]);
 
-      console.log("✅ API Response:", plansResponse.data);
+      console.log("✅ API Response:", plansResponse);
 
-      const userData = userResponse.data?.data || userResponse.data;
-      if (userData?.subscription) {
-        setCurrentSubscription(userData.subscription);
-        setCurrentPlan(userData.subscription.plan?.toLowerCase() || "free");
+      if (subscriptionData) {
+        setCurrentSubscription(subscriptionData);
+        setCurrentPlan(subscriptionData.plan?.toLowerCase() || "free");
       }
 
       // Process plans from backend
-      const backendPlans = plansResponse.data || [];
+      const backendPlans = plansResponse || [];
       console.log("📦 Backend plans count:", backendPlans.length);
       if (backendPlans.length > 0) {
         // Store backend data for interval switching
@@ -210,11 +212,84 @@ export default function SubscriptionPlanScreen({ navigation }: any) {
         { text: t.common?.cancel || "Cancel", style: "cancel" },
         {
           text: t.common?.confirm || "Confirm",
-          onPress: () =>
-            Alert.alert(
-              t.common?.success || "Success",
-              `${t.customer?.switchedToPlan || "You've switched to the"} ${plan.name} ${t.customer?.plan || "plan"}!`,
-            ),
+          onPress: () => changePlan(plan),
+        },
+      ],
+    );
+  };
+
+  const changePlan = async (plan: Plan) => {
+    setChangingPlan(plan.id);
+    try {
+      const billingPeriod = billingInterval === "year" ? "yearly" : "monthly";
+
+      if (plan.price === 0) {
+        await paymentService.subscribe(plan.id, billingPeriod);
+        await loadData();
+        Alert.alert(
+          t.common?.success || "Success",
+          `${t.customer?.switchedToPlan || "You've switched to the"} ${plan.name} ${t.customer?.plan || "plan"}!`,
+        );
+        return;
+      }
+
+      if (currentPlan !== "free") {
+        await paymentService.subscribe(plan.id, billingPeriod);
+        await loadData();
+        Alert.alert(
+          t.common?.success || "Success",
+          `${t.customer?.switchedToPlan || "You've switched to the"} ${plan.name} ${t.customer?.plan || "plan"}!`,
+        );
+        return;
+      }
+
+      const checkout = await paymentService.createSubscriptionCheckoutSession(
+        plan.id,
+        billingPeriod,
+      );
+      if (!checkout.checkoutUrl) {
+        throw new Error("Checkout URL was not returned.");
+      }
+
+      await WebBrowser.openBrowserAsync(checkout.checkoutUrl);
+      await loadData();
+    } catch (error: any) {
+      Alert.alert(
+        t.common?.error || "Error",
+        error.response?.data?.message ||
+          error.message ||
+          "Could not update subscription.",
+      );
+    } finally {
+      setChangingPlan(null);
+    }
+  };
+
+  const handleEndTrial = () => {
+    Alert.alert(
+      "Activate Plan",
+      "End your trial and activate paid billing now?",
+      [
+        { text: t.common?.cancel || "Cancel", style: "cancel" },
+        {
+          text: t.common?.confirm || "Confirm",
+          onPress: async () => {
+            setEndingTrial(true);
+            try {
+              await paymentService.endSubscriptionTrial();
+              await loadData();
+              Alert.alert(t.common?.success || "Success", "Paid plan activated.");
+            } catch (error: any) {
+              Alert.alert(
+                t.common?.error || "Error",
+                error.response?.data?.message ||
+                  error.message ||
+                  "Could not activate plan.",
+              );
+            } finally {
+              setEndingTrial(false);
+            }
+          },
         },
       ],
     );
@@ -299,7 +374,7 @@ export default function SubscriptionPlanScreen({ navigation }: any) {
                 <Text style={styles.detailText}>
                   {currentSubscription?.currentPeriodEnd
                     ? `${t.customer?.renews || "Renews"}: ${new Date(currentSubscription.currentPeriodEnd).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
-                    : t.customer?.noActiveSubscription ||
+                    : (t.customer as any)?.noActiveSubscription ||
                       "No active subscription"}
                 </Text>
               </View>
@@ -308,8 +383,30 @@ export default function SubscriptionPlanScreen({ navigation }: any) {
                   <Ionicons name="car" size={16} color="#93c5fd" />
                   <Text style={styles.detailText}>
                     {currentSubscription.maxVehicles}{" "}
-                    {t.customer?.vehiclesAllowed || "vehicles allowed"}
+                    {(t.customer as any)?.vehiclesAllowed || "vehicles allowed"}
                   </Text>
+                </View>
+              )}
+              {currentSubscription?.isTrialActive && (
+                <View style={styles.trialBox}>
+                  <Text style={styles.trialText}>
+                    Trial limits are active
+                    {currentSubscription.trialEndsAt
+                      ? ` until ${new Date(currentSubscription.trialEndsAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+                      : ""}
+                    . Activate now to unlock the full plan.
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.activateButton}
+                    onPress={handleEndTrial}
+                    disabled={endingTrial}
+                  >
+                    {endingTrial ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Text style={styles.activateButtonText}>Activate Now</Text>
+                    )}
+                  </TouchableOpacity>
                 </View>
               )}
             </View>
@@ -432,7 +529,7 @@ export default function SubscriptionPlanScreen({ navigation }: any) {
                     styles.planButtonPopular,
                 ]}
                 onPress={() => handleChangePlan(plan)}
-                disabled={plan.id === currentPlan}
+                disabled={plan.id === currentPlan || changingPlan !== null}
               >
                 <Text
                   style={[
@@ -445,6 +542,8 @@ export default function SubscriptionPlanScreen({ navigation }: any) {
                 >
                   {plan.id === currentPlan
                     ? t.customer?.currentPlan || "Current Plan"
+                    : changingPlan === plan.id
+                      ? t.common?.loading || "Loading..."
                     : plan.price === 0
                       ? t.customer?.downgrade || "Downgrade"
                       : t.customer?.upgrade || "Upgrade"}
@@ -597,6 +696,32 @@ const styles = StyleSheet.create({
   detailText: {
     fontSize: 14,
     color: "#bfdbfe",
+  },
+  trialBox: {
+    marginTop: 8,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.14)",
+    gap: 10,
+  },
+  trialText: {
+    color: "#eff6ff",
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  activateButton: {
+    alignSelf: "flex-start",
+    minHeight: 36,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  activateButtonText: {
+    color: "#2B5EA7",
+    fontSize: 13,
+    fontWeight: "700",
   },
   billingToggle: {
     flexDirection: "row",

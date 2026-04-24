@@ -24,6 +24,8 @@ interface Subscription {
   status: string;
   price: number;
   currentPeriodEnd: string;
+  isTrialActive?: boolean;
+  trialEndsAt?: string | null;
 }
 
 const planIcons: Record<string, any> = {
@@ -55,6 +57,7 @@ export default function PlanosPage() {
   const [loading, setLoading] = useState(true);
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
   const [subscribing, setSubscribing] = useState<string | null>(null);
+  const [endingTrial, setEndingTrial] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -97,6 +100,25 @@ export default function PlanosPage() {
 
     setSubscribing(planKey);
     try {
+      const currentPlan = currentSub?.plan?.toLowerCase() || 'free';
+      if (planKey !== 'free' && currentPlan === 'free') {
+        const checkout = await api.createSubscriptionCheckoutSession({
+          planKey,
+          billingPeriod,
+          successUrl: `${window.location.origin}/planos?stripe=success`,
+          cancelUrl: `${window.location.origin}/planos?stripe=cancelled`,
+        });
+
+        const checkoutUrl = checkout.data?.data?.checkoutUrl || checkout.data?.checkoutUrl;
+        if (checkout.error || !checkoutUrl) {
+          alert(checkout.error || 'Could not start checkout');
+          return;
+        }
+
+        window.location.href = checkoutUrl;
+        return;
+      }
+
       const res = await api.subscribeToPlan(planKey, billingPeriod);
       if (res.error) {
         alert(res.error);
@@ -107,7 +129,8 @@ export default function PlanosPage() {
 
       // If Stripe returns a clientSecret, redirect to checkout
       if (data?.clientSecret) {
-        router.push(`/planos/checkout?secret=${encodeURIComponent(data.clientSecret)}&plan=${planKey}`);
+        const secretType = data.clientSecretType || 'payment';
+        router.push(`/planos/checkout?secret=${encodeURIComponent(data.clientSecret)}&plan=${planKey}&type=${secretType}`);
         return;
       }
 
@@ -118,6 +141,26 @@ export default function PlanosPage() {
       alert(err.message || 'Failed to update plan');
     } finally {
       setSubscribing(null);
+    }
+  }
+
+  async function handleEndTrial() {
+    if (endingTrial) return;
+    if (!confirm('End your trial and activate paid billing now?')) return;
+
+    setEndingTrial(true);
+    try {
+      const res = await api.endSubscriptionTrial();
+      if (res.error) {
+        alert(res.error);
+        return;
+      }
+      alert(res.data?.message || 'Paid plan activated.');
+      loadData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to activate plan');
+    } finally {
+      setEndingTrial(false);
     }
   }
 
@@ -154,6 +197,25 @@ export default function PlanosPage() {
       </Head>
 
       <div className="max-w-6xl mx-auto px-4 py-8">
+        {currentSub?.isTrialActive && (
+          <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-amber-900">Trial active</p>
+              <p className="text-sm text-amber-800">
+                Your paid plan trial has controlled limits. Activate now to unlock the full plan.
+                {currentSub.trialEndsAt && ` Trial ends ${new Date(currentSub.trialEndsAt).toLocaleDateString()}.`}
+              </p>
+            </div>
+            <button
+              onClick={handleEndTrial}
+              disabled={endingTrial}
+              className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 disabled:opacity-50"
+            >
+              {endingTrial ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Activate Now'}
+            </button>
+          </div>
+        )}
+
         {/* Header */}
         <div className="text-center mb-10">
           <h1 className="text-3xl font-bold text-gray-900 mb-3">Choose Your Plan</h1>

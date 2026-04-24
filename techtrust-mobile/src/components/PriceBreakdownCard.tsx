@@ -45,6 +45,12 @@ export interface PriceBreakdownData {
   distanceKm?: number;
   /** Client subscription plan (FREE, STARTER, PRO, ENTERPRISE) */
   clientPlan?: string;
+  /** Sales tax calculated by TechTrust as Marketplace Facilitator */
+  salesTaxAmount?: number;
+  /** Combined sales tax rate (state + county surtax) */
+  salesTaxRate?: number;
+  /** County name for surtax display */
+  salesTaxCounty?: string;
 }
 
 interface PriceBreakdownCardProps {
@@ -77,23 +83,25 @@ export function calculateProcessingFee(chargeAmount: number): number {
 
 /**
  * Calculate full customer total with the new fee structure:
- * Client pays: quoteTotal + appServiceFee + processorFee
+ * Client pays: quoteTotal + salesTax + appServiceFee + processorFee
  * (Commission is deducted from provider, not added to client)
  */
 export function calculateCustomerTotal(
   serviceTotal: number,
   clientPlan: string = "FREE",
+  salesTaxAmount: number = 0,
 ): {
   appServiceFee: number;
   processingFee: number;
+  salesTaxAmount: number;
   customerTotal: number;
 } {
   const appServiceFee = getAppServiceFee(clientPlan);
-  const subtotalWithFee = serviceTotal + appServiceFee;
+  const subtotalWithFee = serviceTotal + salesTaxAmount + appServiceFee;
   const processingFee = calculateProcessingFee(subtotalWithFee);
   const customerTotal =
     Math.round((subtotalWithFee + processingFee) * 100) / 100;
-  return { appServiceFee, processingFee, customerTotal };
+  return { appServiceFee, processingFee, salesTaxAmount, customerTotal };
 }
 
 /** @deprecated Use calculateCustomerTotal with clientPlan instead */
@@ -113,6 +121,7 @@ export default function PriceBreakdownCard({
   const { appServiceFee, processingFee, customerTotal } = calculateCustomerTotal(
     data.serviceTotal,
     clientPlan,
+    data.salesTaxAmount || 0,
   );
 
   const partsItems = data.items.filter((i) => i.type === "PART");
@@ -290,7 +299,8 @@ export default function PriceBreakdownCard({
               </View>
             )}
 
-            {/* Tax */}
+            {/* Tax (legacy provider-set, if any) */}
+            {data.taxAmount > 0 && (
             <View style={styles.totalRow}>
               <View style={styles.totalRowLeft}>
                 <Ionicons
@@ -298,12 +308,33 @@ export default function PriceBreakdownCard({
                   size={14}
                   color="#6b7280"
                 />
-                <Text style={styles.totalLabel}>Tax</Text>
+                <Text style={styles.totalLabel}>Tax (estimate)</Text>
               </View>
               <Text style={styles.totalValue}>
                 ${data.taxAmount.toFixed(2)}
               </Text>
             </View>
+            )}
+
+            {/* Sales Tax (Marketplace Facilitator — FL) */}
+            {(data.salesTaxAmount ?? 0) > 0 && (
+              <View style={styles.totalRow}>
+                <View style={styles.totalRowLeft}>
+                  <Ionicons
+                    name="receipt-outline"
+                    size={14}
+                    color="#dc2626"
+                  />
+                  <Text style={styles.totalLabel}>
+                    Sales Tax ({((data.salesTaxRate || 0) * 100).toFixed(1)}%
+                    {data.salesTaxCounty ? ` — ${data.salesTaxCounty} Co.` : ""})
+                  </Text>
+                </View>
+                <Text style={[styles.totalValue, { color: "#dc2626" }]}>
+                  ${(data.salesTaxAmount || 0).toFixed(2)}
+                </Text>
+              </View>
+            )}
 
             {/* Service Subtotal line */}
             <View style={[styles.totalRow, styles.serviceSubtotalRow]}>

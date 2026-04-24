@@ -7,16 +7,35 @@
 import { Request, Response } from "express";
 import { PrismaClient, ComplianceType, ComplianceStatus } from "@prisma/client";
 import * as ruleEngine from "../services/rule-engine.service";
+import { buildInsuranceRequirementChecklist } from "../utils/insurance-requirements";
 
 const prisma = new PrismaClient();
+
+async function resolveProviderProfileId(req: Request): Promise<string | null> {
+  const user = (req as any).user;
+  if (req.params.providerProfileId) return req.params.providerProfileId;
+
+  const profile = await prisma.providerProfile.findUnique({
+    where: { userId: user.userId || user.id },
+    select: { id: true },
+  });
+  return profile?.id || null;
+}
 
 // ============================================
 // GET /compliance/:providerProfileId
 // List all compliance items for a provider
 // ============================================
-export const getComplianceItems = async (req: Request, res: Response) => {
+export const getComplianceItems = async (
+  req: Request,
+  res: Response,
+): Promise<any> => {
   try {
-    const { providerProfileId } = req.params;
+    const providerProfileId = await resolveProviderProfileId(req);
+
+    if (!providerProfileId) {
+      return res.status(404).json({ success: false, message: "Provider profile not found" });
+    }
 
     const items = await prisma.complianceItem.findMany({
       where: { providerProfileId },
@@ -42,7 +61,7 @@ export const upsertComplianceItem = async (
   res: Response,
 ): Promise<any> => {
   try {
-    const { providerProfileId } = req.params;
+    const providerProfileId = await resolveProviderProfileId(req);
     const user = (req as any).user;
     const {
       type,
@@ -60,6 +79,10 @@ export const upsertComplianceItem = async (
         .json({ success: false, message: "Compliance type is required" });
     }
 
+    if (!providerProfileId) {
+      return res.status(404).json({ success: false, message: "Provider profile not found" });
+    }
+
     // Verify the provider profile belongs to this user (or admin)
     const profile = await prisma.providerProfile.findUnique({
       where: { id: providerProfileId },
@@ -71,7 +94,7 @@ export const upsertComplianceItem = async (
         .json({ success: false, message: "Provider profile not found" });
     }
 
-    if (profile.userId !== user.userId && user.role !== "ADMIN") {
+    if (profile.userId !== (user.userId || user.id) && user.role !== "ADMIN") {
       return res
         .status(403)
         .json({ success: false, message: "Not authorized" });
@@ -131,7 +154,11 @@ export const autoCreateComplianceItems = async (
   res: Response,
 ): Promise<any> => {
   try {
-    const { providerProfileId } = req.params;
+    const providerProfileId = await resolveProviderProfileId(req);
+
+    if (!providerProfileId) {
+      return res.status(404).json({ success: false, message: "Provider profile not found" });
+    }
 
     const profile = await prisma.providerProfile.findUnique({
       where: { id: providerProfileId },
@@ -198,7 +225,11 @@ export const getComplianceSummary = async (
   res: Response,
 ): Promise<any> => {
   try {
-    const { providerProfileId } = req.params;
+    const providerProfileId = await resolveProviderProfileId(req);
+
+    if (!providerProfileId) {
+      return res.status(404).json({ success: false, message: "Provider profile not found" });
+    }
 
     // Use rule engine for full summary
     const summary = await ruleEngine.getFullComplianceSummary(providerProfileId);
@@ -294,6 +325,7 @@ export const getComplianceSummary = async (
           totalTechnicians: profile.technicians.length,
         },
         insurance: insuranceSummary,
+        insuranceRequirements: buildInsuranceRequirementChecklist(profile),
         hasVerifiedInsurance,
         serviceGating: summary.serviceGating,
         serviceEligibilities: summary.serviceEligibilities,

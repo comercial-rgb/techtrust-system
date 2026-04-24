@@ -4,7 +4,7 @@
  * 📱 Com seletor de código de país para SMS
  */
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   StyleSheet,
@@ -21,6 +21,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useI18n } from "../i18n";
 import { Ionicons } from "@expo/vector-icons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import * as paymentService from "../services/payment.service";
 
 // ✨ Importando componentes de UI
 import {
@@ -59,6 +60,40 @@ const COUNTRIES = [
   { code: "AU", name: "Australia", dialCode: "+61", flag: "🇦🇺" },
 ];
 
+interface ClientPlanOption {
+  id: string;
+  name: string;
+  price: number;
+  vehicleLimit: number;
+  serviceRequestsPerMonth: number | null;
+  isFeatured?: boolean;
+}
+
+const DEFAULT_CLIENT_PLANS: ClientPlanOption[] = [
+  {
+    id: "free",
+    name: "Free",
+    price: 0,
+    vehicleLimit: 2,
+    serviceRequestsPerMonth: 4,
+  },
+  {
+    id: "starter",
+    name: "Starter",
+    price: 9.99,
+    vehicleLimit: 3,
+    serviceRequestsPerMonth: 10,
+  },
+  {
+    id: "pro",
+    name: "Pro",
+    price: 19.99,
+    vehicleLimit: 5,
+    serviceRequestsPerMonth: null,
+    isFeatured: true,
+  },
+];
+
 export default function SignupScreen({ navigation }: any) {
   const theme = useTheme();
   const { t } = useI18n();
@@ -79,6 +114,9 @@ export default function SignupScreen({ navigation }: any) {
   );
   // Provider-specific fields
   const [businessName, setBusinessName] = useState("");
+  const [providerLegalName, setProviderLegalName] = useState("");
+  const [providerEin, setProviderEin] = useState("");
+  const [providerSunbizDocumentNumber, setProviderSunbizDocumentNumber] = useState("");
   const [businessAddress, setBusinessAddress] = useState("");
   const [businessCity, setBusinessCity] = useState("");
   const [businessState, setBusinessState] = useState("");
@@ -90,14 +128,49 @@ export default function SignupScreen({ navigation }: any) {
     new Set(["CAR", "SUV", "TRUCK", "VAN"]), // common defaults
   );
   const [providerSellsParts, setProviderSellsParts] = useState(false);
+  const [providerPayoutMethod, setProviderPayoutMethod] = useState<"MANUAL" | "ZELLE" | "BANK_TRANSFER">("MANUAL");
+  const [providerZelleContact, setProviderZelleContact] = useState("");
+  const [providerBankTransferLabel, setProviderBankTransferLabel] = useState("");
+  const [providerCityBtr, setProviderCityBtr] = useState("");
+  const [providerCountyBtr, setProviderCountyBtr] = useState("");
+  const [providerInsuranceDisclosureAccepted, setProviderInsuranceDisclosureAccepted] = useState(false);
   const [otpMethod, setOtpMethod] = useState<"sms" | "email">("sms");
 
   // Marketplace-specific fields
   const [marketplaceType, setMarketplaceType] = useState<"CAR_WASH" | "AUTO_PARTS">("CAR_WASH");
   const [marketplacePlan, setMarketplacePlan] = useState<"basic" | "pro" | "pro_plus">("basic");
+  const [clientPlans, setClientPlans] = useState<ClientPlanOption[]>(DEFAULT_CLIENT_PLANS);
+  const [selectedClientPlan, setSelectedClientPlan] = useState("free");
 
   // ✨ Toast hook
   const { toast, error, hideToast } = useToast();
+
+  useEffect(() => {
+    let mounted = true;
+
+    paymentService
+      .getSubscriptionPlans()
+      .then((plans) => {
+        if (!mounted || !Array.isArray(plans) || plans.length === 0) return;
+        setClientPlans(
+          plans.map((plan: any) => ({
+            id: String(plan.planKey || plan.id).toLowerCase(),
+            name: plan.name,
+            price: Number(plan.monthlyPrice || 0),
+            vehicleLimit: Number(plan.vehicleLimit || 0),
+            serviceRequestsPerMonth: plan.serviceRequestsPerMonth,
+            isFeatured: Boolean(plan.isFeatured),
+          })),
+        );
+      })
+      .catch(() => {
+        // Keep local fallback plans if content API is unavailable.
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   // ✨ Calcular progresso do formulário
   const calculateProgress = () => {
@@ -310,9 +383,13 @@ export default function SignupScreen({ navigation }: any) {
         language: "PT",
         role: selectedRole === "MARKETPLACE" ? "PROVIDER" : selectedRole,
         preferredOtpMethod: effectiveOtpMethod,
+        ...(selectedRole === "CLIENT" ? { selectedPlan: selectedClientPlan } : {}),
         ...(selectedRole === "PROVIDER"
           ? {
               businessName,
+              legalName: providerLegalName.trim() || undefined,
+              ein: providerEin.trim() || undefined,
+              sunbizDocumentNumber: providerSunbizDocumentNumber.trim() || undefined,
               businessAddress,
               businessCity: businessCity,
               businessState: businessState,
@@ -320,6 +397,14 @@ export default function SignupScreen({ navigation }: any) {
               servicesOffered: Array.from(providerServices),
               vehicleTypesServed: Array.from(providerVehicleTypes),
               sellsParts: providerSellsParts,
+              payoutMethod: providerPayoutMethod,
+              zelleEmail: providerZelleContact.includes("@") ? providerZelleContact.trim() : undefined,
+              zellePhone: providerZelleContact && !providerZelleContact.includes("@") ? providerZelleContact.trim() : undefined,
+              bankTransferLabel: providerBankTransferLabel.trim() || undefined,
+              cityBusinessTaxReceiptNumber: providerCityBtr.trim() || undefined,
+              countyBusinessTaxReceiptNumber: providerCountyBtr.trim() || undefined,
+              insuranceDisclosureAccepted: providerInsuranceDisclosureAccepted,
+              marketplaceFacilitatorTaxAcknowledged: true,
             }
           : {}),
         ...(selectedRole === "MARKETPLACE"
@@ -340,6 +425,7 @@ export default function SignupScreen({ navigation }: any) {
         phone: normalizedPhone || "",
         otpMethod: responseOtpMethod || effectiveOtpMethod || "email",
         email: responseEmail || email,
+        selectedPlan: selectedRole === "CLIENT" ? selectedClientPlan : "free",
       });
     } catch (err: any) {
       error(
@@ -652,6 +738,70 @@ export default function SignupScreen({ navigation }: any) {
               </View>
             </SlideInView>
 
+            {/* Customer Plan Selection */}
+            {selectedRole === "CLIENT" && (
+              <SlideInView direction="left" delay={305}>
+                <View style={[signupCapStyles.sectionContainer, { backgroundColor: "#f8fafc", padding: 12, borderRadius: 12 }]}>
+                  <Text style={signupCapStyles.sectionLabel}>
+                    {t.auth?.selectPlan || "Select Your Plan"}
+                  </Text>
+                  <Text style={signupCapStyles.sectionHint}>
+                    Paid plans include a 7-day trial. Card is collected securely after verification.
+                  </Text>
+                  {clientPlans.map((plan) => {
+                    const active = selectedClientPlan === plan.id;
+                    const planColor = plan.isFeatured ? "#2B5EA7" : plan.price > 0 ? "#0891b2" : "#6b7280";
+                    return (
+                      <TouchableOpacity
+                        key={plan.id}
+                        style={[
+                          {
+                            flexDirection: "row",
+                            alignItems: "center",
+                            padding: 12,
+                            borderRadius: 10,
+                            borderWidth: 2,
+                            borderColor: active ? planColor : "#e5e7eb",
+                            backgroundColor: active ? "#eff6ff" : "#fff",
+                            marginTop: 8,
+                          },
+                        ]}
+                        onPress={() => setSelectedClientPlan(plan.id)}
+                      >
+                        <Ionicons
+                          name={active ? "checkmark-circle" : "ellipse-outline"}
+                          size={22}
+                          color={active ? planColor : "#9ca3af"}
+                          style={{ marginRight: 10 }}
+                        />
+                        <View style={{ flex: 1 }}>
+                          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                            <Text style={{ fontWeight: "700", fontSize: 15, color: "#111827" }}>
+                              {plan.name}
+                            </Text>
+                            {plan.isFeatured && (
+                              <View style={{ backgroundColor: planColor, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                                <Text style={{ color: "#fff", fontSize: 9, fontWeight: "700" }}>
+                                  POPULAR
+                                </Text>
+                              </View>
+                            )}
+                          </View>
+                          <Text style={{ color: "#6b7280", fontSize: 12, marginTop: 2 }}>
+                            {plan.vehicleLimit} vehicles • {plan.serviceRequestsPerMonth === null ? "Unlimited" : plan.serviceRequestsPerMonth} requests/mo
+                            {plan.price > 0 ? " • 7-day trial" : ""}
+                          </Text>
+                        </View>
+                        <Text style={{ fontWeight: "700", color: planColor, fontSize: 14 }}>
+                          {plan.price === 0 ? "Free" : `$${plan.price.toFixed(2)}/mo`}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </SlideInView>
+            )}
+
             {/* Provider Business Fields */}
             {selectedRole === "PROVIDER" && (
               <>
@@ -870,6 +1020,139 @@ export default function SignupScreen({ navigation }: any) {
                       onValueChange={setProviderSellsParts}
                       trackColor={{ false: "#e5e7eb", true: "#93c5fd" }}
                       thumbColor={providerSellsParts ? "#2B5EA7" : "#9ca3af"}
+                    />
+                  </View>
+                </SlideInView>
+
+                <SlideInView direction="right" delay={365}>
+                  <View style={signupCapStyles.sectionContainer}>
+                    <Text style={signupCapStyles.sectionLabel}>
+                      💵 Payout and tax setup
+                    </Text>
+                    <Text style={signupCapStyles.sectionHint}>
+                      Optional now. TechTrust can pay manually by Zelle or transfer while Stripe Connect is not set up.
+                    </Text>
+                    <View style={signupCapStyles.chipGrid}>
+                      {[
+                        { key: "MANUAL", label: "Later" },
+                        { key: "ZELLE", label: "Zelle" },
+                        { key: "BANK_TRANSFER", label: "Transfer" },
+                      ].map((option) => {
+                        const active = providerPayoutMethod === option.key;
+                        return (
+                          <TouchableOpacity
+                            key={option.key}
+                            style={[
+                              signupCapStyles.chip,
+                              active && signupCapStyles.chipActive,
+                            ]}
+                            onPress={() => setProviderPayoutMethod(option.key as any)}
+                            activeOpacity={0.7}
+                          >
+                            <Text
+                              style={[
+                                signupCapStyles.chipText,
+                                active && signupCapStyles.chipTextActive,
+                              ]}
+                            >
+                              {option.label}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+
+                    {providerPayoutMethod === "ZELLE" && (
+                      <TextInput
+                        value={providerZelleContact}
+                        onChangeText={setProviderZelleContact}
+                        mode="outlined"
+                        label="Zelle email or phone"
+                        style={styles.input}
+                        outlineStyle={styles.inputOutline}
+                        textColor="#000"
+                      />
+                    )}
+
+                    {providerPayoutMethod === "BANK_TRANSFER" && (
+                      <TextInput
+                        value={providerBankTransferLabel}
+                        onChangeText={setProviderBankTransferLabel}
+                        mode="outlined"
+                        label="Bank name or account nickname"
+                        style={styles.input}
+                        outlineStyle={styles.inputOutline}
+                        textColor="#000"
+                      />
+                    )}
+
+                    <Text style={[signupCapStyles.partsHint, { marginTop: 4 }]}>
+                      Business identity is optional now. TechTrust reviews it manually against official Sunbiz, FDACS, and local tax records.
+                    </Text>
+                    <TextInput
+                      value={providerLegalName}
+                      onChangeText={setProviderLegalName}
+                      mode="outlined"
+                      label="Legal business name (optional)"
+                      style={styles.input}
+                      outlineStyle={styles.inputOutline}
+                      textColor="#000"
+                    />
+                    <TextInput
+                      value={providerEin}
+                      onChangeText={setProviderEin}
+                      mode="outlined"
+                      label="EIN / FEI (optional)"
+                      style={styles.input}
+                      outlineStyle={styles.inputOutline}
+                      textColor="#000"
+                    />
+                    <TextInput
+                      value={providerSunbizDocumentNumber}
+                      onChangeText={setProviderSunbizDocumentNumber}
+                      mode="outlined"
+                      label="Sunbiz document # (optional)"
+                      style={styles.input}
+                      outlineStyle={styles.inputOutline}
+                      textColor="#000"
+                    />
+
+                    <TextInput
+                      value={providerCityBtr}
+                      onChangeText={setProviderCityBtr}
+                      mode="outlined"
+                      label="City business tax receipt (optional)"
+                      style={styles.input}
+                      outlineStyle={styles.inputOutline}
+                      textColor="#000"
+                    />
+                    <TextInput
+                      value={providerCountyBtr}
+                      onChangeText={setProviderCountyBtr}
+                      mode="outlined"
+                      label="County business tax receipt (optional)"
+                      style={styles.input}
+                      outlineStyle={styles.inputOutline}
+                      textColor="#000"
+                    />
+                  </View>
+                </SlideInView>
+
+                <SlideInView direction="left" delay={370}>
+                  <View style={signupCapStyles.partsRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={signupCapStyles.partsLabel}>
+                        🛡 Insurance disclosure
+                      </Text>
+                      <Text style={signupCapStyles.partsHint}>
+                        If you do not add insurance, customers will see that TechTrust does not provide insurance coverage for your work.
+                      </Text>
+                    </View>
+                    <Switch
+                      value={providerInsuranceDisclosureAccepted}
+                      onValueChange={setProviderInsuranceDisclosureAccepted}
+                      trackColor={{ false: "#e5e7eb", true: "#fbbf24" }}
+                      thumbColor={providerInsuranceDisclosureAccepted ? "#d97706" : "#9ca3af"}
                     />
                   </View>
                 </SlideInView>

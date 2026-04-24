@@ -237,6 +237,8 @@ export interface SubscriptionInfo {
   maxServiceRequestsPerMonth: number | null;
   currentPeriodStart: string;
   currentPeriodEnd: string;
+  isTrialActive?: boolean;
+  trialEndsAt?: string | null;
   features: string[];
   templateName: string;
   templateDescription: string | null;
@@ -280,7 +282,10 @@ export async function subscribe(
 ): Promise<{
   subscriptionId: string;
   clientSecret?: string;
+  clientSecretType?: "payment" | "setup";
   plan: string;
+  isTrialActive?: boolean;
+  trialEndsAt?: string | null;
   message: string;
 }> {
   const { data } = await api.post("/subscriptions/subscribe", {
@@ -288,6 +293,29 @@ export async function subscribe(
     billingPeriod,
   });
   return { ...data.data, message: data.message };
+}
+
+export async function createSubscriptionCheckoutSession(
+  planKey: string,
+  billingPeriod: "monthly" | "yearly" = "monthly",
+  urls?: { successUrl?: string; cancelUrl?: string },
+): Promise<{ sessionId: string; checkoutUrl: string }> {
+  const { data } = await api.post("/subscriptions/checkout-session", {
+    planKey,
+    billingPeriod,
+    successUrl: urls?.successUrl || "techtrust://subscriptions/success",
+    cancelUrl: urls?.cancelUrl || "techtrust://subscriptions/cancelled",
+  });
+  return data.data;
+}
+
+export async function endSubscriptionTrial(): Promise<{
+  success: boolean;
+  message: string;
+  data: SubscriptionInfo;
+}> {
+  const { data } = await api.post("/subscriptions/end-trial");
+  return data;
 }
 
 /**
@@ -316,6 +344,8 @@ export async function getSubscriptionUsage(): Promise<{
     effectiveLimit?: number;
   };
   serviceRequests: { used: number; limit: number | null; unlimited: boolean };
+  isTrialActive?: boolean;
+  trialEndsAt?: string | null;
   period: { start: string; end: string };
   vehicleAddOns?: VehicleAddOn[];
 }> {
@@ -433,6 +463,8 @@ export default {
   getMySubscription,
   getSubscriptionPlans,
   subscribe,
+  createSubscriptionCheckoutSession,
+  endSubscriptionTrial,
   cancelSubscription,
   getSubscriptionUsage,
   // Connect

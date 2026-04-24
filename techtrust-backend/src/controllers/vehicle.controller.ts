@@ -13,6 +13,7 @@ import { logger } from "../config/logger";
 import { isValidVINFormat } from "../services/nhtsa.service";
 import {
   SUBSCRIPTION_PLANS,
+  getEffectiveVehicleLimit,
   type PlanKey,
 } from "../config/businessRules";
 import {
@@ -149,11 +150,19 @@ export const createVehicle = async (req: Request, res: Response) => {
 
   // Verificar limite (businessRules SUBSCRIPTION_PLANS como source of truth)
   const planConfig = SUBSCRIPTION_PLANS[subscription.plan as PlanKey];
-  const maxVehicles = planConfig?.maxVehicles ?? subscription.maxVehicles;
+  const maxVehicles = getEffectiveVehicleLimit(
+    subscription.plan,
+    planConfig?.maxVehicles ?? subscription.maxVehicles,
+    subscription.trialEnd,
+  );
 
   if (vehicleCount >= maxVehicles) {
+    const trialSuffix = subscription.trialEnd && subscription.trialEnd.getTime() > Date.now()
+      ? " during your trial. Activate your plan to unlock the full limit."
+      : ". Upgrade to add more.";
+
     throw new AppError(
-      `You've reached the limit of ${maxVehicles} vehicle(s) for your ${subscription.plan} plan. Upgrade to add more.`,
+      `You've reached the limit of ${maxVehicles} vehicle(s) for your ${subscription.plan} plan${trialSuffix}`,
       403,
       "VEHICLE_LIMIT_REACHED",
     );

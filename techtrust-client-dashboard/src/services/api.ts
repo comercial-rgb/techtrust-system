@@ -292,6 +292,23 @@ class ApiService {
     });
   }
 
+  async createSetupIntent() {
+    return this.request<any>("/payments/setup-intent", {
+      method: "POST",
+    });
+  }
+
+  async addStripePaymentMethod(stripePaymentMethodId: string) {
+    return this.request<any>("/payment-methods/stripe", {
+      method: "POST",
+      body: JSON.stringify({ stripePaymentMethodId }),
+    });
+  }
+
+  async getStripeConfig() {
+    return this.request<any>("/config/stripe");
+  }
+
   async setDefaultPaymentMethod(id: string) {
     return this.request(`/payment-methods/${id}/default`, {
       method: "PATCH",
@@ -420,6 +437,24 @@ class ApiService {
     return this.request<any>("/subscriptions/subscribe", {
       method: "POST",
       body: JSON.stringify({ planKey, billingPeriod }),
+    });
+  }
+
+  async createSubscriptionCheckoutSession(data: {
+    planKey: string;
+    billingPeriod?: 'monthly' | 'yearly';
+    successUrl: string;
+    cancelUrl: string;
+  }) {
+    return this.request<any>("/subscriptions/checkout-session", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async endSubscriptionTrial() {
+    return this.request<any>("/subscriptions/end-trial", {
+      method: "POST",
     });
   }
 

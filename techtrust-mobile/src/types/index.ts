@@ -64,6 +64,11 @@ export interface Quote {
   status: "PENDING" | "ACCEPTED" | "REJECTED" | "EXPIRED";
   validUntil: string;
   createdAt: string;
+  // Sales tax (calculated by TechTrust as Marketplace Facilitator)
+  salesTaxAmount?: number;
+  salesTaxRate?: number;
+  salesTaxableAmount?: number;
+  salesTaxCounty?: string;
   provider?: {
     fullName: string;
     providerProfile?: {

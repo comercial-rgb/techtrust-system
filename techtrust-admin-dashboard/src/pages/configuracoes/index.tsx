@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminLayout from '../../components/AdminLayout';
+import QuickBooksConnectionPanel from '../../components/QuickBooksConnectionPanel';
 import { Settings, Save, DollarSign, Bell, Shield, Clock, Percent, MessageSquare, Mail, Smartphone } from 'lucide-react';
 import { adminApi as api } from '../../services/api';
 
@@ -270,6 +271,40 @@ export default function ConfiguracoesPage() {
                     Alterações nas taxas afetarão apenas novos orçamentos. Transações em andamento manterão as taxas anteriores.
                   </p>
                 </div>
+
+                {/* Sales Tax — Marketplace Facilitator (FL) */}
+                <div className="border-t border-gray-200 pt-6 mt-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Sales Tax — Marketplace Facilitator</h3>
+                  <p className="text-sm text-gray-500 mb-4">
+                    TechTrust coleta e repassa o sales tax como Marketplace Facilitator (FL §212.0596).
+                    O imposto é calculado automaticamente via Stripe Tax ou tabela de condados da FL.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                      <p className="text-sm font-medium text-blue-800">Base Rate (FL State)</p>
+                      <p className="text-2xl font-bold text-blue-900">6.00%</p>
+                    </div>
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                      <p className="text-sm font-medium text-blue-800">County Surtax</p>
+                      <p className="text-2xl font-bold text-blue-900">0% — 2.5%</p>
+                      <p className="text-xs text-blue-600 mt-1">Varies by customer county (auto-detected)</p>
+                    </div>
+                  </div>
+                  <div className="mt-4 space-y-2 text-sm text-gray-600">
+                    <p><span className="font-medium text-green-700">✓ Taxable:</span> Parts, Shop Supplies (tangible goods)</p>
+                    <p><span className="font-medium text-red-600">✗ Exempt:</span> Labor, Travel Fee, Diagnostic Fee, Tire/Battery Env. Fees</p>
+                  </div>
+                  <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mt-4">
+                    <p className="text-sm font-medium text-gray-700 mb-1">Tax Filing</p>
+                    <p className="text-sm text-gray-500">
+                      Use o relatório de Sales Tax Liability do QuickBooks Online para preencher o formulário DR-15 da FL DOR.
+                      Filing mensal ou trimestral conforme determinado pela FL Dept. of Revenue.
+                    </p>
+                  </div>
+                </div>
+
+                {/* QuickBooks + Stripe Tax Integration Status */}
+                <QuickBooksConnectionPanel />
               </div>
             )}
 

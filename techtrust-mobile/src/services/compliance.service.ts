@@ -55,7 +55,7 @@ export interface InsurancePolicy {
   carrierName?: string;
   policyNumber?: string;
   expirationDate?: string;
-  coverageAmount?: number;
+  coverageLimit?: string;
   coiUploads: string[];
   status: string;
   lastVerifiedAt?: string;
@@ -65,9 +65,21 @@ export interface InsurancePolicy {
   updatedAt: string;
 }
 
+export interface InsuranceRequirement {
+  type: string;
+  label: string;
+  level: "REQUIRED" | "RECOMMENDED";
+  reason: string;
+  status: string;
+  complete: boolean;
+  verified: boolean;
+  customerVisibleBadge: string;
+}
+
 export interface ComplianceSummary {
   complianceItems: ComplianceItem[];
   insurancePolicies: InsurancePolicy[];
+  insuranceRequirements?: InsuranceRequirement[];
   technicians: Technician[];
   serviceGating: Record<string, { allowed: boolean; reason?: string }>;
   serviceEligibilities?: Array<{
@@ -185,13 +197,18 @@ export const getInsurancePolicies = async () => {
   return response.data;
 };
 
+export const getInsuranceRequirements = async () => {
+  const response = await api.get("/insurance/requirements");
+  return response.data;
+};
+
 export const upsertInsurancePolicy = async (data: {
   type: string;
   hasCoverage: boolean;
   carrierName?: string;
   policyNumber?: string;
   expirationDate?: string;
-  coverageAmount?: number;
+  coverageLimit?: string;
   coiUploads?: string[];
 }) => {
   const response = await api.post("/insurance", data);
@@ -205,7 +222,7 @@ export const batchUpsertInsurance = async (
     carrierName?: string;
     policyNumber?: string;
     expirationDate?: string;
-    coverageAmount?: number;
+    coverageLimit?: string;
     coiUploads?: string[];
   }>,
 ) => {

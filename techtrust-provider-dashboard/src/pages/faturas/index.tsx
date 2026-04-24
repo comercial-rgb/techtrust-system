@@ -5,6 +5,7 @@ import { useRouter } from "next/router";
 import { useAuth } from "@/contexts/AuthContext";
 import { useI18n } from "@/i18n";
 import DashboardLayout from "@/components/DashboardLayout";
+import MarketplaceFacilitatorBanner from "@/components/MarketplaceFacilitatorBanner";
 import api from "@/services/api";
 import {
   Search,
@@ -181,6 +182,9 @@ export default function FaturasPage() {
   return (
     <DashboardLayout title={t("invoices.title")}>
       <div className="space-y-6 animate-fade-in">
+        {/* Marketplace Facilitator Notice */}
+        <MarketplaceFacilitatorBanner />
+
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-white rounded-xl p-4 shadow-soft">

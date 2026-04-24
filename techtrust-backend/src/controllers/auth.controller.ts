@@ -48,8 +48,11 @@ export const signup = async (req: Request, res: Response) => {
       password,
       language,
       role,
-      _accountType, // 'INDIVIDUAL' | 'BUSINESS'
+      accountType, // 'INDIVIDUAL' | 'BUSINESS'
       businessName,
+      legalName,
+      ein,
+      sunbizDocumentNumber,
       businessAddress,
       businessCity,
       businessState,
@@ -57,9 +60,20 @@ export const signup = async (req: Request, res: Response) => {
       servicesOffered,
       vehicleTypesServed,
       sellsParts,
-      _selectedPlan, // plan selected during registration
+      selectedPlan, // plan selected during registration
+      payoutMethod,
+      zelleEmail,
+      zellePhone,
+      bankTransferLabel,
+      cityBusinessTaxReceiptNumber,
+      countyBusinessTaxReceiptNumber,
+      insuranceDisclosureAccepted,
+      marketplaceFacilitatorTaxAcknowledged,
       preferredOtpMethod, // 'sms' | 'email' — user chooses verification method
     } = req.body;
+
+    void accountType;
+    void selectedPlan;
 
     // Validar role
     const userRole = role === "PROVIDER" ? "PROVIDER" : "CLIENT";
@@ -108,16 +122,36 @@ export const signup = async (req: Request, res: Response) => {
               data: {
                 userId: existingEmail.id,
                 businessName,
+                legalName: legalName || null,
+                ein: ein || null,
+                sunbizDocumentNumber: sunbizDocumentNumber || null,
+                businessIdentityStatus:
+                  legalName || ein || sunbizDocumentNumber
+                    ? "PROVIDED_UNVERIFIED"
+                    : "NOT_PROVIDED",
                 address: businessAddress || "",
                 city: businessCity || "",
                 state: businessState || "FL",
                 zipCode: businessZipCode || "",
                 servicesOffered: servicesOffered || [],
                 vehicleTypesServed: vehicleTypesServed || [],
-                sellsParts: sellsParts || false,
-                specialties: [],
-              },
-            });
+              sellsParts: sellsParts || false,
+              specialties: [],
+              payoutMethod: payoutMethod || "MANUAL",
+              zelleEmail: zelleEmail || null,
+              zellePhone: zellePhone || null,
+              bankTransferLabel: bankTransferLabel || null,
+              cityBusinessTaxReceiptNumber: cityBusinessTaxReceiptNumber || null,
+              countyBusinessTaxReceiptNumber: countyBusinessTaxReceiptNumber || null,
+              businessTaxReceiptStatus:
+                cityBusinessTaxReceiptNumber || countyBusinessTaxReceiptNumber
+                  ? "PROVIDED_UNVERIFIED"
+                  : "NOT_PROVIDED",
+              marketplaceFacilitatorTaxAcknowledged:
+                marketplaceFacilitatorTaxAcknowledged !== false,
+              insuranceDisclosureAcceptedAt: insuranceDisclosureAccepted ? new Date() : null,
+            },
+          });
             logger.info(
               `ProviderProfile criado para usuário existente: ${email}`,
             );
@@ -261,6 +295,13 @@ export const signup = async (req: Request, res: Response) => {
               data: {
                 userId: existingPhone.id,
                 businessName,
+                legalName: legalName || null,
+                ein: ein || null,
+                sunbizDocumentNumber: sunbizDocumentNumber || null,
+                businessIdentityStatus:
+                  legalName || ein || sunbizDocumentNumber
+                    ? "PROVIDED_UNVERIFIED"
+                    : "NOT_PROVIDED",
                 address: businessAddress || "",
                 city: businessCity || "",
                 state: businessState || "FL",
@@ -269,6 +310,19 @@ export const signup = async (req: Request, res: Response) => {
                 vehicleTypesServed: vehicleTypesServed || [],
                 sellsParts: sellsParts || false,
                 specialties: [],
+                payoutMethod: payoutMethod || "MANUAL",
+                zelleEmail: zelleEmail || null,
+                zellePhone: zellePhone || null,
+                bankTransferLabel: bankTransferLabel || null,
+                cityBusinessTaxReceiptNumber: cityBusinessTaxReceiptNumber || null,
+                countyBusinessTaxReceiptNumber: countyBusinessTaxReceiptNumber || null,
+                businessTaxReceiptStatus:
+                  cityBusinessTaxReceiptNumber || countyBusinessTaxReceiptNumber
+                    ? "PROVIDED_UNVERIFIED"
+                    : "NOT_PROVIDED",
+                marketplaceFacilitatorTaxAcknowledged:
+                  marketplaceFacilitatorTaxAcknowledged !== false,
+                insuranceDisclosureAcceptedAt: insuranceDisclosureAccepted ? new Date() : null,
               },
             });
             logger.info(
@@ -404,6 +458,13 @@ export const signup = async (req: Request, res: Response) => {
         data: {
           userId: user.id,
           businessName,
+          legalName: legalName || null,
+          ein: ein || null,
+          sunbizDocumentNumber: sunbizDocumentNumber || null,
+          businessIdentityStatus:
+            legalName || ein || sunbizDocumentNumber
+              ? "PROVIDED_UNVERIFIED"
+              : "NOT_PROVIDED",
           address: businessAddress || "",
           city: businessCity || "",
           state: businessState || "FL",
@@ -412,6 +473,19 @@ export const signup = async (req: Request, res: Response) => {
           vehicleTypesServed: vehicleTypesServed || [],
           sellsParts: sellsParts || false,
           specialties: [],
+          payoutMethod: payoutMethod || "MANUAL",
+          zelleEmail: zelleEmail || null,
+          zellePhone: zellePhone || null,
+          bankTransferLabel: bankTransferLabel || null,
+          cityBusinessTaxReceiptNumber: cityBusinessTaxReceiptNumber || null,
+          countyBusinessTaxReceiptNumber: countyBusinessTaxReceiptNumber || null,
+          businessTaxReceiptStatus:
+            cityBusinessTaxReceiptNumber || countyBusinessTaxReceiptNumber
+              ? "PROVIDED_UNVERIFIED"
+              : "NOT_PROVIDED",
+          marketplaceFacilitatorTaxAcknowledged:
+            marketplaceFacilitatorTaxAcknowledged !== false,
+          insuranceDisclosureAcceptedAt: insuranceDisclosureAccepted ? new Date() : null,
         },
       });
     }

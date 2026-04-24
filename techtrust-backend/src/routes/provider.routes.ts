@@ -15,6 +15,7 @@ router.use(authorize('PROVIDER'));
 
 router.get('/dashboard', asyncHandler(providerController.getDashboard));
 router.get('/dashboard-stats', asyncHandler(providerController.getDashboardStats));
+router.get('/onboarding-status', asyncHandler(providerController.getOnboardingStatus));
 router.get('/recent-activity', asyncHandler(providerController.getRecentActivity));
 router.get('/pending-requests', asyncHandler(providerController.getPendingRequests));
 router.get('/available-requests', asyncHandler(providerController.getAvailableRequests));

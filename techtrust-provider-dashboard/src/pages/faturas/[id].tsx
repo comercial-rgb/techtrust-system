@@ -5,6 +5,7 @@ import { useRouter } from "next/router";
 import { useAuth } from "@/contexts/AuthContext";
 import { useI18n } from "@/i18n";
 import DashboardLayout from "@/components/DashboardLayout";
+import MarketplaceFacilitatorBanner from "@/components/MarketplaceFacilitatorBanner";
 import api from "@/services/api";
 import {
   ArrowLeft,
@@ -365,6 +366,11 @@ export default function FaturaDetalhePage() {
                 ${Number(invoice.finalTotal).toFixed(2)}
               </p>
             </div>
+          </div>
+
+          {/* Marketplace Facilitator Notice — compact */}
+          <div className="mt-5 pt-5 border-t border-gray-100">
+            <MarketplaceFacilitatorBanner compact />
           </div>
         </div>
 

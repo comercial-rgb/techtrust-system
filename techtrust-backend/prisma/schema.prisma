@@ -289,6 +289,7 @@ enum VerificationEntityType {
   COMPLIANCE_ITEM
   INSURANCE_POLICY
   TECHNICIAN_CERT
+  BUSINESS_IDENTITY
 }
 
 enum CancellationRequestStatus {
@@ -438,6 +439,9 @@ model ProviderProfile {
   businessTypeCat BusinessType @default(REPAIR_SHOP) // REPAIR_SHOP, CAR_WASH, BOTH
   businessLicense String?
   taxId           String?
+  sunbizDocumentNumber    String?
+  businessIdentityStatus  String    @default("NOT_PROVIDED") // NOT_PROVIDED, PROVIDED_UNVERIFIED, VERIFIED, REJECTED
+  businessIdentityVerifiedAt DateTime?
 
   // FDACS Motor Vehicle Repair Shop Registration (Florida requirement)
   fdacsRegistrationNumber String?
@@ -496,6 +500,25 @@ model ProviderProfile {
   // Stripe
   stripeAccountId           String? @unique
   stripeOnboardingCompleted Boolean @default(false)
+
+  // ===== Payouts (Stripe Connect optional) =====
+  // Providers can receive payouts manually by Zelle / bank transfer when Connect
+  // is not completed. Payments remain captured by the platform.
+  payoutMethod       String  @default("MANUAL") // MANUAL, STRIPE_CONNECT, ZELLE, BANK_TRANSFER, CHECK, OTHER
+  zelleEmail         String?
+  zellePhone         String?
+  bankTransferLabel  String?
+  payoutInstructions String? @db.Text
+
+  // ===== Marketplace Facilitator / Local Tax Acknowledgments =====
+  marketplaceFacilitatorTaxAcknowledged Boolean   @default(true)
+  cityBusinessTaxReceiptNumber          String?
+  countyBusinessTaxReceiptNumber        String?
+  businessTaxReceiptStatus              String    @default("NOT_PROVIDED") // NOT_PROVIDED, PROVIDED_UNVERIFIED, VERIFIED
+
+  // ===== Insurance Disclosure =====
+  insuranceDisclosureAcceptedAt DateTime?
+  insuranceDisclosureDeclinedAt DateTime?
 
   // Assinatura PRO
   hasProSubscription       Boolean   @default(false)

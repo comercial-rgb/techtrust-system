@@ -1,0 +1,6 @@
+ALTER TYPE "VerificationEntityType" ADD VALUE IF NOT EXISTS 'BUSINESS_IDENTITY';
+
+ALTER TABLE "provider_profiles"
+ADD COLUMN IF NOT EXISTS "sunbizDocumentNumber" TEXT,
+ADD COLUMN IF NOT EXISTS "businessIdentityStatus" TEXT NOT NULL DEFAULT 'NOT_PROVIDED',
+ADD COLUMN IF NOT EXISTS "businessIdentityVerifiedAt" TIMESTAMP(3);

@@ -89,11 +89,28 @@ interface SignupData {
   language?: string;
   role?: "CLIENT" | "PROVIDER";
   businessName?: string;
+  legalName?: string;
+  ein?: string;
+  sunbizDocumentNumber?: string;
   businessAddress?: string;
   businessCity?: string;
   businessState?: string;
   businessZipCode?: string;
   preferredOtpMethod?: "sms" | "email";
+  selectedPlan?: string;
+  servicesOffered?: string[];
+  vehicleTypesServed?: string[];
+  sellsParts?: boolean;
+  payoutMethod?: "MANUAL" | "ZELLE" | "BANK_TRANSFER";
+  zelleEmail?: string;
+  zellePhone?: string;
+  bankTransferLabel?: string;
+  cityBusinessTaxReceiptNumber?: string;
+  countyBusinessTaxReceiptNumber?: string;
+  insuranceDisclosureAccepted?: boolean;
+  marketplaceFacilitatorTaxAcknowledged?: boolean;
+  marketplaceType?: "CAR_WASH" | "AUTO_PARTS";
+  marketplacePlan?: "basic" | "pro" | "pro_plus";
 }
 
 // ============================================
@@ -354,6 +371,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           email: data.email,
           phone: data.phone,
           otpMethod,
+          selectedPlan: data.selectedPlan,
         }),
       );
 

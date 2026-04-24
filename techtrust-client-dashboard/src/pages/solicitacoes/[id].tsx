@@ -39,6 +39,21 @@ interface Quote {
     totalReviews: number;
     phone: string;
     address: string;
+    providerProfile?: {
+      disclosures?: {
+        insurance?: {
+          customerWarningRequired?: boolean;
+          message?: string;
+        };
+      };
+      insuranceRequirements?: Array<{
+        type: string;
+        label: string;
+        level: 'REQUIRED' | 'RECOMMENDED';
+        complete: boolean;
+        customerVisibleBadge: string;
+      }>;
+    };
   };
   laborCost: number;
   partsCost: number;
@@ -396,6 +411,30 @@ export default function SolicitacaoDetalhesPage() {
 
                   {quote.notes && (
                     <p className="text-sm text-gray-600 mb-4">{quote.notes}</p>
+                  )}
+
+                  {quote.provider?.providerProfile?.disclosures?.insurance?.customerWarningRequired && (
+                    <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 mb-4 text-sm text-amber-800">
+                      <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      <span>
+                        {quote.provider.providerProfile.disclosures.insurance.message ||
+                          'Este fornecedor ainda não informou seguro. A TechTrust não fornece cobertura de seguro para o trabalho deste fornecedor.'}
+                      </span>
+                    </div>
+                  )}
+
+                  {quote.provider?.providerProfile?.insuranceRequirements?.some(item => item.level === 'REQUIRED' && !item.complete) && (
+                    <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 mb-4 text-sm text-amber-800">
+                      <Shield className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      <span>
+                        Seguro obrigatório ausente para este tipo de serviço:{' '}
+                        {quote.provider.providerProfile.insuranceRequirements
+                          .filter(item => item.level === 'REQUIRED' && !item.complete)
+                          .map(item => item.label)
+                          .join(', ')}
+                        . A TechTrust não fornece cobertura de seguro para o trabalho deste fornecedor.
+                      </span>
+                    </div>
                   )}
 
                   <div className="flex items-center justify-between text-sm text-gray-500 mb-4">

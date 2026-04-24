@@ -12,7 +12,13 @@ import { prisma } from '../config/database';
 import { AppError } from '../middleware/error-handler';
 import { logger } from '../config/logger';
 import * as stripeService from '../services/stripe.service';
-import { VEHICLE_ADD_ON, TRIAL_POLICY } from '../config/businessRules';
+import {
+  getEffectiveServiceRequestLimit,
+  getEffectiveVehicleLimit,
+  isTrialActive,
+  TRIAL_POLICY,
+  VEHICLE_ADD_ON,
+} from '../config/businessRules';
 
 const router = Router();
 
@@ -111,6 +117,16 @@ router.get(
         features: template?.features || [],
         templateName: template?.name || subscription.plan,
         templateDescription: template?.description || null,
+        isTrialActive: isTrialActive(subscription.trialEnd),
+        trialEndsAt: subscription.trialEnd,
+        trialPolicy: isTrialActive(subscription.trialEnd)
+          ? {
+              maxVehicles: TRIAL_POLICY.MAX_VEHICLES,
+              maxServiceRequestsPerMonth: TRIAL_POLICY.MAX_REQUESTS_PER_MONTH,
+              maxActiveSimultaneous: TRIAL_POLICY.MAX_ACTIVE_SIMULTANEOUS,
+              lockedFeatures: TRIAL_POLICY.LOCKED_FEATURES,
+            }
+          : null,
       },
     });
   })
@@ -311,6 +327,7 @@ router.post(
         maxServiceRequestsPerMonth: template.serviceRequestsPerMonth,
         currentPeriodStart: now,
         currentPeriodEnd: periodEnd,
+        trialEnd: stripeResult.trialEnd || null,
       },
     });
 
@@ -321,9 +338,62 @@ router.post(
       data: {
         subscriptionId: newSub.id,
         clientSecret: stripeResult.clientSecret,
+        clientSecretType: stripeResult.clientSecretType,
         plan: planEnum,
+        isTrialActive: isTrialActive(stripeResult.trialEnd),
+        trialEndsAt: stripeResult.trialEnd,
       },
       message: `Subscribed to ${template.name}`,
+    });
+  })
+);
+
+/**
+ * POST /api/v1/subscriptions/end-trial
+ * Encerrar trial agora e ativar/cobrar a assinatura paga.
+ */
+router.post(
+  '/end-trial',
+  asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user!.id;
+
+    const subscription = await prisma.subscription.findFirst({
+      where: { userId, status: 'ACTIVE', plan: { not: 'FREE' } },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!subscription) {
+      throw new AppError('No active paid subscription found', 404, 'NO_PAID_SUBSCRIPTION');
+    }
+
+    if (!isTrialActive(subscription.trialEnd)) {
+      throw new AppError('Subscription is not in an active trial', 400, 'NOT_IN_TRIAL');
+    }
+
+    if (!subscription.stripeSubscriptionId) {
+      throw new AppError('Subscription is missing Stripe subscription ID', 400, 'MISSING_STRIPE_SUBSCRIPTION');
+    }
+
+    const stripeResult = await stripeService.endSubscriptionTrialNow(subscription.stripeSubscriptionId);
+
+    const updated = await prisma.subscription.update({
+      where: { id: subscription.id },
+      data: {
+        status: stripeResult.status === 'past_due' ? 'PAST_DUE' : 'ACTIVE',
+        currentPeriodStart: stripeResult.currentPeriodStart,
+        currentPeriodEnd: stripeResult.currentPeriodEnd,
+        trialEnd: null,
+      },
+    });
+
+    res.json({
+      success: true,
+      message: 'Trial ended. Paid plan activated.',
+      data: {
+        ...updated,
+        price: Number(updated.price),
+        isTrialActive: false,
+      },
     });
   })
 );
@@ -536,8 +606,10 @@ router.get(
         success: true,
         data: {
           plan: 'FREE',
-          vehicles: { used: 0, limit: 1 },
-          serviceRequests: { used: 0, limit: 3 },
+          isTrialActive: false,
+          trialEndsAt: null,
+          vehicles: { used: 0, limit: 1, effectiveLimit: 1 },
+          serviceRequests: { used: 0, limit: 3, effectiveLimit: 3, unlimited: false },
         },
       });
       return;
@@ -546,6 +618,15 @@ router.get(
     // Contar veículos reais
     const vehicleCount = await prisma.vehicle.count({
       where: { userId },
+    });
+
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const serviceRequestsThisMonth = await prisma.serviceRequest.count({
+      where: {
+        userId,
+        createdAt: { gte: startOfMonth },
+      },
     });
 
     // Count active vehicle add-ons
@@ -558,20 +639,35 @@ router.get(
       select: { id: true, vehicleId: true, monthlyPrice: true },
     });
 
+    const effectiveVehicleLimit = getEffectiveVehicleLimit(
+      subscription.plan,
+      subscription.maxVehicles,
+      subscription.trialEnd,
+    );
+    const effectiveServiceRequestLimit = getEffectiveServiceRequestLimit(
+      subscription.plan,
+      subscription.maxServiceRequestsPerMonth,
+      subscription.trialEnd,
+    );
+    const trialActive = isTrialActive(subscription.trialEnd);
+
     res.json({
       success: true,
       data: {
         plan: subscription.plan,
+        isTrialActive: trialActive,
+        trialEndsAt: subscription.trialEnd,
         vehicles: {
           used: vehicleCount,
           limit: subscription.maxVehicles,
+          effectiveLimit: effectiveVehicleLimit + addOnCount,
           addOns: addOnCount,
-          effectiveLimit: (subscription.maxVehicles ?? 0) + addOnCount,
         },
         serviceRequests: {
-          used: subscription.serviceRequestsThisMonth,
+          used: serviceRequestsThisMonth,
           limit: subscription.maxServiceRequestsPerMonth,
-          unlimited: subscription.maxServiceRequestsPerMonth === null,
+          effectiveLimit: effectiveServiceRequestLimit,
+          unlimited: effectiveServiceRequestLimit === null,
         },
         period: {
           start: subscription.currentPeriodStart,

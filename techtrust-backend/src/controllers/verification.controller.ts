@@ -93,6 +93,29 @@ export const verifyEntity = async (
         where: { id: entityId },
         data: { epa609Status: newStatus },
       });
+    } else if (entityType === "BUSINESS_IDENTITY") {
+      const profile = await prisma.providerProfile.findUnique({
+        where: { id: entityId },
+      });
+      if (!profile)
+        return res
+          .status(404)
+          .json({ success: false, message: "Provider profile not found" });
+      previousStatus = profile.businessIdentityStatus;
+
+      await prisma.providerProfile.update({
+        where: { id: entityId },
+        data: {
+          businessIdentityStatus: newStatus,
+          businessIdentityVerifiedAt:
+            newStatus === "VERIFIED" ? new Date() : null,
+          providerInternalNotes: notes
+            ? [profile.providerInternalNotes, `Business identity review: ${notes}`]
+                .filter(Boolean)
+                .join("\n")
+            : profile.providerInternalNotes,
+        },
+      });
     } else {
       return res
         .status(400)
@@ -260,8 +283,12 @@ export const getPendingVerifications = async (
         .json({ success: false, message: "Admin access required" });
     }
 
-    const [complianceItems, insurancePolicies, technicians] = await Promise.all(
-      [
+    const [
+      complianceItems,
+      insurancePolicies,
+      technicians,
+      businessIdentities,
+    ] = await Promise.all([
         prisma.complianceItem.findMany({
           where: { status: "PROVIDED_UNVERIFIED" },
           include: {
@@ -283,8 +310,22 @@ export const getPendingVerifications = async (
           },
           orderBy: { updatedAt: "asc" },
         }),
-      ],
-    );
+        prisma.providerProfile.findMany({
+          where: { businessIdentityStatus: "PROVIDED_UNVERIFIED" },
+          select: {
+            id: true,
+            businessName: true,
+            legalName: true,
+            ein: true,
+            sunbizDocumentNumber: true,
+            city: true,
+            state: true,
+            updatedAt: true,
+            userId: true,
+          },
+          orderBy: { updatedAt: "asc" },
+        }),
+    ]);
 
     res.json({
       success: true,
@@ -292,10 +333,12 @@ export const getPendingVerifications = async (
         complianceItems,
         insurancePolicies,
         technicians,
+        businessIdentities,
         totalPending:
           complianceItems.length +
           insurancePolicies.length +
-          technicians.length,
+          technicians.length +
+          businessIdentities.length,
       },
     });
   } catch (error: any) {
@@ -331,6 +374,8 @@ async function recalculateProviderStatus(entityType: string, entityId: string) {
         where: { id: entityId },
       });
       providerProfileId = tech?.providerProfileId || null;
+    } else if (entityType === "BUSINESS_IDENTITY") {
+      providerProfileId = entityId;
     }
 
     if (!providerProfileId) return;

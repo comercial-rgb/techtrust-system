@@ -27,6 +27,7 @@ import {
   autoCreateComplianceItems,
   ComplianceItem,
   InsurancePolicy,
+  InsuranceRequirement,
   Technician,
 } from "../../services/compliance.service";
 
@@ -37,6 +38,7 @@ export default function ProviderComplianceScreen({ navigation }: any) {
   const [insurancePolicies, setInsurancePolicies] = useState<InsurancePolicy[]>(
     [],
   );
+  const [insuranceRequirements, setInsuranceRequirements] = useState<InsuranceRequirement[]>([]);
   const [technicians, setTechnicians] = useState<Technician[]>([]);
   const [serviceGating, setServiceGating] = useState<
     Record<string, { allowed: boolean; reason?: string }>
@@ -51,6 +53,7 @@ export default function ProviderComplianceScreen({ navigation }: any) {
       if (res.success) {
         setComplianceItems(res.data.complianceItems || []);
         setInsurancePolicies(res.data.insurancePolicies || []);
+        setInsuranceRequirements(res.data.insuranceRequirements || []);
         setTechnicians(res.data.technicians || []);
         setServiceGating(res.data.serviceGating || {});
         setOverallStatus(res.data.overallStatus || res.data.providerPublicStatus || "PENDING");
@@ -243,6 +246,19 @@ export default function ProviderComplianceScreen({ navigation }: any) {
           )}
         </View>
 
+        <View style={styles.taxNoticeCard}>
+          <View style={styles.guideHeader}>
+            <Ionicons name="receipt-outline" size={18} color="#1d4ed8" />
+            <Text style={styles.taxNoticeTitle}>Marketplace tax collection</Text>
+          </View>
+          <Text style={styles.taxNoticeText}>
+            TechTrust collects applicable Florida marketplace sales tax on taxable parts and supplies,
+            stores the tax records, and prepares reporting through QuickBooks. Do not add sales tax on
+            top of your quote price; enter parts, labor, fees, and supplies separately so tax is calculated
+            at checkout.
+          </Text>
+        </View>
+
         {/* Compliance Items */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -353,6 +369,45 @@ export default function ProviderComplianceScreen({ navigation }: any) {
               <Ionicons name="chevron-forward" size={16} color="#2B5EA7" />
             </TouchableOpacity>
           </View>
+
+          {insuranceRequirements.length > 0 && (
+            <View style={styles.insuranceGuideCard}>
+              <View style={styles.guideHeader}>
+                <Ionicons name="shield-checkmark" size={18} color="#92400e" />
+                <Text style={styles.guideTitle}>Required for your services</Text>
+              </View>
+              {insuranceRequirements.slice(0, 4).map((item) => (
+                <View key={item.type} style={styles.guideRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.guideItemTitle}>{item.label}</Text>
+                    <Text style={styles.guideItemReason}>{item.customerVisibleBadge}</Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.guidePill,
+                      item.level === "REQUIRED" ? styles.guidePillRequired : styles.guidePillRecommended,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.guidePillText,
+                        item.level === "REQUIRED" ? styles.guidePillTextRequired : styles.guidePillTextRecommended,
+                      ]}
+                    >
+                      {item.level === "REQUIRED" ? "Required" : "Recommended"}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+              <TouchableOpacity
+                style={styles.guideAction}
+                onPress={() => navigation.navigate("InsuranceManagement")}
+              >
+                <Text style={styles.guideActionText}>Manage insurance guide</Text>
+                <Ionicons name="chevron-forward" size={15} color="#92400e" />
+              </TouchableOpacity>
+            </View>
+          )}
 
           {insurancePolicies.length === 0 ? (
             <View style={styles.emptyCard}>
@@ -576,6 +631,50 @@ const styles = StyleSheet.create({
   autoCreateText: { fontSize: 13, color: "#2B5EA7", fontWeight: "600" },
   manageBtn: { flexDirection: "row", alignItems: "center", gap: 2 },
   manageBtnText: { fontSize: 13, color: "#2B5EA7", fontWeight: "600" },
+  insuranceGuideCard: {
+    backgroundColor: "#fffbeb",
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#fde68a",
+  },
+  guideHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 },
+  guideTitle: { fontSize: 14, fontWeight: "700", color: "#92400e" },
+  guideRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 7,
+    borderTopWidth: 1,
+    borderTopColor: "#fde68a",
+  },
+  guideItemTitle: { fontSize: 13, color: "#1f2937", fontWeight: "600" },
+  guideItemReason: { fontSize: 11, color: "#92400e", marginTop: 2 },
+  guidePill: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, borderWidth: 1 },
+  guidePillRequired: { backgroundColor: "#fef2f2", borderColor: "#fecaca" },
+  guidePillRecommended: { backgroundColor: "#eff6ff", borderColor: "#bfdbfe" },
+  guidePillText: { fontSize: 9, fontWeight: "800" },
+  guidePillTextRequired: { color: "#dc2626" },
+  guidePillTextRecommended: { color: "#2563eb" },
+  guideAction: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 2,
+    marginTop: 8,
+  },
+  guideActionText: { fontSize: 12, color: "#92400e", fontWeight: "700" },
+  taxNoticeCard: {
+    backgroundColor: "#eff6ff",
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: "#bfdbfe",
+  },
+  taxNoticeTitle: { fontSize: 14, fontWeight: "700", color: "#1d4ed8" },
+  taxNoticeText: { fontSize: 12, color: "#1e3a8a", lineHeight: 18 },
   addButton: {
     marginTop: 12,
     backgroundColor: "#2B5EA7",

@@ -536,7 +536,7 @@ export default function ProviderRequestDetailsScreen({
         partsCost,
         laborCost,
         additionalFees: 0,
-        taxAmount: 0, // Tax calculated by jurisdiction - can be set later
+        taxAmount: 0,
         partsList,
         laborDescription: laborDescription || undefined,
         estimatedHours: estimatedDuration
@@ -585,29 +585,7 @@ export default function ProviderRequestDetailsScreen({
   };
 
   const calculateTotal = () => {
-    return calculateSubtotal() + calculateDisplacementCost() + calculateSalesTax();
-  };
-
-  // D15 — Auto Sales Tax calculation (FL 7% on parts, configurable by state)
-  const SALES_TAX_RATES: Record<string, { rate: number; label: string; partsOnly: boolean }> = {
-    FL: { rate: 0.07, label: 'FL Sales Tax (7%)', partsOnly: true },
-    CA: { rate: 0.0725, label: 'CA Sales Tax (7.25%)', partsOnly: true },
-    TX: { rate: 0.0625, label: 'TX Sales Tax (6.25%)', partsOnly: true },
-    NY: { rate: 0.08, label: 'NY Sales Tax (8%)', partsOnly: true },
-  };
-
-  const providerState = 'FL'; // Would come from provider profile in production
-  const calculateSalesTax = () => {
-    const taxConfig = SALES_TAX_RATES[providerState];
-    if (!taxConfig) return 0;
-    if (taxConfig.partsOnly) {
-      // Tax only on parts, not labor
-      const partsTotal = lineItems
-        .filter(item => item.description?.toLowerCase().includes('part') || item.description?.toLowerCase().includes('filter') || item.description?.toLowerCase().includes('oil') || !item.description?.toLowerCase().includes('labor'))
-        .reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
-      return partsTotal * taxConfig.rate;
-    }
-    return calculateSubtotal() * taxConfig.rate;
+    return calculateSubtotal() + calculateDisplacementCost();
   };
 
   // Uses centralized service type info from serviceTree.ts
@@ -2121,26 +2099,19 @@ export default function ProviderRequestDetailsScreen({
                 </View>
               )}
 
-              {/* Sales Tax (auto-calculated for applicable states) */}
-              {calculateSalesTax() > 0 && (() => {
-                const providerState = request?.provider?.state || request?.provider?.address?.state || 'FL';
-                const taxRate = SALES_TAX_RATES[providerState as keyof typeof SALES_TAX_RATES];
-                return (
-                  <View style={styles.displacementTotalContainer}>
-                    <View>
-                      <Text style={styles.displacementTotalLabelSmall}>
-                        {`Sales Tax (${providerState} ${(taxRate * 100).toFixed(0)}% on parts)`}
-                      </Text>
-                      <Text style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>
-                        Auto-calculated • Parts only
-                      </Text>
-                    </View>
-                    <Text style={styles.displacementTotalValueSmall}>
-                      + ${calculateSalesTax().toFixed(2)}
-                    </Text>
-                  </View>
-                );
-              })()}
+              <View style={styles.displacementTotalContainer}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.displacementTotalLabelSmall}>
+                    Marketplace sales tax
+                  </Text>
+                  <Text style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>
+                    TechTrust calculates and collects applicable tax at customer checkout.
+                  </Text>
+                </View>
+                <Text style={styles.displacementTotalValueSmall}>
+                  Not included
+                </Text>
+              </View>
 
               {/* Grand Total */}
               <View style={styles.grandTotalContainer}>
@@ -2148,12 +2119,9 @@ export default function ProviderRequestDetailsScreen({
                   <Text style={styles.grandTotalLabel}>
                     {t.quote?.grandTotal || "Grand Total"}
                   </Text>
-                  {(isMobileService && calculateDisplacementCost() > 0) || calculateSalesTax() > 0 ? (
+                  {isMobileService && calculateDisplacementCost() > 0 ? (
                     <Text style={styles.grandTotalNote}>
-                      {[
-                        isMobileService && calculateDisplacementCost() > 0 ? (t.quote?.totalWithDisplacement || "Incl. Displacement") : null,
-                        calculateSalesTax() > 0 ? "Incl. Tax" : null,
-                      ].filter(Boolean).join(' + ')}
+                      {t.quote?.totalWithDisplacement || "Incl. Displacement"}
                     </Text>
                   ) : null}
                 </View>

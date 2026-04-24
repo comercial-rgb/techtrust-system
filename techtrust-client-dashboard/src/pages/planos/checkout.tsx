@@ -3,12 +3,13 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { useAuth } from '../../contexts/AuthContext';
 import DashboardLayout from '../../components/DashboardLayout';
+import { api } from '../../services/api';
 import { Loader2, CheckCircle, XCircle, CreditCard } from 'lucide-react';
 
 export default function CheckoutPage() {
   const { isAuthenticated, loading: authLoading } = useAuth();
   const router = useRouter();
-  const { secret, plan } = router.query;
+  const { secret, plan, type } = router.query;
   const [status, setStatus] = useState<'loading' | 'ready' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('');
 
@@ -22,16 +23,29 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (!secret) return;
 
-    // Load Stripe.js dynamically
-    const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
-    if (!publishableKey) {
-      setStatus('error');
-      setMessage('Stripe is not configured. Please contact support.');
-      return;
+    async function startCheckout() {
+      const publishableKey = await getStripePublishableKey();
+      if (!publishableKey) {
+        setStatus('error');
+        setMessage('Stripe is not configured. Please contact support.');
+        return;
+      }
+
+      loadStripeAndConfirm(publishableKey, secret as string);
     }
 
-    loadStripeAndConfirm(publishableKey, secret as string);
+    startCheckout();
   }, [secret]);
+
+  async function getStripePublishableKey() {
+    if (process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
+      return process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+    }
+
+    const response = await api.getStripeConfig();
+    const config = (response.data as any)?.data || response.data;
+    return config?.publishableKey;
+  }
 
   async function loadStripeAndConfirm(publishableKey: string, clientSecret: string) {
     try {
@@ -78,12 +92,19 @@ export default function CheckoutPage() {
           e.preventDefault();
           setStatus('loading');
 
-          const { error } = await stripe.confirmPayment({
-            elements,
-            confirmParams: {
-              return_url: `${window.location.origin}/planos/checkout?status=success&plan=${plan}`,
-            },
-          });
+          const returnUrl = `${window.location.origin}/planos/checkout?status=success&plan=${plan}`;
+          const confirmation =
+            type === 'setup' || clientSecret.startsWith('seti_')
+              ? await stripe.confirmSetup({
+                  elements,
+                  confirmParams: { return_url: returnUrl },
+                })
+              : await stripe.confirmPayment({
+                  elements,
+                  confirmParams: { return_url: returnUrl },
+                });
+
+          const { error } = confirmation;
 
           if (error) {
             setStatus('error');
@@ -128,7 +149,9 @@ export default function CheckoutPage() {
         <Head><title>Payment Successful - TechTrust</title></Head>
         <div className="max-w-md mx-auto mt-20 text-center">
           <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Payment Successful!</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            {type === 'setup' ? 'Trial Started!' : 'Payment Successful!'}
+          </h1>
           <p className="text-gray-500 mb-6">
             Your {(plan as string)?.charAt(0).toUpperCase()}{(plan as string)?.slice(1)} plan is now active.
           </p>
@@ -170,7 +193,9 @@ export default function CheckoutPage() {
       <div className="max-w-lg mx-auto mt-10 px-4">
         <div className="text-center mb-8">
           <CreditCard className="w-12 h-12 text-primary-600 mx-auto mb-3" />
-          <h1 className="text-2xl font-bold text-gray-900">Complete Your Subscription</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {type === 'setup' ? 'Start Your Trial' : 'Complete Your Subscription'}
+          </h1>
           <p className="text-gray-500 mt-1">
             {plan && `Subscribing to the ${(plan as string).charAt(0).toUpperCase()}${(plan as string).slice(1)} plan`}
           </p>
@@ -195,7 +220,7 @@ export default function CheckoutPage() {
               {status === 'loading' ? (
                 <Loader2 className="w-5 h-5 animate-spin mx-auto" />
               ) : (
-                'Subscribe Now'
+                type === 'setup' ? 'Save Card & Start Trial' : 'Subscribe Now'
               )}
             </button>
           </form>

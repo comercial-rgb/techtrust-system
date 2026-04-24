@@ -11,6 +11,8 @@ import { geocodeAddress, formatAddress } from "../services/geocoding.service";
 import { findProvidersWithinRadius } from "../utils/distance";
 import { RAW_TO_SERVICE_OFFERED } from "../config/service-type-mapping";
 import { logger } from "../config/logger";
+import { buildProviderDisclosure } from "../utils/provider-disclosures";
+import { buildInsuranceRequirementChecklist } from "../utils/insurance-requirements";
 
 /**
  * GET /api/v1/providers/dashboard
@@ -285,6 +287,10 @@ export const updateProfile = async (req: Request, res: Response) => {
   const providerId = req.user!.id;
   const {
     businessName,
+    legalName,
+    ein,
+    sunbizDocumentNumber,
+    businessIdentityStatus,
     businessPhone,
     businessEmail,
     address,
@@ -299,6 +305,17 @@ export const updateProfile = async (req: Request, res: Response) => {
     freeKm,
     extraFeePerKm,
     fdacsRegistrationNumber,
+    cityBusinessTaxReceiptNumber,
+    countyBusinessTaxReceiptNumber,
+    businessTaxReceiptStatus,
+    payoutMethod,
+    zelleEmail,
+    zellePhone,
+    bankTransferLabel,
+    payoutInstructions,
+    marketplaceFacilitatorTaxAcknowledged,
+    insuranceDisclosureAccepted,
+    insuranceDisclosureDeclined,
     servicesOffered,
     vehicleTypesServed,
     sellsParts,
@@ -328,6 +345,11 @@ export const updateProfile = async (req: Request, res: Response) => {
     create: {
       userId: providerId,
       businessName: businessName || "My Business",
+      legalName: legalName || null,
+      ein: ein || null,
+      sunbizDocumentNumber: sunbizDocumentNumber || null,
+      businessIdentityStatus: businessIdentityStatus ||
+        (legalName || ein || sunbizDocumentNumber ? "PROVIDED_UNVERIFIED" : "NOT_PROVIDED"),
       businessPhone: businessPhone || "",
       businessEmail: businessEmail || "",
       address: address || "",
@@ -344,6 +366,18 @@ export const updateProfile = async (req: Request, res: Response) => {
       specialties: specialties || [],
       businessHours: businessHours || {},
       fdacsRegistrationNumber: fdacsRegistrationNumber || null,
+      cityBusinessTaxReceiptNumber: cityBusinessTaxReceiptNumber || null,
+      countyBusinessTaxReceiptNumber: countyBusinessTaxReceiptNumber || null,
+      businessTaxReceiptStatus: businessTaxReceiptStatus ||
+        (cityBusinessTaxReceiptNumber || countyBusinessTaxReceiptNumber ? "PROVIDED_UNVERIFIED" : "NOT_PROVIDED"),
+      payoutMethod: payoutMethod || "MANUAL",
+      zelleEmail: zelleEmail || null,
+      zellePhone: zellePhone || null,
+      bankTransferLabel: bankTransferLabel || null,
+      payoutInstructions: payoutInstructions || null,
+      marketplaceFacilitatorTaxAcknowledged: marketplaceFacilitatorTaxAcknowledged !== false,
+      insuranceDisclosureAcceptedAt: insuranceDisclosureAccepted ? new Date() : null,
+      insuranceDisclosureDeclinedAt: insuranceDisclosureDeclined ? new Date() : null,
       servicesOffered: servicesOffered || [],
       vehicleTypesServed: vehicleTypesServed || [],
       sellsParts: sellsParts || false,
@@ -354,6 +388,21 @@ export const updateProfile = async (req: Request, res: Response) => {
     },
     update: {
       ...(businessName && { businessName }),
+      ...(legalName !== undefined && { legalName: legalName || null }),
+      ...(ein !== undefined && { ein: ein || null }),
+      ...(sunbizDocumentNumber !== undefined && {
+        sunbizDocumentNumber: sunbizDocumentNumber || null,
+      }),
+      ...((businessIdentityStatus !== undefined ||
+        legalName !== undefined ||
+        ein !== undefined ||
+        sunbizDocumentNumber !== undefined) && {
+        businessIdentityStatus:
+          businessIdentityStatus ||
+          (legalName || ein || sunbizDocumentNumber
+            ? "PROVIDED_UNVERIFIED"
+            : "NOT_PROVIDED"),
+      }),
       ...(businessPhone && { businessPhone }),
       ...(businessEmail && { businessEmail }),
       ...(address !== undefined && { address }),
@@ -374,6 +423,31 @@ export const updateProfile = async (req: Request, res: Response) => {
       ...(fdacsRegistrationNumber !== undefined && {
         fdacsRegistrationNumber: fdacsRegistrationNumber || null,
       }),
+      ...(cityBusinessTaxReceiptNumber !== undefined && {
+        cityBusinessTaxReceiptNumber: cityBusinessTaxReceiptNumber || null,
+      }),
+      ...(countyBusinessTaxReceiptNumber !== undefined && {
+        countyBusinessTaxReceiptNumber: countyBusinessTaxReceiptNumber || null,
+      }),
+      ...((businessTaxReceiptStatus !== undefined ||
+        cityBusinessTaxReceiptNumber !== undefined ||
+        countyBusinessTaxReceiptNumber !== undefined) && {
+        businessTaxReceiptStatus:
+          businessTaxReceiptStatus ||
+          (cityBusinessTaxReceiptNumber || countyBusinessTaxReceiptNumber
+            ? "PROVIDED_UNVERIFIED"
+            : "NOT_PROVIDED"),
+      }),
+      ...(payoutMethod !== undefined && { payoutMethod: payoutMethod || "MANUAL" }),
+      ...(zelleEmail !== undefined && { zelleEmail: zelleEmail || null }),
+      ...(zellePhone !== undefined && { zellePhone: zellePhone || null }),
+      ...(bankTransferLabel !== undefined && { bankTransferLabel: bankTransferLabel || null }),
+      ...(payoutInstructions !== undefined && { payoutInstructions: payoutInstructions || null }),
+      ...(marketplaceFacilitatorTaxAcknowledged !== undefined && {
+        marketplaceFacilitatorTaxAcknowledged: marketplaceFacilitatorTaxAcknowledged !== false,
+      }),
+      ...(insuranceDisclosureAccepted && { insuranceDisclosureAcceptedAt: new Date() }),
+      ...(insuranceDisclosureDeclined && { insuranceDisclosureDeclinedAt: new Date() }),
       ...(servicesOffered !== undefined && { servicesOffered }),
       ...(vehicleTypesServed !== undefined && { vehicleTypesServed }),
       ...(sellsParts !== undefined && { sellsParts }),
@@ -383,7 +457,120 @@ export const updateProfile = async (req: Request, res: Response) => {
   res.json({
     success: true,
     message: "Perfil atualizado com sucesso",
-    data: profile,
+    data: {
+      ...profile,
+      disclosures: buildProviderDisclosure(profile),
+      insuranceRequirements: buildInsuranceRequirementChecklist(profile),
+    },
+  });
+};
+
+/**
+ * GET /api/v1/providers/onboarding-status
+ * Lightweight, non-blocking provider onboarding checklist.
+ */
+export const getOnboardingStatus = async (req: Request, res: Response) => {
+  const providerId = req.user!.id;
+
+  const profile = await prisma.providerProfile.findUnique({
+    where: { userId: providerId },
+    include: {
+      complianceItems: true,
+      insurancePolicies: true,
+    },
+  });
+
+  if (!profile) {
+    res.status(404).json({
+      success: false,
+      message: "Provider profile not found",
+    });
+    return;
+  }
+
+  const disclosures = buildProviderDisclosure(profile);
+  const profileComplete = Boolean(
+    profile.businessName &&
+      profile.address &&
+      profile.city &&
+      profile.state &&
+      profile.zipCode &&
+      Array.isArray(profile.servicesOffered) &&
+      profile.servicesOffered.length > 0,
+  );
+
+  const checklist = [
+    {
+      key: "profile",
+      label: "Business profile",
+      requiredToJoin: true,
+      blocksMarketplace: false,
+      complete: profileComplete,
+    },
+    {
+      key: "tax_acknowledgment",
+      label: "Marketplace facilitator tax acknowledgment",
+      requiredToJoin: true,
+      blocksMarketplace: false,
+      complete: profile.marketplaceFacilitatorTaxAcknowledged !== false,
+    },
+    {
+      key: "business_identity",
+      label: "Business identity verification",
+      requiredToJoin: false,
+      blocksMarketplace: false,
+      complete: profile.businessIdentityStatus === "VERIFIED",
+      note:
+        profile.businessIdentityStatus === "PROVIDED_UNVERIFIED"
+          ? "Submitted for manual review against official state/county records."
+          : "Optional during signup. Add legal name, EIN, or Sunbiz document number to speed up verification.",
+    },
+    {
+      key: "payout",
+      label: "Payout method",
+      requiredToJoin: false,
+      blocksMarketplace: false,
+      complete: Boolean(profile.stripeOnboardingCompleted || profile.zelleEmail || profile.zellePhone || profile.bankTransferLabel),
+      note: disclosures.payout.message,
+    },
+    {
+      key: "local_btr",
+      label: "City/County Business Tax Receipt",
+      requiredToJoin: false,
+      blocksMarketplace: false,
+      complete: disclosures.compliance.localBusinessTaxReceiptDeclared,
+      note: disclosures.compliance.message,
+    },
+    {
+      key: "fdacs",
+      label: "FDACS / state repair registration",
+      requiredToJoin: false,
+      blocksMarketplace: false,
+      complete: disclosures.compliance.fdacsDeclared,
+      note: "Recommended for Florida motor vehicle repair providers. Missing data is disclosed where applicable.",
+    },
+    {
+      key: "insurance",
+      label: "Insurance declaration",
+      requiredToJoin: false,
+      blocksMarketplace: false,
+      complete: disclosures.insurance.declared || disclosures.insurance.disclosureAccepted,
+      note: disclosures.insurance.message,
+    },
+  ];
+
+  res.json({
+    success: true,
+    data: {
+      profileId: profile.id,
+      providerPublicStatus: profile.providerPublicStatus,
+      canUsePlatform: true,
+      canReceiveManualPayouts: true,
+      canReceiveStripePayouts: Boolean(profile.stripeOnboardingCompleted),
+      checklist,
+      disclosures,
+      insuranceRequirements: buildInsuranceRequirementChecklist(profile),
+    },
   });
 };
 
@@ -431,6 +618,8 @@ export const searchProvidersByLocation = async (
           fullName: true,
         },
       },
+      insurancePolicies: true,
+      complianceItems: true,
     },
   });
 
@@ -491,6 +680,8 @@ export const searchProvidersByLocation = async (
         estimatedTimeMinutes: item.distanceInfo.estimatedTimeMinutes,
       },
       travelFee: item.distanceInfo.travelFee,
+      disclosures: buildProviderDisclosure(item),
+      insuranceRequirements: buildInsuranceRequirementChecklist(item),
     }));
 
     res.json({
@@ -516,6 +707,8 @@ export const searchProvidersByLocation = async (
       servicesOffered: p.servicesOffered,
       distance: null,
       travelFee: null,
+      disclosures: buildProviderDisclosure(p),
+      insuranceRequirements: buildInsuranceRequirementChecklist(p),
     }));
 
     res.json({

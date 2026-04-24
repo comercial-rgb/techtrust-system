@@ -21,25 +21,28 @@ import { useFocusEffect } from "@react-navigation/native";
 import * as DocumentPicker from "expo-document-picker";
 import {
   getInsurancePolicies,
+  getInsuranceRequirements,
   upsertInsurancePolicy,
   getInsuranceStatusLabel,
   INSURANCE_TYPE_LABELS,
   InsurancePolicy,
+  InsuranceRequirement,
 } from "../../services/compliance.service";
 import api from "../../services/api";
 
 const ALL_INSURANCE_TYPES = [
   "GENERAL_LIABILITY",
   "GARAGE_LIABILITY",
-  "GARAGE_KEEPERS",
+  "GARAGEKEEPERS",
   "COMMERCIAL_AUTO",
   "ON_HOOK",
   "WORKERS_COMP",
-  "PROFESSIONAL_LIABILITY",
+  "UMBRELLA_EXCESS",
 ];
 
 export default function InsuranceManagementScreen({ navigation }: any) {
   const [policies, setPolicies] = useState<InsurancePolicy[]>([]);
+  const [requirements, setRequirements] = useState<InsuranceRequirement[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [expandedType, setExpandedType] = useState<string | null>(null);
@@ -55,7 +58,7 @@ export default function InsuranceManagementScreen({ navigation }: any) {
         carrierName: string;
         policyNumber: string;
         expirationDate: string;
-        coverageAmount: string;
+        coverageLimit: string;
         coiUploads: string[];
       }
     >
@@ -63,14 +66,26 @@ export default function InsuranceManagementScreen({ navigation }: any) {
 
   const fetchData = useCallback(async () => {
     try {
-      const res = await getInsurancePolicies();
-      if (res.success) {
-        const fetched: InsurancePolicy[] = res.data.policies || [];
+      const [policyRes, requirementRes] = await Promise.all([
+        getInsurancePolicies(),
+        getInsuranceRequirements().catch(() => null),
+      ]);
+      if (requirementRes?.success) {
+        setRequirements(requirementRes.data?.requirements || []);
+      }
+      if (policyRes.success) {
+        const fetched: InsurancePolicy[] = policyRes.data.policies || [];
         setPolicies(fetched);
 
         // Initialize form state from existing policies
         const formState: typeof forms = {};
-        ALL_INSURANCE_TYPES.forEach((type) => {
+        const visibleTypes = Array.from(
+          new Set([
+            ...(requirementRes?.data?.requirements || []).map((item: InsuranceRequirement) => item.type),
+            ...ALL_INSURANCE_TYPES,
+          ]),
+        );
+        visibleTypes.forEach((type) => {
           const existing = fetched.find((p) => p.type === type);
           formState[type] = {
             hasCoverage: existing?.hasCoverage || false,
@@ -79,9 +94,7 @@ export default function InsuranceManagementScreen({ navigation }: any) {
             expirationDate: existing?.expirationDate
               ? new Date(existing.expirationDate).toISOString().split("T")[0]
               : "",
-            coverageAmount: existing?.coverageAmount
-              ? String(existing.coverageAmount)
-              : "",
+            coverageLimit: existing?.coverageLimit || "",
             coiUploads: existing?.coiUploads || [],
           };
         });
@@ -146,10 +159,14 @@ export default function InsuranceManagementScreen({ navigation }: any) {
     const form = forms[type];
     if (!form) return;
 
-    if (form.hasCoverage && (!form.carrierName || !form.policyNumber)) {
+    if (
+      form.hasCoverage &&
+      form.coiUploads.length === 0 &&
+      (!form.carrierName || !form.policyNumber || !form.expirationDate)
+    ) {
       Alert.alert(
         "Missing Info",
-        "Carrier name and policy number are required when coverage is declared.",
+        "Add carrier, policy number, expiration date, or upload a COI.",
       );
       return;
     }
@@ -162,9 +179,7 @@ export default function InsuranceManagementScreen({ navigation }: any) {
         carrierName: form.carrierName || undefined,
         policyNumber: form.policyNumber || undefined,
         expirationDate: form.expirationDate || undefined,
-        coverageAmount: form.coverageAmount
-          ? parseFloat(form.coverageAmount)
-          : undefined,
+        coverageLimit: form.coverageLimit || undefined,
         coiUploads: form.coiUploads.length > 0 ? form.coiUploads : undefined,
       });
       await fetchData();
@@ -222,12 +237,13 @@ export default function InsuranceManagementScreen({ navigation }: any) {
         }
       >
         <Text style={styles.infoText}>
-          Declare your insurance coverage for each type. Upload a Certificate of
-          Insurance (COI) for verification.
+          Insurance requirements are tailored to your services. Required coverage
+          becomes visible to customers when missing, provided, or verified.
         </Text>
 
-        {ALL_INSURANCE_TYPES.map((type) => {
+        {Array.from(new Set([...requirements.map((item) => item.type), ...ALL_INSURANCE_TYPES])).map((type) => {
           const existing = policies.find((p) => p.type === type);
+          const requirement = requirements.find((item) => item.type === type);
           const form = forms[type];
           const isExpanded = expandedType === type;
           const statusInfo = existing
@@ -251,6 +267,27 @@ export default function InsuranceManagementScreen({ navigation }: any) {
                   <Text style={styles.cardTitle}>
                     {INSURANCE_TYPE_LABELS[type]}
                   </Text>
+                  {requirement && (
+                    <View
+                      style={[
+                        styles.requirementBadge,
+                        requirement.level === "REQUIRED"
+                          ? styles.requiredBadge
+                          : styles.recommendedBadge,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.requirementBadgeText,
+                          requirement.level === "REQUIRED"
+                            ? styles.requiredBadgeText
+                            : styles.recommendedBadgeText,
+                        ]}
+                      >
+                        {requirement.level === "REQUIRED" ? "Required" : "Recommended"}
+                      </Text>
+                    </View>
+                  )}
                   {statusInfo && (
                     <View
                       style={[
@@ -275,6 +312,17 @@ export default function InsuranceManagementScreen({ navigation }: any) {
 
               {isExpanded && form && (
                 <View style={styles.cardBody}>
+                  {requirement && (
+                    <View style={styles.requirementInfo}>
+                      <Text style={styles.requirementReason}>
+                        {requirement.reason}
+                      </Text>
+                      <Text style={styles.customerBadgeText}>
+                        Customer badge: {requirement.customerVisibleBadge}
+                      </Text>
+                    </View>
+                  )}
+
                   {/* Coverage Toggle */}
                   <View style={styles.switchRow}>
                     <Text style={styles.switchLabel}>I have this coverage</Text>
@@ -345,17 +393,16 @@ export default function InsuranceManagementScreen({ navigation }: any) {
 
                       <View style={styles.field}>
                         <Text style={styles.fieldLabel}>
-                          Coverage Amount ($)
+                          Coverage Limit
                         </Text>
                         <TextInput
                           style={styles.input}
-                          value={form.coverageAmount}
+                          value={form.coverageLimit}
                           onChangeText={(v) =>
-                            updateForm(type, "coverageAmount", v)
+                            updateForm(type, "coverageLimit", v)
                           }
-                          placeholder="e.g., 1000000"
+                          placeholder="$1,000,000 / $2,000,000 agg"
                           placeholderTextColor="#9ca3af"
-                          keyboardType="numeric"
                         />
                       </View>
 
@@ -479,12 +526,33 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 14, fontWeight: "600", color: "#1f2937" },
   badge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
   badgeText: { fontSize: 10, fontWeight: "700" },
+  requirementBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  requiredBadge: { backgroundColor: "#fef2f2", borderColor: "#fecaca" },
+  recommendedBadge: { backgroundColor: "#eff6ff", borderColor: "#bfdbfe" },
+  requirementBadgeText: { fontSize: 9, fontWeight: "800" },
+  requiredBadgeText: { color: "#dc2626" },
+  recommendedBadgeText: { color: "#2563eb" },
   cardBody: {
     padding: 16,
     paddingTop: 0,
     borderTopWidth: 1,
     borderTopColor: "#f3f4f6",
   },
+  requirementInfo: {
+    backgroundColor: "#fffbeb",
+    borderWidth: 1,
+    borderColor: "#fde68a",
+    borderRadius: 10,
+    padding: 10,
+    marginTop: 12,
+  },
+  requirementReason: { fontSize: 12, color: "#92400e", lineHeight: 18 },
+  customerBadgeText: { fontSize: 11, color: "#a16207", marginTop: 4 },
   switchRow: {
     flexDirection: "row",
     alignItems: "center",

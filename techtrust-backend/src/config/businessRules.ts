@@ -244,6 +244,20 @@ export const TRIAL_POLICY = {
   REQUIRE_PAYMENT_METHOD: true,
   /** Plans eligible for free trial (exclude FREE plan) */
   ELIGIBLE_PLANS: ['STARTER', 'PRO', 'ENTERPRISE'] as const,
+  /** Trial users experience the product, but stay inside controlled usage limits */
+  MAX_VEHICLES: 2,
+  MAX_REQUESTS_PER_MONTH: 4,
+  MAX_ACTIVE_SIMULTANEOUS: 2,
+  /** High-value/operational features unlock when the user activates the paid plan */
+  LOCKED_FEATURES: [
+    'wallet',
+    'oemLookup',
+    'expenseReports',
+    'fleetDashboard',
+    'obd2Advanced',
+    'supplementApproval',
+    'vehicleTransfer',
+  ] as const,
 } as const;
 
 // ─── VEHICLE ADD-ON ─────────────────────────────────────────────────────────
@@ -1565,6 +1579,64 @@ export function isFeatureAvailable(plan: string, feature: string): boolean {
   const planConfig = SUBSCRIPTION_PLANS[plan as PlanKey];
   if (!planConfig) return false;
   return (planConfig.features as Record<string, boolean>)[feature] === true;
+}
+
+/**
+ * Trial is represented by an ACTIVE paid subscription with trialEnd in the future.
+ */
+export function isTrialActive(trialEnd?: Date | string | null): boolean {
+  if (!trialEnd) return false;
+  const trialEndDate = trialEnd instanceof Date ? trialEnd : new Date(trialEnd);
+  return !Number.isNaN(trialEndDate.getTime()) && trialEndDate.getTime() > Date.now();
+}
+
+export function isFeatureLockedDuringTrial(feature: string): boolean {
+  return (TRIAL_POLICY.LOCKED_FEATURES as readonly string[]).includes(feature);
+}
+
+export function isFeatureAvailableForSubscription(
+  plan: string,
+  feature: string,
+  trialEnd?: Date | string | null,
+): boolean {
+  if (!isFeatureAvailable(plan, feature)) return false;
+  if (isTrialActive(trialEnd) && isFeatureLockedDuringTrial(feature)) return false;
+  return true;
+}
+
+export function getEffectiveVehicleLimit(
+  plan: string,
+  storedLimit?: number | null,
+  trialEnd?: Date | string | null,
+): number {
+  const planConfig = SUBSCRIPTION_PLANS[plan as PlanKey];
+  const planLimit = planConfig?.maxVehicles ?? storedLimit ?? TRIAL_POLICY.MAX_VEHICLES;
+  return isTrialActive(trialEnd) ? Math.min(planLimit, TRIAL_POLICY.MAX_VEHICLES) : planLimit;
+}
+
+export function getEffectiveServiceRequestLimit(
+  plan: string,
+  storedLimit?: number | null,
+  trialEnd?: Date | string | null,
+): number | null {
+  const planConfig = SUBSCRIPTION_PLANS[plan as PlanKey];
+  const planLimit = planConfig?.maxRequestsPerMonth ?? storedLimit ?? null;
+
+  if (!isTrialActive(trialEnd)) return planLimit;
+  if (planLimit === null) return TRIAL_POLICY.MAX_REQUESTS_PER_MONTH;
+  return Math.min(planLimit, TRIAL_POLICY.MAX_REQUESTS_PER_MONTH);
+}
+
+export function getEffectiveActiveRequestLimit(
+  plan: string,
+  trialEnd?: Date | string | null,
+): number | null {
+  const planConfig = SUBSCRIPTION_PLANS[plan as PlanKey];
+  const planLimit = planConfig?.maxActiveSimultaneous ?? null;
+
+  if (!isTrialActive(trialEnd)) return planLimit;
+  if (planLimit === null) return TRIAL_POLICY.MAX_ACTIVE_SIMULTANEOUS;
+  return Math.min(planLimit, TRIAL_POLICY.MAX_ACTIVE_SIMULTANEOUS);
 }
 
 // ─── DEFAULT EXPORT ─────────────────────────────────────────────────────────

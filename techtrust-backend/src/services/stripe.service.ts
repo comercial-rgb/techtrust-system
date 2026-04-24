@@ -657,6 +657,7 @@ export async function createCheckoutSession(params: {
     line_items: [{ price: params.priceId, quantity: 1 }],
     success_url: params.successUrl,
     cancel_url: params.cancelUrl,
+    payment_method_collection: 'always',
     payment_method_types: ['card', 'us_bank_account'],
     payment_method_options: {
       us_bank_account: {
@@ -826,19 +827,26 @@ export async function createSubscription(params: {
 }): Promise<{
   subscriptionId: string;
   clientSecret?: string;
+  clientSecretType?: "payment" | "setup";
   status: string;
   currentPeriodEnd: Date;
+  trialEnd?: Date | null;
 }> {
   if (MOCK_STRIPE) {
     const now = new Date();
     const periodEnd = new Date(now);
     periodEnd.setMonth(periodEnd.getMonth() + 1);
+    const trialEnd = params.trialDays
+      ? new Date(now.getTime() + params.trialDays * 24 * 60 * 60 * 1000)
+      : null;
 
     return {
       subscriptionId: `mock_sub_${Date.now()}`,
       clientSecret: `mock_sub_secret_${Date.now()}`,
+      clientSecretType: params.trialDays ? "setup" : "payment",
       status: "active",
       currentPeriodEnd: periodEnd,
+      trialEnd,
     };
   }
 
@@ -851,7 +859,7 @@ export async function createSubscription(params: {
     payment_settings: {
       save_default_payment_method: "on_subscription",
     },
-    expand: ["latest_invoice.payment_intent"],
+    expand: ["latest_invoice.payment_intent", "pending_setup_intent"],
     metadata: params.metadata || {},
   };
 
@@ -863,6 +871,8 @@ export async function createSubscription(params: {
 
   const invoice = subscription.latest_invoice as Stripe.Invoice;
   const paymentIntent = invoice?.payment_intent as Stripe.PaymentIntent;
+  const setupIntent = (subscription as any).pending_setup_intent as Stripe.SetupIntent | null;
+  const clientSecret = paymentIntent?.client_secret || setupIntent?.client_secret || undefined;
 
   logger.info(
     `Subscription criada: ${subscription.id} (${subscription.status})`,
@@ -870,9 +880,51 @@ export async function createSubscription(params: {
 
   return {
     subscriptionId: subscription.id,
-    clientSecret: paymentIntent?.client_secret || undefined,
+    clientSecret,
+    clientSecretType: setupIntent?.client_secret ? "setup" : paymentIntent?.client_secret ? "payment" : undefined,
     status: subscription.status,
     currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+    trialEnd: subscription.trial_end
+      ? new Date(subscription.trial_end * 1000)
+      : null,
+  };
+}
+
+/**
+ * End a trial immediately. Stripe creates/finalizes the first invoice according
+ * to the subscription's saved payment method and billing settings.
+ */
+export async function endSubscriptionTrialNow(subscriptionId: string): Promise<{
+  status: string;
+  currentPeriodStart: Date;
+  currentPeriodEnd: Date;
+  trialEnd?: Date | null;
+}> {
+  if (MOCK_STRIPE) {
+    const now = new Date();
+    const periodEnd = new Date(now);
+    periodEnd.setMonth(periodEnd.getMonth() + 1);
+    return {
+      status: "active",
+      currentPeriodStart: now,
+      currentPeriodEnd: periodEnd,
+      trialEnd: null,
+    };
+  }
+
+  const s = getStripe();
+  const sub = await s.subscriptions.update(subscriptionId, {
+    trial_end: "now",
+    proration_behavior: "none",
+  });
+
+  logger.info(`Subscription trial ended now: ${subscriptionId} (${sub.status})`);
+
+  return {
+    status: sub.status,
+    currentPeriodStart: new Date(sub.current_period_start * 1000),
+    currentPeriodEnd: new Date(sub.current_period_end * 1000),
+    trialEnd: sub.trial_end ? new Date(sub.trial_end * 1000) : null,
   };
 }
 

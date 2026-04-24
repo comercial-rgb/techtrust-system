@@ -33,6 +33,22 @@ interface Quote {
     businessName: string;
     rating: number;
     totalReviews: number;
+    disclosures?: {
+      insurance?: {
+        customerWarningRequired?: boolean;
+        message?: string;
+      };
+      tax?: {
+        message?: string;
+      };
+    };
+    insuranceRequirements?: Array<{
+      type: string;
+      label: string;
+      level: "REQUIRED" | "RECOMMENDED";
+      complete: boolean;
+      customerVisibleBadge: string;
+    }>;
   };
   partsCost: number;
   laborCost: number;
@@ -126,6 +142,8 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
                 "Provider",
               rating: q.provider?.providerProfile?.averageRating || 0,
               totalReviews: q.provider?.providerProfile?.totalReviews || 0,
+              disclosures: q.provider?.providerProfile?.disclosures,
+              insuranceRequirements: q.provider?.providerProfile?.insuranceRequirements || [],
             },
             partsCost: q.partsCost || 0,
             laborCost: q.laborCost || 0,
@@ -138,7 +156,33 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
         try {
           const quotesRes = await api.get(`/quotes/service-requests/${requestId}`);
           const quotesData = quotesRes.data.data || quotesRes.data || [];
-          setQuotes(Array.isArray(quotesData) ? quotesData : []);
+          setQuotes(
+            Array.isArray(quotesData)
+              ? quotesData.map((q: any) => ({
+                  id: q.id,
+                  provider: {
+                    id: q.provider?.id || q.providerId,
+                    businessName:
+                      q.provider?.providerProfile?.businessName ||
+                      q.provider?.businessName ||
+                      q.provider?.fullName ||
+                      "Provider",
+                    rating: q.provider?.providerProfile?.averageRating || q.provider?.rating || 0,
+                    totalReviews:
+                      q.provider?.providerProfile?.totalReviews ||
+                      q.provider?.totalReviews ||
+                      0,
+                    disclosures: q.provider?.providerProfile?.disclosures,
+                    insuranceRequirements: q.provider?.providerProfile?.insuranceRequirements || [],
+                  },
+                  partsCost: q.partsCost || 0,
+                  laborCost: q.laborCost || 0,
+                  totalAmount: q.totalAmount || q.totalCost || 0,
+                  estimatedTime: q.estimatedTime || q.estimatedCompletionTime || "",
+                  description: q.description || q.notes || "",
+                }))
+              : [],
+          );
         } catch {
           setQuotes([]);
         }
@@ -660,6 +704,32 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
               {quote.estimatedTime ? <><View style={s.costDividerV} /><View style={s.costItem}><Text style={s.costLabel}>{t.workOrder?.estimatedTime || "Est. Time"}</Text><Text style={s.costValue}>{quote.estimatedTime}</Text></View></> : null}
             </View>
 
+            {quote.provider.disclosures?.insurance?.customerWarningRequired && (
+              <View style={s.disclosureWarning}>
+                <Ionicons name="warning-outline" size={16} color="#b45309" />
+                <Text style={s.disclosureWarningText}>
+                  {quote.provider.disclosures.insurance.message ||
+                    "This provider has not supplied insurance information. TechTrust does not provide insurance coverage for this provider's work."}
+                </Text>
+              </View>
+            )}
+
+            {quote.provider.insuranceRequirements?.some(
+              (item) => item.level === "REQUIRED" && !item.complete,
+            ) && (
+              <View style={s.disclosureWarning}>
+                <Ionicons name="shield-outline" size={16} color="#b45309" />
+                <Text style={s.disclosureWarningText}>
+                  Required insurance missing for this provider's services:{" "}
+                  {quote.provider.insuranceRequirements
+                    .filter((item) => item.level === "REQUIRED" && !item.complete)
+                    .map((item) => item.label)
+                    .join(", ")}
+                  . TechTrust does not provide insurance coverage for this provider's work.
+                </Text>
+              </View>
+            )}
+
             <View style={s.quoteActions}>
               <TouchableOpacity style={s.chatBtn} onPress={(e) => { e.stopPropagation(); handleChat(quote); }}>
                 <Ionicons name="chatbubble-outline" size={16} color="#2B5EA7" /><Text style={s.chatText}>{(t.common as any)?.chat || "Chat"}</Text>
@@ -797,6 +867,8 @@ const s = StyleSheet.create({
   costLabel: { fontSize: 11, color: "#9ca3af", marginBottom: 2 },
   costValue: { fontSize: 13, fontWeight: "600", color: "#374151" },
   costDividerV: { width: 1, height: 28, backgroundColor: "#e5e7eb" },
+  disclosureWarning: { flexDirection: "row", alignItems: "flex-start", gap: 8, backgroundColor: "#fffbeb", borderWidth: 1, borderColor: "#fde68a", borderRadius: 10, padding: 10, marginBottom: 12 },
+  disclosureWarningText: { flex: 1, fontSize: 12, color: "#92400e", lineHeight: 18 },
   quoteActions: { flexDirection: "row", gap: 10 },
   chatBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#eff6ff", paddingVertical: 11, borderRadius: 10 },
   chatText: { fontSize: 13, fontWeight: "600", color: "#2B5EA7" },

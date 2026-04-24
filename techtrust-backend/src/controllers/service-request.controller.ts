@@ -19,9 +19,13 @@ import {
   RENEWAL_RULES,
   SERVICE_FLOW,
   calculateCancellationFee,
+  getEffectiveActiveRequestLimit,
+  getEffectiveServiceRequestLimit,
   getServiceRequestExpirationHours,
   type PlanKey,
 } from "../config/businessRules";
+import { buildProviderDisclosure } from "../utils/provider-disclosures";
+import { buildInsuranceRequirementChecklist } from "../utils/insurance-requirements";
 
 function resolveServiceType(raw: string): ServiceType {
   // If it already matches a Prisma enum value, use it directly
@@ -123,7 +127,13 @@ export const createServiceRequest = async (req: Request, res: Response) => {
   }
 
   // Se tem limite mensal, verificar
-  if (subscription.maxServiceRequestsPerMonth) {
+  const effectiveRequestLimit = getEffectiveServiceRequestLimit(
+    subscription.plan,
+    subscription.maxServiceRequestsPerMonth,
+    subscription.trialEnd,
+  );
+
+  if (effectiveRequestLimit !== null) {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
@@ -136,9 +146,13 @@ export const createServiceRequest = async (req: Request, res: Response) => {
       },
     });
 
-    if (requestsThisMonth >= subscription.maxServiceRequestsPerMonth) {
+    if (requestsThisMonth >= effectiveRequestLimit) {
+      const trialSuffix = subscription.trialEnd && subscription.trialEnd.getTime() > Date.now()
+        ? " durante o trial. Ative seu plano para liberar o limite completo."
+        : "";
+
       throw new AppError(
-        `Você atingiu o limite de ${subscription.maxServiceRequestsPerMonth} solicitações por mês do plano ${subscription.plan}`,
+        `Você atingiu o limite de ${effectiveRequestLimit} solicitações por mês do plano ${subscription.plan}${trialSuffix}`,
         403,
         "REQUEST_LIMIT_REACHED",
       );
@@ -163,11 +177,17 @@ export const createServiceRequest = async (req: Request, res: Response) => {
 
   // Limites de solicitações ativas por plano (from businessRules SUBSCRIPTION_PLANS)
   const planConfig = SUBSCRIPTION_PLANS[subscription.plan as PlanKey];
-  const maxActive = planConfig?.maxActiveSimultaneous ?? 2;
+  const maxActive = getEffectiveActiveRequestLimit(subscription.plan, subscription.trialEnd)
+    ?? planConfig?.maxActiveSimultaneous
+    ?? 2;
 
   if (activeRequests >= maxActive) {
+    const trialSuffix = subscription.trialEnd && subscription.trialEnd.getTime() > Date.now()
+      ? " durante o trial. Ative seu plano para liberar o limite completo."
+      : "";
+
     throw new AppError(
-      `Você tem ${activeRequests} solicitações ativas. Limite do plano ${subscription.plan}: ${maxActive}`,
+      `Você tem ${activeRequests} solicitações ativas. Limite do plano ${subscription.plan}: ${maxActive}${trialSuffix}`,
       403,
       "ACTIVE_REQUESTS_LIMIT",
     );
@@ -422,6 +442,20 @@ export const getServiceRequest = async (req: Request, res: Response) => {
                   address: true,
                   city: true,
                   state: true,
+                  businessType: true,
+                  businessTypeCat: true,
+                  servicesOffered: true,
+                  insuranceVerified: true,
+                  insuranceDisclosureAcceptedAt: true,
+                  fdacsRegistrationNumber: true,
+                  cityBusinessTaxReceiptNumber: true,
+                  countyBusinessTaxReceiptNumber: true,
+                  businessTaxReceiptStatus: true,
+                  marketplaceFacilitatorTaxAcknowledged: true,
+                  stripeOnboardingCompleted: true,
+                  payoutMethod: true,
+                  insurancePolicies: true,
+                  complianceItems: true,
                 },
               },
             },
@@ -446,9 +480,28 @@ export const getServiceRequest = async (req: Request, res: Response) => {
     throw new AppError("Solicitação não encontrada", 404, "REQUEST_NOT_FOUND");
   }
 
+  const enrichedRequest = {
+    ...request,
+    quotes: request.quotes.map((quote) => ({
+      ...quote,
+      provider: quote.provider
+        ? {
+            ...quote.provider,
+            providerProfile: quote.provider.providerProfile
+              ? {
+                  ...quote.provider.providerProfile,
+                  disclosures: buildProviderDisclosure(quote.provider.providerProfile),
+                  insuranceRequirements: buildInsuranceRequirementChecklist(quote.provider.providerProfile),
+                }
+              : null,
+          }
+        : quote.provider,
+    })),
+  };
+
   res.json({
     success: true,
-    data: request,
+    data: enrichedRequest,
   });
 };
 

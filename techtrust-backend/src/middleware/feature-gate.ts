@@ -9,7 +9,15 @@
 import { Request, Response, NextFunction } from 'express';
 import { AppError } from './error-handler';
 import { prisma } from '../config/database';
-import { isFeatureAvailable, SUBSCRIPTION_PLANS, PlanKey } from '../config/businessRules';
+import {
+  getEffectiveServiceRequestLimit,
+  getEffectiveVehicleLimit,
+  isFeatureAvailableForSubscription,
+  isFeatureLockedDuringTrial,
+  isTrialActive,
+  SUBSCRIPTION_PLANS,
+  PlanKey,
+} from '../config/businessRules';
 
 /**
  * Middleware factory: require a specific feature to be enabled for the user's plan.
@@ -28,15 +36,22 @@ export function requireFeature(featureKey: string) {
     });
 
     const plan = subscription?.plan ?? 'FREE';
+    const trialActive = isTrialActive(subscription?.trialEnd);
 
-    if (!isFeatureAvailable(plan, featureKey)) {
+    if (!isFeatureAvailableForSubscription(plan, featureKey, subscription?.trialEnd)) {
       // Find the minimum plan that has this feature
       const upgradeHint = getMinimumPlanForFeature(featureKey);
+      const message = trialActive && isFeatureLockedDuringTrial(featureKey)
+        ? 'This feature unlocks when you activate your paid plan. You can end your trial anytime.'
+        : `This feature requires a ${upgradeHint} plan or higher. Please upgrade your subscription.`;
+
       return next(
         new AppError(
-          `This feature requires a ${upgradeHint} plan or higher. Please upgrade your subscription.`,
+          message,
           403,
-          'FEATURE_NOT_AVAILABLE',
+          trialActive && isFeatureLockedDuringTrial(featureKey)
+            ? 'TRIAL_FEATURE_LOCKED'
+            : 'FEATURE_NOT_AVAILABLE',
         ),
       );
     }
@@ -75,7 +90,7 @@ export async function checkVehicleLimit(req: Request, _res: Response, next: Next
   });
 
   const plan = (subscription?.plan ?? 'FREE') as PlanKey;
-  const planLimit = SUBSCRIPTION_PLANS[plan].maxVehicles ?? Infinity;
+  const planLimit = getEffectiveVehicleLimit(plan, subscription?.maxVehicles, subscription?.trialEnd);
 
   // Count active vehicle add-ons
   const addOnCount = subscription
@@ -118,7 +133,11 @@ export async function checkServiceRequestLimit(req: Request, _res: Response, nex
   });
 
   const plan = (subscription?.plan ?? 'FREE') as PlanKey;
-  const monthlyLimit = SUBSCRIPTION_PLANS[plan].maxRequestsPerMonth;
+  const monthlyLimit = getEffectiveServiceRequestLimit(
+    plan,
+    subscription?.maxServiceRequestsPerMonth,
+    subscription?.trialEnd,
+  );
 
   // null = unlimited
   if (monthlyLimit === null) {

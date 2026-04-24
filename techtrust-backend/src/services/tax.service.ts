@@ -189,6 +189,22 @@ export async function calculateSalesTax(
     }
   }
 
+  if (state !== "FL") {
+    logger.warn(
+      `Sales tax fallback supports Florida only. Enable STRIPE_TAX_ENABLED=true for ${state}.`,
+    );
+    return {
+      salesTaxAmount: 0,
+      salesTaxRate: 0,
+      stateRate: 0,
+      countySurtaxRate: 0,
+      taxableAmount,
+      county: county || "unknown",
+      state,
+      calculatedViaStripeTax: false,
+    };
+  }
+
   // Manual fallback: FL county surtax table
   return calculateManualFlorida(taxableAmount, county, state);
 }

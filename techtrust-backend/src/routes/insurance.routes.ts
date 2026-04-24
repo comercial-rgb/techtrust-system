@@ -7,6 +7,9 @@ const router = Router();
 
 router.use(authenticate);
 
+// GET /insurance/requirements - Required/recommended insurance for current provider capabilities
+router.get("/requirements", asyncHandler(insuranceController.getInsuranceRequirements));
+
 // GET /insurance - Get insurance policies for current provider
 router.get("/", asyncHandler(insuranceController.getInsurancePolicies));
 

@@ -13,8 +13,10 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Text, useTheme } from "react-native-paper";
+import * as WebBrowser from "expo-web-browser";
 import { useAuth } from "../contexts/AuthContext";
 import { useI18n } from "../i18n";
+import * as paymentService from "../services/payment.service";
 
 // ✨ Importando componentes de UI
 import {
@@ -41,6 +43,7 @@ export default function OTPScreen({ route, navigation }: any) {
     | "email"
     | undefined;
   const routeEmail = route?.params?.email as string | undefined;
+  const routeSelectedPlan = route?.params?.selectedPlan as string | undefined;
 
   const [userId, setUserId] = useState<string | null>(routeUserId ?? null);
   const [phone, setPhone] = useState<string | null>(routePhone ?? null);
@@ -48,6 +51,9 @@ export default function OTPScreen({ route, navigation }: any) {
     routeOtpMethod || "sms",
   );
   const [email, setEmail] = useState<string | null>(routeEmail ?? null);
+  const [selectedPlan, setSelectedPlan] = useState<string>(
+    (routeSelectedPlan || "free").toLowerCase(),
+  );
 
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
@@ -84,6 +90,9 @@ export default function OTPScreen({ route, navigation }: any) {
         if (pending?.phone) setPhone(pending.phone);
         if (pending?.otpMethod) setOtpMethod(pending.otpMethod);
         if (pending?.email) setEmail(pending.email);
+        if (pending?.selectedPlan) {
+          setSelectedPlan(String(pending.selectedPlan).toLowerCase());
+        }
       } catch {
         // ignore
       }
@@ -153,6 +162,22 @@ export default function OTPScreen({ route, navigation }: any) {
     setLoading(true);
     try {
       await verifyOTP(userId, otpCode, otpMethod);
+
+      if (selectedPlan && selectedPlan !== "free") {
+        const checkout = await paymentService.createSubscriptionCheckoutSession(
+          selectedPlan,
+          "monthly",
+        );
+
+        if (!checkout.checkoutUrl) {
+          throw new Error("Checkout URL was not returned.");
+        }
+
+        success("Account verified. Complete checkout to start your trial.");
+        await WebBrowser.openBrowserAsync(checkout.checkoutUrl);
+        return;
+      }
+
       success(t.auth?.verificationComplete || "Verification complete!");
     } catch (err: any) {
       setHasError(true);

@@ -10,6 +10,7 @@ import { prisma } from "../config/database";
 import { AppError } from "../middleware/error-handler";
 import { hashPassword, comparePassword } from "../utils/password";
 import { logger } from "../config/logger";
+import { buildProviderDisclosure } from "../utils/provider-disclosures";
 
 // ============================================
 // Helper: parse user-agent into device info
@@ -88,6 +89,16 @@ export const getMe = async (req: Request, res: Response) => {
           totalReviews: true,
           isVerified: true,
           fdacsRegistrationNumber: true,
+          insuranceVerified: true,
+          insuranceDisclosureAcceptedAt: true,
+          cityBusinessTaxReceiptNumber: true,
+          countyBusinessTaxReceiptNumber: true,
+          businessTaxReceiptStatus: true,
+          marketplaceFacilitatorTaxAcknowledged: true,
+          stripeOnboardingCompleted: true,
+          payoutMethod: true,
+          insurancePolicies: true,
+          complianceItems: true,
         },
       },
     },
@@ -111,7 +122,15 @@ export const getMe = async (req: Request, res: Response) => {
   res.json({
     success: true,
     data: {
-      user,
+      user: {
+        ...user,
+        providerProfile: user.providerProfile
+          ? {
+              ...user.providerProfile,
+              disclosures: buildProviderDisclosure(user.providerProfile),
+            }
+          : null,
+      },
       subscription,
     },
   });
