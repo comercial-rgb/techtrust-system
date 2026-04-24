@@ -1256,6 +1256,15 @@ model Payment {
   referralFee       Decimal  @default(0) @db.Decimal(10, 2)
   referralProviderId String?  // Provider who receives the referral fee
 
+  // ===== SALES TAX (Marketplace Facilitator - FL) =====
+  // TechTrust collects and remits sales tax as Marketplace Facilitator
+  salesTaxAmount       Decimal  @default(0) @db.Decimal(10, 2) // Calculated tax amount
+  salesTaxRate         Decimal  @default(0) @db.Decimal(5, 4)  // e.g. 0.0700 = 7%
+  salesTaxableAmount   Decimal  @default(0) @db.Decimal(10, 2) // Taxable base (parts only in FL)
+  salesTaxCounty       String?  // Customer county for surtax (e.g. "St. Lucie")
+  salesTaxState        String   @default("FL")                // State jurisdiction
+  stripeTaxCalculationId String? // Stripe Tax calculation ID for audit trail
+
   // Status
   status PaymentStatus @default(PENDING)
 
@@ -2055,6 +2064,13 @@ model Receipt {
   processingFee    Decimal @db.Decimal(10, 2)
   totalAmount      Decimal @db.Decimal(10, 2)
   supplementsTotal Decimal @default(0) @db.Decimal(10, 2)
+
+  // ===== SALES TAX (Marketplace Facilitator) =====
+  salesTaxAmount     Decimal  @default(0) @db.Decimal(10, 2)
+  salesTaxRate       Decimal  @default(0) @db.Decimal(5, 4)
+  salesTaxableAmount Decimal  @default(0) @db.Decimal(10, 2)
+  salesTaxCounty     String?
+  salesTaxState      String   @default("FL")
 
   // FDACS Compliance fields
   lineItems         Json    @default("[]") // Itemized parts/labor/merchandise with costs

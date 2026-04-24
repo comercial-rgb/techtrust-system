@@ -51,6 +51,19 @@ function getVehicleAddOnPriceId(plan: string) {
   return priceIdMap[normalizedPlan] || process.env.STRIPE_PRICE_VEHICLE_ADDON;
 }
 
+function getBillingReturnUrls(req: Request, fallbackPath: string) {
+  const frontendUrl =
+    process.env.FRONTEND_URL ||
+    process.env.CUSTOMER_APP_URL ||
+    process.env.PUBLIC_APP_URL ||
+    'https://techtrustautosolutions.com';
+
+  return {
+    successUrl: req.body.successUrl || `${frontendUrl}${fallbackPath}?stripe=success`,
+    cancelUrl: req.body.cancelUrl || `${frontendUrl}${fallbackPath}?stripe=cancelled`,
+  };
+}
+
 /**
  * GET /api/v1/subscriptions/me
  * Obter assinatura atual do usuário
@@ -183,10 +196,16 @@ router.post(
 
       // Cancelar atual e criar FREE
       if (currentSub) {
-        await prisma.subscription.update({
-          where: { id: currentSub.id },
-          data: { status: 'CANCELLED', cancelledAt: new Date() },
-        });
+        await prisma.$transaction([
+          prisma.vehicleAddOn.updateMany({
+            where: { subscriptionId: currentSub.id, isActive: true },
+            data: { isActive: false, cancelledAt: new Date() },
+          }),
+          prisma.subscription.update({
+            where: { id: currentSub.id },
+            data: { status: 'CANCELLED', cancelledAt: new Date() },
+          }),
+        ]);
       }
 
       const newSub = await prisma.subscription.create({
@@ -454,18 +473,24 @@ router.post(
       const periodEnd = new Date(now);
       periodEnd.setFullYear(periodEnd.getFullYear() + 100);
 
-      await prisma.subscription.create({
-        data: {
-          userId,
-          plan: 'FREE',
-          price: 0,
-          status: 'ACTIVE',
-          maxVehicles: 1,
-          maxServiceRequestsPerMonth: 3,
-          currentPeriodStart: now,
-          currentPeriodEnd: periodEnd,
-        },
-      });
+      await prisma.$transaction([
+        prisma.vehicleAddOn.updateMany({
+          where: { subscriptionId: subscription.id, isActive: true },
+          data: { isActive: false, cancelledAt: new Date() },
+        }),
+        prisma.subscription.create({
+          data: {
+            userId,
+            plan: 'FREE',
+            price: 0,
+            status: 'ACTIVE',
+            maxVehicles: 1,
+            maxServiceRequestsPerMonth: 3,
+            currentPeriodStart: now,
+            currentPeriodEnd: periodEnd,
+          },
+        }),
+      ]);
 
       res.json({
         success: true,
@@ -598,11 +623,10 @@ router.post(
       throw new AppError('No active subscription', 404, 'NO_SUBSCRIPTION');
     }
 
-    // Only paid plans can add vehicles
     const plan = subscription.plan as string;
     if (!(VEHICLE_ADD_ON.AVAILABLE_PLANS as readonly string[]).includes(plan)) {
       throw new AppError(
-        'Vehicle add-ons require a Starter plan or higher',
+        'Vehicle add-ons are not available for this plan',
         403,
         'PLAN_NOT_ELIGIBLE',
       );
@@ -621,35 +645,99 @@ router.post(
     let stripeItemId: string | null = null;
     const addonPriceId = getVehicleAddOnPriceId(plan);
 
-    if (subscription.stripeSubscriptionId && addonPriceId) {
+    if (!addonPriceId) {
+      throw new AppError(
+        `Stripe vehicle add-on Price ID is not configured for plan: ${plan}`,
+        500,
+        'ADDON_PRICE_NOT_CONFIGURED',
+      );
+    }
+
+    const addOnPrice = VEHICLE_ADD_ON.PRICE_BY_PLAN[plan] ?? 6.99;
+
+    if (addOnPrice <= 0) {
+      throw new AppError(
+        'This plan uses custom pricing for extra vehicles. Contact support to add more vehicle slots.',
+        400,
+        'ADDON_CUSTOM_PRICING',
+      );
+    }
+
+    if (subscription.stripeSubscriptionId) {
       const result = await stripeService.addSubscriptionItem({
         subscriptionId: subscription.stripeSubscriptionId,
         priceId: addonPriceId,
         metadata: { userId, vehicleId, type: 'vehicle_addon' },
       });
       stripeItemId = result.subscriptionItemId;
+
+      // Create add-on record only after Stripe accepted and charged/invoiced the item.
+      const addOn = await prisma.vehicleAddOn.create({
+        data: {
+          subscriptionId: subscription.id,
+          userId,
+          vehicleId,
+          monthlyPrice: addOnPrice,
+          stripeSubscriptionItemId: stripeItemId,
+          isActive: true,
+        },
+      });
+
+      logger.info(`Vehicle add-on created: ${addOn.id} for vehicle ${vehicleId} (user ${userId})`);
+
+      res.json({
+        success: true,
+        data: { ...addOn, monthlyPrice: Number(addOn.monthlyPrice) },
+        message: `Vehicle add-on activated ($${addOnPrice}/month)`,
+      });
+      return;
     }
 
-    const addOnPrice = VEHICLE_ADD_ON.PRICE_BY_PLAN[plan] ?? 6.99;
-
-    // Create add-on record
-    const addOn = await prisma.vehicleAddOn.create({
-      data: {
-        subscriptionId: subscription.id,
-        userId,
-        vehicleId,
-        monthlyPrice: addOnPrice,
-        stripeSubscriptionItemId: stripeItemId,
-        isActive: true,
-      },
+    // Free plan has no paid subscription by default, so Checkout must collect
+    // the first add-on payment before we create an active local add-on record.
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true, fullName: true },
     });
 
-    logger.info(`Vehicle add-on created: ${addOn.id} for vehicle ${vehicleId} (user ${userId})`);
+    if (!user) {
+      throw new AppError('User not found', 404, 'USER_NOT_FOUND');
+    }
+
+    const stripeCustomerId = await stripeService.getOrCreateCustomer({
+      userId,
+      email: user.email,
+      name: user.fullName,
+      existingStripeCustomerId: subscription.stripeCustomerId,
+    });
+
+    if (!subscription.stripeCustomerId) {
+      await prisma.subscription.update({
+        where: { id: subscription.id },
+        data: { stripeCustomerId },
+      });
+    }
+
+    const { successUrl, cancelUrl } = getBillingReturnUrls(req, '/subscription');
+    const checkout = await stripeService.createVehicleAddOnCheckoutSession({
+      customerId: stripeCustomerId,
+      priceId: addonPriceId,
+      userId,
+      vehicleId,
+      plan,
+      successUrl,
+      cancelUrl,
+    });
 
     res.json({
       success: true,
-      data: { ...addOn, monthlyPrice: Number(addOn.monthlyPrice) },
-      message: `Vehicle add-on activated ($${addOnPrice}/month)`,
+      data: {
+        checkoutSessionId: checkout.sessionId,
+        checkoutUrl: checkout.url,
+        monthlyPrice: addOnPrice,
+        pendingCheckout: true,
+      },
+      message: `Complete checkout to activate the vehicle add-on ($${addOnPrice}/month)`,
     });
   })
 );
@@ -672,12 +760,34 @@ router.delete(
       throw new AppError('Add-on not found', 404, 'ADDON_NOT_FOUND');
     }
 
-    // Remove from Stripe
-    if (addOn.stripeSubscriptionItemId) {
+    const subscription = await prisma.subscription.findUnique({
+      where: { id: addOn.subscriptionId },
+    });
+
+    const activeAddOnCount = await prisma.vehicleAddOn.count({
+      where: { subscriptionId: addOn.subscriptionId, isActive: true },
+    });
+
+    // Remove from Stripe. If this Free subscription exists only to bill add-ons
+    // and this is the final active add-on, cancel the Stripe subscription and
+    // keep the local Free plan active without a Stripe subscription id.
+    if (
+      subscription?.plan === 'FREE' &&
+      subscription.stripeSubscriptionId &&
+      activeAddOnCount <= 1
+    ) {
+      await stripeService.cancelSubscription({
+        subscriptionId: subscription.stripeSubscriptionId,
+        immediately: true,
+      });
+      await prisma.subscription.update({
+        where: { id: subscription.id },
+        data: { stripeSubscriptionId: null },
+      });
+    } else if (addOn.stripeSubscriptionItemId) {
       await stripeService.removeSubscriptionItem(addOn.stripeSubscriptionItemId);
     }
 
-    // Mark as cancelled
     await prisma.vehicleAddOn.update({
       where: { id: addOnId },
       data: { isActive: false, cancelledAt: new Date() },

@@ -327,6 +327,23 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
  * Cria ou sincroniza a assinatura local após o Stripe criar a subscription.
  */
 async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
+  const billingType = session.metadata?.billingType;
+
+  if (billingType === 'vehicle_addon') {
+    await handleVehicleAddOnCheckoutCompleted(session);
+    return;
+  }
+
+  if (billingType === 'request_renewal') {
+    await handleRequestRenewalCheckoutCompleted(session);
+    return;
+  }
+
+  if (billingType === 'request_cancellation') {
+    await handleRequestCancellationCheckoutCompleted(session);
+    return;
+  }
+
   if (session.mode !== 'subscription' || !session.subscription) {
     return;
   }
@@ -393,6 +410,175 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
 }
 
 /**
+ * Checkout de add-on de veículo para plano Free.
+ * O add-on só vira ativo depois da confirmação de pagamento/assinatura pelo Stripe.
+ */
+async function handleVehicleAddOnCheckoutCompleted(session: Stripe.Checkout.Session) {
+  if (session.mode !== 'subscription' || !session.subscription) {
+    logger.warn(`Vehicle add-on checkout sem subscription: ${session.id}`);
+    return;
+  }
+
+  const userId = session.metadata?.userId;
+  const vehicleId = session.metadata?.vehicleId;
+  const plan = session.metadata?.plan || 'FREE';
+  const stripeSubscriptionId = typeof session.subscription === 'string'
+    ? session.subscription
+    : session.subscription.id;
+  const stripeCustomerId = typeof session.customer === 'string'
+    ? session.customer
+    : session.customer?.id;
+
+  if (!userId || !vehicleId || !stripeCustomerId) {
+    logger.warn(`Vehicle add-on checkout sem metadata obrigatória: ${session.id}`);
+    return;
+  }
+
+  const subscription = await prisma.subscription.findFirst({
+    where: { userId, status: 'ACTIVE' },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  if (!subscription) {
+    logger.warn(`Subscription ativa não encontrada para add-on checkout: ${session.id}`);
+    return;
+  }
+
+  const existingAddOn = await prisma.vehicleAddOn.findFirst({
+    where: { userId, vehicleId, subscriptionId: subscription.id, isActive: true },
+  });
+
+  if (existingAddOn) {
+    logger.info(`Vehicle add-on já existe para vehicle ${vehicleId}, checkout ${session.id}`);
+    return;
+  }
+
+  const stripeSub = await stripeService.retrieveSubscription(stripeSubscriptionId);
+  const stripeItemId = stripeSub.items[0]?.id;
+
+  if (!stripeItemId) {
+    logger.warn(`Subscription ${stripeSubscriptionId} sem item para vehicle add-on`);
+    return;
+  }
+
+  const priceByPlan: Record<string, number> = {
+    FREE: 6.99,
+    STARTER: 5.99,
+    PRO: 3.99,
+    ENTERPRISE: 0,
+  };
+  const monthlyPrice = priceByPlan[plan.toUpperCase()] ?? 6.99;
+
+  await prisma.$transaction([
+    prisma.subscription.update({
+      where: { id: subscription.id },
+      data: {
+        stripeSubscriptionId,
+        stripeCustomerId,
+        currentPeriodStart: stripeSub.currentPeriodStart,
+        currentPeriodEnd: stripeSub.currentPeriodEnd,
+      },
+    }),
+    prisma.vehicleAddOn.create({
+      data: {
+        subscriptionId: subscription.id,
+        userId,
+        vehicleId,
+        monthlyPrice,
+        stripeSubscriptionItemId: stripeItemId,
+        isActive: true,
+      },
+    }),
+  ]);
+
+  logger.info(`Vehicle add-on ativado via checkout ${session.id} para vehicle ${vehicleId}`);
+}
+
+/**
+ * Checkout de taxa avulsa de renovação de solicitação.
+ */
+async function handleRequestRenewalCheckoutCompleted(session: Stripe.Checkout.Session) {
+  const userId = session.metadata?.userId;
+  const requestId = session.metadata?.requestId;
+  const expiresAt = session.metadata?.expiresAt || null;
+  const quoteDeadline = session.metadata?.quoteDeadline || null;
+
+  if (!userId || !requestId) {
+    logger.warn(`Renewal checkout sem metadata obrigatória: ${session.id}`);
+    return;
+  }
+
+  const request = await prisma.serviceRequest.findFirst({
+    where: { id: requestId, userId },
+  });
+
+  if (!request) {
+    logger.warn(`Request ${requestId} não encontrada para renewal checkout ${session.id}`);
+    return;
+  }
+
+  await prisma.serviceRequest.update({
+    where: { id: requestId },
+    data: {
+      status: "SEARCHING_PROVIDERS",
+      cancelledAt: null,
+      cancellationReason: null,
+      acceptedQuoteId: null,
+      expiresAt: expiresAt ? new Date(expiresAt) : null,
+      quoteDeadline: quoteDeadline ? new Date(quoteDeadline) : new Date(Date.now() + 24 * 60 * 60 * 1000),
+      renewalCount: { increment: 1 },
+      lastRenewedAt: new Date(),
+    },
+  });
+
+  logger.info(`Request ${request.requestNumber} renovada via checkout ${session.id}`);
+}
+
+/**
+ * Checkout de taxa de cancelamento de solicitação.
+ */
+async function handleRequestCancellationCheckoutCompleted(session: Stripe.Checkout.Session) {
+  const userId = session.metadata?.userId;
+  const requestId = session.metadata?.requestId;
+  const reason = session.metadata?.reason || "Cancelled after Stripe cancellation fee payment";
+
+  if (!userId || !requestId) {
+    logger.warn(`Cancellation checkout sem metadata obrigatória: ${session.id}`);
+    return;
+  }
+
+  const request = await prisma.serviceRequest.findFirst({
+    where: { id: requestId, userId },
+  });
+
+  if (!request) {
+    logger.warn(`Request ${requestId} não encontrada para cancellation checkout ${session.id}`);
+    return;
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.serviceRequest.update({
+      where: { id: requestId },
+      data: {
+        status: "CANCELLED",
+        cancelledAt: new Date(),
+        cancellationReason: reason,
+      },
+    });
+
+    await tx.workOrder.updateMany({
+      where: { serviceRequestId: requestId, status: { notIn: ["COMPLETED", "CANCELLED"] } },
+      data: {
+        status: "CANCELLED",
+        cancelledAt: new Date(),
+      },
+    });
+  });
+
+  logger.info(`Request ${request.requestNumber} cancelada via checkout ${session.id}`);
+}
+
+/**
  * Subscription atualizada (upgrade, downgrade, renewal, etc)
  */
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
@@ -452,6 +638,23 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   });
 
   if (!dbSub) return;
+
+  if (dbSub.plan === 'FREE') {
+    await prisma.$transaction([
+      prisma.vehicleAddOn.updateMany({
+        where: { subscriptionId: dbSub.id, isActive: true },
+        data: { isActive: false, cancelledAt: new Date() },
+      }),
+      prisma.subscription.update({
+        where: { id: dbSub.id },
+        data: {
+          stripeSubscriptionId: null,
+          status: 'ACTIVE',
+        },
+      }),
+    ]);
+    return;
+  }
 
   await prisma.subscription.update({
     where: { id: dbSub.id },

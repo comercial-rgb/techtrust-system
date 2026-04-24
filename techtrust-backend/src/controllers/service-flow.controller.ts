@@ -19,6 +19,7 @@ import { AppError } from "../middleware/error-handler";
 import { logger } from "../config/logger";
 import * as stripeService from "../services/stripe.service";
 import * as receiptService from "../services/receipt.service";
+import * as taxService from "../services/tax.service";
 import {
   createRepairInvoiceFromQuote,
   updateInvoiceWithSupplement,
@@ -139,6 +140,48 @@ export const approveQuoteWithPaymentHold = async (
   const providerLevel = (quote.provider.providerProfile?.providerLevel || 'ENTRY') as any;
 
   const cardType = (paymentMethod.type as "credit" | "debit") || "credit";
+
+  // ===== SALES TAX CALCULATION (Marketplace Facilitator) =====
+  // TechTrust collects sales tax on taxable items (parts + shop supplies in FL)
+  // Labor, travel, diagnostic, tire/battery env fees are EXEMPT
+  let salesTaxResult: Awaited<ReturnType<typeof taxService.calculateSalesTax>>;
+  try {
+    // Determine customer county from service location coordinates
+    let customerCounty: string | undefined;
+    if (quote.serviceRequest.serviceLatitude && quote.serviceRequest.serviceLongitude) {
+      const county = await taxService.getCountyFromCoordinates(
+        Number(quote.serviceRequest.serviceLatitude),
+        Number(quote.serviceRequest.serviceLongitude),
+      );
+      if (county) customerCounty = county;
+    }
+
+    salesTaxResult = await taxService.calculateSalesTax({
+      partsAmount,
+      shopSuppliesFee: Number(quote.shopSuppliesFee || 0),
+      customerCounty,
+      customerState: "FL",
+      customerZipCode: undefined, // TODO: get from customer profile when available
+    });
+
+    logger.info(
+      `Sales tax for quote ${quote.quoteNumber}: $${salesTaxResult.salesTaxAmount.toFixed(2)} ` +
+      `(${(salesTaxResult.salesTaxRate * 100).toFixed(2)}% on $${salesTaxResult.taxableAmount.toFixed(2)} taxable) ` +
+      `county: ${salesTaxResult.county}`,
+    );
+  } catch (err: any) {
+    logger.error(`Sales tax calculation failed, defaulting to 0: ${err.message}`);
+    salesTaxResult = {
+      salesTaxAmount: 0,
+      salesTaxRate: 0,
+      stateRate: 0.06,
+      countySurtaxRate: 0,
+      taxableAmount: 0,
+      county: "unknown",
+      state: "FL",
+      calculatedViaStripeTax: false,
+    };
+  }
   
   // Calcular breakdown completo usando a fonte única de verdade
   const fees = calculateFullFeeBreakdown({
@@ -157,6 +200,11 @@ export const approveQuoteWithPaymentHold = async (
     isSOS: false,
     processor: paymentProcessor as 'STRIPE' | 'CHASE',
     cardType,
+    // Sales tax (Marketplace Facilitator)
+    salesTaxAmount: salesTaxResult.salesTaxAmount,
+    salesTaxRate: salesTaxResult.salesTaxRate,
+    salesTaxableAmount: salesTaxResult.taxableAmount,
+    salesTaxCounty: salesTaxResult.county,
   });
 
   // fees.totalClientPays, fees.providerReceives, etc. used directly below
@@ -184,6 +232,7 @@ export const approveQuoteWithPaymentHold = async (
       captureMethod: "manual", // PRÉ-AUTORIZAÇÃO
       confirm: true,
       offSession: true,
+      salesTaxAmountCents: fees.stripeSalesTaxAmountCents,
       metadata: {
         quoteId: quote.id,
         serviceRequestId: quote.serviceRequestId,
@@ -290,6 +339,13 @@ export const approveQuoteWithPaymentHold = async (
           serviceCommission: fees.serviceCommission,
           serviceCommissionPercent: fees.serviceCommissionPercent,
           partsFee: fees.partsFee,
+          // Sales tax (Marketplace Facilitator — FL)
+          salesTaxAmount: fees.salesTaxAmount,
+          salesTaxRate: fees.salesTaxRate,
+          salesTaxableAmount: fees.salesTaxableAmount,
+          salesTaxCounty: fees.salesTaxCounty || null,
+          salesTaxState: "FL",
+          stripeTaxCalculationId: salesTaxResult.stripeTaxCalculationId || null,
           status: "AUTHORIZED",
           authorizedAt: new Date(),
           paymentMethodId: paymentMethodId,
@@ -358,6 +414,11 @@ export const approveQuoteWithPaymentHold = async (
             batteryFee: fees.batteryFee,
             taxAmount: fees.taxAmount,
             quoteTotal: fees.quoteTotal,
+            // Sales tax (Marketplace Facilitator)
+            salesTaxAmount: fees.salesTaxAmount,
+            salesTaxRate: fees.salesTaxRate,
+            salesTaxableAmount: fees.salesTaxableAmount,
+            salesTaxCounty: fees.salesTaxCounty,
             // Commission (deducted from provider)
             serviceCommissionPercent: fees.serviceCommissionPercent,
             serviceCommission: fees.serviceCommission,
@@ -784,6 +845,16 @@ export const requestCancellation = async (req: Request, res: Response) => {
     where: { id: workOrderId, customerId },
     include: {
       quote: { select: { acceptedAt: true, totalAmount: true } },
+      provider: {
+        select: {
+          providerProfile: {
+            select: {
+              stripeOnboardingCompleted: true,
+              stripeAccountId: true,
+            },
+          },
+        },
+      },
       payments: { where: { status: { in: ["AUTHORIZED", "PENDING"] } } },
     },
   });
@@ -852,13 +923,68 @@ export const requestCancellation = async (req: Request, res: Response) => {
     Number(workOrder.finalAmount),
     false,
     workOrder.quote?.acceptedAt || null,
+    workOrder.scheduledFor || null,
   );
 
-  // Liberar holds de pagamento
+  const feeCents = Math.round(feeAmount * 100);
+  let cancellationFeeCaptured = false;
+  let cancellationFeePaymentId: string | null = null;
+
+  if (feeCents > 0) {
+    const paymentToCapture = workOrder.payments.find(
+      (payment) => payment.status === "AUTHORIZED" && payment.paymentType === "SERVICE",
+    );
+
+    if (!paymentToCapture) {
+      throw new AppError(
+        "Cancellation fee requires an authorized Stripe payment hold. Please contact support.",
+        402,
+        "CANCELLATION_FEE_HOLD_REQUIRED",
+      );
+    }
+
+    const captureResult = await stripeService.capturePaymentIntent(
+      paymentToCapture.stripePaymentIntentId,
+      feeCents,
+      workOrder.provider.providerProfile?.stripeOnboardingCompleted
+        ? feeCents
+        : undefined,
+    );
+
+    if (captureResult.status !== "succeeded") {
+      throw new AppError(
+        `Cancellation fee capture failed with status: ${captureResult.status}`,
+        500,
+        "CANCELLATION_FEE_CAPTURE_FAILED",
+      );
+    }
+
+    await prisma.payment.update({
+      where: { id: paymentToCapture.id },
+      data: {
+        status: "CAPTURED",
+        capturedAt: new Date(),
+        stripeChargeId: captureResult.chargeId || paymentToCapture.stripeChargeId,
+        paymentType: "CANCELLATION_FEE",
+        subtotal: feeAmount,
+        platformFee: feeAmount,
+        processingFee: 0,
+        totalAmount: feeAmount,
+        providerAmount: 0,
+        refundReason: reason || "Service cancelled by customer",
+      },
+    });
+
+    cancellationFeeCaptured = true;
+    cancellationFeePaymentId = paymentToCapture.id;
+  }
+
+  // Liberar holds restantes
   for (const payment of workOrder.payments) {
+    if (payment.id === cancellationFeePaymentId) continue;
+
     try {
-      const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
-      await stripe.paymentIntents.cancel(payment.stripePaymentIntentId);
+      await stripeService.cancelPaymentIntent(payment.stripePaymentIntentId);
 
       await prisma.payment.update({
         where: { id: payment.id },
@@ -896,11 +1022,12 @@ export const requestCancellation = async (req: Request, res: Response) => {
     success: true,
     message:
       feeAmount > 0
-        ? `Serviço cancelado. Taxa de cancelamento de ${feePercent}% ($${feeAmount.toFixed(2)}) será cobrada.`
+        ? `Serviço cancelado. Taxa de cancelamento de ${feePercent}% ($${feeAmount.toFixed(2)}) foi capturada pelo Stripe.`
         : "Serviço cancelado. Nenhuma taxa de cancelamento aplicada.",
     data: {
       cancellationFeePercent: feePercent,
       cancellationFeeAmount: feeAmount,
+      cancellationFeeCaptured,
       holdsReleased: workOrder.payments.length,
     },
   });
@@ -956,8 +1083,7 @@ export const validateCancellation = async (req: Request, res: Response) => {
     // Fornecedor confirma sem custos → liberar holds e cancelar
     for (const payment of cancellation.workOrder.payments) {
       try {
-        const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
-        await stripe.paymentIntents.cancel(payment.stripePaymentIntentId);
+        await stripeService.cancelPaymentIntent(payment.stripePaymentIntentId);
 
         await prisma.payment.update({
           where: { id: payment.id },
@@ -1330,8 +1456,7 @@ export const providerCancelService = async (req: Request, res: Response) => {
   // Release all holds
   for (const payment of workOrder.payments) {
     try {
-      const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
-      await stripe.paymentIntents.cancel(payment.stripePaymentIntentId);
+      await stripeService.cancelPaymentIntent(payment.stripePaymentIntentId);
 
       await prisma.payment.update({
         where: { id: payment.id },

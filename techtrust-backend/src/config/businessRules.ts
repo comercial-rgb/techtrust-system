@@ -501,7 +501,7 @@ export const PAYMENT_RULES = {
 
   /**
    * App Service Fee — cobrado do CLIENTE por transação, varia por plano:
-   * FREE=$9.89, STARTER=$4.99, PRO/ENTERPRISE=$0.00
+   * FREE=$5.89, STARTER=$2.99, PRO/ENTERPRISE=$0.00
    * Incentiva upgrade de plano.
    */
   APP_SERVICE_FEE_FREE: 5.89,
@@ -628,10 +628,10 @@ export const QUOTE_VALIDITY = {
 // ─── SERVICE REQUEST RENEWAL ────────────────────────────────────────────────
 
 export const RENEWAL_RULES = {
-  /** Taxa de renovação por solicitação (Free/Basic) */
+  /** Taxa de renovação por solicitação (Free/Starter) */
   FEE: 0.99,
-  /** Como a taxa é cobrada: junto na próxima fatura do plano */
-  BILLING_METHOD: 'NEXT_INVOICE' as const,
+  /** Como a taxa é cobrada: Stripe imediato antes de reabrir a solicitação */
+  BILLING_METHOD: 'IMMEDIATE_STRIPE' as const,
   /** Limite de renovações: sem limite */
   MAX_RENEWALS: null as number | null,
 };
@@ -1024,12 +1024,13 @@ export function calculateServiceCommission(
  * Commission model:
  * - Service commission: 8-15% of labor (tiered by provider level)
  * - Parts fee: 8% of parts ($2 floor, $10-$15 ceiling by provider level)
- * - App service fee: $0-$9.89 (by client plan, charged to client)
+ * - App service fee: $0-$5.89 (by client plan, charged to client)
  * - Processing fee: Stripe 2.9% + $0.30 (charged to client)
  *
- * Client pays: quoteTotal + appServiceFee + processorFee
+ * Client pays: quoteTotal + salesTax + appServiceFee + processorFee
  * Provider receives: quoteTotal - serviceCommission - partsFee
  * Platform receives: serviceCommission + partsFee + appServiceFee
+ * Sales tax: collected by TechTrust as Marketplace Facilitator, remitted to FL DOR
  */
 export function calculateFullFeeBreakdown(input: {
   laborAmount: number;
@@ -1047,6 +1048,11 @@ export function calculateFullFeeBreakdown(input: {
   isSOS?: boolean;
   processor?: 'STRIPE' | 'CHASE';
   cardType?: 'credit' | 'debit';
+  // Sales tax (calculated by tax.service.ts — Marketplace Facilitator)
+  salesTaxAmount?: number;
+  salesTaxRate?: number;
+  salesTaxableAmount?: number;
+  salesTaxCounty?: string;
 }): FullFeeBreakdown {
   const {
     laborAmount, partsAmount, additionalFees = 0,
@@ -1054,6 +1060,7 @@ export function calculateFullFeeBreakdown(input: {
     tireFee = 0, batteryFee = 0, taxAmount = 0,
     quoteTotal, clientPlan, providerLevel,
     isSOS = false, processor = 'STRIPE', cardType = 'credit',
+    salesTaxAmount = 0, salesTaxRate = 0, salesTaxableAmount = 0, salesTaxCounty = '',
   } = input;
 
   // 1. Service commission (8-15% of labor + additionalFees)
@@ -1070,17 +1077,17 @@ export function calculateFullFeeBreakdown(input: {
   // 4. App service fee (by client plan, charged ON TOP to client)
   const appServiceFee = getAppServiceFee(clientPlan);
 
-  // 5. Processing fee (on the total the client pays)
-  const clientSubtotal = quoteTotal + appServiceFee;
+  // 5. Processing fee (on the total the client pays, including sales tax)
+  const clientSubtotal = quoteTotal + salesTaxAmount + appServiceFee;
   const processorFee = calculateProcessorFee(clientSubtotal, processor, cardType);
 
-  // 6. Total client pays
+  // 6. Total client pays (includes sales tax collected as Marketplace Facilitator)
   const totalClientPays = parseFloat((clientSubtotal + processorFee.feeAmount).toFixed(2));
 
-  // 7. Provider receives (quoteTotal minus platform commission)
+  // 7. Provider receives (quoteTotal minus platform commission — tax NOT deducted from provider)
   const providerReceives = parseFloat((quoteTotal - totalPlatformCommission).toFixed(2));
 
-  // 8. Platform receives (commission + appServiceFee; Stripe takes its cut from this)
+  // 8. Platform receives (commission + appServiceFee; sales tax is held separately for remittance)
   const platformReceives = parseFloat((totalPlatformCommission + appServiceFee).toFixed(2));
 
   return {
@@ -1095,6 +1102,11 @@ export function calculateFullFeeBreakdown(input: {
     batteryFee,
     taxAmount,
     quoteTotal,
+    // Sales tax (Marketplace Facilitator — collected from client, remitted to FL DOR)
+    salesTaxAmount,
+    salesTaxRate,
+    salesTaxableAmount,
+    salesTaxCounty,
     // Commission
     serviceCommissionPercent,
     serviceCommission,
@@ -1114,6 +1126,7 @@ export function calculateFullFeeBreakdown(input: {
     // Stripe Connect amounts (in cents)
     stripeChargeAmountCents: Math.round(totalClientPays * 100),
     stripeApplicationFeeCents: Math.round((totalPlatformCommission + appServiceFee + processorFee.feeAmount) * 100),
+    stripeSalesTaxAmountCents: Math.round(salesTaxAmount * 100),
   };
 }
 
@@ -1128,6 +1141,12 @@ export interface FullFeeBreakdown {
   batteryFee: number;
   taxAmount: number;
   quoteTotal: number;
+  // Sales tax (Marketplace Facilitator)
+  salesTaxAmount: number;
+  salesTaxRate: number;
+  salesTaxableAmount: number;
+  salesTaxCounty: string;
+  // Commission
   serviceCommissionPercent: number;
   serviceCommission: number;
   partsFeePercent: number;
@@ -1143,6 +1162,7 @@ export interface FullFeeBreakdown {
   platformReceives: number;
   stripeChargeAmountCents: number;
   stripeApplicationFeeCents: number;
+  stripeSalesTaxAmountCents: number;
 }
 
 /**
@@ -1176,6 +1196,7 @@ export function calculateCancellationFee(
   totalAmount: number,
   serviceStarted: boolean,
   quoteAcceptedAt: Date | null,
+  scheduledFor?: Date | null,
 ): { feePercent: number; feeAmount: number } {
   if (!quoteAcceptedAt) {
     return { feePercent: 0, feeAmount: 0 };
@@ -1185,9 +1206,14 @@ export function calculateCancellationFee(
     return { feePercent: -1, feeAmount: -1 }; // -1 = requires dispute/admin review
   }
 
-  const hoursSinceAcceptance = (Date.now() - quoteAcceptedAt.getTime()) / (1000 * 60 * 60);
+  const hoursUntilService = scheduledFor
+    ? (scheduledFor.getTime() - Date.now()) / (1000 * 60 * 60)
+    : null;
+  const useLowerFee = hoursUntilService !== null
+    ? hoursUntilService > 24
+    : (Date.now() - quoteAcceptedAt.getTime()) / (1000 * 60 * 60) > 24;
 
-  if (hoursSinceAcceptance > 24) {
+  if (useLowerFee) {
     const feePercent = CANCELLATION_RULES.AFTER_ACCEPTANCE_OVER_24H_FEE_PERCENT;
     return { feePercent, feeAmount: parseFloat(((totalAmount * feePercent) / 100).toFixed(2)) };
   }

@@ -612,8 +612,7 @@ export const voidPayment = async (req: Request, res: Response) => {
 
   try {
     // Cancelar PaymentIntent no Stripe (libera o hold)
-    const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-    await stripe.paymentIntents.cancel(payment.stripePaymentIntentId);
+    await stripeService.cancelPaymentIntent(payment.stripePaymentIntentId);
 
     await prisma.payment.update({
       where: { id: paymentId },
