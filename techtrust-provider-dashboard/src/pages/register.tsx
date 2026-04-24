@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Link from 'next/link'
@@ -32,25 +32,53 @@ import {
 import { useI18n, languages, Language } from '@/i18n'
 import api from '@/services/api'
 
+const DIAL_COUNTRIES = [
+  { code: 'US', flag: '🇺🇸', name: 'United States', dial: '+1' },
+  { code: 'BR', flag: '🇧🇷', name: 'Brasil',         dial: '+55' },
+  { code: 'MX', flag: '🇲🇽', name: 'México',         dial: '+52' },
+  { code: 'CA', flag: '🇨🇦', name: 'Canada',         dial: '+1' },
+  { code: 'GB', flag: '🇬🇧', name: 'United Kingdom', dial: '+44' },
+  { code: 'PT', flag: '🇵🇹', name: 'Portugal',       dial: '+351' },
+  { code: 'ES', flag: '🇪🇸', name: 'España',         dial: '+34' },
+  { code: 'AR', flag: '🇦🇷', name: 'Argentina',      dial: '+54' },
+  { code: 'CO', flag: '🇨🇴', name: 'Colombia',       dial: '+57' },
+  { code: 'FR', flag: '🇫🇷', name: 'France',         dial: '+33' },
+  { code: 'DE', flag: '🇩🇪', name: 'Germany',        dial: '+49' },
+  { code: 'IT', flag: '🇮🇹', name: 'Italy',          dial: '+39' },
+  { code: 'AU', flag: '🇦🇺', name: 'Australia',      dial: '+61' },
+]
+
 // ─── Service & Vehicle Options ───
 const SERVICES = [
-  { key: 'OIL_CHANGE', label: 'Oil Change', emoji: '🛢️' },
-  { key: 'BRAKES', label: 'Brakes', emoji: '🔧' },
-  { key: 'TIRES', label: 'Tires', emoji: '🔩' },
-  { key: 'ENGINE', label: 'Engine', emoji: '⚙️' },
-  { key: 'TRANSMISSION', label: 'Transmission', emoji: '🔄' },
-  { key: 'ELECTRICAL_BASIC', label: 'Electrical', emoji: '⚡' },
-  { key: 'AC_SERVICE', label: 'A/C', emoji: '❄️' },
-  { key: 'SUSPENSION', label: 'Suspension', emoji: '🔗' },
-  { key: 'BATTERY', label: 'Battery', emoji: '🔋' },
-  { key: 'INSPECTION', label: 'Inspection', emoji: '🔍' },
-  { key: 'DIAGNOSTICS', label: 'Diagnostics', emoji: '📊' },
-  { key: 'DETAILING', label: 'Detailing', emoji: '✨' },
-  { key: 'TOWING', label: 'Towing', emoji: '🚛' },
-  { key: 'ROADSIDE_ASSIST', label: 'Roadside', emoji: '🆘' },
-  { key: 'LOCKOUT', label: 'Lockout', emoji: '🔑' },
-  { key: 'MAINTENANCE_LIGHT', label: 'Warning Light', emoji: '🚨' },
-  { key: 'GENERAL_REPAIR', label: 'General Repair', emoji: '🛠️' },
+  // Maintenance
+  { key: 'OIL_CHANGE',           label: 'Oil Change',              emoji: '🛢️' },
+  { key: 'AIR_FILTER',           label: 'Air Filter Service',      emoji: '💨' },
+  { key: 'FUEL_SYSTEM',          label: 'Fuel System',             emoji: '⛽' },
+  { key: 'BRAKES',               label: 'Brakes',                  emoji: '🔧' },
+  { key: 'COOLING_SYSTEM',       label: 'Cooling System',          emoji: '🌡️' },
+  { key: 'TIRES',                label: 'Tires & Wheels',          emoji: '🔩' },
+  { key: 'BELTS_HOSES',          label: 'Belts & Hoses',           emoji: '🔗' },
+  // Repairs
+  { key: 'AC_SERVICE',           label: 'A/C & Heating',           emoji: '❄️' },
+  { key: 'STEERING',             label: 'Steering & Suspension',   emoji: '🚗' },
+  { key: 'ELECTRICAL_BASIC',     label: 'Electrical System',       emoji: '⚡' },
+  { key: 'EXHAUST',              label: 'Exhaust System',          emoji: '💨' },
+  { key: 'DRIVETRAIN',           label: 'Drivetrain',              emoji: '⚙️' },
+  { key: 'ENGINE',               label: 'Engine',                  emoji: '🔩' },
+  { key: 'TRANSMISSION',         label: 'Transmission',            emoji: '🔄' },
+  { key: 'BATTERY',              label: 'Battery',                 emoji: '🔋' },
+  { key: 'GENERAL_REPAIR',       label: 'General Repair',          emoji: '🛠️' },
+  // Packages & Fluids
+  { key: 'FLUID_SERVICES',       label: 'Fluid Services',          emoji: '🧴' },
+  { key: 'PREVENTIVE_PACKAGES',  label: 'Preventive Maintenance',  emoji: '📦' },
+  // Inspection & Diagnostics
+  { key: 'INSPECTION',           label: 'Inspection',              emoji: '🔍' },
+  { key: 'DIAGNOSTICS',          label: 'Diagnostics',             emoji: '📊' },
+  // Detailing & SOS
+  { key: 'DETAILING',            label: 'Detailing',               emoji: '✨' },
+  { key: 'TOWING',               label: 'Towing',                  emoji: '🚛' },
+  { key: 'ROADSIDE_ASSIST',      label: 'Roadside Assist',         emoji: '🆘' },
+  { key: 'LOCKOUT',              label: 'Lockout',                 emoji: '🔑' },
 ]
 
 const VEHICLE_TYPES = [
@@ -85,6 +113,9 @@ export default function RegisterPage() {
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
+  const [selectedDialCountry, setSelectedDialCountry] = useState(DIAL_COUNTRIES[0])
+  const [showDialDropdown, setShowDialDropdown] = useState(false)
+  const [zipLookupLoading, setZipLookupLoading] = useState(false)
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -121,6 +152,24 @@ export default function RegisterPage() {
   const [otpMethod, setOtpMethod] = useState<'sms' | 'email'>('sms') // User chooses SMS or Email
   const [activeOtpMethod, setActiveOtpMethod] = useState<'sms' | 'email'>('sms') // Actual method used
 
+  // ZIP → city/state auto-fill
+  useEffect(() => {
+    if (businessZipCode.length !== 5) return
+    let cancelled = false
+    setZipLookupLoading(true)
+    fetch(`https://api.zippopotam.us/us/${businessZipCode}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled || !data?.places?.[0]) return
+        const place = data.places[0]
+        if (!businessCity) setBusinessCity(place['place name'] || '')
+        if (businessState === 'FL') setBusinessState(place['state abbreviation'] || 'FL')
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setZipLookupLoading(false) })
+    return () => { cancelled = true }
+  }, [businessZipCode])
+
   // ─── Site URL for OG ───
   const siteUrl = 'https://provider.techtrustautosolutions.com'
 
@@ -134,8 +183,8 @@ export default function RegisterPage() {
       setError(tr('register.emailRequired') || 'Please enter a valid email')
       return false
     }
-    if (!phone.trim() || phone.replace(/\D/g, '').length < 10) {
-      setError(tr('register.phoneRequired') || 'Please enter a valid US phone number')
+    if (!phone.trim() || phone.replace(/\D/g, '').length < 6) {
+      setError(tr('register.phoneRequired') || 'Please enter a valid phone number')
       return false
     }
     if (password.length < 8) {
@@ -202,7 +251,7 @@ export default function RegisterPage() {
     setLoading(true)
     try {
       const digits = phone.replace(/\D/g, '')
-      const normalizedPhone = `+1${digits}`
+      const normalizedPhone = `${selectedDialCountry.dial}${digits}`
 
       const response = await api.post('/auth/signup', {
         fullName: fullName.trim(),
@@ -694,12 +743,39 @@ export default function RegisterPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-1.5">
                         {tr('register.phone') || 'Phone Number'} *
                       </label>
-                      <div className="flex">
-                        <span className="inline-flex items-center gap-1.5 px-3 border border-r-0 border-gray-200 bg-gray-50 text-gray-500 text-sm rounded-l-xl">
-                          <Phone className="w-4 h-4 text-gray-400" />
-                          +1
-                        </span>
-                        <input type="tel" value={phone} onChange={(e) => setPhone(formatPhone(e.target.value))} placeholder="(305) 555-0123" className="input rounded-l-none !pl-3" />
+                      <div className="flex gap-2">
+                        {/* Country flag / dial-code picker */}
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() => setShowDialDropdown(!showDialDropdown)}
+                            className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-gray-200 bg-white hover:border-gray-300 text-sm font-medium text-gray-700 whitespace-nowrap"
+                          >
+                            <span className="text-lg leading-none">{selectedDialCountry.flag}</span>
+                            <span className="text-gray-600">{selectedDialCountry.dial}</span>
+                            <ChevronDown className="w-3 h-3 text-gray-400" />
+                          </button>
+                          {showDialDropdown && (
+                            <div className="absolute left-0 top-full mt-1 z-50 bg-white border border-gray-200 rounded-xl shadow-lg w-56 max-h-64 overflow-y-auto">
+                              {DIAL_COUNTRIES.map((c) => (
+                                <button
+                                  key={c.code}
+                                  type="button"
+                                  onClick={() => { setSelectedDialCountry(c); setShowDialDropdown(false) }}
+                                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50 ${selectedDialCountry.code === c.code ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'}`}
+                                >
+                                  <span className="text-lg">{c.flag}</span>
+                                  <span className="flex-1 text-left">{c.name}</span>
+                                  <span className="text-gray-400">{c.dial}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <div className="relative flex-1">
+                          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <input type="tel" value={phone} onChange={(e) => setPhone(formatPhone(e.target.value))} placeholder="(305) 555-0123" className="input !pl-9" />
+                        </div>
                       </div>
                     </div>
 
@@ -805,7 +881,10 @@ export default function RegisterPage() {
                         <label className="block text-sm font-medium text-gray-700 mb-1.5">
                           {tr('register.zipCode') || 'ZIP Code'} *
                         </label>
-                        <input type="text" value={businessZipCode} onChange={(e) => setBusinessZipCode(e.target.value.replace(/\D/g, '').slice(0, 5))} placeholder="33101" className="input" maxLength={5} />
+                        <div className="relative">
+                          <input type="text" value={businessZipCode} onChange={(e) => setBusinessZipCode(e.target.value.replace(/\D/g, '').slice(0, 5))} placeholder="33101" className="input !pr-8" maxLength={5} />
+                          {zipLookupLoading && <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 animate-spin" />}
+                        </div>
                       </div>
                     </div>
 
