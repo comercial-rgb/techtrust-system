@@ -134,6 +134,8 @@ export default function SignupScreen({ navigation }: any) {
   const [providerCityBtr, setProviderCityBtr] = useState("");
   const [providerCountyBtr, setProviderCountyBtr] = useState("");
   const [providerInsuranceDisclosureAccepted, setProviderInsuranceDisclosureAccepted] = useState(false);
+  const [showInsuranceModal, setShowInsuranceModal] = useState(false);
+  const [zipLookupLoading, setZipLookupLoading] = useState(false);
   const [otpMethod, setOtpMethod] = useState<"sms" | "email">("sms");
 
   // Marketplace-specific fields
@@ -171,6 +173,24 @@ export default function SignupScreen({ navigation }: any) {
       mounted = false;
     };
   }, []);
+
+  // ZIP → city/state auto-fill (provider & marketplace forms)
+  useEffect(() => {
+    if (businessZipCode.length !== 5 || !/^\d{5}$/.test(businessZipCode)) return;
+    let cancelled = false;
+    setZipLookupLoading(true);
+    fetch(`https://api.zippopotam.us/us/${businessZipCode}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled || !data?.places?.[0]) return;
+        const place = data.places[0];
+        if (!businessCity) setBusinessCity(place["place name"] || "");
+        if (!businessState) setBusinessState(place["state abbreviation"] || "");
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setZipLookupLoading(false); });
+    return () => { cancelled = true; };
+  }, [businessZipCode]);
 
   // ✨ Calcular progresso do formulário
   const calculateProgress = () => {
@@ -443,6 +463,15 @@ export default function SignupScreen({ navigation }: any) {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
     >
+      {/* Back button */}
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => navigation.goBack()}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
+        <Ionicons name="arrow-back" size={24} color="#374151" />
+      </TouchableOpacity>
+
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -491,79 +520,31 @@ export default function SignupScreen({ navigation }: any) {
             <Text style={styles.inputLabel}>
               {t.auth?.accountType || "Account Type"}
             </Text>
-            <View style={styles.roleButtons}>
-              <TouchableOpacity
-                style={[
-                  styles.roleButton,
-                  selectedRole === "CLIENT" && {
-                    backgroundColor: theme.colors.primary,
-                    borderColor: theme.colors.primary,
-                  },
-                ]}
-                onPress={() => setSelectedRole("CLIENT")}
-              >
-                <Ionicons
-                  name="person"
-                  size={20}
-                  color={selectedRole === "CLIENT" ? "#fff" : "#6b7280"}
-                />
-                <Text
-                  style={[
-                    styles.roleButtonText,
-                    selectedRole === "CLIENT" && styles.roleButtonTextActive,
-                  ]}
-                >
-                  {t.auth?.customer || "Customer"}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.roleButton,
-                  selectedRole === "PROVIDER" && {
-                    backgroundColor: theme.colors.primary,
-                    borderColor: theme.colors.primary,
-                  },
-                ]}
-                onPress={() => setSelectedRole("PROVIDER")}
-              >
-                <Ionicons
-                  name="construct"
-                  size={20}
-                  color={selectedRole === "PROVIDER" ? "#fff" : "#6b7280"}
-                />
-                <Text
-                  style={[
-                    styles.roleButtonText,
-                    selectedRole === "PROVIDER" && styles.roleButtonTextActive,
-                  ]}
-                >
-                  {t.auth?.provider || "Service Provider"}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.roleButton,
-                  selectedRole === "MARKETPLACE" && {
-                    backgroundColor: '#0891b2',
-                    borderColor: '#0891b2',
-                  },
-                ]}
-                onPress={() => setSelectedRole("MARKETPLACE")}
-              >
-                <Ionicons
-                  name="storefront"
-                  size={20}
-                  color={selectedRole === "MARKETPLACE" ? "#fff" : "#6b7280"}
-                />
-                <Text
-                  style={[
-                    styles.roleButtonText,
-                    selectedRole === "MARKETPLACE" && styles.roleButtonTextActive,
-                  ]}
-                >
-                  {t.auth?.marketplace || "Marketplace"}
-                </Text>
-              </TouchableOpacity>
+            <View style={styles.roleCards}>
+              {([
+                { key: "CLIENT",      icon: "person",     color: theme.colors.primary, label: t.auth?.customer || "Customer",         desc: "Request auto services" },
+                { key: "PROVIDER",    icon: "construct",  color: theme.colors.primary, label: t.auth?.provider || "Service Provider",  desc: "Offer repair & maintenance" },
+                { key: "MARKETPLACE", icon: "storefront", color: "#0891b2",            label: t.auth?.marketplace || "Marketplace",    desc: "Car wash or auto parts store" },
+              ] as const).map(({ key, icon, color, label, desc }) => {
+                const active = selectedRole === key;
+                return (
+                  <TouchableOpacity
+                    key={key}
+                    style={[styles.roleCard, active && { borderColor: color, backgroundColor: color + "12" }]}
+                    onPress={() => setSelectedRole(key)}
+                    activeOpacity={0.8}
+                  >
+                    <View style={[styles.roleCardIcon, { backgroundColor: active ? color : "#f3f4f6" }]}>
+                      <Ionicons name={icon as any} size={22} color={active ? "#fff" : "#6b7280"} />
+                    </View>
+                    <View style={styles.roleCardText}>
+                      <Text style={[styles.roleCardLabel, active && { color }]}>{label}</Text>
+                      <Text style={styles.roleCardDesc}>{desc}</Text>
+                    </View>
+                    {active && <Ionicons name="checkmark-circle" size={20} color={color} />}
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </View>
         </FadeInView>
@@ -909,6 +890,7 @@ export default function SignupScreen({ navigation }: any) {
                           selectedRole === "PROVIDER" &&
                           !businessZipCode
                         }
+                        right={zipLookupLoading ? <TextInput.Icon icon="loading" /> : undefined}
                       />
                     </View>
                   </View>
@@ -1150,7 +1132,13 @@ export default function SignupScreen({ navigation }: any) {
                     </View>
                     <Switch
                       value={providerInsuranceDisclosureAccepted}
-                      onValueChange={setProviderInsuranceDisclosureAccepted}
+                      onValueChange={(val) => {
+                        if (val) {
+                          setShowInsuranceModal(true);
+                        } else {
+                          setProviderInsuranceDisclosureAccepted(false);
+                        }
+                      }}
                       trackColor={{ false: "#e5e7eb", true: "#fbbf24" }}
                       thumbColor={providerInsuranceDisclosureAccepted ? "#d97706" : "#9ca3af"}
                     />
@@ -1486,6 +1474,62 @@ export default function SignupScreen({ navigation }: any) {
         onDismiss={hideToast}
       />
 
+      {/* 🛡 Insurance Disclosure Confirmation Modal */}
+      <Modal
+        visible={showInsuranceModal}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowInsuranceModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { padding: 24, borderRadius: 20 }]}>
+            <View style={{ alignItems: "center", marginBottom: 16 }}>
+              <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: "#fef3c7", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
+                <Ionicons name="shield-outline" size={28} color="#d97706" />
+              </View>
+              <Text style={{ fontSize: 18, fontWeight: "700", color: "#111827", textAlign: "center" }}>
+                Insurance Disclosure
+              </Text>
+            </View>
+            <Text style={{ fontSize: 14, color: "#374151", lineHeight: 22, marginBottom: 8 }}>
+              By accepting this disclosure, you confirm that:
+            </Text>
+            <View style={{ gap: 8, marginBottom: 20 }}>
+              {[
+                "You do not carry general liability insurance for the services you offer through TechTrust.",
+                "Customers will be clearly notified before booking that TechTrust does not provide insurance coverage for your work.",
+                "You accept full responsibility for any damages or liability arising from your services.",
+              ].map((item, i) => (
+                <View key={i} style={{ flexDirection: "row", gap: 10, alignItems: "flex-start" }}>
+                  <Ionicons name="alert-circle-outline" size={16} color="#d97706" style={{ marginTop: 3 }} />
+                  <Text style={{ flex: 1, fontSize: 13, color: "#4b5563", lineHeight: 20 }}>{item}</Text>
+                </View>
+              ))}
+            </View>
+            <Text style={{ fontSize: 12, color: "#9ca3af", marginBottom: 20, fontStyle: "italic" }}>
+              Providers with valid insurance can upload their certificate later in the Settings → Compliance section.
+            </Text>
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <TouchableOpacity
+                style={{ flex: 1, paddingVertical: 13, borderRadius: 12, borderWidth: 1.5, borderColor: "#e5e7eb", alignItems: "center" }}
+                onPress={() => setShowInsuranceModal(false)}
+              >
+                <Text style={{ fontWeight: "600", color: "#6b7280" }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{ flex: 1, paddingVertical: 13, borderRadius: 12, backgroundColor: "#d97706", alignItems: "center" }}
+                onPress={() => {
+                  setProviderInsuranceDisclosureAccepted(true);
+                  setShowInsuranceModal(false);
+                }}
+              >
+                <Text style={{ fontWeight: "700", color: "#fff" }}>I Understand</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* 🌍 Modal de Seleção de País */}
       <Modal
         visible={showCountryPicker}
@@ -1575,24 +1619,54 @@ const styles = StyleSheet.create({
     textAlign: "right",
     marginTop: 4,
   },
+  backButton: {
+    position: "absolute",
+    top: Platform.OS === "ios" ? 54 : 16,
+    left: 16,
+    zIndex: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#f3f4f6",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   roleSelectorContainer: {
     marginBottom: 20,
   },
-  roleButtons: {
-    flexDirection: "row",
-    gap: 12,
+  roleCards: {
+    gap: 10,
   },
-  roleButton: {
-    flex: 1,
+  roleCard: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
+    gap: 14,
     paddingVertical: 14,
-    borderRadius: 12,
+    paddingHorizontal: 16,
+    borderRadius: 14,
     borderWidth: 2,
     borderColor: "#e5e7eb",
     backgroundColor: "#f9fafb",
+  },
+  roleCardIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  roleCardText: {
+    flex: 1,
+  },
+  roleCardLabel: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#111827",
+  },
+  roleCardDesc: {
+    fontSize: 12,
+    color: "#6b7280",
+    marginTop: 2,
   },
   roleButtonText: {
     fontSize: 14,
