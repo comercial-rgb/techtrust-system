@@ -134,7 +134,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
               >
                 {languages.map((lang) => (
                   <option key={lang.code} value={lang.code}>
-                    {lang.label}
+                    {lang.flag} {lang.label}
                   </option>
                 ))}
               </select>

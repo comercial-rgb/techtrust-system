@@ -68,7 +68,7 @@ export default function LoginPage() {
               >
                 {languages.map((lang) => (
                   <option key={lang.code} value={lang.code}>
-                    {lang.label}
+                    {lang.flag} {lang.label}
                   </option>
                 ))}
               </select>
