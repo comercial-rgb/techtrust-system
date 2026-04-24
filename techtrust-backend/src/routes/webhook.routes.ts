@@ -579,6 +579,28 @@ async function handleRequestCancellationCheckoutCompleted(session: Stripe.Checko
 }
 
 /**
+ * Maps a Stripe price ID to our plan enum.
+ * Returns null if the price ID is unknown (e.g. add-ons).
+ */
+function getPlanFromPriceId(priceId: string): 'FREE' | 'STARTER' | 'PRO' | 'ENTERPRISE' | null {
+  const map: Record<string, 'STARTER' | 'PRO' | 'ENTERPRISE'> = {};
+  const add = (envKey: string, plan: 'STARTER' | 'PRO' | 'ENTERPRISE') => {
+    const val = process.env[envKey];
+    if (val) map[val] = plan;
+  };
+  add('STRIPE_PRICE_STARTER', 'STARTER');
+  add('STRIPE_PRICE_STARTER_MONTHLY', 'STARTER');
+  add('STRIPE_PRICE_STARTER_YEARLY', 'STARTER');
+  add('STRIPE_PRICE_PRO', 'PRO');
+  add('STRIPE_PRICE_PRO_MONTHLY', 'PRO');
+  add('STRIPE_PRICE_PRO_YEARLY', 'PRO');
+  add('STRIPE_PRICE_ENTERPRISE', 'ENTERPRISE');
+  add('STRIPE_PRICE_ENTERPRISE_MONTHLY', 'ENTERPRISE');
+  add('STRIPE_PRICE_ENTERPRISE_YEARLY', 'ENTERPRISE');
+  return map[priceId] ?? null;
+}
+
+/**
  * Subscription atualizada (upgrade, downgrade, renewal, etc)
  */
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
@@ -612,10 +634,20 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
       break;
   }
 
+  // Detectar mudança de plano (upgrade/downgrade)
+  const priceId = subscription.items?.data?.[0]?.price?.id;
+  const newPlan = priceId ? getPlanFromPriceId(priceId) : null;
+  const planUpdate = newPlan && newPlan !== dbSub.plan ? { plan: newPlan } : {};
+
+  if (newPlan && newPlan !== dbSub.plan) {
+    logger.info(`Plan change detected: ${dbSub.plan} → ${newPlan} for subscription ${dbSub.id}`);
+  }
+
   await prisma.subscription.update({
     where: { id: dbSub.id },
     data: {
       status,
+      ...planUpdate,
       currentPeriodStart: new Date(subscription.current_period_start * 1000),
       currentPeriodEnd: new Date(subscription.current_period_end * 1000),
       trialEnd: subscription.trial_end
@@ -627,7 +659,7 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
     },
   });
 
-  logger.info(`Subscription ${dbSub.id} atualizada para status ${status}`);
+  logger.info(`Subscription ${dbSub.id} atualizada: status=${status}${newPlan ? ` plan=${newPlan}` : ''}`);
 }
 
 /**
