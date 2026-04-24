@@ -18,6 +18,11 @@ export interface PaymentBreakdown {
   stripeFee: number;
   totalAmount: number;
   providerWillReceive: number;
+  // Sales tax (Marketplace Facilitator)
+  salesTaxAmount?: number;
+  salesTaxRate?: number;
+  salesTaxableAmount?: number;
+  salesTaxCounty?: string;
 }
 
 export interface CreatePaymentIntentResponse {
@@ -304,11 +309,58 @@ export async function cancelSubscription(
  */
 export async function getSubscriptionUsage(): Promise<{
   plan: string;
-  vehicles: { used: number; limit: number };
+  vehicles: {
+    used: number;
+    limit: number;
+    addOns?: number;
+    effectiveLimit?: number;
+  };
   serviceRequests: { used: number; limit: number | null; unlimited: boolean };
   period: { start: string; end: string };
+  vehicleAddOns?: VehicleAddOn[];
 }> {
   const { data } = await api.get("/subscriptions/usage");
+  return data.data;
+}
+
+export interface VehicleAddOn {
+  id: string;
+  subscriptionId: string;
+  userId: string;
+  vehicleId: string;
+  monthlyPrice: number;
+  stripeSubscriptionItemId: string | null;
+  isActive: boolean;
+  cancelledAt: string | null;
+}
+
+export async function addVehicleAddOn(
+  vehicleId: string,
+  urls?: { successUrl?: string; cancelUrl?: string },
+): Promise<{
+  id?: string;
+  monthlyPrice: number;
+  checkoutSessionId?: string;
+  checkoutUrl?: string;
+  pendingCheckout?: boolean;
+}> {
+  const { data } = await api.post("/subscriptions/vehicle-addon", {
+    vehicleId,
+    ...urls,
+  });
+  return data.data;
+}
+
+export async function removeVehicleAddOn(addOnId: string): Promise<{
+  success: boolean;
+  message: string;
+}> {
+  const { data } = await api.delete(`/subscriptions/vehicle-addon/${addOnId}`);
+  return data;
+}
+
+export async function getVehicleAddOns(): Promise<VehicleAddOn[]> {
+  const { data } = await api.get("/subscriptions/vehicle-addons");
   return data.data;
 }
 

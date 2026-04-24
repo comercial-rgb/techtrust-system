@@ -90,6 +90,10 @@ export interface CreatePaymentIntentParams {
   metadata?: Record<string, string>;
   description?: string;
   captureMethod?: "automatic" | "manual"; // manual = pré-autorização
+  confirm?: boolean;
+  offSession?: boolean;
+  // Sales tax fields (Marketplace Facilitator)
+  salesTaxAmountCents?: number; // Sales tax in cents (calculated by tax.service)
 }
 
 /**
@@ -118,7 +122,14 @@ export async function createPaymentIntent(
     currency: params.currency || "usd",
     customer: params.customerId,
     description: params.description,
-    metadata: params.metadata || {},
+    metadata: {
+      ...(params.metadata || {}),
+      // Sales tax tracking for Marketplace Facilitator compliance
+      ...(params.salesTaxAmountCents ? {
+        sales_tax_amount_cents: String(params.salesTaxAmountCents),
+        tax_collected_by: "TECHTRUST_MARKETPLACE_FACILITATOR",
+      } : {}),
+    },
     capture_method: params.captureMethod || "manual", // Pré-autorização por padrão
     automatic_payment_methods: {
       enabled: true,
@@ -128,6 +139,13 @@ export async function createPaymentIntent(
   // Se tem payment method, anexar
   if (params.paymentMethodId) {
     intentParams.payment_method = params.paymentMethodId;
+  }
+
+  if (params.confirm) {
+    intentParams.confirm = true;
+    if (params.offSession) {
+      intentParams.off_session = true;
+    }
   }
 
   // Se Connect (tem provider), usar transfer_data
@@ -177,6 +195,51 @@ export async function confirmPaymentIntent(paymentIntentId: string): Promise<{
   };
 }
 
+export async function retrieveSubscription(subscriptionId: string): Promise<{
+  id: string;
+  status: string;
+  currentPeriodStart: Date;
+  currentPeriodEnd: Date;
+  trialEnd?: Date | null;
+  items: Array<{ id: string; priceId?: string }>;
+}> {
+  if (MOCK_STRIPE) {
+    const now = new Date();
+    const periodEnd = new Date(now);
+    periodEnd.setMonth(periodEnd.getMonth() + 1);
+    return {
+      id: subscriptionId,
+      status: "active",
+      currentPeriodStart: now,
+      currentPeriodEnd: periodEnd,
+      trialEnd: null,
+      items: [{ id: `mock_si_${Date.now()}`, priceId: "mock_price" }],
+    };
+  }
+
+  const s = getStripe();
+  const subscription = await s.subscriptions.retrieve(subscriptionId, {
+    expand: ["items.data.price"],
+  });
+
+  return {
+    id: subscription.id,
+    status: subscription.status,
+    currentPeriodStart: new Date(subscription.current_period_start * 1000),
+    currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+    trialEnd: subscription.trial_end
+      ? new Date(subscription.trial_end * 1000)
+      : null,
+    items: subscription.items.data.map((item) => ({
+      id: item.id,
+      priceId:
+        typeof item.price === "string"
+          ? item.price
+          : item.price?.id,
+    })),
+  };
+}
+
 /**
  * Capturar PaymentIntent pré-autorizado
  * Converte o hold em cobrança real
@@ -184,6 +247,7 @@ export async function confirmPaymentIntent(paymentIntentId: string): Promise<{
 export async function capturePaymentIntent(
   paymentIntentId: string,
   amountToCapture?: number,
+  applicationFeeAmount?: number,
 ): Promise<{
   status: string;
   chargeId?: string;
@@ -199,6 +263,9 @@ export async function capturePaymentIntent(
   const captureParams: Stripe.PaymentIntentCaptureParams = {};
   if (amountToCapture) {
     captureParams.amount_to_capture = amountToCapture;
+  }
+  if (applicationFeeAmount) {
+    captureParams.application_fee_amount = applicationFeeAmount;
   }
 
   const intent = await s.paymentIntents.capture(paymentIntentId, captureParams);
@@ -244,6 +311,24 @@ export async function retrievePaymentIntent(paymentIntentId: string): Promise<{
         ? intent.latest_charge
         : intent.latest_charge?.id,
   };
+}
+
+/**
+ * Cancelar PaymentIntent pré-autorizado e liberar hold.
+ */
+export async function cancelPaymentIntent(paymentIntentId: string): Promise<{
+  status: string;
+}> {
+  if (MOCK_STRIPE) {
+    return { status: "canceled" };
+  }
+
+  const s = getStripe();
+  const intent = await s.paymentIntents.cancel(paymentIntentId);
+
+  logger.info(`PaymentIntent cancelado: ${intent.id} (${intent.status})`);
+
+  return { status: intent.status };
 }
 
 // ============================================
@@ -607,6 +692,125 @@ export async function createCheckoutSession(params: {
   };
 }
 
+/**
+ * Create a Checkout Session for a Free-plan vehicle add-on subscription.
+ * The add-on is activated locally only after checkout.session.completed.
+ */
+export async function createVehicleAddOnCheckoutSession(params: {
+  customerId: string;
+  priceId: string;
+  userId: string;
+  vehicleId: string;
+  plan: string;
+  successUrl: string;
+  cancelUrl: string;
+}): Promise<{
+  sessionId: string;
+  url: string;
+}> {
+  if (MOCK_STRIPE) {
+    return {
+      sessionId: `mock_cs_vehicle_addon_${Date.now()}`,
+      url: params.successUrl,
+    };
+  }
+
+  const s = getStripe();
+
+  const session = await s.checkout.sessions.create({
+    customer: params.customerId,
+    mode: "subscription",
+    line_items: [{ price: params.priceId, quantity: 1 }],
+    success_url: params.successUrl,
+    cancel_url: params.cancelUrl,
+    payment_method_types: ["card", "us_bank_account"],
+    payment_method_options: {
+      us_bank_account: {
+        financial_connections: { permissions: ["payment_method"] },
+      },
+    },
+    metadata: {
+      billingType: "vehicle_addon",
+      userId: params.userId,
+      vehicleId: params.vehicleId,
+      plan: params.plan,
+    },
+    subscription_data: {
+      metadata: {
+        billingType: "vehicle_addon",
+        userId: params.userId,
+        vehicleId: params.vehicleId,
+        plan: params.plan,
+      },
+    },
+  });
+
+  logger.info(
+    `Vehicle add-on Checkout Session criada: ${session.id} para user ${params.userId}, vehicle ${params.vehicleId}`,
+  );
+
+  return {
+    sessionId: session.id,
+    url: session.url!,
+  };
+}
+
+/**
+ * Create a one-time Checkout Session for small platform fees that are not
+ * attached to an existing paid subscription.
+ */
+export async function createOneTimeCheckoutSession(params: {
+  customerId: string;
+  amount: number;
+  currency?: string;
+  name: string;
+  userId: string;
+  successUrl: string;
+  cancelUrl: string;
+  metadata: Record<string, string>;
+}): Promise<{
+  sessionId: string;
+  url: string;
+}> {
+  if (MOCK_STRIPE) {
+    return {
+      sessionId: `mock_cs_fee_${Date.now()}`,
+      url: params.successUrl,
+    };
+  }
+
+  const s = getStripe();
+  const session = await s.checkout.sessions.create({
+    customer: params.customerId,
+    mode: "payment",
+    line_items: [
+      {
+        price_data: {
+          currency: params.currency || "usd",
+          product_data: { name: params.name },
+          unit_amount: params.amount,
+        },
+        quantity: 1,
+      },
+    ],
+    success_url: params.successUrl,
+    cancel_url: params.cancelUrl,
+    metadata: {
+      ...params.metadata,
+      userId: params.userId,
+    },
+  });
+
+  logger.info(
+    `One-time Checkout Session criada: ${session.id} (${params.name}) para user ${params.userId}`,
+  );
+
+  return {
+    sessionId: session.id,
+    url: session.url!,
+  };
+}
+
 // ============================================
 // SUBSCRIPTIONS
 // ============================================
@@ -771,10 +975,64 @@ export async function addSubscriptionItem(params: {
     subscription: params.subscriptionId,
     price: params.priceId,
     metadata: params.metadata || {},
+    proration_behavior: "always_invoice",
+    payment_behavior: "error_if_incomplete",
   });
 
   logger.info(`Subscription item adicionado: ${item.id} à subscription ${params.subscriptionId}`);
   return { subscriptionItemId: item.id };
+}
+
+/**
+ * Add a one-time invoice item to an existing subscription and charge it now.
+ */
+export async function chargeOneTimeSubscriptionFee(params: {
+  customerId: string;
+  subscriptionId: string;
+  amount: number;
+  currency?: string;
+  description: string;
+  metadata?: Record<string, string>;
+}): Promise<{ invoiceId: string; status: string }> {
+  if (MOCK_STRIPE) {
+    return {
+      invoiceId: `mock_in_${Date.now()}`,
+      status: "paid",
+    };
+  }
+
+  const s = getStripe();
+
+  await s.invoiceItems.create({
+    customer: params.customerId,
+    subscription: params.subscriptionId,
+    amount: params.amount,
+    currency: params.currency || "usd",
+    description: params.description,
+    metadata: params.metadata || {},
+  });
+
+  const invoice = await s.invoices.create({
+    customer: params.customerId,
+    subscription: params.subscriptionId,
+    collection_method: "charge_automatically",
+    metadata: params.metadata || {},
+    pending_invoice_items_behavior: "include",
+  });
+
+  const finalized = await s.invoices.finalizeInvoice(invoice.id);
+  const paid = finalized.status === "paid"
+    ? finalized
+    : await s.invoices.pay(finalized.id);
+
+  logger.info(
+    `One-time subscription fee charged: invoice ${paid.id} (${paid.status})`,
+  );
+
+  return {
+    invoiceId: paid.id,
+    status: paid.status || "unknown",
+  };
 }
 
 /**
@@ -813,6 +1071,8 @@ export default {
   confirmPaymentIntent,
   capturePaymentIntent,
   retrievePaymentIntent,
+  cancelPaymentIntent,
+  retrieveSubscription,
   createSetupIntent,
   listPaymentMethods,
   detachPaymentMethod,
@@ -822,10 +1082,13 @@ export default {
   getConnectAccountStatus,
   createLoginLink,
   createCheckoutSession,
+  createVehicleAddOnCheckoutSession,
+  createOneTimeCheckoutSession,
   createSubscription,
   cancelSubscription,
   updateSubscription,
   addSubscriptionItem,
   removeSubscriptionItem,
+  chargeOneTimeSubscriptionFee,
   constructWebhookEvent,
 };

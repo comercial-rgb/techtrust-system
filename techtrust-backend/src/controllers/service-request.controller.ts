@@ -11,12 +11,14 @@ import { prisma } from "../config/database";
 import { AppError } from "../middleware/error-handler";
 import { logger } from "../config/logger";
 import { geocodeAddress } from "../services/geocoding.service";
+import * as stripeService from "../services/stripe.service";
 import { SERVICE_TYPE_MAP } from "../config/service-type-mapping";
 import {
   SUBSCRIPTION_PLANS,
   QUOTE_VALIDITY,
   RENEWAL_RULES,
   SERVICE_FLOW,
+  calculateCancellationFee,
   getServiceRequestExpirationHours,
   type PlanKey,
 } from "../config/businessRules";
@@ -41,6 +43,19 @@ function resolveServiceType(raw: string): ServiceType {
   // Fallback
   logger.warn(`Unknown serviceType "${raw}", defaulting to REPAIR`);
   return "REPAIR" as ServiceType;
+}
+
+function getBillingReturnUrls(req: Request, fallbackPath: string) {
+  const frontendUrl =
+    process.env.FRONTEND_URL ||
+    process.env.CUSTOMER_APP_URL ||
+    process.env.PUBLIC_APP_URL ||
+    "https://techtrustautosolutions.com";
+
+  return {
+    successUrl: req.body.successUrl || `${frontendUrl}${fallbackPath}?stripe=success`,
+    cancelUrl: req.body.cancelUrl || `${frontendUrl}${fallbackPath}?stripe=cancelled`,
+  };
 }
 
 /**
@@ -474,19 +489,155 @@ export const cancelServiceRequest = async (req: Request, res: Response) => {
     );
   }
 
-  // Calcular taxa de cancelamento se já tem orçamento aceito
-  let cancellationFee = 0;
+  let cancellationFeePercent = 0;
+  let cancellationFeeAmount = 0;
+  let cancellationFeeCaptured = false;
 
   if (request.acceptedQuoteId) {
-    const hoursUntilScheduled = request.scheduledFor
-      ? (new Date(request.scheduledFor).getTime() - Date.now()) /
-        (1000 * 60 * 60)
-      : 999;
+    const acceptedQuote = await prisma.quote.findUnique({
+      where: { id: request.acceptedQuoteId },
+      select: { id: true, acceptedAt: true, totalAmount: true, providerId: true },
+    });
 
-    if (hoursUntilScheduled > 24) {
-      cancellationFee = 10; // 10% se >24h
-    } else {
-      cancellationFee = 25; // 25% se <24h
+    const fee = calculateCancellationFee(
+      acceptedQuote ? Number(acceptedQuote.totalAmount) : 0,
+      false,
+      acceptedQuote?.acceptedAt || null,
+      request.scheduledFor || null,
+    );
+
+    cancellationFeePercent = fee.feePercent;
+    cancellationFeeAmount = fee.feeAmount;
+
+    if (cancellationFeeAmount > 0) {
+      const workOrder = await prisma.workOrder.findFirst({
+        where: { serviceRequestId: requestId },
+        include: {
+          provider: {
+            select: {
+              providerProfile: {
+                select: {
+                  stripeOnboardingCompleted: true,
+                  stripeAccountId: true,
+                },
+              },
+            },
+          },
+          payments: { where: { status: { in: ["AUTHORIZED", "PENDING"] } } },
+        },
+      });
+
+      const authorizedPayment = workOrder?.payments.find(
+        (payment) => payment.status === "AUTHORIZED" && payment.paymentType === "SERVICE",
+      );
+
+      if (authorizedPayment && workOrder) {
+        const feeCents = Math.round(cancellationFeeAmount * 100);
+        const captureResult = await stripeService.capturePaymentIntent(
+          authorizedPayment.stripePaymentIntentId,
+          feeCents,
+          workOrder.provider.providerProfile?.stripeOnboardingCompleted
+            ? feeCents
+            : undefined,
+        );
+
+        if (captureResult.status !== "succeeded") {
+          throw new AppError(
+            `Cancellation fee capture failed with status: ${captureResult.status}`,
+            500,
+            "CANCELLATION_FEE_CAPTURE_FAILED",
+          );
+        }
+
+        await prisma.payment.update({
+          where: { id: authorizedPayment.id },
+          data: {
+            status: "CAPTURED",
+            capturedAt: new Date(),
+            stripeChargeId: captureResult.chargeId || authorizedPayment.stripeChargeId,
+            paymentType: "CANCELLATION_FEE",
+            subtotal: cancellationFeeAmount,
+            platformFee: cancellationFeeAmount,
+            processingFee: 0,
+            totalAmount: cancellationFeeAmount,
+            providerAmount: 0,
+            refundReason: reason || "Service request cancelled by customer",
+          },
+        });
+
+        for (const payment of workOrder.payments) {
+          if (payment.id === authorizedPayment.id) continue;
+          try {
+            await stripeService.cancelPaymentIntent(payment.stripePaymentIntentId);
+            await prisma.payment.update({
+              where: { id: payment.id },
+              data: {
+                status: "CANCELLED",
+                refundReason: reason || "Service request cancelled by customer",
+              },
+            });
+          } catch (err: any) {
+            logger.error(`Error voiding payment ${payment.id}: ${err.message}`);
+          }
+        }
+
+        await prisma.workOrder.update({
+          where: { id: workOrder.id },
+          data: { status: "CANCELLED", cancelledAt: new Date() },
+        });
+
+        cancellationFeeCaptured = true;
+      } else {
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { email: true, fullName: true },
+        });
+
+        if (!user) {
+          throw new AppError("User not found", 404, "USER_NOT_FOUND");
+        }
+
+        const subscription = await prisma.subscription.findFirst({
+          where: { userId, status: "ACTIVE" },
+          orderBy: { createdAt: "desc" },
+          select: { stripeCustomerId: true },
+        });
+
+        const stripeCustomerId = await stripeService.getOrCreateCustomer({
+          userId,
+          email: user.email,
+          name: user.fullName,
+          existingStripeCustomerId: subscription?.stripeCustomerId,
+        });
+
+        const { successUrl, cancelUrl } = getBillingReturnUrls(req, `/service-requests/${requestId}`);
+        const checkout = await stripeService.createOneTimeCheckoutSession({
+          customerId: stripeCustomerId,
+          amount: Math.round(cancellationFeeAmount * 100),
+          name: `TechTrust cancellation fee - ${request.requestNumber}`,
+          userId,
+          successUrl,
+          cancelUrl,
+          metadata: {
+            billingType: "request_cancellation",
+            requestId,
+            reason: reason || "",
+          },
+        });
+
+        res.json({
+          success: true,
+          message: `Complete checkout to cancel this request and pay the $${cancellationFeeAmount.toFixed(2)} cancellation fee.`,
+          data: {
+            cancellationFeePercent,
+            cancellationFeeAmount,
+            checkoutSessionId: checkout.sessionId,
+            checkoutUrl: checkout.url,
+            pendingCheckout: true,
+          },
+        });
+        return;
+      }
     }
   }
 
@@ -506,10 +657,13 @@ export const cancelServiceRequest = async (req: Request, res: Response) => {
     success: true,
     message: "Solicitação cancelada",
     data: {
-      cancellationFee: `${cancellationFee}%`,
+      cancellationFee: `${cancellationFeePercent}%`,
+      cancellationFeePercent,
+      cancellationFeeAmount,
+      cancellationFeeCaptured,
       note:
-        cancellationFee > 0
-          ? "Taxa de cancelamento será aplicada no pagamento"
+        cancellationFeeAmount > 0
+          ? "Taxa de cancelamento capturada pelo Stripe"
           : "Sem taxa de cancelamento",
     },
   });
@@ -518,7 +672,7 @@ export const cancelServiceRequest = async (req: Request, res: Response) => {
 /**
  * POST /api/v1/service-requests/:requestId/renew
  * Renew (reopen) an expired/cancelled request to receive more quotes.
- * Charges $0.99 renewal fee (FREE/STARTER plans) billed on next invoice.
+ * Charges $0.99 renewal fee (FREE/STARTER plans) immediately via Stripe.
  * PRO/ENTERPRISE: free renewal.
  */
 export const renewServiceRequest = async (req: Request, res: Response) => {
@@ -564,7 +718,94 @@ export const renewServiceRequest = async (req: Request, res: Response) => {
   const newQuoteDeadline = new Date();
   newQuoteDeadline.setHours(newQuoteDeadline.getHours() + QUOTE_VALIDITY.PROVIDER_SUBMIT_HOURS);
 
-  // Reopen the request with fresh deadlines
+  let billingResult:
+    | { method: "subscription_invoice"; invoiceId: string }
+    | { method: "checkout"; checkoutSessionId: string; checkoutUrl: string }
+    | null = null;
+
+  if (renewalFee > 0) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true, fullName: true },
+    });
+
+    if (!user) {
+      throw new AppError("User not found", 404, "USER_NOT_FOUND");
+    }
+
+    const stripeCustomerId = await stripeService.getOrCreateCustomer({
+      userId,
+      email: user.email,
+      name: user.fullName,
+      existingStripeCustomerId: subscription.stripeCustomerId,
+    });
+
+    if (!subscription.stripeCustomerId) {
+      await prisma.subscription.update({
+        where: { id: subscription.id },
+        data: { stripeCustomerId },
+      });
+    }
+
+    if (subscription.stripeSubscriptionId) {
+      const invoice = await stripeService.chargeOneTimeSubscriptionFee({
+        customerId: stripeCustomerId,
+        subscriptionId: subscription.stripeSubscriptionId,
+        amount: Math.round(renewalFee * 100),
+        description: `TechTrust request renewal - ${request.requestNumber}`,
+        metadata: {
+          billingType: "request_renewal",
+          userId,
+          requestId,
+          requestNumber: request.requestNumber,
+        },
+      });
+
+      if (invoice.status !== "paid") {
+        throw new AppError(
+          "Renewal fee could not be collected. Please update your payment method.",
+          402,
+          "RENEWAL_PAYMENT_FAILED",
+        );
+      }
+
+      billingResult = {
+        method: "subscription_invoice",
+        invoiceId: invoice.invoiceId,
+      };
+    } else {
+      const { successUrl, cancelUrl } = getBillingReturnUrls(req, `/service-requests/${requestId}`);
+      const checkout = await stripeService.createOneTimeCheckoutSession({
+        customerId: stripeCustomerId,
+        amount: Math.round(renewalFee * 100),
+        name: `TechTrust request renewal - ${request.requestNumber}`,
+        userId,
+        successUrl,
+        cancelUrl,
+        metadata: {
+          billingType: "request_renewal",
+          requestId,
+          requestNumber: request.requestNumber,
+          expiresAt: newExpiresAt?.toISOString() || "",
+          quoteDeadline: newQuoteDeadline.toISOString(),
+        },
+      });
+
+      res.json({
+        success: true,
+        message: `Complete checkout to renew this request for $${renewalFee.toFixed(2)}.`,
+        data: {
+          renewalFee,
+          checkoutSessionId: checkout.sessionId,
+          checkoutUrl: checkout.url,
+          pendingCheckout: true,
+        },
+      });
+      return;
+    }
+  }
+
+  // Reopen the request only after required Stripe billing is paid or not needed.
   const renewed = await prisma.serviceRequest.update({
     where: { id: requestId },
     data: {
@@ -579,14 +820,6 @@ export const renewServiceRequest = async (req: Request, res: Response) => {
     },
   });
 
-  // Log the renewal fee for billing
-  if (renewalFee > 0) {
-    logger.info(
-      `Renewal fee $${renewalFee} for request ${request.requestNumber} — billed via ${RENEWAL_RULES.BILLING_METHOD}`,
-    );
-    // TODO: integrate with Stripe billing to add $0.99 to next invoice
-  }
-
   logger.info(
     `Request renewed: ${request.requestNumber}, count=${renewed.renewalCount}, plan=${plan}`,
   );
@@ -594,15 +827,17 @@ export const renewServiceRequest = async (req: Request, res: Response) => {
   res.json({
     success: true,
     message: renewalFee > 0
-      ? `Request renewed! A $${renewalFee.toFixed(2)} fee will be added to your next invoice.`
+      ? `Request renewed! A $${renewalFee.toFixed(2)} fee was captured by Stripe.`
       : "Request renewed successfully. You will receive new quotes.",
     data: {
       renewalFee,
       renewalCount: renewed.renewalCount,
       newExpiresAt: newExpiresAt?.toISOString() ?? null,
       billingMethod: renewalFee > 0 ? RENEWAL_RULES.BILLING_METHOD : null,
+      billing: billingResult,
     },
   });
+  return;
 };
 
 /**
