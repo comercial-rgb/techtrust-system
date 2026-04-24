@@ -29,6 +29,22 @@ import { useI18n, languages, Language } from '../i18n'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1'
 
+const DIAL_COUNTRIES = [
+  { code: 'US', flag: '🇺🇸', name: 'United States', dial: '+1' },
+  { code: 'BR', flag: '🇧🇷', name: 'Brasil',         dial: '+55' },
+  { code: 'MX', flag: '🇲🇽', name: 'México',         dial: '+52' },
+  { code: 'CA', flag: '🇨🇦', name: 'Canada',         dial: '+1' },
+  { code: 'GB', flag: '🇬🇧', name: 'United Kingdom', dial: '+44' },
+  { code: 'PT', flag: '🇵🇹', name: 'Portugal',       dial: '+351' },
+  { code: 'ES', flag: '🇪🇸', name: 'España',         dial: '+34' },
+  { code: 'AR', flag: '🇦🇷', name: 'Argentina',      dial: '+54' },
+  { code: 'CO', flag: '🇨🇴', name: 'Colombia',       dial: '+57' },
+  { code: 'FR', flag: '🇫🇷', name: 'France',         dial: '+33' },
+  { code: 'DE', flag: '🇩🇪', name: 'Germany',        dial: '+49' },
+  { code: 'IT', flag: '🇮🇹', name: 'Italy',          dial: '+39' },
+  { code: 'AU', flag: '🇦🇺', name: 'Australia',      dial: '+61' },
+]
+
 type Step = 'plan' | 'info' | 'otp' | 'success'
 type AccountType = 'INDIVIDUAL' | 'BUSINESS'
 
@@ -70,6 +86,8 @@ export default function CadastroPage() {
   const [businessName, setBusinessName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
+  const [selectedDialCountry, setSelectedDialCountry] = useState(DIAL_COUNTRIES[0])
+  const [showDialDropdown, setShowDialDropdown] = useState(false)
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -119,7 +137,8 @@ export default function CadastroPage() {
 
   function phoneToE164(value: string) {
     const digits = value.replace(/\D/g, '')
-    return digits.length === 10 ? `+1${digits}` : ''
+    if (!digits) return ''
+    return `${selectedDialCountry.dial}${digits}`
   }
 
   // ─── Validate Step ───
@@ -137,7 +156,7 @@ export default function CadastroPage() {
       return false
     }
     const e164 = phoneToE164(phone)
-    if (!e164) {
+    if (!e164 || e164.replace(/\D/g, '').length < 7) {
       setError(tr('signup.phoneRequired'))
       return false
     }
@@ -566,16 +585,46 @@ export default function CadastroPage() {
                 {/* Phone */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{tr('signup.phone')}</label>
-                  <div className="relative">
-                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-                    <span className="absolute left-12 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none">+1</span>
-                    <input
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => { setPhone(formatPhoneDisplay(e.target.value)); setError('') }}
-                      placeholder="(555) 123-4567"
-                      className="w-full pl-20 pr-4 py-3 rounded-lg border border-gray-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all"
-                    />
+                  <div className="flex gap-2">
+                    {/* Country flag / dial-code picker */}
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setShowDialDropdown(!showDialDropdown)}
+                        className="flex items-center gap-1.5 px-3 py-3 rounded-lg border border-gray-300 hover:border-gray-400 bg-white text-sm font-medium text-gray-700 whitespace-nowrap"
+                      >
+                        <span className="text-lg leading-none">{selectedDialCountry.flag}</span>
+                        <span className="text-gray-600">{selectedDialCountry.dial}</span>
+                        <span className="text-gray-400 text-xs">▾</span>
+                      </button>
+                      {showDialDropdown && (
+                        <div className="absolute left-0 top-full mt-1 z-50 bg-white border border-gray-200 rounded-xl shadow-lg w-56 max-h-64 overflow-y-auto">
+                          {DIAL_COUNTRIES.map((c) => (
+                            <button
+                              key={c.code}
+                              type="button"
+                              onClick={() => { setSelectedDialCountry(c); setShowDialDropdown(false) }}
+                              className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50 ${selectedDialCountry.code === c.code ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'}`}
+                            >
+                              <span className="text-lg">{c.flag}</span>
+                              <span className="flex-1 text-left">{c.name}</span>
+                              <span className="text-gray-400">{c.dial}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    {/* Phone number input */}
+                    <div className="relative flex-1">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                      <input
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => { setPhone(formatPhoneDisplay(e.target.value)); setError('') }}
+                        placeholder="(555) 123-4567"
+                        className="w-full pl-9 pr-4 py-3 rounded-lg border border-gray-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all"
+                      />
+                    </div>
                   </div>
                 </div>
 
