@@ -9,6 +9,9 @@ interface QBOStatus {
   realmId?: string;
   error?: string;
   message?: string;
+  refreshTokenExpiresAt?: string;
+  daysUntilRefreshExpiry?: number;
+  tokenRenewalRequired?: boolean;
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
@@ -143,6 +146,22 @@ export default function QuickBooksConnectionPanel() {
                   <p className="text-xs text-gray-500 mt-1">
                     Environment: {status.environment} · Realm ID: <code>{status.realmId}</code>
                   </p>
+                  {status.daysUntilRefreshExpiry !== undefined && status.daysUntilRefreshExpiry !== null && (
+                    <div className={`mt-2 px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-2 ${
+                      status.daysUntilRefreshExpiry <= 14
+                        ? 'bg-red-50 text-red-700 border border-red-200'
+                        : status.daysUntilRefreshExpiry <= 30
+                        ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                        : 'bg-green-50 text-green-700 border border-green-200'
+                    }`}>
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      {status.daysUntilRefreshExpiry <= 14
+                        ? `🚨 Token expira em ${status.daysUntilRefreshExpiry} dias — clique em "Reconectar" AGORA.`
+                        : status.daysUntilRefreshExpiry <= 30
+                        ? `⚠️ Token expira em ${status.daysUntilRefreshExpiry} dias — renove em breve clicando em "Reconectar".`
+                        : `🔐 Token válido por mais ${status.daysUntilRefreshExpiry} dias.`}
+                    </div>
+                  )}
                 </>
               ) : (
                 <>

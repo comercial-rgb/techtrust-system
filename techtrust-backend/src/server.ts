@@ -317,6 +317,27 @@ httpServer.listen(PORT, async () => {
     logger.warn("⚠️ Quote expiration checker failed to start:", error);
   }
 
+  // Check QuickBooks refresh token expiration
+  try {
+    const { prisma: db } = await import("./config/database");
+    const rows = await db.$queryRaw<{ refreshTokenExpiresAt: Date }[]>`
+      SELECT "refreshTokenExpiresAt" FROM "QuickBooksConfig" WHERE id = 'singleton' LIMIT 1
+    `;
+    if (rows.length > 0 && rows[0].refreshTokenExpiresAt) {
+      const expiresAt = new Date(rows[0].refreshTokenExpiresAt);
+      const daysLeft = Math.floor((expiresAt.getTime() - Date.now()) / 86_400_000);
+      if (daysLeft <= 14) {
+        logger.error(`🚨 QuickBooks refresh token expira em ${daysLeft} dias (${expiresAt.toDateString()}). Acesse /api/v1/quickbooks/auth URGENTE.`);
+      } else if (daysLeft <= 30) {
+        logger.warn(`⚠️  QuickBooks refresh token expira em ${daysLeft} dias (${expiresAt.toDateString()}). Renove em breve via /api/v1/quickbooks/auth.`);
+      } else {
+        logger.info(`🔐 QuickBooks token válido por mais ${daysLeft} dias.`);
+      }
+    }
+  } catch {
+    // QuickBooksConfig table may not exist yet — safe to ignore on first boot
+  }
+
   logger.info(`🚀 TechTrust API rodando em http://localhost:${PORT}`);
   logger.info(`📚 API version: ${API_VERSION}`);
   logger.info(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);

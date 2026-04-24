@@ -184,6 +184,16 @@ export const getStatus = asyncHandler(async (_req: Request, res: Response) => {
     }
 
     const result = await qboService.testConnection();
+
+    // Fetch token expiry from DB
+    const rows = await prisma.$queryRaw<{ refreshTokenExpiresAt: Date }[]>`
+      SELECT "refreshTokenExpiresAt" FROM "QuickBooksConfig" WHERE id = 'singleton' LIMIT 1
+    `;
+    const refreshTokenExpiresAt = rows[0]?.refreshTokenExpiresAt ?? null;
+    const daysUntilRefreshExpiry = refreshTokenExpiresAt
+      ? Math.floor((new Date(refreshTokenExpiresAt).getTime() - Date.now()) / 86_400_000)
+      : null;
+
     return res.json({
       success: true,
       data: {
@@ -192,6 +202,9 @@ export const getStatus = asyncHandler(async (_req: Request, res: Response) => {
         companyName: result.companyName,
         environment: process.env.QBO_ENVIRONMENT || "sandbox",
         realmId: result.realmId || process.env.QBO_REALM_ID,
+        refreshTokenExpiresAt,
+        daysUntilRefreshExpiry,
+        tokenRenewalRequired: daysUntilRefreshExpiry !== null && daysUntilRefreshExpiry <= 30,
       },
     });
   } catch (err: any) {
