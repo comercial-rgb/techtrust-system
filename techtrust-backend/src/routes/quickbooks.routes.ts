@@ -16,9 +16,10 @@ import * as qboController from "../controllers/quickbooks.controller";
 const router = Router();
 
 // OAuth flow — públicas para permitir redirect externo da Intuit
-// (protegidas em produção por IP allowlist ou header secreto se necessário)
 router.get("/auth", qboController.startAuth);
 router.get("/callback", qboController.oauthCallback);
+router.get("/disconnect", qboController.disconnect);
+router.get("/reconnect", (_req, res) => res.redirect("/api/v1/quickbooks/auth"));
 
 // Admin endpoints
 router.get("/status", authenticate, authorize("ADMIN"), qboController.getStatus);

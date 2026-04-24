@@ -305,6 +305,23 @@ export const getTaxReport = asyncHandler(async (req: Request, res: Response) => 
   }
 });
 
+// ============================================
+// GET /api/v1/quickbooks/disconnect
+// Requerido pela Intuit para apps de produção
+// ============================================
+export const disconnect = asyncHandler(async (_req: Request, res: Response) => {
+  return res.send(`
+    <html>
+      <head><title>QuickBooks Disconnected</title></head>
+      <body style="font-family: sans-serif; padding: 40px; max-width: 600px; margin: auto;">
+        <h1>QuickBooks Disconnected</h1>
+        <p>The connection between TechTrust AutoSolutions and QuickBooks has been removed.</p>
+        <p>To reconnect, visit <a href="/api/v1/quickbooks/auth">Reconnect QuickBooks</a>.</p>
+      </body>
+    </html>
+  `);
+});
+
 function groupByCounty(payments: any[]) {
   const map = new Map<string, { tax: number; taxable: number; count: number }>();
   for (const p of payments) {
