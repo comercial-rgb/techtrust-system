@@ -17,7 +17,9 @@ import { NotificationsProvider } from "./src/contexts/NotificationsContext";
 import { I18nProvider } from "./src/i18n";
 import RootNavigator from "./src/navigation/RootNavigator";
 import SplashScreen from "./src/components/SplashScreen";
-import { API_URL } from "./src/config/api";
+
+const API_URL =
+  process.env.EXPO_PUBLIC_API_URL || "https://techtrust-api.onrender.com/api/v1";
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -33,7 +35,7 @@ export default function App() {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 8000);
         const response = await fetch(
-          "https://techtrust-api.onrender.com/api/v1/config/stripe",
+          `${API_URL}/config/stripe`,
           { signal: controller.signal },
         );
         clearTimeout(timeout);
