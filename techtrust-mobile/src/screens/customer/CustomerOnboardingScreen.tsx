@@ -186,7 +186,10 @@ export default function CustomerOnboardingScreen({ navigation }: any) {
     await completeOnboarding();
     navigation.replace("CustomerMain", {
       screen: "Vehicles",
-      params: { openAdd: true },
+      params: {
+        screen: "AddVehicle",
+        params: { fromOnboarding: true },
+      },
     });
   };
 

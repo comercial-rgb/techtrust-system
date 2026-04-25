@@ -45,6 +45,69 @@ export interface RecallsResponse {
   error?: string;
 }
 
+function firstValue(...values: unknown[]): string | undefined {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "number" && Number.isFinite(value))
+      return String(value);
+  }
+  return undefined;
+}
+
+function firstNumber(...values: unknown[]): number | undefined {
+  for (const value of values) {
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string" && value.trim()) {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+  }
+  return undefined;
+}
+
+function normalizeVehicleData(payload: any, vin: string): VehicleData | null {
+  const vehicle = payload?.vehicle || payload;
+  if (!vehicle) return null;
+
+  const normalized: VehicleData = {
+    vin: firstValue(vehicle.vin, vin)?.toUpperCase() || vin.toUpperCase(),
+    make: firstValue(vehicle.make, vehicle.manufacturer?.make) || "",
+    model: firstValue(vehicle.model) || "",
+    year: firstNumber(vehicle.year, vehicle.modelYear) || 0,
+    trim: firstValue(vehicle.trim),
+    engineType: firstValue(
+      vehicle.engineType,
+      vehicle.engineDescription,
+      vehicle.engine?.configuration,
+      vehicle.engine?.model,
+    ),
+    fuelType: firstValue(
+      vehicle.fuelType,
+      vehicle.engine?.fuelTypePrimary,
+      vehicle.engine?.fuelTypeSecondary,
+    ),
+    bodyType: firstValue(vehicle.bodyType, vehicle.body?.bodyClass),
+    driveType: firstValue(vehicle.driveType, vehicle.drivetrain?.driveType),
+    numberOfRows: firstNumber(vehicle.numberOfRows, vehicle.body?.numberOfRows),
+    seatingCapacity: firstNumber(
+      vehicle.seatingCapacity,
+      vehicle.body?.seatingCapacity,
+    ),
+    countryOfManufacturer: firstValue(
+      vehicle.countryOfManufacturer,
+      vehicle.manufacturer?.country,
+    ),
+    category: firstValue(vehicle.category, vehicle.vehicleType),
+    transmission: firstValue(
+      vehicle.transmission,
+      vehicle.drivetrain?.transmissionStyle,
+    ),
+  };
+
+  if (!normalized.make || !normalized.model || !normalized.year) return null;
+  return normalized;
+}
+
 /**
  * Decodifica VIN através do backend
  */
@@ -53,9 +116,18 @@ export async function decodeVIN(vin: string): Promise<DecodeVINResponse> {
     const response = await api.post("/vehicles/decode-vin", { vin });
 
     if (response.data.success && response.data.data) {
+      const normalized = normalizeVehicleData(response.data.data, vin);
+      if (!normalized) {
+        return {
+          success: false,
+          error:
+            "VIN decoded, but vehicle make/model/year were not returned. Please enter details manually.",
+        };
+      }
+
       return {
         success: true,
-        data: response.data.data,
+        data: normalized,
       };
     }
 

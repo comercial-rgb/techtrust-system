@@ -133,6 +133,108 @@ export default function AddVehicleScreen({ navigation }: any) {
     }
   };
 
+  const applyDecodedVehicle = (data: NonNullable<Awaited<ReturnType<typeof decodeVIN>>["data"]>) => {
+    setMake(data.make || "");
+    setModel(data.model || "");
+    setYear(data.year ? String(data.year) : "");
+    setEngineType(data.engineType || "");
+    setBodyType(data.bodyType || "");
+    setTrim(data.trim || "");
+    setDriveType(data.driveType || "");
+    setNumberOfRows(data.numberOfRows ? String(data.numberOfRows) : "");
+    setSeatingCapacity(data.seatingCapacity ? String(data.seatingCapacity) : "");
+    setCountryOfManufacturer(data.countryOfManufacturer || "");
+    setCategory(data.category || "");
+    setTransmission(data.transmission || "");
+    setVinDecoded(true);
+    setManualEntry(false);
+
+    const nfuel = (data.fuelType || "").toLowerCase();
+    if (nfuel.includes("gasoline") || nfuel === "gas") {
+      setFuelType("Gasoline");
+    } else if (nfuel.includes("diesel")) {
+      setFuelType("Diesel");
+    } else if (nfuel.includes("plug-in") || nfuel.includes("plugin")) {
+      setFuelType("Plug-in Hybrid");
+    } else if (nfuel.includes("hybrid") || nfuel.includes("electric/gas")) {
+      setFuelType("Hybrid");
+    } else if (nfuel.includes("electric") || nfuel.includes("bev")) {
+      setFuelType("Electric");
+    } else if (
+      nfuel.includes("flex") ||
+      nfuel.includes("ffv") ||
+      nfuel.includes("e85") ||
+      nfuel.includes("ethanol")
+    ) {
+      setFuelType("E85 / Flex Fuel");
+    } else if (
+      nfuel.includes("cng") ||
+      nfuel.includes("natural gas") ||
+      nfuel.includes("compressed")
+    ) {
+      setFuelType("Natural Gas (CNG)");
+    } else if (nfuel.includes("hydrogen") || nfuel.includes("fuel cell")) {
+      setFuelType("Hydrogen");
+    } else {
+      setFuelType(data.fuelType || "");
+    }
+
+    const bodyLower = (data.bodyType || "").toLowerCase();
+    const catLower = (data.category || "").toLowerCase();
+    if (
+      bodyLower.includes("pickup") ||
+      (catLower.includes("truck") && !catLower.includes("multipurpose"))
+    ) {
+      setVehicleType("Pickup Truck");
+    } else if (
+      bodyLower.includes("sedan") ||
+      bodyLower.includes("hatchback") ||
+      bodyLower.includes("liftback")
+    ) {
+      setVehicleType("Car");
+    } else if (
+      bodyLower.includes("suv") ||
+      bodyLower.includes("sport utility") ||
+      catLower.includes("multipurpose")
+    ) {
+      setVehicleType("SUV");
+    } else if (bodyLower.includes("van") || bodyLower.includes("minivan")) {
+      setVehicleType("Van / Minivan");
+    } else if (
+      bodyLower.includes("convertible") ||
+      bodyLower.includes("cabriolet") ||
+      bodyLower.includes("roadster")
+    ) {
+      setVehicleType("Convertible");
+    } else if (bodyLower.includes("coupe")) {
+      setVehicleType("Coupe");
+    } else if (bodyLower.includes("wagon") || bodyLower.includes("estate")) {
+      setVehicleType("Wagon");
+    } else if (
+      bodyLower.includes("bus") ||
+      bodyLower.includes("motorhome") ||
+      catLower.includes("bus")
+    ) {
+      setVehicleType("Bus / RV");
+    } else if (
+      bodyLower.includes("motorcycle") ||
+      catLower.includes("motorcycle")
+    ) {
+      setVehicleType("Motorcycle");
+    } else if (
+      catLower.includes("truck") ||
+      bodyLower.includes("truck") ||
+      bodyLower.includes("cab chassis") ||
+      bodyLower.includes("incomplete")
+    ) {
+      setVehicleType("Light Truck");
+    } else if (bodyLower.includes("crossover")) {
+      setVehicleType("SUV");
+    } else if (catLower.includes("passenger")) {
+      setVehicleType("Car");
+    }
+  };
+
   // Função para decodificar VIN
   const handleDecodeVIN = async () => {
     if (!vin || vin.trim().length !== 17) {
@@ -158,114 +260,7 @@ export default function AddVehicleScreen({ navigation }: any) {
       const result = await decodeVIN(vin);
 
       if (result.success && result.data) {
-        // Auto-preencher campos
-        setMake(result.data.make);
-        setModel(result.data.model);
-        setYear(result.data.year.toString());
-        setEngineType(result.data.engineType || "");
-        setBodyType(result.data.bodyType || "");
-        setTrim(result.data.trim || "");
-        setDriveType(result.data.driveType || "");
-        if (result.data.numberOfRows)
-          setNumberOfRows(result.data.numberOfRows.toString());
-        if (result.data.seatingCapacity)
-          setSeatingCapacity(result.data.seatingCapacity.toString());
-        setCountryOfManufacturer(result.data.countryOfManufacturer || "");
-        setCategory(result.data.category || "");
-        setTransmission(result.data.transmission || "");
-        setVinDecoded(true);
-        setManualEntry(false);
-
-        // Auto-fill Fuel Type - map NHTSA values to app chip labels
-        const nfuel = (result.data.fuelType || "").toLowerCase();
-        if (nfuel.includes("gasoline") || nfuel === "gas") {
-          setFuelType("Gasoline");
-        } else if (nfuel.includes("diesel")) {
-          setFuelType("Diesel");
-        } else if (nfuel.includes("plug-in") || nfuel.includes("plugin")) {
-          setFuelType("Plug-in Hybrid");
-        } else if (nfuel.includes("hybrid") || nfuel.includes("electric/gas")) {
-          setFuelType("Hybrid");
-        } else if (nfuel.includes("electric") || nfuel.includes("bev")) {
-          setFuelType("Electric");
-        } else if (
-          nfuel.includes("flex") ||
-          nfuel.includes("ffv") ||
-          nfuel.includes("e85") ||
-          nfuel.includes("ethanol")
-        ) {
-          setFuelType("E85 / Flex Fuel");
-        } else if (
-          nfuel.includes("cng") ||
-          nfuel.includes("natural gas") ||
-          nfuel.includes("compressed")
-        ) {
-          setFuelType("Natural Gas (CNG)");
-        } else if (nfuel.includes("hydrogen") || nfuel.includes("fuel cell")) {
-          setFuelType("Hydrogen");
-        } else {
-          setFuelType(result.data.fuelType || "");
-        }
-
-        // Auto-fill Vehicle Type - map NHTSA bodyType/category to app chip labels
-        const bodyLower = (result.data.bodyType || "").toLowerCase();
-        const catLower = (result.data.category || "").toLowerCase();
-        if (
-          bodyLower.includes("pickup") ||
-          (catLower.includes("truck") && !catLower.includes("multipurpose"))
-        ) {
-          setVehicleType("Pickup Truck");
-        } else if (
-          bodyLower.includes("sedan") ||
-          bodyLower.includes("hatchback") ||
-          bodyLower.includes("liftback")
-        ) {
-          setVehicleType("Car");
-        } else if (
-          bodyLower.includes("suv") ||
-          bodyLower.includes("sport utility") ||
-          catLower.includes("multipurpose")
-        ) {
-          setVehicleType("SUV");
-        } else if (bodyLower.includes("van") || bodyLower.includes("minivan")) {
-          setVehicleType("Van / Minivan");
-        } else if (
-          bodyLower.includes("convertible") ||
-          bodyLower.includes("cabriolet") ||
-          bodyLower.includes("roadster")
-        ) {
-          setVehicleType("Convertible");
-        } else if (bodyLower.includes("coupe")) {
-          setVehicleType("Coupe");
-        } else if (
-          bodyLower.includes("wagon") ||
-          bodyLower.includes("estate")
-        ) {
-          setVehicleType("Wagon");
-        } else if (
-          bodyLower.includes("bus") ||
-          bodyLower.includes("motorhome") ||
-          catLower.includes("bus")
-        ) {
-          setVehicleType("Bus / RV");
-        } else if (
-          bodyLower.includes("motorcycle") ||
-          catLower.includes("motorcycle")
-        ) {
-          setVehicleType("Motorcycle");
-        } else if (
-          catLower.includes("truck") ||
-          bodyLower.includes("truck") ||
-          bodyLower.includes("cab chassis") ||
-          bodyLower.includes("incomplete")
-        ) {
-          setVehicleType("Light Truck");
-        } else if (bodyLower.includes("crossover")) {
-          setVehicleType("SUV");
-        } else {
-          // Fallback: try to match category text
-          if (catLower.includes("passenger")) setVehicleType("Car");
-        }
+        applyDecodedVehicle(result.data);
 
         Alert.alert(
           t.vehicle?.success || "Sucesso!",
@@ -349,42 +344,7 @@ export default function AddVehicleScreen({ navigation }: any) {
           .then((decodeResult) => {
             setDecodingVIN(false);
             if (decodeResult.success && decodeResult.data) {
-              setMake(decodeResult.data.make);
-              setModel(decodeResult.data.model);
-              setYear(decodeResult.data.year.toString());
-              setEngineType(decodeResult.data.engineType || "");
-              setBodyType(decodeResult.data.bodyType || "");
-              setTrim(decodeResult.data.trim || "");
-              setDriveType(decodeResult.data.driveType || "");
-              if (decodeResult.data.numberOfRows)
-                setNumberOfRows(decodeResult.data.numberOfRows.toString());
-              if (decodeResult.data.seatingCapacity)
-                setSeatingCapacity(
-                  decodeResult.data.seatingCapacity.toString(),
-                );
-              setCountryOfManufacturer(
-                decodeResult.data.countryOfManufacturer || "",
-              );
-              setCategory(decodeResult.data.category || "");
-              setTransmission(decodeResult.data.transmission || "");
-              setVinDecoded(true);
-              setManualEntry(false);
-              // Fuel type mapping
-              const nfuel = (decodeResult.data.fuelType || "").toLowerCase();
-              if (nfuel.includes("gasoline") || nfuel === "gas")
-                setFuelType("Gasoline");
-              else if (nfuel.includes("diesel")) setFuelType("Diesel");
-              else if (nfuel.includes("plug-in") || nfuel.includes("phev"))
-                setFuelType("Hybrid");
-              else if (nfuel.includes("hybrid")) setFuelType("Hybrid");
-              else if (nfuel.includes("electric")) setFuelType("Electric");
-              else if (nfuel.includes("flex") || nfuel.includes("e85"))
-                setFuelType("Flex Fuel");
-              else if (nfuel.includes("cng") || nfuel.includes("natural"))
-                setFuelType("CNG");
-              else if (nfuel.includes("hydrogen")) setFuelType("Hydrogen");
-              else if (decodeResult.data.fuelType)
-                setFuelType(decodeResult.data.fuelType);
+              applyDecodedVehicle(decodeResult.data);
               Alert.alert(
                 "VIN Scanned!",
                 `${decodeResult.data.year} ${decodeResult.data.make} ${decodeResult.data.model} decoded successfully.`,

@@ -36,6 +36,14 @@ export const updateMeValidation = [
     .optional()
     .trim(),
 
+  body('addressesJson')
+    .optional()
+    .isArray().withMessage('addressesJson deve ser um array'),
+
+  body('preferencesJson')
+    .optional()
+    .isObject().withMessage('preferencesJson deve ser um objeto'),
+
   body('pushEnabled')
     .optional()
     .isBoolean().withMessage('pushEnabled deve ser true ou false'),

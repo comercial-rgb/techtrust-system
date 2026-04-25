@@ -85,7 +85,7 @@ export default function CreateRequestScreen({ navigation }: any) {
   const specialOfferFromLanding: SpecialOffer | null =
     route.params?.specialOffer || null;
 
-  const [selectedVehicle, setSelectedVehicle] = useState<string>("1");
+  const [selectedVehicle, setSelectedVehicle] = useState<string>("");
   // Auto-select service type from special offer if present
   const [selectedService, setSelectedService] = useState<string>(
     specialOfferFromLanding?.serviceType || "",
@@ -2161,10 +2161,17 @@ export default function CreateRequestScreen({ navigation }: any) {
             setVehicleTypeLocked(true);
           }
         }
+      } else {
+        setSelectedVehicle("");
+        setVehicleType("");
+        setVehicleTypeLocked(false);
       }
     } catch (error) {
       console.error("Error loading vehicles:", error);
       setVehicles([]);
+      setSelectedVehicle("");
+      setVehicleType("");
+      setVehicleTypeLocked(false);
     }
   }
 
@@ -2825,7 +2832,39 @@ export default function CreateRequestScreen({ navigation }: any) {
             {t.createRequest?.selectVehicle || "Select Vehicle"} *
           </Text>
           <View style={styles.vehiclesContainer}>
-            {vehicles.map((vehicle) => (
+            {vehicles.length === 0 ? (
+              <View style={styles.emptyVehicleCard}>
+                <View style={styles.emptyVehicleIcon}>
+                  <Ionicons name="car-outline" size={30} color="#2B5EA7" />
+                </View>
+                <Text style={styles.emptyVehicleTitle}>
+                  No vehicle registered
+                </Text>
+                <Text style={styles.emptyVehicleText}>
+                  Add your vehicle first so providers receive the correct VIN, make, model, and service details.
+                </Text>
+                <TouchableOpacity
+                  style={styles.emptyVehicleButton}
+                  onPress={() =>
+                    navigation.dispatch(
+                      CommonActions.navigate({
+                        name: "Vehicles",
+                        params: {
+                          screen: "AddVehicle",
+                          initial: false,
+                        },
+                      }),
+                    )
+                  }
+                >
+                  <Ionicons name="add-circle" size={20} color="#fff" />
+                  <Text style={styles.emptyVehicleButtonText}>
+                    {t.vehicle?.addVehicle || "Add Vehicle"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              vehicles.map((vehicle) => (
               <TouchableOpacity
                 key={vehicle.id}
                 style={[
@@ -2859,7 +2898,8 @@ export default function CreateRequestScreen({ navigation }: any) {
                   <Ionicons name="checkmark-circle" size={24} color="#2B5EA7" />
                 )}
               </TouchableOpacity>
-            ))}
+              ))
+            )}
           </View>
 
           {/* Mileage / Odometer */}
@@ -4037,6 +4077,48 @@ const styles = StyleSheet.create({
   vehicleName: { fontSize: 16, fontWeight: "500", color: "#374151" },
   vehicleNameSelected: { color: "#2B5EA7" },
   vehiclePlate: { fontSize: 13, color: "#6b7280", marginTop: 2 },
+  emptyVehicleCard: {
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#bfdbfe",
+    padding: 18,
+  },
+  emptyVehicleIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#eff6ff",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  emptyVehicleTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 6,
+    textAlign: "center",
+  },
+  emptyVehicleText: {
+    fontSize: 14,
+    color: "#6b7280",
+    textAlign: "center",
+    lineHeight: 20,
+    marginBottom: 14,
+  },
+  emptyVehicleButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#2B5EA7",
+    borderRadius: 10,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+  },
+  emptyVehicleButtonText: { color: "#fff", fontSize: 15, fontWeight: "700" },
   servicesGrid: {
     flexDirection: "row",
     flexWrap: "wrap",

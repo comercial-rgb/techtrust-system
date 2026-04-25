@@ -287,9 +287,15 @@ router.post(
     }
 
     // Criar nova subscription no Stripe (with 7-day trial for first subscription)
-    const isFirstPaidSubscription = !currentSub || currentSub.plan === 'FREE';
+    const isFirstPaidSubscription =
+      !currentSub || currentSub.plan === 'FREE' || !currentSub.stripeSubscriptionId;
     const hasHadPaidBefore = await prisma.subscription.findFirst({
-      where: { userId, plan: { not: 'FREE' }, status: { in: ['ACTIVE', 'CANCELLED'] } },
+      where: {
+        userId,
+        plan: { not: 'FREE' },
+        stripeSubscriptionId: { not: null },
+        status: { in: ['ACTIVE', 'CANCELLED'] },
+      },
     });
 
     const trialDays = isFirstPaidSubscription && !hasHadPaidBefore
@@ -467,9 +473,15 @@ router.post(
       });
     }
 
-    const isFirstPaidSubscription = !currentSub || currentSub.plan === 'FREE';
+    const isFirstPaidSubscription =
+      !currentSub || currentSub.plan === 'FREE' || !currentSub.stripeSubscriptionId;
     const hasHadPaidBefore = await prisma.subscription.findFirst({
-      where: { userId, plan: { not: 'FREE' }, status: { in: ['ACTIVE', 'CANCELLED'] } },
+      where: {
+        userId,
+        plan: { not: 'FREE' },
+        stripeSubscriptionId: { not: null },
+        status: { in: ['ACTIVE', 'CANCELLED'] },
+      },
     });
 
     const trialDays = isFirstPaidSubscription && !hasHadPaidBefore

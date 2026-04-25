@@ -36,6 +36,16 @@ async function main() {
   `);
 
   await prisma.$executeRawUnsafe(`
+    ALTER TABLE "users"
+      ADD COLUMN IF NOT EXISTS "address" TEXT,
+      ADD COLUMN IF NOT EXISTS "city" TEXT,
+      ADD COLUMN IF NOT EXISTS "state" TEXT,
+      ADD COLUMN IF NOT EXISTS "zipCode" TEXT,
+      ADD COLUMN IF NOT EXISTS "addressesJson" JSONB,
+      ADD COLUMN IF NOT EXISTS "preferencesJson" JSONB;
+  `);
+
+  await prisma.$executeRawUnsafe(`
     ALTER TABLE "provider_profiles"
       ADD COLUMN IF NOT EXISTS "legalName" TEXT,
       ADD COLUMN IF NOT EXISTS "dbaName" TEXT,

@@ -36,7 +36,7 @@ export default function CustomerProfileScreen({ navigation }: any) {
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [showSpokenLanguagesModal, setShowSpokenLanguagesModal] =
     useState(false);
-  const [spokenLanguages, setSpokenLanguages] = useState<string[]>(["en"]); // Languages the customer speaks
+  const [spokenLanguages, setSpokenLanguages] = useState<string[]>([]);
   const [stats, setStats] = useState<{
     totalServices: number;
     totalSpent: number;
@@ -48,11 +48,16 @@ export default function CustomerProfileScreen({ navigation }: any) {
 
   const loadSpokenLanguages = async () => {
     try {
+      const storageKey = user?.id
+        ? `${SPOKEN_LANGUAGES_KEY}:${user.id}`
+        : SPOKEN_LANGUAGES_KEY;
+      setSpokenLanguages([]);
+
       // First load from local storage for instant display
-      const saved = await AsyncStorage.getItem(SPOKEN_LANGUAGES_KEY);
+      const saved = await AsyncStorage.getItem(storageKey);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed)) {
           setSpokenLanguages(parsed);
         }
       }
@@ -63,10 +68,10 @@ export default function CustomerProfileScreen({ navigation }: any) {
         const userData = response?.data?.data?.user || response?.data?.data;
         if (userData?.preferencesJson?.spokenLanguages) {
           const backendLangs = userData.preferencesJson.spokenLanguages;
-          if (Array.isArray(backendLangs) && backendLangs.length > 0) {
+          if (Array.isArray(backendLangs)) {
             setSpokenLanguages(backendLangs);
             await AsyncStorage.setItem(
-              SPOKEN_LANGUAGES_KEY,
+              storageKey,
               JSON.stringify(backendLangs),
             );
           }
@@ -161,15 +166,16 @@ export default function CustomerProfileScreen({ navigation }: any) {
     setSpokenLanguages((prev) => {
       let newLangs: string[];
       if (prev.includes(langCode)) {
-        // Don't allow removing all languages
-        if (prev.length === 1) return prev;
         newLangs = prev.filter((l) => l !== langCode);
       } else {
         newLangs = [...prev, langCode];
       }
       // Persist to AsyncStorage
+      const storageKey = user?.id
+        ? `${SPOKEN_LANGUAGES_KEY}:${user.id}`
+        : SPOKEN_LANGUAGES_KEY;
       AsyncStorage.setItem(
-        SPOKEN_LANGUAGES_KEY,
+        storageKey,
         JSON.stringify(newLangs),
       ).catch((err) => console.error("Error saving spoken languages:", err));
       // Sync to backend for cross-device persistence

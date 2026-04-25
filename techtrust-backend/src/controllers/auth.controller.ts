@@ -6,6 +6,7 @@
  */
 
 import { Request, Response } from "express";
+import { SubscriptionPlan } from "@prisma/client";
 import { prisma } from "../config/database";
 import { AppError } from "../middleware/error-handler";
 import {
@@ -31,6 +32,7 @@ import {
   sendWelcomeEmail,
 } from "../services/email.service";
 import { logger } from "../config/logger";
+import { SUBSCRIPTION_PLANS } from "../config/businessRules";
 
 /** Verifica se Twilio Verify está habilitado */
 const isVerifyEnabled = () => !!process.env.TWILIO_VERIFY_SERVICE_SID;
@@ -147,10 +149,54 @@ export const signup = async (req: Request, res: Response) => {
 
     void accountType;
     void marketplacePlan;
-    void selectedPlan;
+    const normalizedSelectedPlan =
+      typeof selectedPlan === "string" ? selectedPlan.toUpperCase() : "FREE";
+    const selectedClientPlan = ["STARTER", "PRO", "ENTERPRISE"].includes(
+      normalizedSelectedPlan,
+    )
+      ? (normalizedSelectedPlan as "STARTER" | "PRO" | "ENTERPRISE")
+      : "FREE";
 
     // Validar role
     const userRole = role === "PROVIDER" ? "PROVIDER" : "CLIENT";
+    const syncSelectedClientSubscription = async (userId: string) => {
+      const planConfig = SUBSCRIPTION_PLANS[selectedClientPlan];
+      const periodEnd =
+        selectedClientPlan === "FREE"
+          ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+          : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      const data = {
+        plan: selectedClientPlan as SubscriptionPlan,
+        price: planConfig.monthlyPrice,
+        maxVehicles: planConfig.maxVehicles,
+        maxServiceRequestsPerMonth: planConfig.maxRequestsPerMonth,
+        status: "ACTIVE" as const,
+        currentPeriodStart: new Date(),
+        currentPeriodEnd: periodEnd,
+        trialEnd: selectedClientPlan === "FREE" ? null : periodEnd,
+      };
+      const currentSub = await prisma.subscription.findFirst({
+        where: { userId, status: "ACTIVE" },
+        orderBy: { createdAt: "desc" },
+      });
+
+      if (currentSub && !currentSub.stripeSubscriptionId) {
+        await prisma.subscription.update({
+          where: { id: currentSub.id },
+          data,
+        });
+        return;
+      }
+
+      if (!currentSub) {
+        await prisma.subscription.create({
+          data: {
+            userId,
+            ...data,
+          },
+        });
+      }
+    };
     const marketplaceBusinessTypeCat =
       marketplaceType === "CAR_WASH" || marketplaceType === "AUTO_PARTS"
         ? marketplaceType
@@ -241,6 +287,10 @@ export const signup = async (req: Request, res: Response) => {
               `ProviderProfile criado para usuário existente: ${email}`,
             );
           }
+        }
+
+        if (userRole === "CLIENT") {
+          await syncSelectedClientSubscription(existingEmail.id);
         }
 
         let otpSent = false;
@@ -388,6 +438,10 @@ export const signup = async (req: Request, res: Response) => {
           }
         }
 
+        if (userRole === "CLIENT") {
+          await syncSelectedClientSubscription(existingPhone.id);
+        }
+
         let otpSent = false;
         let otpMethod: "sms" | "email" = "sms";
 
@@ -515,19 +569,10 @@ export const signup = async (req: Request, res: Response) => {
       });
     }
 
-    // Criar assinatura FREE
-    await prisma.subscription.create({
-      data: {
-        userId: user.id,
-        plan: "FREE",
-        price: 0,
-        maxVehicles: 2,
-        maxServiceRequestsPerMonth: 4,
-        status: "ACTIVE",
-        currentPeriodStart: new Date(),
-        currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year auto-renew
-      },
-    });
+    // Criar assinatura local com o plano escolhido; checkout captura o cartão após OTP.
+    if (userRole === "CLIENT") {
+      await syncSelectedClientSubscription(user.id);
+    }
 
     // Enviar OTP — respeita preferência do usuário (sms ou email)
     // If no phone provided, force email verification
