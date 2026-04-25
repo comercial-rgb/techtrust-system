@@ -10,6 +10,9 @@ import {
   TextInput as RNTextInput,
   Alert,
   TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Text, useTheme } from "react-native-paper";
@@ -34,6 +37,7 @@ import {
 export default function OTPScreen({ route, navigation }: any) {
   const theme = useTheme();
   const { t } = useI18n();
+  const authText = t.auth as any;
   const { verifyOTP, resendOTP } = useAuth();
 
   const routeUserId = route?.params?.userId as string | undefined;
@@ -137,7 +141,7 @@ export default function OTPScreen({ route, navigation }: any) {
     if (!userId) {
       setHasError(true);
       error(
-        t.auth?.errorCreatingAccount ||
+        authText?.errorCreatingAccount ||
           "Missing signup data. Please sign up again.",
       );
       setTimeout(() => setHasError(false), 500);
@@ -146,7 +150,7 @@ export default function OTPScreen({ route, navigation }: any) {
 
     if (!otpCode || otpCode.length !== 6) {
       setHasError(true);
-      error(t.auth?.enterOtpCode || "Digite o código de 6 dígitos");
+      error(authText?.enterOtpCode || "Digite o código de 6 dígitos");
       setTimeout(() => setHasError(false), 500);
       return;
     }
@@ -178,10 +182,10 @@ export default function OTPScreen({ route, navigation }: any) {
         return;
       }
 
-      success(t.auth?.verificationComplete || "Verification complete!");
+      success(authText?.verificationComplete || "Verification complete!");
     } catch (err: any) {
       setHasError(true);
-      error(err.message || t.auth?.invalidCode || "Invalid code");
+      error(err.message || authText?.invalidCode || "Invalid code");
       setTimeout(() => setHasError(false), 500);
       setOtp(["", "", "", "", "", ""]);
       inputRefs.current[0]?.focus();
@@ -195,7 +199,7 @@ export default function OTPScreen({ route, navigation }: any) {
 
     if (!userId) {
       error(
-        t.auth?.errorCreatingAccount ||
+        authText?.errorCreatingAccount ||
           "Missing signup data. Please sign up again.",
       );
       return;
@@ -203,8 +207,11 @@ export default function OTPScreen({ route, navigation }: any) {
 
     setLoading(true);
     resendOTP(userId, otpMethod)
-      .then(() => {
-        success(t.auth?.codeSent || "Code sent!");
+      .then((result) => {
+        if (result?.method === "email" || result?.method === "sms") {
+          setOtpMethod(result.method);
+        }
+        success(authText?.codeSent || "Code sent!");
         setResendTimer(60);
         setCanResend(false);
         setOtp(["", "", "", "", "", ""]);
@@ -221,8 +228,16 @@ export default function OTPScreen({ route, navigation }: any) {
   const isComplete = otp.every((digit) => digit !== "");
 
   return (
-    <View style={styles.container}>
-      <View style={styles.content}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 24 : 0}
+    >
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         {/* ✨ Header animado */}
         <FadeInView delay={0}>
           <View style={styles.header}>
@@ -240,13 +255,13 @@ export default function OTPScreen({ route, navigation }: any) {
               variant="headlineMedium"
               style={[styles.title, { color: theme.colors.primary }]}
             >
-              {t.auth?.verification || "Verification"}
+              {authText?.verification || "Verification"}
             </Text>
             <Text variant="bodyMedium" style={styles.subtitle}>
               {otpMethod === "email"
-                ? t.auth?.enterCodeSentToEmail ||
+                ? authText?.enterCodeSentToEmail ||
                   "Enter the code sent to your email"
-                : t.auth?.enterCodeSentTo || "Enter the code sent to"}
+                : authText?.enterCodeSentTo || "Enter the code sent to"}
             </Text>
             <Text
               variant="bodyLarge"
@@ -259,7 +274,7 @@ export default function OTPScreen({ route, navigation }: any) {
                 variant="bodySmall"
                 style={{ color: "#f59e0b", marginTop: 4, textAlign: "center" }}
               >
-                {t.auth?.smsFallbackNotice ||
+                {authText?.smsFallbackNotice ||
                   "SMS was unavailable. Code sent via email instead."}
               </Text>
             )}
@@ -268,21 +283,24 @@ export default function OTPScreen({ route, navigation }: any) {
             <TouchableOpacity
               onPress={() => {
                 const newMethod = otpMethod === "sms" ? "email" : "sms";
-                setOtpMethod(newMethod);
-                setOtp(["", "", "", "", "", ""]);
-                setCanResend(false);
-                setResendTimer(60);
                 if (userId) {
                   setLoading(true);
                   resendOTP(userId, newMethod)
-                    .then(() => {
+                    .then((result) => {
+                      const deliveredMethod = result?.method || newMethod;
+                      setOtpMethod(deliveredMethod);
+                      setOtp(["", "", "", "", "", ""]);
+                      setCanResend(false);
+                      setResendTimer(60);
                       success(
-                        newMethod === "email"
-                          ? (t.auth?.codeSentToEmail || "Code sent to your email!")
-                          : (t.auth?.codeSentToPhone || "Code sent to your phone!")
+                        deliveredMethod === "email"
+                          ? (authText?.codeSentToEmail || "Code sent to your email!")
+                          : (authText?.codeSentToPhone || "Code sent to your phone!")
                       );
                     })
-                    .catch(() => {})
+                    .catch((err: any) => {
+                      error(err.message || "Could not send verification code.");
+                    })
                     .finally(() => setLoading(false));
                 }
               }}
@@ -303,8 +321,8 @@ export default function OTPScreen({ route, navigation }: any) {
                 }}
               >
                 {otpMethod === "sms"
-                  ? (t.auth?.switchToEmail || "📧 Switch to Email verification")
-                  : (t.auth?.switchToSms || "📱 Switch to SMS verification")
+                  ? (authText?.switchToEmail || "📧 Switch to Email verification")
+                  : (authText?.switchToSms || "📱 Switch to SMS verification")
                 }
               </Text>
             </TouchableOpacity>
@@ -318,7 +336,9 @@ export default function OTPScreen({ route, navigation }: any) {
               {otp.map((digit, index) => (
                 <RNTextInput
                   key={index}
-                  ref={(ref) => (inputRefs.current[index] = ref)}
+                  ref={(ref) => {
+                    inputRefs.current[index] = ref;
+                  }}
                   style={[
                     styles.otpInput,
                     digit && styles.otpInputFilled,
@@ -345,7 +365,7 @@ export default function OTPScreen({ route, navigation }: any) {
         <FadeInView delay={200}>
           <View style={styles.buttonsContainer}>
             <EnhancedButton
-              title={t.auth?.verify || "Verify"}
+              title={authText?.verify || "Verify"}
               onPress={handleVerify}
               variant="primary"
               size="large"
@@ -365,12 +385,12 @@ export default function OTPScreen({ route, navigation }: any) {
                 <Text
                   style={[styles.resendText, { color: theme.colors.primary }]}
                 >
-                  {t.auth?.resendCode || "Resend code"}
+                  {authText?.resendCode || "Resend code"}
                 </Text>
               </ScalePress>
             ) : (
               <Text style={styles.timerText}>
-                {t.auth?.resendIn || "Resend in"}{" "}
+                {authText?.resendIn || "Resend in"}{" "}
                 <Text style={styles.timerNumber}>{resendTimer}s</Text>
               </Text>
             )}
@@ -386,12 +406,12 @@ export default function OTPScreen({ route, navigation }: any) {
             </View>
           </ScalePress>
         </FadeInView>
-      </View>
+      </ScrollView>
 
       {/* ✨ Loading Overlay */}
       <LoadingOverlay
         visible={loading}
-        message={t.auth?.verifying || "Verifying..."}
+        message={authText?.verifying || "Verifying..."}
       />
 
       {/* ✨ Toast */}
@@ -401,7 +421,7 @@ export default function OTPScreen({ route, navigation }: any) {
         type={toast.type}
         onDismiss={hideToast}
       />
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -411,9 +431,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   content: {
-    flex: 1,
+    flexGrow: 1,
     padding: 24,
     justifyContent: "center",
+    paddingBottom: 40,
   },
   header: {
     alignItems: "center",

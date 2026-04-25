@@ -76,7 +76,10 @@ interface AuthContextType {
     code: string,
     method?: "sms" | "email",
   ) => Promise<void>;
-  resendOTP: (userId: string, method?: "sms" | "email") => Promise<void>;
+  resendOTP: (
+    userId: string,
+    method?: "sms" | "email",
+  ) => Promise<{ method?: "sms" | "email"; otpSentTo?: string }>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   isAuthenticated: boolean;
@@ -390,9 +393,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const resendOTP = async (
     userId: string,
     method: "sms" | "email" = "sms",
-  ): Promise<void> => {
+  ): Promise<{ method?: "sms" | "email"; otpSentTo?: string }> => {
     try {
-      await api.post("/auth/resend-otp", { userId, method });
+      const response = await api.post("/auth/resend-otp", { userId, method });
+      return response.data?.data || {};
     } catch (error: any) {
       const message =
         error?.response?.data?.message ||

@@ -1241,46 +1241,60 @@ export const verifyOTP = async (req: Request, res: Response) => {
           emailVerified: true,
           emailOtpCode: null,
           emailOtpExpiresAt: null,
-          // If phone was already verified, set active
-          status: user.phoneVerified ? "ACTIVE" : user.status,
+          status: "ACTIVE",
+        },
+        include: {
+          providerProfile: true,
         },
       });
 
-      // If account is now fully active, generate tokens
-      if (updatedUser.status === "ACTIVE") {
-        const tokens = generateTokens({
-          userId: updatedUser.id,
-          email: updatedUser.email,
-          role: updatedUser.role,
-        });
+      const tokens = generateTokens({
+        userId: updatedUser.id,
+        email: updatedUser.email,
+        role: updatedUser.role,
+      });
 
-        logger.info(`Email verificado: ${updatedUser.email}`);
-
-        return res.json({
-          success: true,
-          message: "Email verificado com sucesso!",
-          data: {
-            token: tokens.accessToken,
-            refreshToken: tokens.refreshToken,
-            expiresIn: tokens.expiresIn,
-            user: {
-              id: updatedUser.id,
-              fullName: updatedUser.fullName,
-              email: updatedUser.email,
-              phone: updatedUser.phone,
-              role: updatedUser.role,
-              language: updatedUser.language,
-              phoneVerified: updatedUser.phoneVerified,
-              emailVerified: updatedUser.emailVerified,
-            },
-          },
-        });
-      }
+      logger.info(`Email verificado: ${updatedUser.email}`);
 
       return res.json({
         success: true,
-        message: "Email verificado! Verifique seu telefone para continuar.",
-        data: { emailVerified: true, phoneVerified: updatedUser.phoneVerified },
+        message: "Email verificado com sucesso!",
+        data: {
+          token: tokens.accessToken,
+          refreshToken: tokens.refreshToken,
+          expiresIn: tokens.expiresIn,
+          user: {
+            id: updatedUser.id,
+            fullName: updatedUser.fullName,
+            email: updatedUser.email,
+            phone: updatedUser.phone,
+            role: updatedUser.role,
+            language: updatedUser.language,
+            phoneVerified: updatedUser.phoneVerified,
+            emailVerified: updatedUser.emailVerified,
+            providerProfile: updatedUser.providerProfile
+              ? {
+                  id: updatedUser.providerProfile.id,
+                  businessName: updatedUser.providerProfile.businessName,
+                  businessType: updatedUser.providerProfile.businessType,
+                  servicesOffered: updatedUser.providerProfile.servicesOffered,
+                  vehicleTypesServed:
+                    updatedUser.providerProfile.vehicleTypesServed,
+                  sellsParts: updatedUser.providerProfile.sellsParts,
+                  isVerified: updatedUser.providerProfile.isVerified,
+                  averageRating: Number(updatedUser.providerProfile.averageRating || 0),
+                  totalReviews: updatedUser.providerProfile.totalReviews,
+                  website: updatedUser.providerProfile.website,
+                  address: updatedUser.providerProfile.address,
+                  city: updatedUser.providerProfile.city,
+                  state: updatedUser.providerProfile.state,
+                  zipCode: updatedUser.providerProfile.zipCode,
+                  fdacsRegistrationNumber:
+                    updatedUser.providerProfile.fdacsRegistrationNumber,
+                }
+              : undefined,
+          },
+        },
       });
     }
 
