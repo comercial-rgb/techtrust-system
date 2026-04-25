@@ -72,10 +72,13 @@ export const signup = async (req: Request, res: Response) => {
       countyBusinessTaxReceiptNumber,
       insuranceDisclosureAccepted,
       marketplaceFacilitatorTaxAcknowledged,
+      marketplaceType, // 'CAR_WASH' | 'AUTO_PARTS' — for MARKETPLACE role signups
+      marketplacePlan, // plan selected for marketplace
       preferredOtpMethod, // 'sms' | 'email' — user chooses verification method
     } = req.body;
 
     void accountType;
+    void marketplacePlan;
     void selectedPlan;
 
     // Validar role
@@ -125,6 +128,7 @@ export const signup = async (req: Request, res: Response) => {
               data: {
                 userId: existingEmail.id,
                 businessName,
+                businessType: marketplaceType || null,
                 legalName: legalName || null,
                 ein: ein || null,
                 sunbizDocumentNumber: sunbizDocumentNumber || null,
@@ -301,6 +305,7 @@ export const signup = async (req: Request, res: Response) => {
               data: {
                 userId: existingPhone.id,
                 businessName,
+                businessType: marketplaceType || null,
                 legalName: legalName || null,
                 ein: ein || null,
                 sunbizDocumentNumber: sunbizDocumentNumber || null,
@@ -467,6 +472,7 @@ export const signup = async (req: Request, res: Response) => {
         data: {
           userId: user.id,
           businessName,
+          businessType: marketplaceType || null,
           legalName: legalName || null,
           ein: ein || null,
           sunbizDocumentNumber: sunbizDocumentNumber || null,

@@ -497,6 +497,9 @@ model ProviderProfile {
   // Horário de funcionamento (JSON)
   businessHours Json?
 
+  // Descrição do negócio (bio exibida para clientes)
+  businessDescription String?
+
   // Stripe
   stripeAccountId           String? @unique
   stripeOnboardingCompleted Boolean @default(false)

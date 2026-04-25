@@ -1,437 +1,706 @@
 /**
- * CustomerOnboardingScreen - First-time customer welcome flow
- * Multi-step guided onboarding: Welcome → Add Vehicle → First Request → Done
+ * CustomerOnboardingScreen — Interactive post-login setup
+ * Steps: Welcome → Your Location → Home Address → Add Vehicle → Done
+ * Does NOT re-collect data from signup (name, email, phone, password).
+ * Each data step saves immediately and is marked complete in AsyncStorage.
  */
 
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  Dimensions,
   Animated,
   ScrollView,
-  Image,
+  TextInput,
+  Modal,
+  FlatList,
+  Switch,
+  Alert,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useI18n } from "../../i18n";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../../contexts/AuthContext";
-import { colors, spacing, borderRadius, fontSize, fontWeight } from "../../constants/theme";
+import api from "../../services/api";
+import { US_STATES, CITIES_BY_STATE } from "../../constants/us-states";
 
-const { width, height } = Dimensions.get("window");
+// ─── Step IDs ───────────────────────────────────────────────────────────────
+const STEP_IDS = ["welcome", "location", "address", "vehicle", "done"] as const;
+type StepId = (typeof STEP_IDS)[number];
 
-interface OnboardingStep {
-  id: string;
-  icon: string;
-  iconFamily: "ionicons" | "material";
-  color: string;
-  bgColor: string;
+const STEP_COLORS: Record<StepId, string> = {
+  welcome: "#3b82f6",
+  location: "#8b5cf6",
+  address: "#f59e0b",
+  vehicle: "#0891b2",
+  done: "#10b981",
+};
+
+const STEP_BG: Record<StepId, string> = {
+  welcome: "#dbeafe",
+  location: "#ede9fe",
+  address: "#fef3c7",
+  vehicle: "#cffafe",
+  done: "#d1fae5",
+};
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+const STEPS_KEY_PREFIX = "@TechTrust:onboarding:steps:";
+
+async function markStepDone(userId: string, stepId: StepId) {
+  const key = STEPS_KEY_PREFIX + userId;
+  const raw = await AsyncStorage.getItem(key);
+  const done: string[] = raw ? JSON.parse(raw) : [];
+  if (!done.includes(stepId)) {
+    await AsyncStorage.setItem(key, JSON.stringify([...done, stepId]));
+  }
 }
 
-const STEPS: OnboardingStep[] = [
-  {
-    id: "welcome",
-    icon: "hand-right",
-    iconFamily: "ionicons",
-    color: "#3b82f6",
-    bgColor: "#dbeafe",
-  },
-  {
-    id: "vehicle",
-    icon: "car-sport",
-    iconFamily: "ionicons",
-    color: "#8b5cf6",
-    bgColor: "#ede9fe",
-  },
-  {
-    id: "service",
-    icon: "construct",
-    iconFamily: "ionicons",
-    color: "#f59e0b",
-    bgColor: "#fef3c7",
-  },
-  {
-    id: "carwash",
-    icon: "car-wash",
-    iconFamily: "material",
-    color: "#06b6d4",
-    bgColor: "#cffafe",
-  },
-  {
-    id: "done",
-    icon: "checkmark-circle",
-    iconFamily: "ionicons",
-    color: "#10b981",
-    bgColor: "#d1fae5",
-  },
+// ─── Time options ─────────────────────────────────────────────────────────────
+const TIME_OPTIONS = [
+  "06:00","07:00","08:00","09:00","10:00","11:00","12:00",
+  "13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00","21:00","22:00",
 ];
 
 export default function CustomerOnboardingScreen({ navigation }: any) {
-  const { t } = useI18n();
-  const { completeOnboarding } = useAuth();
+  const { user, completeOnboarding } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.8)).current;
 
-  // Animate icon on mount/step change
-  React.useEffect(() => {
-    Animated.parallel([
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        tension: 50,
-        friction: 7,
-        useNativeDriver: true,
-      }),
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        tension: 50,
-        friction: 8,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [currentStep]);
+  // ── Step: location ──
+  const [selectedState, setSelectedState] = useState("");
+  const [selectedCity, setSelectedCity] = useState("");
+  const [showStatePicker, setShowStatePicker] = useState(false);
+  const [showCityPicker, setShowCityPicker] = useState(false);
+  const [locationSaving, setLocationSaving] = useState(false);
+  const [locationDone, setLocationDone] = useState(false);
 
+  // ── Step: address ──
+  const [street, setStreet] = useState("");
+  const [addrCity, setAddrCity] = useState("");
+  const [addrState, setAddrState] = useState("");
+  const [addrZip, setAddrZip] = useState("");
+  const [addressSaving, setAddressSaving] = useState(false);
+  const [addressDone, setAddressDone] = useState(false);
+  const [showAddrStatePicker, setShowAddrStatePicker] = useState(false);
+  const [showAddrCityPicker, setShowAddrCityPicker] = useState(false);
+
+  const stepId = STEP_IDS[currentStep];
+  const color = STEP_COLORS[stepId];
+  const bgColor = STEP_BG[stepId];
+
+  // ── Transition animation ──────────────────────────────────────────────────
   const animateTransition = (next: number) => {
     Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: -30,
-        duration: 200,
-        useNativeDriver: true,
-      }),
+      Animated.timing(fadeAnim, { toValue: 0, duration: 180, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: -24, duration: 180, useNativeDriver: true }),
     ]).start(() => {
       setCurrentStep(next);
-      slideAnim.setValue(30);
-      scaleAnim.setValue(0.8);
+      slideAnim.setValue(24);
+      Animated.parallel([
+        Animated.timing(fadeAnim, { toValue: 1, duration: 220, useNativeDriver: true }),
+        Animated.timing(slideAnim, { toValue: 0, duration: 220, useNativeDriver: true }),
+      ]).start();
     });
   };
 
-  const handleNext = () => {
-    if (currentStep < STEPS.length - 1) {
-      animateTransition(currentStep + 1);
-    }
+  const goNext = () => {
+    if (currentStep < STEP_IDS.length - 1) animateTransition(currentStep + 1);
+  };
+
+  const goBack = () => {
+    if (currentStep > 0) animateTransition(currentStep - 1);
   };
 
   const handleSkip = async () => {
     await completeOnboarding();
-    navigation.replace("CustomerMain");
   };
 
   const handleFinish = async () => {
     await completeOnboarding();
-    navigation.replace("CustomerMain");
   };
 
-  const handleAddVehicle = async () => {
-    // Navigate to add vehicle flow then come back
-    await completeOnboarding();
-    navigation.replace("CustomerMain", {
-      screen: "Vehicles",
-      params: { screen: "AddVehicle" },
-    });
-  };
-
-  const handleNewRequest = async () => {
-    await completeOnboarding();
-    navigation.replace("CustomerMain", {
-      screen: "Home",
-      params: { screen: "ServiceChoice" },
-    });
-  };
-
-  const handleFindCarWash = async () => {
-    await completeOnboarding();
-    navigation.replace("CustomerMain", {
-      screen: "CarWash",
-    });
-  };
-
-  const step = STEPS[currentStep];
-  const isLast = currentStep === STEPS.length - 1;
-
-  // Content for each step
-  const getStepContent = () => {
-    const ob = (t as any).onboarding || {};
-    switch (step.id) {
-      case "welcome":
-        return {
-          title: ob.welcomeTitle || "Welcome to TechTrust!",
-          subtitle:
-            ob.welcomeSubtitle ||
-            "Your trusted partner for auto services. Get quotes from verified shops, track repairs, and keep your vehicle in top shape.",
-          features: [
-            {
-              icon: "shield-checkmark",
-              text: ob.featureVerified || "Verified & licensed shops",
-            },
-            {
-              icon: "pricetag",
-              text: ob.featureQuotes || "Compare multiple quotes",
-            },
-            {
-              icon: "location",
-              text: ob.featureLocal || "Local shops near you",
-            },
-          ],
-        };
-      case "vehicle":
-        return {
-          title: ob.vehicleTitle || "Add Your Vehicle",
-          subtitle:
-            ob.vehicleSubtitle ||
-            "Add your vehicle to get accurate quotes and track maintenance history. You can scan your VIN or enter details manually.",
-          features: [
-            {
-              icon: "scan",
-              text: ob.featureVin || "Scan VIN for auto-fill",
-            },
-            {
-              icon: "car",
-              text: ob.featureMultiple || "Add multiple vehicles",
-            },
-            {
-              icon: "time",
-              text: ob.featureHistory || "Track service history",
-            },
-          ],
-          action: {
-            label: ob.addVehicleNow || "Add Vehicle Now",
-            onPress: handleAddVehicle,
-          },
-        };
-      case "service":
-        return {
-          title: ob.serviceTitle || "Request a Service",
-          subtitle:
-            ob.serviceSubtitle ||
-            "Describe what you need, and we'll send your request to qualified shops nearby. Compare quotes and choose your preferred option.",
-          features: [
-            {
-              icon: "flash",
-              text: ob.featureFast || "Quick quote requests",
-            },
-            {
-              icon: "star",
-              text: ob.featureRatings || "Shop ratings & reviews",
-            },
-            {
-              icon: "chatbubble",
-              text: ob.featureChat || "Chat directly with shops",
-            },
-          ],
-          action: {
-            label: ob.requestServiceNow || "Request Service Now",
-            onPress: handleNewRequest,
-          },
-        };
-      case "carwash":
-        return {
-          title: ob.carwashTitle || "Find a Car Wash",
-          subtitle:
-            ob.carwashSubtitle ||
-            "Discover car washes near you with real-time pricing, membership plans, and customer reviews.",
-          features: [
-            {
-              icon: "map",
-              text: ob.featureMap || "Interactive map view",
-            },
-            {
-              icon: "card",
-              text: ob.featureMembership || "Unlimited wash memberships",
-            },
-            {
-              icon: "star",
-              text: ob.featureReviews || "Ratings & photos",
-            },
-          ],
-          action: {
-            label: ob.findCarWashNow || "Find a Car Wash",
-            onPress: handleFindCarWash,
-          },
-        };
-      case "done":
-        return {
-          title: ob.doneTitle || "You're All Set!",
-          subtitle:
-            ob.doneSubtitle ||
-            "You're ready to go. Add your vehicle, request services, find car washes, and keep your car in perfect shape.",
-          features: [
-            {
-              icon: "notifications",
-              text: ob.featureNotifications || "Get notified on new quotes",
-            },
-            {
-              icon: "wallet",
-              text: ob.featurePayments || "Secure in-app payments",
-            },
-            {
-              icon: "heart",
-              text: ob.featureFavorites || "Save favorite shops",
-            },
-          ],
-        };
-      default:
-        return { title: "", subtitle: "", features: [] };
+  // ── Save location ──────────────────────────────────────────────────────────
+  const saveLocation = async () => {
+    if (!selectedState || !selectedCity) {
+      Alert.alert("Missing Info", "Please select your state and city.");
+      return;
+    }
+    try {
+      setLocationSaving(true);
+      await api.patch("/users/me", { state: selectedState, city: selectedCity });
+      if (user) await markStepDone(user.id, "location");
+      setLocationDone(true);
+      goNext();
+    } catch {
+      Alert.alert("Error", "Could not save your location. Please try again.");
+    } finally {
+      setLocationSaving(false);
     }
   };
 
-  const content = getStepContent();
+  // ── Save address ───────────────────────────────────────────────────────────
+  const saveAddress = async () => {
+    if (!street.trim()) {
+      Alert.alert("Missing Info", "Please enter your street address.");
+      return;
+    }
+    const addressesJson = [
+      {
+        label: "Home",
+        address: street.trim(),
+        city: addrCity || selectedCity,
+        state: addrState || selectedState,
+        zipCode: addrZip,
+        isDefault: true,
+      },
+    ];
+    try {
+      setAddressSaving(true);
+      await api.patch("/users/me", {
+        address: street.trim(),
+        city: addrCity || selectedCity,
+        state: addrState || selectedState,
+        zipCode: addrZip,
+        addressesJson,
+      });
+      if (user) await markStepDone(user.id, "address");
+      setAddressDone(true);
+      goNext();
+    } catch {
+      Alert.alert("Error", "Could not save your address. Please try again.");
+    } finally {
+      setAddressSaving(false);
+    }
+  };
+
+  // ── Navigate to AddVehicle and come back ───────────────────────────────────
+  const handleAddVehicle = async () => {
+    if (user) await markStepDone(user.id, "vehicle");
+    await completeOnboarding();
+    navigation.replace("CustomerMain", {
+      screen: "Vehicles",
+      params: { openAdd: true },
+    });
+  };
+
+  const citiesForState = (state: string): string[] =>
+    (CITIES_BY_STATE as any)[state] || [];
+
+  // ─── Step Renderers ────────────────────────────────────────────────────────
+
+  const renderWelcome = () => (
+    <View style={styles.stepBody}>
+      <View style={[styles.iconCircle, { backgroundColor: bgColor }]}>
+        <Ionicons name="hand-right" size={60} color={color} />
+      </View>
+      <Text style={styles.title}>Welcome to TechTrust!</Text>
+      <Text style={styles.subtitle}>
+        Let's take 2 minutes to personalise your experience so we can show you the
+        right shops, car washes, and auto parts near your home.
+      </Text>
+
+      <View style={styles.benefitList}>
+        {[
+          { icon: "location", text: "See shops & car washes near YOU" },
+          { icon: "car", text: "Track service history for your vehicles" },
+          { icon: "flash", text: "Get instant quotes from verified shops" },
+          { icon: "shield-checkmark", text: "Secure payments — money released only on approval" },
+        ].map((b, i) => (
+          <View key={i} style={styles.benefitRow}>
+            <View style={[styles.benefitIcon, { backgroundColor: bgColor }]}>
+              <Ionicons name={b.icon as any} size={18} color={color} />
+            </View>
+            <Text style={styles.benefitText}>{b.text}</Text>
+          </View>
+        ))}
+      </View>
+
+      <View style={styles.infoBox}>
+        <Ionicons name="information-circle" size={18} color="#3b82f6" />
+        <Text style={styles.infoText}>
+          You can skip any step and complete it later from your Profile settings.
+        </Text>
+      </View>
+    </View>
+  );
+
+  const renderLocation = () => {
+    const cities = citiesForState(selectedState);
+    const hasCities = cities.length > 0;
+    return (
+      <View style={styles.stepBody}>
+        <View style={[styles.iconCircle, { backgroundColor: bgColor }]}>
+          <Ionicons name="map" size={60} color={color} />
+        </View>
+        <Text style={styles.title}>Your Location</Text>
+        <Text style={styles.subtitle}>
+          We use your city and state to show you nearby shops, car washes, and
+          auto parts stores. Without this, results will be generic and far away.
+        </Text>
+
+        <View style={styles.impactBox}>
+          <MaterialCommunityIcons name="lightbulb-outline" size={16} color="#8b5cf6" />
+          <Text style={styles.impactText}>
+            <Text style={{ fontWeight: "700" }}>If you skip this:</Text> You'll see
+            a generic list of providers and won't be matched with local shops.
+          </Text>
+        </View>
+
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>State</Text>
+          <TouchableOpacity
+            style={[styles.pickerBtn, !selectedState && styles.pickerBtnEmpty]}
+            onPress={() => setShowStatePicker(true)}
+          >
+            <Text style={selectedState ? styles.pickerBtnText : styles.pickerBtnPlaceholder}>
+              {selectedState
+                ? US_STATES.find((s) => s.code === selectedState)?.name || selectedState
+                : "Select your state"}
+            </Text>
+            <Ionicons name="chevron-down" size={18} color="#9ca3af" />
+          </TouchableOpacity>
+
+          <Text style={[styles.label, { marginTop: 14 }]}>City</Text>
+          {hasCities ? (
+            <TouchableOpacity
+              style={[styles.pickerBtn, !selectedCity && styles.pickerBtnEmpty]}
+              onPress={() => selectedState && setShowCityPicker(true)}
+              disabled={!selectedState}
+            >
+              <Text style={selectedCity ? styles.pickerBtnText : styles.pickerBtnPlaceholder}>
+                {selectedCity || "Select your city"}
+              </Text>
+              <Ionicons name="chevron-down" size={18} color="#9ca3af" />
+            </TouchableOpacity>
+          ) : (
+            <TextInput
+              style={styles.input}
+              placeholder="Enter your city"
+              placeholderTextColor="#9ca3af"
+              value={selectedCity}
+              onChangeText={setSelectedCity}
+              editable={!!selectedState}
+            />
+          )}
+        </View>
+
+        <TouchableOpacity
+          style={[styles.saveBtn, (!selectedState || !selectedCity) && styles.saveBtnDisabled]}
+          onPress={saveLocation}
+          disabled={locationSaving || !selectedState || !selectedCity}
+        >
+          {locationSaving ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <>
+              <Ionicons name="checkmark-circle" size={20} color="#fff" />
+              <Text style={styles.saveBtnText}>Save My Location</Text>
+            </>
+          )}
+        </TouchableOpacity>
+
+        {/* State Picker Modal */}
+        <Modal visible={showStatePicker} animationType="slide" transparent>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalSheet}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Select State</Text>
+                <TouchableOpacity onPress={() => setShowStatePicker(false)}>
+                  <Ionicons name="close" size={24} color="#374151" />
+                </TouchableOpacity>
+              </View>
+              <FlatList
+                data={US_STATES}
+                keyExtractor={(s) => s.code}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={[styles.modalItem, selectedState === item.code && styles.modalItemSelected]}
+                    onPress={() => {
+                      setSelectedState(item.code);
+                      setSelectedCity("");
+                      setShowStatePicker(false);
+                    }}
+                  >
+                    <Text style={[styles.modalItemText, selectedState === item.code && { color: "#8b5cf6", fontWeight: "700" }]}>
+                      {item.name}
+                    </Text>
+                    {selectedState === item.code && <Ionicons name="checkmark" size={18} color="#8b5cf6" />}
+                  </TouchableOpacity>
+                )}
+              />
+            </View>
+          </View>
+        </Modal>
+
+        {/* City Picker Modal */}
+        <Modal visible={showCityPicker} animationType="slide" transparent>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalSheet}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Select City</Text>
+                <TouchableOpacity onPress={() => setShowCityPicker(false)}>
+                  <Ionicons name="close" size={24} color="#374151" />
+                </TouchableOpacity>
+              </View>
+              <FlatList
+                data={cities}
+                keyExtractor={(c) => c}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={[styles.modalItem, selectedCity === item && styles.modalItemSelected]}
+                    onPress={() => {
+                      setSelectedCity(item);
+                      setShowCityPicker(false);
+                    }}
+                  >
+                    <Text style={[styles.modalItemText, selectedCity === item && { color: "#8b5cf6", fontWeight: "700" }]}>
+                      {item}
+                    </Text>
+                    {selectedCity === item && <Ionicons name="checkmark" size={18} color="#8b5cf6" />}
+                  </TouchableOpacity>
+                )}
+              />
+            </View>
+          </View>
+        </Modal>
+      </View>
+    );
+  };
+
+  const renderAddress = () => {
+    const addrCities = citiesForState(addrState || selectedState);
+    const hasAddrCities = addrCities.length > 0;
+    return (
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ width: "100%" }}>
+        <View style={styles.stepBody}>
+          <View style={[styles.iconCircle, { backgroundColor: bgColor }]}>
+            <Ionicons name="home" size={60} color={color} />
+          </View>
+          <Text style={styles.title}>Home Address</Text>
+          <Text style={styles.subtitle}>
+            Your home address helps us send technicians to your door and match you
+            with shops that cover your neighbourhood.
+          </Text>
+
+          <View style={styles.impactBox}>
+            <MaterialCommunityIcons name="lightbulb-outline" size={16} color="#f59e0b" />
+            <Text style={styles.impactText}>
+              <Text style={{ fontWeight: "700" }}>If you skip this:</Text> You'll need to enter
+              your address every time you create a service request at home.
+            </Text>
+          </View>
+
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>Street Address</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="e.g. 123 Oak Street, Apt 4B"
+              placeholderTextColor="#9ca3af"
+              value={street}
+              onChangeText={setStreet}
+            />
+
+            <Text style={[styles.label, { marginTop: 14 }]}>State</Text>
+            <TouchableOpacity
+              style={[styles.pickerBtn, !(addrState || selectedState) && styles.pickerBtnEmpty]}
+              onPress={() => setShowAddrStatePicker(true)}
+            >
+              <Text style={(addrState || selectedState) ? styles.pickerBtnText : styles.pickerBtnPlaceholder}>
+                {(addrState || selectedState)
+                  ? US_STATES.find((s) => s.code === (addrState || selectedState))?.name || (addrState || selectedState)
+                  : "Select state"}
+              </Text>
+              <Ionicons name="chevron-down" size={18} color="#9ca3af" />
+            </TouchableOpacity>
+
+            <Text style={[styles.label, { marginTop: 14 }]}>City</Text>
+            {hasAddrCities ? (
+              <TouchableOpacity
+                style={[styles.pickerBtn, !addrCity && styles.pickerBtnEmpty]}
+                onPress={() => setShowAddrCityPicker(true)}
+              >
+                <Text style={addrCity ? styles.pickerBtnText : styles.pickerBtnPlaceholder}>
+                  {addrCity || "Select city"}
+                </Text>
+                <Ionicons name="chevron-down" size={18} color="#9ca3af" />
+              </TouchableOpacity>
+            ) : (
+              <TextInput
+                style={styles.input}
+                placeholder="Enter your city"
+                placeholderTextColor="#9ca3af"
+                value={addrCity}
+                onChangeText={setAddrCity}
+              />
+            )}
+
+            <Text style={[styles.label, { marginTop: 14 }]}>ZIP Code (optional)</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="e.g. 33101"
+              placeholderTextColor="#9ca3af"
+              value={addrZip}
+              onChangeText={setAddrZip}
+              keyboardType="numeric"
+              maxLength={5}
+            />
+          </View>
+
+          <TouchableOpacity
+            style={[styles.saveBtn, !street.trim() && styles.saveBtnDisabled]}
+            onPress={saveAddress}
+            disabled={addressSaving || !street.trim()}
+          >
+            {addressSaving ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <>
+                <Ionicons name="checkmark-circle" size={20} color="#fff" />
+                <Text style={styles.saveBtnText}>Save Home Address</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          {/* Address State Picker */}
+          <Modal visible={showAddrStatePicker} animationType="slide" transparent>
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalSheet}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Select State</Text>
+                  <TouchableOpacity onPress={() => setShowAddrStatePicker(false)}>
+                    <Ionicons name="close" size={24} color="#374151" />
+                  </TouchableOpacity>
+                </View>
+                <FlatList
+                  data={US_STATES}
+                  keyExtractor={(s) => s.code}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={[styles.modalItem, addrState === item.code && styles.modalItemSelected]}
+                      onPress={() => {
+                        setAddrState(item.code);
+                        setAddrCity("");
+                        setShowAddrStatePicker(false);
+                      }}
+                    >
+                      <Text style={[styles.modalItemText, addrState === item.code && { color: "#f59e0b", fontWeight: "700" }]}>
+                        {item.name}
+                      </Text>
+                      {addrState === item.code && <Ionicons name="checkmark" size={18} color="#f59e0b" />}
+                    </TouchableOpacity>
+                  )}
+                />
+              </View>
+            </View>
+          </Modal>
+
+          {/* Address City Picker */}
+          <Modal visible={showAddrCityPicker} animationType="slide" transparent>
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalSheet}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Select City</Text>
+                  <TouchableOpacity onPress={() => setShowAddrCityPicker(false)}>
+                    <Ionicons name="close" size={24} color="#374151" />
+                  </TouchableOpacity>
+                </View>
+                <FlatList
+                  data={addrCities}
+                  keyExtractor={(c) => c}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={[styles.modalItem, addrCity === item && styles.modalItemSelected]}
+                      onPress={() => {
+                        setAddrCity(item);
+                        setShowAddrCityPicker(false);
+                      }}
+                    >
+                      <Text style={[styles.modalItemText, addrCity === item && { color: "#f59e0b", fontWeight: "700" }]}>
+                        {item}
+                      </Text>
+                      {addrCity === item && <Ionicons name="checkmark" size={18} color="#f59e0b" />}
+                    </TouchableOpacity>
+                  )}
+                />
+              </View>
+            </View>
+          </Modal>
+        </View>
+      </KeyboardAvoidingView>
+    );
+  };
+
+  const renderVehicle = () => (
+    <View style={styles.stepBody}>
+      <View style={[styles.iconCircle, { backgroundColor: bgColor }]}>
+        <Ionicons name="car-sport" size={60} color={color} />
+      </View>
+      <Text style={styles.title}>Add Your Vehicle</Text>
+      <Text style={styles.subtitle}>
+        Adding your vehicle lets shops send you accurate quotes for the right
+        parts and labour. You can also track your complete service history.
+      </Text>
+
+      <View style={styles.impactBox}>
+        <MaterialCommunityIcons name="lightbulb-outline" size={16} color="#0891b2" />
+        <Text style={styles.impactText}>
+          <Text style={{ fontWeight: "700" }}>If you skip this:</Text> You'll need to
+          describe your car manually every time you request a service, and quotes
+          may be less accurate.
+        </Text>
+      </View>
+
+      <View style={styles.benefitList}>
+        {[
+          { icon: "scan", text: "Scan VIN barcode for automatic fill" },
+          { icon: "time", text: "Full service history per vehicle" },
+          { icon: "people", text: "Add multiple vehicles (family & fleet)" },
+          { icon: "notifications", text: "Maintenance reminders by mileage" },
+        ].map((b, i) => (
+          <View key={i} style={styles.benefitRow}>
+            <View style={[styles.benefitIcon, { backgroundColor: STEP_BG.vehicle }]}>
+              <Ionicons name={b.icon as any} size={16} color={STEP_COLORS.vehicle} />
+            </View>
+            <Text style={styles.benefitText}>{b.text}</Text>
+          </View>
+        ))}
+      </View>
+
+      <TouchableOpacity
+        style={[styles.saveBtn, { backgroundColor: color }]}
+        onPress={handleAddVehicle}
+      >
+        <Ionicons name="add-circle" size={20} color="#fff" />
+        <Text style={styles.saveBtnText}>Add My Vehicle Now</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderDone = () => (
+    <View style={styles.stepBody}>
+      <View style={[styles.iconCircle, { backgroundColor: bgColor }]}>
+        <Ionicons name="checkmark-circle" size={60} color={color} />
+      </View>
+      <Text style={styles.title}>You're All Set!</Text>
+      <Text style={styles.subtitle}>
+        TechTrust is personalised for you. You can always update your info
+        from Profile → Settings.
+      </Text>
+
+      <View style={styles.doneCard}>
+        <Text style={styles.doneCardTitle}>What you can do now:</Text>
+        {[
+          { icon: "construct", text: "Request a service from verified shops near you" },
+          { icon: "car-wash", text: "Find car washes and book memberships", family: "material" },
+          { icon: "storefront", text: "Browse auto parts stores" },
+          { icon: "star", text: "Leave reviews and save favourite shops" },
+        ].map((item, i) => (
+          <View key={i} style={styles.doneRow}>
+            <View style={[styles.doneIcon, { backgroundColor: STEP_BG.done }]}>
+              {item.family === "material" ? (
+                <MaterialCommunityIcons name={item.icon as any} size={16} color={STEP_COLORS.done} />
+              ) : (
+                <Ionicons name={item.icon as any} size={16} color={STEP_COLORS.done} />
+              )}
+            </View>
+            <Text style={styles.doneRowText}>{item.text}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+
+  const renderStep = () => {
+    switch (stepId) {
+      case "welcome": return renderWelcome();
+      case "location": return renderLocation();
+      case "address": return renderAddress();
+      case "vehicle": return renderVehicle();
+      case "done": return renderDone();
+    }
+  };
+
+  const isFirst = currentStep === 0;
+  const isLast = currentStep === STEP_IDS.length - 1;
+
+  // On data steps that have their own save button, the footer Next is "Skip this step"
+  const isDataStep = stepId === "location" || stepId === "address";
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Skip button */}
       {!isLast && (
-        <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
-          <Text style={styles.skipText}>
-            {(t as any).onboarding?.skip || "Skip"}
-          </Text>
+        <TouchableOpacity style={styles.skipTopBtn} onPress={handleSkip}>
+          <Text style={styles.skipTopText}>Skip all</Text>
         </TouchableOpacity>
       )}
 
       {/* Progress dots */}
       <View style={styles.progressRow}>
-        {STEPS.map((s, i) => (
+        {STEP_IDS.map((id, i) => (
           <View
-            key={s.id}
+            key={id}
             style={[
-              styles.progressDot,
-              i === currentStep && [
-                styles.progressDotActive,
-                { backgroundColor: step.color },
-              ],
-              i < currentStep && styles.progressDotDone,
+              styles.dot,
+              i === currentStep && [styles.dotActive, { backgroundColor: color }],
+              i < currentStep && styles.dotDone,
             ]}
           />
         ))}
       </View>
 
-      {/* Animated Content */}
+      {/* Content */}
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        bounces={false}
+        keyboardShouldPersistTaps="handled"
       >
-        <Animated.View
-          style={[
-            styles.iconContainer,
-            {
-              opacity: fadeAnim,
-              transform: [{ scale: scaleAnim }, { translateY: slideAnim }],
-            },
-          ]}
-        >
-          <View
-            style={[styles.iconCircle, { backgroundColor: step.bgColor }]}
-          >
-            <View
-              style={[styles.iconInner, { backgroundColor: step.bgColor }]}
-            >
-              {step.iconFamily === "material" ? (
-                <MaterialCommunityIcons
-                  name={step.icon as any}
-                  size={64}
-                  color={step.color}
-                />
-              ) : (
-                <Ionicons
-                  name={step.icon as any}
-                  size={64}
-                  color={step.color}
-                />
-              )}
-            </View>
-          </View>
-        </Animated.View>
-
-        <Animated.View
-          style={{
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
-          }}
-        >
-          <Text style={styles.title}>{content.title}</Text>
-          <Text style={styles.subtitle}>{content.subtitle}</Text>
-
-          {/* Feature list */}
-          <View style={styles.featureList}>
-            {content.features?.map((feature, index) => (
-              <View key={index} style={styles.featureItem}>
-                <View
-                  style={[
-                    styles.featureIcon,
-                    { backgroundColor: step.bgColor },
-                  ]}
-                >
-                  <Ionicons
-                    name={feature.icon as any}
-                    size={20}
-                    color={step.color}
-                  />
-                </View>
-                <Text style={styles.featureText}>{feature.text}</Text>
-              </View>
-            ))}
-          </View>
-
-          {/* CTA Action button (for vehicle/service/carwash steps) */}
-          {(content as any).action && (
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: step.color }]}
-              onPress={(content as any).action.onPress}
-            >
-              <Text style={styles.actionButtonText}>
-                {(content as any).action.label}
-              </Text>
-              <Ionicons name="arrow-forward" size={18} color="#fff" />
-            </TouchableOpacity>
-          )}
+        <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+          {renderStep()}
         </Animated.View>
       </ScrollView>
 
-      {/* Bottom navigation */}
-      <View style={styles.bottomRow}>
-        {currentStep > 0 && (
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => animateTransition(currentStep - 1)}
-          >
-            <Ionicons name="arrow-back" size={20} color="#6b7280" />
-            <Text style={styles.backText}>
-              {(t as any).common?.back || "Back"}
-            </Text>
+      {/* Footer navigation */}
+      <View style={styles.footer}>
+        {!isFirst && (
+          <TouchableOpacity style={styles.backBtn} onPress={goBack}>
+            <Ionicons name="arrow-back" size={18} color="#6b7280" />
+            <Text style={styles.backBtnText}>Back</Text>
           </TouchableOpacity>
         )}
         <View style={{ flex: 1 }} />
+
         {isLast ? (
           <TouchableOpacity
-            style={[styles.nextButton, { backgroundColor: step.color }]}
+            style={[styles.nextBtn, { backgroundColor: color }]}
             onPress={handleFinish}
           >
-            <Text style={styles.nextButtonText}>
-              {(t as any).onboarding?.getStarted || "Get Started"}
-            </Text>
+            <Text style={styles.nextBtnText}>Go to Dashboard</Text>
             <Ionicons name="rocket" size={18} color="#fff" />
+          </TouchableOpacity>
+        ) : isDataStep ? (
+          <TouchableOpacity style={styles.skipStepBtn} onPress={goNext}>
+            <Text style={styles.skipStepText}>Skip this step</Text>
+            <Ionicons name="arrow-forward" size={16} color="#9ca3af" />
+          </TouchableOpacity>
+        ) : stepId === "vehicle" ? (
+          <TouchableOpacity style={styles.skipStepBtn} onPress={goNext}>
+            <Text style={styles.skipStepText}>Skip for now</Text>
+            <Ionicons name="arrow-forward" size={16} color="#9ca3af" />
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
-            style={[styles.nextButton, { backgroundColor: step.color }]}
-            onPress={handleNext}
+            style={[styles.nextBtn, { backgroundColor: color }]}
+            onPress={goNext}
           >
-            <Text style={styles.nextButtonText}>
-              {(t as any).common?.next || "Next"}
-            </Text>
+            <Text style={styles.nextBtnText}>Let's go</Text>
             <Ionicons name="arrow-forward" size={18} color="#fff" />
           </TouchableOpacity>
         )}
@@ -440,151 +709,223 @@ export default function CustomerOnboardingScreen({ navigation }: any) {
   );
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#ffffff",
-  },
-  skipButton: {
+  container: { flex: 1, backgroundColor: "#fff" },
+  skipTopBtn: {
     position: "absolute",
     top: 60,
     right: 20,
     zIndex: 10,
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingVertical: 8,
   },
-  skipText: {
-    fontSize: 15,
-    color: "#9ca3af",
-    fontWeight: "500",
-  },
+  skipTopText: { fontSize: 14, color: "#9ca3af", fontWeight: "500" },
   progressRow: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     paddingTop: 16,
-    gap: 8,
+    paddingBottom: 8,
+    gap: 6,
   },
-  progressDot: {
+  dot: {
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: "#e5e7eb",
   },
-  progressDotActive: {
-    width: 28,
-    borderRadius: 4,
-  },
-  progressDotDone: {
-    backgroundColor: "#10b981",
-  },
+  dotActive: { width: 24, borderRadius: 4 },
+  dotDone: { backgroundColor: "#10b981" },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 32,
-    paddingTop: 40,
-    paddingBottom: 20,
-    alignItems: "center",
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 24,
   },
-  iconContainer: {
-    marginBottom: 32,
-  },
+  stepBody: { alignItems: "center", width: "100%" },
   iconCircle: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  iconInner: {
     width: 120,
     height: 120,
     borderRadius: 60,
     justifyContent: "center",
     alignItems: "center",
+    marginBottom: 24,
   },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: "800",
     color: "#111827",
     textAlign: "center",
-    marginBottom: 12,
+    marginBottom: 10,
   },
   subtitle: {
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 15,
+    lineHeight: 22,
     color: "#6b7280",
     textAlign: "center",
-    marginBottom: 32,
+    marginBottom: 20,
+    paddingHorizontal: 4,
   },
-  featureList: {
-    width: "100%",
-    gap: 16,
-    marginBottom: 24,
-  },
-  featureItem: {
-    flexDirection: "row",
+  benefitList: { width: "100%", gap: 12, marginBottom: 20 },
+  benefitRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  benefitIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: "center",
     alignItems: "center",
-    gap: 14,
   },
-  featureIcon: {
-    width: 40,
-    height: 40,
+  benefitText: { flex: 1, fontSize: 14, color: "#374151", fontWeight: "500" },
+  impactBox: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    backgroundColor: "#fafafa",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
     borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
+    padding: 12,
+    width: "100%",
+    marginBottom: 20,
   },
-  featureText: {
+  impactText: { flex: 1, fontSize: 13, color: "#374151", lineHeight: 18 },
+  infoBox: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    backgroundColor: "#eff6ff",
+    borderRadius: 10,
+    padding: 12,
+    width: "100%",
+    marginBottom: 8,
+  },
+  infoText: { flex: 1, fontSize: 13, color: "#1d4ed8", lineHeight: 18 },
+  fieldGroup: { width: "100%", marginBottom: 20 },
+  label: { fontSize: 13, fontWeight: "600", color: "#374151", marginBottom: 6 },
+  input: {
+    borderWidth: 1.5,
+    borderColor: "#d1d5db",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     fontSize: 15,
-    color: "#374151",
-    fontWeight: "500",
-    flex: 1,
+    color: "#111827",
+    backgroundColor: "#fafafa",
   },
-  actionButton: {
+  pickerBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderWidth: 1.5,
+    borderColor: "#d1d5db",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: "#fafafa",
+  },
+  pickerBtnEmpty: { borderColor: "#e5e7eb" },
+  pickerBtnText: { fontSize: 15, color: "#111827" },
+  pickerBtnPlaceholder: { fontSize: 15, color: "#9ca3af" },
+  saveBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#3b82f6",
     paddingVertical: 14,
     paddingHorizontal: 28,
     borderRadius: 14,
-    gap: 8,
-    marginTop: 8,
     width: "100%",
   },
-  actionButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "700",
+  saveBtnDisabled: { backgroundColor: "#93c5fd" },
+  saveBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  doneCard: {
+    backgroundColor: "#f0fdf4",
+    borderRadius: 16,
+    padding: 20,
+    width: "100%",
+    gap: 12,
   },
-  bottomRow: {
+  doneCardTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#065f46",
+    marginBottom: 4,
+  },
+  doneRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  doneIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  doneRowText: { flex: 1, fontSize: 14, color: "#047857", fontWeight: "500" },
+  footer: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 24,
-    paddingBottom: 24,
-    paddingTop: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderTopWidth: 1,
+    borderTopColor: "#f3f4f6",
   },
-  backButton: {
+  backBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 6,
   },
-  backText: {
-    fontSize: 15,
-    color: "#6b7280",
-    fontWeight: "500",
-  },
-  nextButton: {
+  backBtnText: { fontSize: 15, color: "#6b7280", fontWeight: "500" },
+  skipStepBtn: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 28,
-    borderRadius: 14,
+    gap: 4,
+    paddingVertical: 10,
+    paddingHorizontal: 6,
+  },
+  skipStepText: { fontSize: 15, color: "#9ca3af", fontWeight: "500" },
+  nextBtn: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 14,
   },
-  nextButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "700",
+  nextBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  // Modals
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-end",
   },
+  modalSheet: {
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: "70%",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
+  },
+  modalTitle: { fontSize: 17, fontWeight: "700", color: "#111827" },
+  modalItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f9fafb",
+  },
+  modalItemSelected: { backgroundColor: "#f5f3ff" },
+  modalItemText: { fontSize: 15, color: "#374151" },
 });

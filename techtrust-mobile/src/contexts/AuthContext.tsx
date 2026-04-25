@@ -21,7 +21,7 @@ interface User {
   email: string;
   fullName: string;
   phone?: string;
-  role: "CUSTOMER" | "PROVIDER";
+  role: "CUSTOMER" | "PROVIDER" | "MARKETPLACE";
   avatarUrl?: string;
   providerProfile?: {
     businessName: string;
@@ -37,6 +37,7 @@ interface User {
     zipCode?: string;
     cpfCnpj?: string;
     fdacsRegistrationNumber?: string;
+    marketplaceType?: string;
   };
 }
 
@@ -152,7 +153,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             email: apiUser.email,
             fullName: apiUser.fullName,
             phone: apiUser.phone || "",
-            role: apiUser.role === "CLIENT" ? "CUSTOMER" : apiUser.role,
+            role: apiUser.role === "CLIENT" ? "CUSTOMER" : (apiUser.role === "PROVIDER" && apiUser.providerProfile?.businessType ? "MARKETPLACE" : apiUser.role),
             providerProfile: apiUser.providerProfile
               ? {
                   businessName: apiUser.providerProfile.businessName || "",
@@ -169,6 +170,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   cpfCnpj: apiUser.providerProfile.cpfCnpj,
                   fdacsRegistrationNumber:
                     apiUser.providerProfile.fdacsRegistrationNumber,
+                  marketplaceType: apiUser.providerProfile.marketplaceType,
                 }
               : undefined,
           };
@@ -421,11 +423,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role: apiUser.role === "CLIENT" ? "CUSTOMER" : apiUser.role,
         providerProfile: apiUser.providerProfile
           ? {
-              id: apiUser.providerProfile.id,
-              businessName: apiUser.providerProfile.businessName,
-              servicesOffered: apiUser.providerProfile.servicesOffered,
-              vehicleTypesServed: apiUser.providerProfile.vehicleTypesServed,
-              sellsParts: apiUser.providerProfile.sellsParts,
+              businessName: apiUser.providerProfile.businessName || "",
+              businessType: apiUser.providerProfile.businessType || "",
+              averageRating: Number(apiUser.providerProfile.averageRating || 0),
+              totalReviews: apiUser.providerProfile.totalReviews || 0,
+              isVerified: apiUser.providerProfile.isVerified === true,
+              marketplaceType: apiUser.providerProfile.marketplaceType,
             }
           : undefined,
       };
@@ -499,7 +502,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           email: data.user.email,
           fullName: data.user.fullName,
           phone: data.user.phone || "",
-          role: data.user.role === "CLIENT" ? "CUSTOMER" : data.user.role,
+          role: data.user.role === "CLIENT" ? "CUSTOMER" : (data.user.role === "PROVIDER" && data.user.providerProfile?.businessType ? "MARKETPLACE" : data.user.role),
           avatarUrl: data.user.avatarUrl,
           providerProfile: data.user.providerProfile
             ? {
@@ -508,6 +511,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 averageRating: Number(data.user.providerProfile.averageRating || 0),
                 totalReviews: data.user.providerProfile.totalReviews || 0,
                 isVerified: data.user.providerProfile.isVerified === true,
+                marketplaceType: data.user.providerProfile.marketplaceType,
               }
             : undefined,
         };
@@ -570,7 +574,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           email: data.user.email,
           fullName: data.user.fullName,
           phone: data.user.phone || "",
-          role: data.user.role === "CLIENT" ? "CUSTOMER" : data.user.role,
+          role: data.user.role === "CLIENT" ? "CUSTOMER" : (data.user.role === "PROVIDER" && data.user.providerProfile?.businessType ? "MARKETPLACE" : data.user.role),
           avatarUrl: data.user.avatarUrl,
           providerProfile: data.user.providerProfile
             ? {
@@ -579,6 +583,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 averageRating: Number(data.user.providerProfile.averageRating || 0),
                 totalReviews: data.user.providerProfile.totalReviews || 0,
                 isVerified: data.user.providerProfile.isVerified === true,
+                marketplaceType: data.user.providerProfile.marketplaceType,
               }
             : undefined,
         };

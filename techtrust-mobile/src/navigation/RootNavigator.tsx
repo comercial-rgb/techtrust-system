@@ -30,6 +30,7 @@ import ProviderNavigator from "./ProviderNavigator";
 import ProviderOnboardingScreen from "../screens/provider/ProviderOnboardingScreen";
 import ProviderServicesScreen from "../screens/provider/ProviderServicesScreen";
 import CustomerOnboardingScreen from "../screens/customer/CustomerOnboardingScreen";
+import MarketplaceOnboardingScreen from "../screens/marketplace/MarketplaceOnboardingScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -204,6 +205,19 @@ function CustomerWithOnboarding() {
   );
 }
 
+// Wrapper that shows onboarding before marketplace tabs
+function MarketplaceWithOnboarding() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen
+        name="MarketplaceOnboarding"
+        component={MarketplaceOnboardingScreen}
+      />
+      <Stack.Screen name="ProviderMain" component={ProviderNavigator} />
+    </Stack.Navigator>
+  );
+}
+
 // Wrapper that shows onboarding before provider tabs
 function ProviderWithOnboarding() {
   return (
@@ -227,6 +241,7 @@ export default function RootNavigator() {
 
   // Determine which navigator to show based on user role
   const isProvider = user?.role === "PROVIDER";
+  const isMarketplace = user?.role === "MARKETPLACE";
 
   if (loading) {
     return null; // Or a loading screen
@@ -234,12 +249,12 @@ export default function RootNavigator() {
 
   // When authenticated, show the appropriate navigator directly
   if (isAuthenticated) {
-    if (isProvider) {
-      // Show onboarding for new providers who haven't completed it
+    if (isProvider || isMarketplace) {
       if (!hasCompletedOnboarding) {
+        const OnboardingWrapper = isMarketplace ? MarketplaceWithOnboarding : ProviderWithOnboarding;
         return (
           <ProviderErrorBoundary onLogout={logout}>
-            <ProviderWithOnboarding />
+            <OnboardingWrapper />
           </ProviderErrorBoundary>
         );
       }
