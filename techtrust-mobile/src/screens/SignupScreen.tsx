@@ -94,7 +94,7 @@ const DEFAULT_CLIENT_PLANS: ClientPlanOption[] = [
   },
 ];
 
-export default function SignupScreen({ navigation }: any) {
+export default function SignupScreen({ navigation, route }: any) {
   const theme = useTheme();
   const { t } = useI18n();
   const { signUp } = useAuth();
@@ -110,7 +110,7 @@ export default function SignupScreen({ navigation }: any) {
   const [showPassword, setShowPassword] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [selectedRole, setSelectedRole] = useState<"CLIENT" | "PROVIDER" | "MARKETPLACE">(
-    "CLIENT",
+    route?.params?.initialRole || "CLIENT",
   );
   // Provider-specific fields
   const [businessName, setBusinessName] = useState("");
@@ -514,39 +514,27 @@ export default function SignupScreen({ navigation }: any) {
           </View>
         </FadeInView>
 
-        {/* 🔄 Role Selector */}
+        {/* Role badge — shows which type was selected on previous screen */}
         <FadeInView delay={60}>
-          <View style={styles.roleSelectorContainer}>
-            <Text style={styles.inputLabel}>
-              {t.auth?.accountType || "Account Type"}
-            </Text>
-            <View style={styles.roleCards}>
-              {([
-                { key: "CLIENT",      icon: "person",     color: theme.colors.primary, label: t.auth?.customer || "Customer",         desc: "Request auto services" },
-                { key: "PROVIDER",    icon: "construct",  color: theme.colors.primary, label: t.auth?.provider || "Service Provider",  desc: "Offer repair & maintenance" },
-                { key: "MARKETPLACE", icon: "storefront", color: "#0891b2",            label: t.auth?.marketplace || "Marketplace",    desc: "Car wash or auto parts store" },
-              ] as const).map(({ key, icon, color, label, desc }) => {
-                const active = selectedRole === key;
-                return (
-                  <TouchableOpacity
-                    key={key}
-                    style={[styles.roleCard, active && { borderColor: color, backgroundColor: color + "12" }]}
-                    onPress={() => setSelectedRole(key)}
-                    activeOpacity={0.8}
-                  >
-                    <View style={[styles.roleCardIcon, { backgroundColor: active ? color : "#f3f4f6" }]}>
-                      <Ionicons name={icon as any} size={22} color={active ? "#fff" : "#6b7280"} />
-                    </View>
-                    <View style={styles.roleCardText}>
-                      <Text style={[styles.roleCardLabel, active && { color }]}>{label}</Text>
-                      <Text style={styles.roleCardDesc}>{desc}</Text>
-                    </View>
-                    {active && <Ionicons name="checkmark-circle" size={20} color={color} />}
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
+          {(() => {
+            const roleMap = {
+              CLIENT:      { icon: "person",     color: theme.colors.primary, label: t.auth?.customer || "Customer" },
+              PROVIDER:    { icon: "construct",  color: "#0f766e",            label: t.auth?.provider || "Service Provider" },
+              MARKETPLACE: { icon: "storefront", color: "#0891b2",            label: t.auth?.marketplace || "Marketplace" },
+            } as const;
+            const r = roleMap[selectedRole];
+            return (
+              <View style={styles.roleBadgeRow}>
+                <View style={[styles.roleBadge, { backgroundColor: r.color + "14", borderColor: r.color + "40" }]}>
+                  <Ionicons name={r.icon} size={15} color={r.color} />
+                  <Text style={[styles.roleBadgeText, { color: r.color }]}>{r.label}</Text>
+                </View>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.changeRoleBtn}>
+                  <Text style={styles.changeRoleBtnText}>{t.auth?.change || "Change"}</Text>
+                </TouchableOpacity>
+              </View>
+            );
+          })()}
         </FadeInView>
 
         {/* ✨ Formulário com animações */}
@@ -1586,6 +1574,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: 24,
+    paddingTop: Platform.OS === "ios" ? 72 : 64,
   },
   header: {
     alignItems: "center",
@@ -1631,42 +1620,34 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  roleSelectorContainer: {
-    marginBottom: 20,
-  },
-  roleCards: {
-    gap: 10,
-  },
-  roleCard: {
+  roleBadgeRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 14,
-    borderWidth: 2,
-    borderColor: "#e5e7eb",
-    backgroundColor: "#f9fafb",
+    justifyContent: "space-between",
+    marginBottom: 20,
   },
-  roleCardIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+  roleBadge: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
   },
-  roleCardText: {
-    flex: 1,
-  },
-  roleCardLabel: {
-    fontSize: 15,
+  roleBadgeText: {
+    fontSize: 13,
     fontWeight: "700",
-    color: "#111827",
   },
-  roleCardDesc: {
-    fontSize: 12,
+  changeRoleBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  changeRoleBtnText: {
+    fontSize: 13,
     color: "#6b7280",
-    marginTop: 2,
+    fontWeight: "500",
+    textDecorationLine: "underline",
   },
   roleButtonText: {
     fontSize: 14,

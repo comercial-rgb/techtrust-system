@@ -408,7 +408,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
         {
           icon: "person-add",
           label: t.auth?.signup || "Sign Up",
-          action: () => navigation.navigate("Signup"),
+          action: () => navigation.navigate("AccountType"),
         },
         {
           icon: "information-circle",
@@ -432,7 +432,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
 
   // Handle navigation for various buttons
   const handleLogin = () => navigation.navigate("Login");
-  const handleSignup = () => navigation.navigate("Signup");
+  const handleSignup = () => navigation.navigate("AccountType");
   const handleGoToDashboard = () => navigation.navigate("DashboardMain");
   const handleCreateRequest = () =>
     navigation.navigate("CreateRequest");

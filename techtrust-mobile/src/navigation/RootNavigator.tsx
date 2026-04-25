@@ -17,6 +17,7 @@ import LandingScreen from "../screens/LandingScreen";
 // Auth Screens (shared)
 import LoginScreen from "../screens/LoginScreen";
 import SignupScreen from "../screens/SignupScreen";
+import AccountTypeScreen from "../screens/AccountTypeScreen";
 import OTPScreen from "../screens/OTPScreen";
 import ForgotPasswordScreen from "../screens/ForgotPasswordScreen";
 import CompleteSocialSignupScreen from "../screens/CompleteSocialSignupScreen";
@@ -178,6 +179,7 @@ function AuthStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Landing" component={LandingScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="AccountType" component={AccountTypeScreen} />
       <Stack.Screen name="Signup" component={SignupScreen} />
       <Stack.Screen name="OTP" component={OTPScreen} />
       <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />

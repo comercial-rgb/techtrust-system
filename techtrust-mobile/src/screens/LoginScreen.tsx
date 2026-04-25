@@ -574,7 +574,7 @@ export default function LoginScreen({ navigation }: any) {
             {/* Signup Link */}
             <View style={styles.signupContainer}>
               <Text style={styles.signupText}>{t.auth.dontHaveAccount} </Text>
-              <TouchableOpacity onPress={() => navigation.navigate("Signup")}>
+              <TouchableOpacity onPress={() => navigation.navigate("AccountType")}>
                 <Text style={styles.signupLink}>{t.auth.signup}</Text>
               </TouchableOpacity>
             </View>
