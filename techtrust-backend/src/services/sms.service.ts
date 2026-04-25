@@ -103,6 +103,7 @@ export const sendVerifyOTP = async (
   phone: string,
   channel: "sms" | "email" | "whatsapp" = "sms",
   emailAddress?: string,
+  customCode?: string,
 ): Promise<{ success: boolean; sid?: string }> => {
   const normalizedPhone = normalizePhone(phone);
 
@@ -126,6 +127,9 @@ export const sendVerifyOTP = async (
       to: channel === "email" ? emailAddress : normalizedPhone,
       channel,
     };
+    if (customCode) {
+      verifyParams.customCode = customCode;
+    }
 
     logger.info(
       `📱 Enviando OTP via Verify (${channel}) para: ${channel === "email" ? emailAddress : normalizedPhone}`,
@@ -257,24 +261,14 @@ export const sendSMS = async (
 };
 
 /**
- * @deprecated Use sendVerifyOTP() em vez disso. Mantido para compatibilidade.
- * Envia código OTP via SMS (Messages API) - fallback se Verify não estiver configurado
+ * Envia código OTP via SMS direto (Messages API).
+ * Usado como fallback quando Verify API/customCode falha.
  */
 export const sendOTP = async (
   phone: string,
   otp: string,
   language?: string,
 ): Promise<void> => {
-  // Se Verify está configurado, usar Verify
-  if (process.env.TWILIO_VERIFY_SERVICE_SID) {
-    const result = await sendVerifyOTP(phone, "sms");
-    if (!result.success) {
-      throw new Error("Falha ao enviar código de verificação via Verify");
-    }
-    return;
-  }
-
-  // Fallback: enviar via Messages API (legacy)
   const message =
     language === "PT" || language === "ES"
       ? `TechTrust: ${otp} é seu código de verificação. Válido por 10 minutos.`

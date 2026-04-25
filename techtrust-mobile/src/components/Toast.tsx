@@ -23,6 +23,7 @@ interface ToastProps {
   message: string;
   type?: ToastType;
   duration?: number;
+  position?: 'top' | 'bottom';
   onDismiss: () => void;
   action?: {
     label: string;
@@ -58,6 +59,7 @@ export default function Toast({
   message,
   type = 'info',
   duration = 3000,
+  position = 'bottom',
   onDismiss,
   action,
 }: ToastProps) {
@@ -115,6 +117,7 @@ export default function Toast({
     <Animated.View
       style={[
         styles.container,
+        position === 'top' ? styles.topContainer : styles.bottomContainer,
         {
           backgroundColor: config.bg,
           transform: [{ translateY }],
@@ -150,7 +153,6 @@ export default function Toast({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 100,
     left: 16,
     right: 16,
     borderRadius: 12,
@@ -160,6 +162,12 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
     zIndex: 9999,
+  },
+  bottomContainer: {
+    bottom: 100,
+  },
+  topContainer: {
+    top: 64,
   },
   content: {
     flexDirection: 'row',

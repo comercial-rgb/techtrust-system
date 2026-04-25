@@ -419,6 +419,7 @@ export default function OTPScreen({ route, navigation }: any) {
         visible={toast.visible}
         message={toast.message}
         type={toast.type}
+        position="top"
         onDismiss={hideToast}
       />
     </KeyboardAvoidingView>
