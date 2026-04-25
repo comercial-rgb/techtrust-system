@@ -67,6 +67,7 @@ interface ClientPlanOption {
   vehicleLimit: number;
   serviceRequestsPerMonth: number | null;
   isFeatured?: boolean;
+  highlights?: string[];
 }
 
 const DEFAULT_CLIENT_PLANS: ClientPlanOption[] = [
@@ -76,6 +77,7 @@ const DEFAULT_CLIENT_PLANS: ClientPlanOption[] = [
     price: 0,
     vehicleLimit: 2,
     serviceRequestsPerMonth: 4,
+    highlights: ["VIN decode & NHTSA recalls", "PDF receipts", "Mobile app access"],
   },
   {
     id: "starter",
@@ -83,6 +85,7 @@ const DEFAULT_CLIENT_PLANS: ClientPlanOption[] = [
     price: 9.99,
     vehicleLimit: 3,
     serviceRequestsPerMonth: 10,
+    highlights: ["Scheduled maintenance reminders", "Mileage tracker", "Multi-language support"],
   },
   {
     id: "pro",
@@ -91,6 +94,7 @@ const DEFAULT_CLIENT_PLANS: ClientPlanOption[] = [
     vehicleLimit: 5,
     serviceRequestsPerMonth: null,
     isFeatured: true,
+    highlights: ["OBD2 diagnostics", "Expense reports & wallet", "Priority support 24/7"],
   },
 ];
 
@@ -478,25 +482,32 @@ export default function SignupScreen({ navigation, route }: any) {
       >
         {/* ✨ Header animado */}
         <FadeInView delay={0}>
-          <View style={styles.header}>
-            <View
-              style={[
-                styles.iconContainer,
-                { backgroundColor: theme.colors.primary },
-              ]}
-            >
-              <Text style={styles.headerIcon}>👤</Text>
-            </View>
-            <Text
-              variant="headlineMedium"
-              style={[styles.title, { color: theme.colors.primary }]}
-            >
-              {t.auth?.createAccount || "Create Account"}
-            </Text>
-            <Text variant="bodyMedium" style={styles.subtitle}>
-              {t.auth?.signupSubtitle || "Sign up to get started"}
-            </Text>
-          </View>
+          {(() => {
+            const roleMap = {
+              CLIENT:      { icon: "person",     color: theme.colors.primary, label: t.auth?.customer || "Customer" },
+              PROVIDER:    { icon: "construct",  color: "#0f766e",            label: t.auth?.provider || "Service Provider" },
+              MARKETPLACE: { icon: "storefront", color: "#0891b2",            label: t.auth?.marketplace || "Marketplace" },
+            } as const;
+            const r = roleMap[selectedRole];
+            return (
+              <View style={styles.header}>
+                <View style={[styles.iconContainer, { backgroundColor: r.color }]}>
+                  <Ionicons name={r.icon as any} size={30} color="#fff" />
+                </View>
+                <Text variant="headlineMedium" style={[styles.title, { color: r.color }]}>
+                  {t.auth?.createAccount || "Create Account"}
+                </Text>
+                <View style={styles.rolePillRow}>
+                  <View style={[styles.rolePill, { backgroundColor: r.color + "14", borderColor: r.color + "30" }]}>
+                    <Text style={[styles.rolePillText, { color: r.color }]}>{r.label}</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => navigation.goBack()}>
+                    <Text style={styles.changeRoleBtnText}>{t.auth?.change || "Change"}</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            );
+          })()}
         </FadeInView>
 
         {/* ✨ Progress bar */}
@@ -512,29 +523,6 @@ export default function SignupScreen({ navigation, route }: any) {
               {t.common?.complete || "complete"}
             </Text>
           </View>
-        </FadeInView>
-
-        {/* Role badge — shows which type was selected on previous screen */}
-        <FadeInView delay={60}>
-          {(() => {
-            const roleMap = {
-              CLIENT:      { icon: "person",     color: theme.colors.primary, label: t.auth?.customer || "Customer" },
-              PROVIDER:    { icon: "construct",  color: "#0f766e",            label: t.auth?.provider || "Service Provider" },
-              MARKETPLACE: { icon: "storefront", color: "#0891b2",            label: t.auth?.marketplace || "Marketplace" },
-            } as const;
-            const r = roleMap[selectedRole];
-            return (
-              <View style={styles.roleBadgeRow}>
-                <View style={[styles.roleBadge, { backgroundColor: r.color + "14", borderColor: r.color + "40" }]}>
-                  <Ionicons name={r.icon} size={15} color={r.color} />
-                  <Text style={[styles.roleBadgeText, { color: r.color }]}>{r.label}</Text>
-                </View>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.changeRoleBtn}>
-                  <Text style={styles.changeRoleBtnText}>{t.auth?.change || "Change"}</Text>
-                </TouchableOpacity>
-              </View>
-            );
-          })()}
         </FadeInView>
 
         {/* ✨ Formulário com animações */}
@@ -723,47 +711,66 @@ export default function SignupScreen({ navigation, route }: any) {
                     return (
                       <TouchableOpacity
                         key={plan.id}
-                        style={[
-                          {
-                            flexDirection: "row",
-                            alignItems: "center",
-                            padding: 12,
-                            borderRadius: 10,
-                            borderWidth: 2,
-                            borderColor: active ? planColor : "#e5e7eb",
-                            backgroundColor: active ? "#eff6ff" : "#fff",
-                            marginTop: 8,
-                          },
-                        ]}
+                        style={{
+                          padding: 14,
+                          borderRadius: 12,
+                          borderWidth: 2,
+                          borderColor: active ? planColor : "#e5e7eb",
+                          backgroundColor: active ? (planColor + "0d") : "#fff",
+                          marginTop: 8,
+                        }}
                         onPress={() => setSelectedClientPlan(plan.id)}
+                        activeOpacity={0.8}
                       >
-                        <Ionicons
-                          name={active ? "checkmark-circle" : "ellipse-outline"}
-                          size={22}
-                          color={active ? planColor : "#9ca3af"}
-                          style={{ marginRight: 10 }}
-                        />
-                        <View style={{ flex: 1 }}>
-                          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                            <Text style={{ fontWeight: "700", fontSize: 15, color: "#111827" }}>
-                              {plan.name}
+                        {/* Top row: check + name + price */}
+                        <View style={{ flexDirection: "row", alignItems: "center" }}>
+                          <Ionicons
+                            name={active ? "checkmark-circle" : "ellipse-outline"}
+                            size={22}
+                            color={active ? planColor : "#9ca3af"}
+                            style={{ marginRight: 10 }}
+                          />
+                          <View style={{ flex: 1 }}>
+                            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                              <Text style={{ fontWeight: "700", fontSize: 15, color: "#111827" }}>
+                                {plan.name}
+                              </Text>
+                              {plan.isFeatured && (
+                                <View style={{ backgroundColor: planColor, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                                  <Text style={{ color: "#fff", fontSize: 9, fontWeight: "700" }}>POPULAR</Text>
+                                </View>
+                              )}
+                            </View>
+                            <Text style={{ color: "#6b7280", fontSize: 12, marginTop: 1 }}>
+                              {plan.vehicleLimit} vehicles · {plan.serviceRequestsPerMonth === null ? "Unlimited" : plan.serviceRequestsPerMonth + " requests/mo"}
                             </Text>
-                            {plan.isFeatured && (
-                              <View style={{ backgroundColor: planColor, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
-                                <Text style={{ color: "#fff", fontSize: 9, fontWeight: "700" }}>
-                                  POPULAR
-                                </Text>
+                          </View>
+                          <View style={{ alignItems: "flex-end" }}>
+                            <Text style={{ fontWeight: "700", color: planColor, fontSize: 15 }}>
+                              {plan.price === 0 ? "Free" : `$${plan.price.toFixed(2)}`}
+                            </Text>
+                            {plan.price > 0 && (
+                              <Text style={{ fontSize: 10, color: "#9ca3af" }}>/mo</Text>
+                            )}
+                          </View>
+                        </View>
+                        {/* Feature highlights — always visible */}
+                        {plan.highlights && plan.highlights.length > 0 && (
+                          <View style={{ marginTop: 10, gap: 5, paddingLeft: 32 }}>
+                            {plan.highlights.map((h, i) => (
+                              <View key={i} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                                <Ionicons name="checkmark" size={13} color={planColor} />
+                                <Text style={{ fontSize: 12, color: "#374151" }}>{h}</Text>
+                              </View>
+                            ))}
+                            {plan.price > 0 && (
+                              <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 }}>
+                                <Ionicons name="gift-outline" size={13} color="#22c55e" />
+                                <Text style={{ fontSize: 12, color: "#16a34a", fontWeight: "600" }}>7-day free trial</Text>
                               </View>
                             )}
                           </View>
-                          <Text style={{ color: "#6b7280", fontSize: 12, marginTop: 2 }}>
-                            {plan.vehicleLimit} vehicles • {plan.serviceRequestsPerMonth === null ? "Unlimited" : plan.serviceRequestsPerMonth} requests/mo
-                            {plan.price > 0 ? " • 7-day trial" : ""}
-                          </Text>
-                        </View>
-                        <Text style={{ fontWeight: "700", color: planColor, fontSize: 14 }}>
-                          {plan.price === 0 ? "Free" : `$${plan.price.toFixed(2)}/mo`}
-                        </Text>
+                        )}
                       </TouchableOpacity>
                     );
                   })}
@@ -1351,15 +1358,9 @@ export default function SignupScreen({ navigation, route }: any) {
                     style={[
                       signupCapStyles.otpMethodCard,
                       otpMethod === "sms" && signupCapStyles.otpMethodCardActive,
-                      !phone.trim() && { opacity: 0.4 },
                     ]}
-                    onPress={() => {
-                      if (phone.trim()) {
-                        setOtpMethod("sms");
-                      }
-                    }}
+                    onPress={() => setOtpMethod("sms")}
                     activeOpacity={0.7}
-                    disabled={!phone.trim()}
                   >
                     <Text style={signupCapStyles.otpMethodIcon}>📱</Text>
                     <Text
@@ -1372,7 +1373,7 @@ export default function SignupScreen({ navigation, route }: any) {
                     </Text>
                     <Text style={signupCapStyles.otpMethodDesc}>
                       {!phone.trim()
-                        ? (t.auth?.otpSmsRequiresPhone || "Requires phone number")
+                        ? (t.auth?.otpSmsAddPhone || "Add phone number above")
                         : (t.auth?.otpViaSms || "Code via text")}
                     </Text>
                   </TouchableOpacity>
@@ -1574,7 +1575,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: 24,
-    paddingTop: Platform.OS === "ios" ? 72 : 64,
+    paddingTop: Platform.OS === "ios" ? 60 : 24,
   },
   header: {
     alignItems: "center",
@@ -1620,33 +1621,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  roleBadgeRow: {
+  rolePillRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 20,
+    gap: 8,
+    marginTop: 6,
   },
-  roleBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
+  rolePill: {
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 4,
     borderRadius: 20,
     borderWidth: 1,
   },
-  roleBadgeText: {
-    fontSize: 13,
+  rolePillText: {
+    fontSize: 12,
     fontWeight: "700",
   },
-  changeRoleBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
   changeRoleBtnText: {
-    fontSize: 13,
-    color: "#6b7280",
-    fontWeight: "500",
+    fontSize: 12,
+    color: "#9ca3af",
     textDecorationLine: "underline",
   },
   roleButtonText: {

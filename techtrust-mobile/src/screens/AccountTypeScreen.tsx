@@ -7,6 +7,7 @@ import {
   SafeAreaView,
   StatusBar,
   Platform,
+  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "react-native-paper";
@@ -121,8 +122,11 @@ export default function AccountTypeScreen({ navigation }: any) {
         </View>
       </View>
 
-      {/* Cards */}
-      <View style={styles.cards}>
+      {/* Cards + Footer inside ScrollView */}
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         {ACCOUNT_TYPES.map((type) => (
           <TouchableOpacity
             key={type.key}
@@ -157,19 +161,19 @@ export default function AccountTypeScreen({ navigation }: any) {
             </View>
           </TouchableOpacity>
         ))}
-      </View>
 
-      {/* Footer */}
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>
-          {isPt ? "Já tem uma conta? " : "Already have an account? "}
-        </Text>
-        <TouchableOpacity onPress={() => navigation.navigate("Login")}>
-          <Text style={[styles.footerLink, { color: theme.colors.primary }]}>
-            {isPt ? "Entrar" : "Sign in"}
+        {/* Footer — always 32px below last card */}
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>
+            {isPt ? "Já tem uma conta? " : "Already have an account? "}
           </Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity onPress={() => navigation.navigate("Login")}>
+            <Text style={[styles.footerLink, { color: theme.colors.primary }]}>
+              {isPt ? "Entrar" : "Sign in"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -210,10 +214,10 @@ const styles = StyleSheet.create({
     color: "#6b7280",
     marginTop: 1,
   },
-  cards: {
-    flex: 1,
+  scrollContent: {
     paddingHorizontal: 20,
     paddingTop: 20,
+    paddingBottom: 8,
     gap: 14,
   },
   card: {
@@ -265,7 +269,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 20,
+    paddingVertical: 24,
+    marginTop: 8,
     borderTopWidth: 1,
     borderTopColor: "#f3f4f6",
   },
