@@ -508,6 +508,9 @@ model ProviderProfile {
   zelleEmail         String?
   zellePhone         String?
   bankTransferLabel  String?
+  bankAccountType    String? // SAVINGS, CHECKING
+  bankAccountNumber  String?
+  bankRoutingNumber  String?
   payoutInstructions String? @db.Text
 
   // ===== Marketplace Facilitator / Local Tax Acknowledgments =====

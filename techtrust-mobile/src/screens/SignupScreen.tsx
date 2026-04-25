@@ -136,6 +136,9 @@ export default function SignupScreen({ navigation, route }: any) {
   const [providerPayoutMethod, setProviderPayoutMethod] = useState<"MANUAL" | "ZELLE" | "BANK_TRANSFER">("MANUAL");
   const [providerZelleContact, setProviderZelleContact] = useState("");
   const [providerBankTransferLabel, setProviderBankTransferLabel] = useState("");
+  const [providerBankAccountType, setProviderBankAccountType] = useState<"CHECKING" | "SAVINGS">("CHECKING");
+  const [providerBankAccountNumber, setProviderBankAccountNumber] = useState("");
+  const [providerBankRoutingNumber, setProviderBankRoutingNumber] = useState("");
   const [providerCityBtr, setProviderCityBtr] = useState("");
   const [providerCountyBtr, setProviderCountyBtr] = useState("");
   const [providerInsuranceDisclosureAccepted, setProviderInsuranceDisclosureAccepted] = useState(false);
@@ -428,6 +431,9 @@ export default function SignupScreen({ navigation, route }: any) {
               zelleEmail: providerZelleContact.includes("@") ? providerZelleContact.trim() : undefined,
               zellePhone: providerZelleContact && !providerZelleContact.includes("@") ? providerZelleContact.trim() : undefined,
               bankTransferLabel: providerBankTransferLabel.trim() || undefined,
+              bankAccountType: providerPayoutMethod === "BANK_TRANSFER" ? providerBankAccountType : undefined,
+              bankAccountNumber: providerBankAccountNumber.trim() || undefined,
+              bankRoutingNumber: providerBankRoutingNumber.trim() || undefined,
               cityBusinessTaxReceiptNumber: providerCityBtr.trim() || undefined,
               countyBusinessTaxReceiptNumber: providerCountyBtr.trim() || undefined,
               insuranceDisclosureAccepted: providerInsuranceDisclosureAccepted,
@@ -1048,34 +1054,26 @@ export default function SignupScreen({ navigation, route }: any) {
                 <SlideInView direction="right" delay={365}>
                   <View style={signupCapStyles.sectionContainer}>
                     <Text style={signupCapStyles.sectionLabel}>
-                      💵 Payout and tax setup
+                      💵 Payout method
                     </Text>
                     <Text style={signupCapStyles.sectionHint}>
-                      Optional now. TechTrust can pay manually by Zelle or transfer while Stripe Connect is not set up.
+                      How would you like to receive payments from TechTrust?
                     </Text>
                     <View style={signupCapStyles.chipGrid}>
                       {[
                         { key: "MANUAL", label: "Later" },
                         { key: "ZELLE", label: "Zelle" },
-                        { key: "BANK_TRANSFER", label: "Transfer" },
+                        { key: "BANK_TRANSFER", label: "Bank transfer" },
                       ].map((option) => {
                         const active = providerPayoutMethod === option.key;
                         return (
                           <TouchableOpacity
                             key={option.key}
-                            style={[
-                              signupCapStyles.chip,
-                              active && signupCapStyles.chipActive,
-                            ]}
+                            style={[signupCapStyles.chip, active && signupCapStyles.chipActive]}
                             onPress={() => setProviderPayoutMethod(option.key as any)}
                             activeOpacity={0.7}
                           >
-                            <Text
-                              style={[
-                                signupCapStyles.chipText,
-                                active && signupCapStyles.chipTextActive,
-                              ]}
-                            >
+                            <Text style={[signupCapStyles.chipText, active && signupCapStyles.chipTextActive]}>
                               {option.label}
                             </Text>
                           </TouchableOpacity>
@@ -1083,28 +1081,80 @@ export default function SignupScreen({ navigation, route }: any) {
                       })}
                     </View>
 
+                    {providerPayoutMethod === "MANUAL" && (
+                      <View style={[signupCapStyles.serviceInfoBanner, { backgroundColor: "#fffbeb", borderColor: "#fcd34d" }]}>
+                        <Ionicons name="time-outline" size={15} color="#d97706" style={{ marginTop: 1 }} />
+                        <Text style={[signupCapStyles.serviceInfoText, { color: "#92400e" }]}>
+                          You'll need to add a payout method later in Settings to receive payments. Without it, earnings will be held until a method is configured.
+                        </Text>
+                      </View>
+                    )}
+
                     {providerPayoutMethod === "ZELLE" && (
                       <TextInput
                         value={providerZelleContact}
                         onChangeText={setProviderZelleContact}
                         mode="outlined"
-                        label="Zelle email or phone"
-                        style={styles.input}
+                        label="Zelle email or phone number"
+                        placeholder="email@example.com or +1 305 555 0000"
+                        style={[styles.input, { marginTop: 10 }]}
                         outlineStyle={styles.inputOutline}
                         textColor="#000"
+                        keyboardType="email-address"
                       />
                     )}
 
                     {providerPayoutMethod === "BANK_TRANSFER" && (
-                      <TextInput
-                        value={providerBankTransferLabel}
-                        onChangeText={setProviderBankTransferLabel}
-                        mode="outlined"
-                        label="Bank name or account nickname"
-                        style={styles.input}
-                        outlineStyle={styles.inputOutline}
-                        textColor="#000"
-                      />
+                      <View style={{ gap: 10, marginTop: 10 }}>
+                        <TextInput
+                          value={providerBankTransferLabel}
+                          onChangeText={setProviderBankTransferLabel}
+                          mode="outlined"
+                          label="Bank name"
+                          placeholder="e.g. Chase, Wells Fargo"
+                          style={styles.input}
+                          outlineStyle={styles.inputOutline}
+                          textColor="#000"
+                        />
+                        <View style={{ flexDirection: "row", gap: 8 }}>
+                          {(["CHECKING", "SAVINGS"] as const).map((t) => (
+                            <TouchableOpacity
+                              key={t}
+                              style={[signupCapStyles.chip, { flex: 1, justifyContent: "center" }, providerBankAccountType === t && signupCapStyles.chipActive]}
+                              onPress={() => setProviderBankAccountType(t)}
+                              activeOpacity={0.7}
+                            >
+                              <Text style={[signupCapStyles.chipText, providerBankAccountType === t && signupCapStyles.chipTextActive]}>
+                                {t === "CHECKING" ? "Checking" : "Savings"}
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                        <TextInput
+                          value={providerBankAccountNumber}
+                          onChangeText={setProviderBankAccountNumber}
+                          mode="outlined"
+                          label="Account number"
+                          placeholder="000000000"
+                          keyboardType="numeric"
+                          secureTextEntry={true}
+                          style={styles.input}
+                          outlineStyle={styles.inputOutline}
+                          textColor="#000"
+                        />
+                        <TextInput
+                          value={providerBankRoutingNumber}
+                          onChangeText={setProviderBankRoutingNumber}
+                          mode="outlined"
+                          label="Routing number"
+                          placeholder="9 digits"
+                          keyboardType="numeric"
+                          maxLength={9}
+                          style={styles.input}
+                          outlineStyle={styles.inputOutline}
+                          textColor="#000"
+                        />
+                      </View>
                     )}
 
                     <Text style={[signupCapStyles.partsHint, { marginTop: 4 }]}>
@@ -1492,13 +1542,12 @@ export default function SignupScreen({ navigation, route }: any) {
         {/* ✨ Footer */}
         <FadeInView delay={450}>
           <Text style={styles.footer}>
-            {t.auth?.signupTerms || "By signing up, you agree to our"}
-            {"\n"}
-            <Text style={{ color: theme.colors.primary }}>
+            {t.auth?.signupTerms || "By signing up, you agree to our"}{" "}
+            <Text style={{ color: "#2B5EA7" }}>
               {t.common?.termsOfUse || "Terms of Use"}
-            </Text>{" "}
-            {t.common?.and || "and"}{" "}
-            <Text style={{ color: theme.colors.primary }}>
+            </Text>
+            {" "}{t.common?.and || "and"}{" "}
+            <Text style={{ color: "#2B5EA7" }}>
               {t.common?.privacyPolicy || "Privacy Policy"}
             </Text>
           </Text>
