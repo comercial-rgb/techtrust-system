@@ -16,7 +16,8 @@ import {
   Globe2,
   Loader2,
 } from "lucide-react";
-import { useI18n, languages, Language } from "../i18n";
+import { useI18n } from "../i18n";
+import LangSelector from "../components/LangSelector";
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -147,21 +148,8 @@ export default function LoginPage() {
             </div>
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <Globe2 className="w-4 h-4" />
-              <label className="sr-only" htmlFor="lang-select">
-                {tr("common.language")}
-              </label>
-              <select
-                id="lang-select"
-                value={language}
-                onChange={(e) => setLanguage(e.target.value as Language)}
-                className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-200"
-              >
-                {languages.map((lang) => (
-                  <option key={lang.code} value={lang.code}>
-                    {lang.flag} {lang.label}
-                  </option>
-                ))}
-              </select>
+              <span className="sr-only">{tr("common.language")}</span>
+              <LangSelector language={language} setLanguage={setLanguage} />
             </div>
           </div>
 

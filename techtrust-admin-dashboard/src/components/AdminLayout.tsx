@@ -2,7 +2,8 @@ import { ReactNode, useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { useAuth } from '../contexts/AuthContext';
-import { useI18n, languages, Language } from '../i18n';
+import { useI18n } from '../i18n';
+import LangSelector from './LangSelector';
 import {
   LayoutDashboard,
   Users,
@@ -125,19 +126,8 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
           <div className="flex items-center gap-4">
             {/* Notifications */}
             <div className="hidden sm:flex items-center gap-2 text-sm text-gray-600">
-              <label className="sr-only" htmlFor="lang-select">{tr('common.language')}</label>
-              <select
-                id="lang-select"
-                value={language}
-                onChange={(e) => setLanguage(e.target.value as Language)}
-                className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-admin-200"
-              >
-                {languages.map((lang) => (
-                  <option key={lang.code} value={lang.code}>
-                    {lang.flag} {lang.label}
-                  </option>
-                ))}
-              </select>
+              <span className="sr-only">{tr('common.language')}</span>
+              <LangSelector language={language} setLanguage={setLanguage} />
             </div>
             <button className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg" aria-label={tr('common.notifications')}>
               <Bell className="w-5 h-5" />

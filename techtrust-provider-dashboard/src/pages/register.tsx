@@ -49,6 +49,8 @@ const DIAL_COUNTRIES = [
   { code: 'AU', flag: '🇦🇺', name: 'Australia',      dial: '+61' },
 ]
 
+const flagSrc = (countryCode: string) => `https://flagcdn.com/w40/${countryCode.toLowerCase()}.png`
+
 // ─── Service & Vehicle Options ───
 const SERVICES = [
   // Maintenance
@@ -733,7 +735,7 @@ export default function RegisterPage() {
                             onClick={() => setShowDialDropdown(!showDialDropdown)}
                             className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-gray-200 bg-white hover:border-gray-300 text-sm font-medium text-gray-700 whitespace-nowrap"
                           >
-                            <span className="text-lg leading-none">{selectedDialCountry.flag}</span>
+                            <img src={flagSrc(selectedDialCountry.code)} alt={selectedDialCountry.code} className="h-4 w-6 rounded-[2px] object-cover" />
                             <span className="text-gray-600">{selectedDialCountry.dial}</span>
                             <ChevronDown className="w-3 h-3 text-gray-400" />
                           </button>
@@ -746,7 +748,7 @@ export default function RegisterPage() {
                                   onClick={() => { setSelectedDialCountry(c); setShowDialDropdown(false) }}
                                   className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50 ${selectedDialCountry.code === c.code ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'}`}
                                 >
-                                  <span className="text-lg">{c.flag}</span>
+                                  <img src={flagSrc(c.code)} alt={c.code} className="h-4 w-6 rounded-[2px] object-cover" />
                                   <span className="flex-1 text-left">{c.name}</span>
                                   <span className="text-gray-400">{c.dial}</span>
                                 </button>

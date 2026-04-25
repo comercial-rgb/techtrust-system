@@ -6,10 +6,10 @@ import pt from './locales/pt';
 
 export type Language = 'pt' | 'en' | 'es';
 
-export const languages: { code: Language; label: string; flag: string }[] = [
-  { code: 'pt', label: 'Português', flag: '🇧🇷' },
-  { code: 'en', label: 'English',   flag: '🇺🇸' },
-  { code: 'es', label: 'Español',   flag: '🇪🇸' },
+export const languages: { code: Language; label: string; flag: string; flagCode: string }[] = [
+  { code: 'pt', label: 'Português', flag: 'BR', flagCode: 'br' },
+  { code: 'en', label: 'English', flag: 'US', flagCode: 'us' },
+  { code: 'es', label: 'Español', flag: 'ES', flagCode: 'es' },
 ];
 
 type Translations = typeof en;

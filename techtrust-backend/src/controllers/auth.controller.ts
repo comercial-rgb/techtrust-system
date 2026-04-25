@@ -83,6 +83,10 @@ export const signup = async (req: Request, res: Response) => {
 
     // Validar role
     const userRole = role === "PROVIDER" ? "PROVIDER" : "CLIENT";
+    const marketplaceBusinessTypeCat =
+      marketplaceType === "CAR_WASH" || marketplaceType === "AUTO_PARTS"
+        ? marketplaceType
+        : undefined;
 
     // User's preferred OTP method (default: sms)
     const userPreferredMethod: "sms" | "email" = preferredOtpMethod === "email" ? "email" : "sms";
@@ -129,6 +133,9 @@ export const signup = async (req: Request, res: Response) => {
                 userId: existingEmail.id,
                 businessName,
                 businessType: marketplaceType || null,
+                ...(marketplaceBusinessTypeCat && {
+                  businessTypeCat: marketplaceBusinessTypeCat,
+                }),
                 legalName: legalName || null,
                 ein: ein || null,
                 sunbizDocumentNumber: sunbizDocumentNumber || null,
@@ -306,6 +313,9 @@ export const signup = async (req: Request, res: Response) => {
                 userId: existingPhone.id,
                 businessName,
                 businessType: marketplaceType || null,
+                ...(marketplaceBusinessTypeCat && {
+                  businessTypeCat: marketplaceBusinessTypeCat,
+                }),
                 legalName: legalName || null,
                 ein: ein || null,
                 sunbizDocumentNumber: sunbizDocumentNumber || null,
@@ -473,6 +483,9 @@ export const signup = async (req: Request, res: Response) => {
           userId: user.id,
           businessName,
           businessType: marketplaceType || null,
+          ...(marketplaceBusinessTypeCat && {
+            businessTypeCat: marketplaceBusinessTypeCat,
+          }),
           legalName: legalName || null,
           ein: ein || null,
           sunbizDocumentNumber: sunbizDocumentNumber || null,
