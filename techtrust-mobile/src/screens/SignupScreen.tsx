@@ -22,6 +22,7 @@ import { useI18n } from "../i18n";
 import { Ionicons } from "@expo/vector-icons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import * as paymentService from "../services/payment.service";
+import { US_STATES, CITIES_BY_STATE } from "../constants/us-states";
 
 // ✨ Importando componentes de UI
 import {
@@ -139,6 +140,8 @@ export default function SignupScreen({ navigation, route }: any) {
   const [providerCountyBtr, setProviderCountyBtr] = useState("");
   const [providerInsuranceDisclosureAccepted, setProviderInsuranceDisclosureAccepted] = useState(false);
   const [showInsuranceModal, setShowInsuranceModal] = useState(false);
+  const [showStatePicker, setShowStatePicker] = useState(false);
+  const [showCityPicker, setShowCityPicker] = useState(false);
   const [zipLookupLoading, setZipLookupLoading] = useState(false);
   const [otpMethod, setOtpMethod] = useState<"sms" | "email">("sms");
 
@@ -842,32 +845,51 @@ export default function SignupScreen({ navigation, route }: any) {
                 </SlideInView>
                 <SlideInView direction="right" delay={330}>
                   <View style={{ flexDirection: "row", gap: 8 }}>
-                    <View style={[styles.inputContainer, { flex: 2 }]}>
-                      <TextInput
-                        value={businessCity}
-                        onChangeText={setBusinessCity}
-                        mode="outlined"
-                        label={t.auth?.city || "City"}
-                        placeholder="Miami"
-                        style={styles.input}
-                        outlineStyle={styles.inputOutline}
-                        textColor="#000"
-                      />
-                    </View>
+                    {/* State picker */}
                     <View style={[styles.inputContainer, { flex: 1 }]}>
-                      <TextInput
-                        value={businessState}
-                        onChangeText={setBusinessState}
-                        mode="outlined"
-                        label={t.auth?.state || "State"}
-                        placeholder="FL"
-                        maxLength={2}
-                        autoCapitalize="characters"
-                        style={styles.input}
-                        outlineStyle={styles.inputOutline}
-                        textColor="#000"
-                      />
+                      <Text style={[styles.inputLabel, { marginBottom: 4, fontSize: 12 }]}>
+                        {t.auth?.state || "State"}
+                      </Text>
+                      <TouchableOpacity
+                        style={[signupCapStyles.pickerBtn, hasError && selectedRole === "PROVIDER" && !businessState && signupCapStyles.pickerBtnError]}
+                        onPress={() => setShowStatePicker(true)}
+                        activeOpacity={0.75}
+                      >
+                        <Text style={businessState ? signupCapStyles.pickerBtnText : signupCapStyles.pickerBtnPlaceholder}>
+                          {businessState || "FL"}
+                        </Text>
+                        <Ionicons name="chevron-down" size={14} color="#6b7280" />
+                      </TouchableOpacity>
                     </View>
+                    {/* City picker / free-text */}
+                    <View style={[styles.inputContainer, { flex: 2 }]}>
+                      <Text style={[styles.inputLabel, { marginBottom: 4, fontSize: 12 }]}>
+                        {t.auth?.city || "City"}
+                      </Text>
+                      {businessState && CITIES_BY_STATE[businessState] ? (
+                        <TouchableOpacity
+                          style={signupCapStyles.pickerBtn}
+                          onPress={() => setShowCityPicker(true)}
+                          activeOpacity={0.75}
+                        >
+                          <Text style={businessCity ? signupCapStyles.pickerBtnText : signupCapStyles.pickerBtnPlaceholder}>
+                            {businessCity || "Select city"}
+                          </Text>
+                          <Ionicons name="chevron-down" size={14} color="#6b7280" />
+                        </TouchableOpacity>
+                      ) : (
+                        <TextInput
+                          value={businessCity}
+                          onChangeText={setBusinessCity}
+                          mode="outlined"
+                          placeholder="Miami"
+                          style={[styles.input, { height: 44 }]}
+                          outlineStyle={styles.inputOutline}
+                          textColor="#000"
+                        />
+                      )}
+                    </View>
+                    {/* ZIP */}
                     <View style={[styles.inputContainer, { flex: 1 }]}>
                       <TextInput
                         value={businessZipCode}
@@ -897,10 +919,13 @@ export default function SignupScreen({ navigation, route }: any) {
                     <Text style={signupCapStyles.sectionLabel}>
                       🔧 {t.auth?.servicesYouOffer || "Services You Offer"}
                     </Text>
-                    <Text style={signupCapStyles.sectionHint}>
-                      {t.auth?.selectServicesHint ||
-                        "Select all services your business provides"}
-                    </Text>
+                    <View style={signupCapStyles.serviceInfoBanner}>
+                      <Ionicons name="information-circle" size={15} color="#2B5EA7" style={{ marginTop: 1 }} />
+                      <Text style={signupCapStyles.serviceInfoText}>
+                        {t.auth?.servicesInfoNote ||
+                          "Customers can only find you for the services you select here. You will only receive requests for these services."}
+                      </Text>
+                    </View>
                     <View style={signupCapStyles.chipGrid}>
                       {SIGNUP_SERVICES.map((svc) => {
                         const active = providerServices.has(svc.key);
@@ -1519,6 +1544,88 @@ export default function SignupScreen({ navigation, route }: any) {
         </View>
       </Modal>
 
+      {/* 🗺 State Picker Modal */}
+      <Modal
+        visible={showStatePicker}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowStatePicker(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select State</Text>
+              <TouchableOpacity onPress={() => setShowStatePicker(false)}>
+                <Ionicons name="close" size={24} color="#111827" />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={US_STATES}
+              keyExtractor={(item) => item.code}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.countryItem,
+                    businessState === item.code && styles.countryItemSelected,
+                  ]}
+                  onPress={() => {
+                    setBusinessState(item.code);
+                    setBusinessCity("");
+                    setShowStatePicker(false);
+                  }}
+                >
+                  <Text style={[styles.countryItemName, { flex: 1 }]}>{item.name}</Text>
+                  <Text style={styles.countryItemCode}>{item.code}</Text>
+                  {businessState === item.code && (
+                    <Ionicons name="checkmark" size={20} color="#2B5EA7" />
+                  )}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* 🏙 City Picker Modal */}
+      <Modal
+        visible={showCityPicker}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowCityPicker(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select City</Text>
+              <TouchableOpacity onPress={() => setShowCityPicker(false)}>
+                <Ionicons name="close" size={24} color="#111827" />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={CITIES_BY_STATE[businessState] || []}
+              keyExtractor={(item) => item}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.countryItem,
+                    businessCity === item && styles.countryItemSelected,
+                  ]}
+                  onPress={() => {
+                    setBusinessCity(item);
+                    setShowCityPicker(false);
+                  }}
+                >
+                  <Text style={[styles.countryItemName, { flex: 1 }]}>{item}</Text>
+                  {businessCity === item && (
+                    <Ionicons name="checkmark" size={20} color="#2B5EA7" />
+                  )}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
+
       {/* 🌍 Modal de Seleção de País */}
       <Modal
         visible={showCountryPicker}
@@ -1924,5 +2031,46 @@ const signupCapStyles = StyleSheet.create({
     fontSize: 11,
     color: "#9ca3af",
     marginTop: 2,
+  },
+  pickerBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    backgroundColor: "#fff",
+    minHeight: 44,
+  },
+  pickerBtnError: {
+    borderColor: "#ef4444",
+  },
+  pickerBtnText: {
+    fontSize: 14,
+    color: "#111827",
+    fontWeight: "500",
+  },
+  pickerBtnPlaceholder: {
+    fontSize: 14,
+    color: "#9ca3af",
+  },
+  serviceInfoBanner: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 6,
+    backgroundColor: "#eff6ff",
+    borderWidth: 1,
+    borderColor: "#bfdbfe",
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 10,
+  },
+  serviceInfoText: {
+    flex: 1,
+    fontSize: 12,
+    color: "#1e40af",
+    lineHeight: 17,
   },
 });

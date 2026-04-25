@@ -624,15 +624,17 @@ export const searchProvidersByLocation = async (
   });
 
   // Filter by serviceType if provided (match against servicesOffered JSON array)
+  // Normalize both sides by stripping underscores so "oilChange" matches "OIL_CHANGE"
+  const normalizeService = (v: string) => v.replace(/_/g, "").toUpperCase();
   const filteredByService = serviceType
     ? providers.filter((p) => {
         try {
           const services = Array.isArray(p.servicesOffered)
             ? p.servicesOffered
             : JSON.parse(String(p.servicesOffered || "[]"));
+          const target = normalizeService(String(serviceType));
           return services.some(
-            (s: string) =>
-              s.toUpperCase() === String(serviceType).toUpperCase(),
+            (s: string) => normalizeService(s) === target,
           );
         } catch {
           return false;
