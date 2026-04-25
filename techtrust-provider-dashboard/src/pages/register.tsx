@@ -12,7 +12,6 @@ import {
   Eye,
   EyeOff,
   Loader2,
-  Globe2,
   User,
   Phone,
   Building2,
@@ -29,7 +28,8 @@ import {
   Smartphone,
   ChevronDown,
 } from 'lucide-react'
-import { useI18n, languages, Language } from '@/i18n'
+import { useI18n } from '@/i18n'
+import LangSelector from '@/components/LangSelector'
 import api from '@/services/api'
 import { US_STATES, CITIES_BY_STATE } from '@/constants/location'
 
@@ -403,18 +403,7 @@ export default function RegisterPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-1.5 text-sm">
-                    <Globe2 className="w-4 h-4 text-gray-400" />
-                    <select
-                      value={language}
-                      onChange={(e) => setLanguage(e.target.value as Language)}
-                      className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-200 bg-white"
-                    >
-                      {languages.map((lang) => (
-                        <option key={lang.code} value={lang.code}>{lang.flag} {lang.label}</option>
-                      ))}
-                    </select>
-                  </div>
+                    <LangSelector language={language} setLanguage={setLanguage} />
                   <Link href="/login" className="text-sm font-medium text-primary-600 hover:text-primary-700">
                     {tr('auth.signIn') || 'Sign In'}
                   </Link>
@@ -648,18 +637,7 @@ export default function RegisterPage() {
                       <p className="text-sm text-gray-500">{tr('register.formTitle') || 'Provider Registration'}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Globe2 className="w-4 h-4 text-gray-400" />
-                    <select
-                      value={language}
-                      onChange={(e) => setLanguage(e.target.value as Language)}
-                      className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-200"
-                    >
-                      {languages.map((lang) => (
-                        <option key={lang.code} value={lang.code}>{lang.flag} {lang.label}</option>
-                      ))}
-                    </select>
-                  </div>
+                  <LangSelector language={language} setLanguage={setLanguage} />
                 </div>
 
                 {/* Step Progress (hide for success) */}

@@ -153,6 +153,8 @@ export default function SignupScreen({ navigation, route }: any) {
   const [marketplacePlan, setMarketplacePlan] = useState<"basic" | "pro" | "pro_plus">("basic");
   const [clientPlans, setClientPlans] = useState<ClientPlanOption[]>(DEFAULT_CLIENT_PLANS);
   const [selectedClientPlan, setSelectedClientPlan] = useState("free");
+  const [clientAccountType, setClientAccountType] = useState<"INDIVIDUAL" | "BUSINESS">("INDIVIDUAL");
+  const [clientBusinessName, setClientBusinessName] = useState("");
 
   // ✨ Toast hook
   const { toast, error, hideToast } = useToast();
@@ -413,7 +415,11 @@ export default function SignupScreen({ navigation, route }: any) {
         language: "PT",
         role: selectedRole === "MARKETPLACE" ? "PROVIDER" : selectedRole,
         preferredOtpMethod: effectiveOtpMethod,
-        ...(selectedRole === "CLIENT" ? { selectedPlan: selectedClientPlan } : {}),
+        ...(selectedRole === "CLIENT" ? {
+          selectedPlan: selectedClientPlan,
+          accountType: clientAccountType,
+          ...(clientAccountType === "BUSINESS" && clientBusinessName.trim() ? { businessName: clientBusinessName.trim() } : {}),
+        } : {}),
         ...(selectedRole === "PROVIDER"
           ? {
               businessName,
@@ -783,6 +789,64 @@ export default function SignupScreen({ navigation, route }: any) {
                       </TouchableOpacity>
                     );
                   })}
+                </View>
+              </SlideInView>
+            )}
+
+            {/* Client Account Type */}
+            {selectedRole === "CLIENT" && (
+              <SlideInView direction="right" delay={308}>
+                <View style={[signupCapStyles.sectionContainer, { backgroundColor: "#f8fafc", padding: 12, borderRadius: 12 }]}>
+                  <Text style={signupCapStyles.sectionLabel}>
+                    {t.auth?.accountType || "Account Type"}
+                  </Text>
+                  <Text style={signupCapStyles.sectionHint}>
+                    Individual for personal use, or Business to manage up to 10 company vehicles.
+                  </Text>
+                  <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
+                    {(["INDIVIDUAL", "BUSINESS"] as const).map((type) => {
+                      const active = clientAccountType === type;
+                      return (
+                        <TouchableOpacity
+                          key={type}
+                          style={{
+                            flex: 1,
+                            paddingVertical: 12,
+                            paddingHorizontal: 8,
+                            borderRadius: 12,
+                            borderWidth: 2,
+                            borderColor: active ? "#2B5EA7" : "#e5e7eb",
+                            backgroundColor: active ? "#eff6ff" : "#fff",
+                            alignItems: "center",
+                          }}
+                          onPress={() => setClientAccountType(type)}
+                          activeOpacity={0.8}
+                        >
+                          <Ionicons
+                            name={type === "INDIVIDUAL" ? "person" : "business"}
+                            size={20}
+                            color={active ? "#2B5EA7" : "#9ca3af"}
+                            style={{ marginBottom: 4 }}
+                          />
+                          <Text style={{ fontSize: 13, fontWeight: "600", color: active ? "#2B5EA7" : "#374151" }}>
+                            {type === "INDIVIDUAL" ? "Individual" : "Business"}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                  {clientAccountType === "BUSINESS" && (
+                    <TextInput
+                      value={clientBusinessName}
+                      onChangeText={setClientBusinessName}
+                      mode="outlined"
+                      label="Business Name"
+                      placeholder="Acme Corp LLC"
+                      style={[styles.input, { marginTop: 12 }]}
+                      outlineStyle={styles.inputOutline}
+                      textColor="#000"
+                    />
+                  )}
                 </View>
               </SlideInView>
             )}
