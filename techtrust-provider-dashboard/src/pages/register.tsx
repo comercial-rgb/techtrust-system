@@ -131,6 +131,7 @@ export default function RegisterPage() {
   const [cityBusinessTaxReceiptNumber, setCityBusinessTaxReceiptNumber] = useState('')
   const [countyBusinessTaxReceiptNumber, setCountyBusinessTaxReceiptNumber] = useState('')
   const [insuranceDisclosureAccepted, setInsuranceDisclosureAccepted] = useState(false)
+  const [showInsuranceModal, setShowInsuranceModal] = useState(false)
   const [marketplaceFacilitatorTaxAcknowledged, setMarketplaceFacilitatorTaxAcknowledged] = useState(true)
 
   // Step 3: Services
@@ -926,7 +927,7 @@ export default function RegisterPage() {
                           type="text"
                           value={legalName}
                           onChange={(e) => setLegalName(e.target.value)}
-                          placeholder="Legal business name (optional)"
+                          placeholder="Legal business name"
                           className="input"
                         />
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -934,14 +935,14 @@ export default function RegisterPage() {
                             type="text"
                             value={ein}
                             onChange={(e) => setEin(e.target.value)}
-                            placeholder="EIN / FEI (optional)"
+                            placeholder="EIN / FEI"
                             className="input"
                           />
                           <input
                             type="text"
                             value={sunbizDocumentNumber}
                             onChange={(e) => setSunbizDocumentNumber(e.target.value)}
-                            placeholder="Sunbiz document # (optional)"
+                            placeholder="Sunbiz document #"
                             className="input"
                           />
                         </div>
@@ -956,6 +957,13 @@ export default function RegisterPage() {
                           <option value="CHECK">Check</option>
                         </select>
                       </div>
+
+                      {payoutMethod === 'MANUAL' && (
+                        <div className="flex items-start gap-2 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                          <span className="text-yellow-600 text-sm flex-shrink-0">⏱</span>
+                          <p className="text-xs text-yellow-800">You'll need to add a payout method later in Settings to receive payments. Without it, earnings will be held until a method is configured.</p>
+                        </div>
+                      )}
 
                       {payoutMethod === 'ZELLE' && (
                         <input
@@ -1021,14 +1029,14 @@ export default function RegisterPage() {
                           type="text"
                           value={cityBusinessTaxReceiptNumber}
                           onChange={(e) => setCityBusinessTaxReceiptNumber(e.target.value)}
-                          placeholder="City business tax receipt (optional)"
+                          placeholder="City business tax receipt #"
                           className="input"
                         />
                         <input
                           type="text"
                           value={countyBusinessTaxReceiptNumber}
                           onChange={(e) => setCountyBusinessTaxReceiptNumber(e.target.value)}
-                          placeholder="County business tax receipt (optional)"
+                          placeholder="County business tax receipt #"
                           className="input"
                         />
                       </div>
@@ -1044,23 +1052,71 @@ export default function RegisterPage() {
                       </label>
                     </div>
 
-                    <label className="flex items-start gap-3 rounded-xl border border-amber-100 bg-amber-50 p-4">
-                      <input
-                        type="checkbox"
-                        checked={insuranceDisclosureAccepted}
-                        onChange={(e) => setInsuranceDisclosureAccepted(e.target.checked)}
-                        className="mt-1"
-                      />
-                      <Shield className="w-5 h-5 text-amber-600 mt-0.5" />
-                      <span className="text-xs text-gray-600">
-                        I understand that if I do not add insurance information, customers will see that TechTrust does not provide insurance coverage for my work.
-                      </span>
-                    </label>
+                    {/* Insurance disclosure toggle */}
+                    <div className="flex items-start gap-3 p-4 rounded-xl border border-amber-100 bg-amber-50">
+                      <Shield className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900">🛡 Insurance disclosure</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {insuranceDisclosureAccepted
+                            ? 'Disclosure accepted. Customers will see you operate without TechTrust insurance coverage.'
+                            : 'Toggle if you do not carry insurance. Leave off if you have coverage (upload certificate later in Settings → Compliance).'}
+                        </p>
+                        {insuranceDisclosureAccepted && (
+                          <div className="mt-2 flex items-start gap-2 bg-amber-100 border border-amber-200 rounded-lg p-2.5">
+                            <span className="text-amber-600 text-sm flex-shrink-0">⚠</span>
+                            <p className="text-xs text-amber-800">You have accepted the no-insurance disclosure. Customers will see a notice before booking your services. You can add your insurance certificate anytime in Settings → Compliance to remove this notice.</p>
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!insuranceDisclosureAccepted) setShowInsuranceModal(true)
+                          else setInsuranceDisclosureAccepted(false)
+                        }}
+                        className={`relative w-12 h-7 rounded-full flex-shrink-0 transition-colors ${insuranceDisclosureAccepted ? 'bg-amber-500' : 'bg-gray-300'}`}
+                      >
+                        <span className={`block w-5 h-5 bg-white rounded-full shadow absolute top-1 transition-transform ${insuranceDisclosureAccepted ? 'translate-x-6' : 'translate-x-1'}`} />
+                      </button>
+                    </div>
 
                     <button type="submit" className="btn btn-primary w-full py-3 text-base mt-2">
                       {tr('common.next') || 'Next'} <ArrowRight className="w-4 h-4 ml-1" />
                     </button>
                   </form>
+                )}
+
+                {/* Insurance Disclosure Modal */}
+                {showInsuranceModal && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+                    <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+                      <div className="flex flex-col items-center mb-5">
+                        <div className="w-14 h-14 rounded-full bg-amber-100 flex items-center justify-center mb-3">
+                          <Shield className="w-7 h-7 text-amber-600" />
+                        </div>
+                        <h3 className="text-lg font-bold text-gray-900 text-center">Insurance Disclosure</h3>
+                      </div>
+                      <p className="text-sm text-gray-700 mb-3">By accepting this disclosure, you confirm that:</p>
+                      <div className="space-y-3 mb-5">
+                        {[
+                          'You do not carry general liability insurance for the services you offer through TechTrust.',
+                          'Customers will be clearly notified before booking that TechTrust does not provide insurance coverage for your work.',
+                          'You accept full responsibility for any damages or liability arising from your services.',
+                        ].map((item, i) => (
+                          <div key={i} className="flex items-start gap-2.5">
+                            <span className="text-amber-500 mt-0.5 text-sm flex-shrink-0">⚠</span>
+                            <p className="text-sm text-gray-600">{item}</p>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-xs text-gray-400 italic mb-5">Providers with valid insurance can upload their certificate later in Settings → Compliance section.</p>
+                      <div className="flex gap-3">
+                        <button type="button" onClick={() => setShowInsuranceModal(false)} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50">Cancel</button>
+                        <button type="button" onClick={() => { setInsuranceDisclosureAccepted(true); setShowInsuranceModal(false) }} className="flex-1 py-2.5 rounded-xl bg-amber-500 text-white text-sm font-bold hover:bg-amber-600">I Understand</button>
+                      </div>
+                    </div>
+                  </div>
                 )}
 
                 {/* ═══════ STEP 3: Services ═══════ */}
@@ -1084,10 +1140,14 @@ export default function RegisterPage() {
                     </div>
 
                     {/* Services chips */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        {tr('register.servicesOffered') || 'Services You Offer'} *
+                    <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 space-y-3">
+                      <label className="block text-sm font-semibold text-blue-800">
+                        🔧 {tr('register.servicesOffered') || 'Services You Offer'} *
                       </label>
+                      <div className="flex items-start gap-2 bg-white border border-blue-200 rounded-lg p-3">
+                        <svg className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" /></svg>
+                        <p className="text-xs text-blue-800">Customers can only find you for the services you select here. You will only receive requests for these services.</p>
+                      </div>
                       <div className="flex flex-wrap gap-2">
                         {SERVICES.map(s => (
                           <button
@@ -1105,17 +1165,21 @@ export default function RegisterPage() {
                         ))}
                       </div>
                       {selectedServices.size > 0 && (
-                        <p className="text-xs text-primary-500 mt-1.5 font-medium">
+                        <p className="text-xs text-primary-600 font-medium">
                           {selectedServices.size} {tr('register.selected') || 'selected'}
                         </p>
                       )}
                     </div>
 
                     {/* Vehicle types */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        {tr('register.vehicleTypes') || 'Vehicle Types You Serve'}
+                    <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 space-y-3">
+                      <label className="block text-sm font-semibold text-blue-800">
+                        🚗 {tr('register.vehicleTypes') || 'Vehicle Types You Serve'}
                       </label>
+                      <div className="flex items-start gap-2 bg-white border border-blue-200 rounded-lg p-3">
+                        <svg className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" /></svg>
+                        <p className="text-xs text-blue-800">Customer requests are matched by vehicle type AND service. You will only receive requests that match both your selections here.</p>
+                      </div>
                       <div className="flex flex-wrap gap-2">
                         {VEHICLE_TYPES.map(v => (
                           <button
@@ -1135,29 +1199,37 @@ export default function RegisterPage() {
                     </div>
 
                     {/* Sells parts toggle */}
-                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
-                      <div className="flex items-center gap-3">
-                        <Package className="w-5 h-5 text-gray-500" />
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">
-                            {tr('register.sellsParts') || 'I also sell auto parts'}
-                          </p>
-                          <p className="text-xs text-gray-400">
-                            {tr('register.sellsPartsHint') || 'Customers can request parts from you'}
-                          </p>
+                    <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 space-y-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <Package className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                          <div>
+                            <p className="text-sm font-semibold text-gray-900">
+                              📦 {tr('register.sellsParts') || 'I also sell auto parts'}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {tr('register.sellsPartsHint') || 'Enable if you sell parts directly to customers'}
+                            </p>
+                          </div>
                         </div>
+                        <button
+                          type="button"
+                          onClick={() => setSellsParts(!sellsParts)}
+                          className={`relative w-12 h-7 rounded-full flex-shrink-0 transition-colors ${
+                            sellsParts ? 'bg-primary-500' : 'bg-gray-300'
+                          }`}
+                        >
+                          <span className={`block w-5 h-5 bg-white rounded-full shadow absolute top-1 transition-transform ${
+                            sellsParts ? 'translate-x-6' : 'translate-x-1'
+                          }`} />
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setSellsParts(!sellsParts)}
-                        className={`relative w-12 h-7 rounded-full transition-colors ${
-                          sellsParts ? 'bg-primary-500' : 'bg-gray-300'
-                        }`}
-                      >
-                        <span className={`block w-5 h-5 bg-white rounded-full shadow absolute top-1 transition-transform ${
-                          sellsParts ? 'translate-x-6' : 'translate-x-1'
-                        }`} />
-                      </button>
+                      {sellsParts && (
+                        <div className="flex items-start gap-2 bg-green-50 border border-green-200 rounded-lg p-3">
+                          <svg className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+                          <p className="text-xs text-green-800">Parts selling enabled. TechTrust collects Florida sales tax on parts transactions and remits directly to the Florida Department of Revenue on your behalf — no extra steps needed. Add your City and County Business Tax Receipt (BTR) numbers in the tax section below to complete your profile.</p>
+                        </div>
+                      )}
                     </div>
 
                     {/* OTP Method Choice */}

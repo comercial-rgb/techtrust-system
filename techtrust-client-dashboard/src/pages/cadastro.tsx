@@ -20,10 +20,8 @@ import {
   Shield,
   Clock,
   Star,
-  Building2,
   Zap,
   Crown,
-  CreditCard,
 } from 'lucide-react'
 import { useI18n, languages, Language } from '../i18n'
 
@@ -46,7 +44,6 @@ const DIAL_COUNTRIES = [
 ]
 
 type Step = 'plan' | 'info' | 'otp' | 'success'
-type AccountType = 'INDIVIDUAL' | 'BUSINESS'
 
 interface PlanOption {
   id: string
@@ -81,9 +78,7 @@ export default function CadastroPage() {
   const [plans, setPlans] = useState<PlanOption[]>(DEFAULT_PLANS)
 
   // Step 1: Personal info
-  const [accountType, setAccountType] = useState<AccountType>('INDIVIDUAL')
   const [fullName, setFullName] = useState('')
-  const [businessName, setBusinessName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [selectedDialCountry, setSelectedDialCountry] = useState(DIAL_COUNTRIES[0])
@@ -143,10 +138,6 @@ export default function CadastroPage() {
 
   // ─── Validate Step ───
   function validateInfo(): boolean {
-    if (accountType === 'BUSINESS' && !businessName.trim()) {
-      setError(tr('signup.businessNameRequired') || 'Please enter your business name')
-      return false
-    }
     if (!fullName.trim() || fullName.trim().split(' ').length < 2) {
       setError(tr('signup.fullNameRequired'))
       return false
@@ -187,8 +178,6 @@ export default function CadastroPage() {
           phone: phoneToE164(phone),
           password,
           role: 'CLIENT',
-          accountType,
-          businessName: accountType === 'BUSINESS' ? businessName.trim() : undefined,
           selectedPlan: selectedPlan || 'free',
           language: language.toUpperCase(),
         }),
@@ -506,52 +495,6 @@ export default function CadastroPage() {
               <p className="text-gray-600 mb-6">{tr('signup.personalInfoDesc')}</p>
 
               <div className="space-y-4">
-                {/* Account Type */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">{tr('signup.accountType') || 'Account Type'}</label>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setAccountType('INDIVIDUAL')}
-                      className={`flex-1 py-2.5 px-4 rounded-lg border-2 text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-                        accountType === 'INDIVIDUAL'
-                          ? 'border-primary-500 bg-primary-50 text-primary-700'
-                          : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                      }`}
-                    >
-                      <User className="w-4 h-4" />
-                      {tr('signup.individual') || 'Individual'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setAccountType('BUSINESS')}
-                      className={`flex-1 py-2.5 px-4 rounded-lg border-2 text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-                        accountType === 'BUSINESS'
-                          ? 'border-primary-500 bg-primary-50 text-primary-700'
-                          : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                      }`}
-                    >
-                      <Building2 className="w-4 h-4" />
-                      {tr('signup.business') || 'Business'}
-                    </button>
-                  </div>
-                </div>
-                {/* Business Name (only for BUSINESS) */}
-                {accountType === 'BUSINESS' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">{tr('signup.businessName') || 'Business Name'}</label>
-                    <div className="relative">
-                      <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-                      <input
-                        type="text"
-                        value={businessName}
-                        onChange={(e) => { setBusinessName(e.target.value); setError('') }}
-                        placeholder="TechTrust Auto LLC"
-                        className="w-full pl-12 pr-4 py-3 rounded-lg border border-gray-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all"
-                      />
-                    </div>
-                  </div>
-                )}
                 {/* Full Name */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{tr('signup.fullName')}</label>

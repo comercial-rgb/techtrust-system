@@ -215,7 +215,7 @@ export default function RegisterCarWashPage() {
                 onChange={(e) => setLanguage(e.target.value as Language)}
                 className="border border-gray-200 rounded-lg px-2 py-1 text-sm"
               >
-                {languages.map(l => <option key={l.code} value={l.code}>{l.label}</option>)}
+                {languages.map(l => <option key={l.code} value={l.code}>{l.flag} {l.label}</option>)}
               </select>
               <Link href="/login" className="text-sm text-primary-600 font-medium hover:text-primary-700">
                 Sign In
