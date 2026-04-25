@@ -856,7 +856,7 @@ export default function SignupScreen({ navigation, route }: any) {
                         activeOpacity={0.75}
                       >
                         <Text style={businessState ? signupCapStyles.pickerBtnText : signupCapStyles.pickerBtnPlaceholder}>
-                          {businessState || "FL"}
+                          {businessState || "Select"}
                         </Text>
                         <Ionicons name="chevron-down" size={14} color="#6b7280" />
                       </TouchableOpacity>
@@ -1035,10 +1035,10 @@ export default function SignupScreen({ navigation, route }: any) {
                       />
                     </View>
                     {providerSellsParts && (
-                      <View style={signupCapStyles.serviceInfoBanner}>
-                        <Ionicons name="receipt-outline" size={15} color="#2B5EA7" style={{ marginTop: 1 }} />
-                        <Text style={signupCapStyles.serviceInfoText}>
-                          Parts selling is now enabled on your account. Florida requires a Sales Tax Certificate (DR-11) for retail parts sales. Add your City and County Business Tax Receipt (BTR) numbers in the tax section below.
+                      <View style={[signupCapStyles.serviceInfoBanner, { backgroundColor: "#f0fdf4", borderColor: "#86efac" }]}>
+                        <Ionicons name="checkmark-circle" size={15} color="#16a34a" style={{ marginTop: 1 }} />
+                        <Text style={[signupCapStyles.serviceInfoText, { color: "#15803d" }]}>
+                          Parts selling enabled. TechTrust collects Florida sales tax on parts transactions and remits directly to the Florida Department of Revenue on your behalf — no extra steps needed. Add your City and County Business Tax Receipt (BTR) numbers in the tax section below to complete your profile.
                         </Text>
                       </View>
                     )}
@@ -1108,13 +1108,13 @@ export default function SignupScreen({ navigation, route }: any) {
                     )}
 
                     <Text style={[signupCapStyles.partsHint, { marginTop: 4 }]}>
-                      Business identity is optional now. TechTrust reviews it manually against official Sunbiz, FDACS, and local tax records.
+                      TechTrust verifies your business identity against Sunbiz, FDACS, and local tax records. Fill in what you have now.
                     </Text>
                     <TextInput
                       value={providerLegalName}
                       onChangeText={setProviderLegalName}
                       mode="outlined"
-                      label="Legal business name (optional)"
+                      label="Legal business name"
                       style={styles.input}
                       outlineStyle={styles.inputOutline}
                       textColor="#000"
@@ -1123,7 +1123,7 @@ export default function SignupScreen({ navigation, route }: any) {
                       value={providerEin}
                       onChangeText={setProviderEin}
                       mode="outlined"
-                      label="EIN / FEI (optional)"
+                      label="EIN / FEI"
                       style={styles.input}
                       outlineStyle={styles.inputOutline}
                       textColor="#000"
@@ -1132,7 +1132,7 @@ export default function SignupScreen({ navigation, route }: any) {
                       value={providerSunbizDocumentNumber}
                       onChangeText={setProviderSunbizDocumentNumber}
                       mode="outlined"
-                      label="Sunbiz document # (optional)"
+                      label="Sunbiz document #"
                       style={styles.input}
                       outlineStyle={styles.inputOutline}
                       textColor="#000"
@@ -1142,7 +1142,7 @@ export default function SignupScreen({ navigation, route }: any) {
                       value={providerCityBtr}
                       onChangeText={setProviderCityBtr}
                       mode="outlined"
-                      label="City business tax receipt (optional)"
+                      label="City business tax receipt #"
                       style={styles.input}
                       outlineStyle={styles.inputOutline}
                       textColor="#000"
@@ -1151,7 +1151,7 @@ export default function SignupScreen({ navigation, route }: any) {
                       value={providerCountyBtr}
                       onChangeText={setProviderCountyBtr}
                       mode="outlined"
-                      label="County business tax receipt (optional)"
+                      label="County business tax receipt #"
                       style={styles.input}
                       outlineStyle={styles.inputOutline}
                       textColor="#000"
@@ -1160,27 +1160,39 @@ export default function SignupScreen({ navigation, route }: any) {
                 </SlideInView>
 
                 <SlideInView direction="left" delay={370}>
-                  <View style={signupCapStyles.partsRow}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={signupCapStyles.partsLabel}>
-                        🛡 Insurance disclosure
-                      </Text>
-                      <Text style={signupCapStyles.partsHint}>
-                        If you do not add insurance, customers will see that TechTrust does not provide insurance coverage for your work.
-                      </Text>
+                  <View style={[signupCapStyles.partsRow, { flexDirection: "column", alignItems: "flex-start", gap: 10 }]}>
+                    <View style={{ flexDirection: "row", alignItems: "center", width: "100%", gap: 12 }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={signupCapStyles.partsLabel}>
+                          🛡 Insurance disclosure
+                        </Text>
+                        <Text style={signupCapStyles.partsHint}>
+                          {providerInsuranceDisclosureAccepted
+                            ? "Disclosure accepted. Customers will see you operate without TechTrust insurance coverage."
+                            : "Toggle if you do not carry insurance. Leave off if you have coverage (upload certificate later in Settings → Compliance)."}
+                        </Text>
+                      </View>
+                      <Switch
+                        value={providerInsuranceDisclosureAccepted}
+                        onValueChange={(val) => {
+                          if (val) {
+                            setShowInsuranceModal(true);
+                          } else {
+                            setProviderInsuranceDisclosureAccepted(false);
+                          }
+                        }}
+                        trackColor={{ false: "#e5e7eb", true: "#fbbf24" }}
+                        thumbColor={providerInsuranceDisclosureAccepted ? "#d97706" : "#9ca3af"}
+                      />
                     </View>
-                    <Switch
-                      value={providerInsuranceDisclosureAccepted}
-                      onValueChange={(val) => {
-                        if (val) {
-                          setShowInsuranceModal(true);
-                        } else {
-                          setProviderInsuranceDisclosureAccepted(false);
-                        }
-                      }}
-                      trackColor={{ false: "#e5e7eb", true: "#fbbf24" }}
-                      thumbColor={providerInsuranceDisclosureAccepted ? "#d97706" : "#9ca3af"}
-                    />
+                    {providerInsuranceDisclosureAccepted && (
+                      <View style={[signupCapStyles.serviceInfoBanner, { backgroundColor: "#fffbeb", borderColor: "#fcd34d" }]}>
+                        <Ionicons name="shield-outline" size={15} color="#d97706" style={{ marginTop: 1 }} />
+                        <Text style={[signupCapStyles.serviceInfoText, { color: "#92400e" }]}>
+                          You have accepted the no-insurance disclosure. Customers will see a notice before booking your services. You can add your insurance certificate anytime in Settings → Compliance to remove this notice.
+                        </Text>
+                      </View>
+                    )}
                   </View>
                 </SlideInView>
               </>
