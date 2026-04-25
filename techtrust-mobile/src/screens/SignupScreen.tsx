@@ -487,9 +487,9 @@ export default function SignupScreen({ navigation, route }: any) {
         <FadeInView delay={0}>
           {(() => {
             const roleMap = {
-              CLIENT:      { icon: "person",     color: theme.colors.primary, label: t.auth?.customer || "Customer" },
-              PROVIDER:    { icon: "construct",  color: "#0f766e",            label: t.auth?.provider || "Service Provider" },
-              MARKETPLACE: { icon: "storefront", color: "#0891b2",            label: t.auth?.marketplace || "Marketplace" },
+              CLIENT:      { icon: "person",     color: "#2B5EA7", label: t.auth?.customer || "Customer" },
+              PROVIDER:    { icon: "construct",  color: "#0f766e", label: t.auth?.provider || "Service Provider" },
+              MARKETPLACE: { icon: "storefront", color: "#0891b2", label: t.auth?.marketplace || "Marketplace" },
             } as const;
             const r = roleMap[selectedRole];
             return (
@@ -501,8 +501,8 @@ export default function SignupScreen({ navigation, route }: any) {
                   {t.auth?.createAccount || "Create Account"}
                 </Text>
                 <View style={styles.rolePillRow}>
-                  <View style={[styles.rolePill, { backgroundColor: r.color + "14", borderColor: r.color + "30" }]}>
-                    <Text style={[styles.rolePillText, { color: r.color }]}>{r.label}</Text>
+                  <View style={[styles.rolePill, { backgroundColor: r.color }]}>
+                    <Text style={[styles.rolePillText, { color: "#fff" }]}>{r.label}</Text>
                   </View>
                   <TouchableOpacity onPress={() => navigation.goBack()}>
                     <Text style={styles.changeRoleBtnText}>{t.auth?.change || "Change"}</Text>
@@ -891,11 +891,13 @@ export default function SignupScreen({ navigation, route }: any) {
                     </View>
                     {/* ZIP */}
                     <View style={[styles.inputContainer, { flex: 1 }]}>
+                      <Text style={[styles.inputLabel, { marginBottom: 4, fontSize: 12 }]}>
+                        {t.auth?.zipCode || "ZIP"}
+                      </Text>
                       <TextInput
                         value={businessZipCode}
                         onChangeText={setBusinessZipCode}
                         mode="outlined"
-                        label={t.auth?.zipCode || "ZIP"}
                         placeholder="33101"
                         keyboardType="numeric"
                         maxLength={5}
@@ -972,6 +974,13 @@ export default function SignupScreen({ navigation, route }: any) {
                       {t.auth?.vehicleTypesYouServe ||
                         "Vehicle Types You Serve"}
                     </Text>
+                    <View style={signupCapStyles.serviceInfoBanner}>
+                      <Ionicons name="information-circle" size={15} color="#2B5EA7" style={{ marginTop: 1 }} />
+                      <Text style={signupCapStyles.serviceInfoText}>
+                        {t.auth?.vehicleTypesInfoNote ||
+                          "Customer requests are matched by vehicle type AND service. You will only receive requests that match both your selections here."}
+                      </Text>
+                    </View>
                     <View style={signupCapStyles.chipGrid}>
                       {SIGNUP_VEHICLE_TYPES.map((vt) => {
                         const active = providerVehicleTypes.has(vt.key);
@@ -1007,22 +1016,32 @@ export default function SignupScreen({ navigation, route }: any) {
 
                 {/* ── Parts Sales Toggle ── */}
                 <SlideInView direction="left" delay={360}>
-                  <View style={signupCapStyles.partsRow}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={signupCapStyles.partsLabel}>
-                        📦 {t.auth?.sellParts || "I also sell auto parts"}
-                      </Text>
-                      <Text style={signupCapStyles.partsHint}>
-                        {t.auth?.sellPartsHint ||
-                          "Enable if you sell parts directly to customers"}
-                      </Text>
+                  <View style={[signupCapStyles.partsRow, { flexDirection: "column", alignItems: "flex-start", gap: 10 }]}>
+                    <View style={{ flexDirection: "row", alignItems: "center", width: "100%", gap: 12 }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={signupCapStyles.partsLabel}>
+                          📦 {t.auth?.sellParts || "I also sell auto parts"}
+                        </Text>
+                        <Text style={signupCapStyles.partsHint}>
+                          {t.auth?.sellPartsHint ||
+                            "Enable if you sell parts directly to customers"}
+                        </Text>
+                      </View>
+                      <Switch
+                        value={providerSellsParts}
+                        onValueChange={setProviderSellsParts}
+                        trackColor={{ false: "#e5e7eb", true: "#93c5fd" }}
+                        thumbColor={providerSellsParts ? "#2B5EA7" : "#9ca3af"}
+                      />
                     </View>
-                    <Switch
-                      value={providerSellsParts}
-                      onValueChange={setProviderSellsParts}
-                      trackColor={{ false: "#e5e7eb", true: "#93c5fd" }}
-                      thumbColor={providerSellsParts ? "#2B5EA7" : "#9ca3af"}
-                    />
+                    {providerSellsParts && (
+                      <View style={signupCapStyles.serviceInfoBanner}>
+                        <Ionicons name="receipt-outline" size={15} color="#2B5EA7" style={{ marginTop: 1 }} />
+                        <Text style={signupCapStyles.serviceInfoText}>
+                          Parts selling is now enabled on your account. Florida requires a Sales Tax Certificate (DR-11) for retail parts sales. Add your City and County Business Tax Receipt (BTR) numbers in the tax section below.
+                        </Text>
+                      </View>
+                    )}
                   </View>
                 </SlideInView>
 
