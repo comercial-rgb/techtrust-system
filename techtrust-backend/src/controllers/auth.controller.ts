@@ -47,10 +47,13 @@ const issueSmsOTP = async (
   const otpCode = generateOTP();
   const otpExpiresAt = getOTPExpiration();
 
-  await prisma.user.update({
-    where: { id: userId },
-    data: { otpCode, otpExpiresAt },
-  });
+  await prisma.$executeRaw`
+    UPDATE "users"
+    SET "otpCode" = ${otpCode},
+        "otpExpiresAt" = ${otpExpiresAt},
+        "updatedAt" = NOW()
+    WHERE "id" = ${userId}
+  `;
 
   if (isVerifyEnabled()) {
     try {
@@ -64,6 +67,40 @@ const issueSmsOTP = async (
   }
 
   await sendOTP(phone, otpCode, language || undefined);
+};
+
+const markEmailVerified = async (userId: string) => {
+  await prisma.$executeRaw`
+    UPDATE "users"
+    SET "emailVerified" = true,
+        "emailOtpCode" = NULL,
+        "emailOtpExpiresAt" = NULL,
+        "status" = 'ACTIVE'::"AccountStatus",
+        "updatedAt" = NOW()
+    WHERE "id" = ${userId}
+  `;
+
+  return prisma.user.findUnique({
+    where: { id: userId },
+    include: { providerProfile: true },
+  });
+};
+
+const markPhoneVerified = async (userId: string) => {
+  await prisma.$executeRaw`
+    UPDATE "users"
+    SET "phoneVerified" = true,
+        "status" = 'ACTIVE'::"AccountStatus",
+        "otpCode" = NULL,
+        "otpExpiresAt" = NULL,
+        "updatedAt" = NOW()
+    WHERE "id" = ${userId}
+  `;
+
+  return prisma.user.findUnique({
+    where: { id: userId },
+    include: { providerProfile: true },
+  });
 };
 
 /**
@@ -1164,19 +1201,10 @@ export const verifyOTP = async (req: Request, res: Response) => {
         throw new AppError("Código incorreto", 400, "INVALID_OTP");
       }
 
-      // Update - email verified
-      const updatedUser = await prisma.user.update({
-        where: { id: userId },
-        data: {
-          emailVerified: true,
-          emailOtpCode: null,
-          emailOtpExpiresAt: null,
-          status: "ACTIVE",
-        },
-        include: {
-          providerProfile: true,
-        },
-      });
+      const updatedUser = await markEmailVerified(userId);
+      if (!updatedUser) {
+        throw new AppError("Usuário não encontrado", 404, "USER_NOT_FOUND");
+      }
 
       const tokens = generateTokens({
         userId: updatedUser.id,
@@ -1266,19 +1294,10 @@ export const verifyOTP = async (req: Request, res: Response) => {
       throw new AppError("Código incorreto", 400, "INVALID_OTP");
     }
 
-    // Atualizar usuário
-    const updatedUser = await prisma.user.update({
-      where: { id: userId },
-      data: {
-        phoneVerified: true,
-        status: "ACTIVE",
-        otpCode: null,
-        otpExpiresAt: null,
-      },
-      include: {
-        providerProfile: true,
-      },
-    });
+    const updatedUser = await markPhoneVerified(userId);
+    if (!updatedUser) {
+      throw new AppError("Usuário não encontrado", 404, "USER_NOT_FOUND");
+    }
 
     // Gerar tokens
     const tokens = generateTokens({
