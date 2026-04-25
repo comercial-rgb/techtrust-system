@@ -1251,95 +1251,52 @@ export default function SignupScreen({ navigation, route }: any) {
             {/* Marketplace Business Fields */}
             {selectedRole === "MARKETPLACE" && (
               <>
+                {/* ── Business Type cards ── */}
                 <SlideInView direction="right" delay={310}>
-                  <View
-                    style={[
-                      styles.inputContainer,
-                      {
-                        backgroundColor: "#f0fdfa",
-                        padding: 12,
-                        borderRadius: 12,
-                        marginBottom: 8,
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.inputLabel,
-                        {
-                          color: '#0891b2',
-                          fontWeight: "700",
-                          fontSize: 15,
-                          marginBottom: 8,
-                        },
-                      ]}
-                    >
+                  <View style={mkStyles.section}>
+                    <Text style={mkStyles.sectionTitle}>
                       🏪 {t.auth?.marketplaceInfo || "Marketplace Registration"}
                     </Text>
-
-                    {/* Business Type Selector */}
-                    <Text style={[styles.inputLabel, { marginBottom: 6 }]}>
-                      {t.auth?.businessType || "Business Type"}
-                    </Text>
-                    <View style={[styles.roleButtons, { marginBottom: 12 }]}>
-                      <TouchableOpacity
-                        style={[
-                          styles.roleButton,
-                          marketplaceType === "CAR_WASH" && {
-                            backgroundColor: '#06b6d4',
-                            borderColor: '#06b6d4',
-                          },
-                        ]}
-                        onPress={() => setMarketplaceType("CAR_WASH")}
-                      >
-                        <Ionicons
-                          name="water"
-                          size={18}
-                          color={marketplaceType === "CAR_WASH" ? "#fff" : "#6b7280"}
-                        />
-                        <Text
-                          style={[
-                            styles.roleButtonText,
-                            marketplaceType === "CAR_WASH" && styles.roleButtonTextActive,
-                          ]}
-                        >
-                          {t.auth?.carWash || "Car Wash"}
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[
-                          styles.roleButton,
-                          marketplaceType === "AUTO_PARTS" && {
-                            backgroundColor: '#f97316',
-                            borderColor: '#f97316',
-                          },
-                        ]}
-                        onPress={() => setMarketplaceType("AUTO_PARTS")}
-                      >
-                        <Ionicons
-                          name="cube"
-                          size={18}
-                          color={marketplaceType === "AUTO_PARTS" ? "#fff" : "#6b7280"}
-                        />
-                        <Text
-                          style={[
-                            styles.roleButtonText,
-                            marketplaceType === "AUTO_PARTS" && styles.roleButtonTextActive,
-                          ]}
-                        >
-                          {t.auth?.autoParts || "Auto Parts"}
-                        </Text>
-                      </TouchableOpacity>
+                    <Text style={mkStyles.sectionHint}>Choose your business type to get started</Text>
+                    <View style={{ flexDirection: "row", gap: 10, marginTop: 8 }}>
+                      {([
+                        { key: "CAR_WASH" as const, icon: "water-outline" as const, activeIcon: "water" as const, color: "#0891b2", bg: "#ecfeff", border: "#a5f3fc", title: "Car Wash", sub: "Full-service, auto, or self-serve" },
+                        { key: "AUTO_PARTS" as const, icon: "cube-outline" as const, activeIcon: "cube" as const, color: "#ea580c", bg: "#fff7ed", border: "#fed7aa", title: "Auto Parts", sub: "Retail or wholesale auto parts" },
+                      ]).map(opt => {
+                        const active = marketplaceType === opt.key;
+                        return (
+                          <TouchableOpacity
+                            key={opt.key}
+                            style={[mkStyles.typeCard, { borderColor: active ? opt.color : "#e5e7eb", backgroundColor: active ? opt.bg : "#fff" }]}
+                            onPress={() => setMarketplaceType(opt.key)}
+                            activeOpacity={0.8}
+                          >
+                            <View style={[mkStyles.typeIconCircle, { backgroundColor: active ? opt.color : "#f3f4f6" }]}>
+                              <Ionicons name={active ? opt.activeIcon : opt.icon} size={22} color={active ? "#fff" : "#9ca3af"} />
+                            </View>
+                            <Text style={[mkStyles.typeTitle, { color: active ? opt.color : "#374151" }]}>{opt.title}</Text>
+                            <Text style={mkStyles.typeSub}>{opt.sub}</Text>
+                            {active && (
+                              <View style={[mkStyles.typeCheck, { backgroundColor: opt.color }]}>
+                                <Ionicons name="checkmark" size={10} color="#fff" />
+                              </View>
+                            )}
+                          </TouchableOpacity>
+                        );
+                      })}
                     </View>
+                  </View>
+                </SlideInView>
 
+                {/* ── Business name ── */}
+                <SlideInView direction="left" delay={315}>
+                  <View style={styles.inputContainer}>
                     <TextInput
                       value={businessName}
                       onChangeText={setBusinessName}
                       mode="outlined"
-                      label={marketplaceType === "CAR_WASH"
-                        ? (t.auth?.carWashName || "Car Wash Name")
-                        : (t.auth?.storeName || "Store Name")}
-                      placeholder={marketplaceType === "CAR_WASH" ? "Ex: Shine & Go Car Wash" : "Ex: FastParts Auto Store"}
+                      label={marketplaceType === "CAR_WASH" ? "Car Wash Name" : "Store Name"}
+                      placeholder={marketplaceType === "CAR_WASH" ? "e.g. Shine & Go Car Wash" : "e.g. FastParts Auto Store"}
                       style={styles.input}
                       outlineStyle={styles.inputOutline}
                       textColor="#000"
@@ -1347,13 +1304,15 @@ export default function SignupScreen({ navigation, route }: any) {
                     />
                   </View>
                 </SlideInView>
-                <SlideInView direction="left" delay={320}>
+
+                {/* ── Address ── */}
+                <SlideInView direction="right" delay={320}>
                   <View style={styles.inputContainer}>
                     <TextInput
                       value={businessAddress}
                       onChangeText={setBusinessAddress}
                       mode="outlined"
-                      label={t.auth?.businessAddress || "Business Address"}
+                      label="Business Address"
                       placeholder="123 Main St"
                       style={styles.input}
                       outlineStyle={styles.inputOutline}
@@ -1361,93 +1320,153 @@ export default function SignupScreen({ navigation, route }: any) {
                     />
                   </View>
                 </SlideInView>
-                <SlideInView direction="right" delay={330}>
+
+                {/* ── State / City / ZIP — same dropdowns as provider ── */}
+                <SlideInView direction="left" delay={325}>
                   <View style={{ flexDirection: "row", gap: 8 }}>
+                    <View style={[styles.inputContainer, { flex: 1 }]}>
+                      <Text style={[styles.inputLabel, { marginBottom: 4, fontSize: 12 }]}>State</Text>
+                      <TouchableOpacity
+                        style={signupCapStyles.pickerBtn}
+                        onPress={() => setShowStatePicker(true)}
+                        activeOpacity={0.75}
+                      >
+                        <Text style={businessState ? signupCapStyles.pickerBtnText : signupCapStyles.pickerBtnPlaceholder}>
+                          {businessState || "Select"}
+                        </Text>
+                        <Ionicons name="chevron-down" size={14} color="#6b7280" />
+                      </TouchableOpacity>
+                    </View>
                     <View style={[styles.inputContainer, { flex: 2 }]}>
-                      <TextInput
-                        value={businessCity}
-                        onChangeText={setBusinessCity}
-                        mode="outlined"
-                        label={t.auth?.city || "City"}
-                        placeholder="Miami"
-                        style={styles.input}
-                        outlineStyle={styles.inputOutline}
-                        textColor="#000"
-                      />
+                      <Text style={[styles.inputLabel, { marginBottom: 4, fontSize: 12 }]}>City</Text>
+                      {businessState && CITIES_BY_STATE[businessState] ? (
+                        <TouchableOpacity
+                          style={signupCapStyles.pickerBtn}
+                          onPress={() => setShowCityPicker(true)}
+                          activeOpacity={0.75}
+                        >
+                          <Text style={businessCity ? signupCapStyles.pickerBtnText : signupCapStyles.pickerBtnPlaceholder}>
+                            {businessCity || "Select city"}
+                          </Text>
+                          <Ionicons name="chevron-down" size={14} color="#6b7280" />
+                        </TouchableOpacity>
+                      ) : (
+                        <TextInput
+                          value={businessCity}
+                          onChangeText={setBusinessCity}
+                          mode="outlined"
+                          placeholder="City"
+                          style={[styles.input, { height: 44 }]}
+                          outlineStyle={styles.inputOutline}
+                          textColor="#000"
+                        />
+                      )}
                     </View>
                     <View style={[styles.inputContainer, { flex: 1 }]}>
-                      <TextInput
-                        value={businessState}
-                        onChangeText={setBusinessState}
-                        mode="outlined"
-                        label={t.auth?.state || "State"}
-                        placeholder="FL"
-                        maxLength={2}
-                        autoCapitalize="characters"
-                        style={styles.input}
-                        outlineStyle={styles.inputOutline}
-                        textColor="#000"
-                      />
-                    </View>
-                    <View style={[styles.inputContainer, { flex: 1 }]}>
+                      <Text style={[styles.inputLabel, { marginBottom: 4, fontSize: 12 }]}>ZIP</Text>
                       <TextInput
                         value={businessZipCode}
                         onChangeText={setBusinessZipCode}
                         mode="outlined"
-                        label={t.auth?.zipCode || "ZIP"}
                         placeholder="33101"
                         keyboardType="numeric"
                         maxLength={5}
                         style={styles.input}
                         outlineStyle={styles.inputOutline}
                         textColor="#000"
+                        right={zipLookupLoading ? <TextInput.Icon icon="loading" /> : undefined}
                       />
                     </View>
                   </View>
                 </SlideInView>
 
-                {/* Plan Selection */}
-                <SlideInView direction="left" delay={340}>
-                  <View style={[signupCapStyles.sectionContainer, { backgroundColor: '#f0fdfa', padding: 12, borderRadius: 12 }]}>
-                    <Text style={[signupCapStyles.sectionLabel, { color: '#0891b2' }]}>
-                      📋 {t.auth?.selectPlan || "Select Your Plan"}
-                    </Text>
-                    {[
-                      { key: 'basic' as const, name: 'Basic', price: '$29.99/mo', icon: '⭐', color: '#6b7280', desc: marketplaceType === 'CAR_WASH' ? '10mi • 5 photos • 1 package' : '10mi • 50 products • 8% fee' },
-                      { key: 'pro' as const, name: 'Pro', price: '$49.99/mo', icon: '🚀', color: '#8b5cf6', desc: marketplaceType === 'CAR_WASH' ? '20mi • 15 photos • 5 packages • Verified' : '20mi • 200 products • 6% fee • Verified', badge: 'POPULAR' },
-                      { key: 'pro_plus' as const, name: 'Pro+', price: '$89.99/mo', icon: '👑', color: '#f59e0b', desc: marketplaceType === 'CAR_WASH' ? '50mi • 30 photos • Unlimited • Featured' : '50mi • Unlimited • 4% fee • Featured', badge: 'BEST VALUE' },
-                    ].map(plan => (
-                      <TouchableOpacity
-                        key={plan.key}
-                        style={[
-                          {
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            padding: 12,
-                            borderRadius: 10,
-                            borderWidth: 2,
-                            borderColor: marketplacePlan === plan.key ? plan.color : '#e5e7eb',
-                            backgroundColor: marketplacePlan === plan.key ? `${plan.color}10` : '#fff',
-                            marginBottom: 8,
-                          },
-                        ]}
-                        onPress={() => setMarketplacePlan(plan.key)}
-                      >
-                        <Text style={{ fontSize: 22, marginRight: 10 }}>{plan.icon}</Text>
-                        <View style={{ flex: 1 }}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                            <Text style={{ fontWeight: '700', fontSize: 15, color: '#111' }}>{plan.name}</Text>
-                            {plan.badge && (
-                              <View style={{ backgroundColor: plan.color, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
-                                <Text style={{ color: '#fff', fontSize: 9, fontWeight: '700' }}>{plan.badge}</Text>
+                {/* ── Plan Selection ── */}
+                <SlideInView direction="right" delay={335}>
+                  <View style={mkStyles.section}>
+                    <Text style={mkStyles.sectionTitle}>📋 Select Your Plan</Text>
+                    <Text style={mkStyles.sectionHint}>Start with a 7-day free trial. Cancel anytime.</Text>
+                    {(() => {
+                      const isWash = marketplaceType === "CAR_WASH";
+                      const plans = [
+                        {
+                          key: "basic" as const,
+                          name: "Basic",
+                          emoji: "⭐",
+                          price: "$29.99",
+                          color: "#6b7280",
+                          activeColor: "#4b5563",
+                          badge: null,
+                          bullets: isWash
+                            ? ["10 mi service radius", "Up to 5 service photos", "1 wash package listed", "Standard search placement", "Customer reviews"]
+                            : ["Up to 50 product listings", "8% transaction fee", "Standard search placement", "Basic inventory tools", "Customer reviews"],
+                        },
+                        {
+                          key: "pro" as const,
+                          name: "Pro",
+                          emoji: "🚀",
+                          price: "$49.99",
+                          color: "#7c3aed",
+                          activeColor: "#6d28d9",
+                          badge: "POPULAR",
+                          bullets: isWash
+                            ? ["20 mi service radius", "Up to 15 service photos", "5 wash packages listed", "Priority search placement", "Verified badge", "Booking analytics"]
+                            : ["Up to 200 product listings", "6% transaction fee", "Priority search placement", "Verified badge", "Inventory alerts", "Sales analytics"],
+                        },
+                        {
+                          key: "pro_plus" as const,
+                          name: "Pro+",
+                          emoji: "👑",
+                          price: "$89.99",
+                          color: "#d97706",
+                          activeColor: "#b45309",
+                          badge: "BEST VALUE",
+                          bullets: isWash
+                            ? ["50 mi service radius", "Unlimited photos", "Unlimited packages", "Featured at top of results", "Dedicated account support", "Advanced analytics + reports"]
+                            : ["Unlimited product listings", "4% transaction fee", "Featured at top of results", "Dedicated account support", "Advanced analytics + reports", "Bulk import tools"],
+                        },
+                      ];
+                      return plans.map(plan => {
+                        const active = marketplacePlan === plan.key;
+                        return (
+                          <TouchableOpacity
+                            key={plan.key}
+                            style={[mkStyles.planCard, { borderColor: active ? plan.color : "#e5e7eb", backgroundColor: active ? plan.color + "0d" : "#fff" }]}
+                            onPress={() => setMarketplacePlan(plan.key)}
+                            activeOpacity={0.8}
+                          >
+                            <View style={mkStyles.planHeader}>
+                              <View style={[mkStyles.planIconCircle, { backgroundColor: active ? plan.color : "#f3f4f6" }]}>
+                                <Text style={{ fontSize: 18 }}>{plan.emoji}</Text>
                               </View>
-                            )}
-                          </View>
-                          <Text style={{ color: '#6b7280', fontSize: 12, marginTop: 2 }}>{plan.desc}</Text>
-                        </View>
-                        <Text style={{ fontWeight: '700', color: plan.color, fontSize: 14 }}>{plan.price}</Text>
-                      </TouchableOpacity>
-                    ))}
+                              <View style={{ flex: 1 }}>
+                                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                                  <Text style={[mkStyles.planName, { color: active ? plan.color : "#111827" }]}>{plan.name}</Text>
+                                  {plan.badge && (
+                                    <View style={[mkStyles.planBadge, { backgroundColor: plan.color }]}>
+                                      <Text style={mkStyles.planBadgeText}>{plan.badge}</Text>
+                                    </View>
+                                  )}
+                                </View>
+                                <Text style={[mkStyles.planPrice, { color: active ? plan.color : "#374151" }]}>
+                                  {plan.price}<Text style={mkStyles.planPriceSuffix}>/mo</Text>
+                                </Text>
+                              </View>
+                              <View style={[mkStyles.planRadio, { borderColor: active ? plan.color : "#d1d5db" }]}>
+                                {active && <View style={[mkStyles.planRadioInner, { backgroundColor: plan.color }]} />}
+                              </View>
+                            </View>
+                            <View style={mkStyles.planBullets}>
+                              {plan.bullets.map((b, i) => (
+                                <View key={i} style={mkStyles.planBulletRow}>
+                                  <Ionicons name="checkmark-circle" size={14} color={active ? plan.color : "#9ca3af"} />
+                                  <Text style={[mkStyles.planBulletText, { color: active ? "#374151" : "#6b7280" }]}>{b}</Text>
+                                </View>
+                              ))}
+                            </View>
+                          </TouchableOpacity>
+                        );
+                      });
+                    })()}
                   </View>
                 </SlideInView>
               </>
@@ -2152,5 +2171,136 @@ const signupCapStyles = StyleSheet.create({
     fontSize: 12,
     color: "#1e40af",
     lineHeight: 17,
+  },
+});
+
+// ── Marketplace-specific styles ──────────────────────────────────────────────
+const mkStyles = StyleSheet.create({
+  section: {
+    backgroundColor: "#f0fdff",
+    borderWidth: 1,
+    borderColor: "#a5f3fc",
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#0891b2",
+    marginBottom: 2,
+  },
+  sectionHint: {
+    fontSize: 12,
+    color: "#6b7280",
+    marginBottom: 4,
+  },
+  // business type card
+  typeCard: {
+    flex: 1,
+    borderWidth: 2,
+    borderRadius: 14,
+    padding: 14,
+    alignItems: "center",
+    gap: 6,
+    position: "relative",
+  },
+  typeIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  typeTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    textAlign: "center",
+  },
+  typeSub: {
+    fontSize: 11,
+    color: "#9ca3af",
+    textAlign: "center",
+    lineHeight: 15,
+  },
+  typeCheck: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  // plan card
+  planCard: {
+    borderWidth: 2,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 10,
+    gap: 12,
+  },
+  planHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  planIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  planName: {
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  planPrice: {
+    fontSize: 18,
+    fontWeight: "800",
+    marginTop: 2,
+  },
+  planPriceSuffix: {
+    fontSize: 12,
+    fontWeight: "400",
+    color: "#9ca3af",
+  },
+  planBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 5,
+  },
+  planBadgeText: {
+    color: "#fff",
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+  },
+  planRadio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  planRadioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  planBullets: {
+    gap: 6,
+  },
+  planBulletRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  planBulletText: {
+    fontSize: 13,
+    lineHeight: 18,
   },
 });
