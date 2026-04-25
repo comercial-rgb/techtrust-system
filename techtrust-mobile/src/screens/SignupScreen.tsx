@@ -333,17 +333,27 @@ export default function SignupScreen({ navigation, route }: any) {
 
     if (
       selectedRole === "PROVIDER" &&
-      (!businessName || !businessAddress || !businessZipCode)
+      (!businessName || !businessAddress || !businessCity || !businessState || !businessZipCode)
     ) {
       setHasError(true);
-      error(t.auth?.fillBusinessFields || "Please fill all business fields");
+      error(t.auth?.fillBusinessFields || "Please fill all business fields (name, address, city, state, ZIP)");
       setTimeout(() => setHasError(false), 500);
       return;
     }
 
-    if (selectedRole === "MARKETPLACE" && !businessName) {
+    if (
+      selectedRole === "MARKETPLACE" &&
+      (!businessName || !businessAddress || !businessCity || !businessState || !businessZipCode)
+    ) {
       setHasError(true);
-      error(t.auth?.fillBusinessFields || "Please fill your business name");
+      error(t.auth?.fillBusinessFields || "Please fill all business fields (name, address, city, state, ZIP)");
+      setTimeout(() => setHasError(false), 500);
+      return;
+    }
+
+    if (selectedRole === "CLIENT" && clientAccountType === "BUSINESS" && !clientBusinessName.trim()) {
+      setHasError(true);
+      error("Please enter your business name");
       setTimeout(() => setHasError(false), 500);
       return;
     }

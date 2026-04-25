@@ -204,6 +204,10 @@ export default function RegisterPage() {
       setError(tr('register.addressRequired') || 'Please enter your business address')
       return false
     }
+    if (!businessCity.trim()) {
+      setError('Please enter your city')
+      return false
+    }
     if (!businessZipCode.trim() || businessZipCode.length < 5) {
       setError(tr('register.zipRequired') || 'Please enter a valid ZIP code')
       return false

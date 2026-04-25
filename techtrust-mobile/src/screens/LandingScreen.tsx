@@ -1186,6 +1186,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
             <TouchableOpacity
               style={{
                 marginHorizontal: 16,
+                marginTop: 8,
                 marginBottom: 16,
                 borderRadius: 16,
                 overflow: 'hidden',
