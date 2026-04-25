@@ -25,14 +25,7 @@ import {
 } from 'lucide-react'
 import { useI18n, languages, Language } from '@/i18n'
 import api from '@/services/api'
-
-const US_STATES = [
-  'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA',
-  'HI','ID','IL','IN','IA','KS','KY','LA','ME','MD',
-  'MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ',
-  'NM','NY','NC','ND','OH','OK','OR','PA','RI','SC',
-  'SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC',
-]
+import { US_STATES, CITIES_BY_STATE } from '@/constants/location'
 
 const PARTS_CATEGORIES = [
   { key: 'ENGINE_PARTS', label: 'Engine Parts', emoji: '⚙️' },
@@ -136,7 +129,7 @@ export default function RegisterAutoPartsPage() {
         businessState,
         businessZipCode: businessZipCode.trim(),
         sellsParts: true,
-        businessTypeCat: 'AUTO_PARTS',
+        marketplaceType: 'AUTO_PARTS',
         partsCategories: Array.from(selectedCategories),
         brandTypes: Array.from(selectedBrandTypes),
         hasPhysicalStore,
@@ -367,21 +360,28 @@ export default function RegisterAutoPartsPage() {
                     <input type="text" value={businessAddress} onChange={e => setBusinessAddress(e.target.value)} placeholder="456 Parts Ave" className="input !pl-11" />
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">City *</label>
-                    <input type="text" value={businessCity} onChange={e => setBusinessCity(e.target.value)} placeholder="Miami" className="input" />
-                  </div>
+                <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">State *</label>
-                    <select value={businessState} onChange={e => setBusinessState(e.target.value)} className="input">
-                      {US_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                    <select value={businessState} onChange={e => { setBusinessState(e.target.value); setBusinessCity('') }} className="input">
+                      {US_STATES.map(st => <option key={st.code} value={st.code}>{st.name}</option>)}
                     </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">ZIP *</label>
                     <input type="text" value={businessZipCode} onChange={e => setBusinessZipCode(e.target.value)} placeholder="33101" className="input" maxLength={5} />
                   </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">City *</label>
+                  {CITIES_BY_STATE[businessState]?.length ? (
+                    <select value={businessCity} onChange={e => setBusinessCity(e.target.value)} className="input">
+                      <option value="">Select city</option>
+                      {CITIES_BY_STATE[businessState].map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  ) : (
+                    <input type="text" value={businessCity} onChange={e => setBusinessCity(e.target.value)} placeholder="Enter city" className="input" />
+                  )}
                 </div>
 
                 <div className="flex gap-4">

@@ -31,6 +31,7 @@ import {
 } from 'lucide-react'
 import { useI18n, languages, Language } from '@/i18n'
 import api from '@/services/api'
+import { US_STATES, CITIES_BY_STATE } from '@/constants/location'
 
 const DIAL_COUNTRIES = [
   { code: 'US', flag: '🇺🇸', name: 'United States', dial: '+1' },
@@ -90,14 +91,6 @@ const VEHICLE_TYPES = [
   { key: 'BUS', label: 'Bus / RV', emoji: '🚌' },
 ]
 
-const US_STATES = [
-  'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA',
-  'HI','ID','IL','IN','IA','KS','KY','LA','ME','MD',
-  'MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ',
-  'NM','NY','NC','ND','OH','OK','OR','PA','RI','SC',
-  'SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC',
-]
-
 type Step = 'landing' | 'info' | 'business' | 'services' | 'otp' | 'success'
 
 export default function RegisterPage() {
@@ -132,6 +125,9 @@ export default function RegisterPage() {
   const [payoutMethod, setPayoutMethod] = useState('MANUAL')
   const [zelleContact, setZelleContact] = useState('')
   const [bankTransferLabel, setBankTransferLabel] = useState('')
+  const [bankAccountType, setBankAccountType] = useState<'CHECKING' | 'SAVINGS'>('CHECKING')
+  const [bankAccountNumber, setBankAccountNumber] = useState('')
+  const [bankRoutingNumber, setBankRoutingNumber] = useState('')
   const [cityBusinessTaxReceiptNumber, setCityBusinessTaxReceiptNumber] = useState('')
   const [countyBusinessTaxReceiptNumber, setCountyBusinessTaxReceiptNumber] = useState('')
   const [insuranceDisclosureAccepted, setInsuranceDisclosureAccepted] = useState(false)
@@ -275,6 +271,9 @@ export default function RegisterPage() {
         zelleEmail: zelleContact.includes('@') ? zelleContact.trim() : undefined,
         zellePhone: zelleContact && !zelleContact.includes('@') ? zelleContact.trim() : undefined,
         bankTransferLabel: bankTransferLabel.trim() || undefined,
+        bankAccountType: payoutMethod === 'BANK_TRANSFER' ? bankAccountType : undefined,
+        bankAccountNumber: bankAccountNumber.trim() || undefined,
+        bankRoutingNumber: bankRoutingNumber.trim() || undefined,
         cityBusinessTaxReceiptNumber: cityBusinessTaxReceiptNumber.trim() || undefined,
         countyBusinessTaxReceiptNumber: countyBusinessTaxReceiptNumber.trim() || undefined,
         insuranceDisclosureAccepted,
@@ -867,14 +866,33 @@ export default function RegisterPage() {
                         <label className="block text-sm font-medium text-gray-700 mb-1.5">
                           {tr('register.city') || 'City'}
                         </label>
-                        <input type="text" value={businessCity} onChange={(e) => setBusinessCity(e.target.value)} placeholder="Miami" className="input" />
+                        {CITIES_BY_STATE[businessState]?.length ? (
+                          <select
+                            value={businessCity}
+                            onChange={(e) => setBusinessCity(e.target.value)}
+                            className="input"
+                          >
+                            <option value="">Select city</option>
+                            {CITIES_BY_STATE[businessState].map(c => (
+                              <option key={c} value={c}>{c}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <input type="text" value={businessCity} onChange={(e) => setBusinessCity(e.target.value)} placeholder="Enter city" className="input" />
+                        )}
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1.5">
                           {tr('register.state') || 'State'}
                         </label>
-                        <select value={businessState} onChange={(e) => setBusinessState(e.target.value)} className="input">
-                          {US_STATES.map(st => <option key={st} value={st}>{st}</option>)}
+                        <select
+                          value={businessState}
+                          onChange={(e) => { setBusinessState(e.target.value); setBusinessCity('') }}
+                          className="input"
+                        >
+                          {US_STATES.map(st => (
+                            <option key={st.code} value={st.code}>{st.name}</option>
+                          ))}
                         </select>
                       </div>
                       <div>
@@ -950,13 +968,52 @@ export default function RegisterPage() {
                       )}
 
                       {payoutMethod === 'BANK_TRANSFER' && (
-                        <input
-                          type="text"
-                          value={bankTransferLabel}
-                          onChange={(e) => setBankTransferLabel(e.target.value)}
-                          placeholder="Bank name or account nickname"
-                          className="input"
-                        />
+                        <div className="space-y-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                          <input
+                            type="text"
+                            value={bankTransferLabel}
+                            onChange={(e) => setBankTransferLabel(e.target.value)}
+                            placeholder="Bank name (e.g. Chase, Bank of America)"
+                            className="input"
+                          />
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1.5">Account type</label>
+                            <div className="flex gap-2">
+                              {(['CHECKING', 'SAVINGS'] as const).map((t) => (
+                                <button
+                                  key={t}
+                                  type="button"
+                                  onClick={() => setBankAccountType(t)}
+                                  className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                                    bankAccountType === t
+                                      ? 'bg-blue-600 text-white border-blue-600'
+                                      : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
+                                  }`}
+                                >
+                                  {t.charAt(0) + t.slice(1).toLowerCase()}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            value={bankAccountNumber}
+                            onChange={(e) => setBankAccountNumber(e.target.value.replace(/\D/g, ''))}
+                            placeholder="Account number"
+                            className="input"
+                            maxLength={17}
+                          />
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            value={bankRoutingNumber}
+                            onChange={(e) => setBankRoutingNumber(e.target.value.replace(/\D/g, ''))}
+                            placeholder="Routing number (9 digits)"
+                            className="input"
+                            maxLength={9}
+                          />
+                        </div>
                       )}
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
