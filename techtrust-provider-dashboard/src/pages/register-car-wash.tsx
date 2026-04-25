@@ -461,7 +461,10 @@ export default function RegisterCarWashPage() {
                 <ArrowLeft className="w-4 h-4" /> Back
               </button>
               <h2 className="text-xl font-bold text-gray-900 mb-1">Choose Your Car Wash Plan</h2>
-              <p className="text-sm text-gray-500 mb-4">Get discovered by vehicle owners in your area</p>
+              <p className="text-sm text-gray-500 mb-3">Get discovered by vehicle owners in your area</p>
+              <div className="mb-4 rounded-lg border border-cyan-100 bg-cyan-50 px-3 py-2 text-sm text-cyan-800">
+                7-day free trial included. Plan controls search radius, photos, packages, ranking and promotional tools. You can upgrade later from the dashboard.
+              </div>
 
               <div className="space-y-3 mb-6">
                 {/* Basic Plan */}
@@ -473,7 +476,10 @@ export default function RegisterCarWashPage() {
                 >
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="font-semibold text-gray-900">Basic</h3>
-                    <span className="font-bold text-gray-900">$29.99/mo</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-gray-900">$29.99/mo</span>
+                      {selectedPlan === 'basic' && <CheckCircle className="w-5 h-5 text-cyan-600" />}
+                    </div>
                   </div>
                   <ul className="text-sm text-gray-600 space-y-1">
                     <li>• Business profile with logo & description</li>
@@ -495,7 +501,10 @@ export default function RegisterCarWashPage() {
                   <span className="absolute -top-2.5 right-4 bg-cyan-600 text-white text-xs px-2 py-0.5 rounded-full font-medium">POPULAR</span>
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="font-semibold text-gray-900">Pro</h3>
-                    <span className="font-bold text-gray-900">$49.99/mo</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-gray-900">$49.99/mo</span>
+                      {selectedPlan === 'pro' && <CheckCircle className="w-5 h-5 text-cyan-600" />}
+                    </div>
                   </div>
                   <ul className="text-sm text-gray-600 space-y-1">
                     <li>• Everything in Basic</li>
@@ -521,7 +530,10 @@ export default function RegisterCarWashPage() {
                   <span className="absolute -top-2.5 right-4 bg-yellow-500 text-white text-xs px-2 py-0.5 rounded-full font-medium">BEST VALUE</span>
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="font-semibold text-gray-900">Pro+ ⭐</h3>
-                    <span className="font-bold text-gray-900">$89.99/mo</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-gray-900">$89.99/mo</span>
+                      {selectedPlan === 'pro_plus' && <CheckCircle className="w-5 h-5 text-yellow-600" />}
+                    </div>
                   </div>
                   <ul className="text-sm text-gray-600 space-y-1">
                     <li>• Everything in Pro</li>
@@ -538,6 +550,9 @@ export default function RegisterCarWashPage() {
                     <li>• Social media links</li>
                   </ul>
                 </button>
+              </div>
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-6 text-sm text-gray-600">
+                Customers see the service price before checkout. Applicable marketplace taxes are calculated and collected by TechTrust when required.
               </div>
 
               {/* OTP Method */}

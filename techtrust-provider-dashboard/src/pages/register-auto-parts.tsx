@@ -459,7 +459,10 @@ export default function RegisterAutoPartsPage() {
                 <ArrowLeft className="w-4 h-4" /> Back
               </button>
               <h2 className="text-xl font-bold text-gray-900 mb-1">Choose Your Auto Parts Plan</h2>
-              <p className="text-sm text-gray-500 mb-4">Get your store discovered by repair shops and vehicle owners</p>
+              <p className="text-sm text-gray-500 mb-3">Get your store discovered by repair shops and vehicle owners</p>
+              <div className="mb-4 rounded-lg border border-orange-100 bg-orange-50 px-3 py-2 text-sm text-orange-800">
+                7-day free trial included. Plan controls product limits, placement, analytics, inventory tools and the transaction fee. You can upgrade later from the dashboard.
+              </div>
 
               <div className="space-y-3 mb-4">
                 {/* Basic Plan */}
@@ -470,7 +473,10 @@ export default function RegisterAutoPartsPage() {
                 >
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="font-semibold text-gray-900">Basic</h3>
-                    <span className="font-bold text-gray-900">$29.99/mo</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-gray-900">$29.99/mo</span>
+                      {selectedPlan === 'basic' && <CheckCircle className="w-5 h-5 text-orange-600" />}
+                    </div>
                   </div>
                   <ul className="text-sm text-gray-600 space-y-1">
                     <li>• Store profile with logo & description</li>
@@ -492,7 +498,10 @@ export default function RegisterAutoPartsPage() {
                   <span className="absolute -top-2.5 right-4 bg-orange-600 text-white text-xs px-2 py-0.5 rounded-full font-medium">POPULAR</span>
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="font-semibold text-gray-900">Pro</h3>
-                    <span className="font-bold text-gray-900">$49.99/mo</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-gray-900">$49.99/mo</span>
+                      {selectedPlan === 'pro' && <CheckCircle className="w-5 h-5 text-orange-600" />}
+                    </div>
                   </div>
                   <ul className="text-sm text-gray-600 space-y-1">
                     <li>• Everything in Basic</li>
@@ -517,7 +526,10 @@ export default function RegisterAutoPartsPage() {
                   <span className="absolute -top-2.5 right-4 bg-yellow-500 text-white text-xs px-2 py-0.5 rounded-full font-medium">BEST VALUE</span>
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="font-semibold text-gray-900">Pro+ ⭐</h3>
-                    <span className="font-bold text-gray-900">$89.99/mo</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-gray-900">$89.99/mo</span>
+                      {selectedPlan === 'pro_plus' && <CheckCircle className="w-5 h-5 text-yellow-600" />}
+                    </div>
                   </div>
                   <ul className="text-sm text-gray-600 space-y-1">
                     <li>• Everything in Pro</li>
@@ -538,6 +550,7 @@ export default function RegisterAutoPartsPage() {
 
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-6 text-sm text-amber-700">
                 <strong>Transaction fee:</strong> Varies by plan (4-8%). The higher the plan, the lower the fee per sale.
+                Applicable marketplace taxes are calculated and collected by TechTrust at checkout when required.
               </div>
 
               {/* OTP Method */}

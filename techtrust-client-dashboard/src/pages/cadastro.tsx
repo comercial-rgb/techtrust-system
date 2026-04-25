@@ -452,6 +452,22 @@ export default function CadastroPage() {
                           {isSelected && <CheckCircle className="w-4 h-4 text-white" />}
                         </div>
                       </div>
+                      {Array.isArray(plan.features) && plan.features.length > 0 && (
+                        <div className="mt-4 pt-3 border-t border-gray-100 grid gap-2 sm:grid-cols-2">
+                          {plan.features.map((feature, index) => (
+                            <div key={`${plan.id}-${index}`} className="flex items-start gap-2 text-sm text-gray-600">
+                              <CheckCircle className={`w-4 h-4 mt-0.5 flex-shrink-0 ${isSelected ? 'text-primary-600' : 'text-gray-400'}`} />
+                              <span>{feature}</span>
+                            </div>
+                          ))}
+                          {plan.price > 0 && (
+                            <div className="flex items-start gap-2 text-sm font-medium text-green-700">
+                              <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                              <span>7-day free trial before billing</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </button>
                   )
                 })}
