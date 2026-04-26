@@ -2595,6 +2595,8 @@ export default function CreateRequestScreen({ navigation }: any) {
 
       // Build selected address for customerAddress field
       let customerAddress: string | undefined;
+      let addressLatitude: number | undefined;
+      let addressLongitude: number | undefined;
       if (serviceLocation !== "shop" && userAddresses.length > 0) {
         const defaultAddr =
           userAddresses.find((a: any) => a.isDefault) || userAddresses[0];
@@ -2607,6 +2609,10 @@ export default function CreateRequestScreen({ navigation }: any) {
           ]
             .filter(Boolean)
             .join(", ");
+          if (defaultAddr.latitude && defaultAddr.longitude) {
+            addressLatitude = defaultAddr.latitude;
+            addressLongitude = defaultAddr.longitude;
+          }
         }
       }
 
@@ -2647,6 +2653,10 @@ export default function CreateRequestScreen({ navigation }: any) {
         providerId: selectedProvider?.id || preSelectedProviderId || undefined,
         location:
           shareLocation && currentLocation ? currentLocation : undefined,
+        serviceLatitude:
+          !shareLocation && addressLatitude ? addressLatitude : undefined,
+        serviceLongitude:
+          !shareLocation && addressLongitude ? addressLongitude : undefined,
         urgency: urgency || undefined,
         vehicleCategory: vehicleType || undefined,
         serviceScope: serviceScope || undefined,

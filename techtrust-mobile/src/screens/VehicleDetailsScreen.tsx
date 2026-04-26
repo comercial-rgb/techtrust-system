@@ -48,6 +48,7 @@ interface VehicleDetails {
   year: number;
   vin: string;
   plateNumber: string;
+  plateState: string;
   trim: string;
   color: string;
   currentMileage: number;
@@ -198,11 +199,12 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
           year: vehicleData.year,
           vin: vehicleData.vin || "",
           plateNumber: vehicleData.plateNumber || "",
+          plateState: vehicleData.plateState || "",
           trim: vehicleData.trim || "",
           color: vehicleData.color || "",
           currentMileage: vehicleData.currentMileage || 0,
           fuelType: vehicleData.fuelType || "",
-          vehicleType: vehicleData.bodyType || vehicleData.vehicleType || vehicleData.category || "",
+          vehicleType: vehicleData.vehicleType || vehicleData.bodyType || vehicleData.category || "",
           primaryDriver: vehicleData.primaryDriver || "",
           insuranceProvider: vehicleData.insuranceProvider || "",
           insurancePolicy: vehicleData.insurancePolicy || "",

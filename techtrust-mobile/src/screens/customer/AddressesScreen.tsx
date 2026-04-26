@@ -54,6 +54,8 @@ interface PlaceSuggestion {
   city: string;
   state: string;
   zipCode: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 // Local fallback key (will migrate to API)
@@ -69,6 +71,8 @@ interface Address {
   state: string;
   zipCode: string;
   isDefault: boolean;
+  latitude?: number;
+  longitude?: number;
 }
 
 export default function AddressesScreen({ navigation }: any) {
@@ -105,9 +109,10 @@ export default function AddressesScreen({ navigation }: any) {
           const details = await Promise.all(
             data.predictions.slice(0, 5).map(async (p: any) => {
               try {
-                const dResp = await fetch(`https://maps.googleapis.com/maps/api/place/details/json?place_id=${p.place_id}&fields=address_components&key=${GOOGLE_PLACES_KEY}`);
+                const dResp = await fetch(`https://maps.googleapis.com/maps/api/place/details/json?place_id=${p.place_id}&fields=address_components,geometry&key=${GOOGLE_PLACES_KEY}`);
                 const dData = await dResp.json();
                 const comps = dData.result?.address_components || [];
+                const geometry = dData.result?.geometry?.location;
                 const get = (type: string) => comps.find((c: any) => c.types.includes(type))?.short_name || "";
                 return {
                   id: p.place_id,
@@ -117,6 +122,8 @@ export default function AddressesScreen({ navigation }: any) {
                   city: get("locality") || get("sublocality"),
                   state: get("administrative_area_level_1"),
                   zipCode: get("postal_code"),
+                  latitude: geometry?.lat,
+                  longitude: geometry?.lng,
                 };
               } catch { return null; }
             })
@@ -140,6 +147,8 @@ export default function AddressesScreen({ navigation }: any) {
             city: addr.city || addr.town || addr.village || addr.hamlet || "",
             state: addr.state ? getStateAbbr(addr.state) : "",
             zipCode: addr.postcode || "",
+            latitude: item.lat ? parseFloat(item.lat) : undefined,
+            longitude: item.lon ? parseFloat(item.lon) : undefined,
           };
         });
         setSearchResults(results);
@@ -166,6 +175,8 @@ export default function AddressesScreen({ navigation }: any) {
       city: suggestion.city,
       state: suggestion.state,
       zipCode: suggestion.zipCode,
+      latitude: suggestion.latitude,
+      longitude: suggestion.longitude,
     });
     setSearchQuery("");
     setSearchResults([]);
@@ -194,6 +205,8 @@ export default function AddressesScreen({ navigation }: any) {
           city: geocode.city || geocode.subregion || prev.city,
           state: stateCode || prev.state,
           zipCode: geocode.postalCode || prev.zipCode,
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
         }));
         Alert.alert('Location Found', 'Address fields have been auto-filled. Please verify and adjust if needed.');
       }
@@ -232,6 +245,8 @@ export default function AddressesScreen({ navigation }: any) {
     city: "",
     state: "",
     zipCode: "",
+    latitude: undefined as number | undefined,
+    longitude: undefined as number | undefined,
   });
 
   useEffect(() => {
@@ -301,6 +316,8 @@ export default function AddressesScreen({ navigation }: any) {
         city: address.city,
         state: address.state,
         zipCode: address.zipCode,
+        latitude: address.latitude,
+        longitude: address.longitude,
       });
     } else {
       setEditingAddress(null);

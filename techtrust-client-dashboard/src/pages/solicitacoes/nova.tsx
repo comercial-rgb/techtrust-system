@@ -36,6 +36,11 @@ export default function NovaSolicitacaoPage() {
   const [description, setDescription] = useState('');
   const [urgency, setUrgency] = useState<'LOW' | 'MEDIUM' | 'HIGH' | 'EMERGENCY'>('MEDIUM');
   const [preferredDate, setPreferredDate] = useState('');
+  const [serviceLocationType, setServiceLocationType] = useState<'IN_SHOP' | 'MOBILE'>('IN_SHOP');
+  const [customerAddress, setCustomerAddress] = useState('');
+  const [serviceLatitude, setServiceLatitude] = useState<number | undefined>();
+  const [serviceLongitude, setServiceLongitude] = useState<number | undefined>();
+  const [gettingLocation, setGettingLocation] = useState(false);
 
   const SERVICE_TYPES = [
     { value: 'oil', icon: '🛢️' },
@@ -86,11 +91,31 @@ export default function NovaSolicitacaoPage() {
 
   async function loadVehicles() {
     try {
-      const response = await api.getVehicles();
-      if (response.data) {
-        setVehicles(response.data);
-        if (response.data.length === 1) {
-          setSelectedVehicle(response.data[0].id);
+      const [vehicleRes, profileRes] = await Promise.all([
+        api.getVehicles(),
+        api.getProfile().catch(() => null),
+      ]);
+      if (vehicleRes.data) {
+        setVehicles(vehicleRes.data);
+        if (vehicleRes.data.length === 1) {
+          setSelectedVehicle(vehicleRes.data[0].id);
+        }
+      }
+      // Pre-fill address from saved profile
+      if (profileRes?.data) {
+        const profile = (profileRes.data as any)?.user || profileRes.data;
+        const addresses = profile?.addressesJson;
+        const defaultAddr = Array.isArray(addresses)
+          ? (addresses.find((a: any) => a.isDefault) || addresses[0])
+          : null;
+        if (defaultAddr) {
+          const addrStr = [defaultAddr.street, defaultAddr.city, defaultAddr.state, defaultAddr.zipCode]
+            .filter(Boolean).join(', ');
+          setCustomerAddress(addrStr);
+          if (defaultAddr.latitude && defaultAddr.longitude) {
+            setServiceLatitude(defaultAddr.latitude);
+            setServiceLongitude(defaultAddr.longitude);
+          }
         }
       }
     } catch (error) {
@@ -117,6 +142,10 @@ export default function NovaSolicitacaoPage() {
         serviceType,
         urgency,
         preferredDate: preferredDate || undefined,
+        serviceLocationType,
+        customerAddress: serviceLocationType === 'MOBILE' && customerAddress ? customerAddress : undefined,
+        serviceLatitude: serviceLocationType === 'MOBILE' && serviceLatitude ? serviceLatitude : undefined,
+        serviceLongitude: serviceLocationType === 'MOBILE' && serviceLongitude ? serviceLongitude : undefined,
       });
 
       if (response.error) {
@@ -341,6 +370,77 @@ export default function NovaSolicitacaoPage() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
               </div>
+
+              {/* Service Location */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Service Location
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { value: 'IN_SHOP', label: 'At the shop', icon: '🏪' },
+                    { value: 'MOBILE', label: 'At my location', icon: '🏠' },
+                  ].map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setServiceLocationType(opt.value as 'IN_SHOP' | 'MOBILE')}
+                      className={`p-3 rounded-xl border-2 text-left transition-all ${
+                        serviceLocationType === opt.value
+                          ? 'border-primary-500 bg-primary-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <span className="text-xl block mb-1">{opt.icon}</span>
+                      <p className="font-medium text-gray-900">{opt.label}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {serviceLocationType === 'MOBILE' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Your address
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={customerAddress}
+                      onChange={(e) => {
+                        setCustomerAddress(e.target.value);
+                        setServiceLatitude(undefined);
+                        setServiceLongitude(undefined);
+                      }}
+                      placeholder="e.g. 123 Main St, Miami, FL 33101"
+                      className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    />
+                    <button
+                      type="button"
+                      disabled={gettingLocation}
+                      onClick={() => {
+                        if (!navigator.geolocation) return;
+                        setGettingLocation(true);
+                        navigator.geolocation.getCurrentPosition(
+                          (pos) => {
+                            setServiceLatitude(pos.coords.latitude);
+                            setServiceLongitude(pos.coords.longitude);
+                            setGettingLocation(false);
+                          },
+                          () => setGettingLocation(false),
+                        );
+                      }}
+                      className="px-3 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 text-gray-600 text-sm disabled:opacity-50"
+                      title="Use my current location"
+                    >
+                      📍 {gettingLocation ? '...' : 'GPS'}
+                    </button>
+                  </div>
+                  {serviceLatitude && (
+                    <p className="text-xs text-green-600 mt-1">📍 GPS location captured</p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}

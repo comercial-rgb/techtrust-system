@@ -182,6 +182,10 @@ class ApiService {
     serviceType: string;
     urgency: "LOW" | "MEDIUM" | "HIGH" | "EMERGENCY";
     preferredDate?: string;
+    serviceLocationType?: "IN_SHOP" | "MOBILE";
+    customerAddress?: string;
+    serviceLatitude?: number;
+    serviceLongitude?: number;
     location?: {
       latitude: number;
       longitude: number;

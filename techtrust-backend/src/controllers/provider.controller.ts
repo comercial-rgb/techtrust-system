@@ -8,7 +8,7 @@
 import { Request, Response } from "express";
 import { prisma } from "../config/database";
 import { geocodeAddress, formatAddress } from "../services/geocoding.service";
-import { findProvidersWithinRadius } from "../utils/distance";
+import { findProvidersWithinRadius, kmToMiles } from "../utils/distance";
 import { RAW_TO_SERVICE_OFFERED } from "../config/service-type-mapping";
 import { logger } from "../config/logger";
 import { buildProviderDisclosure } from "../utils/provider-disclosures";
@@ -657,8 +657,8 @@ export const searchProvidersByLocation = async (
         longitude: Number(p.baseLongitude),
       },
       serviceRadiusKm: Math.max(Number(p.serviceRadiusKm) || radiusKm, radiusKm),
-      freeKm: Number(p.freeKm),
-      feePerKm: Number(p.extraFeePerKm),
+      freeMiles: Number(p.freeKm) > 0 ? kmToMiles(Number(p.freeKm)) : undefined,
+      feePerMile: Number(p.extraFeePerKm) > 0 ? kmToMiles(Number(p.extraFeePerKm)) : undefined,
     }));
 
     const serviceLocation = { latitude, longitude };

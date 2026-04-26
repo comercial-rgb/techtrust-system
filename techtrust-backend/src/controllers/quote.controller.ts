@@ -9,7 +9,7 @@ import { Request, Response } from "express";
 import { prisma } from "../config/database";
 import { AppError } from "../middleware/error-handler";
 import { logger } from "../config/logger";
-import { calculateRoadDistance } from "../utils/distance";
+import { calculateRoadDistance, kmToMiles, calculateTravelFeeMiles } from "../utils/distance";
 import { generateEstimateNumber } from "../utils/number-generators";
 import { buildProviderDisclosure } from "../utils/provider-disclosures";
 import { buildInsuranceRequirementChecklist } from "../utils/insurance-requirements";
@@ -152,17 +152,17 @@ export const createQuote = async (req: Request, res: Response) => {
     );
 
     distanceKm = roadResult.distanceKm;
+    const distanceMiles = kmToMiles(distanceKm);
 
-    // Calcular taxa de deslocamento
+    // Travel fee in miles — use provider's km config converted to miles, or businessRules defaults
     const freeKm = Number(providerProfile.freeKm);
     const extraFeePerKm = Number(providerProfile.extraFeePerKm);
-
-    if (distanceKm > freeKm) {
-      travelFee = (distanceKm - freeKm) * extraFeePerKm;
-    }
+    const providerFreeMiles = freeKm > 0 ? kmToMiles(freeKm) : undefined;
+    const providerFeePerMile = extraFeePerKm > 0 ? kmToMiles(extraFeePerKm) : undefined;
+    travelFee = calculateTravelFeeMiles(distanceMiles, providerFreeMiles, providerFeePerMile);
 
     logger.info(
-      `Distância calculada: ${distanceKm.toFixed(2)} km (${roadResult.isRoadDistance ? "OSRM road" : "Haversine estimate"}), Taxa: $ ${travelFee.toFixed(2)}`,
+      `Distance: ${distanceKm.toFixed(2)} km / ${distanceMiles.toFixed(2)} mi (${roadResult.isRoadDistance ? "OSRM road" : "Haversine estimate"}), travel fee: $${travelFee.toFixed(2)}`,
     );
   }
 

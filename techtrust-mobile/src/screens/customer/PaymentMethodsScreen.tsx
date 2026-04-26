@@ -1712,6 +1712,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     marginTop: 16,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: '#e5e7eb',
     gap: 12,

@@ -11,7 +11,10 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  Linking,
 } from 'react-native';
+
+const APP_STORE_URL = 'itms-apps://itunes.apple.com/app/id0000000000';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useI18n } from '../../i18n';
@@ -52,12 +55,13 @@ export default function RateAppScreen({ navigation }: any) {
     setSubmitted(true);
   };
 
-  const handleOpenStore = () => {
-    Alert.alert(
-      t.customer?.openAppStore || 'Open App Store',
-      t.customer?.openAppStoreDesc || 'This would open the app store for you to leave a public review.',
-      [{ text: t.common?.ok || 'OK' }]
-    );
+  const handleOpenStore = async () => {
+    const supported = await Linking.canOpenURL(APP_STORE_URL);
+    if (supported) {
+      await Linking.openURL(APP_STORE_URL);
+    } else {
+      await Linking.openURL('https://apps.apple.com/app/id0000000000');
+    }
   };
 
   if (submitted) {
