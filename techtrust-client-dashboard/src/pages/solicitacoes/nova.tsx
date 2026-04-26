@@ -66,6 +66,7 @@ export default function NovaSolicitacaoPage() {
   const [showSubOptionsModal, setShowSubOptionsModal] = useState(false);
   const [pendingServiceId, setPendingServiceId] = useState('');
   const [subOptionSelections, setSubOptionSelections] = useState<Record<string, string[]>>({});
+  const [serviceScope, setServiceScope] = useState<'service' | 'both'>('both');
 
   const SERVICE_TYPES = [
     { value: 'oil',           Icon: Droplets,     bg: 'bg-amber-100',   color: 'text-amber-600' },
@@ -420,27 +421,9 @@ export default function NovaSolicitacaoPage() {
   }
 
   function confirmSubOptions() {
-    const sub = SERVICE_SUB_OPTIONS[pendingServiceId];
     const serviceLabel = SERVICE_TYPES.find(s => s.value === pendingServiceId)?.label || pendingServiceId;
-    const selectedLabels: string[] = [];
-
-    if (sub) {
-      sub.sections.forEach(section => {
-        const selections = subOptionSelections[section.id] || [];
-        selections.forEach(selId => {
-          const opt = section.options.find(o => o.id === selId);
-          if (opt) selectedLabels.push(opt.label);
-        });
-      });
-    }
-
     setServiceType(pendingServiceId);
-    if (selectedLabels.length > 0) {
-      setTitle(`${serviceLabel}: ${selectedLabels.slice(0, 2).join(', ')}`);
-      if (selectedLabels.length > 2) setDescription(selectedLabels.slice(2).join(' + '));
-    } else {
-      setTitle(serviceLabel);
-    }
+    setTitle(serviceLabel);
     setShowSubOptionsModal(false);
     setPendingServiceId('');
   }
@@ -451,6 +434,19 @@ export default function NovaSolicitacaoPage() {
     if (!title) setTitle(label);
     setShowSubOptionsModal(false);
     setPendingServiceId('');
+  }
+
+  function getSubOptionsBySections() {
+    const sub = SERVICE_SUB_OPTIONS[serviceType];
+    if (!sub) return [];
+    return sub.sections
+      .map(section => ({
+        label: section.label,
+        items: (subOptionSelections[section.id] || [])
+          .map(selId => section.options.find(o => o.id === selId)?.label)
+          .filter(Boolean) as string[],
+      }))
+      .filter(s => s.items.length > 0);
   }
 
   function nextStep() {
@@ -471,10 +467,20 @@ export default function NovaSolicitacaoPage() {
     setSubmitting(true);
     setError('');
     try {
+      const partsList = getSubOptionsSummary();
+      const scopeLabel = serviceScope === 'service' ? 'Labor Only' : 'Parts + Service';
+      const meta = [
+        `Scope: ${scopeLabel}`,
+        partsList?.length ? `Parts: ${partsList.join(', ')}` : null,
+      ].filter(Boolean).join(' | ');
+      const enrichedDescription = description.trim()
+        ? `${description.trim()}\n---\n${meta}`
+        : meta;
+
       const response = await api.createServiceRequest({
         vehicleId: selectedVehicle,
         title,
-        description,
+        description: enrichedDescription,
         serviceType,
         urgency,
         preferredDate: preferredDate || undefined,
@@ -684,30 +690,120 @@ export default function NovaSolicitacaoPage() {
         {/* Step 3: Details */}
         {step === 3 && (
           <div className="space-y-4">
-            {/* Selected service context */}
-            {selectedServiceData && (
-              <div className="bg-white rounded-2xl p-4 shadow-soft border-l-4 border-primary-500">
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${selectedServiceData.bg}`}>
-                    <selectedServiceData.Icon className={`w-5 h-5 ${selectedServiceData.color}`} />
+
+            {/* ── Service Summary Card: Title + Parts + Labor ── */}
+            {selectedServiceData && (() => {
+              const allParts = getSubOptionsSummary() || [];
+              return (
+                <div className="bg-white rounded-2xl shadow-soft overflow-hidden">
+                  {/* Header */}
+                  <div className="flex items-center gap-3 px-5 py-4 bg-gradient-to-r from-gray-50 to-white border-b border-gray-100">
+                    <div className={`w-11 h-11 ${selectedServiceData.bg} rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm`}>
+                      <selectedServiceData.Icon className={`w-6 h-6 ${selectedServiceData.color}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-gray-900 text-base">{selectedServiceData.label}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {serviceScope === 'both' ? 'Parts + Labor' : 'Labor Only (no parts needed)'}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-semibold text-gray-900">{selectedServiceData.label}</p>
-                    {getSubOptionsSummary() && (
-                      <p className="text-xs text-gray-500 mt-0.5">{getSubOptionsSummary()!.join(' · ')}</p>
-                    )}
+
+                  {/* Parts & Labor columns */}
+                  <div className="grid grid-cols-2 divide-x divide-gray-100 px-5 py-4">
+                    {/* Parts */}
+                    <div className="pr-4">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2.5">Parts</p>
+                      {allParts.length > 0 ? (
+                        <ul className="space-y-1.5">
+                          {allParts.map((p, i) => (
+                            <li key={i} className="flex items-center gap-2 text-sm text-gray-700">
+                              <span className="w-1.5 h-1.5 rounded-full bg-primary-400 flex-shrink-0" />
+                              {p}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-sm text-gray-400 italic">None selected</p>
+                      )}
+                    </div>
+
+                    {/* Labor */}
+                    <div className="pl-4">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2.5">Labor</p>
+                      <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${
+                        serviceScope === 'both'
+                          ? 'bg-emerald-50 text-emerald-700'
+                          : 'bg-blue-50 text-blue-700'
+                      }`}>
+                        <Wrench className="w-3 h-3" />
+                        {serviceScope === 'both' ? 'Included' : 'Only'}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             <div className="bg-white rounded-2xl p-6 shadow-soft">
-              <div className="mb-5">
+              <div className="mb-6">
                 <h2 className="text-xl font-bold text-gray-900">{t('client.requests.serviceDetails')}</h2>
                 <p className="text-sm text-gray-500 mt-1">Describe your request so providers can give accurate quotes</p>
               </div>
 
               <div className="space-y-5">
+
+                {/* ── Service Scope: What do you need? ── */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">
+                    What do you need? *
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      {
+                        id: 'service' as const,
+                        label: 'Labor Only',
+                        desc: 'I have the parts, just need installation',
+                        Icon: Wrench,
+                      },
+                      {
+                        id: 'both' as const,
+                        label: 'Parts + Service',
+                        desc: 'Provider supplies parts and does the work',
+                        Icon: Layers,
+                      },
+                    ].map((scope) => (
+                      <button
+                        key={scope.id}
+                        type="button"
+                        onClick={() => setServiceScope(scope.id)}
+                        className={`flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-all ${
+                          serviceScope === scope.id
+                            ? 'border-primary-500 bg-primary-50 shadow-sm'
+                            : 'border-gray-100 bg-gray-50 hover:border-gray-200'
+                        }`}
+                      >
+                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                          serviceScope === scope.id ? 'bg-primary-100' : 'bg-gray-200'
+                        }`}>
+                          <scope.Icon className={`w-4.5 h-4.5 ${serviceScope === scope.id ? 'text-primary-600' : 'text-gray-500'}`} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={`font-semibold text-sm ${serviceScope === scope.id ? 'text-primary-700' : 'text-gray-700'}`}>
+                            {scope.label}
+                          </p>
+                          <p className={`text-xs mt-0.5 leading-relaxed ${serviceScope === scope.id ? 'text-primary-500' : 'text-gray-400'}`}>
+                            {scope.desc}
+                          </p>
+                        </div>
+                        {serviceScope === scope.id && (
+                          <CheckCircle className="w-5 h-5 text-primary-500 flex-shrink-0 mt-0.5" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     {t('client.requests.titleLabel')}
@@ -723,12 +819,12 @@ export default function NovaSolicitacaoPage() {
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    {t('client.requests.descriptionLabel')}
+                    Additional notes <span className="text-gray-400 font-normal">(optional)</span>
                   </label>
                   <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder={t('client.requests.descriptionPlaceholder')}
+                    placeholder="Any additional details, symptoms, or instructions for the provider..."
                     rows={3}
                     className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent focus:bg-white transition-all resize-none"
                   />
@@ -879,18 +975,43 @@ export default function NovaSolicitacaoPage() {
                 </div>
               </div>
 
-              {selectedServiceData && (
-                <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-xl">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${selectedServiceData.bg}`}>
-                    <selectedServiceData.Icon className={`w-5 h-5 ${selectedServiceData.color}`} />
+              {selectedServiceData && (() => {
+                const confirmParts = getSubOptionsSummary() || [];
+                return (
+                  <div className="p-4 bg-gray-50 rounded-xl">
+                    <div className="flex items-start gap-4 mb-3">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${selectedServiceData.bg}`}>
+                        <selectedServiceData.Icon className={`w-5 h-5 ${selectedServiceData.color}`} />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">{t('client.requests.serviceLabel')}</p>
+                        <p className="font-bold text-gray-900">{title}</p>
+                        <span className={`inline-flex items-center gap-1 mt-1 text-xs font-semibold px-2 py-0.5 rounded-full ${
+                          serviceScope === 'both' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'
+                        }`}>
+                          <Wrench className="w-3 h-3" />
+                          {serviceScope === 'both' ? 'Parts + Service' : 'Labor Only'}
+                        </span>
+                      </div>
+                    </div>
+                    {confirmParts.length > 0 && (
+                      <div className="pl-14">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Parts</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {confirmParts.map((p, i) => (
+                            <span key={i} className="text-xs px-2.5 py-1 bg-white rounded-full border border-gray-200 text-gray-700 font-medium">
+                              {p}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {description && (
+                      <p className="text-sm text-gray-500 mt-2 pl-14">{description}</p>
+                    )}
                   </div>
-                  <div>
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">{t('client.requests.serviceLabel')}</p>
-                    <p className="font-semibold text-gray-900">{title}</p>
-                    {description && <p className="text-sm text-gray-500 mt-0.5">{description}</p>}
-                  </div>
-                </div>
-              )}
+                );
+              })()}
 
               {selectedUrgency && (
                 <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-xl">

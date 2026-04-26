@@ -1963,8 +1963,11 @@ export default function CreateRequestScreen({ navigation }: any) {
   const confirmSubOptions = () => {
     const subOpts = SERVICE_SUB_OPTIONS[pendingServiceId];
     if (!subOpts) return;
-    const details: string[] = [];
-    let primarySelection = "";
+    const serviceLabel =
+      serviceTypes.find((s) => s.id === pendingServiceId)?.label || "";
+
+    // Collect all selected part labels grouped by section
+    const partLines: string[] = [];
     subOpts.sections.forEach((section) => {
       const selected = subOptionSelections[section.id] || [];
       if (selected.length > 0) {
@@ -1972,29 +1975,20 @@ export default function CreateRequestScreen({ navigation }: any) {
           const opt = section.options.find((o) => o.id === id);
           return opt?.label || id;
         });
-        details.push(`${section.label}: ${labels.join(", ")}`);
-        // Use first single-select section's value for the title suffix
-        if (
-          !primarySelection &&
-          section.type === "single" &&
-          selected[0] !== "not_sure"
-        ) {
-          const opt = section.options.find((o) => o.id === selected[0]);
-          if (opt) primarySelection = opt.label;
-        }
+        partLines.push(...labels);
       }
     });
-    if (details.length > 0) {
-      const serviceLabel =
-        serviceTypes.find((s) => s.id === pendingServiceId)?.label || "";
-      const detailText = details.join(" | ");
-      setDescription((prev) => (prev ? `${prev}\n${detailText}` : detailText));
-      setTitle(
-        primarySelection
-          ? `${serviceLabel} - ${primarySelection}`
-          : serviceLabel,
+
+    // Title: just the service name (clean)
+    setTitle(serviceLabel);
+
+    // Description: list the parts
+    if (partLines.length > 0) {
+      setDescription((prev) =>
+        prev ? `${prev}\n${partLines.join(", ")}` : partLines.join(", ")
       );
     }
+
     setShowSubOptionsModal(false);
   };
 
