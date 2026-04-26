@@ -16,6 +16,11 @@ import {
   AlertCircle,
   CheckCircle,
   Wrench,
+  Droplets,
+  Disc,
+  ClipboardList,
+  Zap,
+  ArrowRight,
 } from 'lucide-react';
 
 interface Vehicle {
@@ -186,6 +191,65 @@ export default function DashboardPage() {
             <Plus className="w-5 h-5" />
             {t.client.dashboard.newRequest}
           </button>
+        </div>
+      </div>
+
+      {/* Promotional Offers */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold text-gray-900">Special Offers</h3>
+          <button
+            onClick={() => router.push('/solicitacoes/nova')}
+            className="text-sm text-primary-600 hover:text-primary-700 font-semibold flex items-center gap-1"
+          >
+            Book now <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* Oil Change */}
+          <div
+            onClick={() => router.push('/solicitacoes/nova')}
+            className="relative bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-5 text-white overflow-hidden cursor-pointer hover:shadow-xl hover:scale-[1.02] transition-all"
+          >
+            <div className="absolute -top-6 -right-6 w-28 h-28 rounded-full bg-white/10" />
+            <div className="absolute -bottom-4 -left-4 w-20 h-20 rounded-full bg-white/10" />
+            <Droplets className="w-8 h-8 mb-3 relative z-10" />
+            <p className="font-bold text-lg mb-1 relative z-10">Oil Change Special</p>
+            <p className="text-sm text-amber-100 mb-4 relative z-10">Full synthetic + filter included</p>
+            <span className="inline-flex items-center gap-1 bg-white/25 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold relative z-10">
+              Save up to 20%
+            </span>
+          </div>
+
+          {/* Brake Inspection */}
+          <div
+            onClick={() => router.push('/solicitacoes/nova')}
+            className="relative bg-gradient-to-br from-rose-500 to-red-600 rounded-2xl p-5 text-white overflow-hidden cursor-pointer hover:shadow-xl hover:scale-[1.02] transition-all"
+          >
+            <div className="absolute -top-6 -right-6 w-28 h-28 rounded-full bg-white/10" />
+            <div className="absolute -bottom-4 -left-4 w-20 h-20 rounded-full bg-white/10" />
+            <Disc className="w-8 h-8 mb-3 relative z-10" />
+            <p className="font-bold text-lg mb-1 relative z-10">Brake Inspection</p>
+            <p className="text-sm text-rose-100 mb-4 relative z-10">Complete brake check & diagnosis</p>
+            <span className="inline-flex items-center gap-1 bg-white/25 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold relative z-10">
+              Free estimate
+            </span>
+          </div>
+
+          {/* Full Inspection */}
+          <div
+            onClick={() => router.push('/solicitacoes/nova')}
+            className="relative bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl p-5 text-white overflow-hidden cursor-pointer hover:shadow-xl hover:scale-[1.02] transition-all"
+          >
+            <div className="absolute -top-6 -right-6 w-28 h-28 rounded-full bg-white/10" />
+            <div className="absolute -bottom-4 -left-4 w-20 h-20 rounded-full bg-white/10" />
+            <ClipboardList className="w-8 h-8 mb-3 relative z-10" />
+            <p className="font-bold text-lg mb-1 relative z-10">Multi-Point Inspection</p>
+            <p className="text-sm text-emerald-100 mb-4 relative z-10">30-point vehicle health check</p>
+            <span className="inline-flex items-center gap-1 bg-white/25 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold relative z-10">
+              First service free
+            </span>
+          </div>
         </div>
       </div>
 
