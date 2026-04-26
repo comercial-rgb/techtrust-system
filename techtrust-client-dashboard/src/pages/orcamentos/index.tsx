@@ -316,16 +316,16 @@ export default function EstimatesPage() {
                       <div className="flex flex-wrap items-center gap-4 mt-3 text-sm text-gray-600">
                         <div className="flex items-center gap-1">
                           <DollarSign className="w-4 h-4 text-gray-400" />
-                          Parts: ${Number(quote.partsCost).toFixed(2)}
+                          {t("client.estimates.parts") || "Parts"}: ${Number(quote.partsCost).toFixed(2)}
                         </div>
                         <div className="flex items-center gap-1">
                           <DollarSign className="w-4 h-4 text-gray-400" />
-                          Labor: ${Number(quote.laborCost).toFixed(2)}
+                          {t("client.estimates.labor") || "Labor"}: ${Number(quote.laborCost).toFixed(2)}
                         </div>
                         {quote.warrantyMonths && (
                           <div className="flex items-center gap-1">
                             <Shield className="w-4 h-4 text-gray-400" />
-                            {quote.warrantyMonths}mo /{" "}
+                            {quote.warrantyMonths}{t("client.estimates.warranty") ? ` ${t("client.estimates.warranty")}` : "mo"} /{" "}
                             {quote.warrantyMileage?.toLocaleString() || "—"}mi
                           </div>
                         )}

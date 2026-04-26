@@ -9,7 +9,6 @@ import {
   Plus,
   MoreVertical,
   Calendar,
-  Gauge,
   Star,
   Wrench,
   AlertTriangle,
@@ -36,12 +35,12 @@ interface SubscriptionInfo {
 }
 
 export default function VeiculosPage() {
-  const { isAuthenticated, loading: authLoading, user } = useAuth();
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const { translate: t } = useI18n();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [subscription, setSubscription] = useState<SubscriptionInfo>({ plan: 'Freemium', vehicleLimit: 1 });
+  const [subscription, setSubscription] = useState<SubscriptionInfo>({ plan: '', vehicleLimit: 1 });
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   useEffect(() => {
@@ -60,7 +59,6 @@ export default function VeiculosPage() {
   async function loadVehicles() {
     try {
       const response = await api.getVehicles();
-      
       if (response.data) {
         setVehicles(response.data.map((v: any) => ({
           id: v.id,
@@ -87,16 +85,16 @@ export default function VeiculosPage() {
   async function loadSubscription() {
     try {
       const response = await api.getProfile();
-      if (response.data?.subscription) {
-        const sub = response.data.subscription;
+      const profileData = (response.data as any)?.user || response.data;
+      const sub = profileData?.subscription;
+      if (sub) {
         setSubscription({
-          plan: sub.plan?.name || 'Freemium',
-          vehicleLimit: sub.plan?.vehicleLimit || 1,
+          plan: sub.plan?.name || sub.planName || 'Free',
+          vehicleLimit: sub.plan?.vehicleLimit || sub.vehicleLimit || 1,
         });
       }
     } catch (error) {
-      // Use default freemium
-      setSubscription({ plan: 'Freemium', vehicleLimit: 1 });
+      setSubscription({ plan: 'Free', vehicleLimit: 1 });
     }
   }
 
@@ -109,7 +107,7 @@ export default function VeiculosPage() {
   }
 
   function formatDate(date: string) {
-    return new Date(date).toLocaleDateString('pt-BR', {
+    return new Date(date).toLocaleDateString(undefined, {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
@@ -137,29 +135,33 @@ export default function VeiculosPage() {
     <DashboardLayout title={t('client.nav.vehicles')}>
       {/* Stats */}
       <div className="bg-white rounded-xl p-6 mb-6 shadow-soft">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-8">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-8 flex-wrap">
             <div>
               <p className="text-3xl font-bold text-gray-900">
                 {vehicles.length}<span className="text-lg text-gray-400">/{subscription.vehicleLimit}</span>
               </p>
-              <p className="text-sm text-gray-500">Veículos cadastrados</p>
+              <p className="text-sm text-gray-500">{t('client.vehicles.registered')}</p>
             </div>
-            <div className="h-12 w-px bg-gray-200"></div>
+            <div className="h-12 w-px bg-gray-200 hidden sm:block"></div>
             <div>
               <p className="text-3xl font-bold text-gray-900">
                 {vehicles.reduce((acc, v) => acc + (v.currentMileage || 0), 0).toLocaleString()}
               </p>
-              <p className="text-sm text-gray-500">KM Total</p>
+              <p className="text-sm text-gray-500">{t('client.vehicles.totalMileage')}</p>
             </div>
-            <div className="h-12 w-px bg-gray-200"></div>
-            <div className="flex items-center gap-2">
-              <Crown className={`w-5 h-5 ${subscription.plan === 'Premium' ? 'text-yellow-500' : subscription.plan === 'Basic' ? 'text-blue-500' : 'text-gray-400'}`} />
-              <div>
-                <p className="font-semibold text-gray-900">{subscription.plan}</p>
-                <p className="text-xs text-gray-500">Seu plano</p>
-              </div>
-            </div>
+            {subscription.plan && (
+              <>
+                <div className="h-12 w-px bg-gray-200 hidden sm:block"></div>
+                <div className="flex items-center gap-2">
+                  <Crown className={`w-5 h-5 ${subscription.plan === 'Premium' ? 'text-yellow-500' : subscription.plan === 'Basic' || subscription.plan === 'Starter' ? 'text-blue-500' : 'text-gray-400'}`} />
+                  <div>
+                    <p className="font-semibold text-gray-900">{subscription.plan}</p>
+                    <p className="text-xs text-gray-500">{t('client.vehicles.yourPlan')}</p>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
           <div className="flex items-center gap-3">
             {vehicles.length >= subscription.vehicleLimit && (
@@ -168,7 +170,7 @@ export default function VeiculosPage() {
                 className="btn btn-secondary border-yellow-400 text-yellow-600 hover:bg-yellow-50"
               >
                 <ArrowUpCircle className="w-5 h-5" />
-                Fazer Upgrade
+                {t('client.vehicles.upgrade')}
               </button>
             )}
             <button
@@ -185,11 +187,7 @@ export default function VeiculosPage() {
       {/* Vehicles Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {vehicles.map((vehicle) => (
-          <div
-            key={vehicle.id}
-            className="bg-white rounded-xl shadow-soft overflow-hidden card-hover"
-          >
-            {/* Header */}
+          <div key={vehicle.id} className="bg-white rounded-xl shadow-soft overflow-hidden card-hover">
             <div className="p-5 border-b border-gray-100">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-4">
@@ -204,7 +202,7 @@ export default function VeiculosPage() {
                       {vehicle.isDefault && (
                         <span className="flex items-center gap-1 bg-yellow-100 text-yellow-700 text-xs font-semibold px-2 py-0.5 rounded-full">
                           <Star className="w-3 h-3" />
-                          Padrão
+                          {t('client.vehicles.default')}
                         </span>
                       )}
                     </div>
@@ -217,31 +215,29 @@ export default function VeiculosPage() {
               </div>
             </div>
 
-            {/* Details */}
             <div className="p-5 space-y-4">
               <div className="grid grid-cols-3 gap-4">
                 <div className="text-center p-3 bg-gray-50 rounded-lg">
-                  <p className="text-xs text-gray-500 mb-1">Placa</p>
+                  <p className="text-xs text-gray-500 mb-1">{t('client.vehicles.plate')}</p>
                   <p className="font-semibold text-gray-900">{vehicle.plateNumber}</p>
                 </div>
                 <div className="text-center p-3 bg-gray-50 rounded-lg">
-                  <p className="text-xs text-gray-500 mb-1">Cor</p>
+                  <p className="text-xs text-gray-500 mb-1">{t('client.vehicles.color')}</p>
                   <p className="font-semibold text-gray-900">{vehicle.color || '-'}</p>
                 </div>
                 <div className="text-center p-3 bg-gray-50 rounded-lg">
-                  <p className="text-xs text-gray-500 mb-1">KM</p>
+                  <p className="text-xs text-gray-500 mb-1">{t('client.vehicles.mileage')}</p>
                   <p className="font-semibold text-gray-900">
                     {vehicle.currentMileage?.toLocaleString() || '-'}
                   </p>
                 </div>
               </div>
 
-              {/* Service Info */}
               <div className="space-y-2">
                 {vehicle.lastService && (
                   <div className="flex items-center gap-2 text-sm">
                     <Calendar className="w-4 h-4 text-green-500" />
-                    <span className="text-gray-600">Último serviço:</span>
+                    <span className="text-gray-600">{t('client.vehicles.lastService')}</span>
                     <span className="font-medium text-gray-900">{formatDate(vehicle.lastService)}</span>
                   </div>
                 )}
@@ -253,7 +249,7 @@ export default function VeiculosPage() {
                       <Wrench className="w-4 h-4 text-gray-400" />
                     )}
                     <span className={isServiceDue(vehicle.nextServiceDue) ? 'text-red-600' : 'text-gray-600'}>
-                      Próxima revisão:
+                      {t('client.vehicles.nextService')}
                     </span>
                     <span className={`font-medium ${isServiceDue(vehicle.nextServiceDue) ? 'text-red-600' : 'text-gray-900'}`}>
                       {formatDate(vehicle.nextServiceDue)}
@@ -263,7 +259,6 @@ export default function VeiculosPage() {
               </div>
             </div>
 
-            {/* Actions */}
             <div className="px-5 pb-5">
               <div className="flex gap-3">
                 <button
@@ -287,15 +282,13 @@ export default function VeiculosPage() {
         <div
           onClick={handleAddVehicle}
           className={`bg-white rounded-xl border-2 border-dashed flex items-center justify-center min-h-[300px] cursor-pointer transition-colors ${
-            vehicles.length >= subscription.vehicleLimit 
-              ? 'border-gray-200 bg-gray-50 opacity-60' 
+            vehicles.length >= subscription.vehicleLimit
+              ? 'border-gray-200 bg-gray-50 opacity-60'
               : 'border-gray-200 hover:border-primary-300 hover:bg-primary-50/30'
           }`}
         >
           <div className="text-center">
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
-              vehicles.length >= subscription.vehicleLimit ? 'bg-gray-100' : 'bg-gray-100'
-            }`}>
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-gray-100">
               {vehicles.length >= subscription.vehicleLimit ? (
                 <ArrowUpCircle className="w-8 h-8 text-yellow-500" />
               ) : (
@@ -303,13 +296,15 @@ export default function VeiculosPage() {
               )}
             </div>
             <p className="text-gray-600 font-medium">
-              {vehicles.length >= subscription.vehicleLimit 
-                ? 'Limite atingido - Faça upgrade' 
-                : 'Adicionar novo veículo'}
+              {vehicles.length >= subscription.vehicleLimit
+                ? t('client.vehicles.limitReached')
+                : t('client.vehicles.addNew')}
             </p>
             {vehicles.length >= subscription.vehicleLimit && (
               <p className="text-sm text-gray-400 mt-1">
-                Seu plano {subscription.plan} permite {subscription.vehicleLimit} veículo(s)
+                {t('client.vehicles.limitDesc')
+                  .replace('{plan}', subscription.plan)
+                  .replace('{limit}', String(subscription.vehicleLimit))}
               </p>
             )}
           </div>
@@ -324,48 +319,29 @@ export default function VeiculosPage() {
               <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Crown className="w-8 h-8 text-yellow-500" />
               </div>
-              <h2 className="text-xl font-bold text-gray-900 mb-2">Limite de Veículos Atingido</h2>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">{t('client.vehicles.limitTitle')}</h2>
               <p className="text-gray-600">
-                Seu plano <span className="font-semibold">{subscription.plan}</span> permite apenas {subscription.vehicleLimit} veículo(s).
-                Faça upgrade para adicionar mais veículos.
+                {t('client.vehicles.limitBody')
+                  .replace('{plan}', subscription.plan)
+                  .replace('{limit}', String(subscription.vehicleLimit))}
               </p>
-            </div>
-            
-            <div className="space-y-3 mb-6">
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                <div>
-                  <p className="font-semibold text-gray-900">Basic</p>
-                  <p className="text-sm text-gray-500">Até 5 veículos</p>
-                </div>
-                <p className="font-bold text-primary-600">R$ 9,99/mês</p>
-              </div>
-              <div className="flex items-center justify-between p-4 bg-yellow-50 rounded-xl border-2 border-yellow-400">
-                <div className="flex items-center gap-2">
-                  <Crown className="w-5 h-5 text-yellow-500" />
-                  <div>
-                    <p className="font-semibold text-gray-900">Premium</p>
-                    <p className="text-sm text-gray-500">Até 10 veículos</p>
-                  </div>
-                </div>
-                <p className="font-bold text-primary-600">R$ 19,99/mês</p>
-              </div>
             </div>
 
             <div className="flex gap-3">
-              <button 
-                onClick={() => setShowUpgradeModal(false)} 
+              <button
+                onClick={() => setShowUpgradeModal(false)}
                 className="flex-1 btn btn-secondary py-3"
               >
-                Voltar
+                {t('client.vehicles.back')}
               </button>
-              <button 
+              <button
                 onClick={() => {
                   setShowUpgradeModal(false);
-                  router.push('/perfil?tab=subscription');
+                  router.push('/planos');
                 }}
                 className="flex-1 btn btn-primary py-3"
               >
-                Ver Planos
+                {t('client.vehicles.viewPlans')}
               </button>
             </div>
           </div>

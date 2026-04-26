@@ -62,12 +62,51 @@ export default function PerfilPage() {
   }
 
   const menuItems = [
-    { id: 'personal', title: 'Dados Pessoais', subtitle: 'Nome, email, telefone', icon: User, color: 'text-blue-600 bg-blue-100' },
-    { id: 'vehicles', title: 'Meus Veículos', subtitle: `${stats.vehiclesCount} veículo(s)`, icon: Car, color: 'text-yellow-600 bg-yellow-100', href: '/veiculos' },
-    { id: 'addresses', title: 'Endereços', subtitle: 'Endereços salvos', icon: MapPin, color: 'text-green-600 bg-green-100' },
-    { id: 'payment', title: 'Formas de Pagamento', subtitle: 'Cartões e métodos', icon: CreditCard, color: 'text-purple-600 bg-purple-100' },
-    { id: 'history', title: 'Histórico de Serviços', subtitle: `${stats.totalServices} serviços`, icon: Briefcase, color: 'text-pink-600 bg-pink-100', href: '/servicos' },
-    { id: 'security', title: 'Segurança', subtitle: 'Senha e autenticação', icon: Shield, color: 'text-red-600 bg-red-100' },
+    {
+      id: 'personal',
+      title: t('client.profile.personalData'),
+      subtitle: t('client.profile.personalDataDesc'),
+      icon: User,
+      color: 'text-blue-600 bg-blue-100',
+    },
+    {
+      id: 'vehicles',
+      title: t('client.profile.myVehicles'),
+      subtitle: t('client.profile.vehiclesCount').replace('{count}', String(stats.vehiclesCount)),
+      icon: Car,
+      color: 'text-yellow-600 bg-yellow-100',
+      href: '/veiculos',
+    },
+    {
+      id: 'addresses',
+      title: t('client.profile.addresses'),
+      subtitle: t('client.profile.addressesDesc'),
+      icon: MapPin,
+      color: 'text-green-600 bg-green-100',
+    },
+    {
+      id: 'payment',
+      title: t('client.profile.paymentMethods'),
+      subtitle: t('client.profile.paymentMethodsDesc'),
+      icon: CreditCard,
+      color: 'text-purple-600 bg-purple-100',
+      href: '/pagamentos',
+    },
+    {
+      id: 'history',
+      title: t('client.profile.serviceHistory'),
+      subtitle: t('client.profile.serviceHistoryCount').replace('{count}', String(stats.totalServices)),
+      icon: Briefcase,
+      color: 'text-pink-600 bg-pink-100',
+      href: '/servicos',
+    },
+    {
+      id: 'security',
+      title: t('client.profile.security'),
+      subtitle: t('client.profile.securityDesc'),
+      icon: Shield,
+      color: 'text-red-600 bg-red-100',
+    },
   ];
 
   if (authLoading) {
@@ -80,6 +119,10 @@ export default function PerfilPage() {
       </DashboardLayout>
     );
   }
+
+  const memberYear = user?.createdAt
+    ? new Date(user.createdAt).getFullYear().toString()
+    : new Date().getFullYear().toString();
 
   return (
     <DashboardLayout title={t('client.nav.profile')}>
@@ -100,12 +143,14 @@ export default function PerfilPage() {
                 </button>
               </div>
               <div className="text-center sm:text-left flex-1">
-                <h2 className="text-2xl font-bold text-gray-900">{user?.fullName || 'Usuário'}</h2>
+                <h2 className="text-2xl font-bold text-gray-900">{user?.fullName || t('client.nav.profile')}</h2>
                 <p className="text-gray-500">{user?.email}</p>
               </div>
               <div className="flex items-center gap-2 bg-primary-50 px-4 py-2 rounded-full">
                 <Shield className="w-4 h-4 text-primary-600" />
-                <span className="text-sm font-medium text-primary-700">Membro desde {user?.memberSince || '2023'}</span>
+                <span className="text-sm font-medium text-primary-700">
+                  {t('client.profile.memberSince').replace('{year}', memberYear)}
+                </span>
               </div>
             </div>
           </div>
@@ -115,22 +160,22 @@ export default function PerfilPage() {
         <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="bg-white rounded-xl p-5 text-center shadow-soft">
             <p className="text-3xl font-bold text-gray-900">{stats.totalServices}</p>
-            <p className="text-sm text-gray-500 mt-1">Serviços</p>
+            <p className="text-sm text-gray-500 mt-1">{t('client.profile.services')}</p>
           </div>
           <div className="bg-white rounded-xl p-5 text-center shadow-soft">
             <p className="text-3xl font-bold text-gray-900">${stats.totalSpent}</p>
-            <p className="text-sm text-gray-500 mt-1">Investido</p>
+            <p className="text-sm text-gray-500 mt-1">{t('client.profile.invested')}</p>
           </div>
           <div className="bg-white rounded-xl p-5 text-center shadow-soft">
             <p className="text-3xl font-bold text-gray-900">{stats.vehiclesCount}</p>
-            <p className="text-sm text-gray-500 mt-1">Veículos</p>
+            <p className="text-sm text-gray-500 mt-1">{t('client.profile.vehiclesLabel')}</p>
           </div>
         </div>
 
         {/* Notifications Toggles */}
         <div className="bg-white rounded-xl shadow-soft mb-6 overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-100">
-            <h3 className="font-semibold text-gray-900">Notificações</h3>
+            <h3 className="font-semibold text-gray-900">{t('client.profile.notifications')}</h3>
           </div>
           <div className="divide-y divide-gray-100">
             <div className="flex items-center justify-between p-5">
@@ -139,8 +184,8 @@ export default function PerfilPage() {
                   <Bell className="w-5 h-5 text-blue-600" />
                 </div>
                 <div>
-                  <p className="font-medium text-gray-900">Notificações Push</p>
-                  <p className="text-sm text-gray-500">Alertas de orçamentos e serviços</p>
+                  <p className="font-medium text-gray-900">{t('client.profile.pushNotifications')}</p>
+                  <p className="text-sm text-gray-500">{t('client.profile.pushNotificationsDesc')}</p>
                 </div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
@@ -159,8 +204,8 @@ export default function PerfilPage() {
                   <Mail className="w-5 h-5 text-yellow-600" />
                 </div>
                 <div>
-                  <p className="font-medium text-gray-900">Email</p>
-                  <p className="text-sm text-gray-500">Resumos e ofertas</p>
+                  <p className="font-medium text-gray-900">{t('client.profile.emailLabel')}</p>
+                  <p className="text-sm text-gray-500">{t('client.profile.emailDesc')}</p>
                 </div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
@@ -179,7 +224,7 @@ export default function PerfilPage() {
         {/* Menu Items */}
         <div className="bg-white rounded-xl shadow-soft overflow-hidden mb-6">
           <div className="px-5 py-4 border-b border-gray-100">
-            <h3 className="font-semibold text-gray-900">Minha Conta</h3>
+            <h3 className="font-semibold text-gray-900">{t('client.profile.account')}</h3>
           </div>
           <div className="divide-y divide-gray-100">
             {menuItems.map((item) => {
@@ -188,7 +233,7 @@ export default function PerfilPage() {
                 <div
                   key={item.id}
                   onClick={() => item.href && router.push(item.href)}
-                  className="flex items-center justify-between p-5 hover:bg-gray-50 cursor-pointer transition-colors"
+                  className={`flex items-center justify-between p-5 hover:bg-gray-50 transition-colors ${item.href ? 'cursor-pointer' : 'cursor-default opacity-60'}`}
                 >
                   <div className="flex items-center gap-4">
                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${item.color}`}>
@@ -209,29 +254,35 @@ export default function PerfilPage() {
         {/* Support & Logout */}
         <div className="bg-white rounded-xl shadow-soft overflow-hidden mb-6">
           <div className="px-5 py-4 border-b border-gray-100">
-            <h3 className="font-semibold text-gray-900">Ajuda & Suporte</h3>
+            <h3 className="font-semibold text-gray-900">{t('client.profile.support')}</h3>
           </div>
           <div className="divide-y divide-gray-100">
-            <div className="flex items-center justify-between p-5 hover:bg-gray-50 cursor-pointer transition-colors">
+            <div
+              onClick={() => window.open('https://support.techtrustautosolutions.com', '_blank')}
+              className="flex items-center justify-between p-5 hover:bg-gray-50 cursor-pointer transition-colors"
+            >
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
                   <span className="text-lg">❓</span>
                 </div>
                 <div>
-                  <p className="font-medium text-gray-900">Central de Ajuda</p>
-                  <p className="text-sm text-gray-500">Dúvidas frequentes</p>
+                  <p className="font-medium text-gray-900">{t('client.profile.helpCenter')}</p>
+                  <p className="text-sm text-gray-500">{t('client.profile.helpCenterDesc')}</p>
                 </div>
               </div>
               <ChevronRight className="w-5 h-5 text-gray-400" />
             </div>
-            <div className="flex items-center justify-between p-5 hover:bg-gray-50 cursor-pointer transition-colors">
+            <div
+              onClick={() => window.open('mailto:support@techtrustautosolutions.com', '_blank')}
+              className="flex items-center justify-between p-5 hover:bg-gray-50 cursor-pointer transition-colors"
+            >
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
                   <span className="text-lg">💬</span>
                 </div>
                 <div>
-                  <p className="font-medium text-gray-900">Fale Conosco</p>
-                  <p className="text-sm text-gray-500">Suporte por chat</p>
+                  <p className="font-medium text-gray-900">{t('client.profile.contactUs')}</p>
+                  <p className="text-sm text-gray-500">{t('client.profile.contactUsDesc')}</p>
                 </div>
               </div>
               <ChevronRight className="w-5 h-5 text-gray-400" />
@@ -248,9 +299,8 @@ export default function PerfilPage() {
           {t('client.layout.logout')}
         </button>
 
-        {/* Version */}
         <p className="text-center text-sm text-gray-400 mt-6 mb-8">
-          TechTrust AutoSolutions LLC v1.0.0
+          TechTrust AutoSolutions LLC
         </p>
       </div>
     </DashboardLayout>

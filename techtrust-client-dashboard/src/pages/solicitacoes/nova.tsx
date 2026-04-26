@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
+import { useI18n } from '../../i18n';
 import DashboardLayout from '../../components/DashboardLayout';
 import { api } from '../../services/api';
 import {
@@ -9,10 +10,6 @@ import {
   ChevronRight,
   AlertCircle,
   CheckCircle,
-  Camera,
-  MapPin,
-  Calendar,
-  FileText,
 } from 'lucide-react';
 
 interface Vehicle {
@@ -23,40 +20,9 @@ interface Vehicle {
   plateNumber: string;
 }
 
-const SERVICE_TYPES = [
-  { value: 'oil', label: 'Troca de Óleo', icon: '🛢️' },
-  { value: 'brake', label: 'Serviço de Freios', icon: '🛞' },
-  { value: 'tire', label: 'Pneus e Alinhamento', icon: '🔧' },
-  { value: 'engine', label: 'Motor', icon: '⚙️' },
-  { value: 'electric', label: 'Elétrica', icon: '⚡' },
-  { value: 'ac', label: 'Ar Condicionado', icon: '❄️' },
-  { value: 'suspension', label: 'Suspensão', icon: '🔩' },
-  { value: 'transmission', label: 'Transmissão', icon: '🚗' },
-  { value: 'air_filter', label: 'Filtro de Ar', icon: '💨' },
-  { value: 'belts_hoses', label: 'Correias e Mangueiras', icon: '🔗' },
-  { value: 'cooling', label: 'Arrefecimento', icon: '🌡️' },
-  { value: 'fuel_system', label: 'Sistema de Combustível', icon: '⛽' },
-  { value: 'steering', label: 'Direção', icon: '🎯' },
-  { value: 'exhaust', label: 'Escapamento', icon: '💨' },
-  { value: 'drivetrain', label: 'Transmissão/Tração', icon: '⚙️' },
-  { value: 'fluids', label: 'Fluidos', icon: '🧴' },
-  { value: 'general_repair', label: 'Reparo Geral', icon: '🔨' },
-  { value: 'inspection', label: 'Inspeção/Revisão', icon: '📋' },
-  { value: 'maintenance', label: 'Revisão Preventiva', icon: '🔎' },
-  { value: 'detailing', label: 'Estética/Detailing', icon: '✨' },
-  { value: 'battery', label: 'Bateria', icon: '🔋' },
-  { value: 'towing', label: 'Reboque', icon: '🚛' },
-];
-
-const URGENCY_OPTIONS = [
-  { value: 'LOW', label: 'Baixa', description: 'Posso esperar alguns dias', color: 'bg-green-100 text-green-700 border-green-300' },
-  { value: 'MEDIUM', label: 'Média', description: 'Preciso em até 3 dias', color: 'bg-yellow-100 text-yellow-700 border-yellow-300' },
-  { value: 'HIGH', label: 'Alta', description: 'Preciso amanhã', color: 'bg-orange-100 text-orange-700 border-orange-300' },
-  { value: 'EMERGENCY', label: 'Urgente', description: 'Preciso hoje!', color: 'bg-red-100 text-red-700 border-red-300' },
-];
-
 export default function NovaSolicitacaoPage() {
   const { isAuthenticated, loading: authLoading } = useAuth();
+  const { translate: t } = useI18n();
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -64,14 +30,47 @@ export default function NovaSolicitacaoPage() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [error, setError] = useState('');
 
-  // Form state
   const [selectedVehicle, setSelectedVehicle] = useState('');
   const [serviceType, setServiceType] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [urgency, setUrgency] = useState<'LOW' | 'MEDIUM' | 'HIGH' | 'EMERGENCY'>('MEDIUM');
   const [preferredDate, setPreferredDate] = useState('');
-  const [location, setLocation] = useState('');
+
+  const SERVICE_TYPES = [
+    { value: 'oil', icon: '🛢️' },
+    { value: 'brake', icon: '🛞' },
+    { value: 'tire', icon: '🔧' },
+    { value: 'engine', icon: '⚙️' },
+    { value: 'electric', icon: '⚡' },
+    { value: 'ac', icon: '❄️' },
+    { value: 'suspension', icon: '🔩' },
+    { value: 'transmission', icon: '🚗' },
+    { value: 'air_filter', icon: '💨' },
+    { value: 'belts_hoses', icon: '🔗' },
+    { value: 'cooling', icon: '🌡️' },
+    { value: 'fuel_system', icon: '⛽' },
+    { value: 'steering', icon: '🎯' },
+    { value: 'exhaust', icon: '💨' },
+    { value: 'drivetrain', icon: '⚙️' },
+    { value: 'fluids', icon: '🧴' },
+    { value: 'general_repair', icon: '🔨' },
+    { value: 'inspection', icon: '📋' },
+    { value: 'maintenance', icon: '🔎' },
+    { value: 'detailing', icon: '✨' },
+    { value: 'battery', icon: '🔋' },
+    { value: 'towing', icon: '🚛' },
+  ].map((s) => ({
+    ...s,
+    label: t(`client.requests.serviceTypes.${s.value}`) || s.value,
+  }));
+
+  const URGENCY_OPTIONS = [
+    { value: 'LOW', labelKey: 'client.requests.urgencyLow', descKey: 'client.requests.urgencyLowDesc', color: 'bg-green-100 text-green-700 border-green-300' },
+    { value: 'MEDIUM', labelKey: 'client.requests.urgencyMedium', descKey: 'client.requests.urgencyMediumDesc', color: 'bg-yellow-100 text-yellow-700 border-yellow-300' },
+    { value: 'HIGH', labelKey: 'client.requests.urgencyHigh', descKey: 'client.requests.urgencyHighDesc', color: 'bg-orange-100 text-orange-700 border-orange-300' },
+    { value: 'EMERGENCY', labelKey: 'client.requests.urgencyEmergency', descKey: 'client.requests.urgencyEmergencyDesc', color: 'bg-red-100 text-red-700 border-red-300' },
+  ];
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -103,7 +102,7 @@ export default function NovaSolicitacaoPage() {
 
   async function handleSubmit() {
     if (!selectedVehicle || !title || !serviceType) {
-      setError('Preencha todos os campos obrigatórios');
+      setError(t('client.requests.errorRequired'));
       return;
     }
 
@@ -125,10 +124,9 @@ export default function NovaSolicitacaoPage() {
         return;
       }
 
-      // Sucesso - redirecionar para solicitações
       router.push('/solicitacoes');
     } catch (err: any) {
-      setError(err.message || 'Erro ao criar solicitação');
+      setError(err.message || t('client.requests.errorRequired'));
     } finally {
       setSubmitting(false);
     }
@@ -136,15 +134,15 @@ export default function NovaSolicitacaoPage() {
 
   function nextStep() {
     if (step === 1 && !selectedVehicle) {
-      setError('Selecione um veículo');
+      setError(t('client.requests.errorVehicle'));
       return;
     }
     if (step === 2 && !serviceType) {
-      setError('Selecione o tipo de serviço');
+      setError(t('client.requests.errorService'));
       return;
     }
     if (step === 3 && !title) {
-      setError('Descreva o serviço');
+      setError(t('client.requests.errorTitle'));
       return;
     }
     setError('');
@@ -156,9 +154,11 @@ export default function NovaSolicitacaoPage() {
     setStep(step - 1);
   }
 
+  const pageTitle = t('client.requests.title') || 'New Request';
+
   if (authLoading || loading) {
     return (
-      <DashboardLayout title="Nova Solicitação">
+      <DashboardLayout title={pageTitle}>
         <div className="max-w-2xl mx-auto">
           <div className="h-64 skeleton rounded-xl"></div>
         </div>
@@ -167,37 +167,34 @@ export default function NovaSolicitacaoPage() {
   }
 
   return (
-    <DashboardLayout title="Nova Solicitação">
+    <DashboardLayout title={pageTitle}>
       <div className="max-w-2xl mx-auto">
-        {/* Header com progresso */}
+        {/* Progress header */}
         <div className="mb-8">
           <button
             onClick={() => router.back()}
             className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
           >
             <ChevronLeft className="w-5 h-5" />
-            Voltar
+            {t('client.requests.back')}
           </button>
-          
+
           <div className="flex items-center gap-2">
             {[1, 2, 3, 4].map((s) => (
               <div
                 key={s}
-                className={`flex-1 h-2 rounded-full ${
-                  s <= step ? 'bg-primary-600' : 'bg-gray-200'
-                }`}
+                className={`flex-1 h-2 rounded-full ${s <= step ? 'bg-primary-600' : 'bg-gray-200'}`}
               />
             ))}
           </div>
           <div className="flex justify-between mt-2 text-sm text-gray-500">
-            <span className={step >= 1 ? 'text-primary-600 font-medium' : ''}>Veículo</span>
-            <span className={step >= 2 ? 'text-primary-600 font-medium' : ''}>Serviço</span>
-            <span className={step >= 3 ? 'text-primary-600 font-medium' : ''}>Detalhes</span>
-            <span className={step >= 4 ? 'text-primary-600 font-medium' : ''}>Confirmar</span>
+            <span className={step >= 1 ? 'text-primary-600 font-medium' : ''}>{t('client.requests.stepVehicle')}</span>
+            <span className={step >= 2 ? 'text-primary-600 font-medium' : ''}>{t('client.requests.stepService')}</span>
+            <span className={step >= 3 ? 'text-primary-600 font-medium' : ''}>{t('client.requests.stepDetails')}</span>
+            <span className={step >= 4 ? 'text-primary-600 font-medium' : ''}>{t('client.requests.stepConfirm')}</span>
           </div>
         </div>
 
-        {/* Error */}
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6 flex items-center gap-3">
             <AlertCircle className="w-5 h-5" />
@@ -205,20 +202,17 @@ export default function NovaSolicitacaoPage() {
           </div>
         )}
 
-        {/* Step 1: Selecionar Veículo */}
+        {/* Step 1: Select Vehicle */}
         {step === 1 && (
           <div className="bg-white rounded-2xl p-6 shadow-soft">
-            <h2 className="text-xl font-bold text-gray-900 mb-6">Selecione o Veículo</h2>
-            
+            <h2 className="text-xl font-bold text-gray-900 mb-6">{t('client.requests.selectVehicle')}</h2>
+
             {vehicles.length === 0 ? (
               <div className="text-center py-8">
                 <Car className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500 mb-4">Você não tem veículos cadastrados</p>
-                <button
-                  onClick={() => router.push('/veiculos/novo')}
-                  className="btn-primary"
-                >
-                  Adicionar Veículo
+                <p className="text-gray-500 mb-4">{t('client.requests.noVehicles')}</p>
+                <button onClick={() => router.push('/veiculos/novo')} className="btn-primary">
+                  {t('client.requests.addVehicle')}
                 </button>
               </div>
             ) : (
@@ -237,17 +231,11 @@ export default function NovaSolicitacaoPage() {
                       <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
                         selectedVehicle === vehicle.id ? 'bg-primary-100' : 'bg-gray-100'
                       }`}>
-                        <Car className={`w-6 h-6 ${
-                          selectedVehicle === vehicle.id ? 'text-primary-600' : 'text-gray-500'
-                        }`} />
+                        <Car className={`w-6 h-6 ${selectedVehicle === vehicle.id ? 'text-primary-600' : 'text-gray-500'}`} />
                       </div>
                       <div>
-                        <p className="font-semibold text-gray-900">
-                          {vehicle.make} {vehicle.model}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {vehicle.year} • {vehicle.plateNumber}
-                        </p>
+                        <p className="font-semibold text-gray-900">{vehicle.make} {vehicle.model}</p>
+                        <p className="text-sm text-gray-500">{vehicle.year} • {vehicle.plateNumber}</p>
                       </div>
                       {selectedVehicle === vehicle.id && (
                         <CheckCircle className="w-6 h-6 text-primary-600 ml-auto" />
@@ -260,11 +248,11 @@ export default function NovaSolicitacaoPage() {
           </div>
         )}
 
-        {/* Step 2: Tipo de Serviço */}
+        {/* Step 2: Service Type */}
         {step === 2 && (
           <div className="bg-white rounded-2xl p-6 shadow-soft">
-            <h2 className="text-xl font-bold text-gray-900 mb-6">Tipo de Serviço</h2>
-            
+            <h2 className="text-xl font-bold text-gray-900 mb-6">{t('client.requests.serviceType')}</h2>
+
             <div className="grid grid-cols-2 gap-3">
               {SERVICE_TYPES.map((type) => (
                 <button
@@ -287,33 +275,33 @@ export default function NovaSolicitacaoPage() {
           </div>
         )}
 
-        {/* Step 3: Detalhes */}
+        {/* Step 3: Details */}
         {step === 3 && (
           <div className="bg-white rounded-2xl p-6 shadow-soft">
-            <h2 className="text-xl font-bold text-gray-900 mb-6">Detalhes do Serviço</h2>
-            
+            <h2 className="text-xl font-bold text-gray-900 mb-6">{t('client.requests.serviceDetails')}</h2>
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Título *
+                  {t('client.requests.titleLabel')}
                 </label>
                 <input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Ex: Troca de óleo e filtros"
+                  placeholder={t('client.requests.titlePlaceholder')}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Descrição
+                  {t('client.requests.descriptionLabel')}
                 </label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Descreva o problema ou serviço desejado..."
+                  placeholder={t('client.requests.descriptionPlaceholder')}
                   rows={4}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
@@ -321,7 +309,7 @@ export default function NovaSolicitacaoPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Urgência
+                  {t('client.requests.urgencyLabel')}
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   {URGENCY_OPTIONS.map((opt) => (
@@ -334,8 +322,8 @@ export default function NovaSolicitacaoPage() {
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
-                      <p className="font-medium">{opt.label}</p>
-                      <p className="text-xs opacity-75">{opt.description}</p>
+                      <p className="font-medium">{t(opt.labelKey)}</p>
+                      <p className="text-xs opacity-75">{t(opt.descKey)}</p>
                     </button>
                   ))}
                 </div>
@@ -343,7 +331,7 @@ export default function NovaSolicitacaoPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Data preferencial (opcional)
+                  {t('client.requests.dateLabel')}
                 </label>
                 <input
                   type="date"
@@ -357,14 +345,14 @@ export default function NovaSolicitacaoPage() {
           </div>
         )}
 
-        {/* Step 4: Confirmar */}
+        {/* Step 4: Confirm */}
         {step === 4 && (
           <div className="bg-white rounded-2xl p-6 shadow-soft">
-            <h2 className="text-xl font-bold text-gray-900 mb-6">Confirmar Solicitação</h2>
-            
+            <h2 className="text-xl font-bold text-gray-900 mb-6">{t('client.requests.confirmTitle')}</h2>
+
             <div className="space-y-4">
               <div className="bg-gray-50 rounded-xl p-4">
-                <p className="text-sm text-gray-500 mb-1">Veículo</p>
+                <p className="text-sm text-gray-500 mb-1">{t('client.requests.vehicleLabel')}</p>
                 <p className="font-semibold text-gray-900">
                   {vehicles.find(v => v.id === selectedVehicle)?.make}{' '}
                   {vehicles.find(v => v.id === selectedVehicle)?.model}{' '}
@@ -373,58 +361,52 @@ export default function NovaSolicitacaoPage() {
               </div>
 
               <div className="bg-gray-50 rounded-xl p-4">
-                <p className="text-sm text-gray-500 mb-1">Serviço</p>
+                <p className="text-sm text-gray-500 mb-1">{t('client.requests.serviceLabel')}</p>
                 <p className="font-semibold text-gray-900">{title}</p>
-                {description && (
-                  <p className="text-sm text-gray-600 mt-1">{description}</p>
-                )}
+                {description && <p className="text-sm text-gray-600 mt-1">{description}</p>}
               </div>
 
               <div className="bg-gray-50 rounded-xl p-4">
-                <p className="text-sm text-gray-500 mb-1">Urgência</p>
+                <p className="text-sm text-gray-500 mb-1">{t('client.requests.urgencyConfirmLabel')}</p>
                 <p className="font-semibold text-gray-900">
-                  {URGENCY_OPTIONS.find(u => u.value === urgency)?.label}
+                  {t(URGENCY_OPTIONS.find(u => u.value === urgency)?.labelKey || '')}
                 </p>
               </div>
 
               {preferredDate && (
                 <div className="bg-gray-50 rounded-xl p-4">
-                  <p className="text-sm text-gray-500 mb-1">Data preferencial</p>
+                  <p className="text-sm text-gray-500 mb-1">{t('client.requests.dateConfirmLabel')}</p>
                   <p className="font-semibold text-gray-900">
-                    {new Date(preferredDate).toLocaleDateString('pt-BR')}
+                    {new Date(preferredDate + 'T00:00:00').toLocaleDateString()}
                   </p>
                 </div>
               )}
 
               <div className="bg-primary-50 rounded-xl p-4 border border-primary-200">
                 <p className="text-sm text-primary-700">
-                  🔔 Você receberá orçamentos de fornecedores próximos. 
-                  Compare os preços e escolha o melhor para você!
+                  🔔 {t('client.requests.notification')}
                 </p>
               </div>
             </div>
           </div>
         )}
 
-        {/* Navigation Buttons */}
+        {/* Navigation */}
         <div className="flex justify-between mt-6">
           {step > 1 ? (
             <button
               onClick={prevStep}
               className="px-6 py-3 border border-gray-300 rounded-xl text-gray-700 font-medium hover:bg-gray-50"
             >
-              Voltar
+              {t('client.requests.back')}
             </button>
           ) : (
             <div />
           )}
 
           {step < 4 ? (
-            <button
-              onClick={nextStep}
-              className="btn-primary flex items-center gap-2"
-            >
-              Continuar
+            <button onClick={nextStep} className="btn-primary flex items-center gap-2">
+              {t('client.requests.continue')}
               <ChevronRight className="w-5 h-5" />
             </button>
           ) : (
@@ -436,12 +418,12 @@ export default function NovaSolicitacaoPage() {
               {submitting ? (
                 <>
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Enviando...
+                  {t('client.requests.sending')}
                 </>
               ) : (
                 <>
                   <CheckCircle className="w-5 h-5" />
-                  Criar Solicitação
+                  {t('client.requests.send')}
                 </>
               )}
             </button>

@@ -1,4 +1,4 @@
-import React, { useState, ReactNode } from "react";
+import React, { useState, ReactNode, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useAuth } from "../contexts/AuthContext";
@@ -18,6 +18,7 @@ import {
   CreditCard,
   Receipt,
   Crown,
+  CheckCheck,
 } from "lucide-react";
 
 interface DashboardLayoutProps {
@@ -38,6 +39,15 @@ const menuItems = [
   { href: "/perfil", labelKey: "client.nav.profile", icon: User },
 ];
 
+interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  read: boolean;
+  createdAt: string;
+  type?: string;
+}
+
 export default function DashboardLayout({
   children,
   title,
@@ -47,8 +57,65 @@ export default function DashboardLayout({
   const { translate, language, setLanguage } = useI18n();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const notifRef = useRef<HTMLDivElement>(null);
 
   const tr = translate;
+
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setNotifOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  async function fetchNotifications() {
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/notifications`,
+        {
+          headers: {
+            Authorization: `Bearer ${document.cookie
+              .split("; ")
+              .find((r) => r.startsWith("tt_client_token="))
+              ?.split("=")[1] || ""}`,
+          },
+        }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        const list = data?.data || data || [];
+        setNotifications(Array.isArray(list) ? list : []);
+      }
+    } catch {
+      setNotifications([]);
+    }
+  }
+
+  async function markAllRead() {
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/notifications/read-all`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${document.cookie
+            .split("; ")
+            .find((r) => r.startsWith("tt_client_token="))
+            ?.split("=")[1] || ""}`,
+        },
+      });
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    } catch {}
+  }
+
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   const isActive = (href: string) => {
     if (href === "/dashboard") {
@@ -59,7 +126,6 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
@@ -73,7 +139,6 @@ export default function DashboardLayout({
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        {/* Logo */}
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-100">
           <Link href="/dashboard" className="flex items-center gap-2">
             <img src="/favicon.png" alt="TechTrust" className="w-8 h-8 rounded-lg" />
@@ -89,7 +154,6 @@ export default function DashboardLayout({
           </button>
         </div>
 
-        {/* User Info */}
         <div className="p-4 border-b border-gray-100">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
@@ -106,7 +170,6 @@ export default function DashboardLayout({
           </div>
         </div>
 
-        {/* Navigation */}
         <nav className="p-4 space-y-1">
           {menuItems.map((item) => {
             const Icon = item.icon;
@@ -130,7 +193,6 @@ export default function DashboardLayout({
           })}
         </nav>
 
-        {/* Logout */}
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-100">
           <button
             onClick={logout}
@@ -144,7 +206,6 @@ export default function DashboardLayout({
 
       {/* Main Content */}
       <div className="lg:ml-64">
-        {/* Header */}
         <header className="sticky top-0 z-30 bg-white border-b border-gray-200">
           <div className="flex items-center justify-between h-16 px-4 lg:px-6">
             <div className="flex items-center gap-4">
@@ -162,11 +223,71 @@ export default function DashboardLayout({
                 <span className="sr-only">{tr("common.language")}</span>
                 <LangSelector language={language} setLanguage={setLanguage} />
               </div>
-              {/* Notifications */}
-              <button className="relative p-2 hover:bg-gray-100 rounded-lg">
-                <Bell className="w-5 h-5 text-gray-600" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-              </button>
+
+              {/* Notification Bell */}
+              <div className="relative" ref={notifRef}>
+                <button
+                  onClick={() => setNotifOpen(!notifOpen)}
+                  className="relative p-2 hover:bg-gray-100 rounded-lg"
+                  aria-label={tr("common.notifications.title") || "Notifications"}
+                >
+                  <Bell className="w-5 h-5 text-gray-600" />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 rounded-full text-white text-[10px] flex items-center justify-center font-bold">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
+                </button>
+
+                {notifOpen && (
+                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-200 z-50 overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                      <h3 className="font-semibold text-gray-900 text-sm">
+                        {tr("common.notifications.title") || "Notifications"}
+                      </h3>
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={markAllRead}
+                          className="flex items-center gap-1 text-xs text-primary-600 hover:text-primary-700"
+                        >
+                          <CheckCheck className="w-3 h-3" />
+                          {tr("common.notifications.markAllRead") || "Mark all read"}
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="max-h-80 overflow-y-auto">
+                      {notifications.length === 0 ? (
+                        <div className="px-4 py-8 text-center">
+                          <Bell className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                          <p className="text-sm font-medium text-gray-500">
+                            {tr("common.notifications.empty") || "No notifications"}
+                          </p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            {tr("common.notifications.emptyDesc") || "You're all caught up!"}
+                          </p>
+                        </div>
+                      ) : (
+                        notifications.map((n) => (
+                          <div
+                            key={n.id}
+                            className={`px-4 py-3 border-b border-gray-50 hover:bg-gray-50 transition-colors ${!n.read ? "bg-primary-50/40" : ""}`}
+                          >
+                            {!n.read && (
+                              <span className="inline-block w-2 h-2 bg-primary-500 rounded-full mr-2 align-middle" />
+                            )}
+                            <p className="text-sm font-medium text-gray-900 inline">{n.title}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">{n.message}</p>
+                            <p className="text-xs text-gray-400 mt-1">
+                              {new Date(n.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* User Menu */}
               <div className="relative">
@@ -196,13 +317,6 @@ export default function DashboardLayout({
                       >
                         {tr("client.layout.profile")}
                       </Link>
-                      <Link
-                        href="/configuracoes"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                        onClick={() => setUserMenuOpen(false)}
-                      >
-                        {tr("client.layout.settings")}
-                      </Link>
                       <hr className="my-1" />
                       <button
                         onClick={logout}
@@ -218,7 +332,6 @@ export default function DashboardLayout({
           </div>
         </header>
 
-        {/* Page Content */}
         <main className="p-4 lg:p-6">{children}</main>
       </div>
     </div>
