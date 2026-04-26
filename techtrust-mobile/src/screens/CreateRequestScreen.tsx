@@ -2259,131 +2259,151 @@ export default function CreateRequestScreen({ navigation }: any) {
 
   // Service types — aligned with Mobile App Service & Diagnostic Tree (Feb 2026)
   // Icons use Ionicons library
-  const serviceTypes = [
+  const serviceTypes: { id: string; label: string; icon: string; iconLib?: "mci"; hasProviders: boolean }[] = [
     // Maintenance
     {
       id: "oil",
       label: t.createRequest?.serviceOilChange || "Oil Change",
-      icon: "flask",           // oil/fluid container
+      icon: "oil",             // MCi: oil drop
+      iconLib: "mci",
       hasProviders: true,
     },
     {
       id: "air_filter",
       label: t.createRequest?.serviceAirFilter || "Air Filter Service",
-      icon: "funnel",          // funnel = filter shape
+      icon: "air-filter",      // MCi: air filter
+      iconLib: "mci",
       hasProviders: true,
     },
     {
       id: "fuel_system",
       label: t.createRequest?.serviceFuelSystem || "Fuel System",
-      icon: "flame",           // flame = fuel/combustion
+      icon: "gas-station",     // MCi: gas pump
+      iconLib: "mci",
       hasProviders: true,
     },
     {
       id: "brake",
       label: t.createRequest?.serviceBrakes || "Brakes",
-      icon: "disc",            // disc brake
+      icon: "car-brake-abs",   // MCi: ABS brake
+      iconLib: "mci",
       hasProviders: true,
     },
     {
       id: "cooling",
       label: t.createRequest?.serviceCooling || "Cooling System",
-      icon: "thermometer",     // temperature gauge
+      icon: "coolant-temperature", // MCi: coolant temp gauge
+      iconLib: "mci",
       hasProviders: true,
     },
     {
       id: "tire",
       label: t.createRequest?.serviceTires || "Tires & Wheels",
-      icon: "sync",            // circular rotation = tire/wheel
+      icon: "car-tire-alert",  // MCi: tire icon
+      iconLib: "mci",
       hasProviders: true,
     },
     {
       id: "belts_hoses",
       label: t.createRequest?.serviceBeltsHoses || "Belts & Hoses",
-      icon: "link",            // chain/link = belts
+      icon: "pipe-wrench",     // MCi: pipe/hose wrench
+      iconLib: "mci",
       hasProviders: true,
     },
     // Repairs
     {
       id: "ac",
       label: t.createRequest?.serviceAC || "A/C & Heating",
-      icon: "snow",            // snowflake = air conditioning
+      icon: "snowflake",       // MCi: snowflake = A/C
+      iconLib: "mci",
       hasProviders: true,
     },
     {
       id: "steering",
       label: t.createRequest?.serviceSteering || "Steering & Suspension",
-      icon: "navigate",        // navigation/direction = steering
+      icon: "steering",        // MCi: steering wheel
+      iconLib: "mci",
       hasProviders: true,
     },
     {
       id: "electric",
       label: t.createRequest?.serviceElectrical || "Electrical System",
-      icon: "flash",           // lightning bolt = electrical
+      icon: "lightning-bolt",  // MCi: lightning bolt
+      iconLib: "mci",
       hasProviders: true,
     },
     {
       id: "exhaust",
       label: t.createRequest?.serviceExhaust || "Exhaust System",
-      icon: "arrow-up-circle", // gases going upward = exhaust
+      icon: "pipe",            // MCi: pipe = exhaust pipe
+      iconLib: "mci",
       hasProviders: true,
     },
     {
       id: "drivetrain",
       label: t.createRequest?.serviceDrivetrain || "Drivetrain",
-      icon: "speedometer",     // speed = drivetrain/driveshaft
+      icon: "car-cog",         // MCi: car with cog = drivetrain
+      iconLib: "mci",
       hasProviders: true,
     },
     {
       id: "engine",
       label: t.createRequest?.serviceEngine || "Engine",
-      icon: "cog",             // gear = engine
+      icon: "engine",          // MCi: engine block
+      iconLib: "mci",
       hasProviders: true,
     },
     {
       id: "transmission",
       label: t.createRequest?.serviceTransmission || "Transmission",
-      icon: "git-merge",       // branching gears = transmission
+      icon: "car-clutch",      // MCi: clutch/gearbox
+      iconLib: "mci",
       hasProviders: true,
     },
     {
       id: "battery",
       label: t.createRequest?.serviceBattery || "Battery",
-      icon: "battery-charging",
+      icon: "car-battery",     // MCi: car battery
+      iconLib: "mci",
       hasProviders: true,
     },
     // Fluid Services & Packages
     {
       id: "fluids",
       label: t.createRequest?.serviceFluidServices || "Fluid Services",
-      icon: "beaker",          // lab beaker = fluids (distinct from oil flask)
+      icon: "water-pump",      // MCi: water/fluid pump
+      iconLib: "mci",
       hasProviders: true,
     },
     {
       id: "packages",
       label: t.createRequest?.servicePreventive || "Preventive Maintenance",
-      icon: "layers",          // stacked layers = bundled service package
+      icon: "car-wrench",      // MCi: car being serviced
+      iconLib: "mci",
       hasProviders: true,
     },
     // Diagnostics
     {
       id: "diagnostic",
       label: t.serviceTypes?.diagnostics || "Diagnostics",
-      icon: "pulse",           // pulse/heartbeat = diagnostic scan
+      icon: "car-info",        // MCi: car diagnostic info
+      iconLib: "mci",
       hasProviders: true,
     },
     // Detailing
     {
       id: "detailing",
       label: t.createRequest?.serviceDetailing || "Detailing",
-      icon: "sparkles",        // sparkles = clean/shine
+      icon: "spray-bottle",    // MCi: spray bottle = detailing
+      iconLib: "mci",
       hasProviders: true,
     },
     // SOS / Roadside
     {
       id: "towing",
       label: t.createRequest?.serviceTowing || "Towing",
-      icon: "car-sport",       // car being moved = tow
+      icon: "tow-truck",       // MCi: tow truck
+      iconLib: "mci",
       hasProviders: true,
     },
     {
@@ -2392,20 +2412,23 @@ export default function CreateRequestScreen({ navigation }: any) {
         t.serviceTypes?.roadsideAssistance ||
         t.createRequest?.serviceRoadside ||
         "Roadside Assist",
-      icon: "alert-circle",    // alert = emergency roadside
+      icon: "hazard-lights",   // MCi: hazard lights = emergency
+      iconLib: "mci",
       hasProviders: true,
     },
     {
       id: "lockout",
       label: t.createRequest?.serviceLockout || "Lockout",
-      icon: "key",             // key = lockout service
+      icon: "car-key",         // MCi: car key = lockout
+      iconLib: "mci",
       hasProviders: true,
     },
     // General
     {
       id: "general_repair",
       label: t.serviceTypes?.generalRepair || "General Repair",
-      icon: "construct",       // tools = repair
+      icon: "wrench",          // MCi: wrench = repair
+      iconLib: "mci",
       hasProviders: true,
     },
   ];
@@ -3022,11 +3045,19 @@ export default function CreateRequestScreen({ navigation }: any) {
                 ]}
                 onPress={() => handleServiceSelect(service.id, service.label)}
               >
-                <Ionicons
-                  name={service.icon as any}
-                  size={24}
-                  color={selectedService === service.id ? "#2B5EA7" : "#6b7280"}
-                />
+                {service.iconLib === "mci" ? (
+                  <MaterialCommunityIcons
+                    name={service.icon as any}
+                    size={26}
+                    color={selectedService === service.id ? "#2B5EA7" : "#6b7280"}
+                  />
+                ) : (
+                  <Ionicons
+                    name={service.icon as any}
+                    size={24}
+                    color={selectedService === service.id ? "#2B5EA7" : "#6b7280"}
+                  />
+                )}
                 <Text
                   style={[
                     styles.serviceLabel,
