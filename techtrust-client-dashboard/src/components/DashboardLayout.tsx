@@ -19,7 +19,46 @@ import {
   Receipt,
   Crown,
   CheckCheck,
+  MessageCircle,
+  Bot,
+  Send,
+  Loader2,
 } from "lucide-react";
+
+interface ChatMessage {
+  id: string;
+  from: "bot" | "user";
+  text: string;
+  time: string;
+  quickReplies?: string[];
+}
+
+const BOT_REPLIES: Record<string, string> = {
+  quote: "To get a quote, go to **New Request**, select your vehicle and service type. Providers will respond within minutes.",
+  payment: "We accept credit/debit cards via Stripe. Manage payment methods under **My Profile → Payment Methods**.",
+  cancel: "You can cancel a pending request from **My Requests**. Select the request and tap 'Cancel'. Free before a provider is assigned.",
+  account: "Visit **My Profile → Personal Data** to update your info, or **Security** to change your password.",
+  vehicle: "Add or manage vehicles from the **My Vehicles** section. Tap the + button to register a new one.",
+  invoice: "Service invoices are in **My Requests** after a job is completed. You can view, accept, or dispute them.",
+  human: "Connecting you with a support agent. Our team responds within 2 hours (Mon–Fri, 8am–8pm EST).",
+  default: "Thanks for reaching out! Support is available Mon–Fri 8am–8pm EST. You can also email support@techtrust.app.",
+};
+
+function getChatReply(text: string): { text: string; quickReplies?: string[] } {
+  const l = text.toLowerCase();
+  if (l.includes("quote") || l.includes("estimate") || l.includes("price")) return { text: BOT_REPLIES.quote };
+  if (l.includes("pay") || l.includes("card") || l.includes("billing")) return { text: BOT_REPLIES.payment };
+  if (l.includes("cancel")) return { text: BOT_REPLIES.cancel };
+  if (l.includes("account") || l.includes("profile") || l.includes("password")) return { text: BOT_REPLIES.account };
+  if (l.includes("vehicle") || l.includes("car") || l.includes("truck")) return { text: BOT_REPLIES.vehicle };
+  if (l.includes("invoice") || l.includes("bill")) return { text: BOT_REPLIES.invoice };
+  if (l.includes("human") || l.includes("agent") || l.includes("person")) return { text: BOT_REPLIES.human };
+  return { text: BOT_REPLIES.default, quickReplies: ["Get a quote", "Payment help", "Cancel a request", "Talk to agent"] };
+}
+
+function nowTime() {
+  return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -60,6 +99,23 @@ export default function DashboardLayout({
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const notifRef = useRef<HTMLDivElement>(null);
+
+  // Floating chat
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatInput, setChatInput] = useState("");
+  const [chatTyping, setChatTyping] = useState(false);
+  const [chatHasNew, setChatHasNew] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
+    {
+      id: "1",
+      from: "bot",
+      text: "Hi! I'm TechTrust Support. How can I help you today?",
+      time: nowTime(),
+      quickReplies: ["Get a quote", "Payment help", "Cancel a request", "Talk to agent"],
+    },
+  ]);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const chatInputRef = useRef<HTMLInputElement>(null);
 
   const tr = translate;
 
@@ -116,6 +172,33 @@ export default function DashboardLayout({
   }
 
   const unreadCount = notifications.filter((n) => !n.read).length;
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages, chatTyping]);
+
+  useEffect(() => {
+    if (chatOpen) {
+      setChatHasNew(false);
+      setTimeout(() => chatInputRef.current?.focus(), 200);
+    }
+  }, [chatOpen]);
+
+  function sendChatMessage(text?: string) {
+    const content = (text || chatInput).trim();
+    if (!content) return;
+    setChatInput("");
+    const userMsg: ChatMessage = { id: Date.now().toString(), from: "user", text: content, time: nowTime() };
+    setChatMessages((p) => [...p, userMsg]);
+    setChatTyping(true);
+    setTimeout(() => {
+      const reply = getChatReply(content);
+      setChatTyping(false);
+      const botMsg: ChatMessage = { id: (Date.now() + 1).toString(), from: "bot", text: reply.text, time: nowTime(), quickReplies: reply.quickReplies };
+      setChatMessages((p) => [...p, botMsg]);
+      if (!chatOpen) setChatHasNew(true);
+    }, 1200 + Math.random() * 500);
+  }
 
   const isActive = (href: string) => {
     if (href === "/dashboard") {
@@ -333,6 +416,128 @@ export default function DashboardLayout({
         </header>
 
         <main className="p-4 lg:p-6">{children}</main>
+      </div>
+
+      {/* ── Floating Support Chat (left side of content area) ── */}
+      <div className="fixed bottom-6 left-4 lg:left-[272px] z-40 flex flex-col items-start gap-3">
+        {/* Chat panel */}
+        {chatOpen && (
+          <div className="w-[340px] sm:w-[380px] bg-white rounded-2xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden"
+            style={{ height: "460px" }}>
+            {/* Header */}
+            <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-primary-600 to-primary-700 flex-shrink-0">
+              <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                <Bot className="w-4 h-4 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="font-bold text-white text-sm">TechTrust Support</p>
+                <p className="text-[11px] text-primary-200 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full" /> Online
+                </p>
+              </div>
+              <button
+                onClick={() => setChatOpen(false)}
+                className="w-7 h-7 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors"
+              >
+                <X className="w-3.5 h-3.5 text-white" />
+              </button>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3 bg-gray-50 text-sm">
+              {chatMessages.map((msg) => (
+                <div key={msg.id} className={`flex gap-2 ${msg.from === "user" ? "flex-row-reverse" : "flex-row"}`}>
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${msg.from === "bot" ? "bg-primary-100" : "bg-gray-200"}`}>
+                    {msg.from === "bot"
+                      ? <Bot className="w-3.5 h-3.5 text-primary-600" />
+                      : <User className="w-3.5 h-3.5 text-gray-600" />}
+                  </div>
+                  <div className={`max-w-[78%] flex flex-col gap-1 ${msg.from === "user" ? "items-end" : "items-start"}`}>
+                    <div className={`px-3 py-2 rounded-2xl leading-relaxed ${
+                      msg.from === "user"
+                        ? "bg-primary-600 text-white rounded-tr-sm"
+                        : "bg-white text-gray-800 shadow-sm border border-gray-100 rounded-tl-sm"
+                    }`}>
+                      {msg.text.split("**").map((p, i) =>
+                        i % 2 === 1 ? <strong key={i}>{p}</strong> : <span key={i}>{p}</span>
+                      )}
+                    </div>
+                    <span className="text-[10px] text-gray-400 px-1">{msg.time}</span>
+                    {msg.quickReplies && (
+                      <div className="flex flex-wrap gap-1 mt-0.5">
+                        {msg.quickReplies.map((qr) => (
+                          <button key={qr} onClick={() => sendChatMessage(qr)}
+                            className="text-[11px] px-2.5 py-1 rounded-full border border-primary-200 text-primary-600 hover:bg-primary-50 font-medium transition-colors">
+                            {qr}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {chatTyping && (
+                <div className="flex gap-2 items-end">
+                  <div className="w-6 h-6 rounded-full bg-primary-100 flex items-center justify-center">
+                    <Bot className="w-3.5 h-3.5 text-primary-600" />
+                  </div>
+                  <div className="bg-white rounded-2xl rounded-tl-sm px-3 py-2.5 shadow-sm border border-gray-100 flex items-center gap-1">
+                    {[0, 1, 2].map((i) => (
+                      <span key={i} className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"
+                        style={{ animationDelay: `${i * 0.15}s` }} />
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div ref={chatEndRef} />
+            </div>
+
+            {/* Input */}
+            <div className="px-3 py-2.5 bg-white border-t border-gray-100 flex-shrink-0">
+              <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2 border border-gray-200 focus-within:border-primary-400 focus-within:bg-white transition-all">
+                <input
+                  ref={chatInputRef}
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendChatMessage()}
+                  placeholder="Type a message..."
+                  className="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 outline-none"
+                />
+                <button
+                  onClick={() => sendChatMessage()}
+                  disabled={!chatInput.trim() || chatTyping}
+                  className="w-7 h-7 bg-primary-600 rounded-lg flex items-center justify-center hover:bg-primary-700 transition-colors disabled:opacity-40"
+                >
+                  {chatTyping ? <Loader2 className="w-3.5 h-3.5 text-white animate-spin" /> : <Send className="w-3.5 h-3.5 text-white" />}
+                </button>
+              </div>
+              <p className="text-center text-[10px] text-gray-400 mt-1.5">
+                Powered by TechTrust AI ·{" "}
+                <button onClick={() => sendChatMessage("human")} className="underline hover:text-gray-600">
+                  Talk to a human
+                </button>
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Toggle button */}
+        <button
+          onClick={() => setChatOpen((p) => !p)}
+          className={`relative flex items-center gap-2.5 px-4 py-3 rounded-2xl shadow-lg transition-all font-semibold text-sm ${
+            chatOpen
+              ? "bg-gray-800 text-white hover:bg-gray-700"
+              : "bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:shadow-primary-200 hover:shadow-xl hover:scale-105"
+          }`}
+        >
+          {chatOpen ? <X className="w-4 h-4" /> : <MessageCircle className="w-4 h-4" />}
+          <span>{chatOpen ? "Close" : "Support"}</span>
+          {chatHasNew && !chatOpen && (
+            <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white" />
+          )}
+        </button>
       </div>
     </div>
   );

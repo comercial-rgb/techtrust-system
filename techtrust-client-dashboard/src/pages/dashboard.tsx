@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
 import DashboardLayout from '../components/DashboardLayout';
@@ -253,6 +253,34 @@ export default function DashboardPage() {
             <Plus className="w-5 h-5" />
             {t.client.dashboard.newRequest}
           </button>
+        </div>
+      </div>
+
+      {/* Popular Services */}
+      <div className="mb-8">
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Popular Services</span>
+        </div>
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+          {[
+            { label: 'Oil Change', serviceType: 'oil', Icon: Droplets, bg: 'bg-amber-100', color: 'text-amber-600' },
+            { label: 'Brakes', serviceType: 'brake', Icon: Disc, bg: 'bg-red-100', color: 'text-red-600' },
+            { label: 'Diagnostics', serviceType: 'diagnostic', Icon: Zap, bg: 'bg-violet-100', color: 'text-violet-600' },
+            { label: 'A/C', serviceType: 'ac', Icon: Wrench, bg: 'bg-sky-100', color: 'text-sky-600' },
+            { label: 'Tires', serviceType: 'tire', Icon: Car, bg: 'bg-emerald-100', color: 'text-emerald-600' },
+            { label: 'Inspection', serviceType: 'inspection', Icon: ClipboardList, bg: 'bg-indigo-100', color: 'text-indigo-600' },
+          ].map(({ label, serviceType, Icon, bg, color }) => (
+            <button
+              key={serviceType}
+              onClick={() => router.push(`/solicitacoes/nova?serviceType=${serviceType}`)}
+              className="flex flex-col items-center gap-2.5 bg-white rounded-2xl p-4 shadow-soft hover:shadow-md hover:-translate-y-0.5 transition-all group"
+            >
+              <div className={`w-12 h-12 ${bg} rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                <Icon className={`w-6 h-6 ${color}`} />
+              </div>
+              <span className="text-xs font-semibold text-gray-700 text-center leading-tight">{label}</span>
+            </button>
+          ))}
         </div>
       </div>
 
