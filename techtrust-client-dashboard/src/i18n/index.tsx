@@ -41,15 +41,14 @@ function traverse(obj: any, path: string): string {
 }
 
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguageState] = useState<Language>('pt');
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const saved = window.localStorage.getItem(STORAGE_KEY) as Language | null;
-    if (saved === 'pt' || saved === 'en' || saved === 'es') {
-      setLanguageState(saved);
-    }
-  }, []);
+  // US market: default to 'en'. Read localStorage synchronously so the first
+  // render already uses the saved language (avoids PT flash on hydration).
+  const [language, setLanguageState] = useState<Language>(() => {
+    if (typeof window === 'undefined') return 'en';
+    const saved = window.localStorage.getItem(STORAGE_KEY);
+    if (saved === 'pt' || saved === 'en' || saved === 'es') return saved as Language;
+    return 'en';
+  });
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
