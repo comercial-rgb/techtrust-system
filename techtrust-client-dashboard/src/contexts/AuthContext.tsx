@@ -22,6 +22,7 @@ interface User {
   role: "CUSTOMER";
   memberSince?: string;
   avatarUrl?: string;
+  createdAt?: string;
 }
 
 interface AuthContextType {
