@@ -438,6 +438,27 @@ class ApiService {
   // SUBSCRIPTIONS
   // ============================================
 
+  // ============================================
+  // CONTENT (Banners, Offers, Home)
+  // ============================================
+
+  async getHomeData() {
+    return this.request<{
+      banners: any[];
+      offers: any[];
+      featuredProviders: any[];
+      articles: any[];
+    }>("/content/home-data");
+  }
+
+  async getBanners() {
+    return this.request<any[]>("/content/banners");
+  }
+
+  async getOffers() {
+    return this.request<any[]>("/content/offers");
+  }
+
   async getSubscriptionPlans() {
     return this.request<any[]>("/content/subscription-plans");
   }

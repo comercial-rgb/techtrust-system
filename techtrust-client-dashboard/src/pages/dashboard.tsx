@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
 import DashboardLayout from '../components/DashboardLayout';
@@ -21,7 +21,51 @@ import {
   ClipboardList,
   Zap,
   ArrowRight,
+  Tag,
+  ChevronLeft,
+  ExternalLink,
 } from 'lucide-react';
+
+interface Banner {
+  id: string;
+  title: string;
+  subtitle?: string;
+  imageUrl: string;
+  linkUrl?: string;
+  linkType?: string;
+}
+
+interface SpecialOffer {
+  id: string;
+  title: string;
+  description: string;
+  imageUrl?: string;
+  discountLabel: string;
+  discountType: string;
+  discountValue?: number;
+  promoCode?: string;
+  serviceType?: string;
+  validUntil?: string;
+}
+
+const OFFER_GRADIENTS = [
+  'from-amber-500 to-orange-600',
+  'from-rose-500 to-red-600',
+  'from-emerald-500 to-green-600',
+  'from-blue-500 to-indigo-600',
+  'from-violet-500 to-purple-600',
+  'from-teal-500 to-cyan-600',
+];
+
+const SERVICE_ICON_MAP: Record<string, any> = {
+  oil: Droplets,
+  brake: Disc,
+  inspection: ClipboardList,
+  electric: Zap,
+  tire: Car,
+  transmission: Wrench,
+  default: Tag,
+};
 
 interface Vehicle {
   id: string;
@@ -51,6 +95,10 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
+  const [banners, setBanners] = useState<Banner[]>([]);
+  const [offers, setOffers] = useState<SpecialOffer[]>([]);
+  const [activeBanner, setActiveBanner] = useState(0);
+  const bannerTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const [stats, setStats] = useState({
     activeServices: 0,
     pendingQuotes: 0,
@@ -70,14 +118,28 @@ export default function DashboardPage() {
     }
   }, [isAuthenticated]);
 
+  useEffect(() => {
+    if (banners.length > 1) {
+      bannerTimer.current = setInterval(() => {
+        setActiveBanner(prev => (prev + 1) % banners.length);
+      }, 4000);
+    }
+    return () => { if (bannerTimer.current) clearInterval(bannerTimer.current); };
+  }, [banners.length]);
+
   async function loadDashboardData() {
     try {
-      // Carregar dados em paralelo da API
-      const [vehiclesRes, requestsRes, workOrdersRes] = await Promise.all([
+      const [vehiclesRes, requestsRes, workOrdersRes, homeDataRes] = await Promise.all([
         api.getVehicles(),
         api.getServiceRequests(),
         api.getWorkOrders(),
+        api.getHomeData(),
       ]);
+
+      if (homeDataRes.data) {
+        setBanners(homeDataRes.data.banners || []);
+        setOffers(homeDataRes.data.offers || []);
+      }
 
       // Veículos
       if (vehiclesRes.data) {
@@ -194,64 +256,128 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Promotional Offers */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-gray-900">Special Offers</h3>
-          <button
-            onClick={() => router.push('/solicitacoes/nova')}
-            className="text-sm text-primary-600 hover:text-primary-700 font-semibold flex items-center gap-1"
-          >
-            Book now <ArrowRight className="w-4 h-4" />
-          </button>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {/* Oil Change */}
-          <div
-            onClick={() => router.push('/solicitacoes/nova')}
-            className="relative bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-5 text-white overflow-hidden cursor-pointer hover:shadow-xl hover:scale-[1.02] transition-all"
-          >
-            <div className="absolute -top-6 -right-6 w-28 h-28 rounded-full bg-white/10" />
-            <div className="absolute -bottom-4 -left-4 w-20 h-20 rounded-full bg-white/10" />
-            <Droplets className="w-8 h-8 mb-3 relative z-10" />
-            <p className="font-bold text-lg mb-1 relative z-10">Oil Change Special</p>
-            <p className="text-sm text-amber-100 mb-4 relative z-10">Full synthetic + filter included</p>
-            <span className="inline-flex items-center gap-1 bg-white/25 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold relative z-10">
-              Save up to 20%
-            </span>
-          </div>
+      {/* Banner Carousel — only when admin has active banners */}
+      {banners.length > 0 && (
+        <div className="relative mb-8 rounded-2xl overflow-hidden shadow-lg" style={{ height: '200px' }}>
+          {banners.map((banner, idx) => (
+            <div
+              key={banner.id}
+              className={`absolute inset-0 transition-opacity duration-700 ${idx === activeBanner ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+            >
+              {/* Background image */}
+              <img
+                src={banner.imageUrl}
+                alt={banner.title}
+                className="w-full h-full object-cover"
+              />
+              {/* Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent" />
+              {/* Text content */}
+              <div className="absolute inset-0 flex flex-col justify-end p-6">
+                <h3 className="text-white text-xl font-bold leading-tight mb-1">{banner.title}</h3>
+                {banner.subtitle && <p className="text-white/80 text-sm mb-3">{banner.subtitle}</p>}
+                {banner.linkUrl && (
+                  <button
+                    onClick={() => {
+                      if (banner.linkType === 'external') window.open(banner.linkUrl, '_blank');
+                      else router.push(banner.linkUrl!);
+                    }}
+                    className="self-start flex items-center gap-1.5 bg-white text-gray-900 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-gray-100 transition-colors"
+                  >
+                    Learn more <ExternalLink className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
 
-          {/* Brake Inspection */}
-          <div
-            onClick={() => router.push('/solicitacoes/nova')}
-            className="relative bg-gradient-to-br from-rose-500 to-red-600 rounded-2xl p-5 text-white overflow-hidden cursor-pointer hover:shadow-xl hover:scale-[1.02] transition-all"
-          >
-            <div className="absolute -top-6 -right-6 w-28 h-28 rounded-full bg-white/10" />
-            <div className="absolute -bottom-4 -left-4 w-20 h-20 rounded-full bg-white/10" />
-            <Disc className="w-8 h-8 mb-3 relative z-10" />
-            <p className="font-bold text-lg mb-1 relative z-10">Brake Inspection</p>
-            <p className="text-sm text-rose-100 mb-4 relative z-10">Complete brake check & diagnosis</p>
-            <span className="inline-flex items-center gap-1 bg-white/25 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold relative z-10">
-              Free estimate
-            </span>
-          </div>
+          {/* Prev / Next arrows */}
+          {banners.length > 1 && (
+            <>
+              <button
+                onClick={() => { setActiveBanner(p => (p - 1 + banners.length) % banners.length); if (bannerTimer.current) clearInterval(bannerTimer.current); }}
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/30 hover:bg-black/50 rounded-full flex items-center justify-center text-white transition-colors z-10"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => { setActiveBanner(p => (p + 1) % banners.length); if (bannerTimer.current) clearInterval(bannerTimer.current); }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/30 hover:bg-black/50 rounded-full flex items-center justify-center text-white transition-colors z-10"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+              {/* Dots */}
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+                {banners.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setActiveBanner(i)}
+                    className={`rounded-full transition-all ${i === activeBanner ? 'w-5 h-2 bg-white' : 'w-2 h-2 bg-white/50'}`}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
-          {/* Full Inspection */}
-          <div
-            onClick={() => router.push('/solicitacoes/nova')}
-            className="relative bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl p-5 text-white overflow-hidden cursor-pointer hover:shadow-xl hover:scale-[1.02] transition-all"
-          >
-            <div className="absolute -top-6 -right-6 w-28 h-28 rounded-full bg-white/10" />
-            <div className="absolute -bottom-4 -left-4 w-20 h-20 rounded-full bg-white/10" />
-            <ClipboardList className="w-8 h-8 mb-3 relative z-10" />
-            <p className="font-bold text-lg mb-1 relative z-10">Multi-Point Inspection</p>
-            <p className="text-sm text-emerald-100 mb-4 relative z-10">30-point vehicle health check</p>
-            <span className="inline-flex items-center gap-1 bg-white/25 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold relative z-10">
-              First service free
-            </span>
+      {/* Special Offers — only when admin has active offers */}
+      {offers.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-gray-900">Special Offers</h3>
+            <button
+              onClick={() => router.push('/solicitacoes/nova')}
+              className="text-sm text-primary-600 hover:text-primary-700 font-semibold flex items-center gap-1"
+            >
+              Book now <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+          <div className={`grid gap-4 ${offers.length === 1 ? 'grid-cols-1 max-w-sm' : offers.length === 2 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'}`}>
+            {offers.map((offer, idx) => {
+              const gradient = OFFER_GRADIENTS[idx % OFFER_GRADIENTS.length];
+              const IconComp = SERVICE_ICON_MAP[offer.serviceType || ''] || SERVICE_ICON_MAP.default;
+              const handleClick = () => {
+                if (offer.serviceType) router.push(`/solicitacoes/nova?serviceType=${offer.serviceType}`);
+                else router.push('/solicitacoes/nova');
+              };
+              return (
+                <div
+                  key={offer.id}
+                  onClick={handleClick}
+                  className={`relative bg-gradient-to-br ${gradient} rounded-2xl p-5 text-white overflow-hidden cursor-pointer hover:shadow-xl hover:scale-[1.02] transition-all`}
+                >
+                  {/* Decorative blobs */}
+                  <div className="absolute -top-6 -right-6 w-28 h-28 rounded-full bg-white/10" />
+                  <div className="absolute -bottom-4 -left-4 w-20 h-20 rounded-full bg-white/10" />
+                  {/* Image overlay if available */}
+                  {offer.imageUrl && (
+                    <img src={offer.imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover opacity-20" />
+                  )}
+                  <IconComp className="w-8 h-8 mb-3 relative z-10" />
+                  <p className="font-bold text-lg mb-1 relative z-10 leading-tight">{offer.title}</p>
+                  <p className="text-sm text-white/80 mb-4 relative z-10 line-clamp-2">{offer.description}</p>
+                  <div className="flex items-center gap-2 relative z-10 flex-wrap">
+                    <span className="inline-flex items-center gap-1 bg-white/25 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold">
+                      {offer.discountLabel}
+                    </span>
+                    {offer.promoCode && (
+                      <span className="inline-flex items-center gap-1 bg-black/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-mono font-semibold">
+                        {offer.promoCode}
+                      </span>
+                    )}
+                  </div>
+                  {offer.validUntil && (
+                    <p className="text-[10px] text-white/60 mt-2 relative z-10">
+                      Valid until {new Date(offer.validUntil).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
-      </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
