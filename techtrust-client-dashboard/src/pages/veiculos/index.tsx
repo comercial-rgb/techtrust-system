@@ -83,17 +83,24 @@ export default function VeiculosPage() {
   }
 
   async function loadSubscription() {
+    const PLAN_LABELS: Record<string, string> = {
+      FREE: 'Free', STARTER: 'Starter', PRO: 'Pro', ENTERPRISE: 'Enterprise',
+    };
     try {
       const response = await api.getProfile();
-      const profileData = (response.data as any)?.user || response.data;
-      const sub = profileData?.subscription;
+      // Backend returns { user: {...}, subscription: {...} } at the same level
+      const raw = response.data as any;
+      const sub = raw?.subscription || raw?.user?.subscription;
       if (sub) {
+        const planKey = (sub.plan || '').toUpperCase();
         setSubscription({
-          plan: sub.plan?.name || sub.planName || 'Free',
-          vehicleLimit: sub.plan?.vehicleLimit || sub.vehicleLimit || 1,
+          plan: PLAN_LABELS[planKey] || sub.plan || 'Free',
+          vehicleLimit: sub.maxVehicles || sub.vehicleLimit || sub.plan?.vehicleLimit || 1,
         });
+      } else {
+        setSubscription({ plan: 'Free', vehicleLimit: 1 });
       }
-    } catch (error) {
+    } catch {
       setSubscription({ plan: 'Free', vehicleLimit: 1 });
     }
   }
