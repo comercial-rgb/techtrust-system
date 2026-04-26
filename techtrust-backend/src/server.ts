@@ -168,6 +168,14 @@ app.use(
         return callback(null, true);
       }
 
+      // Allow all techtrust subdomains (admin, app, provider, www, etc.)
+      if (
+        origin === "https://techtrustautosolutions.com" ||
+        origin.endsWith(".techtrustautosolutions.com")
+      ) {
+        return callback(null, true);
+      }
+
       // Block others
       callback(new Error("Not allowed by CORS"));
     },
