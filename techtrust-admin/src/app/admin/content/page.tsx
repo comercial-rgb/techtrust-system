@@ -114,7 +114,7 @@ export default function ContentManagementPage() {
 
   const loadStats = async () => {
     try {
-      const res = await fetch('http://localhost:3000/api/v1/admin/content/stats', {
+      const res = await fetch('https://techtrust-api.onrender.com/api/v1/admin/content/stats', {
         headers: getAuthHeaders()
       });
       if (res.ok) {
@@ -130,7 +130,7 @@ export default function ContentManagementPage() {
     setLoading(true);
     try {
       const endpoint = tab === 'offers' ? 'offers' : tab;
-      const res = await fetch(`http://localhost:3000/api/v1/admin/content/${endpoint}`, {
+      const res = await fetch(`https://techtrust-api.onrender.com/api/v1/admin/content/${endpoint}`, {
         headers: getAuthHeaders()
       });
       if (res.ok) {
@@ -166,7 +166,7 @@ export default function ContentManagementPage() {
     
     try {
       const endpoint = activeTab === 'offers' ? 'offers' : activeTab;
-      const res = await fetch(`http://localhost:3000/api/v1/admin/content/${endpoint}/${id}`, {
+      const res = await fetch(`https://techtrust-api.onrender.com/api/v1/admin/content/${endpoint}/${id}`, {
         method: 'DELETE',
         headers: getAuthHeaders()
       });
@@ -184,7 +184,7 @@ export default function ContentManagementPage() {
       const endpoint = type === 'offers' ? 'offers' : type;
       const field = type === 'articles' ? 'isPublished' : 'isActive';
       
-      const res = await fetch(`http://localhost:3000/api/v1/admin/content/${endpoint}/${id}`, {
+      const res = await fetch(`https://techtrust-api.onrender.com/api/v1/admin/content/${endpoint}/${id}`, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify({ [field]: !currentStatus })
@@ -203,8 +203,8 @@ export default function ContentManagementPage() {
       const endpoint = modalType === 'offers' ? 'offers' : modalType;
       const method = editingItem ? 'PUT' : 'POST';
       const url = editingItem 
-        ? `http://localhost:3000/api/v1/admin/content/${endpoint}/${editingItem.id}`
-        : `http://localhost:3000/api/v1/admin/content/${endpoint}`;
+        ? `https://techtrust-api.onrender.com/api/v1/admin/content/${endpoint}/${editingItem.id}`
+        : `https://techtrust-api.onrender.com/api/v1/admin/content/${endpoint}`;
       
       const res = await fetch(url, {
         method,

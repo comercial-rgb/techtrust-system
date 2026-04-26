@@ -2,7 +2,7 @@ import axios from 'axios'
 import Cookies from 'js-cookie'
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://techtrust-api.onrender.com/api/v1',
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
@@ -37,7 +37,7 @@ api.interceptors.response.use(
         const refreshToken = Cookies.get('refreshToken')
         if (refreshToken) {
           const response = await axios.post(
-            `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1'}/auth/refresh`,
+            `${process.env.NEXT_PUBLIC_API_URL || 'https://techtrust-api.onrender.com/api/v1'}/auth/refresh`,
             { refreshToken }
           )
 
