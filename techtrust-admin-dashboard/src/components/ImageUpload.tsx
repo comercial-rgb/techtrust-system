@@ -2,14 +2,25 @@ import { useState, useRef } from 'react';
 import { Upload, X, Image as ImageIcon } from 'lucide-react';
 import { adminApi as api } from '../services/api';
 
+type ContentType = 'banner' | 'offer' | 'article' | 'notice' | 'general';
+
+const DIMENSION_HINTS: Record<ContentType, { size: string; ratio: string; note: string }> = {
+  banner:  { size: '1200 × 600 px', ratio: '2:1',  note: 'Banner hero — exibido em tela cheia no app' },
+  offer:   { size: '800 × 440 px',  ratio: '1.8:1', note: 'Card de oferta — exibido em lista horizontal' },
+  article: { size: '800 × 430 px',  ratio: '1.9:1', note: 'Capa do artigo — aparece no topo do card' },
+  notice:  { size: '1200 × 400 px', ratio: '3:1',   note: 'Aviso — faixa larga e pouco alta' },
+  general: { size: '1200 × 630 px', ratio: '1.9:1', note: 'Tamanho recomendado para qualidade ideal' },
+};
+
 interface ImageUploadProps {
   value?: string;
   onChange: (url: string) => void;
   label?: string;
   required?: boolean;
+  contentType?: ContentType;
 }
 
-export default function ImageUpload({ value, onChange, label = 'Imagem', required = false }: ImageUploadProps) {
+export default function ImageUpload({ value, onChange, label = 'Imagem', required = false, contentType }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string>(value || '');
   const [dragActive, setDragActive] = useState(false);
@@ -165,9 +176,15 @@ export default function ImageUpload({ value, onChange, label = 'Imagem', require
         </div>
       )}
 
-      <p className="text-xs text-gray-500">
-        Recomendado: 1200x630px para melhor qualidade
-      </p>
+      {(() => {
+        const hint = DIMENSION_HINTS[contentType || 'general'];
+        return (
+          <div className="text-xs text-gray-500 space-y-0.5">
+            <p><strong>Dimensões recomendadas:</strong> {hint.size} (proporção {hint.ratio})</p>
+            <p>{hint.note}</p>
+          </div>
+        );
+      })()}
     </div>
   );
 }

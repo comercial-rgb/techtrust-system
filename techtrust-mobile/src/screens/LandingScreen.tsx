@@ -446,12 +446,12 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
         ? `${process.env.EXPO_PUBLIC_API_URL || "https://techtrust-api.onrender.com"}${bannerUrl.startsWith("/") ? bannerUrl : "/" + bannerUrl}`
         : "";
     return (
-      <View style={styles.bannerSlide}>
+      <View style={[styles.bannerSlide, { backgroundColor: "#0a1628" }]}>
         {fullUrl ? (
           <Image
             source={{ uri: fullUrl }}
             style={styles.bannerImage}
-            resizeMode="cover"
+            resizeMode="contain"
           />
         ) : (
           <View
@@ -466,7 +466,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
           />
         )}
         <LinearGradient
-          colors={["transparent", "rgba(0,0,0,0.7)"]}
+          colors={["transparent", "rgba(0,0,0,0.65)"]}
           style={styles.bannerGradient}
         >
           <Text style={styles.bannerTitle}>{item.title}</Text>
@@ -2310,13 +2310,13 @@ const styles = StyleSheet.create({
   // Banner styles
   bannerSlide: {
     width: width,
-    height: 200,
+    height: Math.round(width / 2),   // 2:1 ratio — responsive across all screen sizes
     position: "relative",
+    overflow: "hidden",
   },
   bannerImage: {
     width: "100%",
     height: "100%",
-    resizeMode: "cover",
   },
   bannerGradient: {
     position: "absolute",

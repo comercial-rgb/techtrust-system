@@ -962,6 +962,7 @@ export default function ConteudoPage() {
                     setBannerForm({ ...bannerForm, imageUrl: url })
                   }
                   label="Imagem do Banner"
+                  contentType="banner"
                   required
                 />
                 <div className="grid grid-cols-2 gap-4">
@@ -1248,6 +1249,7 @@ export default function ConteudoPage() {
                     setOfferForm({ ...offerForm, imageUrl: url })
                   }
                   label="Imagem da Oferta (Opcional)"
+                  contentType="offer"
                 />
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1596,6 +1598,7 @@ export default function ConteudoPage() {
                     setArticleForm({ ...articleForm, imageUrl: url })
                   }
                   label="Imagem de Capa (Opcional)"
+                  contentType="article"
                 />
                 <div className="grid grid-cols-3 gap-4">
                   <div>
