@@ -99,16 +99,28 @@ class ApiService {
     return this.request<any>("/users/me");
   }
 
-  async updateProfile(
-    data: Partial<{
-      fullName: string;
-      email: string;
-      phone: string;
-    }>,
-  ) {
+  async updateProfile(data: Record<string, any>) {
     return this.request("/users/me", {
       method: "PATCH",
       body: JSON.stringify(data),
+    });
+  }
+
+  async changePassword(currentPassword: string, newPassword: string) {
+    return this.request("/users/me/password", {
+      method: "POST",
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+  }
+
+  async getSessions() {
+    return this.request<any[]>("/users/me/sessions");
+  }
+
+  async revokeSession(sessionId?: string) {
+    return this.request("/users/me/sessions/revoke", {
+      method: "POST",
+      body: JSON.stringify(sessionId ? { sessionId } : { revokeAll: true }),
     });
   }
 

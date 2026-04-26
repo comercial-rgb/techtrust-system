@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { useAuth } from '../contexts/AuthContext';
-import { useI18n } from '../i18n';
-import DashboardLayout from '../components/DashboardLayout';
-import { api } from '../services/api';
+import { useAuth } from '../../contexts/AuthContext';
+import { useI18n } from '../../i18n';
+import DashboardLayout from '../../components/DashboardLayout';
+import { api } from '../../services/api';
 import {
   User,
   Mail,
@@ -68,6 +68,7 @@ export default function PerfilPage() {
       subtitle: t('client.profile.personalDataDesc'),
       icon: User,
       color: 'text-blue-600 bg-blue-100',
+      href: '/perfil/dados-pessoais',
     },
     {
       id: 'vehicles',
@@ -83,6 +84,7 @@ export default function PerfilPage() {
       subtitle: t('client.profile.addressesDesc'),
       icon: MapPin,
       color: 'text-green-600 bg-green-100',
+      href: '/perfil/enderecos',
     },
     {
       id: 'payment',
@@ -106,6 +108,7 @@ export default function PerfilPage() {
       subtitle: t('client.profile.securityDesc'),
       icon: Shield,
       color: 'text-red-600 bg-red-100',
+      href: '/perfil/seguranca',
     },
   ];
 
@@ -233,7 +236,7 @@ export default function PerfilPage() {
                 <div
                   key={item.id}
                   onClick={() => item.href && router.push(item.href)}
-                  className={`flex items-center justify-between p-5 hover:bg-gray-50 transition-colors ${item.href ? 'cursor-pointer' : 'cursor-default opacity-60'}`}
+                  className="flex items-center justify-between p-5 hover:bg-gray-50 transition-colors cursor-pointer"
                 >
                   <div className="flex items-center gap-4">
                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${item.color}`}>
@@ -258,7 +261,7 @@ export default function PerfilPage() {
           </div>
           <div className="divide-y divide-gray-100">
             <div
-              onClick={() => window.open('https://support.techtrustautosolutions.com', '_blank')}
+              onClick={() => router.push('/perfil/central-de-ajuda')}
               className="flex items-center justify-between p-5 hover:bg-gray-50 cursor-pointer transition-colors"
             >
               <div className="flex items-center gap-4">
@@ -273,7 +276,7 @@ export default function PerfilPage() {
               <ChevronRight className="w-5 h-5 text-gray-400" />
             </div>
             <div
-              onClick={() => window.open('mailto:support@techtrustautosolutions.com', '_blank')}
+              onClick={() => router.push('/perfil/fale-conosco')}
               className="flex items-center justify-between p-5 hover:bg-gray-50 cursor-pointer transition-colors"
             >
               <div className="flex items-center gap-4">
