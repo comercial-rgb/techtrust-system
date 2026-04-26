@@ -2264,86 +2264,86 @@ export default function CreateRequestScreen({ navigation }: any) {
     {
       id: "oil",
       label: t.createRequest?.serviceOilChange || "Oil Change",
-      icon: "water",
+      icon: "flask",           // oil/fluid container
       hasProviders: true,
     },
     {
       id: "air_filter",
       label: t.createRequest?.serviceAirFilter || "Air Filter Service",
-      icon: "cloud",
+      icon: "funnel",          // funnel = filter shape
       hasProviders: true,
     },
     {
       id: "fuel_system",
       label: t.createRequest?.serviceFuelSystem || "Fuel System",
-      icon: "flame",
+      icon: "flame",           // flame = fuel/combustion
       hasProviders: true,
     },
     {
       id: "brake",
       label: t.createRequest?.serviceBrakes || "Brakes",
-      icon: "disc",
+      icon: "disc",            // disc brake
       hasProviders: true,
     },
     {
       id: "cooling",
       label: t.createRequest?.serviceCooling || "Cooling System",
-      icon: "thermometer",
+      icon: "thermometer",     // temperature gauge
       hasProviders: true,
     },
     {
       id: "tire",
       label: t.createRequest?.serviceTires || "Tires & Wheels",
-      icon: "ellipse",
+      icon: "sync",            // circular rotation = tire/wheel
       hasProviders: true,
     },
     {
       id: "belts_hoses",
       label: t.createRequest?.serviceBeltsHoses || "Belts & Hoses",
-      icon: "link",
+      icon: "link",            // chain/link = belts
       hasProviders: true,
     },
     // Repairs
     {
       id: "ac",
       label: t.createRequest?.serviceAC || "A/C & Heating",
-      icon: "snow",
+      icon: "snow",            // snowflake = air conditioning
       hasProviders: true,
     },
     {
       id: "steering",
       label: t.createRequest?.serviceSteering || "Steering & Suspension",
-      icon: "navigate",
+      icon: "navigate",        // navigation/direction = steering
       hasProviders: true,
     },
     {
       id: "electric",
       label: t.createRequest?.serviceElectrical || "Electrical System",
-      icon: "flash",
+      icon: "flash",           // lightning bolt = electrical
       hasProviders: true,
     },
     {
       id: "exhaust",
       label: t.createRequest?.serviceExhaust || "Exhaust System",
-      icon: "cloud",
+      icon: "arrow-up-circle", // gases going upward = exhaust
       hasProviders: true,
     },
     {
       id: "drivetrain",
       label: t.createRequest?.serviceDrivetrain || "Drivetrain",
-      icon: "speedometer",
+      icon: "speedometer",     // speed = drivetrain/driveshaft
       hasProviders: true,
     },
     {
       id: "engine",
       label: t.createRequest?.serviceEngine || "Engine",
-      icon: "cog",
+      icon: "cog",             // gear = engine
       hasProviders: true,
     },
     {
       id: "transmission",
       label: t.createRequest?.serviceTransmission || "Transmission",
-      icon: "settings",
+      icon: "git-merge",       // branching gears = transmission
       hasProviders: true,
     },
     {
@@ -2356,34 +2356,34 @@ export default function CreateRequestScreen({ navigation }: any) {
     {
       id: "fluids",
       label: t.createRequest?.serviceFluidServices || "Fluid Services",
-      icon: "water",
+      icon: "beaker",          // lab beaker = fluids (distinct from oil flask)
       hasProviders: true,
     },
     {
       id: "packages",
       label: t.createRequest?.servicePreventive || "Preventive Maintenance",
-      icon: "cube",
+      icon: "layers",          // stacked layers = bundled service package
       hasProviders: true,
     },
-    // Diagnostics (full diagnostic → use Schedule Diagnostic flow instead)
+    // Diagnostics
     {
       id: "diagnostic",
       label: t.serviceTypes?.diagnostics || "Diagnostics",
-      icon: "pulse",
+      icon: "pulse",           // pulse/heartbeat = diagnostic scan
       hasProviders: true,
     },
     // Detailing
     {
       id: "detailing",
       label: t.createRequest?.serviceDetailing || "Detailing",
-      icon: "sparkles",
+      icon: "sparkles",        // sparkles = clean/shine
       hasProviders: true,
     },
     // SOS / Roadside
     {
       id: "towing",
       label: t.createRequest?.serviceTowing || "Towing",
-      icon: "car-sport",
+      icon: "car-sport",       // car being moved = tow
       hasProviders: true,
     },
     {
@@ -2392,20 +2392,20 @@ export default function CreateRequestScreen({ navigation }: any) {
         t.serviceTypes?.roadsideAssistance ||
         t.createRequest?.serviceRoadside ||
         "Roadside Assist",
-      icon: "warning",
+      icon: "alert-circle",    // alert = emergency roadside
       hasProviders: true,
     },
     {
       id: "lockout",
       label: t.createRequest?.serviceLockout || "Lockout",
-      icon: "key",
+      icon: "key",             // key = lockout service
       hasProviders: true,
     },
     // General
     {
       id: "general_repair",
       label: t.serviceTypes?.generalRepair || "General Repair",
-      icon: "construct",
+      icon: "construct",       // tools = repair
       hasProviders: true,
     },
   ];

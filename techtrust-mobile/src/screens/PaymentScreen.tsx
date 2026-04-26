@@ -18,8 +18,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import {
   useConfirmPayment,
-  useApplePay,
-  ApplePayButton,
+  usePlatformPay,
+  PlatformPayButton,
+  PlatformPay,
 } from "@stripe/stripe-react-native";
 import { useI18n } from "../i18n";
 import * as paymentService from "../services/payment.service";
@@ -27,11 +28,8 @@ import * as paymentService from "../services/payment.service";
 export default function PaymentScreen({ navigation, route }: any) {
   const { t } = useI18n();
   const { confirmPayment: stripeConfirmPayment } = useConfirmPayment();
-  const {
-    presentApplePay,
-    confirmApplePayPayment,
-    isApplePaySupported,
-  } = useApplePay();
+  const { confirmPlatformPayPayment, isPlatformPaySupported } = usePlatformPay();
+  const [isApplePayReady, setIsApplePayReady] = useState(false);
   const workOrderId = route.params?.workOrderId;
   const orderNumber = route.params?.orderNumber;
   const serviceTitle = route.params?.serviceTitle || "Service";
@@ -50,6 +48,9 @@ export default function PaymentScreen({ navigation, route }: any) {
 
   useEffect(() => {
     loadPaymentData();
+    if (Platform.OS === 'ios') {
+      isPlatformPaySupported().then(setIsApplePayReady).catch(() => setIsApplePayReady(false));
+    }
   }, []);
 
   async function loadPaymentData() {
@@ -196,75 +197,49 @@ export default function PaymentScreen({ navigation, route }: any) {
   }
 
   // ============================================
-  // APPLE PAY PAYMENT
+  // APPLE PAY PAYMENT (via usePlatformPay)
   // ============================================
   async function handleApplePay() {
     if (!paymentIntent) {
-      Alert.alert(
-        t.common?.error || "Error",
-        "No payment intent created. Please try again.",
-      );
+      Alert.alert(t.common?.error || "Error", "No payment intent created. Please try again.");
       return;
     }
-
     setProcessing(true);
     try {
-      const { error: applePayError } = await presentApplePay({
-        cartItems: [
-          {
-            label: serviceTitle,
-            amount: String(displayAmount.toFixed(2)),
-            paymentType: "Immediate",
+      const { error: applePayError } = await confirmPlatformPayPayment(
+        paymentIntent.clientSecret,
+        {
+          applePay: {
+            cartItems: [
+              {
+                label: serviceTitle,
+                amount: String(displayAmount.toFixed(2)),
+                paymentType: PlatformPay.PaymentType.Immediate,
+              },
+            ],
+            merchantCountryCode: "US",
+            currencyCode: "USD",
           },
-        ],
-        country: "US",
-        currency: "USD",
-      });
+        },
+      );
 
       if (applePayError) {
-        if (applePayError.code !== "Canceled") {
-          Alert.alert(
-            t.common?.error || "Error",
-            applePayError.message || "Apple Pay failed",
-          );
+        if ((applePayError as any).code !== "Canceled") {
+          Alert.alert(t.common?.error || "Error", applePayError.message || "Apple Pay failed");
         }
         return;
       }
 
-      // Confirm the payment with the client secret
-      const { error: confirmError } = await confirmApplePayPayment(
-        paymentIntent.clientSecret,
-      );
-
-      if (confirmError) {
-        Alert.alert(
-          t.common?.error || "Error",
-          confirmError.message || "Payment confirmation failed",
-        );
-        return;
-      }
-
-      // Notify backend of successful payment
-      const result = await paymentService.confirmPayment(
-        paymentIntent.paymentId,
-      );
-
+      const result = await paymentService.confirmPayment(paymentIntent.paymentId);
       if (result.success) {
         Alert.alert(
           t.payment?.paymentConfirmed || "Payment Authorized!",
           "Payment completed successfully via Apple Pay.",
-          [
-            {
-              text: t.common?.ok || "OK",
-              onPress: () => navigation.navigate("Rating", { workOrderId }),
-            },
-          ],
+          [{ text: t.common?.ok || "OK", onPress: () => navigation.navigate("Rating", { workOrderId }) }],
         );
       }
     } catch (err: any) {
-      const msg =
-        err.response?.data?.message || err.message || "Apple Pay failed";
-      Alert.alert(t.common?.error || "Error", msg);
+      Alert.alert(t.common?.error || "Error", err.response?.data?.message || err.message || "Apple Pay failed");
     } finally {
       setProcessing(false);
     }
@@ -450,12 +425,12 @@ export default function PaymentScreen({ navigation, route }: any) {
         </Text>
 
         {/* Apple Pay Button - shown on iOS when supported */}
-        {Platform.OS === "ios" && isApplePaySupported && paymentIntent && (
+        {Platform.OS === "ios" && isApplePayReady && paymentIntent && (
           <View style={styles.applePayContainer}>
-            <ApplePayButton
+            <PlatformPayButton
               onPress={handleApplePay}
-              type="plain"
-              buttonStyle="black"
+              type={PlatformPay.ButtonType.Plain}
+              appearance={PlatformPay.ButtonStyle.Black}
               borderRadius={12}
               style={styles.applePayButton}
             />

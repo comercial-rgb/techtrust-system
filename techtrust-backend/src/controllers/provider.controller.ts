@@ -627,18 +627,17 @@ export const searchProvidersByLocation = async (
   });
 
   // Filter by serviceType if provided (match against servicesOffered JSON array)
-  // Normalize both sides by stripping underscores so "oilChange" matches "OIL_CHANGE"
+  // Supports comma-separated values for OR matching: e.g. "DIAGNOSTICS,BRAKES"
   const normalizeService = (v: string) => v.replace(/_/g, "").toUpperCase();
   const filteredByService = serviceType
     ? providers.filter((p) => {
         try {
-          const services = Array.isArray(p.servicesOffered)
+          const providerServices: string[] = Array.isArray(p.servicesOffered)
             ? p.servicesOffered
             : JSON.parse(String(p.servicesOffered || "[]"));
-          const target = normalizeService(String(serviceType));
-          return services.some(
-            (s: string) => normalizeService(s) === target,
-          );
+          const targets = String(serviceType).split(",").map(normalizeService);
+          const normalized = providerServices.map(normalizeService);
+          return targets.some((t) => normalized.includes(t));
         } catch {
           return false;
         }

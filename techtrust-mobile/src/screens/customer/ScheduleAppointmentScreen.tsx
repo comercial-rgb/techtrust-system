@@ -227,19 +227,20 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
         setUserLocation(loc);
       }
 
-      // Map diagnostic sub-type IDs to provider servicesOffered values
+      // Map diagnostic sub-types to comma-separated service types for OR matching.
+      // Format: "SPECIALIST,DIAGNOSTICS" — shows specialist providers first, then general diagnostic shops.
       const diagServiceMap: Record<string, string> = {
-        engine_diag: 'DIAGNOSTICS',
-        transmission_diag: 'DIAGNOSTICS',
-        brake_diag: 'DIAGNOSTICS',
-        electrical_diag: 'DIAGNOSTICS',
-        ac_diag: 'DIAGNOSTICS',
-        steering_diag: 'DIAGNOSTICS',
+        engine_diag:      'ENGINE,DIAGNOSTICS',
+        transmission_diag:'TRANSMISSION,DIAGNOSTICS',
+        brake_diag:       'BRAKES,DIAGNOSTICS',
+        electrical_diag:  'ELECTRICAL,DIAGNOSTICS',
+        ac_diag:          'AC,DIAGNOSTICS',
+        steering_diag:    'SUSPENSION,DIAGNOSTICS',
         diesel_emissions: 'DIAGNOSTICS',
-        nvh: 'DIAGNOSTICS',
-        cooling_diag: 'DIAGNOSTICS',
-        fuel_diag: 'DIAGNOSTICS',
-        pre_purchase: 'INSPECTION',
+        nvh:              'DIAGNOSTICS',
+        cooling_diag:     'COOLING_SYSTEM,DIAGNOSTICS',
+        fuel_diag:        'FUEL_SYSTEM,DIAGNOSTICS',
+        pre_purchase:     'INSPECTION,DIAGNOSTICS',
       };
       const searchServiceType = diagServiceMap[selectedServiceType] || selectedServiceType.toUpperCase();
 
