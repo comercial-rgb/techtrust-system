@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminLayout from '../../components/AdminLayout';
+import { useI18n } from '../../i18n';
 import { adminApi } from '../../services/api';
 import {
   Search,
@@ -30,6 +31,7 @@ interface ServiceRequest {
 
 export default function SolicitacoesPage() {
   const { isAuthenticated, loading: authLoading } = useAuth();
+  const { translate } = useI18n();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
@@ -78,10 +80,10 @@ export default function SolicitacoesPage() {
     return true;
   });
 
-  if (authLoading || loading) return <AdminLayout title="Solicitações"><div className="space-y-4">{[1,2,3].map(i => <div key={i} className="h-20 skeleton rounded-xl" />)}</div></AdminLayout>;
+  if (authLoading || loading) return <AdminLayout title={translate('admin.nav.requests')}><div className="space-y-4">{[1,2,3].map(i => <div key={i} className="h-20 skeleton rounded-xl" />)}</div></AdminLayout>;
 
   return (
-    <AdminLayout title="Solicitações de Serviço">
+    <AdminLayout title={translate('admin.nav.requests')}>
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
         <div className="card p-4 text-center"><p className="text-2xl font-bold text-gray-900">{requests.length}</p><p className="text-sm text-gray-500">Total</p></div>
         <div className="card p-4 text-center"><p className="text-2xl font-bold text-blue-600">{requests.filter(r => r.status === 'SEARCHING').length}</p><p className="text-sm text-gray-500">Buscando</p></div>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
+import { useI18n } from '../i18n';
 import DashboardLayout from '../components/DashboardLayout';
 import { api } from '../services/api';
 import {
@@ -20,6 +21,7 @@ import {
 
 export default function PerfilPage() {
   const { user, isAuthenticated, loading: authLoading, logout } = useAuth();
+  const { translate: t } = useI18n();
   const router = useRouter();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -70,7 +72,7 @@ export default function PerfilPage() {
 
   if (authLoading) {
     return (
-      <DashboardLayout title="Meu Perfil">
+      <DashboardLayout title={t('client.nav.profile')}>
         <div className="max-w-3xl mx-auto">
           <div className="h-48 skeleton rounded-xl mb-6"></div>
           <div className="h-32 skeleton rounded-xl"></div>
@@ -80,7 +82,7 @@ export default function PerfilPage() {
   }
 
   return (
-    <DashboardLayout title="Meu Perfil">
+    <DashboardLayout title={t('client.nav.profile')}>
       <div className="max-w-3xl mx-auto">
         {/* Profile Header */}
         <div className="bg-white rounded-2xl shadow-soft overflow-hidden mb-6">
@@ -243,7 +245,7 @@ export default function PerfilPage() {
           className="w-full flex items-center justify-center gap-2 bg-red-50 text-red-600 font-semibold py-4 rounded-xl hover:bg-red-100 transition-colors"
         >
           <LogOut className="w-5 h-5" />
-          Sair da Conta
+          {t('client.layout.logout')}
         </button>
 
         {/* Version */}

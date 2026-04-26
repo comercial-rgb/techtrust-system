@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminLayout from '../../components/AdminLayout';
+import { useI18n } from '../../i18n';
 import { adminApi } from '../../services/api';
 import {
   Search,
@@ -38,6 +39,7 @@ interface UserData {
 
 export default function UsuariosPage() {
   const { isAuthenticated, loading: authLoading } = useAuth();
+  const { translate } = useI18n();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<UserData[]>([]);
@@ -161,7 +163,7 @@ export default function UsuariosPage() {
 
   if (authLoading || loading) {
     return (
-      <AdminLayout title="Usuários">
+      <AdminLayout title={translate('admin.nav.users')}>
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-16 skeleton rounded-xl"></div>

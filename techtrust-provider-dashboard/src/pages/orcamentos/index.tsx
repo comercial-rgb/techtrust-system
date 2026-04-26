@@ -211,7 +211,7 @@ export default function OrcamentosPage() {
                 <TrendingDown className="w-5 h-5 text-red-500" />
               )}
             </div>
-            <p className="text-sm text-gray-500">{t('quotes.stats.conversion')}</p>
+            <p className="text-sm text-gray-500">{t('quotes.stats.conversionRate')}</p>
           </div>
         </div>
 

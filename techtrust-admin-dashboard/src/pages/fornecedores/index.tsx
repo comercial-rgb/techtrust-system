@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminLayout from '../../components/AdminLayout';
+import { useI18n } from '../../i18n';
 import api from '../../services/api';
 import {
   Search,
@@ -38,6 +39,7 @@ interface Provider {
 
 export default function FornecedoresPage() {
   const { isAuthenticated, loading: authLoading } = useAuth();
+  const { translate } = useI18n();
   const router = useRouter();
   const { filter } = router.query;
   const [loading, setLoading] = useState(true);
@@ -144,7 +146,7 @@ export default function FornecedoresPage() {
 
   if (authLoading || loading) {
     return (
-      <AdminLayout title="Fornecedores">
+      <AdminLayout title={translate('admin.nav.providers')}>
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-24 skeleton rounded-xl"></div>

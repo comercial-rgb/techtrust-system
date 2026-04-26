@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
+import { useI18n } from '../../i18n';
 import DashboardLayout from '../../components/DashboardLayout';
 import { api } from '../../services/api';
 import {
@@ -32,6 +33,7 @@ interface ServiceRequest {
 
 export default function SolicitacoesPage() {
   const { isAuthenticated, loading: authLoading } = useAuth();
+  const { translate: t } = useI18n();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
@@ -78,15 +80,15 @@ export default function SolicitacoesPage() {
   const getStatusInfo = (status: string) => {
     switch (status) {
       case 'SEARCHING':
-        return { label: 'Buscando Fornecedores', color: 'bg-blue-100 text-blue-700', icon: Clock };
+        return { label: t('client.dashboard.status.searching'), color: 'bg-blue-100 text-blue-700', icon: Clock };
       case 'QUOTES_RECEIVED':
-        return { label: 'Orçamentos Recebidos', color: 'bg-yellow-100 text-yellow-700', icon: FileText };
+        return { label: t('client.dashboard.status.quotes'), color: 'bg-yellow-100 text-yellow-700', icon: FileText };
       case 'QUOTE_ACCEPTED':
-        return { label: 'Orçamento Aceito', color: 'bg-purple-100 text-purple-700', icon: CheckCircle };
+        return { label: t('client.dashboard.status.quotes'), color: 'bg-purple-100 text-purple-700', icon: CheckCircle };
       case 'IN_PROGRESS':
-        return { label: 'Em Andamento', color: 'bg-indigo-100 text-indigo-700', icon: Wrench };
+        return { label: t('client.dashboard.status.inProgress'), color: 'bg-indigo-100 text-indigo-700', icon: Wrench };
       case 'COMPLETED':
-        return { label: 'Concluído', color: 'bg-green-100 text-green-700', icon: CheckCircle };
+        return { label: t('client.dashboard.status.completed'), color: 'bg-green-100 text-green-700', icon: CheckCircle };
       default:
         return { label: status, color: 'bg-gray-100 text-gray-700', icon: Clock };
     }
@@ -102,11 +104,11 @@ export default function SolicitacoesPage() {
   };
 
   const filterOptions = [
-    { value: 'all', label: 'Todas' },
-    { value: 'SEARCHING', label: 'Buscando' },
-    { value: 'QUOTES_RECEIVED', label: 'Com Orçamentos' },
-    { value: 'IN_PROGRESS', label: 'Em Andamento' },
-    { value: 'COMPLETED', label: 'Concluídas' },
+    { value: 'all', label: t('client.estimates.filterAll') },
+    { value: 'SEARCHING', label: t('client.dashboard.status.searching') },
+    { value: 'QUOTES_RECEIVED', label: t('client.dashboard.status.quotes') },
+    { value: 'IN_PROGRESS', label: t('client.dashboard.status.inProgress') },
+    { value: 'COMPLETED', label: t('client.dashboard.status.completed') },
   ];
 
   const filteredRequests = requests.filter((req) => {
@@ -132,7 +134,7 @@ export default function SolicitacoesPage() {
 
   if (authLoading || loading) {
     return (
-      <DashboardLayout title="Minhas Solicitações">
+      <DashboardLayout title={t('client.nav.requests')}>
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-32 skeleton rounded-xl"></div>
@@ -143,24 +145,24 @@ export default function SolicitacoesPage() {
   }
 
   return (
-    <DashboardLayout title="Minhas Solicitações">
+    <DashboardLayout title={t('client.nav.requests')}>
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-white rounded-xl p-4 shadow-soft text-center">
           <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-          <p className="text-sm text-gray-500">Total</p>
+          <p className="text-sm text-gray-500">{t('client.estimates.statTotal')}</p>
         </div>
         <div className="bg-blue-50 rounded-xl p-4 text-center">
           <p className="text-2xl font-bold text-blue-700">{stats.searching}</p>
-          <p className="text-sm text-blue-600">Buscando</p>
+          <p className="text-sm text-blue-600">{t('client.dashboard.status.searching')}</p>
         </div>
         <div className="bg-yellow-50 rounded-xl p-4 text-center">
           <p className="text-2xl font-bold text-yellow-700">{stats.withQuotes}</p>
-          <p className="text-sm text-yellow-600">Com Orçamentos</p>
+          <p className="text-sm text-yellow-600">{t('client.dashboard.status.quotes')}</p>
         </div>
         <div className="bg-indigo-50 rounded-xl p-4 text-center">
           <p className="text-2xl font-bold text-indigo-700">{stats.inProgress}</p>
-          <p className="text-sm text-indigo-600">Em Andamento</p>
+          <p className="text-sm text-indigo-600">{t('client.dashboard.status.inProgress')}</p>
         </div>
       </div>
 
@@ -196,7 +198,7 @@ export default function SolicitacoesPage() {
           className="btn btn-primary whitespace-nowrap"
         >
           <Plus className="w-5 h-5" />
-          Nova Solicitação
+          {t('client.dashboard.newRequest')}
         </button>
       </div>
 
@@ -208,14 +210,14 @@ export default function SolicitacoesPage() {
               <FileText className="w-8 h-8 text-gray-400" />
             </div>
             <p className="text-gray-500 mb-4">
-              {searchQuery ? 'Nenhuma solicitação encontrada' : 'Nenhuma solicitação ainda'}
+              {searchQuery ? t('client.estimates.emptyTitle') : t('client.dashboard.noRequests')}
             </p>
             <button
               onClick={() => router.push('/solicitacoes/nova')}
               className="btn btn-primary"
             >
               <Plus className="w-5 h-5" />
-              Criar Solicitação
+              {t('client.dashboard.createRequest')}
             </button>
           </div>
         ) : (
@@ -253,7 +255,7 @@ export default function SolicitacoesPage() {
                       {request.quotesCount > 0 && (
                         <span className="flex items-center gap-1 text-yellow-600 font-medium">
                           <Star className="w-4 h-4" />
-                          {request.quotesCount} orçamento(s)
+                          {t('client.dashboard.quotesCount').replace('{count}', String(request.quotesCount))}
                         </span>
                       )}
                     </div>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
+import { useI18n } from '../../i18n';
 import DashboardLayout from '../../components/DashboardLayout';
 import { api } from '../../services/api';
 import {
@@ -36,6 +37,7 @@ interface SubscriptionInfo {
 
 export default function VeiculosPage() {
   const { isAuthenticated, loading: authLoading, user } = useAuth();
+  const { translate: t } = useI18n();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -121,7 +123,7 @@ export default function VeiculosPage() {
 
   if (authLoading || loading) {
     return (
-      <DashboardLayout title="Meus Veículos">
+      <DashboardLayout title={t('client.nav.vehicles')}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {[1, 2].map((i) => (
             <div key={i} className="h-64 skeleton rounded-xl"></div>
@@ -132,7 +134,7 @@ export default function VeiculosPage() {
   }
 
   return (
-    <DashboardLayout title="Meus Veículos">
+    <DashboardLayout title={t('client.nav.vehicles')}>
       {/* Stats */}
       <div className="bg-white rounded-xl p-6 mb-6 shadow-soft">
         <div className="flex items-center justify-between">
@@ -174,7 +176,7 @@ export default function VeiculosPage() {
               className={`btn ${vehicles.length >= subscription.vehicleLimit ? 'btn-secondary opacity-60' : 'btn-primary'}`}
             >
               <Plus className="w-5 h-5" />
-              Adicionar Veículo
+              {t('client.dashboard.addVehicle')}
             </button>
           </div>
         </div>
@@ -269,7 +271,7 @@ export default function VeiculosPage() {
                   className="flex-1 btn btn-primary"
                 >
                   <Plus className="w-4 h-4" />
-                  Solicitar Serviço
+                  {t('client.dashboard.newRequest')}
                 </button>
                 {!vehicle.isDefault && (
                   <button className="btn btn-secondary">
