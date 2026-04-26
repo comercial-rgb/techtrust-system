@@ -23,9 +23,20 @@ api.interceptors.request.use(
   }
 )
 
-// Response interceptor - handle errors
+// Response interceptor - auto-unwrap { success, data } envelope + handle errors
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Backend wraps all success responses in { success: true, data: ... }
+    if (
+      response.data &&
+      typeof response.data === 'object' &&
+      'data' in response.data &&
+      response.data.success !== false
+    ) {
+      response.data = response.data.data
+    }
+    return response
+  },
   async (error) => {
     const originalRequest = error.config
 

@@ -64,8 +64,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const response = await api.getProfile();
           if (response.data) {
-            // Backend returns { success, data: { user, subscription } }
-            const responseData = response.data.data || response.data;
+            // api.ts auto-unwraps { success, data } — response.data is the actual payload
+            const responseData = response.data;
             const userData = responseData.user || responseData;
             const updatedUser: User = {
               id: userData.id,
@@ -111,10 +111,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     if (response.data) {
-      // Backend returns { success, data: { token, user } }
-      const responseData = response.data.data || response.data;
-      const token = responseData.token || response.data.token;
-      const userData = responseData.user || response.data.user;
+      // api.ts auto-unwraps { success, data } — response.data is { token, user }
+      const responseData = response.data;
+      const token = responseData.token;
+      const userData = responseData.user;
 
       if (!token || !userData) {
         throw new Error("Invalid response from server");

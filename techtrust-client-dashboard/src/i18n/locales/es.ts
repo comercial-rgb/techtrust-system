@@ -181,6 +181,14 @@ const es = {
         hours: "Hace {hours}h",
         days: "Hace {days}d",
       },
+      addVehicle: "Agregar Vehículo",
+      noRequests: "Sin solicitudes aún",
+      createRequest: "Crear Solicitud",
+      quotesCount: "{count} presupuesto(s)",
+      tip: {
+        title: "Consejo",
+        content: "Compare al menos 3 presupuestos antes de aceptar para garantizar el mejor precio y calidad de servicio.",
+      },
     },
     estimates: {
       title: "Mis Presupuestos",

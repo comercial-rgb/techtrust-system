@@ -181,6 +181,14 @@ const pt = {
         hours: "{hours}h atrás",
         days: "{days}d atrás",
       },
+      addVehicle: "Adicionar Veículo",
+      noRequests: "Nenhuma solicitação ainda",
+      createRequest: "Criar Solicitação",
+      quotesCount: "{count} orçamento(s)",
+      tip: {
+        title: "Dica",
+        content: "Compare pelo menos 3 orçamentos antes de aceitar para garantir o melhor preço e qualidade de serviço.",
+      },
     },
     estimates: {
       title: "Meus Orçamentos",

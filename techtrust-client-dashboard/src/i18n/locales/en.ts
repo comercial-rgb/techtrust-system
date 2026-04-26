@@ -181,6 +181,14 @@ const en = {
         hours: "{hours}h ago",
         days: "{days}d ago",
       },
+      addVehicle: "Add Vehicle",
+      noRequests: "No requests yet",
+      createRequest: "Create Request",
+      quotesCount: "{count} quote(s)",
+      tip: {
+        title: "Tip",
+        content: "Compare at least 3 quotes before accepting to ensure the best price and service quality.",
+      },
     },
     estimates: {
       title: "My Estimates",

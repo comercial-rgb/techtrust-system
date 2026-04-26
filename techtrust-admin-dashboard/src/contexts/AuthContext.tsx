@@ -51,9 +51,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const response = await adminApi.getProfile();
-      
-      if (response.data && response.data.role === 'ADMIN') {
-        setUser(response.data);
+      // api.ts auto-unwraps — response.data is the user object (or { user, subscription })
+      const profileData = (response.data as any)?.user || response.data;
+
+      if (profileData && profileData.role === 'ADMIN') {
+        setUser(profileData);
       } else if (DEV_MODE && token === 'dev-admin-token') {
         setUser(DEV_ADMIN);
       } else {
@@ -85,8 +87,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { success: false, error: response.error };
       }
 
-      // API retorna response.data.data devido à estrutura da api.ts
-      const loginData = (response.data as any)?.data || response.data;
+      // api.ts auto-unwraps { success, data } — response.data is { token, user }
+      const loginData = response.data as any;
 
       if (loginData?.user?.role !== 'ADMIN') {
         return { success: false, error: 'Acesso restrito a administradores' };

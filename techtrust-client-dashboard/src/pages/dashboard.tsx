@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
 import DashboardLayout from '../components/DashboardLayout';
 import { api } from '../services/api';
+import { useI18n } from '../i18n';
 import {
   Car,
   FileText,
@@ -41,6 +42,7 @@ interface ServiceRequest {
 export default function DashboardPage() {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const router = useRouter();
+  const { t } = useI18n();
   const [loading, setLoading] = useState(true);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
@@ -130,13 +132,13 @@ export default function DashboardPage() {
   const getStatusInfo = (status: string) => {
     switch (status) {
       case 'SEARCHING':
-        return { label: 'Buscando', color: 'bg-blue-100 text-blue-700', icon: Clock };
+        return { label: t.client.dashboard.status.searching, color: 'bg-blue-100 text-blue-700', icon: Clock };
       case 'QUOTES_RECEIVED':
-        return { label: 'Orçamentos', color: 'bg-yellow-100 text-yellow-700', icon: FileText };
+        return { label: t.client.dashboard.status.quotes, color: 'bg-yellow-100 text-yellow-700', icon: FileText };
       case 'IN_PROGRESS':
-        return { label: 'Em Andamento', color: 'bg-purple-100 text-purple-700', icon: Wrench };
+        return { label: t.client.dashboard.status.inProgress, color: 'bg-purple-100 text-purple-700', icon: Wrench };
       case 'COMPLETED':
-        return { label: 'Concluído', color: 'bg-green-100 text-green-700', icon: CheckCircle };
+        return { label: t.client.dashboard.status.completed, color: 'bg-green-100 text-green-700', icon: CheckCircle };
       default:
         return { label: status, color: 'bg-gray-100 text-gray-700', icon: AlertCircle };
     }
@@ -145,10 +147,10 @@ export default function DashboardPage() {
   const formatTimeAgo = (date: string) => {
     const diff = Date.now() - new Date(date).getTime();
     const hours = Math.floor(diff / (60 * 60 * 1000));
-    if (hours < 1) return 'Agora mesmo';
-    if (hours < 24) return `${hours}h atrás`;
+    if (hours < 1) return t.client.dashboard.timeAgo.now;
+    if (hours < 24) return t.client.dashboard.timeAgo.hours.replace('{hours}', String(hours));
     const days = Math.floor(hours / 24);
-    return `${days}d atrás`;
+    return t.client.dashboard.timeAgo.days.replace('{days}', String(days));
   };
 
   if (authLoading || loading) {
@@ -173,16 +175,16 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold mb-2">
-              Olá, {user?.fullName?.split(' ')[0]}! 👋
+              {t.client.dashboard.welcome.replace('{name}', user?.fullName?.split(' ')[0] || '')}
             </h2>
-            <p className="text-primary-100">Como podemos ajudar você hoje?</p>
+            <p className="text-primary-100">{t.client.dashboard.subtitle}</p>
           </div>
           <button
             onClick={() => router.push('/solicitacoes/nova')}
             className="bg-white text-primary-600 px-6 py-3 rounded-xl font-semibold flex items-center gap-2 hover:bg-primary-50 transition-colors"
           >
             <Plus className="w-5 h-5" />
-            Nova Solicitação
+            {t.client.dashboard.newRequest}
           </button>
         </div>
       </div>
@@ -196,7 +198,7 @@ export default function DashboardPage() {
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">{stats.activeServices}</p>
-              <p className="text-sm text-gray-500">Serviços Ativos</p>
+              <p className="text-sm text-gray-500">{t.client.dashboard.activeServices}</p>
             </div>
           </div>
         </div>
@@ -208,7 +210,7 @@ export default function DashboardPage() {
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">{stats.pendingQuotes}</p>
-              <p className="text-sm text-gray-500">Orçamentos Pendentes</p>
+              <p className="text-sm text-gray-500">{t.client.dashboard.pendingQuotes}</p>
             </div>
           </div>
         </div>
@@ -220,7 +222,7 @@ export default function DashboardPage() {
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">{stats.completedServices}</p>
-              <p className="text-sm text-gray-500">Serviços Concluídos</p>
+              <p className="text-sm text-gray-500">{t.client.dashboard.completedServices}</p>
             </div>
           </div>
         </div>
@@ -232,7 +234,7 @@ export default function DashboardPage() {
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">${stats.totalSpent}</p>
-              <p className="text-sm text-gray-500">Total Investido</p>
+              <p className="text-sm text-gray-500">{t.client.dashboard.totalSpent}</p>
             </div>
           </div>
         </div>
@@ -243,12 +245,12 @@ export default function DashboardPage() {
         <div className="lg:col-span-1">
           <div className="bg-white rounded-xl shadow-soft overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="font-semibold text-gray-900">Meus Veículos</h3>
+              <h3 className="font-semibold text-gray-900">{t.client.dashboard.vehicles}</h3>
               <button
                 onClick={() => router.push('/veiculos')}
                 className="text-sm text-primary-600 hover:text-primary-700 font-medium"
               >
-                Ver todos
+                {t.common.viewAll}
               </button>
             </div>
             <div className="p-4 space-y-3">
@@ -276,7 +278,7 @@ export default function DashboardPage() {
                 className="w-full flex items-center justify-center gap-2 p-3 border-2 border-dashed border-gray-200 rounded-xl text-gray-500 hover:border-primary-300 hover:text-primary-600 transition-colors"
               >
                 <Plus className="w-5 h-5" />
-                Adicionar Veículo
+                {t.client.dashboard.addVehicle}
               </button>
             </div>
           </div>
@@ -286,12 +288,12 @@ export default function DashboardPage() {
         <div className="lg:col-span-2">
           <div className="bg-white rounded-xl shadow-soft overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="font-semibold text-gray-900">Solicitações Recentes</h3>
+              <h3 className="font-semibold text-gray-900">{t.client.dashboard.recentRequests}</h3>
               <button
                 onClick={() => router.push('/solicitacoes')}
                 className="text-sm text-primary-600 hover:text-primary-700 font-medium"
               >
-                Ver todas
+                {t.common.viewAll}
               </button>
             </div>
             <div className="divide-y divide-gray-100">
@@ -300,13 +302,13 @@ export default function DashboardPage() {
                   <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <FileText className="w-8 h-8 text-gray-400" />
                   </div>
-                  <p className="text-gray-500 mb-4">Nenhuma solicitação ainda</p>
+                  <p className="text-gray-500 mb-4">{t.client.dashboard.noRequests}</p>
                   <button
                     onClick={() => router.push('/solicitacoes/nova')}
                     className="btn btn-primary"
                   >
                     <Plus className="w-5 h-5" />
-                    Criar Solicitação
+                    {t.client.dashboard.createRequest}
                   </button>
                 </div>
               ) : (
@@ -343,7 +345,7 @@ export default function DashboardPage() {
                             {request.quotesCount > 0 && request.status === 'QUOTES_RECEIVED' && (
                               <span className="flex items-center gap-1 text-yellow-600 font-medium">
                                 <Star className="w-4 h-4" />
-                                {request.quotesCount} orçamento(s)
+                                {t.client.dashboard.quotesCount.replace('{count}', String(request.quotesCount))}
                               </span>
                             )}
                           </div>
@@ -366,10 +368,8 @@ export default function DashboardPage() {
             <span className="text-lg">💡</span>
           </div>
           <div>
-            <p className="font-semibold text-yellow-800">Dica</p>
-            <p className="text-sm text-yellow-700 mt-1">
-              Compare pelo menos 3 orçamentos antes de aceitar para garantir o melhor preço e qualidade de serviço.
-            </p>
+            <p className="font-semibold text-yellow-800">{t.client.dashboard.tip.title}</p>
+            <p className="text-sm text-yellow-700 mt-1">{t.client.dashboard.tip.content}</p>
           </div>
         </div>
       </div>

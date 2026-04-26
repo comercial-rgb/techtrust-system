@@ -49,7 +49,8 @@ class AdminApiService {
         return { error: data.error || data.message || 'Erro na requisição' };
       }
 
-      return { data };
+      // Backend wraps all responses in { success, data } — unwrap automatically
+      return { data: (data as any)?.data ?? data };
     } catch (error: any) {
       console.error('API Error:', error);
       return { error: error.message || 'Erro de conexão com o servidor' };
