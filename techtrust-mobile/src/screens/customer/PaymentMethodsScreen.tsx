@@ -22,6 +22,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   CardField,
   useConfirmSetupIntent,
+  usePlatformPay,
   CardFieldInput,
 } from "@stripe/stripe-react-native";
 import { useI18n } from "../../i18n";
@@ -63,6 +64,8 @@ export default function PaymentMethodsScreen({ navigation }: any) {
   const fromCreateRequest = route.params?.fromCreateRequest;
   const addCardMode = route.params?.addCardMode;
   const { confirmSetupIntent } = useConfirmSetupIntent();
+  const { isPlatformPaySupported } = usePlatformPay();
+  const [isApplePayReady, setIsApplePayReady] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
@@ -166,6 +169,9 @@ export default function PaymentMethodsScreen({ navigation }: any) {
 
   useEffect(() => {
     loadPaymentMethods();
+    if (Platform.OS === 'ios') {
+      isPlatformPaySupported().then(setIsApplePayReady).catch(() => setIsApplePayReady(false));
+    }
   }, []);
 
   const loadPaymentMethods = async () => {
@@ -889,63 +895,34 @@ export default function PaymentMethodsScreen({ navigation }: any) {
               contentContainerStyle={{ paddingBottom: 50 }}
               keyboardShouldPersistTaps="handled"
             >
-              {/* D9 — Apple Pay / Google Pay Quick Add */}
-              <View style={styles.digitalWalletSection}>
-                <Text style={styles.digitalWalletTitle}>
-                  {Platform.OS === 'ios' ? 'Apple Pay' : 'Google Pay'}
+              {/* Stripe card entry — primary action */}
+              <Text style={styles.inputLabel}>Card Details *</Text>
+              <CardField
+                postalCodeEnabled={false}
+                placeholders={{ number: "4242 4242 4242 4242" }}
+                cardStyle={{
+                  backgroundColor: "#f9fafb",
+                  textColor: "#111827",
+                  borderWidth: 1,
+                  borderColor: "#d1d5db",
+                  borderRadius: 8,
+                  fontSize: 16,
+                  placeholderColor: "#9ca3af",
+                }}
+                style={{ width: "100%", height: 50, marginBottom: 12 }}
+                onCardChange={(cardDetails: CardFieldInput.Details) => {
+                  setCardComplete(cardDetails.complete);
+                }}
+              />
+              <View style={styles.securityNote}>
+                <Ionicons name="shield-checkmark" size={16} color="#22c55e" />
+                <Text style={styles.securityNoteText}>
+                  Card data goes directly to Stripe. We never see or store your full card number.
                 </Text>
-                <Text style={styles.digitalWalletSubtitle}>
-                  Pay faster with {Platform.OS === 'ios' ? 'Apple Pay' : 'Google Pay'} at checkout
-                </Text>
-                <TouchableOpacity
-                  style={[
-                    styles.digitalWalletBtn,
-                    { backgroundColor: Platform.OS === 'ios' ? '#000' : '#fff' }
-                  ]}
-                  onPress={() => {
-                    Alert.alert(
-                      Platform.OS === 'ios' ? 'Apple Pay' : 'Google Pay',
-                      `${Platform.OS === 'ios' ? 'Apple Pay' : 'Google Pay'} is integrated into the payment flow. When you proceed to pay for a service, you will see the ${Platform.OS === 'ios' ? 'Apple Pay' : 'Google Pay'} option if your device supports it. No additional setup is needed here.`,
-                      [{ text: 'Got It' }]
-                    );
-                  }}
-                >
-                  <Ionicons
-                    name={Platform.OS === 'ios' ? 'logo-apple' : 'logo-google'}
-                    size={20}
-                    color={Platform.OS === 'ios' ? '#fff' : '#111827'}
-                  />
-                  <Text style={[
-                    styles.digitalWalletBtnText,
-                    { color: Platform.OS === 'ios' ? '#fff' : '#111827' }
-                  ]}>
-                    {Platform.OS === 'ios' ? ' Pay' : ' Pay'}
-                  </Text>
-                </TouchableOpacity>
-                <View style={styles.digitalWalletBadges}>
-                  <View style={styles.securityBadge}>
-                    <Ionicons name="shield-checkmark" size={12} color="#10b981" />
-                    <Text style={styles.securityBadgeText}>Tokenized</Text>
-                  </View>
-                  <View style={styles.securityBadge}>
-                    <Ionicons name="finger-print" size={12} color="#10b981" />
-                    <Text style={styles.securityBadgeText}>Biometric</Text>
-                  </View>
-                  <View style={styles.securityBadge}>
-                    <Ionicons name="lock-closed" size={12} color="#10b981" />
-                    <Text style={styles.securityBadgeText}>Encrypted</Text>
-                  </View>
-                </View>
-              </View>
-
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 16 }}>
-                <View style={{ flex: 1, height: 1, backgroundColor: '#e5e7eb' }} />
-                <Text style={{ fontSize: 13, color: '#9ca3af' }}>or add manually</Text>
-                <View style={{ flex: 1, height: 1, backgroundColor: '#e5e7eb' }} />
               </View>
 
               {/* Type Selection */}
-              <Text style={styles.inputLabel}>Type</Text>
+              <Text style={[styles.inputLabel, { marginTop: 8 }]}>Card Type</Text>
               <View style={styles.typeOptions}>
                 {[
                   {
@@ -989,47 +966,9 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                 ))}
               </View>
 
-              {formData.type !== "pix" ? (
+              {formData.type === "pix" && (
                 <>
-                  <Text style={styles.inputLabel}>Card Details *</Text>
-                  <CardField
-                    postalCodeEnabled={false}
-                    placeholders={{
-                      number: "4242 4242 4242 4242",
-                    }}
-                    cardStyle={{
-                      backgroundColor: "#f9fafb",
-                      textColor: "#111827",
-                      borderWidth: 1,
-                      borderColor: "#d1d5db",
-                      borderRadius: 8,
-                      fontSize: 16,
-                      placeholderColor: "#9ca3af",
-                    }}
-                    style={{
-                      width: "100%",
-                      height: 50,
-                      marginBottom: 16,
-                    }}
-                    onCardChange={(cardDetails: CardFieldInput.Details) => {
-                      setCardComplete(cardDetails.complete);
-                    }}
-                  />
-                  <View style={styles.securityNote}>
-                    <Ionicons
-                      name="shield-checkmark"
-                      size={16}
-                      color="#22c55e"
-                    />
-                    <Text style={styles.securityNoteText}>
-                      Card data goes directly to Stripe. We never see or store
-                      your full card number.
-                    </Text>
-                  </View>
-                </>
-              ) : (
-                <>
-                  <Text style={styles.inputLabel}>PIX Key *</Text>
+                  <Text style={[styles.inputLabel, { marginTop: 8 }]}>PIX Key *</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="Email, phone, CPF or random key"
@@ -1039,6 +978,28 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                     }
                   />
                 </>
+              )}
+
+              {/* Apple Pay status */}
+              {Platform.OS === 'ios' && (
+                <View style={styles.digitalWalletBanner}>
+                  <View style={[styles.dwBannerIcon, { backgroundColor: isApplePayReady ? '#f0fdf4' : '#f9fafb' }]}>
+                    <Ionicons name="logo-apple" size={22} color={isApplePayReady ? '#10b981' : '#9ca3af'} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.dwBannerTitle}>Apple Pay</Text>
+                    <Text style={styles.dwBannerDesc}>
+                      {isApplePayReady
+                        ? "Available on this device. Apple Pay appears automatically at checkout — no setup needed."
+                        : "Not available. Add a card to your Apple Wallet to enable Apple Pay at checkout."}
+                    </Text>
+                  </View>
+                  <View style={[styles.dwBannerBadge, { backgroundColor: isApplePayReady ? '#dcfce7' : '#f3f4f6' }]}>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: isApplePayReady ? '#16a34a' : '#9ca3af' }}>
+                      {isApplePayReady ? 'READY' : 'N/A'}
+                    </Text>
+                  </View>
+                </View>
               )}
 
               <TouchableOpacity
@@ -1743,60 +1704,40 @@ const styles = StyleSheet.create({
     marginTop: 12,
     lineHeight: 18,
   },
-  // D9 — Digital Wallet (Apple Pay / Google Pay)
-  digitalWalletSection: {
-    backgroundColor: '#f8fafc',
-    borderRadius: 16,
-    padding: 20,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    marginBottom: 4,
-  },
-  digitalWalletTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  digitalWalletSubtitle: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 16,
-  },
-  digitalWalletBtn: {
+  // Apple Pay / Google Pay status banner
+  digitalWalletBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 40,
+    backgroundColor: '#f9fafb',
     borderRadius: 12,
-    gap: 2,
+    padding: 12,
+    marginTop: 16,
     borderWidth: 1,
     borderColor: '#e5e7eb',
-    minWidth: 200,
-    marginBottom: 16,
+    gap: 12,
   },
-  digitalWalletBtnText: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  digitalWalletBadges: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  securityBadge: {
-    flexDirection: 'row',
+  dwBannerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#dcfce7',
+  },
+  dwBannerTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 2,
+  },
+  dwBannerDesc: {
+    fontSize: 12,
+    color: '#6b7280',
+    lineHeight: 16,
+  },
+  dwBannerBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
-    gap: 4,
-  },
-  securityBadgeText: {
-    fontSize: 11,
-    color: '#166534',
-    fontWeight: '500',
+    borderRadius: 8,
+    alignSelf: 'flex-start',
   },
 });

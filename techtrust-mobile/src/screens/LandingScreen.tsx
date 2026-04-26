@@ -1343,16 +1343,26 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
             {/* Footer Links */}
             <View style={styles.footerLinks}>
               <View style={styles.footerLinksRow}>
-                <TouchableOpacity><Text style={styles.footerLinkText}>{(t.landing as any)?.footer?.about || 'About'}</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation.navigate("TermsAndPolicies", { initialTab: "about" })}>
+                  <Text style={styles.footerLinkText}>{(t.landing as any)?.footer?.about || 'About'}</Text>
+                </TouchableOpacity>
                 <Text style={styles.footerDot}>·</Text>
-                <TouchableOpacity><Text style={styles.footerLinkText}>{(t.landing as any)?.footer?.privacy || 'Privacy Policy'}</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation.navigate("TermsAndPolicies", { initialTab: "privacy" })}>
+                  <Text style={styles.footerLinkText}>{(t.landing as any)?.footer?.privacy || 'Privacy Policy'}</Text>
+                </TouchableOpacity>
                 <Text style={styles.footerDot}>·</Text>
-                <TouchableOpacity><Text style={styles.footerLinkText}>{(t.landing as any)?.footer?.terms || 'Terms'}</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation.navigate("TermsAndPolicies")}>
+                  <Text style={styles.footerLinkText}>{(t.landing as any)?.footer?.terms || 'Terms'}</Text>
+                </TouchableOpacity>
               </View>
               <View style={styles.footerLinksRow}>
-                <TouchableOpacity><Text style={styles.footerLinkText}>{(t.landing as any)?.footer?.faq || 'FAQ'}</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation.navigate("HelpCenter")}>
+                  <Text style={styles.footerLinkText}>{(t.landing as any)?.footer?.faq || 'FAQ'}</Text>
+                </TouchableOpacity>
                 <Text style={styles.footerDot}>·</Text>
-                <TouchableOpacity><Text style={styles.footerLinkText}>{(t.landing as any)?.footer?.contact || 'Contact'}</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation.navigate("ContactUs")}>
+                  <Text style={styles.footerLinkText}>{(t.landing as any)?.footer?.contact || 'Contact'}</Text>
+                </TouchableOpacity>
               </View>
               <Text style={styles.footerCopyright}>© {new Date().getFullYear()} TechTrust AutoSolutions LLC</Text>
             </View>

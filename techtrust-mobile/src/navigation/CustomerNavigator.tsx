@@ -142,6 +142,9 @@ function HomeStack() {
       <Stack.Screen name="PartsStoreProfile" component={PartsStoreProfileScreen} />
       <Stack.Screen name="ChatList" component={ChatListScreen} />
       <Stack.Screen name="Chat" component={ChatScreen} />
+      <Stack.Screen name="HelpCenter" component={HelpCenterScreen} />
+      <Stack.Screen name="ContactUs" component={ContactUsScreen} />
+      <Stack.Screen name="TermsAndPolicies" component={TermsAndPoliciesScreen} />
     </Stack.Navigator>
   );
 }

@@ -30,6 +30,41 @@ import api from "../services/api";
 const { width } = Dimensions.get("window");
 const PHOTO_SIZE = (width - 48 - 16) / 3; // 3 photos per row with padding
 
+const US_STATES = [
+  { code: 'AL', name: 'Alabama' }, { code: 'AK', name: 'Alaska' },
+  { code: 'AZ', name: 'Arizona' }, { code: 'AR', name: 'Arkansas' },
+  { code: 'CA', name: 'California' }, { code: 'CO', name: 'Colorado' },
+  { code: 'CT', name: 'Connecticut' }, { code: 'DE', name: 'Delaware' },
+  { code: 'FL', name: 'Florida' }, { code: 'GA', name: 'Georgia' },
+  { code: 'HI', name: 'Hawaii' }, { code: 'ID', name: 'Idaho' },
+  { code: 'IL', name: 'Illinois' }, { code: 'IN', name: 'Indiana' },
+  { code: 'IA', name: 'Iowa' }, { code: 'KS', name: 'Kansas' },
+  { code: 'KY', name: 'Kentucky' }, { code: 'LA', name: 'Louisiana' },
+  { code: 'ME', name: 'Maine' }, { code: 'MD', name: 'Maryland' },
+  { code: 'MA', name: 'Massachusetts' }, { code: 'MI', name: 'Michigan' },
+  { code: 'MN', name: 'Minnesota' }, { code: 'MS', name: 'Mississippi' },
+  { code: 'MO', name: 'Missouri' }, { code: 'MT', name: 'Montana' },
+  { code: 'NE', name: 'Nebraska' }, { code: 'NV', name: 'Nevada' },
+  { code: 'NH', name: 'New Hampshire' }, { code: 'NJ', name: 'New Jersey' },
+  { code: 'NM', name: 'New Mexico' }, { code: 'NY', name: 'New York' },
+  { code: 'NC', name: 'North Carolina' }, { code: 'ND', name: 'North Dakota' },
+  { code: 'OH', name: 'Ohio' }, { code: 'OK', name: 'Oklahoma' },
+  { code: 'OR', name: 'Oregon' }, { code: 'PA', name: 'Pennsylvania' },
+  { code: 'RI', name: 'Rhode Island' }, { code: 'SC', name: 'South Carolina' },
+  { code: 'SD', name: 'South Dakota' }, { code: 'TN', name: 'Tennessee' },
+  { code: 'TX', name: 'Texas' }, { code: 'UT', name: 'Utah' },
+  { code: 'VT', name: 'Vermont' }, { code: 'VA', name: 'Virginia' },
+  { code: 'WA', name: 'Washington' }, { code: 'WV', name: 'West Virginia' },
+  { code: 'WI', name: 'Wisconsin' }, { code: 'WY', name: 'Wyoming' },
+  { code: 'DC', name: 'District of Columbia' },
+];
+
+const VEHICLE_COLORS = [
+  'White', 'Black', 'Silver', 'Gray', 'Red', 'Blue', 'Dark Blue',
+  'Green', 'Yellow', 'Orange', 'Brown', 'Beige', 'Gold', 'Maroon',
+  'Champagne', 'Purple', 'Other',
+];
+
 interface VehiclePhoto {
   uri: string;
   id: string;
@@ -83,16 +118,11 @@ export default function AddVehicleScreen({ navigation }: any) {
   const [primaryDriver, setPrimaryDriver] = useState(
     editVehicle?.primaryDriver || "",
   );
-  const [insuranceProvider, setInsuranceProvider] = useState(
-    editVehicle?.insuranceProvider || "",
-  );
-  const [insurancePolicy, setInsurancePolicy] = useState(
-    editVehicle?.insurancePolicy || "",
-  );
   const [saving, setSaving] = useState(false);
   const [decodingVIN, setDecodingVIN] = useState(false);
   const [vinDecoded, setVinDecoded] = useState(false);
-  const [manualEntry, setManualEntry] = useState(!editVehicle?.vin); // Se não tem VIN, é entrada manual
+  const [manualEntry, setManualEntry] = useState(!editVehicle?.vin);
+  const [showStateModal, setShowStateModal] = useState(false);
 
   // VIN Scanner state
   const [showScanner, setShowScanner] = useState(false);
@@ -547,12 +577,11 @@ export default function AddVehicleScreen({ navigation }: any) {
       return;
     }
 
-    // Validar campos obrigatórios
+    // Validate required fields
     if (!make || !model || !year) {
       Alert.alert(
         t.common?.error || "Error",
-        t.vehicle?.fillRequiredFields ||
-          "Por favor, preencha Marca, Modelo e Ano",
+        t.vehicle?.fillRequiredFields || "Please fill in Make, Model and Year",
       );
       return;
     }
@@ -560,25 +589,23 @@ export default function AddVehicleScreen({ navigation }: any) {
     setSaving(true);
 
     try {
-      // Preparar dados do veículo
+      const rawMileage = mileage.replace(/,/g, '');
       const vehicleData = {
         make,
         model,
-        year: parseInt(year),
+        year: parseInt(year, 10),
         plateNumber: plateNumber || undefined,
         plateState: plateState || undefined,
         vin: vin || undefined,
         color,
-        currentMileage: mileage ? parseInt(mileage) : undefined,
+        currentMileage: rawMileage ? parseInt(rawMileage, 10) : undefined,
         engineType,
         fuelType,
         bodyType,
         trim,
         driveType: driveType || undefined,
-        numberOfRows: numberOfRows ? parseInt(numberOfRows) : undefined,
-        seatingCapacity: seatingCapacity
-          ? parseInt(seatingCapacity)
-          : undefined,
+        numberOfRows: numberOfRows ? parseInt(numberOfRows, 10) : undefined,
+        seatingCapacity: seatingCapacity ? parseInt(seatingCapacity, 10) : undefined,
         countryOfManufacturer: countryOfManufacturer || undefined,
         category: category || undefined,
         transmission: transmission || undefined,
@@ -588,21 +615,20 @@ export default function AddVehicleScreen({ navigation }: any) {
       };
 
       if (isEditing) {
-        // Atualizar veículo existente
         await api.patch(`/vehicles/${editVehicle.id}`, vehicleData);
         Alert.alert(
           t.common?.success || "Success!",
-          t.vehicle?.vehicleUpdatedSuccess || "Veículo atualizado com sucesso",
+          t.vehicle?.vehicleUpdatedSuccess || "Vehicle updated successfully",
           [{ text: t.common?.ok || "OK", onPress: () => navigation.goBack() }],
         );
       } else {
-        // Criar novo veículo
-        await api.post("/vehicles", vehicleData);
-        Alert.alert(
-          t.common?.success || "Success!",
-          t.vehicle?.vehicleAddedSuccess || "Veículo adicionado com sucesso",
-          [{ text: t.common?.ok || "OK", onPress: () => navigation.goBack() }],
-        );
+        const response = await api.post("/vehicles", vehicleData);
+        const newVehicleId = response.data?.data?.id || response.data?.id;
+        if (newVehicleId) {
+          navigation.replace("VehicleDetails", { vehicleId: newVehicleId, showOnboarding: true });
+        } else {
+          navigation.goBack();
+        }
       }
     } catch (error: any) {
       console.error("Erro ao salvar veículo:", error);
@@ -1043,33 +1069,44 @@ export default function AddVehicleScreen({ navigation }: any) {
           </Text>
         </View>
 
-        {/* Plate State (for US plates) */}
+        {/* Plate State picker */}
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>
             {t.vehicle?.plateState || "Plate State (for US)"}
           </Text>
-          <TextInput
-            style={styles.input}
-            placeholder="e.g., CA, NY, TX"
-            value={plateState}
-            onChangeText={setPlateState}
-            autoCapitalize="characters"
-            maxLength={2}
-          />
+          <TouchableOpacity
+            style={[styles.input, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}
+            onPress={() => setShowStateModal(true)}
+            activeOpacity={0.7}
+          >
+            <Text style={{ fontSize: 16, color: plateState ? '#111827' : '#9ca3af' }}>
+              {plateState
+                ? `${plateState} — ${US_STATES.find(s => s.code === plateState)?.name || ''}`
+                : 'Select state...'}
+            </Text>
+            <Ionicons name="chevron-down" size={18} color="#6b7280" />
+          </TouchableOpacity>
           <Text style={styles.inputHint}>
-            {t.vehicle?.plateStateHint || "Optional - 2 letter state code"}
+            {t.vehicle?.plateStateHint || "Optional"}
           </Text>
         </View>
 
-        {/* Color - Always manual */}
+        {/* Color chip picker */}
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>{t.vehicle?.color || "Color"}</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="e.g., Silver, Black"
-            value={color}
-            onChangeText={setColor}
-          />
+          <View style={styles.optionsRow}>
+            {VEHICLE_COLORS.map((c) => (
+              <TouchableOpacity
+                key={c}
+                style={[styles.optionChip, color === c && styles.optionChipSelected]}
+                onPress={() => setColor(c)}
+              >
+                <Text style={[styles.optionChipText, color === c && styles.optionChipTextSelected]}>
+                  {c}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
         {/* Vehicle Type */}
@@ -1142,12 +1179,9 @@ export default function AddVehicleScreen({ navigation }: any) {
           />
         </View>
 
-        {/* Driver & Insurance Section */}
-        <Text style={styles.sectionTitle}>
-          {t.vehicle?.driverInsurance || "Driver & Insurance"}
-        </Text>
+        {/* Driver Section */}
+        <Text style={styles.sectionTitle}>Driver</Text>
 
-        {/* Primary Driver */}
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>
             {t.vehicle?.primaryDriver || "Primary Driver"}
@@ -1158,32 +1192,9 @@ export default function AddVehicleScreen({ navigation }: any) {
             value={primaryDriver}
             onChangeText={setPrimaryDriver}
           />
-        </View>
-
-        {/* Insurance Provider */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>
-            {t.vehicle?.insuranceProvider || "Insurance Provider"}
+          <Text style={styles.inputHint}>
+            Manage insurance in Vehicle Details → Insurance
           </Text>
-          <TextInput
-            style={styles.input}
-            placeholder="e.g., State Farm, Geico"
-            value={insuranceProvider}
-            onChangeText={setInsuranceProvider}
-          />
-        </View>
-
-        {/* Insurance Policy */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>
-            {t.vehicle?.insurancePolicyNumber || "Insurance Policy Number"}
-          </Text>
-          <TextInput
-            style={styles.input}
-            placeholder="e.g., POL-12345678"
-            value={insurancePolicy}
-            onChangeText={setInsurancePolicy}
-          />
         </View>
 
         <View style={{ height: 120 }} />
@@ -1212,6 +1223,52 @@ export default function AddVehicleScreen({ navigation }: any) {
           )}
         </TouchableOpacity>
       </View>
+
+      {/* State Picker Modal */}
+      <Modal
+        visible={showStateModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowStateModal(false)}
+      >
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' }}>
+            <TouchableOpacity onPress={() => setShowStateModal(false)}>
+              <Ionicons name="close" size={24} color="#111827" />
+            </TouchableOpacity>
+            <Text style={{ fontSize: 17, fontWeight: '600', color: '#111827' }}>Select State</Text>
+            <TouchableOpacity onPress={() => { setPlateState(''); setShowStateModal(false); }}>
+              <Text style={{ fontSize: 14, color: '#6b7280' }}>Clear</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {US_STATES.map((state) => (
+              <TouchableOpacity
+                key={state.code}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingHorizontal: 20,
+                  paddingVertical: 16,
+                  borderBottomWidth: 1,
+                  borderBottomColor: '#f3f4f6',
+                  backgroundColor: plateState === state.code ? '#eff6ff' : '#fff',
+                }}
+                onPress={() => { setPlateState(state.code); setShowStateModal(false); }}
+              >
+                <Text style={{ fontSize: 16, color: '#111827' }}>
+                  <Text style={{ fontWeight: '700' }}>{state.code}</Text>
+                  {'  '}{state.name}
+                </Text>
+                {plateState === state.code && (
+                  <Ionicons name="checkmark" size={20} color="#2B5EA7" />
+                )}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
 
       {/* VIN Barcode Scanner Modal */}
       <Modal

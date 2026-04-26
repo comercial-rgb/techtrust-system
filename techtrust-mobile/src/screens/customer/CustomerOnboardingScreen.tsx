@@ -5,7 +5,7 @@
  * Each data step saves immediately and is marked complete in AsyncStorage.
  */
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -28,6 +28,37 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../../contexts/AuthContext";
 import api from "../../services/api";
 import { US_STATES, CITIES_BY_STATE } from "../../constants/us-states";
+
+// Address autocomplete via Nominatim (free, no API key needed)
+interface PlaceSuggestion {
+  id: string;
+  displayName: string;
+  number: string;
+  street: string;
+  city: string;
+  state: string;
+  zipCode: string;
+}
+
+const STATE_ABBR: Record<string, string> = {
+  'Alabama': 'AL', 'Alaska': 'AK', 'Arizona': 'AZ', 'Arkansas': 'AR',
+  'California': 'CA', 'Colorado': 'CO', 'Connecticut': 'CT', 'Delaware': 'DE',
+  'Florida': 'FL', 'Georgia': 'GA', 'Hawaii': 'HI', 'Idaho': 'ID',
+  'Illinois': 'IL', 'Indiana': 'IN', 'Iowa': 'IA', 'Kansas': 'KS',
+  'Kentucky': 'KY', 'Louisiana': 'LA', 'Maine': 'ME', 'Maryland': 'MD',
+  'Massachusetts': 'MA', 'Michigan': 'MI', 'Minnesota': 'MN', 'Mississippi': 'MS',
+  'Missouri': 'MO', 'Montana': 'MT', 'Nebraska': 'NE', 'Nevada': 'NV',
+  'New Hampshire': 'NH', 'New Jersey': 'NJ', 'New Mexico': 'NM', 'New York': 'NY',
+  'North Carolina': 'NC', 'North Dakota': 'ND', 'Ohio': 'OH', 'Oklahoma': 'OK',
+  'Oregon': 'OR', 'Pennsylvania': 'PA', 'Rhode Island': 'RI', 'South Carolina': 'SC',
+  'South Dakota': 'SD', 'Tennessee': 'TN', 'Texas': 'TX', 'Utah': 'UT',
+  'Vermont': 'VT', 'Virginia': 'VA', 'Washington': 'WA', 'West Virginia': 'WV',
+  'Wisconsin': 'WI', 'Wyoming': 'WY', 'District of Columbia': 'DC',
+};
+
+function getStateAbbr(stateName: string): string {
+  return STATE_ABBR[stateName] || stateName.substring(0, 2).toUpperCase();
+}
 
 // ─── Step IDs ───────────────────────────────────────────────────────────────
 const STEP_IDS = ["welcome", "location", "address", "vehicle", "done"] as const;
@@ -90,6 +121,55 @@ export default function CustomerOnboardingScreen({ navigation }: any) {
   const [addressDone, setAddressDone] = useState(false);
   const [showAddrStatePicker, setShowAddrStatePicker] = useState(false);
   const [showAddrCityPicker, setShowAddrCityPicker] = useState(false);
+
+  // ── Address search autocomplete ────────────────────────────────────────────
+  const [addrSearchQuery, setAddrSearchQuery] = useState("");
+  const [addrSearchResults, setAddrSearchResults] = useState<PlaceSuggestion[]>([]);
+  const [addrSearching, setAddrSearching] = useState(false);
+  const addrSearchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const searchAddresses = useCallback(async (query: string) => {
+    if (query.length < 3) { setAddrSearchResults([]); return; }
+    setAddrSearching(true);
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=5&countrycodes=us`;
+      const resp = await fetch(url, { headers: { 'User-Agent': 'TechTrust-Mobile/1.0' } });
+      const data = await resp.json();
+      const results: PlaceSuggestion[] = data.map((item: any) => {
+        const addr = item.address || {};
+        return {
+          id: item.place_id?.toString() || Math.random().toString(),
+          displayName: item.display_name || "",
+          number: addr.house_number || "",
+          street: addr.road || "",
+          city: addr.city || addr.town || addr.village || addr.hamlet || "",
+          state: addr.state ? getStateAbbr(addr.state) : "",
+          zipCode: addr.postcode || "",
+        };
+      });
+      setAddrSearchResults(results);
+    } catch {
+      setAddrSearchResults([]);
+    } finally {
+      setAddrSearching(false);
+    }
+  }, []);
+
+  const handleAddrSearchInput = (text: string) => {
+    setAddrSearchQuery(text);
+    if (addrSearchTimeout.current) clearTimeout(addrSearchTimeout.current);
+    addrSearchTimeout.current = setTimeout(() => searchAddresses(text), 400);
+  };
+
+  const selectAddrSuggestion = (s: PlaceSuggestion) => {
+    const fullStreet = s.number ? `${s.number} ${s.street}` : s.street;
+    setStreet(fullStreet);
+    setAddrCity(s.city);
+    setAddrState(s.state);
+    setAddrZip(s.zipCode);
+    setAddrSearchQuery(s.displayName.split(",")[0] || fullStreet);
+    setAddrSearchResults([]);
+  };
 
   const stepId = STEP_IDS[currentStep];
   const color = STEP_COLORS[stepId];
@@ -401,7 +481,38 @@ export default function CustomerOnboardingScreen({ navigation }: any) {
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Street Address</Text>
+            {/* Address search field */}
+            <Text style={styles.label}>Search Address</Text>
+            <View style={{ position: "relative", zIndex: 10 }}>
+              <View style={styles.searchRow}>
+                <Ionicons name="search" size={18} color="#9ca3af" style={{ marginRight: 8 }} />
+                <TextInput
+                  style={[styles.input, { flex: 1, marginBottom: 0, borderWidth: 0, backgroundColor: "transparent", paddingHorizontal: 0, paddingVertical: 0 }]}
+                  placeholder="Type your address to search..."
+                  placeholderTextColor="#9ca3af"
+                  value={addrSearchQuery}
+                  onChangeText={handleAddrSearchInput}
+                  autoCorrect={false}
+                />
+                {addrSearching && <ActivityIndicator size="small" color="#f59e0b" style={{ marginLeft: 8 }} />}
+              </View>
+              {addrSearchResults.length > 0 && (
+                <View style={styles.searchDropdown}>
+                  {addrSearchResults.map((item) => (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={styles.searchDropdownItem}
+                      onPress={() => selectAddrSuggestion(item)}
+                    >
+                      <Ionicons name="location-outline" size={16} color="#f59e0b" style={{ marginRight: 8, flexShrink: 0 }} />
+                      <Text style={styles.searchDropdownText} numberOfLines={2}>{item.displayName}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+
+            <Text style={[styles.label, { marginTop: 16 }]}>Street Address</Text>
             <TextInput
               style={styles.input}
               placeholder="e.g. 123 Oak Street, Apt 4B"
@@ -815,6 +926,48 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#111827",
     backgroundColor: "#fafafa",
+    marginBottom: 0,
+  },
+  searchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: "#d1d5db",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: "#fafafa",
+    marginBottom: 4,
+  },
+  searchDropdown: {
+    position: "absolute",
+    top: "100%",
+    left: 0,
+    right: 0,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 6,
+    zIndex: 100,
+  },
+  searchDropdownItem: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
+  },
+  searchDropdownText: {
+    flex: 1,
+    fontSize: 13,
+    color: "#374151",
+    lineHeight: 18,
   },
   pickerBtn: {
     flexDirection: "row",

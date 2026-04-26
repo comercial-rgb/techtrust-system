@@ -18,7 +18,10 @@ import {
   TextInput,
   Platform,
   ActionSheetIOS,
+  Dimensions,
 } from "react-native";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -83,6 +86,10 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
 
   // D11 — Vehicle photo
   const [vehiclePhoto, setVehiclePhoto] = useState<string | null>(null);
+
+  // Onboarding modal after first vehicle add
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState(0);
 
   // D13 — Add Past Service modal
   const [showPastServiceModal, setShowPastServiceModal] = useState(false);
@@ -169,6 +176,12 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
       loadRecalls();
     }
   }, [vehicleId]);
+
+  useEffect(() => {
+    if (!loading && vehicle && route.params?.showOnboarding) {
+      setShowOnboarding(true);
+    }
+  }, [loading, vehicle]);
 
   async function loadVehicleDetails() {
     try {
@@ -392,16 +405,19 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
             <Text style={styles.vehicleTitle}>
               {vehicle.year} {vehicle.make} {vehicle.model} {vehicle.trim || ""}
             </Text>
-            {vehicle.fuelType ? (
+            {(vehicle.fuelType || vehicle.vehicleType) ? (
               <View
                 style={{
                   flexDirection: "row",
+                  flexWrap: "wrap",
                   alignItems: "center",
-                  marginTop: 6,
-                  gap: 8,
+                  justifyContent: "center",
+                  marginTop: 8,
+                  gap: 6,
+                  paddingHorizontal: 16,
                 }}
               >
-                {vehicle.fuelType && (
+                {vehicle.fuelType ? (
                   <View
                     style={{
                       flexDirection: "row",
@@ -410,21 +426,24 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
                       paddingHorizontal: 10,
                       paddingVertical: 4,
                       borderRadius: 12,
+                      maxWidth: SCREEN_WIDTH - 48,
                     }}
                   >
                     <Ionicons name="flash" size={12} color="#2B5EA7" />
                     <Text
+                      numberOfLines={1}
                       style={{
                         fontSize: 12,
                         color: "#2B5EA7",
                         fontWeight: "600",
                         marginLeft: 4,
+                        flexShrink: 1,
                       }}
                     >
                       {vehicle.fuelType}
                     </Text>
                   </View>
-                )}
+                ) : null}
                 {vehicle.vehicleType ? (
                   <View
                     style={{
@@ -434,15 +453,18 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
                       paddingHorizontal: 10,
                       paddingVertical: 4,
                       borderRadius: 12,
+                      maxWidth: SCREEN_WIDTH - 48,
                     }}
                   >
                     <Ionicons name="car" size={12} color="#059669" />
                     <Text
+                      numberOfLines={1}
                       style={{
                         fontSize: 12,
                         color: "#059669",
                         fontWeight: "600",
                         marginLeft: 4,
+                        flexShrink: 1,
                       }}
                     >
                       {vehicle.vehicleType}
@@ -1095,6 +1117,208 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* Vehicle Onboarding Modal */}
+      <Modal
+        visible={showOnboarding}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowOnboarding(false)}
+      >
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+          {/* Progress dots */}
+          <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 6, paddingTop: 16 }}>
+            {[0, 1, 2].map(i => (
+              <View key={i} style={{
+                width: i === onboardingStep ? 24 : 8,
+                height: 8,
+                borderRadius: 4,
+                backgroundColor: i === onboardingStep ? '#2B5EA7' : '#e5e7eb',
+              }} />
+            ))}
+          </View>
+
+          <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
+            {/* Step 0 — Welcome */}
+            {onboardingStep === 0 && (
+              <View style={{ alignItems: 'center' }}>
+                <View style={{ width: 96, height: 96, borderRadius: 48, backgroundColor: '#dbeafe', justifyContent: 'center', alignItems: 'center', marginBottom: 20, marginTop: 8 }}>
+                  <Ionicons name="checkmark-circle" size={52} color="#2B5EA7" />
+                </View>
+                <Text style={{ fontSize: 26, fontWeight: '800', color: '#111827', textAlign: 'center', marginBottom: 10 }}>
+                  Your vehicle is ready!
+                </Text>
+                <Text style={{ fontSize: 15, color: '#6b7280', textAlign: 'center', lineHeight: 22, marginBottom: 28 }}>
+                  {vehicle?.year} {vehicle?.make} {vehicle?.model} has been added to your garage.
+                </Text>
+
+                <View style={{ width: '100%', gap: 12 }}>
+                  {[
+                    { icon: 'shield-checkmark-outline', color: '#10b981', bg: '#d1fae5', title: 'Accurate Quotes', desc: 'Providers see your vehicle details and quote the right price.' },
+                    { icon: 'time-outline', color: '#2B5EA7', bg: '#dbeafe', title: 'Service History', desc: 'Every service is automatically logged for resale value.' },
+                    { icon: 'notifications-outline', color: '#f59e0b', bg: '#fef3c7', title: 'Recall Alerts', desc: 'Get notified about safety recalls from NHTSA.' },
+                  ].map(item => (
+                    <View key={item.title} style={{ flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#f8fafc', borderRadius: 14, padding: 14, gap: 12 }}>
+                      <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: item.bg, justifyContent: 'center', alignItems: 'center' }}>
+                        <Ionicons name={item.icon as any} size={20} color={item.color} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 14, fontWeight: '700', color: '#111827', marginBottom: 2 }}>{item.title}</Text>
+                        <Text style={{ fontSize: 13, color: '#6b7280', lineHeight: 18 }}>{item.desc}</Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Step 1 — Complete your profile */}
+            {onboardingStep === 1 && (
+              <View>
+                <View style={{ alignItems: 'center', marginBottom: 24, marginTop: 8 }}>
+                  <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: '#fef3c7', justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
+                    <Ionicons name="document-text-outline" size={36} color="#f59e0b" />
+                  </View>
+                  <Text style={{ fontSize: 22, fontWeight: '800', color: '#111827', textAlign: 'center', marginBottom: 8 }}>
+                    Complete your profile
+                  </Text>
+                  <Text style={{ fontSize: 14, color: '#6b7280', textAlign: 'center', lineHeight: 20 }}>
+                    The more you fill in, the better your experience
+                  </Text>
+                </View>
+
+                {[
+                  {
+                    icon: 'car-outline',
+                    color: '#2B5EA7',
+                    bg: '#dbeafe',
+                    title: 'Vehicle Information',
+                    desc: 'VIN, mileage, color, fuel type — helps providers prepare the right parts and tools before your appointment.',
+                    action: 'Edit vehicle',
+                    onAction: () => { setShowOnboarding(false); navigation.navigate('AddVehicle', { vehicle }); },
+                  },
+                  {
+                    icon: 'shield-outline',
+                    color: '#059669',
+                    bg: '#d1fae5',
+                    title: 'Insurance Details',
+                    desc: 'Store your policy info securely. Get expiry reminders and have everything ready when you need it.',
+                    action: 'Manage Insurance',
+                    onAction: () => { setShowOnboarding(false); navigation.navigate('Insurance', { vehicleId: vehicle?.id }); },
+                  },
+                ].map(item => (
+                  <View key={item.title} style={{ backgroundColor: '#f8fafc', borderRadius: 16, padding: 16, marginBottom: 12 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+                      <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: item.bg, justifyContent: 'center', alignItems: 'center' }}>
+                        <Ionicons name={item.icon as any} size={22} color={item.color} />
+                      </View>
+                      <Text style={{ fontSize: 16, fontWeight: '700', color: '#111827', flex: 1 }}>{item.title}</Text>
+                    </View>
+                    <Text style={{ fontSize: 13, color: '#6b7280', lineHeight: 19, marginBottom: 12 }}>{item.desc}</Text>
+                    <TouchableOpacity
+                      style={{ alignSelf: 'flex-start', backgroundColor: item.bg, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 }}
+                      onPress={item.onAction}
+                    >
+                      <Text style={{ fontSize: 13, fontWeight: '600', color: item.color }}>{item.action} →</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Step 2 — What you can do */}
+            {onboardingStep === 2 && (
+              <View>
+                <View style={{ alignItems: 'center', marginBottom: 24, marginTop: 8 }}>
+                  <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: '#ede9fe', justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
+                    <Ionicons name="grid-outline" size={36} color="#7c3aed" />
+                  </View>
+                  <Text style={{ fontSize: 22, fontWeight: '800', color: '#111827', textAlign: 'center', marginBottom: 8 }}>
+                    Here's what you can do
+                  </Text>
+                  <Text style={{ fontSize: 14, color: '#6b7280', textAlign: 'center', lineHeight: 20 }}>
+                    Every button in Vehicle Details explained
+                  </Text>
+                </View>
+
+                {[
+                  {
+                    icon: 'add-circle-outline',
+                    color: '#fff',
+                    bg: '#2B5EA7',
+                    title: 'Request Service',
+                    desc: 'Get quotes from verified mechanics nearby. Compare prices and pick the best deal.',
+                  },
+                  {
+                    icon: 'shield-checkmark-outline',
+                    color: '#2B5EA7',
+                    bg: '#dbeafe',
+                    title: 'Manage Insurance',
+                    desc: 'Add, update or renew your insurance policy. Get alerts before it expires.',
+                  },
+                  {
+                    icon: 'swap-horizontal-outline',
+                    color: '#7c3aed',
+                    bg: '#ede9fe',
+                    title: 'Transfer Vehicle',
+                    desc: 'Digitally transfer ownership when selling. The full service history goes with the vehicle.',
+                  },
+                  {
+                    icon: 'construct-outline',
+                    color: '#ea580c',
+                    bg: '#fff7ed',
+                    title: 'Find Parts',
+                    desc: "Search OEM and aftermarket parts matched specifically to your vehicle's year, make and model.",
+                  },
+                  {
+                    icon: 'time-outline',
+                    color: '#6b7280',
+                    bg: '#f3f4f6',
+                    title: 'Add Past Service',
+                    desc: 'Log services done before using TechTrust to build a complete maintenance timeline.',
+                  },
+                ].map(item => (
+                  <View key={item.title} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 14, backgroundColor: '#f8fafc', borderRadius: 14, padding: 14 }}>
+                    <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: item.bg, justifyContent: 'center', alignItems: 'center', flexShrink: 0 }}>
+                      <Ionicons name={item.icon as any} size={20} color={item.color} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 14, fontWeight: '700', color: '#111827', marginBottom: 3 }}>{item.title}</Text>
+                      <Text style={{ fontSize: 13, color: '#6b7280', lineHeight: 18 }}>{item.desc}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
+          </ScrollView>
+
+          {/* Bottom nav */}
+          <View style={{ padding: 20, paddingBottom: 8, gap: 10 }}>
+            <TouchableOpacity
+              style={{ backgroundColor: '#2B5EA7', paddingVertical: 16, borderRadius: 14, alignItems: 'center' }}
+              onPress={() => {
+                if (onboardingStep < 2) {
+                  setOnboardingStep(s => s + 1);
+                } else {
+                  setShowOnboarding(false);
+                }
+              }}
+            >
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff' }}>
+                {onboardingStep < 2 ? 'Next →' : 'Get Started'}
+              </Text>
+            </TouchableOpacity>
+            {onboardingStep < 2 && (
+              <TouchableOpacity
+                style={{ paddingVertical: 12, alignItems: 'center' }}
+                onPress={() => setShowOnboarding(false)}
+              >
+                <Text style={{ fontSize: 14, color: '#9ca3af' }}>Skip for now</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </SafeAreaView>
+      </Modal>
 
       {/* D13 — Add Past Service Modal */}
       <Modal

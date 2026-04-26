@@ -24,16 +24,28 @@ interface Vehicle {
 }
 
 const SERVICE_TYPES = [
-  { value: 'OIL_CHANGE', label: 'Troca de Óleo', icon: '🛢️' },
-  { value: 'BRAKE_SERVICE', label: 'Serviço de Freios', icon: '🛞' },
-  { value: 'TIRE_SERVICE', label: 'Pneus e Alinhamento', icon: '🔧' },
-  { value: 'ENGINE_SERVICE', label: 'Motor', icon: '⚙️' },
-  { value: 'ELECTRICAL', label: 'Elétrica', icon: '⚡' },
-  { value: 'AC_SERVICE', label: 'Ar Condicionado', icon: '❄️' },
-  { value: 'SUSPENSION', label: 'Suspensão', icon: '🔩' },
-  { value: 'TRANSMISSION', label: 'Transmissão', icon: '🚗' },
-  { value: 'GENERAL_REPAIR', label: 'Reparo Geral', icon: '🔨' },
-  { value: 'INSPECTION', label: 'Inspeção/Revisão', icon: '📋' },
+  { value: 'oil', label: 'Troca de Óleo', icon: '🛢️' },
+  { value: 'brake', label: 'Serviço de Freios', icon: '🛞' },
+  { value: 'tire', label: 'Pneus e Alinhamento', icon: '🔧' },
+  { value: 'engine', label: 'Motor', icon: '⚙️' },
+  { value: 'electric', label: 'Elétrica', icon: '⚡' },
+  { value: 'ac', label: 'Ar Condicionado', icon: '❄️' },
+  { value: 'suspension', label: 'Suspensão', icon: '🔩' },
+  { value: 'transmission', label: 'Transmissão', icon: '🚗' },
+  { value: 'air_filter', label: 'Filtro de Ar', icon: '💨' },
+  { value: 'belts_hoses', label: 'Correias e Mangueiras', icon: '🔗' },
+  { value: 'cooling', label: 'Arrefecimento', icon: '🌡️' },
+  { value: 'fuel_system', label: 'Sistema de Combustível', icon: '⛽' },
+  { value: 'steering', label: 'Direção', icon: '🎯' },
+  { value: 'exhaust', label: 'Escapamento', icon: '💨' },
+  { value: 'drivetrain', label: 'Transmissão/Tração', icon: '⚙️' },
+  { value: 'fluids', label: 'Fluidos', icon: '🧴' },
+  { value: 'general_repair', label: 'Reparo Geral', icon: '🔨' },
+  { value: 'inspection', label: 'Inspeção/Revisão', icon: '📋' },
+  { value: 'maintenance', label: 'Revisão Preventiva', icon: '🔎' },
+  { value: 'detailing', label: 'Estética/Detailing', icon: '✨' },
+  { value: 'battery', label: 'Bateria', icon: '🔋' },
+  { value: 'towing', label: 'Reboque', icon: '🚛' },
 ];
 
 const URGENCY_OPTIONS = [

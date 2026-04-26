@@ -1830,6 +1830,80 @@ export default function CreateRequestScreen({ navigation }: any) {
         },
       ],
     },
+    // ─── Detailing ───
+    detailing: {
+      title: "Detailing Service Details",
+      sections: [
+        {
+          id: "detailScope",
+          label: "Service Scope",
+          type: "single",
+          options: [
+            { id: "exterior", label: "Exterior Only", icon: "car" },
+            { id: "interior", label: "Interior Only", icon: "home" },
+            { id: "full", label: "Full Detail (Interior + Exterior)", icon: "star" },
+            { id: "express", label: "Express Wash & Vacuum", icon: "flash" },
+          ],
+        },
+        {
+          id: "detailServices",
+          label: "Services Needed (select all)",
+          type: "multi",
+          options: [
+            { id: "hand_wash", label: "Hand Wash & Dry", icon: "water" },
+            { id: "wax_polish", label: "Wax / Polish", icon: "sparkles" },
+            { id: "clay_bar", label: "Clay Bar Treatment", icon: "ellipse" },
+            { id: "paint_correction", label: "Paint Correction / Swirl Removal", icon: "color-palette" },
+            { id: "ceramic_coating", label: "Ceramic Coating", icon: "shield" },
+            { id: "tire_shine", label: "Tire Shine & Wheel Cleaning", icon: "ellipse" },
+            { id: "vacuum", label: "Interior Vacuum", icon: "funnel" },
+            { id: "shampoo", label: "Seat / Carpet Shampoo", icon: "layers" },
+            { id: "leather", label: "Leather Conditioning", icon: "briefcase" },
+            { id: "odor_removal", label: "Odor Removal / Ozone Treatment", icon: "alert-circle" },
+            { id: "windows_clean", label: "Window Cleaning (Inside + Out)", icon: "expand" },
+            { id: "engine_clean", label: "Engine Bay Cleaning", icon: "cog" },
+            { id: "headlight", label: "Headlight Restoration", icon: "bulb" },
+          ],
+        },
+      ],
+    },
+    // ─── General Repair ───
+    general_repair: {
+      title: "General Repair Details",
+      sections: [
+        {
+          id: "repairArea",
+          label: "Area of Vehicle",
+          type: "multi",
+          options: [
+            { id: "engine", label: "Engine / Drivetrain", icon: "cog" },
+            { id: "brakes", label: "Brakes / Wheels", icon: "disc" },
+            { id: "suspension", label: "Suspension / Steering", icon: "navigate" },
+            { id: "electrical", label: "Electrical / Electronics", icon: "flash" },
+            { id: "ac_heat", label: "A/C / Heating", icon: "snow" },
+            { id: "body", label: "Body / Frame / Rust", icon: "car" },
+            { id: "interior", label: "Interior / Trim", icon: "home" },
+            { id: "exhaust", label: "Exhaust / Emissions", icon: "cloud" },
+            { id: "fluid_leak", label: "Fluid Leak", icon: "water" },
+            { id: "other", label: "Other / Not Sure", icon: "help-circle" },
+          ],
+        },
+        {
+          id: "repairSymptoms",
+          label: "Main Symptoms (optional)",
+          type: "multi",
+          options: [
+            { id: "warning_light", label: "Warning Light On", icon: "warning" },
+            { id: "noise", label: "Unusual Noise", icon: "volume-high" },
+            { id: "vibration", label: "Vibration / Shaking", icon: "pulse" },
+            { id: "leak", label: "Visible Leak", icon: "water" },
+            { id: "no_start", label: "Won't Start", icon: "close-circle" },
+            { id: "overheating", label: "Overheating", icon: "thermometer" },
+            { id: "performance", label: "Poor Performance", icon: "trending-down" },
+          ],
+        },
+      ],
+    },
     // ─── Preventive Maintenance Packages ───
     packages: {
       title: "Preventive Maintenance Package",
@@ -2067,6 +2141,7 @@ export default function CreateRequestScreen({ navigation }: any) {
       plate: string;
       fuelType?: string;
       bodyType?: string;
+      currentMileage?: number;
     }[]
   >([]);
 
@@ -2119,6 +2194,9 @@ export default function CreateRequestScreen({ navigation }: any) {
   function handleVehicleSelect(vehicleId: string) {
     setSelectedVehicle(vehicleId);
     const vehicle = vehicles.find((v) => v.id === vehicleId);
+    if (vehicle?.currentMileage) {
+      setMileage(String(vehicle.currentMileage));
+    }
     if (vehicle?.bodyType) {
       const mapped = mapBodyTypeToVehicleType(vehicle.bodyType);
       if (mapped) {
@@ -2148,10 +2226,14 @@ export default function CreateRequestScreen({ navigation }: any) {
           plate: v.plateNumber,
           fuelType: v.fuelType,
           bodyType: v.bodyType,
+          currentMileage: (v as any).currentMileage,
         })),
       );
       if (vehicleData.length > 0) {
         setSelectedVehicle(vehicleData[0].id);
+        if ((vehicleData[0] as any).currentMileage) {
+          setMileage(String((vehicleData[0] as any).currentMileage));
+        }
         // Auto-select vehicle type based on bodyType
         const firstBody = vehicleData[0].bodyType;
         if (firstBody) {
@@ -2283,13 +2365,7 @@ export default function CreateRequestScreen({ navigation }: any) {
       icon: "cube",
       hasProviders: true,
     },
-    // Inspection & Diagnostics
-    {
-      id: "inspection",
-      label: t.createRequest?.serviceInspection || "Inspection",
-      icon: "clipboard",
-      hasProviders: true,
-    },
+    // Diagnostics (full diagnostic → use Schedule Diagnostic flow instead)
     {
       id: "diagnostic",
       label: t.serviceTypes?.diagnostics || "Diagnostics",
@@ -2325,17 +2401,11 @@ export default function CreateRequestScreen({ navigation }: any) {
       icon: "key",
       hasProviders: true,
     },
-    // General / Other
+    // General
     {
       id: "general_repair",
       label: t.serviceTypes?.generalRepair || "General Repair",
       icon: "construct",
-      hasProviders: true,
-    },
-    {
-      id: "other",
-      label: t.createRequest?.serviceOther || "Other",
-      icon: "ellipsis-horizontal",
       hasProviders: true,
     },
   ];
@@ -2931,7 +3001,7 @@ export default function CreateRequestScreen({ navigation }: any) {
                 Alert.alert(
                   t.createRequest?.serviceTypeInfoTitle || "About Service Type",
                   t.createRequest?.serviceTypeInfoMessage ||
-                    'Select the service that best matches your needs. If you need a full diagnostic or estimate, choose "Inspection" as the service type.\n\nOur verified providers will perform a professional diagnostic to confirm the actual issue before starting any work. You will receive a detailed estimate for approval before any service begins.',
+                    'Select the service that best describes your need. Each type opens a detail panel so you can specify exactly what\'s needed.\n\nFor a full vehicle diagnostic or estimate, use "Schedule Diagnostic" instead — a certified technician will inspect your vehicle and provide a written estimate.',
                 )
               }
             >
@@ -3315,13 +3385,16 @@ export default function CreateRequestScreen({ navigation }: any) {
           {/* Description */}
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>
-              {t.createRequest?.problemDescription || "Problem Description"}
+              {serviceScope === 'service'
+                ? 'Problem Description (Labor Only)'
+                : (t.createRequest?.problemDescription || 'Problem Description')}
             </Text>
             <TextInput
               style={[styles.input, styles.textArea]}
               placeholder={
-                t.createRequest?.descriptionPlaceholder ||
-                "Describe the problem or service needed..."
+                serviceScope === 'service'
+                  ? "Describe the service needed. Let the provider know you already have the parts and just need installation or labor."
+                  : "Describe the problem or service needed. The provider will source parts and complete the work."
               }
               value={description}
               onChangeText={setDescription}

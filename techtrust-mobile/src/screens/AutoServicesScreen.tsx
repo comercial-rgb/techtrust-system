@@ -4,22 +4,20 @@ import {
   TouchableOpacity,
   Text,
   StyleSheet,
-  Dimensions,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useSafeAreaInsets, SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useI18n } from "../i18n";
 import CarWashMapScreen from "./CarWashMapScreen";
 import PartsStoreScreen from "./PartsStoreScreen";
 
-const { width } = Dimensions.get("window");
-
-export default function AutoServicesScreen() {
+export default function AutoServicesScreen({ navigation }: any) {
   const [activeTab, setActiveTab] = useState<"carWash" | "autoParts">("carWash");
   const { t } = useI18n();
+  const insets = useSafeAreaInsets();
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Segment Control */}
       <View style={styles.segmentContainer}>
         <TouchableOpacity
@@ -40,7 +38,7 @@ export default function AutoServicesScreen() {
               activeTab === "carWash" && styles.segmentTextActive,
             ]}
           >
-            Car Wash
+            {(t as any).carWash?.tabCarWash || "Car Wash"}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -61,19 +59,23 @@ export default function AutoServicesScreen() {
               activeTab === "autoParts" && styles.segmentTextActive,
             ]}
           >
-            Auto Parts
+            {(t as any).partsStore?.tabLabel || "Auto Parts"}
           </Text>
         </TouchableOpacity>
       </View>
 
-      {/* Content */}
-      <View style={styles.content}>
-        {activeTab === "carWash" ? (
-          <CarWashMapScreen />
-        ) : (
-          <PartsStoreScreen />
-        )}
-      </View>
+      {/* Content — override top inset to 0 so nested SafeAreaViews don't double-count */}
+      <SafeAreaInsetsContext.Provider
+        value={{ top: 0, right: insets.right, bottom: insets.bottom, left: insets.left }}
+      >
+        <View style={styles.content}>
+          {activeTab === "carWash" ? (
+            <CarWashMapScreen navigation={navigation} />
+          ) : (
+            <PartsStoreScreen navigation={navigation} />
+          )}
+        </View>
+      </SafeAreaInsetsContext.Provider>
     </View>
   );
 }
