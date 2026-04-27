@@ -92,6 +92,7 @@ interface ServiceRequest {
     lastServiceMileage?: number;
   };
   quotesCount: number;
+  serviceScope?: string;
   preferredDate?: string;
   preferredTime?: string;
 }
@@ -1590,6 +1591,40 @@ export default function ProviderRequestDetailsScreen({
                   )}
                 </View>
               )}
+
+              {/* What to Quote — based on customer's scope selection */}
+              {(() => {
+                const isLaborOnly = request.serviceScope === 'service';
+                return (
+                  <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'flex-start',
+                    gap: 12,
+                    padding: 14,
+                    borderRadius: 14,
+                    backgroundColor: isLaborOnly ? '#fffbeb' : '#eff6ff',
+                    borderWidth: 1,
+                    borderColor: isLaborOnly ? '#fde68a' : '#bfdbfe',
+                    marginBottom: 16,
+                  }}>
+                    <MaterialCommunityIcons
+                      name={isLaborOnly ? 'account-wrench' : 'package-variant-closed'}
+                      size={22}
+                      color={isLaborOnly ? '#d97706' : '#2563eb'}
+                    />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: isLaborOnly ? '#92400e' : '#1e40af', marginBottom: 2 }}>
+                        {isLaborOnly ? 'Quote Labor Only' : 'Quote Parts + Labor'}
+                      </Text>
+                      <Text style={{ fontSize: 12, color: isLaborOnly ? '#b45309' : '#3b82f6', lineHeight: 17 }}>
+                        {isLaborOnly
+                          ? 'Customer already has the parts. Add only the installation / labor cost.'
+                          : 'Customer needs everything. Add parts cost and labor cost separately.'}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })()}
 
               {/* Line Items Section */}
               <Text style={styles.sectionTitle}>

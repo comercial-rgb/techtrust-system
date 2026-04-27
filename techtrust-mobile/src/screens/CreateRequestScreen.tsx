@@ -3193,6 +3193,70 @@ export default function CreateRequestScreen({ navigation }: any) {
           {/* ============ STEP 2: Service Details ============ */}
           {currentStep === 2 && (
           <>
+          {/* ── Parts + Labor Summary Card ── */}
+          {title ? (() => {
+            const subOpts = SERVICE_SUB_OPTIONS[selectedService];
+            const partsList: string[] = [];
+            if (subOpts) {
+              subOpts.sections.forEach((section: any) => {
+                const selected = subOptionSelections[section.id] || [];
+                selected.forEach((optId: string) => {
+                  const opt = section.options.find((o: any) => o.id === optId);
+                  if (opt) partsList.push(opt.label);
+                });
+              });
+            }
+            return (
+              <View style={{ backgroundColor: '#fff', borderRadius: 16, marginBottom: 16, overflow: 'hidden', borderWidth: 1, borderColor: '#f1f5f9', shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 }}>
+                {/* Header */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', backgroundColor: '#fafafa' }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 15, fontWeight: '700', color: '#111827' }}>{title}</Text>
+                    <Text style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>
+                      {serviceScope === 'both' ? 'Parts + Labor' : 'Labor Only (no parts needed)'}
+                    </Text>
+                  </View>
+                </View>
+                {/* Parts | Labor columns */}
+                <View style={{ flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 14 }}>
+                  {/* Parts */}
+                  <View style={{ flex: 1, paddingRight: 12, borderRightWidth: 1, borderRightColor: '#f1f5f9' }}>
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: '#9ca3af', letterSpacing: 1, marginBottom: 8 }}>PARTS</Text>
+                    {partsList.length > 0 ? partsList.map((p, i) => (
+                      <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+                        <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: '#3b82f6' }} />
+                        <Text style={{ fontSize: 12, color: '#374151' }}>{p}</Text>
+                      </View>
+                    )) : (
+                      <Text style={{ fontSize: 12, color: '#9ca3af', fontStyle: 'italic' }}>None selected</Text>
+                    )}
+                  </View>
+                  {/* Labor */}
+                  <View style={{ flex: 1, paddingLeft: 12 }}>
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: '#9ca3af', letterSpacing: 1, marginBottom: 8 }}>LABOR</Text>
+                    {serviceScope === 'both' ? (
+                      <>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, backgroundColor: '#f0fdf4', alignSelf: 'flex-start', marginBottom: 4 }}>
+                          <Ionicons name="construct" size={11} color="#059669" />
+                          <Text style={{ fontSize: 11, fontWeight: '700', color: '#059669' }}>Included</Text>
+                        </View>
+                        <Text style={{ fontSize: 10, color: '#9ca3af' }}>Provider prices{'\n'}parts + labor</Text>
+                      </>
+                    ) : (
+                      <>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, backgroundColor: '#fffbeb', alignSelf: 'flex-start', marginBottom: 4 }}>
+                          <Ionicons name="construct" size={11} color="#d97706" />
+                          <Text style={{ fontSize: 11, fontWeight: '700', color: '#d97706' }}>Labor Only</Text>
+                        </View>
+                        <Text style={{ fontSize: 10, color: '#9ca3af' }}>You provide parts —{'\n'}price labor only</Text>
+                      </>
+                    )}
+                  </View>
+                </View>
+              </View>
+            );
+          })() : null}
+
           {/* Service Scope: What do you need? (Parts Only removed) */}
           <Text style={styles.sectionTitle}>
             {t.createRequest?.serviceScopeLabel || "What do you need?"} *

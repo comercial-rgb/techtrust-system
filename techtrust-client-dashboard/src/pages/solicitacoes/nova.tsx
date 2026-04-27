@@ -731,14 +731,23 @@ export default function NovaSolicitacaoPage() {
                     {/* Labor */}
                     <div className="pl-4">
                       <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2.5">Labor</p>
-                      <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${
-                        serviceScope === 'both'
-                          ? 'bg-emerald-50 text-emerald-700'
-                          : 'bg-blue-50 text-blue-700'
-                      }`}>
-                        <Wrench className="w-3 h-3" />
-                        {serviceScope === 'both' ? 'Included' : 'Only'}
-                      </div>
+                      {serviceScope === 'both' ? (
+                        <>
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 mb-1.5">
+                            <Wrench className="w-3 h-3" />
+                            Included
+                          </div>
+                          <p className="text-[10px] text-gray-400 leading-tight">Provider prices parts + labor together</p>
+                        </>
+                      ) : (
+                        <>
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 mb-1.5">
+                            <Wrench className="w-3 h-3" />
+                            Labor Only
+                          </div>
+                          <p className="text-[10px] text-gray-400 leading-tight">You provide parts — provider prices labor only</p>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
