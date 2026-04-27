@@ -32,15 +32,6 @@ import { getHomeData, Banner, SpecialOffer } from "../services/content.service";
 
 const { width } = Dimensions.get("window");
 
-// Default banners when API has no data
-const BANNERS: Banner[] = [
-  {
-    id: "1",
-    imageUrl: "",
-    title: "TechTrust AutoSolutions",
-    subtitle: "Your Trusted Auto Service Partner",
-  },
-];
 
 // Default offers - loaded from API
 const SPECIAL_OFFERS: SpecialOffer[] = [];
@@ -85,9 +76,6 @@ interface ProviderResult {
   specialOffers: string[];
   languages?: string[];
 }
-
-// Articles loaded from API
-const ARTICLES: any[] = [];
 
 // App benefits/features - static content
 const BENEFITS = [
@@ -148,6 +136,8 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
   // Content loading state
   const [banners, setBanners] = useState<Banner[]>([]);
   const [offers, setOffers] = useState<SpecialOffer[]>([]);
+  const [articles, setArticles] = useState<any[]>([]);
+  const [notices, setNotices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -237,9 +227,10 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
       const data = await getHomeData();
       setBanners(data.banners || []);
       setOffers(data.offers || []);
+      setArticles((data as any).articles || []);
+      setNotices((data as any).notices || []);
     } catch (error) {
-      // Use defaults on error
-      setBanners(BANNERS);
+      setBanners([]);
       setOffers([]);
     } finally {
       setLoading(false);
@@ -661,17 +652,27 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
     </View>
   );
 
-  const renderArticle = ({ item }: { item: (typeof ARTICLES)[0] }) => (
+  const renderArticle = ({ item }: { item: any }) => (
     <TouchableOpacity style={styles.articleCard} activeOpacity={0.9}>
-      <Image source={{ uri: item.image }} style={styles.articleImage} />
+      {(item.imageUrl || item.image) ? (
+        <Image source={{ uri: item.imageUrl || item.image }} style={styles.articleImage} />
+      ) : (
+        <View style={[styles.articleImage, { backgroundColor: '#e0e7ff', justifyContent: 'center', alignItems: 'center' }]}>
+          <Ionicons name="newspaper-outline" size={32} color="#6366f1" />
+        </View>
+      )}
       <View style={styles.articleContent}>
         <View style={styles.articleMeta}>
-          <Text style={styles.articleCategory}>{item.category}</Text>
-          <Text style={styles.articleReadTime}>{item.readTime}</Text>
+          {item.category && <Text style={styles.articleCategory}>{item.category}</Text>}
+          {item.publishedAt && (
+            <Text style={styles.articleReadTime}>
+              {new Date(item.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            </Text>
+          )}
         </View>
         <Text style={styles.articleTitle}>{item.title}</Text>
         <Text style={styles.articleExcerpt} numberOfLines={2}>
-          {item.excerpt}
+          {item.excerpt || item.summary || ''}
         </Text>
       </View>
     </TouchableOpacity>
@@ -1231,97 +1232,83 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
               </LinearGradient>
             </TouchableOpacity>
 
-            {/* Articles Section */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeaderLarge}>
-                <Ionicons name="newspaper" size={24} color="#8b5cf6" />
-                <View>
-                  <Text style={styles.sectionTitle}>
-                    {t.landing?.articles?.title || "Tips & Articles"}
-                  </Text>
-                  <Text style={styles.sectionSubtitle}>
-                    {t.landing?.articles?.subtitle || "Vehicle care guides"}
-                  </Text>
+            {/* Articles Section — only when admin has published articles */}
+            {articles.length > 0 && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeaderLarge}>
+                  <Ionicons name="newspaper" size={24} color="#8b5cf6" />
+                  <View>
+                    <Text style={styles.sectionTitle}>
+                      {t.landing?.articles?.title || "Tips & Articles"}
+                    </Text>
+                    <Text style={styles.sectionSubtitle}>
+                      {t.landing?.articles?.subtitle || "Vehicle care guides"}
+                    </Text>
+                  </View>
                 </View>
+                <FlatList
+                  data={articles}
+                  renderItem={renderArticle}
+                  keyExtractor={(item) => item.id}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.articlesContainer}
+                />
               </View>
-              <FlatList
-                data={ARTICLES}
-                renderItem={renderArticle}
-                keyExtractor={(item) => item.id}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.articlesContainer}
-              />
-            </View>
+            )}
 
-            {/* Important Notices Section */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeaderLarge}>
-                <Ionicons name="megaphone" size={24} color="#f59e0b" />
-                <View>
-                  <Text style={styles.sectionTitle}>
-                    {t.landing?.notices?.title || "Important Notices"}
-                  </Text>
-                  <Text style={styles.sectionSubtitle}>
-                    {t.landing?.notices?.subtitle || "Stay informed"}
-                  </Text>
+            {/* Important Notices Section — only when admin has active notices */}
+            {notices.length > 0 && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeaderLarge}>
+                  <Ionicons name="megaphone" size={24} color="#f59e0b" />
+                  <View>
+                    <Text style={styles.sectionTitle}>
+                      {t.landing?.notices?.title || "Important Notices"}
+                    </Text>
+                    <Text style={styles.sectionSubtitle}>
+                      {t.landing?.notices?.subtitle || "Stay informed"}
+                    </Text>
+                  </View>
                 </View>
+                {notices.map((notice: any) => {
+                  const isWarning = notice.type === 'warning' || notice.type === 'alert';
+                  const accentColor = isWarning ? '#d97706' : '#2B5EA7';
+                  return (
+                    <TouchableOpacity
+                      key={notice.id}
+                      style={[styles.noticeCard, isWarning && styles.noticeWarning]}
+                      activeOpacity={0.7}
+                      onPress={() => {
+                        if (notice.actionUrl) return;
+                        if (isAuthenticated) navigation.navigate('ServiceChoice');
+                        else navigation.navigate('Login');
+                      }}
+                    >
+                      <View style={[styles.noticeIcon, isWarning && styles.noticeIconWarning]}>
+                        <Ionicons
+                          name={(notice.icon || (isWarning ? 'warning' : 'information-circle')) as any}
+                          size={24}
+                          color={accentColor}
+                        />
+                      </View>
+                      <View style={styles.noticeContent}>
+                        <Text style={styles.noticeTitle}>{notice.title}</Text>
+                        <Text style={styles.noticeText}>{notice.message}</Text>
+                        {notice.actionLabel && (
+                          <View style={styles.noticeAction}>
+                            <Text style={[styles.noticeActionText, { color: accentColor }]}>
+                              {notice.actionLabel}
+                            </Text>
+                            <Ionicons name="arrow-forward" size={14} color={accentColor} />
+                          </View>
+                        )}
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
-              <TouchableOpacity style={styles.noticeCard} activeOpacity={0.7}
-                onPress={() => {
-                  if (isAuthenticated) {
-                    navigation.navigate('ServiceChoice');
-                  } else {
-                    navigation.navigate('Login');
-                  }
-                }}>
-                <View style={styles.noticeIcon}>
-                  <Ionicons
-                    name="information-circle"
-                    size={24}
-                    color="#2B5EA7"
-                  />
-                </View>
-                <View style={styles.noticeContent}>
-                  <Text style={styles.noticeTitle}>
-                    {t.landing?.notices?.holidayTitle || "Holiday Hours"}
-                  </Text>
-                  <Text style={styles.noticeText}>
-                    {t.landing?.notices?.holidayDesc ||
-                      "Some service providers may have modified hours during the holiday season. Please confirm availability when booking."}
-                  </Text>
-                  <View style={styles.noticeAction}>
-                    <Text style={styles.noticeActionText}>{(t.landing as any)?.notices?.checkHours || 'Check Provider Hours'}</Text>
-                    <Ionicons name="arrow-forward" size={14} color="#2B5EA7" />
-                  </View>
-                </View>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.noticeCard, styles.noticeWarning]} activeOpacity={0.7}
-                onPress={() => {
-                  if (isAuthenticated) {
-                    navigation.navigate('ServiceChoice');
-                  } else {
-                    navigation.navigate('Login');
-                  }
-                }}>
-                <View style={[styles.noticeIcon, styles.noticeIconWarning]}>
-                  <Ionicons name="warning" size={24} color="#f59e0b" />
-                </View>
-                <View style={styles.noticeContent}>
-                  <Text style={styles.noticeTitle}>
-                    {t.landing?.notices?.weatherTitle || "Weather Advisory"}
-                  </Text>
-                  <Text style={styles.noticeText}>
-                    {t.landing?.notices?.weatherDesc ||
-                      "Heavy rain expected this week. Consider scheduling preventive maintenance and tire checks."}
-                  </Text>
-                  <View style={styles.noticeAction}>
-                    <Text style={[styles.noticeActionText, { color: '#d97706' }]}>{(t.landing as any)?.notices?.scheduleMaintenance || 'Schedule Maintenance'}</Text>
-                    <Ionicons name="arrow-forward" size={14} color="#d97706" />
-                  </View>
-                </View>
-              </TouchableOpacity>
-            </View>
+            )}
 
             {/* Footer CTA */}
             {!isAuthenticated && (

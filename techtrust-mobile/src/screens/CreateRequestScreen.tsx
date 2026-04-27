@@ -123,6 +123,12 @@ export default function CreateRequestScreen({ navigation }: any) {
   // Address check for mobile/roadside services
   const [userAddresses, setUserAddresses] = useState<any[]>([]);
   const [addressesLoaded, setAddressesLoaded] = useState(false);
+  // Selected address index for mobile service (-1 = use GPS)
+  const [selectedAddressIdx, setSelectedAddressIdx] = useState(0);
+  // GPS-captured address for mobile service
+  const [mobileGpsAddress, setMobileGpsAddress] = useState("");
+  const [mobileGpsCoords, setMobileGpsCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [fetchingGpsAddress, setFetchingGpsAddress] = useState(false);
 
   // Payment Method Check
   const [checkingPayment, setCheckingPayment] = useState(true);
@@ -2504,6 +2510,29 @@ export default function CreateRequestScreen({ navigation }: any) {
     );
   }
 
+  async function handleGetMobileGpsAddress() {
+    setFetchingGpsAddress(true);
+    try {
+      const Location = await import("expo-location");
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permission Denied", "Location permission is required to use GPS address.");
+        return;
+      }
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      const [geo] = await Location.reverseGeocodeAsync({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
+      const parts = [geo?.streetNumber, geo?.street, geo?.city, geo?.region, geo?.postalCode].filter(Boolean);
+      const readable = parts.join(", ") || `${loc.coords.latitude.toFixed(5)}, ${loc.coords.longitude.toFixed(5)}`;
+      setMobileGpsAddress(readable);
+      setMobileGpsCoords({ lat: loc.coords.latitude, lng: loc.coords.longitude });
+      setSelectedAddressIdx(-1);
+    } catch {
+      Alert.alert("Error", "Could not get your location. Please try again or select a saved address.");
+    } finally {
+      setFetchingGpsAddress(false);
+    }
+  }
+
   function openInMaps() {
     if (currentLocation) {
       const url = Platform.select({
@@ -2591,18 +2620,28 @@ export default function CreateRequestScreen({ navigation }: any) {
       let customerAddress: string | undefined;
       let addressLatitude: number | undefined;
       let addressLongitude: number | undefined;
-      if (serviceLocation !== "shop" && userAddresses.length > 0) {
-        const defaultAddr =
-          userAddresses.find((a: any) => a.isDefault) || userAddresses[0];
+      if (serviceLocation === "mobile") {
+        if (selectedAddressIdx === -1 && mobileGpsAddress) {
+          // GPS-captured address
+          customerAddress = mobileGpsAddress;
+          if (mobileGpsCoords) {
+            addressLatitude = mobileGpsCoords.lat;
+            addressLongitude = mobileGpsCoords.lng;
+          }
+        } else if (userAddresses.length > 0) {
+          const addr = userAddresses[selectedAddressIdx] || userAddresses[0];
+          if (addr) {
+            customerAddress = [addr.street, addr.city, addr.state, addr.zipCode].filter(Boolean).join(", ");
+            if (addr.latitude && addr.longitude) {
+              addressLatitude = addr.latitude;
+              addressLongitude = addr.longitude;
+            }
+          }
+        }
+      } else if (serviceLocation !== "shop" && userAddresses.length > 0) {
+        const defaultAddr = userAddresses.find((a: any) => a.isDefault) || userAddresses[0];
         if (defaultAddr) {
-          customerAddress = [
-            defaultAddr.street,
-            defaultAddr.city,
-            defaultAddr.state,
-            defaultAddr.zipCode,
-          ]
-            .filter(Boolean)
-            .join(", ");
+          customerAddress = [defaultAddr.street, defaultAddr.city, defaultAddr.state, defaultAddr.zipCode].filter(Boolean).join(", ");
           if (defaultAddr.latitude && defaultAddr.longitude) {
             addressLatitude = defaultAddr.latitude;
             addressLongitude = defaultAddr.longitude;
@@ -3462,6 +3501,81 @@ export default function CreateRequestScreen({ navigation }: any) {
                     "Provider will receive your live location via Google Maps"}
                 </Text>
               </View>
+            </View>
+          )}
+
+          {/* Your Address — shown when mobile service is selected */}
+          {serviceLocation === "mobile" && (
+            <View style={{ marginBottom: 16 }}>
+              <Text style={styles.sectionTitle}>
+                {t.createRequest?.yourAddress || "Your Address"} *
+              </Text>
+
+              {/* GPS button */}
+              <TouchableOpacity
+                onPress={handleGetMobileGpsAddress}
+                disabled={fetchingGpsAddress}
+                style={{
+                  flexDirection: "row", alignItems: "center", gap: 10,
+                  padding: 14, borderRadius: 14, marginBottom: 10,
+                  backgroundColor: selectedAddressIdx === -1 && mobileGpsAddress ? "#eff6ff" : "#f8fafc",
+                  borderWidth: 2,
+                  borderColor: selectedAddressIdx === -1 && mobileGpsAddress ? "#2B5EA7" : "#e2e8f0",
+                }}
+              >
+                <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: "#dbeafe", justifyContent: "center", alignItems: "center" }}>
+                  <Ionicons name={fetchingGpsAddress ? "refresh" : "navigate"} size={20} color="#2B5EA7" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 14, fontWeight: "600", color: "#111827" }}>
+                    {fetchingGpsAddress ? "Getting location…" : "Use Current Location (GPS)"}
+                  </Text>
+                  {mobileGpsAddress && selectedAddressIdx === -1 ? (
+                    <Text style={{ fontSize: 12, color: "#2B5EA7", marginTop: 2 }} numberOfLines={2}>{mobileGpsAddress}</Text>
+                  ) : (
+                    <Text style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>Tap to detect your exact address</Text>
+                  )}
+                </View>
+                {selectedAddressIdx === -1 && mobileGpsAddress && (
+                  <Ionicons name="checkmark-circle" size={22} color="#2B5EA7" />
+                )}
+              </TouchableOpacity>
+
+              {/* Saved addresses */}
+              {userAddresses.length > 0 && (
+                <>
+                  <Text style={{ fontSize: 12, fontWeight: "600", color: "#9ca3af", marginBottom: 8, letterSpacing: 0.5 }}>
+                    PREVIOUSLY USED
+                  </Text>
+                  {userAddresses.map((addr: any, idx: number) => {
+                    const line1 = addr.street || addr.address || "";
+                    const line2 = [addr.city, addr.state, addr.zipCode].filter(Boolean).join(", ");
+                    const isSelected = selectedAddressIdx === idx;
+                    return (
+                      <TouchableOpacity
+                        key={idx}
+                        onPress={() => setSelectedAddressIdx(idx)}
+                        style={{
+                          flexDirection: "row", alignItems: "center", gap: 10,
+                          padding: 14, borderRadius: 14, marginBottom: 8,
+                          backgroundColor: isSelected ? "#eff6ff" : "#f8fafc",
+                          borderWidth: 2, borderColor: isSelected ? "#2B5EA7" : "#e2e8f0",
+                        }}
+                      >
+                        <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: isSelected ? "#dbeafe" : "#f1f5f9", justifyContent: "center", alignItems: "center" }}>
+                          <Ionicons name={addr.isDefault ? "home" : "location"} size={20} color={isSelected ? "#2B5EA7" : "#6b7280"} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          {addr.label && <Text style={{ fontSize: 11, fontWeight: "700", color: isSelected ? "#2B5EA7" : "#9ca3af", marginBottom: 2 }}>{addr.label.toUpperCase()}</Text>}
+                          <Text style={{ fontSize: 13, fontWeight: "600", color: "#111827" }} numberOfLines={1}>{line1}</Text>
+                          {line2 ? <Text style={{ fontSize: 12, color: "#6b7280", marginTop: 1 }}>{line2}</Text> : null}
+                        </View>
+                        {isSelected && <Ionicons name="checkmark-circle" size={22} color="#2B5EA7" />}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </>
+              )}
             </View>
           )}
 
