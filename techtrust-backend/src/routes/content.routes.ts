@@ -439,7 +439,7 @@ router.get(
         prisma.banner.findMany({
           where: {
             isActive: true,
-            targetAudience: { in: ["all", "guest"] },
+            targetAudience: { in: ["all", "customers", "guest"] },
             OR: [
               { startDate: null, endDate: null },
               { startDate: { lte: now }, endDate: null },

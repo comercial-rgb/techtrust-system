@@ -235,7 +235,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
   const loadHomeData = async () => {
     try {
       const data = await getHomeData();
-      setBanners(data.banners?.length ? data.banners : BANNERS);
+      setBanners(data.banners || []);
       setOffers(data.offers || []);
     } catch (error) {
       // Use defaults on error
@@ -774,49 +774,51 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
               />
             }
           >
-            {/* Featured Deals Section */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Ionicons
-                  name="flame"
-                  size={18}
-                  color="#f59e0b"
-                />
-                <Text style={styles.sectionLabel}>{(t.landing as any)?.featuredDeals || 'Featured Deals'}</Text>
-              </View>
-              <FlatList
-                ref={bannerRef}
-                data={banners}
-                renderItem={renderBanner}
-                keyExtractor={(item) => item.id}
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
-                onScroll={Animated.event(
-                  [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-                  { useNativeDriver: false },
-                )}
-                onMomentumScrollEnd={(e) => {
-                  const index = Math.round(
-                    e.nativeEvent.contentOffset.x / width,
-                  );
-                  setCurrentBannerIndex(index);
-                }}
-              />
-              {/* Pagination dots */}
-              <View style={styles.pagination}>
-                {banners.map((_, index) => (
-                  <View
-                    key={index}
-                    style={[
-                      styles.paginationDot,
-                      currentBannerIndex === index &&
-                        styles.paginationDotActive,
-                    ]}
+            {/* Featured Deals Section — only when admin has active banners */}
+            {banners.length > 0 && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Ionicons
+                    name="flame"
+                    size={18}
+                    color="#f59e0b"
                   />
-                ))}
+                  <Text style={styles.sectionLabel}>{(t.landing as any)?.featuredDeals || 'Featured Deals'}</Text>
+                </View>
+                <FlatList
+                  ref={bannerRef}
+                  data={banners}
+                  renderItem={renderBanner}
+                  keyExtractor={(item) => item.id}
+                  horizontal
+                  pagingEnabled
+                  showsHorizontalScrollIndicator={false}
+                  onScroll={Animated.event(
+                    [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+                    { useNativeDriver: false },
+                  )}
+                  onMomentumScrollEnd={(e) => {
+                    const index = Math.round(
+                      e.nativeEvent.contentOffset.x / width,
+                    );
+                    setCurrentBannerIndex(index);
+                  }}
+                />
+                {/* Pagination dots */}
+                <View style={styles.pagination}>
+                  {banners.map((_, index) => (
+                    <View
+                      key={index}
+                      style={[
+                        styles.paginationDot,
+                        currentBannerIndex === index &&
+                          styles.paginationDotActive,
+                      ]}
+                    />
+                  ))}
+                </View>
               </View>
-            </View>
+            )}
 
             {/* Popular Services Grid */}
             <View style={styles.section}>
@@ -1103,32 +1105,34 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
               ))}
             </View>
 
-            {/* Special Offers Section */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeaderLarge}>
-                <MaterialCommunityIcons
-                  name="tag-multiple"
-                  size={24}
-                  color="#ef4444"
-                />
-                <View>
-                  <Text style={styles.sectionTitle}>
-                    {t.landing?.offers?.title || "Special Offers"}
-                  </Text>
-                  <Text style={styles.sectionSubtitle}>
-                    {t.landing?.offers?.subtitle || "Limited time deals"}
-                  </Text>
+            {/* Special Offers Section — only when admin has active offers */}
+            {offers.length > 0 && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeaderLarge}>
+                  <MaterialCommunityIcons
+                    name="tag-multiple"
+                    size={24}
+                    color="#ef4444"
+                  />
+                  <View>
+                    <Text style={styles.sectionTitle}>
+                      {t.landing?.offers?.title || "Special Offers"}
+                    </Text>
+                    <Text style={styles.sectionSubtitle}>
+                      {t.landing?.offers?.subtitle || "Limited time deals"}
+                    </Text>
+                  </View>
                 </View>
+                <FlatList
+                  data={offers}
+                  renderItem={renderOffer}
+                  keyExtractor={(item) => item.id}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.offersContainer}
+                />
               </View>
-              <FlatList
-                data={offers}
-                renderItem={renderOffer}
-                keyExtractor={(item) => item.id}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.offersContainer}
-              />
-            </View>
+            )}
 
             {/* Benefits Section */}
             <View style={styles.section}>
