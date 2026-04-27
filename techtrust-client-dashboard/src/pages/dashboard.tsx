@@ -286,7 +286,7 @@ export default function DashboardPage() {
 
       {/* Banner Carousel — only when admin has active banners */}
       {banners.length > 0 && (
-        <div className="relative mb-8 rounded-2xl overflow-hidden shadow-lg" style={{ height: '200px' }}>
+        <div className="relative mb-8 rounded-2xl overflow-hidden shadow-lg" style={{ aspectRatio: '16/5', maxHeight: '260px', minHeight: '140px' }}>
           {banners.map((banner, idx) => (
             <div
               key={banner.id}

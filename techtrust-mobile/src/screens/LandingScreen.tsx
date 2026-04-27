@@ -451,7 +451,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
           <Image
             source={{ uri: fullUrl }}
             style={styles.bannerImage}
-            resizeMode="contain"
+            resizeMode="cover"
           />
         ) : (
           <View
