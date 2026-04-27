@@ -304,6 +304,7 @@ export const updateProfile = async (req: Request, res: Response) => {
     roadsideAssistance,
     freeKm,
     extraFeePerKm,
+    travelChargeType,
     fdacsRegistrationNumber,
     cityBusinessTaxReceiptNumber,
     countyBusinessTaxReceiptNumber,
@@ -364,6 +365,7 @@ export const updateProfile = async (req: Request, res: Response) => {
       roadsideAssistance: roadsideAssistance || false,
       freeKm: freeKm || 0,
       extraFeePerKm: extraFeePerKm || 0,
+      travelChargeType: travelChargeType || "ONE_WAY",
       specialties: specialties || [],
       businessHours: businessHours || {},
       businessDescription: businessDescription || null,
@@ -419,6 +421,9 @@ export const updateProfile = async (req: Request, res: Response) => {
       ...(freeKm !== undefined && { freeKm: Number(freeKm) }),
       ...(extraFeePerKm !== undefined && {
         extraFeePerKm: Number(extraFeePerKm),
+      }),
+      ...(travelChargeType !== undefined && {
+        travelChargeType: travelChargeType === "ROUND_TRIP" ? "ROUND_TRIP" : "ONE_WAY",
       }),
       ...(specialties && { specialties }),
       ...(businessHours && { businessHours }),
@@ -658,7 +663,8 @@ export const searchProvidersByLocation = async (
       },
       serviceRadiusKm: Math.max(Number(p.serviceRadiusKm) || radiusKm, radiusKm),
       freeMiles: Number(p.freeKm) > 0 ? kmToMiles(Number(p.freeKm)) : undefined,
-      feePerMile: Number(p.extraFeePerKm) > 0 ? kmToMiles(Number(p.extraFeePerKm)) : undefined,
+      // extraFeePerKm is stored as $/mile (no unit conversion needed)
+      feePerMile: Number(p.extraFeePerKm) > 0 ? Number(p.extraFeePerKm) : undefined,
     }));
 
     const serviceLocation = { latitude, longitude };

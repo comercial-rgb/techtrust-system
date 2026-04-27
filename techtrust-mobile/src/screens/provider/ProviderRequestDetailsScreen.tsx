@@ -406,7 +406,7 @@ export default function ProviderRequestDetailsScreen({
           phone: user.phone || "",
           location: sr.serviceAddress || user.city || "",
           distance: sr.distanceKm
-            ? `${Number(sr.distanceKm).toFixed(1)} km`
+            ? `${(Number(sr.distanceKm) * 0.621371).toFixed(1)} mi`
             : "",
           rating: user.averageRating ? Number(user.averageRating) : 0,
           totalRequests: user._count?.serviceRequests || 0,

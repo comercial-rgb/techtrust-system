@@ -42,6 +42,7 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
   const [roadsideAssistance, setRoadsideAssistance] = useState(false);
   const [extraFeePerKm, setExtraFeePerKm] = useState("0.00");
   const [freeKm, setFreeKm] = useState("0");
+  const [travelChargeType, setTravelChargeType] = useState<"ONE_WAY" | "ROUND_TRIP">("ONE_WAY");
   const [showAddZoneModal, setShowAddZoneModal] = useState(false);
   const [newZoneName, setNewZoneName] = useState("");
   const [newZoneRegion, setNewZoneRegion] = useState("");
@@ -83,6 +84,7 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
       const freeKmVal = profile.freeKm || 0;
       setFreeKm(String(Math.round(freeKmVal / 1.609)));
       setExtraFeePerKm(String(Number(profile.extraFeePerKm || 0).toFixed(2)));
+      setTravelChargeType(profile.travelChargeType === "ROUND_TRIP" ? "ROUND_TRIP" : "ONE_WAY");
 
       // Load coverage zones if available
       if (profile.coverageZones && Array.isArray(profile.coverageZones)) {
@@ -167,6 +169,7 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
         roadsideAssistance,
         freeKm: Math.round((Number(freeKm) || 0) * 1.609),
         extraFeePerKm: Number(extraFeePerKm) || 0,
+        travelChargeType,
       });
       Alert.alert(
         t.common?.success || "Success",
@@ -431,6 +434,7 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
 
             {(mobileService || roadsideAssistance) && (
               <View style={styles.mobileFeeSettings}>
+                {/* Free miles + extra fee per mile */}
                 <View style={styles.feeInputRow}>
                   <View style={styles.feeInputGroup}>
                     <Text style={styles.feeInputLabel}>
@@ -448,7 +452,7 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
                   </View>
                   <View style={styles.feeInputGroup}>
                     <Text style={styles.feeInputLabel}>
-                      {t.provider?.extraKmFee || "Extra Mile Fee"}
+                      {t.provider?.extraKmFee || "Fee per Extra Mile"}
                     </Text>
                     <View style={styles.inputWithUnit}>
                       <Text style={styles.inputPrefix}>$</Text>
@@ -458,13 +462,64 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
                         onChangeText={setExtraFeePerKm}
                         keyboardType="numeric"
                       />
+                      <Text style={styles.inputUnit}>/mi</Text>
                     </View>
                   </View>
                 </View>
+
+                {/* One Way / Round Trip toggle */}
+                <Text style={[styles.feeInputLabel, { marginTop: 16, marginBottom: 8 }]}>
+                  Distance Charged
+                </Text>
+                <View style={styles.chargeTypeRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.chargeTypeBtn,
+                      travelChargeType === "ONE_WAY" && styles.chargeTypeBtnActive,
+                    ]}
+                    onPress={() => setTravelChargeType("ONE_WAY")}
+                  >
+                    <MaterialCommunityIcons
+                      name="arrow-right"
+                      size={18}
+                      color={travelChargeType === "ONE_WAY" ? "#2B5EA7" : "#9ca3af"}
+                    />
+                    <Text
+                      style={[
+                        styles.chargeTypeBtnText,
+                        travelChargeType === "ONE_WAY" && styles.chargeTypeBtnTextActive,
+                      ]}
+                    >
+                      One Way
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.chargeTypeBtn,
+                      travelChargeType === "ROUND_TRIP" && styles.chargeTypeBtnActive,
+                    ]}
+                    onPress={() => setTravelChargeType("ROUND_TRIP")}
+                  >
+                    <MaterialCommunityIcons
+                      name="swap-horizontal"
+                      size={18}
+                      color={travelChargeType === "ROUND_TRIP" ? "#2B5EA7" : "#9ca3af"}
+                    />
+                    <Text
+                      style={[
+                        styles.chargeTypeBtnText,
+                        travelChargeType === "ROUND_TRIP" && styles.chargeTypeBtnTextActive,
+                      ]}
+                    >
+                      Round Trip
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
                 <Text style={styles.feeNote}>
-                  {t.provider?.firstKmFree || "First"} {freeKm}{" "}
-                  {t.provider?.kmFree || "mi free, after"} ${extraFeePerKm}/
-                  {t.provider?.extraKm || "mi extra"}
+                  {travelChargeType === "ROUND_TRIP"
+                    ? `First ${freeKm} mi free (each way), $${extraFeePerKm}/mi extra — distance × 2`
+                    : `First ${freeKm} mi free, $${extraFeePerKm}/mi after that`}
                 </Text>
                 <View style={styles.distanceInfo}>
                   <MaterialCommunityIcons
@@ -884,6 +939,34 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#111827",
     paddingVertical: 10,
+  },
+  chargeTypeRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  chargeTypeBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: "#f3f4f6",
+    borderWidth: 2,
+    borderColor: "#f3f4f6",
+  },
+  chargeTypeBtnActive: {
+    backgroundColor: "#dbeafe",
+    borderColor: "#2B5EA7",
+  },
+  chargeTypeBtnText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#9ca3af",
+  },
+  chargeTypeBtnTextActive: {
+    color: "#2B5EA7",
   },
   feeNote: {
     fontSize: 12,

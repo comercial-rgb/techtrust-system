@@ -4,7 +4,7 @@
  * 📱 Com seletor de código de país para SMS
  */
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   StyleSheet,
@@ -148,6 +148,12 @@ export default function SignupScreen({ navigation, route }: any) {
   const [zipLookupLoading, setZipLookupLoading] = useState(false);
   const [otpMethod, setOtpMethod] = useState<"sms" | "email">("sms");
 
+  // Business address search
+  const [addrQuery, setAddrQuery] = useState("");
+  const [addrResults, setAddrResults] = useState<Array<{id:string;display:string;number:string;street:string;city:string;state:string;zip:string}>>([]);
+  const [addrSearching, setAddrSearching] = useState(false);
+  const addrTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Marketplace-specific fields
   const [marketplaceType, setMarketplaceType] = useState<"CAR_WASH" | "AUTO_PARTS">("CAR_WASH");
   const [marketplacePlan, setMarketplacePlan] = useState<"basic" | "pro" | "pro_plus">("basic");
@@ -185,6 +191,92 @@ export default function SignupScreen({ navigation, route }: any) {
       mounted = false;
     };
   }, []);
+
+  // ── Phone mask per country ──────────────────────────────────────────────────
+  function formatPhoneForCountry(raw: string, countryCode: string): string {
+    const digits = raw.replace(/\D/g, "");
+    if (countryCode === "US" || countryCode === "CA") {
+      // (XXX) XXX-XXXX
+      if (digits.length <= 3) return digits.length ? `(${digits}` : "";
+      if (digits.length <= 6) return `(${digits.slice(0,3)}) ${digits.slice(3)}`;
+      return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6,10)}`;
+    }
+    if (countryCode === "BR") {
+      // (XX) XXXXX-XXXX
+      if (digits.length <= 2) return digits.length ? `(${digits}` : "";
+      if (digits.length <= 7) return `(${digits.slice(0,2)}) ${digits.slice(2)}`;
+      return `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7,11)}`;
+    }
+    if (countryCode === "GB") {
+      // XXXXX XXXXXX
+      if (digits.length <= 5) return digits;
+      return `${digits.slice(0,5)} ${digits.slice(5,11)}`;
+    }
+    if (countryCode === "MX") {
+      // (XX) XXXX-XXXX
+      if (digits.length <= 2) return digits.length ? `(${digits}` : "";
+      if (digits.length <= 6) return `(${digits.slice(0,2)}) ${digits.slice(2)}`;
+      return `(${digits.slice(0,2)}) ${digits.slice(2,6)}-${digits.slice(6,10)}`;
+    }
+    return digits; // default: digits only
+  }
+
+  function getPhonePlaceholder(countryCode: string): string {
+    switch (countryCode) {
+      case "US": case "CA": return "(786) 919-7605";
+      case "BR": return "(11) 99999-9999";
+      case "GB": return "07911 123456";
+      case "MX": return "(55) 1234-5678";
+      default: return "Phone number";
+    }
+  }
+
+  function handlePhoneChange(raw: string) {
+    const formatted = formatPhoneForCountry(raw, selectedCountry.code);
+    setPhone(formatted);
+  }
+
+  // ── Nominatim address search for business address ───────────────────────────
+  async function searchBusinessAddress(query: string) {
+    if (query.length < 3) { setAddrResults([]); return; }
+    setAddrSearching(true);
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=5&countrycodes=us`;
+      const resp = await fetch(url, { headers: { "User-Agent": "TechTrust-Mobile/1.0" } });
+      const data = await resp.json();
+      const STATE_ABBR: Record<string,string> = { Alabama:"AL",Alaska:"AK",Arizona:"AZ",Arkansas:"AR",California:"CA",Colorado:"CO",Connecticut:"CT",Delaware:"DE",Florida:"FL",Georgia:"GA",Hawaii:"HI",Idaho:"ID",Illinois:"IL",Indiana:"IN",Iowa:"IA",Kansas:"KS",Kentucky:"KY",Louisiana:"LA",Maine:"ME",Maryland:"MD",Massachusetts:"MA",Michigan:"MI",Minnesota:"MN",Mississippi:"MS",Missouri:"MO",Montana:"MT",Nebraska:"NE",Nevada:"NV","New Hampshire":"NH","New Jersey":"NJ","New Mexico":"NM","New York":"NY","North Carolina":"NC","North Dakota":"ND",Ohio:"OH",Oklahoma:"OK",Oregon:"OR",Pennsylvania:"PA","Rhode Island":"RI","South Carolina":"SC","South Dakota":"SD",Tennessee:"TN",Texas:"TX",Utah:"UT",Vermont:"VT",Virginia:"VA",Washington:"WA","West Virginia":"WV",Wisconsin:"WI",Wyoming:"WY","District of Columbia":"DC" };
+      setAddrResults(data.map((item: any) => {
+        const a = item.address || {};
+        const stateFull = a.state || "";
+        return {
+          id: item.place_id?.toString() || Math.random().toString(),
+          display: item.display_name || "",
+          number: a.house_number || "",
+          street: a.road || "",
+          city: a.city || a.town || a.village || a.hamlet || "",
+          state: STATE_ABBR[stateFull] || stateFull,
+          zip: a.postcode || "",
+        };
+      }));
+    } catch { setAddrResults([]); }
+    finally { setAddrSearching(false); }
+  }
+
+  function handleAddrQueryChange(text: string) {
+    setAddrQuery(text);
+    if (addrTimeout.current) clearTimeout(addrTimeout.current);
+    addrTimeout.current = setTimeout(() => searchBusinessAddress(text), 400);
+  }
+
+  function selectAddrResult(r: typeof addrResults[0]) {
+    const fullStreet = r.number ? `${r.number} ${r.street}` : r.street;
+    setBusinessAddress(fullStreet || r.display.split(",")[0]);
+    setAddrQuery(r.display.split(",")[0]);
+    if (r.city) setBusinessCity(r.city);
+    if (r.state) setBusinessState(r.state);
+    if (r.zip) setBusinessZipCode(r.zip);
+    setAddrResults([]);
+  }
 
   // ZIP → city/state auto-fill (provider & marketplace forms)
   useEffect(() => {
@@ -275,10 +367,10 @@ export default function SignupScreen({ navigation, route }: any) {
     { key: "GENERAL_REPAIR", label: "General Repair", icon: "wrench" },
     // Fluid Services & Packages
     { key: "FLUID_SERVICES", label: "Fluid Services", icon: "water" },
-    { key: "PREVENTIVE_PACKAGES", label: "Preventive Maintenance", icon: "package-variant-closed-check" },
+    { key: "PREVENTIVE_PACKAGES", label: "Preventive Maintenance", icon: "car-wrench" },
     // Inspection & Diagnostics
     { key: "INSPECTION", label: "Inspection", icon: "clipboard-check" },
-    { key: "DIAGNOSTICS", label: "Diagnostics", icon: "stethoscope" },
+    { key: "DIAGNOSTICS", label: "Diagnostics", icon: "car-cog" },
     // Detailing
     { key: "DETAILING", label: "Detailing", icon: "car-wash" },
     // SOS / Roadside
@@ -594,31 +686,22 @@ export default function SignupScreen({ navigation, route }: any) {
             <SlideInView direction="left" delay={200}>
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>
-                  📱 {t.auth?.phoneOptional || "Phone (Optional)"}
-                </Text>
-                <Text style={styles.optionalHint}>
-                  {t.auth?.phoneOptionalHint || "Add your phone number to receive SMS notifications"}
+                  📱 {t.auth?.phone || "Phone Number"}
                 </Text>
                 <View style={styles.phoneContainer}>
-                  {/* Seletor de País */}
                   <TouchableOpacity
                     style={styles.countrySelector}
                     onPress={() => setShowCountryPicker(true)}
                   >
-                    <Text style={styles.countryFlag}>
-                      {selectedCountry.flag}
-                    </Text>
-                    <Text style={styles.countryCode}>
-                      {selectedCountry.dialCode}
-                    </Text>
+                    <Text style={styles.countryFlag}>{selectedCountry.flag}</Text>
+                    <Text style={styles.countryCode}>{selectedCountry.dialCode}</Text>
                     <Ionicons name="chevron-down" size={16} color="#6b7280" />
                   </TouchableOpacity>
-                  {/* Campo de Telefone */}
                   <TextInput
                     value={phone}
-                    onChangeText={setPhone}
+                    onChangeText={handlePhoneChange}
                     mode="outlined"
-                    placeholder="99999-9999"
+                    placeholder={getPhonePlaceholder(selectedCountry.code)}
                     keyboardType="phone-pad"
                     style={[styles.input, styles.phoneInput]}
                     outlineStyle={styles.inputOutline}
@@ -907,20 +990,51 @@ export default function SignupScreen({ navigation, route }: any) {
                 <SlideInView direction="left" delay={320}>
                   <View style={styles.inputContainer}>
                     <TextInput
-                      value={businessAddress}
-                      onChangeText={setBusinessAddress}
+                      value={addrQuery}
+                      onChangeText={handleAddrQueryChange}
                       mode="outlined"
                       label={t.auth?.businessAddress || "Business Address"}
-                      placeholder="123 Main St"
+                      placeholder="Search address..."
                       style={styles.input}
                       outlineStyle={styles.inputOutline}
                       textColor="#000"
-                      error={
-                        hasError &&
-                        selectedRole === "PROVIDER" &&
-                        !businessAddress
-                      }
+                      error={hasError && selectedRole === "PROVIDER" && !businessAddress}
+                      left={<TextInput.Icon icon="map-search" color="#6b7280" />}
+                      right={addrSearching ? <TextInput.Icon icon="loading" /> : undefined}
                     />
+                    {addrResults.length > 0 && (
+                      <View style={{
+                        position: "absolute",
+                        top: 58,
+                        left: 0,
+                        right: 0,
+                        backgroundColor: "#fff",
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: "#e5e7eb",
+                        zIndex: 999,
+                        shadowColor: "#000",
+                        shadowOpacity: 0.08,
+                        shadowRadius: 8,
+                        elevation: 4,
+                      }}>
+                        {addrResults.map((r) => (
+                          <TouchableOpacity
+                            key={r.id}
+                            onPress={() => selectAddrResult(r)}
+                            style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: "#f3f4f6" }}
+                          >
+                            <Text style={{ fontSize: 13, color: "#111" }}>{r.display}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+                    {businessAddress ? (
+                      <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4, gap: 4 }}>
+                        <Ionicons name="checkmark-circle" size={14} color="#16a34a" />
+                        <Text style={{ fontSize: 12, color: "#16a34a" }} numberOfLines={1}>{businessAddress}</Text>
+                      </View>
+                    ) : null}
                   </View>
                 </SlideInView>
                 <SlideInView direction="right" delay={330}>

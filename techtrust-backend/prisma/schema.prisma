@@ -497,8 +497,9 @@ model ProviderProfile {
   roadsideAssistance Boolean @default(false)
 
   // Configuração de taxa de deslocamento
-  freeKm        Int     @default(0)
-  extraFeePerKm Decimal @default(0) @db.Decimal(6, 2)
+  freeKm           Int     @default(0)
+  extraFeePerKm    Decimal @default(0) @db.Decimal(6, 2)
+  travelChargeType String  @default("ONE_WAY") // ONE_WAY | ROUND_TRIP
 
   // Especialidades (JSON array)
   specialties Json @default("[]")

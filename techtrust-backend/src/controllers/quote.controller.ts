@@ -152,17 +152,21 @@ export const createQuote = async (req: Request, res: Response) => {
     );
 
     distanceKm = roadResult.distanceKm;
-    const distanceMiles = kmToMiles(distanceKm);
+    const oneWayMiles = kmToMiles(distanceKm);
+    // Apply round-trip multiplier if provider charges both ways
+    const travelChargeType = (providerProfile as any).travelChargeType ?? "ONE_WAY";
+    const distanceMiles = travelChargeType === "ROUND_TRIP" ? oneWayMiles * 2 : oneWayMiles;
 
-    // Travel fee in miles — use provider's km config converted to miles, or businessRules defaults
+    // freeKm is stored as real km (UI converts miles→km on save)
+    // extraFeePerKm is stored as $/mile (UI saves the raw dollar value, no conversion)
     const freeKm = Number(providerProfile.freeKm);
-    const extraFeePerKm = Number(providerProfile.extraFeePerKm);
+    const extraFeePerMile = Number(providerProfile.extraFeePerKm);
     const providerFreeMiles = freeKm > 0 ? kmToMiles(freeKm) : undefined;
-    const providerFeePerMile = extraFeePerKm > 0 ? kmToMiles(extraFeePerKm) : undefined;
+    const providerFeePerMile = extraFeePerMile > 0 ? extraFeePerMile : undefined;
     travelFee = calculateTravelFeeMiles(distanceMiles, providerFreeMiles, providerFeePerMile);
 
     logger.info(
-      `Distance: ${distanceKm.toFixed(2)} km / ${distanceMiles.toFixed(2)} mi (${roadResult.isRoadDistance ? "OSRM road" : "Haversine estimate"}), travel fee: $${travelFee.toFixed(2)}`,
+      `Distance: ${distanceKm.toFixed(2)} km / ${oneWayMiles.toFixed(2)} mi one-way${travelChargeType === "ROUND_TRIP" ? ` / ${distanceMiles.toFixed(2)} mi round-trip` : ""} (${roadResult.isRoadDistance ? "OSRM road" : "Haversine estimate"}), travel fee: $${travelFee.toFixed(2)}`,
     );
   }
 

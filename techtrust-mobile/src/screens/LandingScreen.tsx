@@ -824,35 +824,45 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                 <Ionicons name="grid" size={18} color="#2B5EA7" />
                 <Text style={styles.sectionLabel}>{(t.landing as any)?.popularServices || 'Popular Services'}</Text>
               </View>
-              <View style={styles.servicesGrid}>
-                {[
+              {(() => {
+                const svcs = [
                   { icon: 'water' as const, label: (t.landing as any)?.serviceOilChange || 'Oil Change', color: '#f59e0b' },
                   { icon: 'disc' as const, label: (t.landing as any)?.serviceBrakes || 'Brakes', color: '#ef4444' },
                   { icon: 'pulse' as const, label: (t.landing as any)?.serviceDiagnostics || 'Diagnostics', color: '#8b5cf6' },
                   { icon: 'snow' as const, label: (t.landing as any)?.serviceAC || 'A/C', color: '#0ea5e9' },
                   { icon: 'speedometer' as const, label: (t.landing as any)?.serviceTires || 'Tires', color: '#10b981' },
                   { icon: 'car-sport' as const, label: (t.landing as any)?.serviceCarWash || 'Car Wash', color: '#6366f1' },
-                ].map((svc, idx) => (
-                  <TouchableOpacity
-                    key={idx}
-                    style={styles.serviceGridItem}
-                    onPress={() => {
-                      if (svc.label === ((t.landing as any)?.serviceCarWash || 'Car Wash')) {
-                        navigation.navigate('CarWashMap');
-                      } else if (isAuthenticated) {
-                        navigation.navigate('ServiceChoice');
-                      } else {
-                        navigation.navigate('Login');
-                      }
-                    }}
-                  >
-                    <View style={[styles.serviceGridIcon, { backgroundColor: svc.color + '15' }]}>
-                      <Ionicons name={svc.icon} size={24} color={svc.color} />
-                    </View>
-                    <Text style={styles.serviceGridLabel}>{svc.label}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+                ];
+                const rows = [svcs.slice(0, 3), svcs.slice(3, 6)];
+                return (
+                  <View style={styles.servicesGrid}>
+                    {rows.map((row, rowIdx) => (
+                      <View key={rowIdx} style={styles.servicesGridRow}>
+                        {row.map((svc, idx) => (
+                          <TouchableOpacity
+                            key={idx}
+                            style={styles.serviceGridItem}
+                            onPress={() => {
+                              if (svc.label === ((t.landing as any)?.serviceCarWash || 'Car Wash')) {
+                                navigation.navigate('CarWashMap');
+                              } else if (isAuthenticated) {
+                                navigation.navigate('ServiceChoice');
+                              } else {
+                                navigation.navigate('Login');
+                              }
+                            }}
+                          >
+                            <View style={[styles.serviceGridIcon, { backgroundColor: svc.color + '15' }]}>
+                              <Ionicons name={svc.icon} size={24} color={svc.color} />
+                            </View>
+                            <Text style={styles.serviceGridLabel}>{svc.label}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    ))}
+                  </View>
+                );
+              })()}
             </View>
 
             {/* Search Providers Section */}
@@ -3438,14 +3448,16 @@ const styles = StyleSheet.create({
   },
   // Services Grid
   servicesGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
     paddingHorizontal: 16,
-    gap: 12,
+    gap: 10,
+  },
+  servicesGridRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 10,
   },
   serviceGridItem: {
-    width: (width - 56) / 3,
+    flex: 1,
     alignItems: "center",
     paddingVertical: 14,
     backgroundColor: "#fff",
