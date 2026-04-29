@@ -1470,70 +1470,79 @@ export const resendOTP = async (req: Request, res: Response) => {
 
     const deliveryMethod = method === "email" ? "email" : "sms";
 
-    if (deliveryMethod === "email") {
-      // Email OTP — sempre via DB + email service
-      const otpCode = generateOTP();
-      const otpExpiresAt = getOTPExpiration();
+    // Gera e persiste OTP antes de qualquer envio
+    const otpCode = generateOTP();
+    const otpExpiresAt = getOTPExpiration();
 
+    if (deliveryMethod === "email") {
+      // ── Email OTP ──
       await prisma.user.update({
         where: { id: userId },
         data: { emailOtpCode: otpCode, emailOtpExpiresAt: otpExpiresAt },
       });
 
-      await sendOTPEmail(user.email, otpCode, user.language);
-      logger.info(`OTP sent via email to: ${user.email}`);
+      try {
+        await sendOTPEmail(user.email, otpCode, user.language);
+        logger.info(`OTP sent via email to: ${user.email}`);
+        return res.json({
+          success: true,
+          message: "Novo código enviado por email",
+          data: { method: "email", otpSentTo: user.email, expiresIn: 600 },
+        });
+      } catch (emailErr: any) {
+        logger.error(`Resend failed for ${user.email}:`, emailErr.message);
+        // OTP já está salvo no DB — usuário pode tentar digitar se receber depois
+        return res.json({
+          success: true,
+          message: "Código gerado. Verifique sua caixa de spam ou tente novamente em alguns minutos.",
+          data: { method: "email", otpSentTo: user.email, expiresIn: 600, deliveryWarning: true },
+        });
+      }
+    }
 
-      return res.json({
-        success: true,
-        message: "Novo código enviado por email",
-        data: {
-          method: "email",
-          otpSentTo: user.email,
-          expiresIn: 600,
-        },
+    // ── SMS OTP (com fallback email) ──
+    let actualMethod: "sms" | "email" = "sms";
+    let smsFailed = false;
+
+    try {
+      await issueSmsOTP(userId, user.phone, user.language);
+      logger.info(`OTP reenviado via SMS para: ${user.phone}`);
+    } catch (smsError: any) {
+      smsFailed = true;
+      logger.error(`SMS failed (${user.phone}): ${smsError.message}`);
+
+      // Tenta email como fallback
+      await prisma.user.update({
+        where: { id: userId },
+        data: { emailOtpCode: otpCode, emailOtpExpiresAt: otpExpiresAt },
       });
-    } else {
-      // SMS OTP
-      let actualMethod: "sms" | "email" = "sms";
 
       try {
-        await issueSmsOTP(userId, user.phone, user.language);
-        logger.info(`OTP reenviado via SMS para: ${user.phone}`);
-      } catch (smsError: any) {
-        logger.error("Erro ao reenviar OTP via SMS:", smsError.message);
-        try {
-          const otpCode = generateOTP();
-          const otpExpiresAt = getOTPExpiration();
-          await prisma.user.update({
-            where: { id: userId },
-            data: { emailOtpCode: otpCode, emailOtpExpiresAt: otpExpiresAt },
-          });
-          await sendOTPEmail(user.email, otpCode, user.language);
-          actualMethod = "email";
-          logger.info(`OTP reenviado por EMAIL (fallback SMS) para: ${user.email}`);
-        } catch (emailError: any) {
-          logger.error("Erro ao reenviar OTP via email:", emailError.message);
-          throw new AppError(
-            "Não foi possível enviar o código",
-            500,
-            "OTP_SEND_FAILED",
-          );
-        }
+        await sendOTPEmail(user.email, otpCode, user.language);
+        actualMethod = "email";
+        logger.info(`OTP sent via EMAIL fallback to: ${user.email}`);
+      } catch (emailError: any) {
+        logger.error(`Email fallback also failed for ${user.email}: ${emailError.message}`);
+        // Ambos falharam — OTP já está no DB, retorna 200 com aviso
+        return res.json({
+          success: false,
+          message: "SMS indisponível para este número. Verifique sua caixa de email (incluindo spam) ou cadastre um número de celular válido.",
+          data: { method: "email", otpSentTo: user.email, expiresIn: 600, deliveryWarning: true },
+        });
       }
-
-      return res.json({
-        success: true,
-        message:
-          actualMethod === "email"
-            ? "Código enviado por email (SMS indisponível)"
-            : "Novo código enviado por SMS",
-        data: {
-          method: actualMethod,
-          otpSentTo: actualMethod === "email" ? user.email : user.phone,
-          expiresIn: 600,
-        },
-      });
     }
+
+    return res.json({
+      success: true,
+      message: smsFailed
+        ? "SMS indisponível para este número. Código enviado por email."
+        : "Novo código enviado por SMS",
+      data: {
+        method: actualMethod,
+        otpSentTo: actualMethod === "email" ? user.email : user.phone,
+        expiresIn: 600,
+      },
+    });
   } catch (error) {
     throw error;
   }
