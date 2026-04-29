@@ -237,55 +237,62 @@ export const signup = async (req: Request, res: Response) => {
         }
 
         // Create ProviderProfile if signing up as PROVIDER and it doesn't exist yet
+        // Usa $queryRaw para evitar PrismaClientValidationError em clientes desatualizados
         if (userRole === "PROVIDER" && businessName) {
-          const existingProfile = await prisma.providerProfile.findFirst({
-            where: { userId: existingEmail.id },
-          });
-          if (!existingProfile) {
-            await prisma.providerProfile.create({
-              data: {
-                userId: existingEmail.id,
-                businessName,
-                businessType: marketplaceType || null,
-                ...(marketplaceBusinessTypeCat && {
-                  businessTypeCat: marketplaceBusinessTypeCat,
-                }),
-                legalName: legalName || null,
-                ein: ein || null,
-                sunbizDocumentNumber: sunbizDocumentNumber || null,
-                businessIdentityStatus:
-                  legalName || ein || sunbizDocumentNumber
-                    ? "PROVIDED_UNVERIFIED"
-                    : "NOT_PROVIDED",
-                address: businessAddress || "",
-                city: businessCity || "",
-                state: businessState || "FL",
-                zipCode: businessZipCode || "",
-                servicesOffered: servicesOffered || [],
-                vehicleTypesServed: vehicleTypesServed || [],
-              sellsParts: sellsParts || false,
-              specialties: [],
-              payoutMethod: payoutMethod || "MANUAL",
-              zelleEmail: zelleEmail || null,
-              zellePhone: zellePhone || null,
-              bankTransferLabel: bankTransferLabel || null,
-              bankAccountType: bankAccountType || null,
-              bankAccountNumber: bankAccountNumber || null,
-              bankRoutingNumber: bankRoutingNumber || null,
-              cityBusinessTaxReceiptNumber: cityBusinessTaxReceiptNumber || null,
-              countyBusinessTaxReceiptNumber: countyBusinessTaxReceiptNumber || null,
-              businessTaxReceiptStatus:
-                cityBusinessTaxReceiptNumber || countyBusinessTaxReceiptNumber
-                  ? "PROVIDED_UNVERIFIED"
-                  : "NOT_PROVIDED",
-              marketplaceFacilitatorTaxAcknowledged:
-                marketplaceFacilitatorTaxAcknowledged !== false,
-              insuranceDisclosureAcceptedAt: insuranceDisclosureAccepted ? new Date() : null,
-            },
-          });
-            logger.info(
-              `ProviderProfile criado para usuário existente: ${email}`,
-            );
+          const rows = await prisma.$queryRaw<Array<{ id: string }>>`
+            SELECT id FROM "provider_profiles" WHERE "userId" = ${existingEmail.id} LIMIT 1
+          `;
+          if (rows.length === 0) {
+            try {
+              await prisma.providerProfile.create({
+                data: {
+                  userId: existingEmail.id,
+                  businessName,
+                  businessType: marketplaceType || null,
+                  ...(marketplaceBusinessTypeCat && {
+                    businessTypeCat: marketplaceBusinessTypeCat,
+                  }),
+                  legalName: legalName || null,
+                  ein: ein || null,
+                  sunbizDocumentNumber: sunbizDocumentNumber || null,
+                  businessIdentityStatus:
+                    legalName || ein || sunbizDocumentNumber
+                      ? "PROVIDED_UNVERIFIED"
+                      : "NOT_PROVIDED",
+                  address: businessAddress || "",
+                  city: businessCity || "",
+                  state: businessState || "FL",
+                  zipCode: businessZipCode || "",
+                  servicesOffered: servicesOffered || [],
+                  vehicleTypesServed: vehicleTypesServed || [],
+                  sellsParts: sellsParts || false,
+                  specialties: [],
+                  payoutMethod: payoutMethod || "MANUAL",
+                  zelleEmail: zelleEmail || null,
+                  zellePhone: zellePhone || null,
+                  bankTransferLabel: bankTransferLabel || null,
+                  bankAccountType: bankAccountType || null,
+                  bankAccountNumber: bankAccountNumber || null,
+                  bankRoutingNumber: bankRoutingNumber || null,
+                  cityBusinessTaxReceiptNumber: cityBusinessTaxReceiptNumber || null,
+                  countyBusinessTaxReceiptNumber: countyBusinessTaxReceiptNumber || null,
+                  businessTaxReceiptStatus:
+                    cityBusinessTaxReceiptNumber || countyBusinessTaxReceiptNumber
+                      ? "PROVIDED_UNVERIFIED"
+                      : "NOT_PROVIDED",
+                  marketplaceFacilitatorTaxAcknowledged:
+                    marketplaceFacilitatorTaxAcknowledged !== false,
+                  insuranceDisclosureAcceptedAt: insuranceDisclosureAccepted ? new Date() : null,
+                },
+              });
+              logger.info(`ProviderProfile criado para usuário existente: ${email}`);
+            } catch (createErr: any) {
+              if (createErr?.code === "P2002") {
+                logger.info(`ProviderProfile já existia (race condition): ${email}`);
+              } else {
+                throw createErr;
+              }
+            }
           }
         }
 
@@ -386,55 +393,62 @@ export const signup = async (req: Request, res: Response) => {
         }
 
         // Create ProviderProfile if signing up as PROVIDER and it doesn't exist yet
+        // Usa $queryRaw para evitar PrismaClientValidationError em clientes desatualizados
         if (userRole === "PROVIDER" && businessName) {
-          const existingProfile = await prisma.providerProfile.findFirst({
-            where: { userId: existingPhone.id },
-          });
-          if (!existingProfile) {
-            await prisma.providerProfile.create({
-              data: {
-                userId: existingPhone.id,
-                businessName,
-                businessType: marketplaceType || null,
-                ...(marketplaceBusinessTypeCat && {
-                  businessTypeCat: marketplaceBusinessTypeCat,
-                }),
-                legalName: legalName || null,
-                ein: ein || null,
-                sunbizDocumentNumber: sunbizDocumentNumber || null,
-                businessIdentityStatus:
-                  legalName || ein || sunbizDocumentNumber
-                    ? "PROVIDED_UNVERIFIED"
-                    : "NOT_PROVIDED",
-                address: businessAddress || "",
-                city: businessCity || "",
-                state: businessState || "FL",
-                zipCode: businessZipCode || "",
-                servicesOffered: servicesOffered || [],
-                vehicleTypesServed: vehicleTypesServed || [],
-                sellsParts: sellsParts || false,
-                specialties: [],
-                payoutMethod: payoutMethod || "MANUAL",
-                zelleEmail: zelleEmail || null,
-                zellePhone: zellePhone || null,
-                bankTransferLabel: bankTransferLabel || null,
-              bankAccountType: bankAccountType || null,
-              bankAccountNumber: bankAccountNumber || null,
-              bankRoutingNumber: bankRoutingNumber || null,
-                cityBusinessTaxReceiptNumber: cityBusinessTaxReceiptNumber || null,
-                countyBusinessTaxReceiptNumber: countyBusinessTaxReceiptNumber || null,
-                businessTaxReceiptStatus:
-                  cityBusinessTaxReceiptNumber || countyBusinessTaxReceiptNumber
-                    ? "PROVIDED_UNVERIFIED"
-                    : "NOT_PROVIDED",
-                marketplaceFacilitatorTaxAcknowledged:
-                  marketplaceFacilitatorTaxAcknowledged !== false,
-                insuranceDisclosureAcceptedAt: insuranceDisclosureAccepted ? new Date() : null,
-              },
-            });
-            logger.info(
-              `ProviderProfile criado para phone existente: ${phone}`,
-            );
+          const rows = await prisma.$queryRaw<Array<{ id: string }>>`
+            SELECT id FROM "provider_profiles" WHERE "userId" = ${existingPhone.id} LIMIT 1
+          `;
+          if (rows.length === 0) {
+            try {
+              await prisma.providerProfile.create({
+                data: {
+                  userId: existingPhone.id,
+                  businessName,
+                  businessType: marketplaceType || null,
+                  ...(marketplaceBusinessTypeCat && {
+                    businessTypeCat: marketplaceBusinessTypeCat,
+                  }),
+                  legalName: legalName || null,
+                  ein: ein || null,
+                  sunbizDocumentNumber: sunbizDocumentNumber || null,
+                  businessIdentityStatus:
+                    legalName || ein || sunbizDocumentNumber
+                      ? "PROVIDED_UNVERIFIED"
+                      : "NOT_PROVIDED",
+                  address: businessAddress || "",
+                  city: businessCity || "",
+                  state: businessState || "FL",
+                  zipCode: businessZipCode || "",
+                  servicesOffered: servicesOffered || [],
+                  vehicleTypesServed: vehicleTypesServed || [],
+                  sellsParts: sellsParts || false,
+                  specialties: [],
+                  payoutMethod: payoutMethod || "MANUAL",
+                  zelleEmail: zelleEmail || null,
+                  zellePhone: zellePhone || null,
+                  bankTransferLabel: bankTransferLabel || null,
+                  bankAccountType: bankAccountType || null,
+                  bankAccountNumber: bankAccountNumber || null,
+                  bankRoutingNumber: bankRoutingNumber || null,
+                  cityBusinessTaxReceiptNumber: cityBusinessTaxReceiptNumber || null,
+                  countyBusinessTaxReceiptNumber: countyBusinessTaxReceiptNumber || null,
+                  businessTaxReceiptStatus:
+                    cityBusinessTaxReceiptNumber || countyBusinessTaxReceiptNumber
+                      ? "PROVIDED_UNVERIFIED"
+                      : "NOT_PROVIDED",
+                  marketplaceFacilitatorTaxAcknowledged:
+                    marketplaceFacilitatorTaxAcknowledged !== false,
+                  insuranceDisclosureAcceptedAt: insuranceDisclosureAccepted ? new Date() : null,
+                },
+              });
+              logger.info(`ProviderProfile criado para phone existente: ${phone}`);
+            } catch (createErr: any) {
+              if (createErr?.code === "P2002") {
+                logger.info(`ProviderProfile já existia (race condition): ${phone}`);
+              } else {
+                throw createErr;
+              }
+            }
           }
         }
 
