@@ -139,6 +139,42 @@ const issueSmsOTP = async (
   await sendOTP(phone, otpCode, language || undefined);
 };
 
+const fetchUserWithProfile = async (userId: string) => {
+  const users = await prisma.$queryRaw<any[]>`
+    SELECT u.*, pp.id as "pp_id", pp."businessName", pp."businessType",
+           pp."servicesOffered", pp."vehicleTypesServed", pp."sellsParts",
+           pp."isVerified", pp."averageRating", pp."totalReviews",
+           pp.website, pp.address, pp.city, pp.state, pp."zipCode",
+           pp."fdacsRegistrationNumber"
+    FROM "users" u
+    LEFT JOIN "provider_profiles" pp ON pp."userId" = u.id
+    WHERE u.id = ${userId}
+    LIMIT 1
+  `;
+  if (!users.length) return null;
+  const row = users[0];
+  const providerProfile = row.pp_id
+    ? {
+        id: row.pp_id,
+        businessName: row.businessName,
+        businessType: row.businessType,
+        servicesOffered: row.servicesOffered,
+        vehicleTypesServed: row.vehicleTypesServed,
+        sellsParts: row.sellsParts,
+        isVerified: row.isVerified,
+        averageRating: row.averageRating,
+        totalReviews: row.totalReviews,
+        website: row.website,
+        address: row.address,
+        city: row.city,
+        state: row.state,
+        zipCode: row.zipCode,
+        fdacsRegistrationNumber: row.fdacsRegistrationNumber,
+      }
+    : undefined;
+  return { ...row, providerProfile };
+};
+
 const markEmailVerified = async (userId: string) => {
   await prisma.$executeRaw`
     UPDATE "users"
@@ -149,11 +185,7 @@ const markEmailVerified = async (userId: string) => {
         "updatedAt" = NOW()
     WHERE "id" = ${userId}
   `;
-
-  return prisma.user.findUnique({
-    where: { id: userId },
-    include: { providerProfile: true },
-  });
+  return fetchUserWithProfile(userId);
 };
 
 const markPhoneVerified = async (userId: string) => {
@@ -166,11 +198,7 @@ const markPhoneVerified = async (userId: string) => {
         "updatedAt" = NOW()
     WHERE "id" = ${userId}
   `;
-
-  return prisma.user.findUnique({
-    where: { id: userId },
-    include: { providerProfile: true },
-  });
+  return fetchUserWithProfile(userId);
 };
 
 /**
