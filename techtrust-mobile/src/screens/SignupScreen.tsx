@@ -141,6 +141,7 @@ export default function SignupScreen({ navigation, route }: any) {
   const [providerBankRoutingNumber, setProviderBankRoutingNumber] = useState("");
   const [providerCityBtr, setProviderCityBtr] = useState("");
   const [providerCountyBtr, setProviderCountyBtr] = useState("");
+  const [providerBtrNotApplicable, setProviderBtrNotApplicable] = useState(false);
   const [providerInsuranceDisclosureAccepted, setProviderInsuranceDisclosureAccepted] = useState(false);
   const [showInsuranceModal, setShowInsuranceModal] = useState(false);
   const [showStatePicker, setShowStatePicker] = useState(false);
@@ -352,14 +353,14 @@ export default function SignupScreen({ navigation, route }: any) {
     { key: "AIR_FILTER", label: "Air Filter Service", icon: "air-filter" },
     { key: "FUEL_SYSTEM", label: "Fuel System", icon: "gas-station" },
     { key: "BRAKES", label: "Brakes", icon: "car-brake-alert" },
-    { key: "COOLING_SYSTEM", label: "Cooling System", icon: "coolant-temperature" },
-    { key: "TIRES", label: "Tires & Wheels", icon: "tire" },
-    { key: "BELTS_HOSES", label: "Belts & Hoses", icon: "connection" },
+    { key: "COOLING_SYSTEM", label: "Cooling System", icon: "thermometer" },
+    { key: "TIRES", label: "Tires & Wheels", icon: "car-tire-alert" },
+    { key: "BELTS_HOSES", label: "Belts & Hoses", icon: "pipe" },
     // Repairs
     { key: "AC_SERVICE", label: "A/C & Heating", icon: "air-conditioner" },
     { key: "STEERING", label: "Steering & Suspension", icon: "steering" },
     { key: "ELECTRICAL_BASIC", label: "Electrical System", icon: "flash" },
-    { key: "EXHAUST", label: "Exhaust System", icon: "pipe-leak" },
+    { key: "EXHAUST", label: "Exhaust System", icon: "smoke" },
     { key: "DRIVETRAIN", label: "Drivetrain", icon: "cog-transfer" },
     { key: "ENGINE", label: "Engine", icon: "engine" },
     { key: "TRANSMISSION", label: "Transmission", icon: "car-shift-pattern" },
@@ -1373,24 +1374,55 @@ export default function SignupScreen({ navigation, route }: any) {
                       textColor="#000"
                     />
 
-                    <TextInput
-                      value={providerCityBtr}
-                      onChangeText={setProviderCityBtr}
-                      mode="outlined"
-                      label="City business tax receipt #"
-                      style={styles.input}
-                      outlineStyle={styles.inputOutline}
-                      textColor="#000"
-                    />
-                    <TextInput
-                      value={providerCountyBtr}
-                      onChangeText={setProviderCountyBtr}
-                      mode="outlined"
-                      label="County business tax receipt #"
-                      style={styles.input}
-                      outlineStyle={styles.inputOutline}
-                      textColor="#000"
-                    />
+                    {/* BTR info banner */}
+                    <View style={{ backgroundColor: "#eff6ff", borderRadius: 8, borderWidth: 1, borderColor: "#bfdbfe", padding: 10, marginBottom: 6, flexDirection: "row", gap: 8 }}>
+                      <MaterialCommunityIcons name="shield-check" size={16} color="#1d4ed8" style={{ marginTop: 1 }} />
+                      <Text style={{ flex: 1, fontSize: 12, color: "#1e40af", lineHeight: 17 }}>
+                        Como Marketplace Facilitator, a TechTrust não precisa verificar nem declarar individualmente por cada provider (oficina). Você declara de forma consolidada pelo total que passou pela plataforma.
+                      </Text>
+                    </View>
+
+                    {/* "Don't have / don't want to declare" toggle */}
+                    <TouchableOpacity
+                      onPress={() => setProviderBtrNotApplicable((v) => !v)}
+                      activeOpacity={0.7}
+                      style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 }}
+                    >
+                      <View style={{
+                        width: 20, height: 20, borderRadius: 4, borderWidth: 1.5,
+                        borderColor: providerBtrNotApplicable ? "#2563eb" : "#9ca3af",
+                        backgroundColor: providerBtrNotApplicable ? "#2563eb" : "#fff",
+                        alignItems: "center", justifyContent: "center",
+                      }}>
+                        {providerBtrNotApplicable && <MaterialCommunityIcons name="check" size={13} color="#fff" />}
+                      </View>
+                      <Text style={{ fontSize: 13, color: "#374151" }}>
+                        Não possuo / não desejo declarar
+                      </Text>
+                    </TouchableOpacity>
+
+                    {!providerBtrNotApplicable && (
+                      <>
+                        <TextInput
+                          value={providerCityBtr}
+                          onChangeText={setProviderCityBtr}
+                          mode="outlined"
+                          label="City business tax receipt #"
+                          style={styles.input}
+                          outlineStyle={styles.inputOutline}
+                          textColor="#000"
+                        />
+                        <TextInput
+                          value={providerCountyBtr}
+                          onChangeText={setProviderCountyBtr}
+                          mode="outlined"
+                          label="County business tax receipt #"
+                          style={styles.input}
+                          outlineStyle={styles.inputOutline}
+                          textColor="#000"
+                        />
+                      </>
+                    )}
                   </View>
                 </SlideInView>
 

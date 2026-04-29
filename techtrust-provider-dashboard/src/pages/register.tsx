@@ -178,6 +178,7 @@ export default function RegisterPage() {
   const [bankRoutingNumber, setBankRoutingNumber] = useState('')
   const [cityBusinessTaxReceiptNumber, setCityBusinessTaxReceiptNumber] = useState('')
   const [countyBusinessTaxReceiptNumber, setCountyBusinessTaxReceiptNumber] = useState('')
+  const [btrNotApplicable, setBtrNotApplicable] = useState(false)
   const [insuranceDisclosureAccepted, setInsuranceDisclosureAccepted] = useState(false)
   const [showInsuranceModal, setShowInsuranceModal] = useState(false)
   const [marketplaceFacilitatorTaxAcknowledged, setMarketplaceFacilitatorTaxAcknowledged] = useState(true)
@@ -1083,22 +1084,41 @@ export default function RegisterPage() {
                         </div>
                       )}
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <input
-                          type="text"
-                          value={cityBusinessTaxReceiptNumber}
-                          onChange={(e) => setCityBusinessTaxReceiptNumber(e.target.value)}
-                          placeholder="City business tax receipt #"
-                          className="input"
-                        />
-                        <input
-                          type="text"
-                          value={countyBusinessTaxReceiptNumber}
-                          onChange={(e) => setCountyBusinessTaxReceiptNumber(e.target.value)}
-                          placeholder="County business tax receipt #"
-                          className="input"
-                        />
+                      {/* BTR info banner */}
+                      <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50 border border-blue-200 text-xs text-blue-800">
+                        <svg className="w-4 h-4 mt-0.5 flex-shrink-0 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+                        <span>Como Marketplace Facilitator, a TechTrust não precisa verificar nem declarar individualmente por cada provider (oficina). Você declara de forma consolidada pelo total que passou pela plataforma.</span>
                       </div>
+
+                      {/* "Don't have / don't want to declare" checkbox */}
+                      <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={btrNotApplicable}
+                          onChange={(e) => setBtrNotApplicable(e.target.checked)}
+                          className="w-4 h-4 accent-blue-600"
+                        />
+                        <span>Não possuo / não desejo declarar</span>
+                      </label>
+
+                      {!btrNotApplicable && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <input
+                            type="text"
+                            value={cityBusinessTaxReceiptNumber}
+                            onChange={(e) => setCityBusinessTaxReceiptNumber(e.target.value)}
+                            placeholder="City business tax receipt #"
+                            className="input"
+                          />
+                          <input
+                            type="text"
+                            value={countyBusinessTaxReceiptNumber}
+                            onChange={(e) => setCountyBusinessTaxReceiptNumber(e.target.value)}
+                            placeholder="County business tax receipt #"
+                            className="input"
+                          />
+                        </div>
+                      )}
 
                       <label className="flex items-start gap-2 text-xs text-gray-600">
                         <input

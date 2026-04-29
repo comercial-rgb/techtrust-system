@@ -556,6 +556,9 @@ export const signup = async (req: Request, res: Response) => {
           zelleEmail: zelleEmail || null,
           zellePhone: zellePhone || null,
           bankTransferLabel: bankTransferLabel || null,
+          bankAccountType: bankAccountType || null,
+          bankAccountNumber: bankAccountNumber || null,
+          bankRoutingNumber: bankRoutingNumber || null,
           cityBusinessTaxReceiptNumber: cityBusinessTaxReceiptNumber || null,
           countyBusinessTaxReceiptNumber: countyBusinessTaxReceiptNumber || null,
           businessTaxReceiptStatus:
