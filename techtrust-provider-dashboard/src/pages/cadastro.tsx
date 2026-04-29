@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import {
@@ -85,6 +85,53 @@ export default function CadastroPage() {
   const [businessCity, setBusinessCity] = useState('')
   const [businessState, setBusinessState] = useState('FL')
   const [businessZipCode, setBusinessZipCode] = useState('')
+
+  // Address autocomplete
+  const [addrQuery, setAddrQuery] = useState('')
+  const [addrResults, setAddrResults] = useState<Array<{ id: string; display: string; street: string; city: string; state: string; zip: string }>>([])
+  const [addrSearching, setAddrSearching] = useState(false)
+  const addrTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  async function searchAddress(query: string) {
+    if (query.length < 3) { setAddrResults([]); return }
+    setAddrSearching(true)
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=5&countrycodes=us`
+      const resp = await fetch(url, { headers: { 'User-Agent': 'TechTrust-Web/1.0' } })
+      const data = await resp.json()
+      const STATE_ABBR: Record<string, string> = { Alabama:'AL',Alaska:'AK',Arizona:'AZ',Arkansas:'AR',California:'CA',Colorado:'CO',Connecticut:'CT',Delaware:'DE',Florida:'FL',Georgia:'GA',Hawaii:'HI',Idaho:'ID',Illinois:'IL',Indiana:'IN',Iowa:'IA',Kansas:'KS',Kentucky:'KY',Louisiana:'LA',Maine:'ME',Maryland:'MD',Massachusetts:'MA',Michigan:'MI',Minnesota:'MN',Mississippi:'MS',Missouri:'MO',Montana:'MT',Nebraska:'NE',Nevada:'NV','New Hampshire':'NH','New Jersey':'NJ','New Mexico':'NM','New York':'NY','North Carolina':'NC','North Dakota':'ND',Ohio:'OH',Oklahoma:'OK',Oregon:'OR',Pennsylvania:'PA','Rhode Island':'RI','South Carolina':'SC','South Dakota':'SD',Tennessee:'TN',Texas:'TX',Utah:'UT',Vermont:'VT',Virginia:'VA',Washington:'WA','West Virginia':'WV',Wisconsin:'WI',Wyoming:'WY','District of Columbia':'DC' }
+      setAddrResults(data.map((item: any) => {
+        const a = item.address || {}
+        const stateFull = a.state || ''
+        const number = a.house_number || ''
+        const road = a.road || ''
+        return {
+          id: item.place_id?.toString() || Math.random().toString(),
+          display: item.display_name || '',
+          street: number ? `${number} ${road}` : road,
+          city: a.city || a.town || a.village || a.hamlet || '',
+          state: STATE_ABBR[stateFull] || stateFull,
+          zip: a.postcode || '',
+        }
+      }))
+    } catch { setAddrResults([]) }
+    finally { setAddrSearching(false) }
+  }
+
+  function handleAddrQueryChange(value: string) {
+    setAddrQuery(value)
+    if (addrTimeoutRef.current) clearTimeout(addrTimeoutRef.current)
+    addrTimeoutRef.current = setTimeout(() => searchAddress(value), 400)
+  }
+
+  function selectAddrResult(r: typeof addrResults[0]) {
+    setBusinessAddress(r.street || r.display.split(',')[0])
+    setAddrQuery(r.street || r.display.split(',')[0])
+    if (r.city) setBusinessCity(r.city)
+    if (r.state) setBusinessState(r.state)
+    if (r.zip) setBusinessZipCode(r.zip)
+    setAddrResults([])
+  }
 
   // Step 3: Services
   const [selectedServices, setSelectedServices] = useState<Set<string>>(new Set())
@@ -497,12 +544,35 @@ export default function CadastroPage() {
                   <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     type="text"
-                    value={businessAddress}
-                    onChange={(e) => setBusinessAddress(e.target.value)}
-                    placeholder="123 Main Street"
-                    className="input !pl-11"
+                    value={addrQuery}
+                    onChange={(e) => handleAddrQueryChange(e.target.value)}
+                    placeholder="Search address..."
+                    className="input !pl-11 !pr-8"
+                    autoComplete="off"
                   />
+                  {addrSearching && (
+                    <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 animate-spin" />
+                  )}
+                  {addrResults.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden">
+                      {addrResults.map((r) => (
+                        <button
+                          key={r.id}
+                          type="button"
+                          onClick={() => selectAddrResult(r)}
+                          className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 border-b border-gray-100 last:border-0"
+                        >
+                          {r.display}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
+                {businessAddress && (
+                  <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                    <CheckCircle className="w-3 h-3 inline" /> {businessAddress}
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-3 gap-3">

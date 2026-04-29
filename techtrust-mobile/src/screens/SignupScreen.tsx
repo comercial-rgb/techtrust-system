@@ -1497,15 +1497,50 @@ export default function SignupScreen({ navigation, route }: any) {
                 <SlideInView direction="right" delay={320}>
                   <View style={styles.inputContainer}>
                     <TextInput
-                      value={businessAddress}
-                      onChangeText={setBusinessAddress}
+                      value={addrQuery}
+                      onChangeText={handleAddrQueryChange}
                       mode="outlined"
                       label="Business Address"
-                      placeholder="123 Main St"
+                      placeholder="Search address..."
                       style={styles.input}
                       outlineStyle={styles.inputOutline}
                       textColor="#000"
+                      left={<TextInput.Icon icon="map-search" color="#6b7280" />}
+                      right={addrSearching ? <TextInput.Icon icon="loading" /> : undefined}
                     />
+                    {addrResults.length > 0 && (
+                      <View style={{
+                        position: "absolute",
+                        top: 58,
+                        left: 0,
+                        right: 0,
+                        backgroundColor: "#fff",
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: "#e5e7eb",
+                        zIndex: 999,
+                        shadowColor: "#000",
+                        shadowOpacity: 0.08,
+                        shadowRadius: 8,
+                        elevation: 4,
+                      }}>
+                        {addrResults.map((r) => (
+                          <TouchableOpacity
+                            key={r.id}
+                            onPress={() => selectAddrResult(r)}
+                            style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: "#f3f4f6" }}
+                          >
+                            <Text style={{ fontSize: 13, color: "#111" }}>{r.display}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+                    {businessAddress ? (
+                      <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4, gap: 4 }}>
+                        <Ionicons name="checkmark-circle" size={14} color="#16a34a" />
+                        <Text style={{ fontSize: 12, color: "#16a34a" }} numberOfLines={1}>{businessAddress}</Text>
+                      </View>
+                    ) : null}
                   </View>
                 </SlideInView>
 
