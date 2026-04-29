@@ -101,7 +101,7 @@ const DEFAULT_CLIENT_PLANS: ClientPlanOption[] = [
 
 export default function SignupScreen({ navigation, route }: any) {
   const theme = useTheme();
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { signUp } = useAuth();
 
   const [fullName, setFullName] = useState("");
@@ -1378,7 +1378,11 @@ export default function SignupScreen({ navigation, route }: any) {
                     <View style={{ backgroundColor: "#eff6ff", borderRadius: 8, borderWidth: 1, borderColor: "#bfdbfe", padding: 10, marginBottom: 6, flexDirection: "row", gap: 8 }}>
                       <MaterialCommunityIcons name="shield-check" size={16} color="#1d4ed8" style={{ marginTop: 1 }} />
                       <Text style={{ flex: 1, fontSize: 12, color: "#1e40af", lineHeight: 17 }}>
-                        Como Marketplace Facilitator, a TechTrust não precisa verificar nem declarar individualmente por cada provider (oficina). Você declara de forma consolidada pelo total que passou pela plataforma.
+                        {language === "pt"
+                          ? "Como Marketplace Facilitator, a TechTrust não precisa verificar nem declarar individualmente por cada provider (oficina). Você declara de forma consolidada pelo total que passou pela plataforma."
+                          : language === "es"
+                          ? "Como Facilitador del Marketplace, TechTrust no necesita verificar ni declarar individualmente por cada proveedor (taller). Usted declara de forma consolidada por el total que pasó por la plataforma."
+                          : "As a Marketplace Facilitator, TechTrust does not need to verify or individually declare for each provider (shop). You declare on a consolidated basis for the total that passed through the platform."}
                       </Text>
                     </View>
 
@@ -1397,7 +1401,11 @@ export default function SignupScreen({ navigation, route }: any) {
                         {providerBtrNotApplicable && <MaterialCommunityIcons name="check" size={13} color="#fff" />}
                       </View>
                       <Text style={{ fontSize: 13, color: "#374151" }}>
-                        Não possuo / não desejo declarar
+                        {language === "pt"
+                          ? "Não possuo / não desejo declarar"
+                          : language === "es"
+                          ? "No tengo / no deseo declarar"
+                          : "I don't have / don't want to declare"}
                       </Text>
                     </TouchableOpacity>
 

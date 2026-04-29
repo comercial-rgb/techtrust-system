@@ -1087,7 +1087,13 @@ export default function RegisterPage() {
                       {/* BTR info banner */}
                       <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50 border border-blue-200 text-xs text-blue-800">
                         <svg className="w-4 h-4 mt-0.5 flex-shrink-0 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
-                        <span>Como Marketplace Facilitator, a TechTrust não precisa verificar nem declarar individualmente por cada provider (oficina). Você declara de forma consolidada pelo total que passou pela plataforma.</span>
+                        <span>
+                          {language === 'pt'
+                            ? 'Como Marketplace Facilitator, a TechTrust não precisa verificar nem declarar individualmente por cada provider (oficina). Você declara de forma consolidada pelo total que passou pela plataforma.'
+                            : language === 'es'
+                            ? 'Como Facilitador del Marketplace, TechTrust no necesita verificar ni declarar individualmente por cada proveedor (taller). Usted declara de forma consolidada por el total que pasó por la plataforma.'
+                            : 'As a Marketplace Facilitator, TechTrust does not need to verify or individually declare for each provider (shop). You declare on a consolidated basis for the total that passed through the platform.'}
+                        </span>
                       </div>
 
                       {/* "Don't have / don't want to declare" checkbox */}
@@ -1098,7 +1104,13 @@ export default function RegisterPage() {
                           onChange={(e) => setBtrNotApplicable(e.target.checked)}
                           className="w-4 h-4 accent-blue-600"
                         />
-                        <span>Não possuo / não desejo declarar</span>
+                        <span>
+                          {language === 'pt'
+                            ? 'Não possuo / não desejo declarar'
+                            : language === 'es'
+                            ? 'No tengo / no deseo declarar'
+                            : "I don't have / don't want to declare"}
+                        </span>
                       </label>
 
                       {!btrNotApplicable && (

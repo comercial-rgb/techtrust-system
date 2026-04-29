@@ -238,7 +238,7 @@ export const signup = async (req: Request, res: Response) => {
 
         // Create ProviderProfile if signing up as PROVIDER and it doesn't exist yet
         if (userRole === "PROVIDER" && businessName) {
-          const existingProfile = await prisma.providerProfile.findUnique({
+          const existingProfile = await prisma.providerProfile.findFirst({
             where: { userId: existingEmail.id },
           });
           if (!existingProfile) {
@@ -387,7 +387,7 @@ export const signup = async (req: Request, res: Response) => {
 
         // Create ProviderProfile if signing up as PROVIDER and it doesn't exist yet
         if (userRole === "PROVIDER" && businessName) {
-          const existingProfile = await prisma.providerProfile.findUnique({
+          const existingProfile = await prisma.providerProfile.findFirst({
             where: { userId: existingPhone.id },
           });
           if (!existingProfile) {
