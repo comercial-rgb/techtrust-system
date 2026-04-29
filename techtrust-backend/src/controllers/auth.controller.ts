@@ -1327,17 +1327,21 @@ export const verifyOTP = async (req: Request, res: Response) => {
     const lang = (user.language || "EN").toUpperCase();
     const otpMsg = {
       expired: lang === "PT" ? "Código expirado. Solicite um novo." : lang === "ES" ? "Código expirado. Solicita uno nuevo." : "Code expired. Please request a new one.",
+      noCode: lang === "PT" ? "Nenhum código de email encontrado. Solicite um novo." : lang === "ES" ? "No se encontró código de email. Solicita uno nuevo." : "No email code found. Please request a new one.",
       invalid: lang === "PT" ? "Código incorreto." : lang === "ES" ? "Código incorrecto." : "Incorrect code.",
       alreadyVerified: lang === "PT" ? "Telefone já verificado." : lang === "ES" ? "Teléfono ya verificado." : "Phone already verified.",
     };
 
     // Check based on verification method
     if (verifyMethod === "email") {
-      // Verify email OTP
+      // No email OTP was ever issued — distinct from expired
+      if (!user.emailOtpCode) {
+        throw new AppError(otpMsg.noCode, 400, "OTP_NOT_FOUND");
+      }
       if (isOTPExpired(user.emailOtpExpiresAt)) {
         throw new AppError(otpMsg.expired, 400, "OTP_EXPIRED");
       }
-      if (user.emailOtpCode?.trim() !== cleanOtpCode) {
+      if (user.emailOtpCode.trim() !== cleanOtpCode) {
         throw new AppError(otpMsg.invalid, 400, "INVALID_OTP");
       }
 
