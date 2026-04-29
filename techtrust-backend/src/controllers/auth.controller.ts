@@ -301,39 +301,47 @@ export const signup = async (req: Request, res: Response) => {
         }
 
         let otpSent = false;
-        let otpMethod: "sms" | "email" = "sms";
+        let otpMethod: "sms" | "email" = userPreferredMethod;
 
-        try {
-          await issueSmsOTP(
-            existingEmail.id,
-            existingEmail.phone,
-            existingEmail.language,
-          );
-          otpSent = true;
-        } catch (smsError: any) {
-          logger.error("Erro ao reenviar OTP via SMS:", smsError.message);
+        if (userPreferredMethod === "email") {
           try {
             const otpCode = generateOTP();
             const otpExpiresAt = getOTPExpiration();
             await prisma.user.update({
               where: { id: existingEmail.id },
-              data: {
-                emailOtpCode: otpCode,
-                emailOtpExpiresAt: otpExpiresAt,
-              },
+              data: { emailOtpCode: otpCode, emailOtpExpiresAt: otpExpiresAt },
             });
-            await sendOTPEmail(
-              existingEmail.email,
-              otpCode,
-              existingEmail.language,
-            );
+            await sendOTPEmail(existingEmail.email, otpCode, existingEmail.language);
             otpSent = true;
-            otpMethod = "email";
           } catch (emailError: any) {
-            logger.error(
-              "Erro ao enviar OTP via email (fallback):",
-              emailError.message,
-            );
+            logger.error("Erro ao reenviar OTP via email:", emailError.message);
+            try {
+              await issueSmsOTP(existingEmail.id, existingEmail.phone, existingEmail.language);
+              otpSent = true;
+              otpMethod = "sms";
+            } catch (smsError: any) {
+              logger.error("Erro ao reenviar OTP via SMS (fallback):", smsError.message);
+            }
+          }
+        } else {
+          try {
+            await issueSmsOTP(existingEmail.id, existingEmail.phone, existingEmail.language);
+            otpSent = true;
+          } catch (smsError: any) {
+            logger.error("Erro ao reenviar OTP via SMS:", smsError.message);
+            try {
+              const otpCode = generateOTP();
+              const otpExpiresAt = getOTPExpiration();
+              await prisma.user.update({
+                where: { id: existingEmail.id },
+                data: { emailOtpCode: otpCode, emailOtpExpiresAt: otpExpiresAt },
+              });
+              await sendOTPEmail(existingEmail.email, otpCode, existingEmail.language);
+              otpSent = true;
+              otpMethod = "email";
+            } catch (emailError: any) {
+              logger.error("Erro ao enviar OTP via email (fallback):", emailError.message);
+            }
           }
         }
 
@@ -341,7 +349,7 @@ export const signup = async (req: Request, res: Response) => {
           success: true,
           message: otpSent
             ? otpMethod === "email"
-              ? "Código reenviado por email (SMS indisponível)!"
+              ? "Código reenviado por email!"
               : "Código de verificação reenviado!"
             : "Conta encontrada. Use 'Reenviar código' para receber o OTP.",
           data: {
@@ -457,35 +465,47 @@ export const signup = async (req: Request, res: Response) => {
         }
 
         let otpSent = false;
-        let otpMethod: "sms" | "email" = "sms";
+        let otpMethod: "sms" | "email" = userPreferredMethod;
 
-        try {
-          await issueSmsOTP(existingPhone.id, phone, existingPhone.language);
-          otpSent = true;
-        } catch (smsError: any) {
-          logger.error("Erro ao reenviar OTP via SMS:", smsError.message);
+        if (userPreferredMethod === "email") {
           try {
             const otpCode = generateOTP();
             const otpExpiresAt = getOTPExpiration();
             await prisma.user.update({
               where: { id: existingPhone.id },
-              data: {
-                emailOtpCode: otpCode,
-                emailOtpExpiresAt: otpExpiresAt,
-              },
+              data: { emailOtpCode: otpCode, emailOtpExpiresAt: otpExpiresAt },
             });
-            await sendOTPEmail(
-              existingPhone.email,
-              otpCode,
-              existingPhone.language,
-            );
+            await sendOTPEmail(existingPhone.email, otpCode, existingPhone.language);
             otpSent = true;
-            otpMethod = "email";
           } catch (emailError: any) {
-            logger.error(
-              "Erro ao enviar OTP via email (fallback):",
-              emailError.message,
-            );
+            logger.error("Erro ao reenviar OTP via email:", emailError.message);
+            try {
+              await issueSmsOTP(existingPhone.id, phone, existingPhone.language);
+              otpSent = true;
+              otpMethod = "sms";
+            } catch (smsError: any) {
+              logger.error("Erro ao reenviar OTP via SMS (fallback):", smsError.message);
+            }
+          }
+        } else {
+          try {
+            await issueSmsOTP(existingPhone.id, phone, existingPhone.language);
+            otpSent = true;
+          } catch (smsError: any) {
+            logger.error("Erro ao reenviar OTP via SMS:", smsError.message);
+            try {
+              const otpCode = generateOTP();
+              const otpExpiresAt = getOTPExpiration();
+              await prisma.user.update({
+                where: { id: existingPhone.id },
+                data: { emailOtpCode: otpCode, emailOtpExpiresAt: otpExpiresAt },
+              });
+              await sendOTPEmail(existingPhone.email, otpCode, existingPhone.language);
+              otpSent = true;
+              otpMethod = "email";
+            } catch (emailError: any) {
+              logger.error("Erro ao enviar OTP via email (fallback):", emailError.message);
+            }
           }
         }
 
@@ -493,7 +513,7 @@ export const signup = async (req: Request, res: Response) => {
           success: true,
           message: otpSent
             ? otpMethod === "email"
-              ? "Código reenviado por email (SMS indisponível)!"
+              ? "Código reenviado por email!"
               : "Código de verificação reenviado!"
             : "Conta encontrada. Use 'Reenviar código' para receber o OTP.",
           data: {
