@@ -1004,19 +1004,16 @@ export default function SignupScreen({ navigation, route }: any) {
                     />
                     {addrResults.length > 0 && (
                       <View style={{
-                        position: "absolute",
-                        top: 58,
-                        left: 0,
-                        right: 0,
+                        marginTop: 4,
                         backgroundColor: "#fff",
                         borderRadius: 8,
                         borderWidth: 1,
                         borderColor: "#e5e7eb",
-                        zIndex: 999,
                         shadowColor: "#000",
                         shadowOpacity: 0.08,
                         shadowRadius: 8,
                         elevation: 4,
+                        marginBottom: 4,
                       }}>
                         {addrResults.map((r) => (
                           <TouchableOpacity
@@ -1510,19 +1507,16 @@ export default function SignupScreen({ navigation, route }: any) {
                     />
                     {addrResults.length > 0 && (
                       <View style={{
-                        position: "absolute",
-                        top: 58,
-                        left: 0,
-                        right: 0,
+                        marginTop: 4,
                         backgroundColor: "#fff",
                         borderRadius: 8,
                         borderWidth: 1,
                         borderColor: "#e5e7eb",
-                        zIndex: 999,
                         shadowColor: "#000",
                         shadowOpacity: 0.08,
                         shadowRadius: 8,
                         elevation: 4,
+                        marginBottom: 4,
                       }}>
                         {addrResults.map((r) => (
                           <TouchableOpacity
