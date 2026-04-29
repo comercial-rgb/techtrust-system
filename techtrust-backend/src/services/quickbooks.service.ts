@@ -425,7 +425,7 @@ export async function syncCapturedPaymentToQuickBooks(paymentId: string): Promis
   return createSalesReceipt({
     paymentNumber: payment.paymentNumber,
     customerName: payment.customer?.fullName || "TechTrust Customer",
-    customerEmail: payment.customer?.email || "customer@techtrust.app",
+    customerEmail: payment.customer?.email || "customer@techtrustautosolutions.com",
     transactionDate: txnDate,
     partsAmount: Number(quote?.partsCost || 0),
     laborAmount: Number(quote?.laborCost || 0),
