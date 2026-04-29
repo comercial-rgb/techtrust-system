@@ -143,7 +143,7 @@ export const sendOTPEmail = async (
     EN: {
       subject: "Your TechTrust Verification Code",
       title: "Account Verification",
-      intro: "Use the code below to verify your account. It expires in 10 minutes.",
+      intro: "Use the code below to verify your account. It expires in 30 minutes.",
       label: "Your verification code",
       note: "If you didn't request this code, you can safely ignore this email.",
       security: "For your security, never share this code with anyone.",
@@ -151,7 +151,7 @@ export const sendOTPEmail = async (
     PT: {
       subject: "Seu Código de Verificação TechTrust",
       title: "Verificação de Conta",
-      intro: "Use o código abaixo para verificar sua conta. Ele expira em 10 minutos.",
+      intro: "Use o código abaixo para verificar sua conta. Ele expira em 30 minutos.",
       label: "Seu código de verificação",
       note: "Se você não solicitou este código, pode ignorar este e-mail com segurança.",
       security: "Por sua segurança, nunca compartilhe este código com ninguém.",
@@ -159,7 +159,7 @@ export const sendOTPEmail = async (
     ES: {
       subject: "Tu Código de Verificación TechTrust",
       title: "Verificación de Cuenta",
-      intro: "Usa el código a continuación para verificar tu cuenta. Expira en 10 minutos.",
+      intro: "Usa el código a continuación para verificar tu cuenta. Expira en 30 minutos.",
       label: "Tu código de verificación",
       note: "Si no solicitaste este código, puedes ignorar este correo.",
       security: "Por tu seguridad, nunca compartas este código con nadie.",

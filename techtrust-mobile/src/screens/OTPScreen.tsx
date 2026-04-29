@@ -185,10 +185,15 @@ export default function OTPScreen({ route, navigation }: any) {
       success(authText?.verificationComplete || "Verification complete!");
     } catch (err: any) {
       setHasError(true);
+      const isExpired = err?.code === "OTP_EXPIRED";
       error(err.message || authText?.invalidCode || "Invalid code");
       setTimeout(() => setHasError(false), 500);
       setOtp(["", "", "", "", "", ""]);
       inputRefs.current[0]?.focus();
+      if (isExpired) {
+        setResendTimer(0);
+        setCanResend(true);
+      }
     } finally {
       setLoading(false);
     }

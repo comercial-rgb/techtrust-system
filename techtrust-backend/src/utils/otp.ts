@@ -13,11 +13,11 @@ export const generateOTP = (): string => {
 };
 
 /**
- * Calcula tempo de expiração do OTP (10 minutos)
+ * Calcula tempo de expiração do OTP (30 minutos)
  */
 export const getOTPExpiration = (): Date => {
   const now = new Date();
-  now.setMinutes(now.getMinutes() + 10);
+  now.setMinutes(now.getMinutes() + 30);
   return now;
 };
 

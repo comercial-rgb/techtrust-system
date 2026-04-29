@@ -458,8 +458,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const message =
         error?.response?.data?.message ||
         error?.message ||
-        "Erro ao verificar código";
-      throw new Error(message);
+        "Error verifying code";
+      const code = error?.response?.data?.code || "VERIFY_ERROR";
+      const err = new Error(message) as Error & { code?: string };
+      err.code = code;
+      throw err;
     }
   };
 

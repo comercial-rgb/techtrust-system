@@ -105,6 +105,15 @@ async function insertProviderProfileRaw(p: {
 /** Verifica se Twilio Verify está habilitado */
 const isVerifyEnabled = () => !!process.env.TWILIO_VERIFY_SERVICE_SID;
 
+// Brazilian landline: +55 + 2-digit area code + 8-digit number (no leading 9)
+const isBrLandline = (phone: string): boolean => {
+  const digits = phone.replace(/\D/g, "");
+  // +55 XX XXXXXXXX  → 12 digits total; mobile has 9 digits after area code (13 digits)
+  if (!digits.startsWith("55")) return false;
+  const local = digits.slice(4); // remove country+area code (55 + 2-digit DDD)
+  return local.length === 8; // exactly 8 digits = landline
+};
+
 const issueSmsOTP = async (
   userId: string,
   phone: string | null | undefined,
@@ -112,6 +121,10 @@ const issueSmsOTP = async (
 ): Promise<void> => {
   if (!phone) {
     throw new Error("Telefone não informado para envio de OTP");
+  }
+
+  if (isBrLandline(phone)) {
+    throw new Error("Landline number detected — SMS not supported");
   }
 
   const otpCode = generateOTP();
@@ -1299,7 +1312,7 @@ export const verifyOTP = async (req: Request, res: Response) => {
 
     // Validar formato do OTP
     if (!validateOTPFormat(cleanOtpCode)) {
-      throw new AppError("Código OTP inválido", 400, "INVALID_OTP_FORMAT");
+      throw new AppError("Invalid OTP format", 400, "INVALID_OTP_FORMAT");
     }
 
     // Buscar usuário
@@ -1308,21 +1321,24 @@ export const verifyOTP = async (req: Request, res: Response) => {
     });
 
     if (!user) {
-      throw new AppError("Usuário não encontrado", 404, "USER_NOT_FOUND");
+      throw new AppError("User not found", 404, "USER_NOT_FOUND");
     }
+
+    const lang = (user.language || "EN").toUpperCase();
+    const otpMsg = {
+      expired: lang === "PT" ? "Código expirado. Solicite um novo." : lang === "ES" ? "Código expirado. Solicita uno nuevo." : "Code expired. Please request a new one.",
+      invalid: lang === "PT" ? "Código incorreto." : lang === "ES" ? "Código incorrecto." : "Incorrect code.",
+      alreadyVerified: lang === "PT" ? "Telefone já verificado." : lang === "ES" ? "Teléfono ya verificado." : "Phone already verified.",
+    };
 
     // Check based on verification method
     if (verifyMethod === "email") {
       // Verify email OTP
       if (isOTPExpired(user.emailOtpExpiresAt)) {
-        throw new AppError(
-          "Código expirado. Solicite um novo.",
-          400,
-          "OTP_EXPIRED",
-        );
+        throw new AppError(otpMsg.expired, 400, "OTP_EXPIRED");
       }
       if (user.emailOtpCode?.trim() !== cleanOtpCode) {
-        throw new AppError("Código incorreto", 400, "INVALID_OTP");
+        throw new AppError(otpMsg.invalid, 400, "INVALID_OTP");
       }
 
       const updatedUser = await markEmailVerified(userId);
@@ -1382,7 +1398,7 @@ export const verifyOTP = async (req: Request, res: Response) => {
 
     // SMS OTP verification (default)
     if (user.phoneVerified) {
-      throw new AppError("Telefone já verificado", 400, "ALREADY_VERIFIED");
+      throw new AppError(otpMsg.alreadyVerified, 400, "ALREADY_VERIFIED");
     }
 
     const hasLocalSmsCode = !!user.otpCode;
@@ -1390,11 +1406,7 @@ export const verifyOTP = async (req: Request, res: Response) => {
 
     if (hasLocalSmsCode) {
       if (isOTPExpired(user.otpExpiresAt)) {
-        throw new AppError(
-          "Código expirado. Solicite um novo.",
-          400,
-          "OTP_EXPIRED",
-        );
+        throw new AppError(otpMsg.expired, 400, "OTP_EXPIRED");
       }
       smsApprovedByLocalCode = user.otpCode?.trim() === cleanOtpCode;
     }
@@ -1406,16 +1418,12 @@ export const verifyOTP = async (req: Request, res: Response) => {
       const verifyResult = await checkVerifyOTP(user.phone || "", cleanOtpCode);
       if (!verifyResult.valid) {
         if (verifyResult.status === "expired") {
-          throw new AppError(
-            "Código expirado. Solicite um novo.",
-            400,
-            "OTP_EXPIRED",
-          );
+          throw new AppError(otpMsg.expired, 400, "OTP_EXPIRED");
         }
-        throw new AppError("Código incorreto", 400, "INVALID_OTP");
+        throw new AppError(otpMsg.invalid, 400, "INVALID_OTP");
       }
     } else if (!smsApprovedByLocalCode) {
-      throw new AppError("Código incorreto", 400, "INVALID_OTP");
+      throw new AppError(otpMsg.invalid, 400, "INVALID_OTP");
     }
 
     const updatedUser = await markPhoneVerified(userId);
@@ -1515,7 +1523,7 @@ export const resendOTP = async (req: Request, res: Response) => {
         return res.json({
           success: true,
           message: "Novo código enviado por email",
-          data: { method: "email", otpSentTo: user.email, expiresIn: 600 },
+          data: { method: "email", otpSentTo: user.email, expiresIn: 1800 },
         });
       } catch (emailErr: any) {
         logger.error(`Resend failed for ${user.email}:`, emailErr.message);
@@ -1523,7 +1531,7 @@ export const resendOTP = async (req: Request, res: Response) => {
         return res.json({
           success: true,
           message: "Código gerado. Verifique sua caixa de spam ou tente novamente em alguns minutos.",
-          data: { method: "email", otpSentTo: user.email, expiresIn: 600, deliveryWarning: true },
+          data: { method: "email", otpSentTo: user.email, expiresIn: 1800, deliveryWarning: true },
         });
       }
     }
@@ -1555,7 +1563,7 @@ export const resendOTP = async (req: Request, res: Response) => {
         return res.json({
           success: false,
           message: "SMS indisponível para este número. Verifique sua caixa de email (incluindo spam) ou cadastre um número de celular válido.",
-          data: { method: "email", otpSentTo: user.email, expiresIn: 600, deliveryWarning: true },
+          data: { method: "email", otpSentTo: user.email, expiresIn: 1800, deliveryWarning: true },
         });
       }
     }
@@ -1568,7 +1576,7 @@ export const resendOTP = async (req: Request, res: Response) => {
       data: {
         method: actualMethod,
         otpSentTo: actualMethod === "email" ? user.email : user.phone,
-        expiresIn: 600,
+        expiresIn: 1800,
       },
     });
   } catch (error) {
