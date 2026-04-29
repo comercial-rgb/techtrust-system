@@ -31,8 +31,76 @@ import {
   sendPasswordResetEmail,
   sendWelcomeEmail,
 } from "../services/email.service";
+import { randomUUID } from "crypto";
 import { logger } from "../config/logger";
 import { SUBSCRIPTION_PLANS } from "../config/businessRules";
+
+/**
+ * Insere ProviderProfile via SQL direto — imune à versão do Prisma Client.
+ * O Prisma Client gerado no Render pode ser de um schema antigo e rejeitar
+ * campos novos (bankAccountType, cityBusinessTaxReceiptNumber, etc.) com
+ * PrismaClientValidationError antes de qualquer query chegar ao banco.
+ */
+async function insertProviderProfileRaw(p: {
+  userId: string;
+  businessName: string;
+  businessType: string | null;
+  businessTypeCat: string;
+  legalName: string | null;
+  ein: string | null;
+  sunbizDocumentNumber: string | null;
+  businessIdentityStatus: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  servicesOffered: unknown[];
+  vehicleTypesServed: unknown[];
+  sellsParts: boolean;
+  payoutMethod: string;
+  zelleEmail: string | null;
+  zellePhone: string | null;
+  bankTransferLabel: string | null;
+  bankAccountType: string | null;
+  bankAccountNumber: string | null;
+  bankRoutingNumber: string | null;
+  cityBusinessTaxReceiptNumber: string | null;
+  countyBusinessTaxReceiptNumber: string | null;
+  businessTaxReceiptStatus: string;
+  marketplaceFacilitatorTaxAcknowledged: boolean;
+  insuranceDisclosureAcceptedAt: Date | null;
+}): Promise<void> {
+  const id = randomUUID();
+  const svc = JSON.stringify(p.servicesOffered ?? []);
+  const veh = JSON.stringify(p.vehicleTypesServed ?? []);
+  await prisma.$executeRaw`
+    INSERT INTO "provider_profiles" (
+      "id", "userId", "businessName", "businessType", "businessTypeCat",
+      "legalName", "ein", "sunbizDocumentNumber", "businessIdentityStatus",
+      "address", "city", "state", "zipCode",
+      "servicesOffered", "vehicleTypesServed", "sellsParts", "specialties",
+      "payoutMethod", "zelleEmail", "zellePhone", "bankTransferLabel",
+      "bankAccountType", "bankAccountNumber", "bankRoutingNumber",
+      "cityBusinessTaxReceiptNumber", "countyBusinessTaxReceiptNumber",
+      "businessTaxReceiptStatus", "marketplaceFacilitatorTaxAcknowledged",
+      "insuranceDisclosureAcceptedAt",
+      "createdAt", "updatedAt"
+    ) VALUES (
+      ${id}, ${p.userId}, ${p.businessName}, ${p.businessType},
+      ${p.businessTypeCat}::"BusinessType",
+      ${p.legalName}, ${p.ein}, ${p.sunbizDocumentNumber}, ${p.businessIdentityStatus},
+      ${p.address}, ${p.city}, ${p.state}, ${p.zipCode},
+      ${svc}::jsonb, ${veh}::jsonb, ${p.sellsParts}, '[]'::jsonb,
+      ${p.payoutMethod}, ${p.zelleEmail}, ${p.zellePhone}, ${p.bankTransferLabel},
+      ${p.bankAccountType}, ${p.bankAccountNumber}, ${p.bankRoutingNumber},
+      ${p.cityBusinessTaxReceiptNumber}, ${p.countyBusinessTaxReceiptNumber},
+      ${p.businessTaxReceiptStatus}, ${p.marketplaceFacilitatorTaxAcknowledged},
+      ${p.insuranceDisclosureAcceptedAt},
+      NOW(), NOW()
+    )
+    ON CONFLICT ("userId") DO NOTHING
+  `;
+}
 
 /** Verifica se Twilio Verify está habilitado */
 const isVerifyEnabled = () => !!process.env.TWILIO_VERIFY_SERVICE_SID;
@@ -236,64 +304,41 @@ export const signup = async (req: Request, res: Response) => {
           );
         }
 
-        // Create ProviderProfile if signing up as PROVIDER and it doesn't exist yet
-        // Usa $queryRaw para evitar PrismaClientValidationError em clientes desatualizados
+        // Cria ProviderProfile se ainda não existe — SQL direto (imune ao Prisma Client stale)
         if (userRole === "PROVIDER" && businessName) {
-          const rows = await prisma.$queryRaw<Array<{ id: string }>>`
-            SELECT id FROM "provider_profiles" WHERE "userId" = ${existingEmail.id} LIMIT 1
-          `;
-          if (rows.length === 0) {
-            try {
-              await prisma.providerProfile.create({
-                data: {
-                  userId: existingEmail.id,
-                  businessName,
-                  businessType: marketplaceType || null,
-                  ...(marketplaceBusinessTypeCat && {
-                    businessTypeCat: marketplaceBusinessTypeCat,
-                  }),
-                  legalName: legalName || null,
-                  ein: ein || null,
-                  sunbizDocumentNumber: sunbizDocumentNumber || null,
-                  businessIdentityStatus:
-                    legalName || ein || sunbizDocumentNumber
-                      ? "PROVIDED_UNVERIFIED"
-                      : "NOT_PROVIDED",
-                  address: businessAddress || "",
-                  city: businessCity || "",
-                  state: businessState || "FL",
-                  zipCode: businessZipCode || "",
-                  servicesOffered: servicesOffered || [],
-                  vehicleTypesServed: vehicleTypesServed || [],
-                  sellsParts: sellsParts || false,
-                  specialties: [],
-                  payoutMethod: payoutMethod || "MANUAL",
-                  zelleEmail: zelleEmail || null,
-                  zellePhone: zellePhone || null,
-                  bankTransferLabel: bankTransferLabel || null,
-                  bankAccountType: bankAccountType || null,
-                  bankAccountNumber: bankAccountNumber || null,
-                  bankRoutingNumber: bankRoutingNumber || null,
-                  cityBusinessTaxReceiptNumber: cityBusinessTaxReceiptNumber || null,
-                  countyBusinessTaxReceiptNumber: countyBusinessTaxReceiptNumber || null,
-                  businessTaxReceiptStatus:
-                    cityBusinessTaxReceiptNumber || countyBusinessTaxReceiptNumber
-                      ? "PROVIDED_UNVERIFIED"
-                      : "NOT_PROVIDED",
-                  marketplaceFacilitatorTaxAcknowledged:
-                    marketplaceFacilitatorTaxAcknowledged !== false,
-                  insuranceDisclosureAcceptedAt: insuranceDisclosureAccepted ? new Date() : null,
-                },
-              });
-              logger.info(`ProviderProfile criado para usuário existente: ${email}`);
-            } catch (createErr: any) {
-              if (createErr?.code === "P2002") {
-                logger.info(`ProviderProfile já existia (race condition): ${email}`);
-              } else {
-                throw createErr;
-              }
-            }
-          }
+          await insertProviderProfileRaw({
+            userId: existingEmail.id,
+            businessName,
+            businessType: marketplaceType || null,
+            businessTypeCat: marketplaceBusinessTypeCat || "REPAIR_SHOP",
+            legalName: legalName || null,
+            ein: ein || null,
+            sunbizDocumentNumber: sunbizDocumentNumber || null,
+            businessIdentityStatus:
+              legalName || ein || sunbizDocumentNumber ? "PROVIDED_UNVERIFIED" : "NOT_PROVIDED",
+            address: businessAddress || "",
+            city: businessCity || "",
+            state: businessState || "FL",
+            zipCode: businessZipCode || "",
+            servicesOffered: servicesOffered || [],
+            vehicleTypesServed: vehicleTypesServed || [],
+            sellsParts: sellsParts || false,
+            payoutMethod: payoutMethod || "MANUAL",
+            zelleEmail: zelleEmail || null,
+            zellePhone: zellePhone || null,
+            bankTransferLabel: bankTransferLabel || null,
+            bankAccountType: bankAccountType || null,
+            bankAccountNumber: bankAccountNumber || null,
+            bankRoutingNumber: bankRoutingNumber || null,
+            cityBusinessTaxReceiptNumber: cityBusinessTaxReceiptNumber || null,
+            countyBusinessTaxReceiptNumber: countyBusinessTaxReceiptNumber || null,
+            businessTaxReceiptStatus:
+              cityBusinessTaxReceiptNumber || countyBusinessTaxReceiptNumber
+                ? "PROVIDED_UNVERIFIED" : "NOT_PROVIDED",
+            marketplaceFacilitatorTaxAcknowledged: marketplaceFacilitatorTaxAcknowledged !== false,
+            insuranceDisclosureAcceptedAt: insuranceDisclosureAccepted ? new Date() : null,
+          });
+          logger.info(`ProviderProfile upserted (email path): ${email}`);
         }
 
         if (userRole === "CLIENT") {
@@ -400,64 +445,41 @@ export const signup = async (req: Request, res: Response) => {
           );
         }
 
-        // Create ProviderProfile if signing up as PROVIDER and it doesn't exist yet
-        // Usa $queryRaw para evitar PrismaClientValidationError em clientes desatualizados
+        // Cria ProviderProfile se ainda não existe — SQL direto (imune ao Prisma Client stale)
         if (userRole === "PROVIDER" && businessName) {
-          const rows = await prisma.$queryRaw<Array<{ id: string }>>`
-            SELECT id FROM "provider_profiles" WHERE "userId" = ${existingPhone.id} LIMIT 1
-          `;
-          if (rows.length === 0) {
-            try {
-              await prisma.providerProfile.create({
-                data: {
-                  userId: existingPhone.id,
-                  businessName,
-                  businessType: marketplaceType || null,
-                  ...(marketplaceBusinessTypeCat && {
-                    businessTypeCat: marketplaceBusinessTypeCat,
-                  }),
-                  legalName: legalName || null,
-                  ein: ein || null,
-                  sunbizDocumentNumber: sunbizDocumentNumber || null,
-                  businessIdentityStatus:
-                    legalName || ein || sunbizDocumentNumber
-                      ? "PROVIDED_UNVERIFIED"
-                      : "NOT_PROVIDED",
-                  address: businessAddress || "",
-                  city: businessCity || "",
-                  state: businessState || "FL",
-                  zipCode: businessZipCode || "",
-                  servicesOffered: servicesOffered || [],
-                  vehicleTypesServed: vehicleTypesServed || [],
-                  sellsParts: sellsParts || false,
-                  specialties: [],
-                  payoutMethod: payoutMethod || "MANUAL",
-                  zelleEmail: zelleEmail || null,
-                  zellePhone: zellePhone || null,
-                  bankTransferLabel: bankTransferLabel || null,
-                  bankAccountType: bankAccountType || null,
-                  bankAccountNumber: bankAccountNumber || null,
-                  bankRoutingNumber: bankRoutingNumber || null,
-                  cityBusinessTaxReceiptNumber: cityBusinessTaxReceiptNumber || null,
-                  countyBusinessTaxReceiptNumber: countyBusinessTaxReceiptNumber || null,
-                  businessTaxReceiptStatus:
-                    cityBusinessTaxReceiptNumber || countyBusinessTaxReceiptNumber
-                      ? "PROVIDED_UNVERIFIED"
-                      : "NOT_PROVIDED",
-                  marketplaceFacilitatorTaxAcknowledged:
-                    marketplaceFacilitatorTaxAcknowledged !== false,
-                  insuranceDisclosureAcceptedAt: insuranceDisclosureAccepted ? new Date() : null,
-                },
-              });
-              logger.info(`ProviderProfile criado para phone existente: ${phone}`);
-            } catch (createErr: any) {
-              if (createErr?.code === "P2002") {
-                logger.info(`ProviderProfile já existia (race condition): ${phone}`);
-              } else {
-                throw createErr;
-              }
-            }
-          }
+          await insertProviderProfileRaw({
+            userId: existingPhone.id,
+            businessName,
+            businessType: marketplaceType || null,
+            businessTypeCat: marketplaceBusinessTypeCat || "REPAIR_SHOP",
+            legalName: legalName || null,
+            ein: ein || null,
+            sunbizDocumentNumber: sunbizDocumentNumber || null,
+            businessIdentityStatus:
+              legalName || ein || sunbizDocumentNumber ? "PROVIDED_UNVERIFIED" : "NOT_PROVIDED",
+            address: businessAddress || "",
+            city: businessCity || "",
+            state: businessState || "FL",
+            zipCode: businessZipCode || "",
+            servicesOffered: servicesOffered || [],
+            vehicleTypesServed: vehicleTypesServed || [],
+            sellsParts: sellsParts || false,
+            payoutMethod: payoutMethod || "MANUAL",
+            zelleEmail: zelleEmail || null,
+            zellePhone: zellePhone || null,
+            bankTransferLabel: bankTransferLabel || null,
+            bankAccountType: bankAccountType || null,
+            bankAccountNumber: bankAccountNumber || null,
+            bankRoutingNumber: bankRoutingNumber || null,
+            cityBusinessTaxReceiptNumber: cityBusinessTaxReceiptNumber || null,
+            countyBusinessTaxReceiptNumber: countyBusinessTaxReceiptNumber || null,
+            businessTaxReceiptStatus:
+              cityBusinessTaxReceiptNumber || countyBusinessTaxReceiptNumber
+                ? "PROVIDED_UNVERIFIED" : "NOT_PROVIDED",
+            marketplaceFacilitatorTaxAcknowledged: marketplaceFacilitatorTaxAcknowledged !== false,
+            insuranceDisclosureAcceptedAt: insuranceDisclosureAccepted ? new Date() : null,
+          });
+          logger.info(`ProviderProfile upserted (phone path): ${phone}`);
         }
 
         if (userRole === "CLIENT") {
@@ -561,49 +583,41 @@ export const signup = async (req: Request, res: Response) => {
       },
     });
 
-    // Se for provider, criar ProviderProfile
+    // Cria ProviderProfile — SQL direto (imune ao Prisma Client stale do Render)
     if (userRole === "PROVIDER" && businessName) {
-      await prisma.providerProfile.create({
-        data: {
-          userId: user.id,
-          businessName,
-          businessType: marketplaceType || null,
-          ...(marketplaceBusinessTypeCat && {
-            businessTypeCat: marketplaceBusinessTypeCat,
-          }),
-          legalName: legalName || null,
-          ein: ein || null,
-          sunbizDocumentNumber: sunbizDocumentNumber || null,
-          businessIdentityStatus:
-            legalName || ein || sunbizDocumentNumber
-              ? "PROVIDED_UNVERIFIED"
-              : "NOT_PROVIDED",
-          address: businessAddress || "",
-          city: businessCity || "",
-          state: businessState || "FL",
-          zipCode: businessZipCode || "",
-          servicesOffered: servicesOffered || [],
-          vehicleTypesServed: vehicleTypesServed || [],
-          sellsParts: sellsParts || false,
-          specialties: [],
-          payoutMethod: payoutMethod || "MANUAL",
-          zelleEmail: zelleEmail || null,
-          zellePhone: zellePhone || null,
-          bankTransferLabel: bankTransferLabel || null,
-          bankAccountType: bankAccountType || null,
-          bankAccountNumber: bankAccountNumber || null,
-          bankRoutingNumber: bankRoutingNumber || null,
-          cityBusinessTaxReceiptNumber: cityBusinessTaxReceiptNumber || null,
-          countyBusinessTaxReceiptNumber: countyBusinessTaxReceiptNumber || null,
-          businessTaxReceiptStatus:
-            cityBusinessTaxReceiptNumber || countyBusinessTaxReceiptNumber
-              ? "PROVIDED_UNVERIFIED"
-              : "NOT_PROVIDED",
-          marketplaceFacilitatorTaxAcknowledged:
-            marketplaceFacilitatorTaxAcknowledged !== false,
-          insuranceDisclosureAcceptedAt: insuranceDisclosureAccepted ? new Date() : null,
-        },
+      await insertProviderProfileRaw({
+        userId: user.id,
+        businessName,
+        businessType: marketplaceType || null,
+        businessTypeCat: marketplaceBusinessTypeCat || "REPAIR_SHOP",
+        legalName: legalName || null,
+        ein: ein || null,
+        sunbizDocumentNumber: sunbizDocumentNumber || null,
+        businessIdentityStatus:
+          legalName || ein || sunbizDocumentNumber ? "PROVIDED_UNVERIFIED" : "NOT_PROVIDED",
+        address: businessAddress || "",
+        city: businessCity || "",
+        state: businessState || "FL",
+        zipCode: businessZipCode || "",
+        servicesOffered: servicesOffered || [],
+        vehicleTypesServed: vehicleTypesServed || [],
+        sellsParts: sellsParts || false,
+        payoutMethod: payoutMethod || "MANUAL",
+        zelleEmail: zelleEmail || null,
+        zellePhone: zellePhone || null,
+        bankTransferLabel: bankTransferLabel || null,
+        bankAccountType: bankAccountType || null,
+        bankAccountNumber: bankAccountNumber || null,
+        bankRoutingNumber: bankRoutingNumber || null,
+        cityBusinessTaxReceiptNumber: cityBusinessTaxReceiptNumber || null,
+        countyBusinessTaxReceiptNumber: countyBusinessTaxReceiptNumber || null,
+        businessTaxReceiptStatus:
+          cityBusinessTaxReceiptNumber || countyBusinessTaxReceiptNumber
+            ? "PROVIDED_UNVERIFIED" : "NOT_PROVIDED",
+        marketplaceFacilitatorTaxAcknowledged: marketplaceFacilitatorTaxAcknowledged !== false,
+        insuranceDisclosureAcceptedAt: insuranceDisclosureAccepted ? new Date() : null,
       });
+      logger.info(`ProviderProfile criado (new user path): ${email}`);
     }
 
     // Criar assinatura local com o plano escolhido; checkout captura o cartão após OTP.

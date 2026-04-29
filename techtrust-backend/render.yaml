@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: techtrust-backend
+    env: node
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
