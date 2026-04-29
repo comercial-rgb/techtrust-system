@@ -8,7 +8,7 @@ import { Resend } from "resend";
 import { logger } from "../config/logger";
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const EMAIL_FROM = process.env.EMAIL_FROM || "TechTrust <noreply@techtrust.app>";
+const EMAIL_FROM = process.env.EMAIL_FROM || "TechTrust <noreply@techtrustautosolutions.com>";
 const MOCK_MODE = !RESEND_API_KEY || process.env.MOCK_EMAIL === "true";
 
 let resendClient: Resend | null = null;
