@@ -93,7 +93,7 @@ export const CITIES_BY_STATE: Record<string, string[]> = {
     "Palm Beach Gardens", "Palm Coast", "Palm Harbor", "Palmetto Bay",
     "Panama City", "Pembroke Pines", "Pensacola", "Pinecrest",
     "Pinellas Park", "Plant City", "Plantation", "Pompano Beach",
-    "Port Charlotte", "Port Orange", "Port St. Lucie", "Riviera Beach",
+    "Port Charlotte", "Port Orange", "Port Saint Lucie", "Riviera Beach",
     "Rockledge", "Royal Palm Beach", "Sanford", "Sarasota", "Sebastian",
     "Seminole", "Spring Hill", "St. Augustine", "St. Cloud",
     "St. Petersburg", "Stuart", "Sunny Isles Beach", "Sunrise",

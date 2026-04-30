@@ -628,12 +628,17 @@ export const searchProvidersByLocation = async (
     whereClause.baseLongitude = { not: null };
   }
 
+  // Normalize "St." → "Saint" so "Port St. Lucie" matches "Port Saint Lucie" in DB
+  const normalizeCityInput = (c: string) =>
+    c.replace(/\bSt\.\s*/gi, 'Saint ').trim();
+
   // Filter by state/city at DB level when provided
   if (state) {
     whereClause.state = String(state);
   }
   if (city) {
-    whereClause.city = { equals: String(city), mode: 'insensitive' };
+    const cityStr = normalizeCityInput(String(city));
+    whereClause.city = { equals: cityStr, mode: 'insensitive' };
   }
 
   // Buscar providers ativos
@@ -795,13 +800,16 @@ export const getActiveCities = async (_req: Request, res: Response): Promise<voi
     },
   });
 
+  // Normalize "St." → "Saint" so DB cities match the static city list in the mobile app
+  const normCity = (c: string) => c.replace(/\bSt\.\s*/gi, 'Saint ').trim();
+
   // Build a map of state → Set<city>
   const stateMap: Record<string, Set<string>> = {};
   for (const p of providers) {
     if (!p.state || !p.city) continue;
     const st = p.state.toUpperCase();
     if (!stateMap[st]) stateMap[st] = new Set();
-    stateMap[st].add(p.city);
+    stateMap[st].add(normCity(p.city));
   }
 
   // Convert to plain object
