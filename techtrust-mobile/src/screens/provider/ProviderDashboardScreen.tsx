@@ -226,7 +226,7 @@ export default function ProviderDashboardScreen({ navigation }: any) {
     },
     {
       id: 'services',
-      label: t.provider?.addServices || 'Add your services & pricing',
+      label: t.provider?.addServices || 'Add your services',
       icon: 'toolbox' as const,
       done: Array.isArray(user?.providerProfile?.servicesOffered) && (user.providerProfile.servicesOffered as any[]).length > 0,
       action: () => navigation.navigate('Services'),
@@ -235,7 +235,7 @@ export default function ProviderDashboardScreen({ navigation }: any) {
       id: 'hours',
       label: t.provider?.setHours || 'Set your working hours',
       icon: 'clock-outline' as const,
-      done: !!(user?.providerProfile?.workingHours),
+      done: !!(user?.providerProfile?.businessHours),
       action: () => navigation.navigate('WorkingHours'),
     },
     {

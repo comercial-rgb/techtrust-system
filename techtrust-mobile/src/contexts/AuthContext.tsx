@@ -38,6 +38,10 @@ interface User {
     cpfCnpj?: string;
     fdacsRegistrationNumber?: string;
     marketplaceType?: string;
+    servicesOffered?: string[];
+    businessHours?: any;
+    serviceRadiusKm?: number;
+    businessTypeCat?: string;
   };
 }
 
@@ -174,6 +178,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   fdacsRegistrationNumber:
                     apiUser.providerProfile.fdacsRegistrationNumber,
                   marketplaceType: apiUser.providerProfile.marketplaceType,
+                  servicesOffered: apiUser.providerProfile.servicesOffered,
+                  businessHours: apiUser.providerProfile.businessHours,
+                  serviceRadiusKm: apiUser.providerProfile.serviceRadiusKm,
+                  businessTypeCat: apiUser.providerProfile.businessTypeCat,
                 }
               : undefined,
           };
@@ -255,6 +263,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               cpfCnpj: apiUser.providerProfile.cpfCnpj,
               fdacsRegistrationNumber:
                 apiUser.providerProfile.fdacsRegistrationNumber,
+              servicesOffered: apiUser.providerProfile.servicesOffered,
+              businessHours: apiUser.providerProfile.businessHours,
+              serviceRadiusKm: apiUser.providerProfile.serviceRadiusKm,
+              businessTypeCat: apiUser.providerProfile.businessTypeCat,
             }
           : undefined,
       };
@@ -325,6 +337,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               cpfCnpj: apiUser.providerProfile.cpfCnpj,
               fdacsRegistrationNumber:
                 apiUser.providerProfile.fdacsRegistrationNumber,
+              servicesOffered: apiUser.providerProfile.servicesOffered,
+              businessHours: apiUser.providerProfile.businessHours,
+              serviceRadiusKm: apiUser.providerProfile.serviceRadiusKm,
+              businessTypeCat: apiUser.providerProfile.businessTypeCat,
             }
           : undefined,
       };

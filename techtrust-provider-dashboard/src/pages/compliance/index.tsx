@@ -70,8 +70,9 @@ interface ComplianceSummary {
   complianceItems: ComplianceItem[]
   insurancePolicies: InsurancePolicy[]
   insuranceRequirements?: InsuranceRequirement[]
-  overallStatus: string
-  jurisdiction?: string
+  overallStatus?: string
+  providerPublicStatus?: string
+  jurisdiction?: string | { stateCode?: string; stateName?: string; countyName?: string; isActiveState?: boolean }
 }
 
 // ─── Constants ───
@@ -227,13 +228,17 @@ export default function CompliancePage() {
   // ─── Overall Status ───
   const getOverallStatusInfo = () => {
     if (!summary) return { label: 'Loading...', color: 'text-gray-500', bg: 'bg-gray-100' }
-    switch (summary.overallStatus) {
+    const status = summary.providerPublicStatus || summary.overallStatus || ''
+    switch (status) {
+      case 'VERIFIED':
       case 'FULLY_COMPLIANT':
-        return { label: 'Fully Compliant', color: 'text-green-700', bg: 'bg-green-100' }
+        return { label: 'Verified', color: 'text-green-700', bg: 'bg-green-100' }
+      case 'PENDING':
       case 'PARTIALLY_COMPLIANT':
-        return { label: 'Partially Compliant', color: 'text-yellow-700', bg: 'bg-yellow-100' }
+        return { label: 'Pending Review', color: 'text-yellow-700', bg: 'bg-yellow-100' }
+      case 'RESTRICTED':
       case 'NON_COMPLIANT':
-        return { label: 'Non-Compliant', color: 'text-red-700', bg: 'bg-red-100' }
+        return { label: 'Restricted', color: 'text-red-700', bg: 'bg-red-100' }
       default:
         return { label: 'Pending Review', color: 'text-blue-700', bg: 'bg-blue-100' }
     }
@@ -292,7 +297,13 @@ export default function CompliancePage() {
               </p>
               {summary?.jurisdiction && (
                 <p className="text-xs text-gray-400 mt-0.5">
-                  Jurisdiction: {summary.jurisdiction}
+                  Jurisdiction:{' '}
+                  {typeof summary.jurisdiction === 'string'
+                    ? summary.jurisdiction
+                    : [
+                        summary.jurisdiction.stateName,
+                        summary.jurisdiction.countyName ? `${summary.jurisdiction.countyName} County` : null,
+                      ].filter(Boolean).join(' · ')}
                 </p>
               )}
             </div>

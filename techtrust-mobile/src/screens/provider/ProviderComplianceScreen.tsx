@@ -32,6 +32,28 @@ import {
   Technician,
 } from "../../services/compliance.service";
 
+const SERVICE_TYPE_LABELS: Record<string, string> = {
+  AC_SERVICE: 'A/C Service',
+  OIL_CHANGE: 'Oil Change',
+  BRAKE_SERVICE: 'Brake Service',
+  TIRE_SERVICE: 'Tire Service',
+  BATTERY_SERVICE: 'Battery Service',
+  ENGINE_REPAIR: 'Engine Repair',
+  TRANSMISSION: 'Transmission',
+  ELECTRICAL: 'Electrical',
+  ALIGNMENT: 'Alignment',
+  EXHAUST: 'Exhaust',
+  SUSPENSION: 'Suspension',
+  BODY_WORK: 'Body Work',
+  PAINT: 'Paint',
+  DETAILING: 'Detailing',
+  TOWING: 'Towing',
+  ROADSIDE_ASSIST: 'Roadside Assist',
+  INSPECTION: 'Inspection',
+  DIAGNOSTICS: 'Diagnostics',
+  GENERAL_REPAIR: 'General Repair',
+};
+
 const BUSINESS_TYPE_LABELS: Record<string, string> = {
   AUTO_REPAIR:    'Auto Repair Shop',
   BODY_SHOP:      'Body Shop',
@@ -146,7 +168,8 @@ export default function ProviderComplianceScreen({ navigation }: any) {
     try {
       setLoading(true);
       const result = await upsertComplianceItem({ type });
-      const item = result?.data || result;
+      // API returns { success, data: { item: {...} } } — unwrap correctly
+      const item = result?.data?.item || result?.data || result;
       await fetchData();
       if (item?.id) {
         navigation.navigate("ComplianceItemDetail", { item });
@@ -564,7 +587,7 @@ export default function ProviderComplianceScreen({ navigation }: any) {
                 />
                 <View style={styles.gateInfo}>
                   <Text style={styles.gateService}>
-                    {service.replace(/_/g, " ")}
+                    {SERVICE_TYPE_LABELS[service] || service.replace(/_/g, " ")}
                   </Text>
                   {!gate.allowed && gate.reason && (
                     <Text style={styles.gateReason}>{gate.reason}</Text>
