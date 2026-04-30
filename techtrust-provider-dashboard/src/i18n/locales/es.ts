@@ -147,7 +147,11 @@ const es = {
       reviews: "Reseñas",
       sos: "SOS / Emergencia",
       reports: "Reportes",
+      serviceArea: "Área de Servicio",
+      paymentHistory: "Historial de Pagos",
       compliance: "Cumplimiento",
+      help: "Centro de Ayuda",
+      terms: "Términos y Políticas",
       settings: "Configuración",
     },
     layout: {

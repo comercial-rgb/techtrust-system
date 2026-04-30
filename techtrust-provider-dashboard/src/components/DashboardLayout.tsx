@@ -22,9 +22,12 @@ import {
   Star,
   Shield,
   Receipt,
-  Megaphone,
   AlertTriangle,
   BarChart2,
+  MapPin,
+  History,
+  HelpCircle,
+  ScrollText,
 } from "lucide-react";
 
 interface DashboardLayoutProps {
@@ -33,16 +36,20 @@ interface DashboardLayoutProps {
 }
 
 const menuItems = [
-  { href: "/dashboard", icon: LayoutDashboard, key: "provider.nav.dashboard" },
-  { href: "/pedidos", icon: ClipboardList, key: "provider.nav.requests", badge: true },
-  { href: "/orcamentos", icon: FileText, key: "provider.nav.quotes" },
-  { href: "/faturas", icon: Receipt, key: "provider.nav.invoices" },
-  { href: "/servicos", icon: Briefcase, key: "provider.nav.services" },
-  { href: "/reviews", icon: Star, key: "provider.nav.reviews" },
-  { href: "/sos", icon: AlertTriangle, key: "provider.nav.sos" },
-  { href: "/reports", icon: BarChart2, key: "provider.nav.reports" },
-  { href: "/compliance", icon: Shield, key: "provider.nav.compliance" },
-  { href: "/configuracoes", icon: Settings, key: "provider.nav.settings" },
+  { href: "/dashboard",    icon: LayoutDashboard, key: "provider.nav.dashboard" },
+  { href: "/pedidos",      icon: ClipboardList,   key: "provider.nav.requests",     badge: true },
+  { href: "/orcamentos",   icon: FileText,        key: "provider.nav.quotes" },
+  { href: "/faturas",      icon: Receipt,         key: "provider.nav.invoices" },
+  { href: "/servicos",     icon: Briefcase,       key: "provider.nav.services" },
+  { href: "/reviews",      icon: Star,            key: "provider.nav.reviews" },
+  { href: "/sos",          icon: AlertTriangle,   key: "provider.nav.sos" },
+  { href: "/reports",      icon: BarChart2,       key: "provider.nav.reports" },
+  { href: "/service-area", icon: MapPin,          key: "provider.nav.serviceArea" },
+  { href: "/historico",    icon: History,         key: "provider.nav.paymentHistory" },
+  { href: "/compliance",   icon: Shield,          key: "provider.nav.compliance" },
+  { href: "/ajuda",        icon: HelpCircle,      key: "provider.nav.help" },
+  { href: "/termos",       icon: ScrollText,      key: "provider.nav.terms" },
+  { href: "/configuracoes",icon: Settings,        key: "provider.nav.settings" },
 ];
 
 export default function DashboardLayout({
