@@ -16,6 +16,7 @@ import { prisma } from "../config/database";
 import { AppError } from "../middleware/error-handler";
 import { logger } from "../config/logger";
 import { calculateHaversineDistance } from "../utils/distance";
+import { broadcastPush } from "../services/expo-push.service";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -143,6 +144,11 @@ export const createSOSRequest = async (req: Request, res: Response) => {
 
   // Build price estimate from nearby online providers
   const estimatedRange = await buildPriceEstimate(lat, lng, sosType);
+
+  // Fire-and-forget: push to nearby ONLINE providers immediately
+  notifyNearbyProviders(lat, lng, sosType, request.id, requestNumber).catch(
+    (e) => logger.warn("[SOS] Push notification fire failed:", e),
+  );
 
   logger.info(`SOS created: ${requestNumber} type=${sosType} by customer ${customerId}`);
 
@@ -602,6 +608,48 @@ export const updateSOSRateCard = async (req: Request, res: Response) => {
 
   res.json({ success: true, data: { rateCard: sanitized } });
 };
+
+// ─── Internal: Push nearby ONLINE providers ───────────────────────────────────
+
+async function notifyNearbyProviders(
+  lat: number,
+  lng: number,
+  sosType: string,
+  requestId: string,
+  requestNumber: string,
+): Promise<void> {
+  const providers = await prisma.$queryRaw<any[]>`
+    SELECT pp."baseLatitude", pp."baseLongitude", u."fcmToken"
+    FROM "provider_profiles" pp
+    JOIN "users" u ON u."id" = pp."userId"
+    WHERE pp."availabilityStatus" = 'ONLINE'
+      AND u."fcmToken" IS NOT NULL
+      AND pp."baseLatitude" IS NOT NULL
+    LIMIT 200
+  `;
+
+  const tokens = providers
+    .filter((p) => {
+      const distKm = calculateHaversineDistance(
+        Number(p.baseLatitude), Number(p.baseLongitude), lat, lng,
+      );
+      return distKm <= SOS_BROADCAST_RADIUS_KM;
+    })
+    .map((p) => p.fcmToken as string);
+
+  if (!tokens.length) return;
+
+  const label = SOS_TYPES[sosType as SOSType]?.label || sosType;
+  await broadcastPush(
+    tokens,
+    "🚨 New SOS Request Nearby",
+    `${label} — a customer needs help near you. Tap to respond.`,
+    { screen: "SOSInbox", requestId },
+    "sos",
+  );
+
+  logger.info(`[SOS] Push sent to ${tokens.length} provider(s) for ${requestNumber}`);
+}
 
 // ─── Internal: Price Estimate ─────────────────────────────────────────────────
 

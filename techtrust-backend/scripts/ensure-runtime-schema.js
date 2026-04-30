@@ -111,7 +111,8 @@ async function main() {
       ADD COLUMN IF NOT EXISTS "sosAcceptedByProviderId" TEXT,
       ADD COLUMN IF NOT EXISTS "sosAcceptedAt" TIMESTAMP(3),
       ADD COLUMN IF NOT EXISTS "sosConfirmDeadline" TIMESTAMP(3),
-      ADD COLUMN IF NOT EXISTS "sosConfirmedAt" TIMESTAMP(3);
+      ADD COLUMN IF NOT EXISTS "sosConfirmedAt" TIMESTAMP(3),
+      ADD COLUMN IF NOT EXISTS "sosNoProviderAt" TIMESTAMP(3);
   `);
 
   await prisma.$executeRawUnsafe(`

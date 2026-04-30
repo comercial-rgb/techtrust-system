@@ -38,7 +38,7 @@ const SOS_TYPES = [
   { key: "TOWING",          label: "Towing",             icon: "tow-truck" as const,         color: "#dc2626", bg: "#fee2e2", desc: "Need vehicle towed" },
 ];
 
-type Step = "SELECT" | "LOCATION" | "BROADCAST" | "OFFER" | "CONFIRMED" | "CANCELLED";
+type Step = "SELECT" | "LOCATION" | "BROADCAST" | "OFFER" | "CONFIRMED" | "CANCELLED" | "NO_PROVIDERS";
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
@@ -128,9 +128,10 @@ export default function CustomerSOSScreen({ navigation, route }: any) {
         setConfirmedProvider(data.provider);
       } else if (data.sosStatus === "CONFIRMED") {
         setStep("CONFIRMED");
+      } else if (data.sosStatus === "NO_PROVIDER_FOUND" || data.broadcastExpired) {
+        setStep("NO_PROVIDERS");
       } else if (data.sosStatus === "BROADCAST") {
         if (step === "OFFER") {
-          // Provider window expired, back to searching
           setStep("BROADCAST");
           setOfferedPrice(null);
           setConfirmDeadline(null);
@@ -530,6 +531,52 @@ export default function CustomerSOSScreen({ navigation, route }: any) {
           >
             <Text style={styles.ctaBtnText}>Done</Text>
           </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // ── Step: NO_PROVIDERS ────────────────────────────────────────────────────
+  if (step === "NO_PROVIDERS") {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: "#111827" }]}>
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 24 }}>
+          <View style={[styles.confirmedIcon, { backgroundColor: "rgba(239,68,68,0.15)" }]}>
+            <MaterialCommunityIcons name="alert-circle-outline" size={56} color="#ef4444" />
+          </View>
+
+          <Text style={styles.confirmedTitle}>No Providers Available</Text>
+          <Text style={styles.broadcastSubtitle}>
+            No nearby provider accepted within 30 minutes.{"\n"}
+            You can try again or contact support directly.
+          </Text>
+
+          <View style={{ width: "100%", gap: 12, marginTop: 32 }}>
+            <TouchableOpacity
+              onPress={() => {
+                setStep("SELECT");
+                setRequestId(null);
+                setPriceRange(null);
+                setLocation(null);
+                setSelectedType(null);
+              }}
+              style={[styles.ctaBtn, { backgroundColor: "#dc2626" }]}
+            >
+              <MaterialCommunityIcons name="refresh" size={20} color="#fff" />
+              <Text style={styles.ctaBtnText}>Try Again</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={[styles.ctaBtn, { backgroundColor: "rgba(255,255,255,0.1)" }]}
+            >
+              <Text style={[styles.ctaBtnText, { color: "#9ca3af" }]}>Back to Dashboard</Text>
+            </TouchableOpacity>
+          </View>
+
+          <Text style={{ color: "#6b7280", fontSize: 13, marginTop: 24, textAlign: "center" }}>
+            For immediate assistance call 911 or roadside assistance
+          </Text>
         </View>
       </SafeAreaView>
     );

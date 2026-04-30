@@ -317,6 +317,14 @@ httpServer.listen(PORT, async () => {
     logger.warn("⚠️ Expiration checker failed to start:", error);
   }
 
+  // Start SOS re-broadcast + expiration checker
+  try {
+    const { scheduleSOSRebroadcast } = await import("./services/sos-rebroadcast.service");
+    scheduleSOSRebroadcast();
+  } catch (error) {
+    logger.warn("⚠️ SOS re-broadcast scheduler failed to start:", error);
+  }
+
   // Start quote & estimate share expiration checker (BUG 4 FIX)
   try {
     const { scheduleQuoteExpirationCheck } =

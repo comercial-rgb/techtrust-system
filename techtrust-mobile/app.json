@@ -60,6 +60,15 @@
       "expo-web-browser",
       "expo-secure-store",
       [
+        "expo-notifications",
+        {
+          "icon": "./assets/adaptive-icon.png",
+          "color": "#2B5EA7",
+          "defaultChannel": "sos",
+          "sounds": []
+        }
+      ],
+      [
         "@stripe/stripe-react-native",
         {
           "merchantIdentifier": "merchant.com.techtrustautosolutions",

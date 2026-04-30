@@ -11,15 +11,34 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StripeProvider } from "@stripe/stripe-react-native";
 import { Alert, AppState, Platform } from "react-native";
 import * as Updates from "expo-updates";
-import { AuthProvider } from "./src/contexts/AuthContext";
+import { AuthProvider, useAuth } from "./src/contexts/AuthContext";
 import { ThemeProvider } from "./src/contexts/ThemeContext";
 import { NotificationsProvider } from "./src/contexts/NotificationsContext";
 import { I18nProvider } from "./src/i18n";
 import RootNavigator from "./src/navigation/RootNavigator";
 import SplashScreen from "./src/components/SplashScreen";
+import { registerForPushNotifications } from "./src/services/pushNotifications";
 
 const API_URL =
   process.env.EXPO_PUBLIC_API_URL || "https://techtrust-api.onrender.com/api/v1";
+
+// Registers push token once when user is authenticated
+function PushRegistrar() {
+  const { isAuthenticated } = useAuth();
+  const registered = React.useRef(false);
+
+  React.useEffect(() => {
+    if (isAuthenticated && !registered.current) {
+      registered.current = true;
+      registerForPushNotifications().catch(() => {});
+    }
+    if (!isAuthenticated) {
+      registered.current = false;
+    }
+  }, [isAuthenticated]);
+
+  return null;
+}
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -147,6 +166,7 @@ export default function App() {
               <NotificationsProvider>
                 <NavigationContainer>
                   <StatusBar style="auto" />
+                  <PushRegistrar />
                   <RootNavigator />
                 </NavigationContainer>
               </NotificationsProvider>
