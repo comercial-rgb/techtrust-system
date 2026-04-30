@@ -680,7 +680,7 @@ export const signup = async (req: Request, res: Response) => {
           where: { id: user.id },
           data: { emailOtpCode, emailOtpExpiresAt },
         });
-        await sendOTPEmail(email, emailOtpCode, language || "EN");
+        await sendOTPEmail(email, emailOtpCode, "EN");
         otpSent = true;
         otpMethod = "email";
         logger.info(`OTP enviado por EMAIL (preferência do usuário) para: ${email}`);
@@ -710,7 +710,7 @@ export const signup = async (req: Request, res: Response) => {
             where: { id: user.id },
             data: { emailOtpCode, emailOtpExpiresAt },
           });
-          await sendOTPEmail(email, emailOtpCode, language || "EN");
+          await sendOTPEmail(email, emailOtpCode, "EN");
           otpSent = true;
           otpMethod = "email";
           logger.info(`OTP enviado por EMAIL (fallback SMS) para: ${email}`);

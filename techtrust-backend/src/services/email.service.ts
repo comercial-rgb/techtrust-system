@@ -11,9 +11,9 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const EMAIL_FROM = process.env.EMAIL_FROM || "TechTrust <noreply@techtrustautosolutions.com>";
 const MOCK_MODE = !RESEND_API_KEY || process.env.MOCK_EMAIL === "true";
 
-const LOGO_URL = "https://techtrustautosolutions.com/logo-white.png";
+const LOGO_URL = "https://provider.techtrustautosolutions.com/logo-white.png";
 const WEBSITE_URL = "https://techtrustautosolutions.com";
-const SUPPORT_EMAIL = "support@techtrustautosolutions.com";
+const SUPPORT_EMAIL = "contact@techtrustautosolutions.com";
 
 let resendClient: Resend | null = null;
 
