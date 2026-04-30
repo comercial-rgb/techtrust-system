@@ -73,11 +73,14 @@ export interface ComplianceSummaryResult {
  * Future: geocoding + boundary checks.
  */
 export async function resolveJurisdiction(
-  stateCode: string,
+  stateCode: string | null | undefined,
   countyName?: string | null,
   cityName?: string | null,
   insideCityLimits?: boolean | null
 ): Promise<ResolvedJurisdiction> {
+  if (!stateCode) {
+    return { stateCode: "FL", stateName: "Florida", countyName, cityName, insideCityLimits, isActiveState: false };
+  }
   const stateProfile = await prisma.stateProfile.findUnique({
     where: { stateCode: stateCode.toUpperCase() },
   });
@@ -222,6 +225,11 @@ export async function autoCreateComplianceItemsFromRules(
     throw new Error("Provider profile not found");
   }
 
+  // If provider has no state set, skip rule engine (returns empty; fallback in controller creates BTR)
+  if (!profile.state) {
+    return { created: [], jurisdiction: { stateCode: "FL", stateName: "Florida", isActiveState: false } };
+  }
+
   const servicesOffered = (profile.servicesOffered as string[]) || [];
   const jurisdiction = await resolveJurisdiction(
     profile.state,
@@ -267,11 +275,10 @@ export async function autoCreateComplianceItemsFromRules(
       }
     }
 
-    // Raw SQL upsert to avoid Prisma null-in-unique-constraint bug
-    // (prisma.upsert with technicianId: null fails because PostgreSQL
-    // treats NULL != NULL in unique indexes)
+    // Raw SQL to avoid Prisma null-in-unique-constraint bug
+    // Table name uses @@map value: "compliance_items" (not "ComplianceItem")
     const existingRows = await prisma.$queryRaw<{ id: string }[]>`
-      SELECT id FROM "ComplianceItem"
+      SELECT id FROM "compliance_items"
       WHERE "providerProfileId" = ${providerProfileId}
         AND "type" = ${complianceType}::"ComplianceType"
         AND "technicianId" IS NULL
@@ -286,14 +293,14 @@ export async function autoCreateComplianceItemsFromRules(
 
     if (existingRows.length > 0) {
       await prisma.$executeRaw`
-        UPDATE "ComplianceItem"
+        UPDATE "compliance_items"
         SET "requirementKey" = ${req.requirementKey}, "updatedAt" = NOW()
         WHERE "id" = ${existingRows[0].id}
       `;
     } else {
       const newId = randomUUID();
       await prisma.$executeRaw`
-        INSERT INTO "ComplianceItem" (
+        INSERT INTO "compliance_items" (
           "id", "providerProfileId", "type", "requirementKey",
           "status", "licenseNumber", "issuingAuthority",
           "createdAt", "updatedAt"
