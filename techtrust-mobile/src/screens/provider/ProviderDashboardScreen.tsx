@@ -108,16 +108,31 @@ export default function ProviderDashboardScreen({ navigation }: any) {
   const [stats, setStats] = useState<Stats | null>(null);
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
-  // D34 — Quote expired notification (from API)
   const [expiredQuotes, setExpiredQuotes] = useState(0);
-  // D37 — Weekly reports email toggle (from API preferencesJson)
   const [weeklyReportsEnabled, setWeeklyReportsEnabled] = useState(true);
+  const [availabilityStatus, setAvailabilityStatus] = useState<'ONLINE' | 'OFFLINE' | 'BUSY'>('OFFLINE');
+  const [togglingAvailability, setTogglingAvailability] = useState(false);
 
   const businessType = user?.providerProfile?.businessTypeCat || 'REPAIR_SHOP';
 
   useEffect(() => {
     loadDashboardData();
   }, []);
+
+  const toggleAvailability = async () => {
+    if (togglingAvailability) return;
+    setTogglingAvailability(true);
+    const next = availabilityStatus === 'ONLINE' ? 'OFFLINE' : 'ONLINE';
+    try {
+      const api = (await import('../../services/api')).default;
+      await api.patch('/sos/availability', { status: next });
+      setAvailabilityStatus(next);
+    } catch (e) {
+      console.error('Failed to toggle availability', e);
+    } finally {
+      setTogglingAvailability(false);
+    }
+  };
 
   const loadDashboardData = async () => {
     setLoading(true);
@@ -137,15 +152,18 @@ export default function ProviderDashboardScreen({ navigation }: any) {
       setStats(statsData);
       setRecentActivity(activityData);
       setPendingRequests(requestsData);
-      // D34 — Expired quotes from real API
       setExpiredQuotes(statsData.expiredQuotes || 0);
-      // D37 — Load weekly reports preference
       try {
         const api = (await import('../../services/api')).default;
-        const userRes = await api.get('/users/me');
+        const [userRes, sosRes] = await Promise.all([
+          api.get('/users/me'),
+          api.get('/sos/rate-card'),
+        ]);
         const prefs = userRes.data?.data?.user?.preferencesJson || {};
         setWeeklyReportsEnabled(prefs.weeklyReportsEnabled !== false);
-      } catch { /* keep default */ }
+        const av = sosRes.data?.data?.availabilityStatus;
+        if (av) setAvailabilityStatus(av);
+      } catch { /* keep defaults */ }
     } catch (error) {
       console.error("Error loading dashboard:", error);
       setStats({
@@ -359,6 +377,30 @@ export default function ProviderDashboardScreen({ navigation }: any) {
                   : t.provider?.allCaughtUp || "All caught up!"}
               </Text>
             </View>
+            {/* Online/Offline Toggle */}
+            <TouchableOpacity
+              onPress={toggleAvailability}
+              disabled={togglingAvailability}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: availabilityStatus === 'ONLINE' ? '#22c55e' : 'rgba(255,255,255,0.2)',
+                borderRadius: 20,
+                paddingHorizontal: 10,
+                paddingVertical: 5,
+                gap: 5,
+                marginRight: 8,
+              }}
+            >
+              <View style={{
+                width: 8, height: 8, borderRadius: 4,
+                backgroundColor: availabilityStatus === 'ONLINE' ? '#fff' : '#9ca3af',
+              }} />
+              <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>
+                {togglingAvailability ? '...' : (availabilityStatus === 'ONLINE' ? 'Online' : 'Offline')}
+              </Text>
+            </TouchableOpacity>
+
             <TouchableOpacity
               style={styles.notificationBtn}
               onPress={() => navigation.navigate("Notifications")}
@@ -795,6 +837,66 @@ export default function ProviderDashboardScreen({ navigation }: any) {
                 <Text style={styles.actionText}>{qa.label}</Text>
               </TouchableOpacity>
             ))}
+          </View>
+        </View>
+
+        {/* Roadside SOS Panel */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Roadside SOS</Text>
+          <View style={{
+            backgroundColor: '#fff',
+            borderRadius: 16,
+            overflow: 'hidden',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.05,
+            shadowRadius: 8,
+            elevation: 2,
+          }}>
+            {/* Status row */}
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              padding: 16,
+              backgroundColor: availabilityStatus === 'ONLINE' ? '#f0fdf4' : '#f9fafb',
+              gap: 12,
+            }}>
+              <View style={{
+                width: 40, height: 40, borderRadius: 20,
+                backgroundColor: availabilityStatus === 'ONLINE' ? '#22c55e' : '#9ca3af',
+                justifyContent: 'center', alignItems: 'center',
+              }}>
+                <MaterialCommunityIcons name="car-emergency" size={20} color="#fff" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: '#111827' }}>
+                  {availabilityStatus === 'ONLINE' ? 'Online — receiving SOS alerts' : 'Offline — not receiving SOS'}
+                </Text>
+                <Text style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>
+                  {availabilityStatus === 'ONLINE'
+                    ? 'Customers nearby can send you roadside requests'
+                    : 'Go online to start receiving roadside emergency calls'}
+                </Text>
+              </View>
+            </View>
+            {/* Action buttons */}
+            <View style={{ flexDirection: 'row', borderTopWidth: 1, borderTopColor: '#f3f4f6' }}>
+              <TouchableOpacity
+                style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 14 }}
+                onPress={() => navigation.navigate('SOSInbox')}
+              >
+                <MaterialCommunityIcons name="radar" size={18} color="#2B5EA7" />
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#2B5EA7' }}>SOS Inbox</Text>
+              </TouchableOpacity>
+              <View style={{ width: 1, backgroundColor: '#f3f4f6' }} />
+              <TouchableOpacity
+                style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 14 }}
+                onPress={() => navigation.navigate('SOSRateCard')}
+              >
+                <MaterialCommunityIcons name="tag-multiple" size={18} color="#6b7280" />
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#6b7280' }}>Rate Card</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 

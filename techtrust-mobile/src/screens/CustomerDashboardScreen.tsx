@@ -454,6 +454,27 @@ export default function CustomerDashboardScreen({ navigation }: any) {
           </TouchableOpacity>
         </FadeInView>
 
+        {/* Roadside SOS Quick Action */}
+        <FadeInView delay={175}>
+          <TouchableOpacity
+            style={[styles.actionBanner, { backgroundColor: '#dc2626' }]}
+            onPress={() => navigation.navigate("CustomerSOS")}
+          >
+            <View style={styles.bannerContent}>
+              <View style={[styles.bannerIcon, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                <MaterialCommunityIcons name="car-emergency" size={28} color="#fff" />
+              </View>
+              <View style={styles.bannerText}>
+                <Text style={styles.bannerTitle}>Roadside SOS</Text>
+                <Text style={styles.bannerSubtitle}>
+                  Flat tire, jump start, lockout & more — help nearby
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={24} color="#fff" />
+          </TouchableOpacity>
+        </FadeInView>
+
         {/* Parts Store Quick Action */}
         <FadeInView delay={200}>
           <TouchableOpacity
@@ -646,6 +667,20 @@ export default function CustomerDashboardScreen({ navigation }: any) {
               </View>
               <Text style={styles.quickAccessLabel} numberOfLines={2}>
                 {(t as any).partsStore?.tabLabel || "Auto Parts"}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.quickAccessCard}
+              onPress={() => navigation.navigate("CustomerSOS")}
+            >
+              <View
+                style={[styles.quickAccessIcon, { backgroundColor: "#fee2e2" }]}
+              >
+                <MaterialCommunityIcons name="car-emergency" size={22} color="#dc2626" />
+              </View>
+              <Text style={styles.quickAccessLabel} numberOfLines={2}>
+                {"Roadside SOS"}
               </Text>
             </TouchableOpacity>
           </View>

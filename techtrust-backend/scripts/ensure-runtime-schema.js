@@ -98,12 +98,34 @@ async function main() {
       ADD COLUMN IF NOT EXISTS "providerLevel" "ProviderLevel" NOT NULL DEFAULT 'ENTRY',
       ADD COLUMN IF NOT EXISTS "commissionRate" DECIMAL(5,2) NOT NULL DEFAULT 15,
       ADD COLUMN IF NOT EXISTS "levelCalculatedAt" TIMESTAMP(3),
-      ADD COLUMN IF NOT EXISTS "serviceCounties" JSONB NOT NULL DEFAULT '[]';
+      ADD COLUMN IF NOT EXISTS "serviceCounties" JSONB NOT NULL DEFAULT '[]',
+      ADD COLUMN IF NOT EXISTS "availabilityStatus" TEXT NOT NULL DEFAULT 'OFFLINE',
+      ADD COLUMN IF NOT EXISTS "lastOnlineAt" TIMESTAMP(3),
+      ADD COLUMN IF NOT EXISTS "sosRateCard" JSONB NOT NULL DEFAULT '{}';
+  `);
+
+  await prisma.$executeRawUnsafe(`
+    ALTER TABLE "service_requests"
+      ADD COLUMN IF NOT EXISTS "sosStatus" TEXT,
+      ADD COLUMN IF NOT EXISTS "sosOfferedPrice" DECIMAL(10,2),
+      ADD COLUMN IF NOT EXISTS "sosAcceptedByProviderId" TEXT,
+      ADD COLUMN IF NOT EXISTS "sosAcceptedAt" TIMESTAMP(3),
+      ADD COLUMN IF NOT EXISTS "sosConfirmDeadline" TIMESTAMP(3);
   `);
 
   await prisma.$executeRawUnsafe(`
     CREATE INDEX IF NOT EXISTS "provider_profiles_providerPublicStatus_idx"
     ON "provider_profiles"("providerPublicStatus");
+  `);
+
+  await prisma.$executeRawUnsafe(`
+    CREATE INDEX IF NOT EXISTS "provider_profiles_availabilityStatus_idx"
+    ON "provider_profiles"("availabilityStatus");
+  `);
+
+  await prisma.$executeRawUnsafe(`
+    CREATE INDEX IF NOT EXISTS "service_requests_sosStatus_idx"
+    ON "service_requests"("sosStatus") WHERE "sosStatus" IS NOT NULL;
   `);
 
   console.log("Runtime schema guard applied.");

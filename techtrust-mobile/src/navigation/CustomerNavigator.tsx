@@ -59,6 +59,7 @@ import RepairInvoicesScreen from "../screens/customer/RepairInvoicesScreen";
 import RepairInvoiceDetailsScreen from "../screens/customer/RepairInvoiceDetailsScreen";
 import EstimateSharesScreen from "../screens/customer/EstimateSharesScreen";
 import CompareEstimatesScreen from "../screens/customer/CompareEstimatesScreen";
+import CustomerSOSScreen from "../screens/customer/CustomerSOSScreen";
 
 // Car Wash Screens
 import CarWashMapScreen from "../screens/CarWashMapScreen";
@@ -145,6 +146,7 @@ function HomeStack() {
       <Stack.Screen name="HelpCenter" component={HelpCenterScreen} />
       <Stack.Screen name="ContactUs" component={ContactUsScreen} />
       <Stack.Screen name="TermsAndPolicies" component={TermsAndPoliciesScreen} />
+      <Stack.Screen name="CustomerSOS" component={CustomerSOSScreen} />
     </Stack.Navigator>
   );
 }

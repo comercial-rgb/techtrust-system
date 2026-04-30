@@ -57,6 +57,7 @@ import carWashRoutes from "./routes/car-wash.routes";
 import partsStoreRoutes from "./routes/parts-store.routes";
 import oePartsRoutes from "./routes/oe-parts.routes";
 import quickbooksRoutes from "./routes/quickbooks.routes";
+import sosRoutes from "./routes/sos.routes";
 
 // Carregar variáveis de ambiente
 dotenv.config();
@@ -284,7 +285,8 @@ app.use(`/api/${API_VERSION}/multi-state`, multiStateRoutes); // Multi-state com
 app.use(`/api/${API_VERSION}/car-wash`, carWashRoutes); // Car Wash discovery & management
 app.use(`/api/${API_VERSION}/parts-store`, partsStoreRoutes); // Auto Parts Store discovery & management
 app.use(`/api/${API_VERSION}/oe-parts`, oePartsRoutes); // OE Parts lookup via 17vin API
-app.use(`/api/${API_VERSION}/quickbooks`, quickbooksRoutes); // QuickBooks Online integration (sales tax + DR-15)
+app.use(`/api/${API_VERSION}/quickbooks`, quickbooksRoutes);
+app.use(`/api/${API_VERSION}/sos`, sosRoutes); // Roadside SOS dispatch // QuickBooks Online integration (sales tax + DR-15)
 
 // ============================================
 // ERROR HANDLER (deve ser o último middleware)

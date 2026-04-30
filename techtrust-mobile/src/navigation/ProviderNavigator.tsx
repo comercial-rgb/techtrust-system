@@ -43,6 +43,8 @@ import ChatScreen from "../screens/ChatScreen";
 import ChatListScreen from "../screens/ChatListScreen";
 import ProviderReviewsScreen from "../screens/provider/ProviderReviewsScreen";
 import ProviderBusinessScreen from "../screens/provider/ProviderBusinessScreen";
+import ProviderSOSInboxScreen from "../screens/provider/ProviderSOSInboxScreen";
+import ProviderSOSRateCardScreen from "../screens/provider/ProviderSOSRateCardScreen";
 
 // FDACS Screens (shared with customer)
 import AppointmentsScreen from "../screens/customer/AppointmentsScreen";
@@ -69,6 +71,8 @@ function DashboardStack() {
       <Stack.Screen name="Chat" component={ChatScreen} />
       <Stack.Screen name="ProviderReviews" component={ProviderReviewsScreen} />
       <Stack.Screen name="ProviderBusiness" component={ProviderBusinessScreen} />
+      <Stack.Screen name="SOSInbox" component={ProviderSOSInboxScreen} />
+      <Stack.Screen name="SOSRateCard" component={ProviderSOSRateCardScreen} />
       <Stack.Screen name="Appointments" component={AppointmentsScreen} />
       <Stack.Screen
         name="AppointmentDetails"
