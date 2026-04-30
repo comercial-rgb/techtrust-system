@@ -97,7 +97,8 @@ async function main() {
       ADD COLUMN IF NOT EXISTS "suspensionReason" TEXT,
       ADD COLUMN IF NOT EXISTS "providerLevel" "ProviderLevel" NOT NULL DEFAULT 'ENTRY',
       ADD COLUMN IF NOT EXISTS "commissionRate" DECIMAL(5,2) NOT NULL DEFAULT 15,
-      ADD COLUMN IF NOT EXISTS "levelCalculatedAt" TIMESTAMP(3);
+      ADD COLUMN IF NOT EXISTS "levelCalculatedAt" TIMESTAMP(3),
+      ADD COLUMN IF NOT EXISTS "serviceCounties" JSONB NOT NULL DEFAULT '[]';
   `);
 
   await prisma.$executeRawUnsafe(`

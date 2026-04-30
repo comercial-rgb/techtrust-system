@@ -1,9 +1,11 @@
 /**
- * ProviderServiceAreaScreen - Área de Cobertura
- * Connected to backend API
+ * ProviderServiceAreaScreen — Service Area & County Coverage
+ * Florida market: counties are the standard unit for service area declaration.
+ * Service radius handles proximity matching; county selection handles explicit
+ * extended coverage (e.g., "I serve Broward even if outside my radius").
  */
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -14,204 +16,179 @@ import {
   Switch,
   Alert,
   Modal,
+  ActivityIndicator,
+  SectionList,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import MapView, { Circle, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Circle, PROVIDER_GOOGLE } from "react-native-maps";
 import { useFocusEffect } from "@react-navigation/native";
-import { useI18n } from "../../i18n";
 import api from "../../services/api";
 
-interface CoverageZone {
-  id: string;
-  name: string;
-  region: string;
-  active: boolean;
-}
+// ─── Florida counties grouped by metro region ─────────────────────────────────
+const FL_COUNTY_REGIONS = [
+  {
+    title: "South Florida",
+    data: ["Miami-Dade", "Broward", "Palm Beach", "Monroe"],
+  },
+  {
+    title: "Treasure Coast",
+    data: ["Martin", "St. Lucie", "Indian River", "Okeechobee", "Glades"],
+  },
+  {
+    title: "Southwest Florida",
+    data: ["Collier", "Lee", "Charlotte", "Sarasota", "DeSoto", "Hendry", "Hardee"],
+  },
+  {
+    title: "Tampa Bay",
+    data: ["Hillsborough", "Pinellas", "Pasco", "Hernando", "Manatee", "Polk", "Highlands", "Citrus", "Sumter"],
+  },
+  {
+    title: "Central Florida",
+    data: ["Orange", "Osceola", "Seminole", "Lake", "Brevard", "Volusia", "Flagler"],
+  },
+  {
+    title: "Northeast Florida",
+    data: ["Duval", "St. Johns", "Clay", "Nassau", "Baker", "Putnam"],
+  },
+  {
+    title: "North Central Florida",
+    data: ["Alachua", "Marion", "Levy", "Gilchrist", "Columbia", "Union", "Bradford", "Suwannee", "Lafayette", "Dixie"],
+  },
+  {
+    title: "North Florida",
+    data: ["Leon", "Gadsden", "Jefferson", "Madison", "Taylor", "Hamilton", "Wakulla", "Liberty", "Franklin", "Gulf"],
+  },
+  {
+    title: "Panhandle",
+    data: ["Escambia", "Santa Rosa", "Okaloosa", "Walton", "Bay", "Washington", "Holmes", "Jackson", "Calhoun"],
+  },
+];
+
+const ALL_COUNTIES = FL_COUNTY_REGIONS.flatMap(r => r.data);
 
 export default function ProviderServiceAreaScreen({ navigation }: any) {
-  const { t } = useI18n();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  // Base location
   const [baseAddress, setBaseAddress] = useState("");
+  const [providerCoords, setProviderCoords] = useState<{ lat: number; lng: number } | null>(null);
+
+  // Radius
   const [serviceRadius, setServiceRadius] = useState(25);
+
+  // Mobile / roadside
   const [mobileService, setMobileService] = useState(false);
   const [roadsideAssistance, setRoadsideAssistance] = useState(false);
-  const [extraFeePerKm, setExtraFeePerKm] = useState("0.00");
   const [freeKm, setFreeKm] = useState("0");
+  const [extraFeePerKm, setExtraFeePerKm] = useState("0.00");
   const [travelChargeType, setTravelChargeType] = useState<"ONE_WAY" | "ROUND_TRIP">("ONE_WAY");
-  const [showAddZoneModal, setShowAddZoneModal] = useState(false);
-  const [newZoneName, setNewZoneName] = useState("");
-  const [newZoneRegion, setNewZoneRegion] = useState("");
-  const [coverageZones, setCoverageZones] = useState<CoverageZone[]>([]);
-  const [providerCoords, setProviderCoords] = useState<{ lat: number; lng: number } | null>(null);
+
+  // County coverage
+  const [serviceCounties, setServiceCounties] = useState<string[]>([]);
+  const [showCountyPicker, setShowCountyPicker] = useState(false);
+  const [countySearch, setCountySearch] = useState("");
+
   const mapRef = useRef<MapView>(null);
 
-  // Load provider profile from API
   const loadProfile = async () => {
     setLoading(true);
     try {
-      const response = await api.get("/providers/dashboard");
-      const profile =
-        response.data?.data?.profile || response.data?.data?.providerProfile || response.data?.data || {};
-      const user = response.data?.data;
+      const res = await api.get("/providers/profile");
+      const p = res.data?.data || {};
 
-      // Build base address from profile
-      const addr = [profile.address, profile.city, profile.state]
-        .filter(Boolean)
-        .join(", ");
-      setBaseAddress(addr || user?.city || "");
-      // Convert km to miles for display (1 mi = 1.609 km)
-      const radiusKm = profile.serviceRadiusKm || 25;
-      const radiusMi = Math.round(radiusKm / 1.609);
-      // Snap to nearest available option
-      const miOptions = [5, 10, 15, 20, 25, 35, 50];
-      const snapped = miOptions.reduce((prev, curr) => Math.abs(curr - radiusMi) < Math.abs(prev - radiusMi) ? curr : prev);
+      const addr = [p.address, p.city, p.state].filter(Boolean).join(", ");
+      setBaseAddress(addr);
+
+      if (p.baseLatitude && p.baseLongitude) {
+        setProviderCoords({ lat: Number(p.baseLatitude), lng: Number(p.baseLongitude) });
+      }
+
+      const radiusKm = p.serviceRadiusKm || 40;
+      const radiusMi = Math.round(radiusKm / 1.60934);
+      const miOptions = [5, 10, 15, 20, 25, 35, 50, 75, 100];
+      const snapped = miOptions.reduce((prev, curr) =>
+        Math.abs(curr - radiusMi) < Math.abs(prev - radiusMi) ? curr : prev
+      );
       setServiceRadius(snapped);
-      // Get coordinates for map
-      if (profile.baseLatitude && profile.baseLongitude) {
-        setProviderCoords({ lat: Number(profile.baseLatitude), lng: Number(profile.baseLongitude) });
-      } else if (profile.gpsLatitude && profile.gpsLongitude) {
-        setProviderCoords({ lat: Number(profile.gpsLatitude), lng: Number(profile.gpsLongitude) });
-      } else if (profile.latitude && profile.longitude) {
-        setProviderCoords({ lat: Number(profile.latitude), lng: Number(profile.longitude) });
-      }
-      setMobileService(profile.mobileService || false);
-      setRoadsideAssistance(profile.roadsideAssistance || false);
-      const freeKmVal = profile.freeKm || 0;
-      setFreeKm(String(Math.round(freeKmVal / 1.609)));
-      setExtraFeePerKm(String(Number(profile.extraFeePerKm || 0).toFixed(2)));
-      setTravelChargeType(profile.travelChargeType === "ROUND_TRIP" ? "ROUND_TRIP" : "ONE_WAY");
 
-      // Load coverage zones if available
-      if (profile.coverageZones && Array.isArray(profile.coverageZones)) {
-        setCoverageZones(
-          profile.coverageZones.map((z: any) => ({
-            id: z.id,
-            name: z.name,
-            region: z.region || "",
-            active: z.active !== false,
-          })),
-        );
-      }
-    } catch (error) {
-      console.error("Error loading profile:", error);
+      setMobileService(!!p.mobileService);
+      setRoadsideAssistance(!!p.roadsideAssistance);
+      setFreeKm(String(Math.round((Number(p.freeKm) || 0) / 1.60934)));
+      setExtraFeePerKm(Number(p.extraFeePerKm || 0).toFixed(2));
+      setTravelChargeType(p.travelChargeType === "ROUND_TRIP" ? "ROUND_TRIP" : "ONE_WAY");
+
+      const counties = Array.isArray(p.serviceCounties) ? p.serviceCounties : [];
+      setServiceCounties(counties.filter((c: any) => ALL_COUNTIES.includes(c)));
+    } catch (err) {
+      console.error("Error loading service area:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      loadProfile();
-    }, []),
-  );
-
-  const toggleZone = (id: string) => {
-    setCoverageZones((zones) =>
-      zones.map((z) => (z.id === id ? { ...z, active: !z.active } : z)),
-    );
-  };
-
-  const handleAddZone = () => {
-    if (!newZoneName.trim()) {
-      Alert.alert(
-        t.common?.error || "Error",
-        t.provider?.zoneNameRequired || "Zone name is required",
-      );
-      return;
-    }
-
-    const newZone: CoverageZone = {
-      id: Date.now().toString(),
-      name: newZoneName.trim(),
-      region: newZoneRegion.trim() || "N/A",
-      active: true,
-    };
-
-    setCoverageZones([...coverageZones, newZone]);
-    setNewZoneName("");
-    setNewZoneRegion("");
-    setShowAddZoneModal(false);
-    Alert.alert(
-      t.common?.success || "Success",
-      t.provider?.zoneAdded || "Coverage zone added successfully!",
-    );
-  };
-
-  const handleDeleteZone = (id: string, name: string) => {
-    Alert.alert(
-      t.provider?.deleteZone || "Delete Zone",
-      `${t.provider?.deleteZoneConfirm || "Are you sure you want to delete"} ${name}?`,
-      [
-        { text: t.common?.cancel || "Cancel", style: "cancel" },
-        {
-          text: t.common?.delete || "Delete",
-          style: "destructive",
-          onPress: () => {
-            setCoverageZones((zones) => zones.filter((z) => z.id !== id));
-          },
-        },
-      ],
-    );
-  };
+  useFocusEffect(useCallback(() => { loadProfile(); }, []));
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Convert miles back to km for storage
       await api.patch("/providers/profile", {
-        serviceRadiusKm: Math.round(serviceRadius * 1.609),
+        serviceRadiusKm: Math.round(serviceRadius * 1.60934),
         mobileService,
         roadsideAssistance,
-        freeKm: Math.round((Number(freeKm) || 0) * 1.609),
+        freeKm: Math.round((Number(freeKm) || 0) * 1.60934),
         extraFeePerKm: Number(extraFeePerKm) || 0,
         travelChargeType,
+        serviceCounties,
       });
-      Alert.alert(
-        t.common?.success || "Success",
-        t.provider?.serviceAreaUpdated || "Service area updated!",
-      );
+      Alert.alert("Saved", "Service area updated successfully.");
       navigation.goBack();
-    } catch (error: any) {
-      Alert.alert(
-        t.common?.error || "Error",
-        error?.response?.data?.message ||
-          "Failed to save settings. Please try again.",
-      );
+    } catch (err: any) {
+      Alert.alert("Error", err?.response?.data?.message || "Failed to save. Please try again.");
     } finally {
       setSaving(false);
     }
   };
 
-  // Display in miles for US market
-  const radiusOptions = [5, 10, 15, 20, 25, 35, 50];
+  const toggleCounty = (county: string) => {
+    setServiceCounties(prev =>
+      prev.includes(county) ? prev.filter(c => c !== county) : [...prev, county]
+    );
+  };
+
+  const selectAllInRegion = (region: typeof FL_COUNTY_REGIONS[0]) => {
+    const all = region.data;
+    const alreadyAll = all.every(c => serviceCounties.includes(c));
+    if (alreadyAll) {
+      setServiceCounties(prev => prev.filter(c => !all.includes(c)));
+    } else {
+      setServiceCounties(prev => [...new Set([...prev, ...all])]);
+    }
+  };
+
+  const filteredRegions = countySearch.trim()
+    ? FL_COUNTY_REGIONS.map(r => ({
+        ...r,
+        data: r.data.filter(c => c.toLowerCase().includes(countySearch.toLowerCase())),
+      })).filter(r => r.data.length > 0)
+    : FL_COUNTY_REGIONS;
+
+  const radiusOptions = [5, 10, 15, 20, 25, 35, 50, 75, 100];
 
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backBtn}
-          >
-            <MaterialCommunityIcons
-              name="arrow-left"
-              size={24}
-              color="#111827"
-            />
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerBtn}>
+            <MaterialCommunityIcons name="arrow-left" size={24} color="#111827" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>
-            {t.provider?.serviceArea || "Service Area"}
-          </Text>
-          <View style={styles.infoBtn} />
+          <Text style={styles.headerTitle}>Service Area</Text>
+          <View style={styles.headerBtn} />
         </View>
-        <View
-          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
-        >
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
           <ActivityIndicator size="large" color="#2B5EA7" />
           <Text style={{ marginTop: 12, color: "#6b7280" }}>Loading...</Text>
         </View>
@@ -223,80 +200,57 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backBtn}
-        >
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerBtn}>
           <MaterialCommunityIcons name="arrow-left" size={24} color="#111827" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>
-          {t.provider?.serviceArea || "Service Area"}
-        </Text>
+        <Text style={styles.headerTitle}>Service Area</Text>
         <TouchableOpacity
-          onPress={() => {
-            Alert.alert(
-              t.provider?.howItWorks || "How It Works",
-              t.provider?.serviceAreaExplanation ||
-                "Service Area calculates distance from your base address to the service location.\n\n" +
-                  "• IN-SHOP: Customer comes to your location\n" +
-                  "• ON-SITE (Mobile): You travel to customer home/business\n" +
-                  "• ROADSIDE: Emergency assistance on highways\n\n" +
-                  "Distance is calculated using GPS coordinates (straight line). " +
-                  "Extra fees apply for mobile services beyond free mile range.",
-              [{ text: t.common?.ok || "OK" }],
-            );
-          }}
-          style={styles.infoBtn}
+          onPress={() => Alert.alert(
+            "How Service Area Works",
+            "• Service Radius: customers within this distance from your base address can find you.\n\n" +
+            "• County Coverage: explicitly declare which FL counties you serve — useful when you're willing to travel beyond your radius to a particular area.\n\n" +
+            "Both radius and county are used to match you with incoming service requests.",
+            [{ text: "OK" }]
+          )}
+          style={styles.headerBtn}
         >
-          <MaterialCommunityIcons
-            name="information"
-            size={24}
-            color="#2B5EA7"
-          />
+          <MaterialCommunityIcons name="information" size={24} color="#2B5EA7" />
         </TouchableOpacity>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Map Preview */}
-        <View style={styles.mapPreview}>
+        {/* Map */}
+        <View style={styles.mapContainer}>
           {providerCoords ? (
             <MapView
               ref={mapRef}
-              style={styles.mapFull}
-              {...(Platform.OS === 'android' ? { provider: PROVIDER_GOOGLE } : {})}
+              style={StyleSheet.absoluteFillObject}
+              {...(Platform.OS === "android" ? { provider: PROVIDER_GOOGLE } : {})}
               initialRegion={{
                 latitude: providerCoords.lat,
                 longitude: providerCoords.lng,
-                latitudeDelta: serviceRadius * 0.03,
-                longitudeDelta: serviceRadius * 0.03,
+                latitudeDelta: serviceRadius * 0.028,
+                longitudeDelta: serviceRadius * 0.028,
               }}
-              showsUserLocation
               scrollEnabled={false}
               zoomEnabled={false}
-              mapType="standard"
             >
               <Circle
                 center={{ latitude: providerCoords.lat, longitude: providerCoords.lng }}
                 radius={serviceRadius * 1609.34}
-                strokeColor="#2B5EA7" 
-                fillColor="rgba(25,118,210,0.1)"
+                strokeColor="#2B5EA7"
+                fillColor="rgba(43,94,167,0.12)"
                 strokeWidth={2}
               />
             </MapView>
           ) : (
             <View style={styles.mapPlaceholder}>
-              <MaterialCommunityIcons
-                name="map-marker-radius"
-                size={60}
-                color="#2B5EA7"
-              />
-              <Text style={styles.mapText}>
-                {t.provider?.serviceRadius || "Service Radius"}: {serviceRadius}{" "}
-                mi
-              </Text>
-              <Text style={styles.mapSubtext}>
-                {coverageZones.filter((z) => z.active).length}{" "}
-                {t.provider?.activeZones || "active zones"}
+              <MaterialCommunityIcons name="map-marker-radius" size={52} color="#2B5EA7" />
+              <Text style={styles.mapPlaceholderText}>{serviceRadius} mi radius</Text>
+              <Text style={styles.mapPlaceholderSub}>
+                {serviceCounties.length > 0
+                  ? `${serviceCounties.length} county${serviceCounties.length > 1 ? "ies" : ""} selected`
+                  : "No counties selected yet"}
               </Text>
             </View>
           )}
@@ -304,27 +258,16 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
 
         {/* Base Address */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            {t.provider?.baseAddress || "Base Address"}
-          </Text>
+          <Text style={styles.sectionTitle}>Base Address</Text>
           <View style={styles.card}>
-            <View style={styles.addressRow}>
-              <MaterialCommunityIcons
-                name="map-marker"
-                size={24}
-                color="#2B5EA7"
-              />
-              <View style={styles.addressInfo}>
+            <View style={styles.row}>
+              <MaterialCommunityIcons name="map-marker" size={22} color="#2B5EA7" />
+              <View style={{ flex: 1 }}>
                 <Text style={styles.addressText}>
-                  {baseAddress || "No address set — update in Edit Profile"}
+                  {baseAddress || "No address set — update in Settings → Profile"}
                 </Text>
-                <TouchableOpacity
-                  style={styles.changeAddressBtn}
-                  onPress={() => navigation.navigate("EditProfile")}
-                >
-                  <Text style={styles.changeAddressText}>
-                    {t.provider?.changeAddress || "Change address"}
-                  </Text>
+                <TouchableOpacity onPress={() => navigation.navigate("Configuracoes")}>
+                  <Text style={styles.linkText}>Change in Profile Settings →</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -333,29 +276,23 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
 
         {/* Service Radius */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            {t.provider?.serviceRadius || "Service Radius"}
+          <Text style={styles.sectionTitle}>Service Radius</Text>
+          <Text style={styles.sectionDesc}>
+            Customers within this distance from your base address will see you in search results.
           </Text>
           <View style={styles.card}>
-            <Text style={styles.radiusLabel}>
-              {t.provider?.selectRadius || "Select the maximum travel radius"}:
-            </Text>
-            <View style={styles.radiusOptions}>
-              {radiusOptions.map((r) => (
+            <View style={styles.radiusDisplay}>
+              <Text style={styles.radiusNumber}>{serviceRadius}</Text>
+              <Text style={styles.radiusUnit}>miles</Text>
+            </View>
+            <View style={styles.chips}>
+              {radiusOptions.map(r => (
                 <TouchableOpacity
                   key={r}
-                  style={[
-                    styles.radiusOption,
-                    serviceRadius === r && styles.radiusOptionActive,
-                  ]}
+                  style={[styles.chip, serviceRadius === r && styles.chipActive]}
                   onPress={() => setServiceRadius(r)}
                 >
-                  <Text
-                    style={[
-                      styles.radiusOptionText,
-                      serviceRadius === r && styles.radiusOptionTextActive,
-                    ]}
-                  >
+                  <Text style={[styles.chipText, serviceRadius === r && styles.chipTextActive]}>
                     {r} mi
                   </Text>
                 </TouchableOpacity>
@@ -364,29 +301,60 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
           </View>
         </View>
 
-        {/* Mobile Service Settings */}
+        {/* County Coverage */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            {t.provider?.serviceTypes || "Service Types"}
-          </Text>
+          <View style={styles.sectionHeaderRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.sectionTitle}>County Coverage</Text>
+              <Text style={styles.sectionDesc}>
+                Select the Florida counties you're willing to serve. This lets customers in those counties find you even if they're outside your radius.
+              </Text>
+            </View>
+          </View>
+
+          <TouchableOpacity style={styles.countyPickerBtn} onPress={() => setShowCountyPicker(true)}>
+            <MaterialCommunityIcons name="map-search" size={22} color="#2B5EA7" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.countyPickerLabel}>
+                {serviceCounties.length === 0
+                  ? "Select counties"
+                  : `${serviceCounties.length} of 67 counties selected`}
+              </Text>
+              {serviceCounties.length > 0 && (
+                <Text style={styles.countyPickerSub} numberOfLines={2}>
+                  {serviceCounties.slice(0, 5).join(", ")}{serviceCounties.length > 5 ? ` +${serviceCounties.length - 5} more` : ""}
+                </Text>
+              )}
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={22} color="#9ca3af" />
+          </TouchableOpacity>
+
+          {serviceCounties.length > 0 && (
+            <View style={styles.countyTagsContainer}>
+              {serviceCounties.map(c => (
+                <TouchableOpacity
+                  key={c}
+                  style={styles.countyTag}
+                  onPress={() => toggleCounty(c)}
+                >
+                  <Text style={styles.countyTagText}>{c}</Text>
+                  <MaterialCommunityIcons name="close" size={12} color="#2B5EA7" />
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
+
+        {/* Mobile / On-Site Service */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Service Types</Text>
           <View style={styles.card}>
-            {/* On-Site Mobile Service */}
+            {/* On-Site */}
             <View style={styles.switchRow}>
-              <View style={styles.switchInfo}>
-                <MaterialCommunityIcons
-                  name="truck"
-                  size={24}
-                  color="#374151"
-                />
-                <View style={styles.switchTextContainer}>
-                  <Text style={styles.switchLabel}>
-                    {t.provider?.onSiteService || "On-Site Service"}
-                  </Text>
-                  <Text style={styles.switchDescription}>
-                    {t.provider?.onSiteServiceDesc ||
-                      "I go to customer home/business"}
-                  </Text>
-                </View>
+              <MaterialCommunityIcons name="truck" size={22} color="#374151" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.switchLabel}>On-Site Service</Text>
+                <Text style={styles.switchDesc}>I travel to the customer's location</Text>
               </View>
               <Switch
                 value={mobileService}
@@ -396,788 +364,316 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
               />
             </View>
 
-            {/* Roadside Assistance */}
-            <View
-              style={[
-                styles.switchRow,
-                {
-                  marginTop: 20,
-                  paddingTop: 20,
-                  borderTopWidth: 1,
-                  borderTopColor: "#f3f4f6",
-                },
-              ]}
-            >
-              <View style={styles.switchInfo}>
-                <MaterialCommunityIcons
-                  name="car-emergency"
-                  size={24}
-                  color="#374151"
-                />
-                <View style={styles.switchTextContainer}>
-                  <Text style={styles.switchLabel}>
-                    {t.provider?.roadsideAssistance || "Roadside Assistance"}
-                  </Text>
-                  <Text style={styles.switchDescription}>
-                    {t.provider?.roadsideAssistanceDesc ||
-                      "Emergency service on highways"}
-                  </Text>
-                </View>
+            {/* Roadside */}
+            <View style={[styles.switchRow, styles.switchRowBorder]}>
+              <MaterialCommunityIcons name="car-emergency" size={22} color="#374151" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.switchLabel}>Roadside Assistance</Text>
+                <Text style={styles.switchDesc}>Emergency service on highways</Text>
               </View>
               <Switch
                 value={roadsideAssistance}
                 onValueChange={setRoadsideAssistance}
-                trackColor={{ false: "#d1d5db", true: "#93c5fd" }}
+                trackColor={{ false: "#d1d5db", true: "#fcd34d" }}
                 thumbColor={roadsideAssistance ? "#f59e0b" : "#fff"}
               />
             </View>
 
+            {/* Travel fees (visible when mobile or roadside enabled) */}
             {(mobileService || roadsideAssistance) && (
-              <View style={styles.mobileFeeSettings}>
-                {/* Free miles + extra fee per mile */}
-                <View style={styles.feeInputRow}>
-                  <View style={styles.feeInputGroup}>
-                    <Text style={styles.feeInputLabel}>
-                      {t.provider?.freeKm || "Free Miles"}
-                    </Text>
-                    <View style={styles.inputWithUnit}>
+              <View style={styles.travelFeeBox}>
+                <Text style={styles.travelFeeTitle}>Travel Fees</Text>
+                <View style={styles.feeRow}>
+                  <View style={styles.feeGroup}>
+                    <Text style={styles.feeLabel}>Free Miles</Text>
+                    <View style={styles.feeInput}>
                       <TextInput
-                        style={styles.feeInput}
+                        style={styles.feeInputText}
                         value={freeKm}
                         onChangeText={setFreeKm}
                         keyboardType="numeric"
+                        placeholder="0"
+                        placeholderTextColor="#9ca3af"
                       />
-                      <Text style={styles.inputUnit}>mi</Text>
+                      <Text style={styles.feeUnit}>mi</Text>
                     </View>
                   </View>
-                  <View style={styles.feeInputGroup}>
-                    <Text style={styles.feeInputLabel}>
-                      {t.provider?.extraKmFee || "Fee per Extra Mile"}
-                    </Text>
-                    <View style={styles.inputWithUnit}>
-                      <Text style={styles.inputPrefix}>$</Text>
+                  <View style={styles.feeGroup}>
+                    <Text style={styles.feeLabel}>Fee per Extra Mile</Text>
+                    <View style={styles.feeInput}>
+                      <Text style={styles.feePrefix}>$</Text>
                       <TextInput
-                        style={styles.feeInput}
+                        style={styles.feeInputText}
                         value={extraFeePerKm}
                         onChangeText={setExtraFeePerKm}
-                        keyboardType="numeric"
+                        keyboardType="decimal-pad"
+                        placeholder="0.00"
+                        placeholderTextColor="#9ca3af"
                       />
-                      <Text style={styles.inputUnit}>/mi</Text>
+                      <Text style={styles.feeUnit}>/mi</Text>
                     </View>
                   </View>
                 </View>
 
-                {/* One Way / Round Trip toggle */}
-                <Text style={[styles.feeInputLabel, { marginTop: 16, marginBottom: 8 }]}>
-                  Distance Charged
-                </Text>
+                <Text style={styles.feeLabel}>Distance Charged</Text>
                 <View style={styles.chargeTypeRow}>
-                  <TouchableOpacity
-                    style={[
-                      styles.chargeTypeBtn,
-                      travelChargeType === "ONE_WAY" && styles.chargeTypeBtnActive,
-                    ]}
-                    onPress={() => setTravelChargeType("ONE_WAY")}
-                  >
-                    <MaterialCommunityIcons
-                      name="arrow-right"
-                      size={18}
-                      color={travelChargeType === "ONE_WAY" ? "#2B5EA7" : "#9ca3af"}
-                    />
-                    <Text
-                      style={[
-                        styles.chargeTypeBtnText,
-                        travelChargeType === "ONE_WAY" && styles.chargeTypeBtnTextActive,
-                      ]}
+                  {(["ONE_WAY", "ROUND_TRIP"] as const).map(type => (
+                    <TouchableOpacity
+                      key={type}
+                      style={[styles.chargeTypeBtn, travelChargeType === type && styles.chargeTypeBtnActive]}
+                      onPress={() => setTravelChargeType(type)}
                     >
-                      One Way
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[
-                      styles.chargeTypeBtn,
-                      travelChargeType === "ROUND_TRIP" && styles.chargeTypeBtnActive,
-                    ]}
-                    onPress={() => setTravelChargeType("ROUND_TRIP")}
-                  >
-                    <MaterialCommunityIcons
-                      name="swap-horizontal"
-                      size={18}
-                      color={travelChargeType === "ROUND_TRIP" ? "#2B5EA7" : "#9ca3af"}
-                    />
-                    <Text
-                      style={[
-                        styles.chargeTypeBtnText,
-                        travelChargeType === "ROUND_TRIP" && styles.chargeTypeBtnTextActive,
-                      ]}
-                    >
-                      Round Trip
-                    </Text>
-                  </TouchableOpacity>
+                      <MaterialCommunityIcons
+                        name={type === "ONE_WAY" ? "arrow-right" : "swap-horizontal"}
+                        size={16}
+                        color={travelChargeType === type ? "#2B5EA7" : "#9ca3af"}
+                      />
+                      <Text style={[styles.chargeTypeBtnText, travelChargeType === type && styles.chargeTypeBtnTextActive]}>
+                        {type === "ONE_WAY" ? "One Way" : "Round Trip"}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
                 </View>
 
                 <Text style={styles.feeNote}>
                   {travelChargeType === "ROUND_TRIP"
-                    ? `First ${freeKm} mi free (each way), $${extraFeePerKm}/mi extra — distance × 2`
-                    : `First ${freeKm} mi free, $${extraFeePerKm}/mi after that`}
+                    ? `First ${freeKm} mi free (each way) · $${extraFeePerKm}/mi extra · distance × 2`
+                    : `First ${freeKm} mi free · $${extraFeePerKm}/mi after that`}
                 </Text>
-                <View style={styles.distanceInfo}>
-                  <MaterialCommunityIcons
-                    name="map-marker-distance"
-                    size={20}
-                    color="#6b7280"
-                  />
-                  <Text style={styles.distanceInfoText}>
-                    {t.provider?.distanceCalculation ||
-                      "Distance is calculated from your base address to service location using GPS coordinates (straight-line distance)."}
-                  </Text>
-                </View>
               </View>
             )}
-          </View>
-        </View>
-
-        {/* Coverage Zones */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>
-              {t.provider?.coverageZones || "Coverage Zones"}
-            </Text>
-            <TouchableOpacity
-              style={styles.addZoneBtn}
-              onPress={() => setShowAddZoneModal(true)}
-            >
-              <MaterialCommunityIcons name="plus" size={20} color="#2B5EA7" />
-              <Text style={styles.addZoneText}>{t.common?.add || "Add"}</Text>
-            </TouchableOpacity>
-          </View>
-          <Text style={styles.zonesDescription}>
-            {t.provider?.coverageZonesDesc ||
-              "Define specific neighborhoods or regions where you offer services. This helps customers find you more easily."}
-          </Text>
-          <View style={styles.card}>
-            {coverageZones.map((zone, index) => (
-              <View
-                key={zone.id}
-                style={[
-                  styles.zoneRow,
-                  index < coverageZones.length - 1 && styles.zoneRowBorder,
-                ]}
-              >
-                <View style={styles.zoneInfo}>
-                  <MaterialCommunityIcons
-                    name={zone.active ? "map-marker-check" : "map-marker-off"}
-                    size={22}
-                    color={zone.active ? "#10b981" : "#9ca3af"}
-                  />
-                  <View style={{ flex: 1 }}>
-                    <Text
-                      style={[
-                        styles.zoneName,
-                        !zone.active && styles.zoneNameInactive,
-                      ]}
-                    >
-                      {zone.name}
-                    </Text>
-                    <Text style={styles.zoneRegion}>{zone.region}</Text>
-                  </View>
-                </View>
-                <View style={styles.zoneActions}>
-                  <Switch
-                    value={zone.active}
-                    onValueChange={() => toggleZone(zone.id)}
-                    trackColor={{ false: "#d1d5db", true: "#93c5fd" }}
-                    thumbColor={zone.active ? "#2B5EA7" : "#fff"}
-                  />
-                  <TouchableOpacity
-                    onPress={() => handleDeleteZone(zone.id, zone.name)}
-                    style={styles.deleteZoneBtn}
-                  >
-                    <MaterialCommunityIcons
-                      name="delete-outline"
-                      size={20}
-                      color="#ef4444"
-                    />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        {/* Tips */}
-        <View style={styles.tipsCard}>
-          <MaterialCommunityIcons
-            name="lightbulb-outline"
-            size={24}
-            color="#f59e0b"
-          />
-          <View style={styles.tipsContent}>
-            <Text style={styles.tipsTitle}>{t.common?.tip || "Tip"}</Text>
-            <Text style={styles.tipsText}>
-              {t.provider?.serviceAreaTip ||
-                "A larger service radius may increase your requests, but remember to consider travel time and costs."}
-            </Text>
           </View>
         </View>
 
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* Save Button */}
-      <View style={styles.bottomContainer}>
-        <TouchableOpacity
-          style={[styles.saveBtn, saving && { opacity: 0.6 }]}
-          onPress={handleSave}
-          disabled={saving}
-        >
-          {saving ? (
-            <ActivityIndicator color="#fff" size="small" />
-          ) : (
-            <Text style={styles.saveBtnText}>
-              {t.common?.saveChanges || "Save Changes"}
-            </Text>
+      {/* Save button */}
+      <View style={styles.footer}>
+        <TouchableOpacity style={[styles.saveBtn, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving}>
+          {saving ? <ActivityIndicator color="#fff" size="small" /> : (
+            <Text style={styles.saveBtnText}>Save Changes</Text>
           )}
         </TouchableOpacity>
       </View>
 
-      {/* Add Zone Modal */}
-      <Modal
-        visible={showAddZoneModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowAddZoneModal(false)}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={styles.modalContainer}
-        >
-          <TouchableOpacity
-            style={styles.modalOverlay}
-            activeOpacity={1}
-            onPress={() => setShowAddZoneModal(false)}
-          />
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {t.provider?.addCoverageZone || "Add Coverage Zone"}
-              </Text>
-              <TouchableOpacity
-                onPress={() => setShowAddZoneModal(false)}
-                style={styles.modalCloseBtn}
-              >
-                <MaterialCommunityIcons
-                  name="close"
-                  size={24}
-                  color="#6b7280"
-                />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.modalBody}>
-              <View style={styles.modalInputGroup}>
-                <Text style={styles.modalLabel}>
-                  {t.provider?.zoneName || "Zone Name"} *
-                </Text>
-                <TextInput
-                  style={styles.modalInput}
-                  placeholder={
-                    t.provider?.zoneNamePlaceholder ||
-                    "e.g., Downtown, North Zone"
-                  }
-                  value={newZoneName}
-                  onChangeText={setNewZoneName}
-                  autoFocus
-                />
-              </View>
-
-              <View style={styles.modalInputGroup}>
-                <Text style={styles.modalLabel}>
-                  {t.provider?.region || "Region"}
-                </Text>
-                <TextInput
-                  style={styles.modalInput}
-                  placeholder={
-                    t.provider?.regionPlaceholder || "e.g., São Paulo - SP"
-                  }
-                  value={newZoneRegion}
-                  onChangeText={setNewZoneRegion}
-                />
-              </View>
-
-              <View style={styles.modalInfo}>
-                <MaterialCommunityIcons
-                  name="information"
-                  size={20}
-                  color="#6b7280"
-                />
-                <Text style={styles.modalInfoText}>
-                  {t.provider?.zoneInfoText ||
-                    "Coverage zones help customers find you when searching for services in specific areas."}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.modalFooter}>
-              <TouchableOpacity
-                style={styles.modalCancelBtn}
-                onPress={() => setShowAddZoneModal(false)}
-              >
-                <Text style={styles.modalCancelText}>
-                  {t.common?.cancel || "Cancel"}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalAddBtn}
-                onPress={handleAddZone}
-              >
-                <Text style={styles.modalAddText}>
-                  {t.common?.add || "Add"}
-                </Text>
-              </TouchableOpacity>
-            </View>
+      {/* County Picker Modal */}
+      <Modal visible={showCountyPicker} animationType="slide" presentationStyle="pageSheet">
+        <SafeAreaView style={styles.pickerContainer}>
+          <View style={styles.pickerHeader}>
+            <TouchableOpacity onPress={() => { setCountySearch(""); setShowCountyPicker(false); }} style={styles.pickerClose}>
+              <Text style={styles.pickerCloseText}>Done</Text>
+            </TouchableOpacity>
+            <Text style={styles.pickerTitle}>Florida Counties</Text>
+            <TouchableOpacity onPress={() => setServiceCounties([])} style={styles.pickerClose}>
+              <Text style={{ fontSize: 14, color: "#ef4444", fontWeight: "500" }}>Clear</Text>
+            </TouchableOpacity>
           </View>
-        </KeyboardAvoidingView>
+
+          {/* Selected count */}
+          <View style={styles.pickerCountBar}>
+            <MaterialCommunityIcons name="map-marker-check" size={16} color="#2B5EA7" />
+            <Text style={styles.pickerCountText}>
+              {serviceCounties.length === 0
+                ? "No counties selected"
+                : `${serviceCounties.length} county${serviceCounties.length > 1 ? "ies" : ""} selected`}
+            </Text>
+            {serviceCounties.length < ALL_COUNTIES.length && (
+              <TouchableOpacity onPress={() => setServiceCounties([...ALL_COUNTIES])}>
+                <Text style={styles.selectAllText}>Select all 67</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Search */}
+          <View style={styles.searchBox}>
+            <MaterialCommunityIcons name="magnify" size={18} color="#9ca3af" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search county..."
+              placeholderTextColor="#9ca3af"
+              value={countySearch}
+              onChangeText={setCountySearch}
+              autoCorrect={false}
+            />
+            {countySearch.length > 0 && (
+              <TouchableOpacity onPress={() => setCountySearch("")}>
+                <MaterialCommunityIcons name="close-circle" size={16} color="#9ca3af" />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* County list */}
+          <SectionList
+            sections={filteredRegions}
+            keyExtractor={(item) => item}
+            stickySectionHeadersEnabled
+            renderSectionHeader={({ section }) => (
+              <TouchableOpacity
+                style={styles.regionHeader}
+                onPress={() => selectAllInRegion(section as typeof FL_COUNTY_REGIONS[0])}
+              >
+                <Text style={styles.regionTitle}>{section.title}</Text>
+                <Text style={styles.regionSelectAll}>
+                  {(section as typeof FL_COUNTY_REGIONS[0]).data.every(c => serviceCounties.includes(c))
+                    ? "Deselect all"
+                    : `Select all ${(section as typeof FL_COUNTY_REGIONS[0]).data.length}`}
+                </Text>
+              </TouchableOpacity>
+            )}
+            renderItem={({ item: county }) => {
+              const selected = serviceCounties.includes(county);
+              return (
+                <TouchableOpacity
+                  style={[styles.countyRow, selected && styles.countyRowSelected]}
+                  onPress={() => toggleCounty(county)}
+                >
+                  <View style={[styles.checkbox, selected && styles.checkboxSelected]}>
+                    {selected && <MaterialCommunityIcons name="check" size={14} color="#fff" />}
+                  </View>
+                  <Text style={[styles.countyRowText, selected && styles.countyRowTextSelected]}>
+                    {county} County
+                  </Text>
+                </TouchableOpacity>
+              );
+            }}
+          />
+        </SafeAreaView>
       </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f8fafc",
-  },
+  container: { flex: 1, backgroundColor: "#f8fafc" },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#f3f4f6",
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    paddingHorizontal: 16, paddingVertical: 12,
+    backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#f3f4f6",
   },
-  backBtn: {
-    padding: 8,
+  headerBtn: { padding: 8, width: 40 },
+  headerTitle: { fontSize: 17, fontWeight: "600", color: "#111827" },
+  mapContainer: { height: 190, margin: 16, borderRadius: 16, overflow: "hidden", backgroundColor: "#dbeafe" },
+  mapPlaceholder: { flex: 1, justifyContent: "center", alignItems: "center", gap: 6 },
+  mapPlaceholderText: { fontSize: 16, fontWeight: "700", color: "#2B5EA7" },
+  mapPlaceholderSub: { fontSize: 13, color: "#6b7280" },
+  section: { paddingHorizontal: 16, marginBottom: 20 },
+  sectionHeaderRow: { flexDirection: "row", alignItems: "flex-start", marginBottom: 4 },
+  sectionTitle: { fontSize: 15, fontWeight: "700", color: "#111827", marginBottom: 4 },
+  sectionDesc: { fontSize: 13, color: "#6b7280", lineHeight: 18, marginBottom: 12 },
+  card: { backgroundColor: "#fff", borderRadius: 14, padding: 16 },
+  row: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
+  addressText: { fontSize: 14, color: "#374151", lineHeight: 20 },
+  linkText: { fontSize: 13, color: "#2B5EA7", fontWeight: "500", marginTop: 6 },
+  // Radius
+  radiusDisplay: { alignItems: "center", marginBottom: 16 },
+  radiusNumber: { fontSize: 52, fontWeight: "900", color: "#2B5EA7" },
+  radiusUnit: { fontSize: 15, color: "#6b7280", fontWeight: "600", marginTop: -6 },
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  chip: {
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
+    borderWidth: 1.5, borderColor: "#e5e7eb", backgroundColor: "#f9fafb",
   },
-  infoBtn: {
-    padding: 8,
+  chipActive: { borderColor: "#2B5EA7", backgroundColor: "#dbeafe" },
+  chipText: { fontSize: 13, fontWeight: "600", color: "#6b7280" },
+  chipTextActive: { color: "#2B5EA7" },
+  // County picker trigger
+  countyPickerBtn: {
+    flexDirection: "row", alignItems: "center", gap: 12,
+    backgroundColor: "#fff", borderRadius: 14, padding: 16,
+    borderWidth: 1.5, borderColor: "#dbeafe",
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#111827",
+  countyPickerLabel: { fontSize: 15, fontWeight: "600", color: "#111827" },
+  countyPickerSub: { fontSize: 12, color: "#6b7280", marginTop: 2 },
+  countyTagsContainer: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 },
+  countyTag: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    backgroundColor: "#eff6ff", borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5,
+    borderWidth: 1, borderColor: "#bfdbfe",
   },
-  mapPreview: {
-    backgroundColor: "#e5e7eb",
-    height: 200,
-    margin: 16,
-    borderRadius: 16,
-    overflow: "hidden",
+  countyTagText: { fontSize: 12, fontWeight: "600", color: "#2B5EA7" },
+  // Service types
+  switchRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  switchRowBorder: { marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: "#f3f4f6" },
+  switchLabel: { fontSize: 15, fontWeight: "600", color: "#111827" },
+  switchDesc: { fontSize: 12, color: "#6b7280", marginTop: 2 },
+  // Travel fees
+  travelFeeBox: {
+    marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: "#f3f4f6", gap: 12,
   },
-  mapFull: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  mapPlaceholder: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#dbeafe",
-  },
-  mapText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#2B5EA7",
-    marginTop: 8,
-  },
-  mapSubtext: {
-    fontSize: 14,
-    color: "#6b7280",
-    marginTop: 4,
-  },
-  section: {
-    paddingHorizontal: 16,
-    marginBottom: 20,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  zonesDescription: {
-    fontSize: 13,
-    color: "#6b7280",
-    marginBottom: 12,
-    lineHeight: 18,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#111827",
-    marginBottom: 12,
-  },
-  card: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 16,
-  },
-  addressRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 12,
-  },
-  addressInfo: {
-    flex: 1,
-  },
-  addressText: {
-    fontSize: 14,
-    color: "#374151",
-    lineHeight: 20,
-  },
-  changeAddressBtn: {
-    marginTop: 8,
-  },
-  changeAddressText: {
-    fontSize: 14,
-    color: "#2B5EA7",
-    fontWeight: "500",
-  },
-  radiusLabel: {
-    fontSize: 14,
-    color: "#6b7280",
-    marginBottom: 16,
-  },
-  radiusOptions: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-  },
-  radiusOption: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    backgroundColor: "#f3f4f6",
-    borderWidth: 2,
-    borderColor: "#f3f4f6",
-  },
-  radiusOptionActive: {
-    backgroundColor: "#dbeafe",
-    borderColor: "#2B5EA7",
-  },
-  radiusOptionText: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#6b7280",
-  },
-  radiusOptionTextActive: {
-    color: "#2B5EA7",
-  },
-  switchRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  switchInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    flex: 1,
-  },
-  switchTextContainer: {
-    flex: 1,
-  },
-  switchLabel: {
-    fontSize: 15,
-    fontWeight: "500",
-    color: "#111827",
-  },
-  switchDescription: {
-    fontSize: 13,
-    color: "#6b7280",
-    marginTop: 2,
-  },
-  mobileFeeSettings: {
-    marginTop: 20,
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: "#f3f4f6",
-  },
-  feeInputRow: {
-    flexDirection: "row",
-    gap: 16,
-  },
-  feeInputGroup: {
-    flex: 1,
-  },
-  feeInputLabel: {
-    fontSize: 13,
-    color: "#6b7280",
-    marginBottom: 8,
-  },
-  inputWithUnit: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#f9fafb",
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    paddingHorizontal: 12,
-  },
-  inputPrefix: {
-    fontSize: 14,
-    color: "#6b7280",
-  },
-  inputUnit: {
-    fontSize: 14,
-    color: "#6b7280",
-    marginLeft: 4,
-  },
+  travelFeeTitle: { fontSize: 13, fontWeight: "700", color: "#374151" },
+  feeRow: { flexDirection: "row", gap: 12 },
+  feeGroup: { flex: 1, gap: 6 },
+  feeLabel: { fontSize: 12, color: "#6b7280", fontWeight: "500" },
   feeInput: {
-    flex: 1,
-    fontSize: 15,
-    color: "#111827",
-    paddingVertical: 10,
+    flexDirection: "row", alignItems: "center",
+    backgroundColor: "#f9fafb", borderRadius: 8, borderWidth: 1, borderColor: "#e5e7eb",
+    paddingHorizontal: 10,
   },
-  chargeTypeRow: {
-    flexDirection: "row",
-    gap: 10,
-  },
+  feeInputText: { flex: 1, fontSize: 15, color: "#111827", paddingVertical: 10 },
+  feePrefix: { fontSize: 14, color: "#6b7280" },
+  feeUnit: { fontSize: 12, color: "#9ca3af" },
+  chargeTypeRow: { flexDirection: "row", gap: 8 },
   chargeTypeBtn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingVertical: 10,
-    borderRadius: 8,
-    backgroundColor: "#f3f4f6",
-    borderWidth: 2,
-    borderColor: "#f3f4f6",
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
+    paddingVertical: 9, borderRadius: 8, backgroundColor: "#f3f4f6",
+    borderWidth: 1.5, borderColor: "#e5e7eb",
   },
-  chargeTypeBtnActive: {
-    backgroundColor: "#dbeafe",
-    borderColor: "#2B5EA7",
+  chargeTypeBtnActive: { backgroundColor: "#eff6ff", borderColor: "#2B5EA7" },
+  chargeTypeBtnText: { fontSize: 13, fontWeight: "500", color: "#9ca3af" },
+  chargeTypeBtnTextActive: { color: "#2B5EA7" },
+  feeNote: { fontSize: 11, color: "#9ca3af", fontStyle: "italic" },
+  // Footer
+  footer: {
+    position: "absolute", bottom: 0, left: 0, right: 0,
+    backgroundColor: "#fff", padding: 16, paddingBottom: 28,
+    borderTopWidth: 1, borderTopColor: "#e5e7eb",
   },
-  chargeTypeBtnText: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#9ca3af",
+  saveBtn: { backgroundColor: "#2B5EA7", paddingVertical: 15, borderRadius: 12, alignItems: "center" },
+  saveBtnText: { fontSize: 16, fontWeight: "700", color: "#fff" },
+  // County picker modal
+  pickerContainer: { flex: 1, backgroundColor: "#fff" },
+  pickerHeader: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    paddingHorizontal: 16, paddingVertical: 14,
+    borderBottomWidth: 1, borderBottomColor: "#f3f4f6",
   },
-  chargeTypeBtnTextActive: {
-    color: "#2B5EA7",
+  pickerClose: { padding: 4 },
+  pickerCloseText: { fontSize: 15, color: "#2B5EA7", fontWeight: "700" },
+  pickerTitle: { fontSize: 17, fontWeight: "700", color: "#111827" },
+  pickerCountBar: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    paddingHorizontal: 16, paddingVertical: 10,
+    backgroundColor: "#eff6ff", borderBottomWidth: 1, borderBottomColor: "#dbeafe",
   },
-  feeNote: {
-    fontSize: 12,
-    color: "#9ca3af",
-    marginTop: 12,
-    fontStyle: "italic",
+  pickerCountText: { flex: 1, fontSize: 13, color: "#1d4ed8", fontWeight: "500" },
+  selectAllText: { fontSize: 13, color: "#2B5EA7", fontWeight: "600" },
+  searchBox: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    margin: 12, paddingHorizontal: 12, paddingVertical: 10,
+    backgroundColor: "#f3f4f6", borderRadius: 10,
   },
-  distanceInfo: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 8,
-    marginTop: 16,
-    padding: 12,
-    backgroundColor: "#f0f9ff",
-    borderRadius: 8,
-    borderLeftWidth: 3,
-    borderLeftColor: "#2B5EA7",
+  searchInput: { flex: 1, fontSize: 15, color: "#111827" },
+  regionHeader: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    paddingHorizontal: 16, paddingVertical: 10,
+    backgroundColor: "#f9fafb", borderBottomWidth: 1, borderBottomColor: "#f3f4f6",
   },
-  distanceInfoText: {
-    flex: 1,
-    fontSize: 12,
-    color: "#1e40af",
-    lineHeight: 18,
+  regionTitle: { fontSize: 13, fontWeight: "700", color: "#374151" },
+  regionSelectAll: { fontSize: 12, color: "#2B5EA7", fontWeight: "500" },
+  countyRow: {
+    flexDirection: "row", alignItems: "center", gap: 12,
+    paddingHorizontal: 16, paddingVertical: 13,
+    borderBottomWidth: 1, borderBottomColor: "#f9fafb",
   },
-  addZoneBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  addZoneText: {
-    fontSize: 14,
-    color: "#2B5EA7",
-    fontWeight: "500",
-  },
-  zoneRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 12,
-  },
-  zoneRowBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: "#f3f4f6",
-  },
-  zoneInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    flex: 1,
-  },
-  zoneActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  deleteZoneBtn: {
-    padding: 4,
-  },
-  zoneName: {
-    fontSize: 15,
-    fontWeight: "500",
-    color: "#111827",
-  },
-  zoneNameInactive: {
-    color: "#9ca3af",
-  },
-  zoneRegion: {
-    fontSize: 13,
-    color: "#6b7280",
-    marginTop: 2,
-  },
-  tipsCard: {
-    flexDirection: "row",
-    backgroundColor: "#fef3c7",
-    marginHorizontal: 16,
-    padding: 16,
-    borderRadius: 12,
-    gap: 12,
-  },
-  tipsContent: {
-    flex: 1,
-  },
-  tipsTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#92400e",
-    marginBottom: 4,
-  },
-  tipsText: {
-    fontSize: 13,
-    color: "#92400e",
-    lineHeight: 18,
-  },
-  bottomContainer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
+  countyRowSelected: { backgroundColor: "#f0f9ff" },
+  checkbox: {
+    width: 22, height: 22, borderRadius: 6,
+    borderWidth: 1.5, borderColor: "#d1d5db",
+    justifyContent: "center", alignItems: "center",
     backgroundColor: "#fff",
-    padding: 16,
-    paddingBottom: 32,
-    borderTopWidth: 1,
-    borderTopColor: "#e5e7eb",
   },
-  saveBtn: {
-    backgroundColor: "#2B5EA7",
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  saveBtnText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#fff",
-  },
-  // Modal styles
-  modalContainer: {
-    flex: 1,
-    justifyContent: "flex-end",
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-  },
-  modalContent: {
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: "80%",
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f3f4f6",
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#111827",
-  },
-  modalCloseBtn: {
-    padding: 4,
-  },
-  modalBody: {
-    padding: 20,
-  },
-  modalInputGroup: {
-    marginBottom: 20,
-  },
-  modalLabel: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#374151",
-    marginBottom: 8,
-  },
-  modalInput: {
-    backgroundColor: "#f9fafb",
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 15,
-    color: "#111827",
-  },
-  modalInfo: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 8,
-    padding: 12,
-    backgroundColor: "#f0f9ff",
-    borderRadius: 8,
-  },
-  modalInfoText: {
-    flex: 1,
-    fontSize: 13,
-    color: "#1e40af",
-    lineHeight: 18,
-  },
-  modalFooter: {
-    flexDirection: "row",
-    gap: 12,
-    padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: "#f3f4f6",
-  },
-  modalCancelBtn: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    alignItems: "center",
-  },
-  modalCancelText: {
-    fontSize: 15,
-    fontWeight: "500",
-    color: "#6b7280",
-  },
-  modalAddBtn: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
-    backgroundColor: "#2B5EA7",
-    alignItems: "center",
-  },
-  modalAddText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#fff",
-  },
+  checkboxSelected: { backgroundColor: "#2B5EA7", borderColor: "#2B5EA7" },
+  countyRowText: { fontSize: 15, color: "#374151" },
+  countyRowTextSelected: { color: "#1d4ed8", fontWeight: "600" },
 });

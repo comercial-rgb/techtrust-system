@@ -339,6 +339,7 @@ export const updateProfile = async (req: Request, res: Response) => {
     vehicleTypesServed,
     sellsParts,
     businessDescription,
+    serviceCounties,
   } = req.body;
 
   // Se endereço foi fornecido, tenta fazer geocoding
@@ -427,6 +428,7 @@ export const updateProfile = async (req: Request, res: Response) => {
   if (businessDescription !== undefined) addStr("businessDescription", businessDescription || null);
   if (servicesOffered !== undefined) addJson("servicesOffered", servicesOffered);
   if (vehicleTypesServed !== undefined) addJson("vehicleTypesServed", vehicleTypesServed);
+  if (serviceCounties !== undefined) addJson("serviceCounties", serviceCounties);
   if (sellsParts !== undefined) addBool("sellsParts", !!sellsParts);
   if (fdacsRegistrationNumber !== undefined) addStr("fdacsRegistrationNumber", fdacsRegistrationNumber || null);
   if (cityBusinessTaxReceiptNumber !== undefined) addStr("cityBusinessTaxReceiptNumber", cityBusinessTaxReceiptNumber || null);
