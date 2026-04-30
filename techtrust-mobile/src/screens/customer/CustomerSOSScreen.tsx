@@ -53,7 +53,7 @@ export default function CustomerSOSScreen({ navigation, route }: any) {
   const [offeredPrice, setOfferedPrice] = useState<number | null>(null);
   const [confirmDeadline, setConfirmDeadline] = useState<Date | null>(null);
   const [confirmedProvider, setConfirmedProvider] = useState<any>(null);
-  const [countdown, setCountdown] = useState(30);
+  const [countdown, setCountdown] = useState(120);
   const [submitting, setSubmitting] = useState(false);
   const [confirming, setConfirming] = useState(false);
 
@@ -144,6 +144,13 @@ export default function CustomerSOSScreen({ navigation, route }: any) {
   // ── Step 1: Capture GPS ───────────────────────────────────────────────────
 
   const captureLocation = async () => {
+    if (!vehicleId) {
+      Alert.alert(
+        "Vehicle Required",
+        "Please go to your Vehicles tab and add a vehicle before requesting SOS assistance."
+      );
+      return;
+    }
     setLocationLoading(true);
     try {
       const Location = await import("expo-location");
@@ -422,7 +429,10 @@ export default function CustomerSOSScreen({ navigation, route }: any) {
 
   // ── Step: OFFER ───────────────────────────────────────────────────────────
   if (step === "OFFER") {
-    const urgencyColor = countdown <= 10 ? "#ef4444" : countdown <= 20 ? "#f59e0b" : "#22c55e";
+    const urgencyColor = countdown <= 30 ? "#ef4444" : countdown <= 60 ? "#f59e0b" : "#22c55e";
+    const countdownDisplay = countdown >= 60
+      ? `${Math.floor(countdown / 60)}:${String(countdown % 60).padStart(2, "0")}`
+      : `${countdown}s`;
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: "#111827" }]}>
         <View style={{ flex: 1, justifyContent: "center", padding: 24 }}>
@@ -455,7 +465,7 @@ export default function CustomerSOSScreen({ navigation, route }: any) {
             <View style={[styles.countdownRow, { borderColor: urgencyColor }]}>
               <MaterialCommunityIcons name="clock-outline" size={18} color={urgencyColor} />
               <Text style={[styles.countdownText, { color: urgencyColor }]}>
-                {countdown}s to decide
+                {countdownDisplay} to decide
               </Text>
             </View>
 

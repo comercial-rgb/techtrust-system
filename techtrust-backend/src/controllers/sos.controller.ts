@@ -34,7 +34,7 @@ export type SOSType = keyof typeof SOS_TYPES;
 const SOS_BROADCAST_RADIUS_KM = 50;
 
 // Seconds customer has to confirm after provider accepts
-const SOS_CONFIRM_WINDOW_SECONDS = 30;
+const SOS_CONFIRM_WINDOW_SECONDS = 120;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -367,7 +367,7 @@ export const getNearbySOSRequests = async (req: Request, res: Response) => {
   const pProfile = providerRows[0];
 
   if (pProfile.availabilityStatus !== "ONLINE") {
-    return res.json({ success: true, data: [], message: "You are currently offline. Go online to receive SOS requests." });
+    return res.json({ success: true, data: { requests: [] }, message: "You are currently offline." });
   }
 
   // Fetch active BROADCAST SOS requests
@@ -383,7 +383,7 @@ export const getNearbySOSRequests = async (req: Request, res: Response) => {
     WHERE sr."serviceType" = 'ROADSIDE_SOS'
       AND sr."sosStatus" = 'BROADCAST'
       AND sr."serviceLatitude" IS NOT NULL
-      AND sr."serviceLatitude" IS NOT NULL
+      AND sr."serviceLongitude" IS NOT NULL
       AND sr."createdAt" > NOW() - INTERVAL '30 minutes'
     ORDER BY sr."createdAt" DESC
     LIMIT 50
@@ -411,20 +411,22 @@ export const getNearbySOSRequests = async (req: Request, res: Response) => {
         towingEstimate = base + distMiles * perMile;
       }
 
+      const isTowing = sosType === "TOWING";
       return {
-        requestId: r.id,
+        id: r.id,
         requestNumber: r.requestNumber,
         sosType,
         sosLabel: SOS_TYPES[sosType as SOSType]?.label || sosType,
-        vehicle: `${r.year} ${r.make} ${r.model}`,
+        vehicleDescription: `${r.year} ${r.make} ${r.model}`,
         customerName: r.customerName,
         description: r.description,
         distanceKm: Math.round(distKm * 10) / 10,
         distanceMiles: Math.round(distMiles * 10) / 10,
-        etaMinutes,
-        suggestedPrice,
-        towingEstimate: towingEstimate ? Math.round(towingEstimate * 100) / 100 : null,
-        hasRateCard: suggestedPrice !== null || towingEstimate !== null,
+        estimatedEtaMinutes: etaMinutes,
+        pricingType: isTowing ? "towing" : "flat",
+        suggestedPrice: isTowing ? null : suggestedPrice,
+        suggestedBaseFee: isTowing ? (rateCard.TOWING?.baseFee ?? null) : null,
+        suggestedPerMileRate: isTowing ? (rateCard.TOWING?.perMileRate ?? null) : null,
         createdAt: r.createdAt,
         customerLat: reqLat,
         customerLng: reqLng,
@@ -433,7 +435,7 @@ export const getNearbySOSRequests = async (req: Request, res: Response) => {
     .filter((r) => r.distanceKm <= SOS_BROADCAST_RADIUS_KM)
     .sort((a, b) => a.distanceKm - b.distanceKm);
 
-  res.json({ success: true, data: nearby });
+  res.json({ success: true, data: { requests: nearby } });
 };
 
 // ─── Provider: Accept SOS Request ────────────────────────────────────────────
@@ -505,7 +507,7 @@ export const acceptSOSRequest = async (req: Request, res: Response) => {
       offeredPrice: Number(offeredPrice),
       confirmDeadline,
       confirmWindowSeconds: SOS_CONFIRM_WINDOW_SECONDS,
-      message: "Customer has 30 seconds to confirm. Stay ready.",
+      message: `Customer has ${SOS_CONFIRM_WINDOW_SECONDS / 60} minutes to confirm. Stay ready.`,
     },
   });
 };
@@ -613,8 +615,8 @@ async function buildPriceEstimate(
       SELECT "sosRateCard", "baseLatitude", "baseLongitude"
       FROM "provider_profiles"
       WHERE "availabilityStatus" = 'ONLINE'
-        AND "roadsideAssistance" = true
         AND "baseLatitude" IS NOT NULL
+        AND "sosRateCard" != '{}'::jsonb
       LIMIT 200
     `;
 

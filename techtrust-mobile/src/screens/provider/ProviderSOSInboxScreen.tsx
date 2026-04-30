@@ -92,16 +92,18 @@ export default function ProviderSOSInboxScreen({ navigation }: any) {
     try {
       // Get location
       const { status } = await Location.requestForegroundPermissionsAsync();
+      let newLoc: { lat: number; lng: number } | null = null;
       if (status === "granted") {
         const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-        setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        newLoc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setLocation(newLoc);
       }
       // Load availability + requests
       const res = await api.get("/sos/rate-card");
       const data = res.data?.data;
       if (data?.availabilityStatus === "ONLINE") {
         setIsOnline(true);
-        await fetchRequests(location);
+        await fetchRequests(newLoc);
         startPolling();
       } else {
         setIsOnline(false);
