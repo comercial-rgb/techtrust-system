@@ -18,109 +18,67 @@ import { colors } from "../../constants/theme";
 
 const { width } = Dimensions.get("window");
 
-interface BusinessListing {
-  id: string;
-  name: string;
-  type: "carWash" | "partsStore";
-  status: string;
-  address: string;
+interface ProviderProfile {
+  businessName: string;
+  businessType: string;
   city: string;
   state: string;
-  rating: number;
-  reviews: number;
-}
-
-interface BusinessMetrics {
-  profileViews: number;
-  directionClicks: number;
-  phoneClicks: number;
-  websiteClicks: number;
-  totalReviews: number;
+  phone: string;
   averageRating: number;
+  totalReviews: number;
+  isVerified: boolean;
+  mobileService: boolean;
+  roadsideAssistance: boolean;
+  serviceRadiusKm: number;
+  completedServices: number;
+  pendingRequests: number;
 }
 
 export default function ProviderBusinessScreen({ navigation }: any) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [listings, setListings] = useState<BusinessListing[]>([]);
-  const [metrics, setMetrics] = useState<BusinessMetrics | null>(null);
-  const [activeListing, setActiveListing] = useState<string | null>(null);
+  const [profile, setProfile] = useState<ProviderProfile | null>(null);
 
   const loadData = useCallback(async () => {
     try {
-      const allListings: BusinessListing[] = [];
+      const [profileRes, statsRes] = await Promise.allSettled([
+        api.get("/providers/profile"),
+        api.get("/providers/stats").catch(() => ({ data: null })),
+      ]);
 
-      // Load car washes
-      try {
-        const cwRes = await api.get("/car-wash/provider/my-car-washes");
-        const cws = cwRes.data?.data || [];
-        for (const cw of cws) {
-          allListings.push({
-            id: cw.id,
-            name: cw.businessName,
-            type: "carWash",
-            status: cw.status,
-            address: cw.address,
-            city: cw.city,
-            state: cw.state,
-            rating: Number(cw.averageRating) || 0,
-            reviews: cw.totalReviews || 0,
-          });
-        }
-      } catch {}
+      const p =
+        profileRes.status === "fulfilled"
+          ? profileRes.value.data?.data ?? profileRes.value.data ?? {}
+          : {};
 
-      // Load parts stores
-      try {
-        const psRes = await api.get("/parts-store/provider/my-stores");
-        const stores = psRes.data?.data || [];
-        for (const s of stores) {
-          allListings.push({
-            id: s.id,
-            name: s.storeName,
-            type: "partsStore",
-            status: s.isActive ? "ACTIVE" : "PENDING",
-            address: s.address || "",
-            city: s.city || "",
-            state: s.state || "",
-            rating: Number(s.averageRating) || 0,
-            reviews: s.totalReviews || 0,
-          });
-        }
-      } catch {}
+      const s =
+        statsRes.status === "fulfilled" && (statsRes.value as any).data
+          ? (statsRes.value as any).data?.data ?? (statsRes.value as any).data
+          : {};
 
-      setListings(allListings);
-
-      // Load metrics for first listing
-      if (allListings.length > 0) {
-        const first = allListings[0];
-        setActiveListing(first.id);
-        try {
-          const endpoint =
-            first.type === "carWash"
-              ? `/car-wash/provider/${first.id}/dashboard`
-              : `/parts-store/provider/${first.id}/dashboard`;
-          const mRes = await api.get(endpoint);
-          if (mRes.data?.data) {
-            const d = mRes.data.data;
-            setMetrics({
-              profileViews: d.totalProfileViews || 0,
-              directionClicks: d.totalDirectionClicks || 0,
-              phoneClicks: d.totalPhoneCalls || 0,
-              websiteClicks: d.totalWebsiteClicks || 0,
-              totalReviews: d.totalReviews || 0,
-              averageRating: Number(d.averageRating) || 0,
-            });
-          }
-        } catch {}
-      }
+      setProfile({
+        businessName: p.businessName || p.name || user?.fullName || "My Shop",
+        businessType: p.businessType || "Auto Repair",
+        city: p.city || "",
+        state: p.state || "",
+        phone: p.phone || "",
+        averageRating: Number(p.averageRating) || 0,
+        totalReviews: Number(p.totalReviews) || 0,
+        isVerified: !!p.isVerified || !!p.verifiedAt,
+        mobileService: !!p.mobileService,
+        roadsideAssistance: !!p.roadsideAssistance,
+        serviceRadiusKm: Number(p.serviceRadiusKm) || 0,
+        completedServices: Number(s.completedServices ?? s.totalCompleted) || 0,
+        pendingRequests: Number(s.pendingRequests ?? s.totalPending) || 0,
+      });
     } catch (error) {
       console.error("Error loading business data:", error);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     loadData();
@@ -131,17 +89,9 @@ export default function ProviderBusinessScreen({ navigation }: any) {
     loadData();
   };
 
-  const statusColor = (status: string) => {
-    switch (status) {
-      case "ACTIVE":
-        return "#10B981";
-      case "PENDING_APPROVAL":
-      case "PENDING":
-        return "#F59E0B";
-      default:
-        return "#9CA3AF";
-    }
-  };
+  const radiusMiles = profile
+    ? Math.round(profile.serviceRadiusKm / 1.60934)
+    : 0;
 
   if (loading) {
     return (
@@ -165,148 +115,142 @@ export default function ProviderBusinessScreen({ navigation }: any) {
         <View style={styles.header}>
           <Text style={styles.headerTitle}>My Business</Text>
           <Text style={styles.headerSubtitle}>
-            Manage your listings and track performance
+            Manage your profile and track performance
           </Text>
         </View>
 
-        {/* Metrics Cards */}
-        {metrics && (
+        {/* Stats cards */}
+        {profile && (
           <View style={styles.metricsGrid}>
-            <View style={styles.metricCard}>
-              <Ionicons name="eye-outline" size={20} color="#3B82F6" />
-              <Text style={styles.metricValue}>{metrics.profileViews}</Text>
-              <Text style={styles.metricLabel}>Views</Text>
-            </View>
-            <View style={styles.metricCard}>
-              <Ionicons name="navigate-outline" size={20} color="#10B981" />
-              <Text style={styles.metricValue}>{metrics.directionClicks}</Text>
-              <Text style={styles.metricLabel}>Routes</Text>
-            </View>
-            <View style={styles.metricCard}>
-              <Ionicons name="call-outline" size={20} color="#F59E0B" />
-              <Text style={styles.metricValue}>{metrics.phoneClicks}</Text>
-              <Text style={styles.metricLabel}>Calls</Text>
-            </View>
             <View style={styles.metricCard}>
               <Ionicons name="star" size={20} color="#EAB308" />
               <Text style={styles.metricValue}>
-                {metrics.averageRating.toFixed(1)}
+                {profile.averageRating > 0
+                  ? profile.averageRating.toFixed(1)
+                  : "—"}
               </Text>
               <Text style={styles.metricLabel}>
-                {metrics.totalReviews} reviews
+                {profile.totalReviews} reviews
               </Text>
+            </View>
+            <View style={styles.metricCard}>
+              <Ionicons name="checkmark-circle-outline" size={20} color="#10B981" />
+              <Text style={styles.metricValue}>{profile.completedServices}</Text>
+              <Text style={styles.metricLabel}>Completed</Text>
+            </View>
+            <View style={styles.metricCard}>
+              <Ionicons name="time-outline" size={20} color="#F59E0B" />
+              <Text style={styles.metricValue}>{profile.pendingRequests}</Text>
+              <Text style={styles.metricLabel}>Pending</Text>
+            </View>
+            <View style={styles.metricCard}>
+              <Ionicons name="navigate-circle-outline" size={20} color="#3B82F6" />
+              <Text style={styles.metricValue}>
+                {radiusMiles > 0 ? `${radiusMiles}mi` : "—"}
+              </Text>
+              <Text style={styles.metricLabel}>Radius</Text>
             </View>
           </View>
         )}
 
-        {/* Listings */}
-        <Text style={styles.sectionTitle}>Your Listings</Text>
+        {/* Business Profile card */}
+        <Text style={styles.sectionTitle}>Your Business Profile</Text>
 
-        {listings.length === 0 ? (
+        {!profile?.businessName ? (
           <View style={styles.emptyCard}>
             <MaterialCommunityIcons
-              name="store-outline"
+              name="wrench-outline"
               size={48}
               color="#D1D5DB"
             />
-            <Text style={styles.emptyText}>No business listings yet</Text>
+            <Text style={styles.emptyText}>Complete your profile</Text>
             <Text style={styles.emptySubtext}>
-              Register your car wash or auto parts store on the web dashboard
+              Add your shop details so customers can find and contact you
             </Text>
+            <TouchableOpacity
+              style={styles.setupButton}
+              onPress={() => navigation.navigate("EditProfile")}
+            >
+              <Text style={styles.setupButtonText}>Set Up Profile</Text>
+            </TouchableOpacity>
           </View>
         ) : (
-          listings.map((listing) => (
-            <TouchableOpacity
-              key={listing.id}
-              style={[
-                styles.listingCard,
-                activeListing === listing.id && styles.listingCardActive,
-              ]}
-              onPress={() => {
-                setActiveListing(listing.id);
-                // Reload metrics for this listing
-                const endpoint =
-                  listing.type === "carWash"
-                    ? `/car-wash/provider/${listing.id}/dashboard`
-                    : `/parts-store/provider/${listing.id}/dashboard`;
-                api
-                  .get(endpoint)
-                  .then((res) => {
-                    if (res.data?.data) {
-                      const d = res.data.data;
-                      setMetrics({
-                        profileViews: d.totalProfileViews || 0,
-                        directionClicks: d.totalDirectionClicks || 0,
-                        phoneClicks: d.totalPhoneCalls || 0,
-                        websiteClicks: d.totalWebsiteClicks || 0,
-                        totalReviews: d.totalReviews || 0,
-                        averageRating: Number(d.averageRating) || 0,
-                      });
-                    }
-                  })
-                  .catch(() => {});
-              }}
-            >
-              <View style={styles.listingHeader}>
-                <View style={styles.listingTypeContainer}>
-                  <MaterialCommunityIcons
-                    name={
-                      listing.type === "carWash" ? "car-wash" : "car-cog"
-                    }
-                    size={20}
-                    color={
-                      listing.type === "carWash" ? "#3B82F6" : "#F97316"
-                    }
-                  />
-                  <Text style={styles.listingType}>
-                    {listing.type === "carWash" ? "Car Wash" : "Auto Parts"}
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.statusBadge,
-                    { backgroundColor: statusColor(listing.status) + "20" },
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.statusDot,
-                      { backgroundColor: statusColor(listing.status) },
-                    ]}
-                  />
-                  <Text
-                    style={[
-                      styles.statusText,
-                      { color: statusColor(listing.status) },
-                    ]}
-                  >
-                    {listing.status.replace(/_/g, " ")}
-                  </Text>
-                </View>
+          <View style={styles.profileCard}>
+            {/* Business name + verification badge */}
+            <View style={styles.profileHeader}>
+              <View style={styles.profileIconContainer}>
+                <MaterialCommunityIcons
+                  name="car-wrench"
+                  size={24}
+                  color={colors.primary}
+                />
               </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.profileName}>{profile.businessName}</Text>
+                <Text style={styles.profileType}>Auto Repair Shop</Text>
+              </View>
+              {profile.isVerified && (
+                <View style={styles.verifiedBadge}>
+                  <MaterialCommunityIcons
+                    name="check-decagram"
+                    size={16}
+                    color="#fff"
+                  />
+                  <Text style={styles.verifiedText}>Verified</Text>
+                </View>
+              )}
+            </View>
 
-              <Text style={styles.listingName}>{listing.name}</Text>
-
-              <View style={styles.listingInfo}>
-                <Ionicons name="location-outline" size={14} color="#9CA3AF" />
-                <Text style={styles.listingAddress}>
-                  {listing.city}, {listing.state}
+            {/* Location */}
+            {(profile.city || profile.state) && (
+              <View style={styles.profileInfoRow}>
+                <Ionicons name="location-outline" size={15} color="#9CA3AF" />
+                <Text style={styles.profileInfoText}>
+                  {[profile.city, profile.state].filter(Boolean).join(", ")}
                 </Text>
               </View>
+            )}
 
-              <View style={styles.listingFooter}>
-                <View style={styles.ratingContainer}>
-                  <Ionicons name="star" size={14} color="#EAB308" />
-                  <Text style={styles.ratingText}>
-                    {listing.rating.toFixed(1)}
-                  </Text>
-                  <Text style={styles.reviewCount}>
-                    ({listing.reviews})
+            {/* Phone */}
+            {profile.phone ? (
+              <View style={styles.profileInfoRow}>
+                <Ionicons name="call-outline" size={15} color="#9CA3AF" />
+                <Text style={styles.profileInfoText}>{profile.phone}</Text>
+              </View>
+            ) : null}
+
+            {/* Services tags */}
+            <View style={styles.tagsRow}>
+              {profile.mobileService && (
+                <View style={styles.tag}>
+                  <MaterialCommunityIcons name="car-arrow-right" size={13} color="#2B5EA7" />
+                  <Text style={styles.tagText}>Mobile Service</Text>
+                </View>
+              )}
+              {profile.roadsideAssistance && (
+                <View style={[styles.tag, { backgroundColor: "#FEF2F2" }]}>
+                  <MaterialCommunityIcons name="alert-circle-outline" size={13} color="#DC2626" />
+                  <Text style={[styles.tagText, { color: "#DC2626" }]}>Roadside SOS</Text>
+                </View>
+              )}
+              {radiusMiles > 0 && (
+                <View style={[styles.tag, { backgroundColor: "#F0FDF4" }]}>
+                  <MaterialCommunityIcons name="map-marker-radius-outline" size={13} color="#16A34A" />
+                  <Text style={[styles.tagText, { color: "#16A34A" }]}>
+                    {radiusMiles} mi radius
                   </Text>
                 </View>
-              </View>
+              )}
+            </View>
+
+            <TouchableOpacity
+              style={styles.editProfileButton}
+              onPress={() => navigation.navigate("EditProfile")}
+            >
+              <Ionicons name="create-outline" size={16} color={colors.primary} />
+              <Text style={styles.editProfileText}>Edit Profile</Text>
             </TouchableOpacity>
-          ))
+          </View>
         )}
 
         {/* Quick Actions */}
@@ -351,20 +295,45 @@ export default function ProviderBusinessScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
 
-        {/* Plan CTA */}
-        <View style={styles.planCard}>
-          <View style={styles.planCardContent}>
-            <Text style={styles.planTitle}>Listing Plan</Text>
-            <Text style={styles.planDesc}>
-              Upgrade your plan on the web dashboard for featured listing, priority search, and advanced analytics.
-            </Text>
+        {/* Compliance / Verification CTA */}
+        {!profile?.isVerified && (
+          <TouchableOpacity
+            style={styles.planCard}
+            onPress={() => navigation.navigate("Compliance")}
+          >
+            <View style={styles.planCardContent}>
+              <Text style={styles.planTitle}>Get Verified</Text>
+              <Text style={styles.planDesc}>
+                Upload your license and insurance to earn the Verified Business
+                badge and rank higher in customer searches.
+              </Text>
+            </View>
+            <MaterialCommunityIcons
+              name="shield-check-outline"
+              size={32}
+              color="#F59E0B"
+            />
+          </TouchableOpacity>
+        )}
+
+        {profile?.isVerified && (
+          <View style={[styles.planCard, { backgroundColor: "#F0FDF4", borderColor: "#BBF7D0" }]}>
+            <View style={styles.planCardContent}>
+              <Text style={[styles.planTitle, { color: "#166534" }]}>
+                Verified Business
+              </Text>
+              <Text style={[styles.planDesc, { color: "#15803D" }]}>
+                Your business is verified. Customers see your Verified badge in
+                search results, boosting trust and acceptance rates.
+              </Text>
+            </View>
+            <MaterialCommunityIcons
+              name="shield-check"
+              size={32}
+              color="#16A34A"
+            />
           </View>
-          <MaterialCommunityIcons
-            name="crown"
-            size={32}
-            color="#F59E0B"
-          />
-        </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -412,15 +381,16 @@ const styles = StyleSheet.create({
     borderColor: "#F3F4F6",
   },
   metricValue: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "700",
     color: "#111827",
     marginTop: 4,
   },
   metricLabel: {
-    fontSize: 11,
+    fontSize: 10,
     color: "#9CA3AF",
     marginTop: 2,
+    textAlign: "center",
   },
   sectionTitle: {
     fontSize: 16,
@@ -448,86 +418,112 @@ const styles = StyleSheet.create({
     color: "#9CA3AF",
     textAlign: "center",
     marginTop: 6,
+    lineHeight: 20,
   },
-  listingCard: {
+  setupButton: {
+    marginTop: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+  },
+  setupButtonText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  profileCard: {
     backgroundColor: "#fff",
     borderRadius: 16,
     padding: 16,
-    marginBottom: 12,
+    marginBottom: 24,
     borderWidth: 1,
     borderColor: "#F3F4F6",
   },
-  listingCardActive: {
-    borderColor: colors.primary,
-    borderWidth: 2,
-  },
-  listingHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  listingTypeContainer: {
+  profileHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 12,
+    marginBottom: 12,
   },
-  listingType: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#6B7280",
-  },
-  statusBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+  profileIconContainer: {
+    width: 44,
+    height: 44,
     borderRadius: 12,
-    gap: 4,
+    backgroundColor: "#EFF6FF",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: "600",
-  },
-  listingName: {
+  profileName: {
     fontSize: 17,
     fontWeight: "700",
     color: "#111827",
+  },
+  profileType: {
+    fontSize: 12,
+    color: "#6B7280",
+    marginTop: 2,
+  },
+  verifiedBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#10B981",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+  verifiedText: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  profileInfoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
     marginBottom: 6,
   },
-  listingInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    marginBottom: 8,
-  },
-  listingAddress: {
+  profileInfoText: {
     fontSize: 13,
-    color: "#9CA3AF",
+    color: "#6B7280",
   },
-  listingFooter: {
+  tagsRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 4,
+    marginBottom: 14,
   },
-  ratingContainer: {
+  tag: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
+    backgroundColor: "#EFF6FF",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
   },
-  ratingText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#111827",
-  },
-  reviewCount: {
+  tagText: {
     fontSize: 12,
-    color: "#9CA3AF",
+    fontWeight: "500",
+    color: "#2B5EA7",
+  },
+  editProfileButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.primary + "40",
+    backgroundColor: colors.primary + "08",
+  },
+  editProfileText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: colors.primary,
   },
   actionsGrid: {
     flexDirection: "row",
