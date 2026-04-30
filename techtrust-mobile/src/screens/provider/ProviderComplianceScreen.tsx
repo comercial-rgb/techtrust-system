@@ -25,6 +25,7 @@ import {
   COMPLIANCE_TYPE_LABELS,
   INSURANCE_TYPE_LABELS,
   autoCreateComplianceItems,
+  upsertComplianceItem,
   ComplianceItem,
   InsurancePolicy,
   InsuranceRequirement,
@@ -74,65 +75,52 @@ export default function ProviderComplianceScreen({ navigation }: any) {
     }, [fetchData]),
   );
 
-  const handleAutoCreate = async () => {
+  // D17 — FL-specific requirements (UI preview; backend rule engine creates the actual items)
+  const FLORIDA_REQUIREMENTS = [
+    { type: 'FDACS_MOTOR_VEHICLE_REPAIR', name: 'FDACS Motor Vehicle Repair License', required: true, icon: 'shield' },
+    { type: 'LOCAL_BTR_COUNTY',           name: 'Business Tax Receipt (BTR)',          required: true, icon: 'document-text' },
+    { type: 'WORKERS_COMP',               name: 'Workers Compensation',                required: false, icon: 'people' },
+    { type: 'EPA_609_TECHNICIAN',         name: 'EPA Section 608/609 Certification',   required: false, icon: 'leaf' },
+    { type: 'ASE_CERTIFICATION',          name: 'ASE Certification',                   required: false, icon: 'ribbon' },
+  ];
+
+  const isFloridaProvider = jurisdiction?.stateCode === 'FL' || jurisdiction?.stateName?.toLowerCase().includes('florida');
+
+  // Attempt auto-create then refresh; if it fails still refresh in case something was partially created
+  const handleManageCompliance = async () => {
+    if (complianceItems.length > 0) return; // items already exist, nothing to auto-create
     try {
       setLoading(true);
       await autoCreateComplianceItems();
       await fetchData();
-      Alert.alert("Success", "Required compliance items created.");
-    } catch (error: any) {
-      Alert.alert(
-        "Error",
-        error?.response?.data?.message || "Failed to create compliance items",
-      );
+    } catch {
+      await fetchData().catch(() => {});
+      if (complianceItems.length === 0) {
+        Alert.alert(
+          "Setup Required",
+          "Could not auto-generate items. Make sure your address is saved in Edit Profile, then try again.",
+        );
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  // D17 — FL-specific auto-create with state-specific requirements
-  const FLORIDA_REQUIREMENTS = [
-    { type: 'FDACS_MOTOR_VEHICLE_REPAIR', name: 'FDACS Motor Vehicle Repair License', required: true, icon: 'shield' },
-    { type: 'BUSINESS_TAX_RECEIPT', name: 'Business Tax Receipt (BTR)', required: true, icon: 'document-text' },
-    { type: 'GENERAL_LIABILITY', name: 'General Liability Insurance', required: true, icon: 'shield-checkmark' },
-    { type: 'GARAGE_KEEPERS', name: 'Garage Keepers Insurance', required: true, icon: 'car' },
-    { type: 'WORKERS_COMP', name: 'Workers Compensation', required: false, icon: 'people' },
-    { type: 'EPA_608_609', name: 'EPA Section 608/609 Certification', required: false, icon: 'leaf' },
-    { type: 'ASE_CERTIFICATION', name: 'ASE Certification', required: false, icon: 'ribbon' },
-    { type: 'SALES_TAX_CERTIFICATE', name: 'FL Sales Tax Certificate', required: true, icon: 'receipt' },
-  ];
-
-  const isFloridaProvider = jurisdiction?.stateCode === 'FL' || jurisdiction?.stateName?.toLowerCase().includes('florida');
-
-  const handleFloridaAutoCreate = async () => {
-    Alert.alert(
-      'Florida Compliance Setup',
-      'This will create all required compliance items for Florida automotive service providers:\n\n' +
-      '• FDACS MV Repair License\n' +
-      '• Business Tax Receipt\n' +
-      '• GL Insurance ($1M min)\n' +
-      '• Garage Keepers Insurance\n' +
-      '• Sales Tax Certificate\n\n' +
-      'Optional: Workers Comp, EPA 608/609, ASE',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Create All',
-          onPress: async () => {
-            try {
-              setLoading(true);
-              await autoCreateComplianceItems();
-              await fetchData();
-              Alert.alert('Success', 'Florida compliance items created. Please upload required documents for each item.');
-            } catch (error: any) {
-              Alert.alert('Error', error?.response?.data?.message || 'Failed to create compliance items');
-            } finally {
-              setLoading(false);
-            }
-          },
-        },
-      ]
-    );
+  // Create a single FL requirement item and navigate to upload screen
+  const handleAddFlItem = async (type: string) => {
+    try {
+      setLoading(true);
+      const result = await upsertComplianceItem({ type });
+      const item = result?.data || result;
+      await fetchData();
+      if (item?.id) {
+        navigation.navigate("ComplianceItemDetail", { item });
+      }
+    } catch {
+      Alert.alert("Error", "Could not create compliance item. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -263,53 +251,58 @@ export default function ProviderComplianceScreen({ navigation }: any) {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Compliance Items</Text>
-            {complianceItems.length === 0 && (
-              <TouchableOpacity
-                style={styles.autoCreateBtn}
-                onPress={isFloridaProvider ? handleFloridaAutoCreate : handleAutoCreate}
-              >
-                <Ionicons name="add-circle" size={18} color="#2B5EA7" />
-                <Text style={styles.autoCreateText}>
-                  {isFloridaProvider ? 'FL Auto-Create' : 'Auto-Create'}
-                </Text>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity
+              style={styles.manageBtn}
+              onPress={handleManageCompliance}
+            >
+              <Text style={styles.manageBtnText}>
+                {complianceItems.length === 0 ? "Set Up" : "Manage"}
+              </Text>
+              <Ionicons name="chevron-forward" size={16} color="#2B5EA7" />
+            </TouchableOpacity>
           </View>
 
           {complianceItems.length === 0 ? (
             <View>
               {isFloridaProvider && (
                 <View style={styles.flRequirementsCard}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 8 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4, gap: 8 }}>
                     <Ionicons name="flag" size={18} color="#2B5EA7" />
                     <Text style={{ fontSize: 15, fontWeight: '700', color: '#2B5EA7' }}>Florida Requirements</Text>
                   </View>
+                  <Text style={{ fontSize: 12, color: '#6b7280', marginBottom: 12 }}>
+                    Tap each item to upload your documents
+                  </Text>
                   {FLORIDA_REQUIREMENTS.map((req) => (
-                    <View key={req.type} style={styles.flReqItem}>
+                    <TouchableOpacity
+                      key={req.type}
+                      style={styles.flReqItem}
+                      onPress={() => handleAddFlItem(req.type)}
+                    >
                       <Ionicons name={req.icon as any} size={16} color={req.required ? '#dc2626' : '#6b7280'} />
                       <Text style={[styles.flReqText, !req.required && { color: '#9ca3af' }]}>
                         {req.name}
                       </Text>
-                      {req.required && (
+                      {req.required ? (
                         <View style={{ backgroundColor: '#fef2f2', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
                           <Text style={{ fontSize: 10, color: '#dc2626', fontWeight: '600' }}>Required</Text>
                         </View>
+                      ) : (
+                        <Ionicons name="add-circle-outline" size={16} color="#9ca3af" />
                       )}
-                    </View>
+                    </TouchableOpacity>
                   ))}
                 </View>
               )}
               <View style={styles.emptyCard}>
-              <Ionicons
-                name="document-text-outline"
-                size={32}
-                color="#9ca3af"
-              />
-              <Text style={styles.emptyText}>No compliance items yet</Text>
-              <Text style={styles.emptySubtext}>
-                Tap Auto-Create to generate required items
-              </Text>
-            </View>
+                <Ionicons name="document-text-outline" size={32} color="#9ca3af" />
+                <Text style={styles.emptyText}>No compliance items yet</Text>
+                <Text style={styles.emptySubtext}>
+                  {isFloridaProvider
+                    ? "Tap a requirement above to upload documents, or use Set Up to generate all items at once"
+                    : "Tap Set Up to generate required items for your location"}
+                </Text>
+              </View>
             </View>
           ) : (
             complianceItems.map((item) => (

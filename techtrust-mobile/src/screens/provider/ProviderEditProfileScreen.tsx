@@ -378,24 +378,35 @@ export default function ProviderEditProfileScreen({ navigation }: any) {
         </View>
 
         {/* Verification Status */}
-        <View style={styles.verificationCard}>
-          <View style={styles.verificationIcon}>
-            <MaterialCommunityIcons
-              name="check-decagram"
-              size={24}
-              color="#10b981"
-            />
+        {user?.providerProfile?.isVerified ? (
+          <View style={styles.verificationCard}>
+            <View style={styles.verificationIcon}>
+              <MaterialCommunityIcons name="check-decagram" size={24} color="#10b981" />
+            </View>
+            <View style={styles.verificationInfo}>
+              <Text style={styles.verificationTitle}>
+                {t.provider?.verifiedAccount || "Verified Account"}
+              </Text>
+              <Text style={styles.verificationSubtitle}>
+                {t.provider?.verifiedDescription || "Your business has been verified and is ready to receive orders"}
+              </Text>
+            </View>
           </View>
-          <View style={styles.verificationInfo}>
-            <Text style={styles.verificationTitle}>
-              {t.provider?.verifiedAccount || "Verified Account"}
-            </Text>
-            <Text style={styles.verificationSubtitle}>
-              {t.provider?.verifiedDescription ||
-                "Your business has been verified and is ready to receive orders"}
-            </Text>
+        ) : (
+          <View style={[styles.verificationCard, { backgroundColor: "#fffbeb" }]}>
+            <View style={[styles.verificationIcon, { backgroundColor: "#fff" }]}>
+              <MaterialCommunityIcons name="clock-outline" size={24} color="#d97706" />
+            </View>
+            <View style={styles.verificationInfo}>
+              <Text style={[styles.verificationTitle, { color: "#92400e" }]}>
+                {t.provider?.underReview || "Under Review"}
+              </Text>
+              <Text style={[styles.verificationSubtitle, { color: "#b45309" }]}>
+                {t.provider?.underReviewDescription || "Documents are being reviewed. Verification takes 1–2 business days."}
+              </Text>
+            </View>
           </View>
-        </View>
+        )}
 
         <View style={{ height: 100 }} />
       </ScrollView>
