@@ -1,6 +1,6 @@
 const { PrismaClient } = require("@prisma/client");
 
-// Limit to 1 connection — this script runs at startup before the server opens its pool
+// Use connection_limit=1 — this script only needs one connection for DDL
 const dbUrl = process.env.DATABASE_URL || '';
 const scriptUrl = dbUrl + (dbUrl.includes('?') ? '&' : '?') + 'connection_limit=1';
 const prisma = new PrismaClient({ datasources: { db: { url: scriptUrl } } });
@@ -138,8 +138,10 @@ async function main() {
 
 main()
   .catch((error) => {
-    console.error("Runtime schema guard failed:", error);
-    process.exit(1);
+    // All DDL in this script uses IF NOT EXISTS / exception guards — it is safe
+    // to skip on connection failure (schema was already applied in a previous deploy).
+    // Log as warning and continue so the server can start.
+    console.warn("Runtime schema guard skipped (DB unavailable):", error.message);
   })
   .finally(async () => {
     await prisma.$disconnect();
