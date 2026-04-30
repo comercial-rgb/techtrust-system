@@ -1,8 +1,4 @@
-/**
- * ProviderWorkingHoursScreen - Horários de Funcionamento
- */
-
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,10 +7,14 @@ import {
   TouchableOpacity,
   Switch,
   Alert,
+  Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useI18n } from '../../i18n';
+import { useFocusEffect } from '@react-navigation/native';
+import api from '../../services/api';
 
 interface DaySchedule {
   day: string;
@@ -22,43 +22,109 @@ interface DaySchedule {
   enabled: boolean;
   openTime: string;
   closeTime: string;
-  hasLunchBreak: boolean;
-  lunchStart?: string;
-  lunchEnd?: string;
 }
+
+const DEFAULT_SCHEDULE: DaySchedule[] = [
+  { day: 'Monday',    dayShort: 'Mon', enabled: true,  openTime: '08:00', closeTime: '18:00' },
+  { day: 'Tuesday',   dayShort: 'Tue', enabled: true,  openTime: '08:00', closeTime: '18:00' },
+  { day: 'Wednesday', dayShort: 'Wed', enabled: true,  openTime: '08:00', closeTime: '18:00' },
+  { day: 'Thursday',  dayShort: 'Thu', enabled: true,  openTime: '08:00', closeTime: '18:00' },
+  { day: 'Friday',    dayShort: 'Fri', enabled: true,  openTime: '08:00', closeTime: '18:00' },
+  { day: 'Saturday',  dayShort: 'Sat', enabled: true,  openTime: '08:00', closeTime: '12:00' },
+  { day: 'Sunday',    dayShort: 'Sun', enabled: false,  openTime: '09:00', closeTime: '13:00' },
+];
+
+const TIME_OPTIONS = [
+  '06:00','07:00','08:00','09:00','10:00','11:00','12:00',
+  '13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00','22:00',
+];
+
+const to12h = (time: string): string => {
+  const [hStr, mStr] = time.split(':');
+  const h = parseInt(hStr, 10);
+  const ampm = h < 12 ? 'AM' : 'PM';
+  const hour = h % 12 || 12;
+  return `${hour}:${mStr} ${ampm}`;
+};
 
 export default function ProviderWorkingHoursScreen({ navigation }: any) {
   const { t } = useI18n();
-  const [schedule, setSchedule] = useState<DaySchedule[]>([
-    { day: 'Monday', dayShort: 'Mon', enabled: true, openTime: '08:00', closeTime: '18:00', hasLunchBreak: true, lunchStart: '12:00', lunchEnd: '13:00' },
-    { day: 'Tuesday', dayShort: 'Tue', enabled: true, openTime: '08:00', closeTime: '18:00', hasLunchBreak: true, lunchStart: '12:00', lunchEnd: '13:00' },
-    { day: 'Wednesday', dayShort: 'Wed', enabled: true, openTime: '08:00', closeTime: '18:00', hasLunchBreak: true, lunchStart: '12:00', lunchEnd: '13:00' },
-    { day: 'Thursday', dayShort: 'Thu', enabled: true, openTime: '08:00', closeTime: '18:00', hasLunchBreak: true, lunchStart: '12:00', lunchEnd: '13:00' },
-    { day: 'Friday', dayShort: 'Fri', enabled: true, openTime: '08:00', closeTime: '18:00', hasLunchBreak: true, lunchStart: '12:00', lunchEnd: '13:00' },
-    { day: 'Saturday', dayShort: 'Sat', enabled: true, openTime: '08:00', closeTime: '12:00', hasLunchBreak: false },
-    { day: 'Sunday', dayShort: 'Sun', enabled: false, openTime: '09:00', closeTime: '13:00', hasLunchBreak: false },
-  ]);
-
+  const [schedule, setSchedule] = useState<DaySchedule[]>(DEFAULT_SCHEDULE);
   const [is24Hours, setIs24Hours] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [editingDay, setEditingDay] = useState<number | null>(null);
+  const [editingField, setEditingField] = useState<'openTime' | 'closeTime'>('openTime');
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
-  const toggleDay = (index: number) => {
-    const newSchedule = [...schedule];
-    newSchedule[index].enabled = !newSchedule[index].enabled;
-    setSchedule(newSchedule);
+  useFocusEffect(useCallback(() => {
+    loadHours();
+  }, []));
+
+  const loadHours = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/providers/profile');
+      const hours = res.data?.data?.businessHours || {};
+      const parsed = DEFAULT_SCHEDULE.map(day => {
+        const saved = hours[day.day] || hours[day.day.toLowerCase()];
+        if (!saved) return day;
+        return {
+          ...day,
+          enabled: saved.enabled !== undefined ? !!saved.enabled : !saved.closed,
+          openTime: saved.openTime || saved.open || day.openTime,
+          closeTime: saved.closeTime || saved.close || day.closeTime,
+        };
+      });
+      setSchedule(parsed);
+    } catch {
+      // keep defaults on error
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const timeOptions = [
-    '06:00', '07:00', '08:00', '09:00', '10:00', '11:00', '12:00',
-    '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00',
-    '20:00', '21:00', '22:00', '23:00', '00:00',
-  ];
+  const toggleDay = (index: number) => {
+    const s = [...schedule];
+    s[index] = { ...s[index], enabled: !s[index].enabled };
+    setSchedule(s);
+  };
 
-  const handleSave = () => {
-    Alert.alert(t.common?.success || 'Success', t.provider?.hoursUpdated || 'Hours updated successfully!');
-    navigation.goBack();
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const businessHours = schedule.reduce((acc, d) => {
+        acc[d.day] = { enabled: d.enabled, openTime: d.openTime, closeTime: d.closeTime };
+        return acc;
+      }, {} as Record<string, any>);
+      await api.patch('/providers/profile', { businessHours });
+      Alert.alert(t.common?.success || 'Success', t.provider?.hoursUpdated || 'Hours updated successfully!');
+      navigation.goBack();
+    } catch {
+      Alert.alert('Error', 'Could not save hours. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const workingDaysCount = schedule.filter(s => s.enabled).length;
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <MaterialCommunityIcons name="arrow-left" size={24} color="#111827" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{t.provider?.workingHours || 'Hours'}</Text>
+          <View style={{ width: 48 }} />
+        </View>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#2B5EA7" />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -68,8 +134,11 @@ export default function ProviderWorkingHoursScreen({ navigation }: any) {
           <MaterialCommunityIcons name="arrow-left" size={24} color="#111827" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t.provider?.workingHours || 'Hours'}</Text>
-        <TouchableOpacity onPress={handleSave}>
-          <Text style={styles.saveBtn}>{t.common?.save || 'Save'}</Text>
+        <TouchableOpacity onPress={handleSave} disabled={saving} style={styles.backBtn}>
+          {saving
+            ? <ActivityIndicator size="small" color="#2B5EA7" />
+            : <Text style={styles.saveBtn}>{t.common?.save || 'Save'}</Text>
+          }
         </TouchableOpacity>
       </View>
 
@@ -109,38 +178,31 @@ export default function ProviderWorkingHoursScreen({ navigation }: any) {
         {/* Schedule */}
         <View style={styles.scheduleSection}>
           <Text style={styles.sectionTitle}>{t.provider?.scheduleByDay || 'Schedule by Day'}</Text>
-          
+
           {schedule.map((day, index) => (
             <View key={day.day} style={styles.dayCard}>
               <View style={styles.dayHeader}>
-                <TouchableOpacity 
-                  style={styles.dayToggle}
-                  onPress={() => toggleDay(index)}
-                >
-                  <View style={[
-                    styles.dayCheckbox,
-                    day.enabled && styles.dayCheckboxActive,
-                  ]}>
-                    {day.enabled && (
-                      <MaterialCommunityIcons name="check" size={16} color="#fff" />
-                    )}
+                <TouchableOpacity style={styles.dayToggle} onPress={() => toggleDay(index)}>
+                  <View style={[styles.dayCheckbox, day.enabled && styles.dayCheckboxActive]}>
+                    {day.enabled && <MaterialCommunityIcons name="check" size={16} color="#fff" />}
                   </View>
-                  <Text style={[
-                    styles.dayName,
-                    !day.enabled && styles.dayNameDisabled,
-                  ]}>
-                    {day.day}
-                  </Text>
+                  <Text style={[styles.dayName, !day.enabled && styles.dayNameDisabled]}>{day.day}</Text>
                 </TouchableOpacity>
 
                 {day.enabled && !is24Hours && (
                   <View style={styles.timeContainer}>
-                    <TouchableOpacity style={styles.timeBox}>
-                      <Text style={styles.timeText}>{day.openTime}</Text>
+                    <TouchableOpacity
+                      style={styles.timeBox}
+                      onPress={() => { setEditingDay(index); setEditingField('openTime'); setShowTimePicker(true); }}
+                    >
+                      <Text style={styles.timeText}>{to12h(day.openTime)}</Text>
                     </TouchableOpacity>
                     <Text style={styles.timeSeparator}>{t.common?.to || 'to'}</Text>
-                    <TouchableOpacity style={styles.timeBox}>
-                      <Text style={styles.timeText}>{day.closeTime}</Text>
+                    <TouchableOpacity
+                      style={styles.timeBox}
+                      onPress={() => { setEditingDay(index); setEditingField('closeTime'); setShowTimePicker(true); }}
+                    >
+                      <Text style={styles.timeText}>{to12h(day.closeTime)}</Text>
                     </TouchableOpacity>
                   </View>
                 )}
@@ -155,38 +217,8 @@ export default function ProviderWorkingHoursScreen({ navigation }: any) {
                   <Text style={styles.closedText}>{t.provider?.closed || 'Closed'}</Text>
                 )}
               </View>
-
-              {day.enabled && day.hasLunchBreak && !is24Hours && (
-                <View style={styles.lunchBreak}>
-                  <MaterialCommunityIcons name="silverware-fork-knife" size={16} color="#f59e0b" />
-                  <Text style={styles.lunchText}>
-                    {t.provider?.break || 'Break'}: {day.lunchStart} - {day.lunchEnd}
-                  </Text>
-                </View>
-              )}
             </View>
           ))}
-        </View>
-
-        {/* Holidays */}
-        <View style={styles.holidaysSection}>
-          <View style={styles.holidaysHeader}>
-            <Text style={styles.sectionTitle}>{t.provider?.holidays || 'Holidays'}</Text>
-            <TouchableOpacity>
-              <Text style={styles.manageText}>{t.common?.manage || 'Manage'}</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.holidaysBanner}>
-            <MaterialCommunityIcons name="calendar-star" size={24} color="#6b7280" />
-            <Text style={styles.holidaysText}>
-              {t.provider?.closedOnHolidays || 'Closed on national holidays'}
-            </Text>
-            <Switch
-              value={true}
-              trackColor={{ false: '#e5e7eb', true: '#93c5fd' }}
-              thumbColor="#2B5EA7"
-            />
-          </View>
         </View>
 
         {/* Info */}
@@ -199,236 +231,124 @@ export default function ProviderWorkingHoursScreen({ navigation }: any) {
 
         <View style={{ height: 100 }} />
       </ScrollView>
+
+      {/* Time Picker Modal */}
+      <Modal visible={showTimePicker} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {editingField === 'openTime' ? 'Opening Time' : 'Closing Time'}
+              </Text>
+              <TouchableOpacity onPress={() => setShowTimePicker(false)}>
+                <MaterialCommunityIcons name="close" size={24} color="#374151" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView>
+              {TIME_OPTIONS.map((opt) => {
+                const isSelected = editingDay !== null && schedule[editingDay][editingField] === opt;
+                return (
+                  <TouchableOpacity
+                    key={opt}
+                    style={[styles.modalItem, isSelected && styles.modalItemSelected]}
+                    onPress={() => {
+                      if (editingDay === null) return;
+                      const s = [...schedule];
+                      s[editingDay] = { ...s[editingDay], [editingField]: opt };
+                      setSchedule(s);
+                      setShowTimePicker(false);
+                    }}
+                  >
+                    <Text style={[styles.modalItemText, isSelected && { color: '#2B5EA7', fontWeight: '700' }]}>
+                      {to12h(opt)}
+                    </Text>
+                    {isSelected && <MaterialCommunityIcons name="check" size={18} color="#2B5EA7" />}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f8fafc',
-  },
+  container: { flex: 1, backgroundColor: '#f8fafc' },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingVertical: 12,
+    backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f3f4f6',
   },
-  backBtn: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  saveBtn: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#2B5EA7',
-    padding: 8,
-  },
+  backBtn: { padding: 8 },
+  headerTitle: { fontSize: 18, fontWeight: '600', color: '#111827' },
+  saveBtn: { fontSize: 16, fontWeight: '600', color: '#2B5EA7' },
   summaryCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#dbeafe',
-    margin: 16,
-    padding: 16,
-    borderRadius: 12,
-    gap: 12,
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#dbeafe', margin: 16, padding: 16, borderRadius: 12, gap: 12,
   },
   summaryIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 56, height: 56, borderRadius: 28,
+    backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center',
   },
-  summaryInfo: {
-    flex: 1,
-  },
-  summaryTitle: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: '#1e40af',
-  },
-  summarySubtitle: {
-    fontSize: 14,
-    color: '#3b82f6',
-    marginTop: 2,
-  },
+  summaryInfo: { flex: 1 },
+  summaryTitle: { fontSize: 17, fontWeight: '600', color: '#1e40af' },
+  summarySubtitle: { fontSize: 14, color: '#3b82f6', marginTop: 2 },
   toggleCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    marginHorizontal: 16,
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#fff', marginHorizontal: 16, padding: 16,
+    borderRadius: 12, marginBottom: 16,
   },
-  toggleInfo: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  toggleText: {
-    flex: 1,
-  },
-  toggleTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  toggleSubtitle: {
-    fontSize: 13,
-    color: '#6b7280',
-    marginTop: 2,
-  },
-  scheduleSection: {
-    padding: 16,
-    paddingTop: 0,
-  },
+  toggleInfo: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  toggleText: { flex: 1 },
+  toggleTitle: { fontSize: 15, fontWeight: '600', color: '#111827' },
+  toggleSubtitle: { fontSize: 13, color: '#6b7280', marginTop: 2 },
+  scheduleSection: { padding: 16, paddingTop: 0 },
   sectionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6b7280',
-    marginBottom: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    fontSize: 14, fontWeight: '600', color: '#6b7280',
+    marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5,
   },
-  dayCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 8,
-  },
-  dayHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  dayToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
+  dayCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 8 },
+  dayHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  dayToggle: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   dayCheckbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: '#d1d5db',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 24, height: 24, borderRadius: 6,
+    borderWidth: 2, borderColor: '#d1d5db', justifyContent: 'center', alignItems: 'center',
   },
-  dayCheckboxActive: {
-    backgroundColor: '#2B5EA7',
-    borderColor: '#2B5EA7',
-  },
-  dayName: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#111827',
-  },
-  dayNameDisabled: {
-    color: '#9ca3af',
-  },
-  timeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  timeBox: {
-    backgroundColor: '#f3f4f6',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  timeText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#374151',
-  },
-  timeSeparator: {
-    fontSize: 14,
-    color: '#9ca3af',
-  },
-  badge24h: {
-    backgroundColor: '#dbeafe',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  badge24hText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#2B5EA7',
-  },
-  closedText: {
-    fontSize: 14,
-    color: '#9ca3af',
-    fontStyle: 'italic',
-  },
-  lunchBreak: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
-    gap: 8,
-  },
-  lunchText: {
-    fontSize: 13,
-    color: '#92400e',
-  },
-  holidaysSection: {
-    padding: 16,
-    paddingTop: 0,
-  },
-  holidaysHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  manageText: {
-    fontSize: 14,
-    color: '#2B5EA7',
-    fontWeight: '500',
-  },
-  holidaysBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    gap: 12,
-  },
-  holidaysText: {
-    flex: 1,
-    fontSize: 15,
-    color: '#374151',
-  },
+  dayCheckboxActive: { backgroundColor: '#2B5EA7', borderColor: '#2B5EA7' },
+  dayName: { fontSize: 15, fontWeight: '500', color: '#111827' },
+  dayNameDisabled: { color: '#9ca3af' },
+  timeContainer: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  timeBox: { backgroundColor: '#f3f4f6', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
+  timeText: { fontSize: 14, fontWeight: '500', color: '#374151' },
+  timeSeparator: { fontSize: 14, color: '#9ca3af' },
+  badge24h: { backgroundColor: '#dbeafe', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
+  badge24hText: { fontSize: 13, fontWeight: '600', color: '#2B5EA7' },
+  closedText: { fontSize: 14, color: '#9ca3af', fontStyle: 'italic' },
   infoBanner: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: '#dbeafe',
-    marginHorizontal: 16,
-    padding: 14,
-    borderRadius: 12,
-    gap: 10,
+    flexDirection: 'row', alignItems: 'flex-start',
+    backgroundColor: '#dbeafe', marginHorizontal: 16, padding: 14, borderRadius: 12, gap: 10,
   },
-  infoText: {
-    flex: 1,
-    fontSize: 13,
-    color: '#1e40af',
-    lineHeight: 18,
+  infoText: { flex: 1, fontSize: 13, color: '#1e40af', lineHeight: 18 },
+  // Modal
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end',
   },
+  modalSheet: {
+    backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    maxHeight: '70%',
+  },
+  modalHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    padding: 16, borderBottomWidth: 1, borderBottomColor: '#f3f4f6',
+  },
+  modalTitle: { fontSize: 17, fontWeight: '600', color: '#111827' },
+  modalItem: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 20, paddingVertical: 16,
+    borderBottomWidth: 1, borderBottomColor: '#f9fafb',
+  },
+  modalItemSelected: { backgroundColor: '#eff6ff' },
+  modalItemText: { fontSize: 16, color: '#374151' },
 });

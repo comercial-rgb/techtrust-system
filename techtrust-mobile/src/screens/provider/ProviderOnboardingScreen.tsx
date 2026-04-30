@@ -112,6 +112,14 @@ const TIME_OPTIONS = [
   "13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00","21:00","22:00",
 ];
 
+const to12h = (time: string): string => {
+  const [hStr, mStr] = time.split(":");
+  const h = parseInt(hStr, 10);
+  const ampm = h < 12 ? "AM" : "PM";
+  const hour = h % 12 || 12;
+  return `${hour}:${mStr} ${ampm}`;
+};
+
 export default function ProviderOnboardingScreen({ navigation }: any) {
   const { user, completeOnboarding } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
@@ -148,7 +156,7 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
   // ── Mobile service state ──
   const [mobileService, setMobileService] = useState(false);
   const [freeMiles, setFreeMiles] = useState(0);
-  const [feePerMile, setFeePerMile] = useState(0);
+  const [feePerMile, setFeePerMile] = useState("");
   const [mobileSaving, setMobileSaving] = useState(false);
   const [mobileDone, setMobileDone] = useState(false);
 
@@ -323,7 +331,7 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
         mobileService,
         ...(mobileService && {
           freeKm: Math.round(freeMiles * 1.60934),
-          extraFeePerKm: feePerMile,
+          extraFeePerKm: parseFloat(feePerMile) || 0,
         }),
       });
       if (user) await markStepDone(user.id, "mobile");
@@ -593,14 +601,14 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
                   style={styles.timeBtn}
                   onPress={() => { setEditingDay(index); setEditingField("openTime"); setShowTimePicker(true); }}
                 >
-                  <Text style={styles.timeBtnText}>{day.openTime}</Text>
+                  <Text style={styles.timeBtnText}>{to12h(day.openTime)}</Text>
                 </TouchableOpacity>
                 <Text style={styles.timeSep}>–</Text>
                 <TouchableOpacity
                   style={styles.timeBtn}
                   onPress={() => { setEditingDay(index); setEditingField("closeTime"); setShowTimePicker(true); }}
                 >
-                  <Text style={styles.timeBtnText}>{day.closeTime}</Text>
+                  <Text style={styles.timeBtnText}>{to12h(day.closeTime)}</Text>
                 </TouchableOpacity>
               </View>
             ) : (
@@ -647,7 +655,7 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
                       setShowTimePicker(false);
                     }}
                   >
-                    <Text style={[styles.modalItemText, isSelected && { color, fontWeight: "700" }]}>{t}</Text>
+                    <Text style={[styles.modalItemText, isSelected && { color, fontWeight: "700" }]}>{to12h(t)}</Text>
                     {isSelected && <Ionicons name="checkmark" size={18} color={color} />}
                   </TouchableOpacity>
                 );
@@ -793,8 +801,11 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
               style={styles.input}
               placeholder="e.g. 1.50"
               placeholderTextColor="#9ca3af"
-              value={feePerMile > 0 ? String(feePerMile) : ""}
-              onChangeText={(v) => setFeePerMile(parseFloat(v.replace(/[^0-9.]/g, "")) || 0)}
+              value={feePerMile}
+              onChangeText={(v) => {
+                const clean = v.replace(/[^0-9.]/g, "");
+                setFeePerMile(clean.replace(/(\..*)\./g, "$1"));
+              }}
               keyboardType="decimal-pad"
             />
             <Text style={styles.charCount}>Charge per mile after the free distance (0 = no extra fee)</Text>

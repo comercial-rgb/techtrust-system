@@ -405,7 +405,10 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
                       <TextInput
                         style={styles.feeInputText}
                         value={extraFeePerKm}
-                        onChangeText={setExtraFeePerKm}
+                        onChangeText={(v) => {
+                          const clean = v.replace(/[^0-9.]/g, "");
+                          setExtraFeePerKm(clean.replace(/(\..*)\./g, "$1"));
+                        }}
                         keyboardType="decimal-pad"
                         placeholder="0.00"
                         placeholderTextColor="#9ca3af"

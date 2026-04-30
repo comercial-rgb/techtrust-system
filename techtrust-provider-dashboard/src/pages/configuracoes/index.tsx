@@ -94,6 +94,18 @@ interface ProviderProfile {
 
 const DEFAULT_DAY: WorkDay = { open: "08:00", close: "18:00", closed: false };
 
+const TIME_OPTIONS = [
+  "06:00","07:00","08:00","09:00","10:00","11:00","12:00",
+  "13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00","21:00","22:00",
+];
+
+const to12h = (t: string): string => {
+  const [hStr, mStr] = t.split(":");
+  const h = parseInt(hStr, 10);
+  const ampm = h < 12 ? "AM" : "PM";
+  return `${h % 12 || 12}:${mStr} ${ampm}`;
+};
+
 export default function ConfiguracoesPage() {
   const { user, isAuthenticated, loading: authLoading, logout } = useAuth();
   const { translate: t } = useI18n();
@@ -634,13 +646,17 @@ export default function ConfiguracoesPage() {
                       </label>
                       {!h.closed ? (
                         <>
-                          <input type="time" value={h.open}
+                          <select value={h.open}
                             onChange={e => setProfile({...profile, workingHours: {...profile.workingHours, [dk]: {...h, open: e.target.value}}})}
-                            className="input w-32" />
+                            className="input w-36">
+                            {TIME_OPTIONS.map(opt => <option key={opt} value={opt}>{to12h(opt)}</option>)}
+                          </select>
                           <span className="text-gray-400">to</span>
-                          <input type="time" value={h.close}
+                          <select value={h.close}
                             onChange={e => setProfile({...profile, workingHours: {...profile.workingHours, [dk]: {...h, close: e.target.value}}})}
-                            className="input w-32" />
+                            className="input w-36">
+                            {TIME_OPTIONS.map(opt => <option key={opt} value={opt}>{to12h(opt)}</option>)}
+                          </select>
                         </>
                       ) : <span className="text-gray-400 italic">Closed</span>}
                     </div>
