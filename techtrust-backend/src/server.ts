@@ -307,6 +307,20 @@ httpServer.listen(PORT, async () => {
     process.exit(1);
   }
 
+  // Auto-seed multi-state compliance data if not yet present
+  try {
+    const { prisma: db } = await import("./config/database");
+    const stateCount = await db.stateProfile.count();
+    if (stateCount === 0) {
+      logger.info("🌱 No state profiles found — running multi-state seed...");
+      const { seedMultiStateCompliance } = await import("./services/compliance-seed.service");
+      await seedMultiStateCompliance();
+      logger.info("✅ Multi-state compliance seed complete");
+    }
+  } catch (error) {
+    logger.warn("⚠️ Multi-state seed check failed (non-fatal):", error);
+  }
+
   // Start compliance expiration checker
   try {
     const { scheduleExpirationCheck } =

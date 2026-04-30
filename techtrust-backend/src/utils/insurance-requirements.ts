@@ -69,8 +69,18 @@ const MOBILE_OR_LIGHT: RequirementRule[] = [
     type: "COMMERCIAL_AUTO",
     label: "Commercial Auto",
     level: "RECOMMENDED",
-    appliesTo: ["mobile mechanics", "light services", "roadside"],
+    appliesTo: ["mobile mechanics", "light services"],
     reason: "Recommended when a business vehicle is used to travel to customers.",
+  },
+];
+
+const ROADSIDE: RequirementRule[] = [
+  {
+    type: "COMMERCIAL_AUTO",
+    label: "Commercial Auto",
+    level: "REQUIRED",
+    appliesTo: ["roadside assist", "lockout"],
+    reason: "Roadside/lockout providers operate on public roads and require commercial vehicle liability coverage.",
   },
 ];
 
@@ -145,13 +155,13 @@ export function getInsuranceRequirementRules(profile: ProviderInsuranceProfile):
     "OIL_CHANGE",
     "BATTERY",
     "TIRES",
-    "LOCKOUT",
-    "ROADSIDE_ASSIST",
     "INSPECTION",
     "DIAGNOSTICS",
     "DETAILING",
   ]);
   if (mobileOrLight) rules.push(...MOBILE_OR_LIGHT);
+
+  if (hasAny(services, ["ROADSIDE_ASSIST", "LOCKOUT"])) rules.push(...ROADSIDE);
 
   if (hasAny(services, ["TOWING"])) rules.push(...TOWING);
 

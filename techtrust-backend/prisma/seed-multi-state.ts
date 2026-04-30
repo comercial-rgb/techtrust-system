@@ -435,11 +435,15 @@ Use of the TechTrust platform constitutes acceptance of these terms.`,
   console.log("   - 4 disclaimer versions");
 }
 
-main()
-  .catch((e) => {
-    console.error("❌ Seed failed:", e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+export { main as seedMultiState };
+
+if (require.main === module) {
+  main()
+    .catch((e) => {
+      console.error("❌ Seed failed:", e);
+      process.exit(1);
+    })
+    .finally(async () => {
+      await prisma.$disconnect();
+    });
+}

@@ -548,6 +548,7 @@ router.post(
         isVerified: true,
         verifiedAt: new Date(),
         backgroundCheckCompleted: true,
+        providerPublicStatus: "VERIFIED",
       },
     });
 
@@ -571,7 +572,7 @@ router.post(
 
     await prisma.providerProfile.update({
       where: { userId: id },
-      data: { isVerified: false },
+      data: { isVerified: false, providerPublicStatus: "PENDING" },
     });
 
     // TODO: Enviar notificação de rejeição com motivo
