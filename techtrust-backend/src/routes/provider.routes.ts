@@ -13,6 +13,7 @@ router.get('/active-cities', asyncHandler(providerController.getActiveCities));
 router.use(authenticate);
 router.use(authorize('PROVIDER'));
 
+router.get('/profile', asyncHandler(providerController.getProfile));
 router.get('/dashboard', asyncHandler(providerController.getDashboard));
 router.get('/dashboard-stats', asyncHandler(providerController.getDashboardStats));
 router.get('/onboarding-status', asyncHandler(providerController.getOnboardingStatus));

@@ -16,6 +16,23 @@ import { buildProviderDisclosure } from "../utils/provider-disclosures";
 import { buildInsuranceRequirementChecklist } from "../utils/insurance-requirements";
 
 /**
+ * GET /api/v1/providers/profile
+ * Full provider profile via raw SQL — bypasses stale Prisma Client.
+ */
+export const getProfile = async (req: Request, res: Response) => {
+  const providerId = req.user!.id;
+
+  const rows = await prisma.$queryRaw<any[]>`
+    SELECT * FROM "provider_profiles" WHERE "userId" = ${providerId} LIMIT 1
+  `;
+
+  res.json({
+    success: true,
+    data: rows[0] || null,
+  });
+};
+
+/**
  * GET /api/v1/providers/dashboard
  * Dashboard do fornecedor
  */

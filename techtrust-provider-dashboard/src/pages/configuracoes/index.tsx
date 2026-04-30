@@ -27,13 +27,24 @@ import {
   Sparkles,
   Zap,
   ChevronRight,
+  FileText,
+  CreditCard,
+  Info,
 } from "lucide-react";
+
+interface WorkDay { open: string; close: string; closed: boolean }
 
 interface ProviderProfile {
   businessName: string;
   businessType: string;
+  providerPublicStatus: string;
+  legalName: string;
+  ein: string;
+  sunbizDocumentNumber: string;
   fdacsRegistrationNumber: string;
-  description: string;
+  cityBusinessTaxReceiptNumber: string;
+  countyBusinessTaxReceiptNumber: string;
+  businessDescription: string;
   phone: string;
   email: string;
   address: string;
@@ -43,25 +54,27 @@ interface ProviderProfile {
   serviceRadius: number;
   averageRating: number;
   totalReviews: number;
-  isVerified: boolean;
   workingHours: {
-    monday: { open: string; close: string; closed: boolean };
-    tuesday: { open: string; close: string; closed: boolean };
-    wednesday: { open: string; close: string; closed: boolean };
-    thursday: { open: string; close: string; closed: boolean };
-    friday: { open: string; close: string; closed: boolean };
-    saturday: { open: string; close: string; closed: boolean };
-    sunday: { open: string; close: string; closed: boolean };
+    monday: WorkDay; tuesday: WorkDay; wednesday: WorkDay;
+    thursday: WorkDay; friday: WorkDay; saturday: WorkDay; sunday: WorkDay;
   };
-  services: string[];
+  servicesOffered: string[];
+  vehicleTypesServed: string[];
+  mobileService: boolean;
+  freeKm: number;
+  extraFeePerKm: number;
+  payoutMethod: string;
+  zelleEmail: string;
+  zellePhone: string;
+  bankTransferLabel: string;
+  payoutInstructions: string;
   notifications: {
-    newRequests: boolean;
-    quoteAccepted: boolean;
-    payments: boolean;
-    reviews: boolean;
-    marketing: boolean;
+    newRequests: boolean; quoteAccepted: boolean;
+    payments: boolean; reviews: boolean; marketing: boolean;
   };
 }
+
+const DEFAULT_DAY: WorkDay = { open: "08:00", close: "18:00", closed: false };
 
 export default function ConfiguracoesPage() {
   const { user, isAuthenticated, loading: authLoading, logout } = useAuth();
@@ -71,8 +84,7 @@ export default function ConfiguracoesPage() {
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("profile");
   const [successMessage, setSuccessMessage] = useState("");
-  const [activeCities, setActiveCities] = useState<Record<string, string[]>>({});
-  const [cityOptions, setCityOptions] = useState<string[]>([]);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const US_STATES = [
     { code: "AL", name: "Alabama" }, { code: "AK", name: "Alaska" }, { code: "AZ", name: "Arizona" },
@@ -95,222 +107,213 @@ export default function ConfiguracoesPage() {
   ];
 
   const [profile, setProfile] = useState<ProviderProfile>({
-    businessName: "",
-    businessType: "AUTO_REPAIR",
-    fdacsRegistrationNumber: "",
-    description: "",
-    phone: "",
-    email: "",
-    address: "",
-    city: "",
-    state: "",
-    zipCode: "",
-    serviceRadius: 25,
-    averageRating: 0,
-    totalReviews: 0,
-    isVerified: false,
+    businessName: "", businessType: "AUTO_REPAIR", providerPublicStatus: "PENDING",
+    legalName: "", ein: "", sunbizDocumentNumber: "", fdacsRegistrationNumber: "",
+    cityBusinessTaxReceiptNumber: "", countyBusinessTaxReceiptNumber: "", businessDescription: "",
+    phone: "", email: "", address: "", city: "", state: "", zipCode: "",
+    serviceRadius: 15, averageRating: 0, totalReviews: 0,
     workingHours: {
-      monday: { open: "08:00", close: "18:00", closed: false },
-      tuesday: { open: "08:00", close: "18:00", closed: false },
-      wednesday: { open: "08:00", close: "18:00", closed: false },
-      thursday: { open: "08:00", close: "18:00", closed: false },
-      friday: { open: "08:00", close: "18:00", closed: false },
+      monday: DEFAULT_DAY, tuesday: DEFAULT_DAY, wednesday: DEFAULT_DAY,
+      thursday: DEFAULT_DAY, friday: DEFAULT_DAY,
       saturday: { open: "08:00", close: "14:00", closed: false },
       sunday: { open: "08:00", close: "14:00", closed: true },
     },
-    services: ["SCHEDULED_MAINTENANCE", "REPAIR", "INSPECTION"],
-    notifications: {
-      newRequests: true,
-      quoteAccepted: true,
-      payments: true,
-      reviews: true,
-      marketing: false,
-    },
+    servicesOffered: [], vehicleTypesServed: [],
+    mobileService: false, freeKm: 0, extraFeePerKm: 0,
+    payoutMethod: "MANUAL", zelleEmail: "", zellePhone: "", bankTransferLabel: "", payoutInstructions: "",
+    notifications: { newRequests: true, quoteAccepted: true, payments: true, reviews: true, marketing: false },
   });
 
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push("/login");
-    }
+    if (!authLoading && !isAuthenticated) router.push("/login");
   }, [authLoading, isAuthenticated, router]);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      loadProfile();
-      loadActiveCities();
-    }
+    if (isAuthenticated) loadProfile();
   }, [isAuthenticated]);
 
   async function loadProfile() {
     setLoading(true);
     try {
-      const response = await api.get("/providers/dashboard");
-      const data = response.data.data;
-      const p = data.profile || {};
+      const response = await api.get("/providers/profile");
+      const p = response.data.data || {};
       const hours = p.businessHours || {};
 
-      const defaultDay = { open: "08:00", close: "18:00", closed: false };
-      const parseDay = (day: any) =>
-        day
-          ? {
-              open: day.open || "08:00",
-              close: day.close || "18:00",
-              closed: !!day.closed,
-            }
-          : defaultDay;
+      const parseDay = (day: any): WorkDay =>
+        day ? { open: day.open || day.openTime || "08:00", close: day.close || day.closeTime || "18:00", closed: day.closed !== undefined ? !!day.closed : !day.enabled } : DEFAULT_DAY;
+
+      const u = user as any;
 
       setProfile({
-        businessName: p.businessName || user?.fullName || "",
-        businessType: p.businessType || "AUTO_REPAIR",
+        businessName: p.businessName || u?.fullName || "",
+        businessType: p.businessTypeCat || p.businessType || "AUTO_REPAIR",
+        providerPublicStatus: p.providerPublicStatus || "PENDING",
+        legalName: p.legalName || "",
+        ein: p.ein || "",
+        sunbizDocumentNumber: p.sunbizDocumentNumber || "",
         fdacsRegistrationNumber: p.fdacsRegistrationNumber || "",
-        description: p.description || "",
-        phone: p.businessPhone || user?.phone || "",
-        email: p.businessEmail || user?.email || "",
-        address: p.address || "",
-        city: p.city || "",
-        state: p.state || "",
-        zipCode: p.zipCode || "",
+        cityBusinessTaxReceiptNumber: p.cityBusinessTaxReceiptNumber || "",
+        countyBusinessTaxReceiptNumber: p.countyBusinessTaxReceiptNumber || "",
+        businessDescription: p.businessDescription || "",
+        phone: p.businessPhone || u?.phone || "",
+        email: p.businessEmail || u?.email || "",
+        address: p.address || u?.address || "",
+        city: p.city || u?.city || "",
+        state: p.state || u?.state || "",
+        zipCode: p.zipCode || u?.zipCode || "",
         serviceRadius: p.serviceRadiusKm ? Math.round(p.serviceRadiusKm / 1.60934) : 15,
-        averageRating: p.averageRating || 0,
+        averageRating: Number(p.averageRating) || 0,
         totalReviews: p.totalReviews || 0,
-        isVerified: p.isVerified || false,
         workingHours: {
-          monday: parseDay(hours.monday),
-          tuesday: parseDay(hours.tuesday),
-          wednesday: parseDay(hours.wednesday),
-          thursday: parseDay(hours.thursday),
-          friday: parseDay(hours.friday),
-          saturday: parseDay(hours.saturday),
-          sunday: parseDay(
-            hours.sunday || { open: "08:00", close: "14:00", closed: true },
-          ),
+          monday: parseDay(hours.monday || hours.Monday),
+          tuesday: parseDay(hours.tuesday || hours.Tuesday),
+          wednesday: parseDay(hours.wednesday || hours.Wednesday),
+          thursday: parseDay(hours.thursday || hours.Thursday),
+          friday: parseDay(hours.friday || hours.Friday),
+          saturday: parseDay(hours.saturday || hours.Saturday || { open: "08:00", close: "14:00", closed: false }),
+          sunday: parseDay(hours.sunday || hours.Sunday || { open: "08:00", close: "14:00", closed: true }),
         },
-        services: p.specialties || ["SCHEDULED_MAINTENANCE", "REPAIR"],
-        notifications: {
-          newRequests: true,
-          quoteAccepted: true,
-          payments: true,
-          reviews: true,
-          marketing: false,
-        },
+        servicesOffered: Array.isArray(p.servicesOffered) ? p.servicesOffered : [],
+        vehicleTypesServed: Array.isArray(p.vehicleTypesServed) ? p.vehicleTypesServed : [],
+        mobileService: !!p.mobileService,
+        freeKm: Number(p.freeKm) || 0,
+        extraFeePerKm: Number(p.extraFeePerKm) || 0,
+        payoutMethod: p.payoutMethod || "MANUAL",
+        zelleEmail: p.zelleEmail || "",
+        zellePhone: p.zellePhone || "",
+        bankTransferLabel: p.bankTransferLabel || "",
+        payoutInstructions: p.payoutInstructions || "",
+        notifications: { newRequests: true, quoteAccepted: true, payments: true, reviews: true, marketing: false },
       });
     } catch (error) {
-      console.error("Erro ao carregar perfil:", error);
+      console.error("Error loading profile:", error);
     } finally {
       setLoading(false);
     }
   }
 
-  async function loadActiveCities() {
-    try {
-      const response = await api.get("/providers/active-cities");
-      const data = response.data.data;
-      setActiveCities(data.activeCities || {});
-    } catch (error) {
-      console.error("Erro ao carregar cidades ativas:", error);
-    }
-  }
-
-  // Update city options when state changes
-  useEffect(() => {
-    if (profile.state) {
-      const stateCode = profile.state.toUpperCase();
-      const cities = activeCities[stateCode] || [];
-      setCityOptions(cities.sort());
-    } else {
-      setCityOptions([]);
-    }
-  }, [profile.state, activeCities]);
-
   async function handleSave() {
     setSaving(true);
+    setErrorMessage("");
     try {
       await api.patch("/providers/profile", {
-        businessName: profile.businessName,
-        businessPhone: profile.phone,
-        businessEmail: profile.email,
-        address: profile.address,
-        city: profile.city,
-        state: profile.state,
-        zipCode: profile.zipCode,
+        businessName: profile.businessName || undefined,
+        businessPhone: profile.phone || undefined,
+        businessEmail: profile.email || undefined,
+        address: profile.address || undefined,
+        city: profile.city || undefined,
+        state: profile.state || undefined,
+        zipCode: profile.zipCode || undefined,
         serviceRadiusKm: Math.round(profile.serviceRadius * 1.60934),
-        specialties: profile.services,
+        businessDescription: profile.businessDescription || undefined,
         businessHours: profile.workingHours,
+        servicesOffered: profile.servicesOffered,
+        vehicleTypesServed: profile.vehicleTypesServed,
+        mobileService: profile.mobileService,
+        freeKm: profile.freeKm,
+        extraFeePerKm: profile.extraFeePerKm,
+        legalName: profile.legalName || undefined,
+        ein: profile.ein || undefined,
+        sunbizDocumentNumber: profile.sunbizDocumentNumber || undefined,
         fdacsRegistrationNumber: profile.fdacsRegistrationNumber || undefined,
+        cityBusinessTaxReceiptNumber: profile.cityBusinessTaxReceiptNumber || undefined,
+        countyBusinessTaxReceiptNumber: profile.countyBusinessTaxReceiptNumber || undefined,
+        payoutMethod: profile.payoutMethod || undefined,
+        zelleEmail: profile.zelleEmail || undefined,
+        zellePhone: profile.zellePhone || undefined,
+        bankTransferLabel: profile.bankTransferLabel || undefined,
+        payoutInstructions: profile.payoutInstructions || undefined,
       });
-
-      setSuccessMessage(t("settings.messages.savedSuccess"));
+      setSuccessMessage("Profile saved successfully!");
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (error) {
-      console.error(t("settings.messages.loadError"), error);
-      alert(t("settings.messages.saveError"));
+      console.error("Save error:", error);
+      setErrorMessage("Could not save. Please try again.");
+      setTimeout(() => setErrorMessage(""), 4000);
     } finally {
       setSaving(false);
     }
   }
 
   const serviceTypes = [
-    {
-      id: "SCHEDULED_MAINTENANCE",
-      label: t("common.maintenance"),
-      icon: Wrench,
-    },
-    { id: "REPAIR", label: t("common.repair"), icon: AlertCircle },
-    { id: "INSPECTION", label: t("common.inspection"), icon: Shield },
-    { id: "DETAILING", label: t("common.detailing"), icon: Sparkles },
-    { id: "ROADSIDE_SOS", label: t("common.sos"), icon: Zap },
+    { id: "SCHEDULED_MAINTENANCE", label: "Scheduled Maintenance", icon: Wrench },
+    { id: "REPAIR", label: "Repair", icon: AlertCircle },
+    { id: "INSPECTION", label: "Inspection", icon: Shield },
+    { id: "DETAILING", label: "Detailing", icon: Sparkles },
+    { id: "ROADSIDE_SOS", label: "Roadside SOS", icon: Zap },
+    { id: "TIRE_SERVICE", label: "Tire Service", icon: Car },
+    { id: "DIAGNOSTICS", label: "Diagnostics", icon: Wrench },
+    { id: "BRAKES", label: "Brakes", icon: AlertCircle },
+  ];
+
+  const vehicleTypes = [
+    { id: "PASSENGER_CAR", label: "Cars & Sedans" },
+    { id: "TRUCKS_SUVS", label: "Trucks & SUVs" },
+    { id: "MOTORCYCLES", label: "Motorcycles" },
+    { id: "VANS", label: "Vans & Minivans" },
+    { id: "ELECTRIC_VEHICLES", label: "Electric Vehicles" },
+    { id: "HEAVY_VEHICLES", label: "Commercial / Heavy" },
   ];
 
   const businessTypes = [
-    { id: "AUTO_REPAIR", label: t("common.autoRepairShop") },
-    { id: "TIRE_SHOP", label: t("common.tireShop") },
-    { id: "AUTO_ELECTRIC", label: t("common.autoElectric") },
-    { id: "BODY_SHOP", label: t("common.bodyShop") },
-    { id: "DETAILING", label: t("common.autoDetailing") },
-    { id: "TOWING", label: t("common.towing") },
-    { id: "MULTI_SERVICE", label: t("common.multiService") },
+    { id: "AUTO_REPAIR", label: "Auto Repair Shop" },
+    { id: "TIRE_SHOP", label: "Tire Shop" },
+    { id: "AUTO_ELECTRIC", label: "Auto Electric" },
+    { id: "BODY_SHOP", label: "Body Shop" },
+    { id: "DETAILING", label: "Auto Detailing" },
+    { id: "TOWING", label: "Towing" },
+    { id: "MULTI_SERVICE", label: "Multi-Service" },
   ];
 
   const weekDays = [
-    { key: "monday", label: t("common.monday") },
-    { key: "tuesday", label: t("common.tuesday") },
-    { key: "wednesday", label: t("common.wednesday") },
-    { key: "thursday", label: t("common.thursday") },
-    { key: "friday", label: t("common.friday") },
-    { key: "saturday", label: t("common.saturday") },
-    { key: "sunday", label: t("common.sunday") },
+    { key: "monday", label: "Monday" }, { key: "tuesday", label: "Tuesday" },
+    { key: "wednesday", label: "Wednesday" }, { key: "thursday", label: "Thursday" },
+    { key: "friday", label: "Friday" }, { key: "saturday", label: "Saturday" },
+    { key: "sunday", label: "Sunday" },
   ];
 
   const tabs = [
-    { id: "profile", label: t("settings.tabs.profile"), icon: Building2 },
-    { id: "services", label: t("settings.tabs.services"), icon: Wrench },
-    { id: "hours", label: t("settings.tabs.hours"), icon: Clock },
-    {
-      id: "notifications",
-      label: t("settings.tabs.notifications"),
-      icon: Bell,
-    },
-    { id: "security", label: t("settings.tabs.security"), icon: Lock },
+    { id: "profile", label: "Profile", icon: Building2 },
+    { id: "services", label: "Services", icon: Wrench },
+    { id: "hours", label: "Hours", icon: Clock },
+    { id: "identity", label: "Identity & Tax", icon: FileText },
+    { id: "payout", label: "Payout", icon: CreditCard },
+    { id: "security", label: "Security", icon: Lock },
   ];
 
+  const toggleService = (id: string) => {
+    setProfile(prev => ({
+      ...prev,
+      servicesOffered: prev.servicesOffered.includes(id)
+        ? prev.servicesOffered.filter(s => s !== id)
+        : [...prev.servicesOffered, id],
+    }));
+  };
+
+  const toggleVehicle = (id: string) => {
+    setProfile(prev => ({
+      ...prev,
+      vehicleTypesServed: prev.vehicleTypesServed.includes(id)
+        ? prev.vehicleTypesServed.filter(v => v !== id)
+        : [...prev.vehicleTypesServed, id],
+    }));
+  };
+
+  const freeMiles = profile.freeKm > 0 ? Math.round(profile.freeKm / 1.60934) : 0;
+  const feePerMile = Number(profile.extraFeePerKm) || 0;
+
   if (authLoading || !isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
-      </div>
-    );
+    return <div className="min-h-screen flex items-center justify-center bg-gray-50"><Loader2 className="w-8 h-8 animate-spin text-primary-500" /></div>;
   }
 
   if (loading) {
     return (
-      <DashboardLayout title={t("settings.title")}>
+      <DashboardLayout title="Settings">
         <div className="max-w-4xl mx-auto">
           <div className="bg-white rounded-2xl p-6 shadow-soft">
             <div className="skeleton h-8 w-48 mb-6 rounded" />
             <div className="space-y-4">
-              <div className="skeleton h-12 w-full rounded" />
-              <div className="skeleton h-12 w-full rounded" />
-              <div className="skeleton h-12 w-full rounded" />
+              {[1, 2, 3].map(i => <div key={i} className="skeleton h-12 w-full rounded" />)}
             </div>
           </div>
         </div>
@@ -319,13 +322,18 @@ export default function ConfiguracoesPage() {
   }
 
   return (
-    <DashboardLayout title={t("settings.title")}>
+    <DashboardLayout title="Settings">
       <div className="max-w-4xl mx-auto animate-fade-in">
-        {/* Success message */}
         {successMessage && (
           <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3 animate-slide-up">
             <CheckCircle className="w-6 h-6 text-green-500" />
             <p className="font-medium text-green-800">{successMessage}</p>
+          </div>
+        )}
+        {errorMessage && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3">
+            <AlertCircle className="w-6 h-6 text-red-500" />
+            <p className="font-medium text-red-800">{errorMessage}</p>
           </div>
         )}
 
@@ -342,29 +350,25 @@ export default function ConfiguracoesPage() {
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
-                <h2 className="text-2xl font-bold text-gray-900">
-                  {profile.businessName}
-                </h2>
-                {profile.isVerified && (
+                <h2 className="text-2xl font-bold text-gray-900">{profile.businessName || "My Business"}</h2>
+                {profile.providerPublicStatus === "VERIFIED" && (
                   <span className="flex items-center gap-1 text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full">
                     <Shield className="w-3 h-3" />
-                    Verificado
+                    Verified Business
+                  </span>
+                )}
+                {profile.providerPublicStatus === "PENDING" && (
+                  <span className="flex items-center gap-1 text-xs text-yellow-700 bg-yellow-100 px-2 py-1 rounded-full">
+                    <Clock className="w-3 h-3" />
+                    Under Review
                   </span>
                 )}
               </div>
-              <p className="text-gray-500 mb-2">
-                {
-                  businessTypes.find((t) => t.id === profile.businessType)
-                    ?.label
-                }
-              </p>
+              <p className="text-gray-500 mb-2">{businessTypes.find(bt => bt.id === profile.businessType)?.label}</p>
               <div className="flex items-center gap-4 text-sm">
-                <span className="flex items-center gap-1 text-yellow-600">
-                  ⭐ {profile.averageRating.toFixed(1)}
-                </span>
-                <span className="text-gray-500">
-                  {profile.totalReviews} avaliações
-                </span>
+                <span className="flex items-center gap-1 text-yellow-600">⭐ {profile.averageRating.toFixed(1)}</span>
+                <span className="text-gray-500">{profile.totalReviews} reviews</span>
+                {profile.address && <span className="text-gray-500">📍 {profile.city}, {profile.state}</span>}
               </div>
             </div>
           </div>
@@ -372,16 +376,12 @@ export default function ConfiguracoesPage() {
 
         {/* Tabs */}
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-          {tabs.map((tab) => {
+          {tabs.map(tab => {
             const Icon = tab.icon;
             return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium whitespace-nowrap transition-colors ${
-                  activeTab === tab.id
-                    ? "bg-primary-500 text-white"
-                    : "bg-white text-gray-600 hover:bg-gray-50"
+                  activeTab === tab.id ? "bg-primary-500 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
                 }`}
               >
                 <Icon className="w-4 h-4" />
@@ -393,359 +393,152 @@ export default function ConfiguracoesPage() {
 
         {/* Tab content */}
         <div className="bg-white rounded-2xl p-6 shadow-soft">
-          {/* Profile tab */}
+
+          {/* ── PROFILE TAB ── */}
           {activeTab === "profile" && (
             <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Informações do Negócio
-              </h3>
-
+              <h3 className="text-lg font-semibold text-gray-900">Business Information</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nome do Negócio
-                  </label>
-                  <input
-                    type="text"
-                    value={profile.businessName}
-                    onChange={(e) =>
-                      setProfile({ ...profile, businessName: e.target.value })
-                    }
-                    className="input"
-                  />
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Business Name</label>
+                  <input type="text" value={profile.businessName} onChange={e => setProfile({...profile, businessName: e.target.value})} className="input" />
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Tipo de Negócio
-                  </label>
-                  <select
-                    value={profile.businessType}
-                    onChange={(e) =>
-                      setProfile({ ...profile, businessType: e.target.value })
-                    }
-                    className="input"
-                  >
-                    {businessTypes.map((type) => (
-                      <option key={type.id} value={type.id}>
-                        {type.label}
-                      </option>
-                    ))}
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Business Type</label>
+                  <select value={profile.businessType} onChange={e => setProfile({...profile, businessType: e.target.value})} className="input">
+                    {businessTypes.map(type => <option key={type.id} value={type.id}>{type.label}</option>)}
                   </select>
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    FDACS Registration #
-                  </label>
-                  <input
-                    type="text"
-                    value={profile.fdacsRegistrationNumber}
-                    onChange={(e) =>
-                      setProfile({
-                        ...profile,
-                        fdacsRegistrationNumber: e.target.value,
-                      })
-                    }
-                    className="input"
-                    placeholder="MV-00000"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Required for FL motor vehicle repair shops
-                  </p>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
+                  <input type="tel" value={profile.phone} onChange={e => setProfile({...profile, phone: e.target.value})} className="input" />
                 </div>
-
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Business Email</label>
+                  <input type="email" value={profile.email} onChange={e => setProfile({...profile, email: e.target.value})} className="input" />
+                </div>
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Descrição
-                  </label>
-                  <textarea
-                    value={profile.description}
-                    onChange={(e) =>
-                      setProfile({ ...profile, description: e.target.value })
-                    }
-                    rows={3}
-                    className="input resize-none"
-                    placeholder="Descreva seu negócio..."
-                  />
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Business Description</label>
+                  <textarea value={profile.businessDescription} onChange={e => setProfile({...profile, businessDescription: e.target.value})}
+                    rows={3} className="input resize-none" placeholder="Describe your business, specialties, and what sets you apart..." />
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Telefone
-                  </label>
-                  <input
-                    type="tel"
-                    value={profile.phone}
-                    onChange={(e) =>
-                      setProfile({ ...profile, phone: e.target.value })
-                    }
-                    className="input"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    value={profile.email}
-                    onChange={(e) =>
-                      setProfile({ ...profile, email: e.target.value })
-                    }
-                    className="input"
-                  />
-                </div>
-
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Endereço
-                  </label>
-                  <input
-                    type="text"
-                    value={profile.address}
-                    onChange={(e) =>
-                      setProfile({ ...profile, address: e.target.value })
-                    }
-                    className="input"
-                  />
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Street Address</label>
+                  <input type="text" value={profile.address} onChange={e => setProfile({...profile, address: e.target.value})} className="input" placeholder="123 Main St" />
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Cidade
-                  </label>
-                  {cityOptions.length > 0 ? (
-                    <select
-                      value={profile.city}
-                      onChange={(e) =>
-                        setProfile({ ...profile, city: e.target.value })
-                      }
-                      className="input"
-                    >
-                      <option value="">Select a city</option>
-                      {cityOptions.map((city) => (
-                        <option key={city} value={city}>{city}</option>
-                      ))}
-                      {profile.city && !cityOptions.includes(profile.city) && (
-                        <option value={profile.city}>{profile.city}</option>
-                      )}
-                    </select>
-                  ) : (
-                    <input
-                      type="text"
-                      value={profile.city}
-                      onChange={(e) =>
-                        setProfile({ ...profile, city: e.target.value })
-                      }
-                      className="input"
-                      placeholder={profile.state ? "Enter city name" : "Select a state first"}
-                    />
-                  )}
+                  <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
+                  <input type="text" value={profile.city} onChange={e => setProfile({...profile, city: e.target.value})} className="input" />
                 </div>
-
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Estado
-                    </label>
-                    <select
-                      value={profile.state}
-                      onChange={(e) =>
-                        setProfile({ ...profile, state: e.target.value, city: "" })
-                      }
-                      className="input"
-                    >
-                      <option value="">Select a state</option>
-                      {US_STATES.map((s) => (
-                        <option key={s.code} value={s.code}>{s.code} - {s.name}</option>
-                      ))}
+                    <label className="block text-sm font-medium text-gray-700 mb-2">State</label>
+                    <select value={profile.state} onChange={e => setProfile({...profile, state: e.target.value, city: ""})} className="input">
+                      <option value="">State</option>
+                      {US_STATES.map(s => <option key={s.code} value={s.code}>{s.code}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      CEP
-                    </label>
-                    <input
-                      type="text"
-                      value={profile.zipCode}
-                      onChange={(e) =>
-                        setProfile({ ...profile, zipCode: e.target.value })
-                      }
-                      className="input"
-                    />
+                    <label className="block text-sm font-medium text-gray-700 mb-2">ZIP Code</label>
+                    <input type="text" value={profile.zipCode} onChange={e => setProfile({...profile, zipCode: e.target.value})} className="input" />
                   </div>
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Service Radius (miles)
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Service Radius (miles)</label>
+                  <input type="number" value={profile.serviceRadius}
+                    onChange={e => setProfile({...profile, serviceRadius: parseInt(e.target.value) || 0})}
+                    className="input" min="1" max="150" />
+                </div>
+                <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-700">Mobile / On-Site Service</p>
+                    <p className="text-sm text-gray-500">Travel to customer location</p>
+                    {profile.mobileService && (
+                      <p className="text-xs text-gray-400 mt-1">Free: {freeMiles} mi · ${feePerMile.toFixed(2)}/mi after</p>
+                    )}
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked={profile.mobileService} onChange={e => setProfile({...profile, mobileService: e.target.checked})} className="sr-only peer" />
+                    <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
                   </label>
-                  <input
-                    type="number"
-                    value={profile.serviceRadius}
-                    onChange={(e) =>
-                      setProfile({
-                        ...profile,
-                        serviceRadius: parseInt(e.target.value),
-                      })
-                    }
-                    className="input"
-                    min="1"
-                    max="100"
-                  />
                 </div>
               </div>
             </div>
           )}
 
-          {/* Services tab */}
+          {/* ── SERVICES TAB ── */}
           {activeTab === "services" && (
-            <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Serviços Oferecidos
-              </h3>
-              <p className="text-sm text-gray-500">
-                Selecione os tipos de serviço que você oferece
-              </p>
+            <div className="space-y-8">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">Services Offered</h3>
+                <p className="text-sm text-gray-500 mb-4">Select all service types your business performs</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {serviceTypes.map(service => {
+                    const Icon = service.icon;
+                    const sel = profile.servicesOffered.includes(service.id);
+                    return (
+                      <button key={service.id} onClick={() => toggleService(service.id)}
+                        className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left ${sel ? "border-primary-500 bg-primary-50" : "border-gray-200 hover:border-gray-300"}`}>
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${sel ? "bg-primary-500 text-white" : "bg-gray-100 text-gray-500"}`}>
+                          <Icon className="w-5 h-5" />
+                        </div>
+                        <span className={`font-medium ${sel ? "text-primary-700" : "text-gray-700"}`}>{service.label}</span>
+                        {sel && <CheckCircle className="w-5 h-5 text-primary-500 ml-auto" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {serviceTypes.map((service) => {
-                  const Icon = service.icon;
-                  const isSelected = profile.services.includes(service.id);
-
-                  return (
-                    <button
-                      key={service.id}
-                      onClick={() => {
-                        if (isSelected) {
-                          setProfile({
-                            ...profile,
-                            services: profile.services.filter(
-                              (s) => s !== service.id,
-                            ),
-                          });
-                        } else {
-                          setProfile({
-                            ...profile,
-                            services: [...profile.services, service.id],
-                          });
-                        }
-                      }}
-                      className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
-                        isSelected
-                          ? "border-primary-500 bg-primary-50"
-                          : "border-gray-200 hover:border-gray-300"
-                      }`}
-                    >
-                      <div
-                        className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                          isSelected
-                            ? "bg-primary-500 text-white"
-                            : "bg-gray-100 text-gray-500"
-                        }`}
-                      >
-                        <Icon className="w-6 h-6" />
-                      </div>
-                      <div className="flex-1 text-left">
-                        <p
-                          className={`font-medium ${isSelected ? "text-primary-700" : "text-gray-700"}`}
-                        >
-                          {service.label}
-                        </p>
-                      </div>
-                      {isSelected && (
-                        <CheckCircle className="w-5 h-5 text-primary-500" />
-                      )}
-                    </button>
-                  );
-                })}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">Vehicle Types Served</h3>
+                <p className="text-sm text-gray-500 mb-4">Which types of vehicles do you work on?</p>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {vehicleTypes.map(vt => {
+                    const sel = profile.vehicleTypesServed.includes(vt.id);
+                    return (
+                      <button key={vt.id} onClick={() => toggleVehicle(vt.id)}
+                        className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${sel ? "border-primary-500 bg-primary-50" : "border-gray-200 hover:border-gray-300"}`}>
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${sel ? "bg-primary-500 text-white" : "bg-gray-100 text-gray-400"}`}>
+                          <Car className="w-4 h-4" />
+                        </div>
+                        <span className={`text-sm font-medium ${sel ? "text-primary-700" : "text-gray-700"}`}>{vt.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}
 
-          {/* Hours tab */}
+          {/* ── HOURS TAB ── */}
           {activeTab === "hours" && (
             <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Horário de Funcionamento
-              </h3>
-
-              <div className="space-y-4">
-                {weekDays.map((day) => {
-                  const dayKey = day.key as keyof typeof profile.workingHours;
-                  const hours = profile.workingHours[dayKey];
-
+              <h3 className="text-lg font-semibold text-gray-900">Business Hours</h3>
+              <div className="space-y-3">
+                {weekDays.map(day => {
+                  const dk = day.key as keyof typeof profile.workingHours;
+                  const h = profile.workingHours[dk];
                   return (
-                    <div
-                      key={day.key}
-                      className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl"
-                    >
-                      <div className="w-24">
-                        <span className="font-medium text-gray-700">
-                          {day.label}
-                        </span>
-                      </div>
-
+                    <div key={day.key} className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
+                      <div className="w-28"><span className="font-medium text-gray-700">{day.label}</span></div>
                       <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={!hours.closed}
-                          onChange={(e) => {
-                            setProfile({
-                              ...profile,
-                              workingHours: {
-                                ...profile.workingHours,
-                                [dayKey]: {
-                                  ...hours,
-                                  closed: !e.target.checked,
-                                },
-                              },
-                            });
-                          }}
-                          className="w-4 h-4 rounded border-gray-300 text-primary-500 focus:ring-primary-500"
-                        />
-                        <span className="text-sm text-gray-600">Aberto</span>
+                        <input type="checkbox" checked={!h.closed}
+                          onChange={e => setProfile({...profile, workingHours: {...profile.workingHours, [dk]: {...h, closed: !e.target.checked}}})}
+                          className="w-4 h-4 rounded border-gray-300 text-primary-500 focus:ring-primary-500" />
+                        <span className="text-sm text-gray-600">Open</span>
                       </label>
-
-                      {!hours.closed && (
+                      {!h.closed ? (
                         <>
-                          <input
-                            type="time"
-                            value={hours.open}
-                            onChange={(e) => {
-                              setProfile({
-                                ...profile,
-                                workingHours: {
-                                  ...profile.workingHours,
-                                  [dayKey]: { ...hours, open: e.target.value },
-                                },
-                              });
-                            }}
-                            className="input w-32"
-                          />
-                          <span className="text-gray-500">às</span>
-                          <input
-                            type="time"
-                            value={hours.close}
-                            onChange={(e) => {
-                              setProfile({
-                                ...profile,
-                                workingHours: {
-                                  ...profile.workingHours,
-                                  [dayKey]: { ...hours, close: e.target.value },
-                                },
-                              });
-                            }}
-                            className="input w-32"
-                          />
+                          <input type="time" value={h.open}
+                            onChange={e => setProfile({...profile, workingHours: {...profile.workingHours, [dk]: {...h, open: e.target.value}}})}
+                            className="input w-32" />
+                          <span className="text-gray-400">to</span>
+                          <input type="time" value={h.close}
+                            onChange={e => setProfile({...profile, workingHours: {...profile.workingHours, [dk]: {...h, close: e.target.value}}})}
+                            className="input w-32" />
                         </>
-                      )}
-
-                      {hours.closed && (
-                        <span className="text-gray-400 italic">Fechado</span>
-                      )}
+                      ) : <span className="text-gray-400 italic">Closed</span>}
                     </div>
                   );
                 })}
@@ -753,134 +546,179 @@ export default function ConfiguracoesPage() {
             </div>
           )}
 
-          {/* Notifications tab */}
-          {activeTab === "notifications" && (
+          {/* ── IDENTITY & TAX TAB ── */}
+          {activeTab === "identity" && (
+            <div className="space-y-8">
+              {/* Tax notice */}
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 flex gap-3">
+                <Info className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
+                <div>
+                  <p className="font-semibold text-blue-800 mb-1">Marketplace Facilitator Tax — No Action Required</p>
+                  <p className="text-sm text-blue-700">
+                    TechTrust acts as a <strong>Marketplace Facilitator</strong> under Florida law (s. 212.05965, F.S.). TechTrust is responsible for collecting and remitting applicable sales tax on all transactions processed through the platform. <strong>You do not need to collect or remit sales tax</strong> on behalf of TechTrust. Keep this for your records if asked by a tax authority.
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Legal Identity</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Legal Business Name</label>
+                    <input type="text" value={profile.legalName} onChange={e => setProfile({...profile, legalName: e.target.value})}
+                      className="input" placeholder="As registered with the state" />
+                    <p className="text-xs text-gray-400 mt-1">Leave blank if same as business name</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">EIN (Federal Tax ID)</label>
+                    <input type="text" value={profile.ein} onChange={e => setProfile({...profile, ein: e.target.value})}
+                      className="input" placeholder="XX-XXXXXXX" />
+                    <p className="text-xs text-gray-400 mt-1">Optional — speeds up identity verification</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Sunbiz Document Number</label>
+                    <input type="text" value={profile.sunbizDocumentNumber} onChange={e => setProfile({...profile, sunbizDocumentNumber: e.target.value})}
+                      className="input" placeholder="Florida Division of Corporations" />
+                    <p className="text-xs text-gray-400 mt-1">
+                      Find yours at <a href="https://sunbiz.org" target="_blank" rel="noreferrer" className="text-blue-600 underline">sunbiz.org</a>
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">FDACS Registration # (MV-XXXXX)</label>
+                    <input type="text" value={profile.fdacsRegistrationNumber} onChange={e => setProfile({...profile, fdacsRegistrationNumber: e.target.value})}
+                      className="input" placeholder="MV-00000" />
+                    <p className="text-xs text-gray-400 mt-1">Required for FL motor vehicle repair shops</p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Local Business Tax Receipt</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">City BTR Number</label>
+                    <input type="text" value={profile.cityBusinessTaxReceiptNumber} onChange={e => setProfile({...profile, cityBusinessTaxReceiptNumber: e.target.value})}
+                      className="input" placeholder="City-issued receipt number" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">County BTR Number</label>
+                    <input type="text" value={profile.countyBusinessTaxReceiptNumber} onChange={e => setProfile({...profile, countyBusinessTaxReceiptNumber: e.target.value})}
+                      className="input" placeholder="County-issued receipt number" />
+                  </div>
+                </div>
+                <p className="text-xs text-gray-400 mt-2">
+                  Business Tax Receipts are required by most Florida cities and counties. Check with your local government or visit{" "}
+                  <a href="https://myfloridalicense.com" target="_blank" rel="noreferrer" className="text-blue-600 underline">myfloridalicense.com</a>.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* ── PAYOUT TAB ── */}
+          {activeTab === "payout" && (
             <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Preferências de Notificação
-              </h3>
+              <h3 className="text-lg font-semibold text-gray-900">Payout Method</h3>
+              <p className="text-sm text-gray-500">Choose how you receive payments from completed services.</p>
 
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {[
-                  {
-                    key: "newRequests",
-                    label: "Novas solicitações",
-                    description:
-                      "Receber notificação quando houver novos pedidos na sua área",
-                  },
-                  {
-                    key: "quoteAccepted",
-                    label: "Orçamento aceito",
-                    description: "Quando um cliente aceitar seu orçamento",
-                  },
-                  {
-                    key: "payments",
-                    label: "Pagamentos",
-                    description: "Notificações sobre pagamentos recebidos",
-                  },
-                  {
-                    key: "reviews",
-                    label: "Avaliações",
-                    description: "Quando um cliente avaliar seu serviço",
-                  },
-                  {
-                    key: "marketing",
-                    label: "Novidades e promoções",
-                    description:
-                      "Receber informações sobre novidades da plataforma",
-                  },
-                ].map((notification) => {
-                  const notifKey =
-                    notification.key as keyof typeof profile.notifications;
-
-                  return (
-                    <div
-                      key={notification.key}
-                      className="flex items-center justify-between p-4 bg-gray-50 rounded-xl"
-                    >
-                      <div>
-                        <p className="font-medium text-gray-700">
-                          {notification.label}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {notification.description}
-                        </p>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={profile.notifications[notifKey]}
-                          onChange={(e) => {
-                            setProfile({
-                              ...profile,
-                              notifications: {
-                                ...profile.notifications,
-                                [notifKey]: e.target.checked,
-                              },
-                            });
-                          }}
-                          className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
-                      </label>
+                  { id: "MANUAL", label: "Manual / Contact Me", description: "TechTrust will contact you to arrange payment" },
+                  { id: "ZELLE", label: "Zelle", description: "Receive payments via Zelle — fast and free" },
+                  { id: "BANK_TRANSFER", label: "Bank Transfer (ACH)", description: "Direct deposit to your bank account" },
+                ].map(method => (
+                  <button key={method.id} onClick={() => setProfile({...profile, payoutMethod: method.id})}
+                    className={`w-full flex items-start gap-4 p-4 rounded-xl border-2 transition-all text-left ${
+                      profile.payoutMethod === method.id ? "border-primary-500 bg-primary-50" : "border-gray-200 hover:border-gray-300"
+                    }`}>
+                    <div className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center shrink-0 ${
+                      profile.payoutMethod === method.id ? "border-primary-500 bg-primary-500" : "border-gray-300"
+                    }`}>
+                      {profile.payoutMethod === method.id && <div className="w-2 h-2 rounded-full bg-white" />}
                     </div>
-                  );
-                })}
+                    <div>
+                      <p className={`font-medium ${profile.payoutMethod === method.id ? "text-primary-700" : "text-gray-700"}`}>{method.label}</p>
+                      <p className="text-sm text-gray-500">{method.description}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              {(profile.payoutMethod === "ZELLE" || profile.payoutMethod === "MANUAL") && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Zelle Email</label>
+                    <input type="email" value={profile.zelleEmail} onChange={e => setProfile({...profile, zelleEmail: e.target.value})}
+                      className="input" placeholder="email@example.com" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Zelle Phone</label>
+                    <input type="tel" value={profile.zellePhone} onChange={e => setProfile({...profile, zellePhone: e.target.value})}
+                      className="input" placeholder="+1 (555) 000-0000" />
+                  </div>
+                </div>
+              )}
+
+              {profile.payoutMethod === "BANK_TRANSFER" && (
+                <div className="grid grid-cols-1 gap-4 pt-2">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Bank / Account Label</label>
+                    <input type="text" value={profile.bankTransferLabel} onChange={e => setProfile({...profile, bankTransferLabel: e.target.value})}
+                      className="input" placeholder="e.g. Chase Business Checking" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Payment Instructions</label>
+                    <textarea value={profile.payoutInstructions} onChange={e => setProfile({...profile, payoutInstructions: e.target.value})}
+                      rows={3} className="input resize-none" placeholder="Any additional instructions for the finance team..." />
+                  </div>
+                </div>
+              )}
+
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3">
+                <Info className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <p className="text-sm text-amber-700">
+                  Stripe direct deposit (instant payout) is coming soon. Until then, payouts are processed manually within 3–5 business days after each completed service.
+                </p>
               </div>
             </div>
           )}
 
-          {/* Security tab */}
+          {/* ── SECURITY TAB ── */}
           {activeTab === "security" && (
             <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-gray-900">Segurança</h3>
-
+              <h3 className="text-lg font-semibold text-gray-900">Security</h3>
               <div className="space-y-4">
                 <button className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
                   <div className="flex items-center gap-3">
                     <Lock className="w-5 h-5 text-gray-400" />
                     <div className="text-left">
-                      <p className="font-medium text-gray-700">Alterar senha</p>
-                      <p className="text-sm text-gray-500">
-                        Atualize sua senha de acesso
-                      </p>
+                      <p className="font-medium text-gray-700">Change Password</p>
+                      <p className="text-sm text-gray-500">Update your access password</p>
                     </div>
                   </div>
                   <ChevronRight className="w-5 h-5 text-gray-400" />
                 </button>
-
                 <button className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
                   <div className="flex items-center gap-3">
                     <Shield className="w-5 h-5 text-gray-400" />
                     <div className="text-left">
-                      <p className="font-medium text-gray-700">
-                        Autenticação em dois fatores
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        Adicione uma camada extra de segurança
-                      </p>
+                      <p className="font-medium text-gray-700">Two-Factor Authentication</p>
+                      <p className="text-sm text-gray-500">Add an extra layer of security</p>
                     </div>
                   </div>
                   <ChevronRight className="w-5 h-5 text-gray-400" />
                 </button>
-
                 <button className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
                   <div className="flex items-center gap-3">
                     <Mail className="w-5 h-5 text-gray-400" />
                     <div className="text-left">
-                      <p className="font-medium text-gray-700">
-                        Email de recuperação
-                      </p>
+                      <p className="font-medium text-gray-700">Recovery Email</p>
                       <p className="text-sm text-gray-500">{profile.email}</p>
                     </div>
                   </div>
                   <ChevronRight className="w-5 h-5 text-gray-400" />
                 </button>
-
                 <div className="pt-6 border-t border-gray-200">
-                  <button onClick={logout} className="btn btn-danger w-full">
-                    Sair da conta
-                  </button>
+                  <button onClick={logout} className="btn btn-danger w-full">Sign Out</button>
                 </div>
               </div>
             </div>
@@ -889,21 +727,11 @@ export default function ConfiguracoesPage() {
           {/* Save button */}
           {activeTab !== "security" && (
             <div className="mt-8 pt-6 border-t border-gray-200">
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="btn btn-primary px-8 py-3 flex items-center gap-2"
-              >
+              <button onClick={handleSave} disabled={saving} className="btn btn-primary px-8 py-3 flex items-center gap-2">
                 {saving ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Salvando...
-                  </>
+                  <><Loader2 className="w-5 h-5 animate-spin" />Saving...</>
                 ) : (
-                  <>
-                    <Save className="w-5 h-5" />
-                    Salvar Alterações
-                  </>
+                  <><Save className="w-5 h-5" />Save Changes</>
                 )}
               </button>
             </div>
