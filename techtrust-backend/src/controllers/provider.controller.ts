@@ -6,6 +6,7 @@
  */
 
 import { Request, Response } from "express";
+import { randomUUID } from "crypto";
 import { prisma } from "../config/database";
 import { geocodeAddress, formatAddress } from "../services/geocoding.service";
 import { findProvidersWithinRadius, kmToMiles } from "../utils/distance";
@@ -342,125 +343,116 @@ export const updateProfile = async (req: Request, res: Response) => {
     }
   }
 
-  const profile = await prisma.providerProfile.upsert({
-    where: { userId: providerId },
-    create: {
-      userId: providerId,
-      businessName: businessName || "My Business",
-      legalName: legalName || null,
-      ein: ein || null,
-      sunbizDocumentNumber: sunbizDocumentNumber || null,
-      businessIdentityStatus: businessIdentityStatus ||
-        (legalName || ein || sunbizDocumentNumber ? "PROVIDED_UNVERIFIED" : "NOT_PROVIDED"),
-      businessPhone: businessPhone || "",
-      businessEmail: businessEmail || "",
-      address: address || "",
-      city: city || "",
-      state: state || "FL",
-      zipCode: zipCode || "",
-      serviceRadiusKm: serviceRadiusKm || 50,
-      baseLatitude,
-      baseLongitude,
-      mobileService: mobileService || false,
-      roadsideAssistance: roadsideAssistance || false,
-      freeKm: freeKm || 0,
-      extraFeePerKm: extraFeePerKm || 0,
-      travelChargeType: travelChargeType || "ONE_WAY",
-      specialties: specialties || [],
-      businessHours: businessHours || {},
-      businessDescription: businessDescription || null,
-      fdacsRegistrationNumber: fdacsRegistrationNumber || null,
-      cityBusinessTaxReceiptNumber: cityBusinessTaxReceiptNumber || null,
-      countyBusinessTaxReceiptNumber: countyBusinessTaxReceiptNumber || null,
-      businessTaxReceiptStatus: businessTaxReceiptStatus ||
-        (cityBusinessTaxReceiptNumber || countyBusinessTaxReceiptNumber ? "PROVIDED_UNVERIFIED" : "NOT_PROVIDED"),
-      payoutMethod: payoutMethod || "MANUAL",
-      zelleEmail: zelleEmail || null,
-      zellePhone: zellePhone || null,
-      bankTransferLabel: bankTransferLabel || null,
-      payoutInstructions: payoutInstructions || null,
-      marketplaceFacilitatorTaxAcknowledged: marketplaceFacilitatorTaxAcknowledged !== false,
-      insuranceDisclosureAcceptedAt: insuranceDisclosureAccepted ? new Date() : null,
-      insuranceDisclosureDeclinedAt: insuranceDisclosureDeclined ? new Date() : null,
-      servicesOffered: servicesOffered || [],
-      vehicleTypesServed: vehicleTypesServed || [],
-      sellsParts: sellsParts || false,
-      isVerified: false,
-      averageRating: 0,
-      totalReviews: 0,
-      totalServicesCompleted: 0,
-    },
-    update: {
-      ...(businessName && { businessName }),
-      ...(legalName !== undefined && { legalName: legalName || null }),
-      ...(ein !== undefined && { ein: ein || null }),
-      ...(sunbizDocumentNumber !== undefined && {
-        sunbizDocumentNumber: sunbizDocumentNumber || null,
-      }),
-      ...((businessIdentityStatus !== undefined ||
-        legalName !== undefined ||
-        ein !== undefined ||
-        sunbizDocumentNumber !== undefined) && {
-        businessIdentityStatus:
-          businessIdentityStatus ||
-          (legalName || ein || sunbizDocumentNumber
-            ? "PROVIDED_UNVERIFIED"
-            : "NOT_PROVIDED"),
-      }),
-      ...(businessPhone && { businessPhone }),
-      ...(businessEmail && { businessEmail }),
-      ...(address !== undefined && { address }),
-      ...(city !== undefined && { city }),
-      ...(state !== undefined && { state }),
-      ...(zipCode !== undefined && { zipCode }),
-      ...(serviceRadiusKm && { serviceRadiusKm: Number(serviceRadiusKm) }),
-      ...(baseLatitude !== undefined && { baseLatitude }),
-      ...(baseLongitude !== undefined && { baseLongitude }),
-      ...(mobileService !== undefined && { mobileService }),
-      ...(roadsideAssistance !== undefined && { roadsideAssistance }),
-      ...(freeKm !== undefined && { freeKm: Number(freeKm) }),
-      ...(extraFeePerKm !== undefined && {
-        extraFeePerKm: Number(extraFeePerKm),
-      }),
-      ...(travelChargeType !== undefined && {
-        travelChargeType: travelChargeType === "ROUND_TRIP" ? "ROUND_TRIP" : "ONE_WAY",
-      }),
-      ...(specialties && { specialties }),
-      ...(businessHours && { businessHours }),
-      ...(businessDescription !== undefined && { businessDescription: businessDescription || null }),
-      ...(fdacsRegistrationNumber !== undefined && {
-        fdacsRegistrationNumber: fdacsRegistrationNumber || null,
-      }),
-      ...(cityBusinessTaxReceiptNumber !== undefined && {
-        cityBusinessTaxReceiptNumber: cityBusinessTaxReceiptNumber || null,
-      }),
-      ...(countyBusinessTaxReceiptNumber !== undefined && {
-        countyBusinessTaxReceiptNumber: countyBusinessTaxReceiptNumber || null,
-      }),
-      ...((businessTaxReceiptStatus !== undefined ||
-        cityBusinessTaxReceiptNumber !== undefined ||
-        countyBusinessTaxReceiptNumber !== undefined) && {
-        businessTaxReceiptStatus:
-          businessTaxReceiptStatus ||
-          (cityBusinessTaxReceiptNumber || countyBusinessTaxReceiptNumber
-            ? "PROVIDED_UNVERIFIED"
-            : "NOT_PROVIDED"),
-      }),
-      ...(payoutMethod !== undefined && { payoutMethod: payoutMethod || "MANUAL" }),
-      ...(zelleEmail !== undefined && { zelleEmail: zelleEmail || null }),
-      ...(zellePhone !== undefined && { zellePhone: zellePhone || null }),
-      ...(bankTransferLabel !== undefined && { bankTransferLabel: bankTransferLabel || null }),
-      ...(payoutInstructions !== undefined && { payoutInstructions: payoutInstructions || null }),
-      ...(marketplaceFacilitatorTaxAcknowledged !== undefined && {
-        marketplaceFacilitatorTaxAcknowledged: marketplaceFacilitatorTaxAcknowledged !== false,
-      }),
-      ...(insuranceDisclosureAccepted && { insuranceDisclosureAcceptedAt: new Date() }),
-      ...(insuranceDisclosureDeclined && { insuranceDisclosureDeclinedAt: new Date() }),
-      ...(servicesOffered !== undefined && { servicesOffered }),
-      ...(vehicleTypesServed !== undefined && { vehicleTypesServed }),
-      ...(sellsParts !== undefined && { sellsParts }),
-    },
-  });
+  // Ensure the profile row exists — INSERT with defaults, do nothing on conflict.
+  // Uses raw SQL to bypass stale Prisma Client validation on newer columns.
+  // id uses randomUUID because Prisma's cuid() is JS-level, not a DB default.
+  const newProfileId = randomUUID();
+  await prisma.$executeRaw`
+    INSERT INTO "provider_profiles" (
+      "id", "userId", "businessName", "businessPhone", "businessEmail",
+      "address", "city", "state", "zipCode", "serviceRadiusKm",
+      "mobileService", "roadsideAssistance", "freeKm", "extraFeePerKm",
+      "travelChargeType", "specialties", "payoutMethod",
+      "marketplaceFacilitatorTaxAcknowledged", "servicesOffered",
+      "vehicleTypesServed", "sellsParts", "isVerified",
+      "averageRating", "totalReviews", "totalServicesCompleted",
+      "updatedAt"
+    ) VALUES (
+      ${newProfileId}, ${providerId}, 'My Business', '', '', '', '', 'FL', '', 50,
+      false, false, 0, 0.00, 'ONE_WAY', '[]'::jsonb, 'MANUAL',
+      true, '[]'::jsonb, '[]'::jsonb, false, false, 0, 0, 0,
+      NOW()
+    )
+    ON CONFLICT ("userId") DO NOTHING
+  `;
+
+  // Build a dynamic UPDATE using raw SQL to bypass stale Prisma Client.
+  const sqlParams: any[] = [providerId];
+  const setClauses: string[] = [];
+
+  const addStr = (col: string, val: string | null) => {
+    sqlParams.push(val);
+    setClauses.push(`"${col}" = $${sqlParams.length}`);
+  };
+  const addNum = (col: string, val: number | null) => {
+    sqlParams.push(val);
+    setClauses.push(`"${col}" = $${sqlParams.length}`);
+  };
+  const addBool = (col: string, val: boolean) => {
+    sqlParams.push(val);
+    setClauses.push(`"${col}" = $${sqlParams.length}`);
+  };
+  const addJson = (col: string, val: any) => {
+    sqlParams.push(JSON.stringify(val));
+    setClauses.push(`"${col}" = $${sqlParams.length}::jsonb`);
+  };
+
+  if (businessName) addStr("businessName", businessName);
+  if (legalName !== undefined) addStr("legalName", legalName || null);
+  if (ein !== undefined) addStr("ein", ein || null);
+  if (sunbizDocumentNumber !== undefined) addStr("sunbizDocumentNumber", sunbizDocumentNumber || null);
+  if (businessPhone) addStr("businessPhone", businessPhone);
+  if (businessEmail) addStr("businessEmail", businessEmail);
+  if (address !== undefined) addStr("address", address);
+  if (city !== undefined) addStr("city", city);
+  if (state !== undefined) addStr("state", state);
+  if (zipCode !== undefined) addStr("zipCode", zipCode);
+  if (serviceRadiusKm !== undefined) addNum("serviceRadiusKm", Number(serviceRadiusKm));
+  if (baseLatitude !== undefined) addNum("baseLatitude", baseLatitude);
+  if (baseLongitude !== undefined) addNum("baseLongitude", baseLongitude);
+  if (mobileService !== undefined) addBool("mobileService", !!mobileService);
+  if (roadsideAssistance !== undefined) addBool("roadsideAssistance", !!roadsideAssistance);
+  if (freeKm !== undefined) addNum("freeKm", Number(freeKm));
+  if (extraFeePerKm !== undefined) addNum("extraFeePerKm", Number(extraFeePerKm));
+  if (travelChargeType !== undefined) addStr("travelChargeType", travelChargeType === "ROUND_TRIP" ? "ROUND_TRIP" : "ONE_WAY");
+  if (specialties !== undefined) addJson("specialties", specialties);
+  if (businessHours !== undefined) addJson("businessHours", businessHours);
+  if (businessDescription !== undefined) addStr("businessDescription", businessDescription || null);
+  if (servicesOffered !== undefined) addJson("servicesOffered", servicesOffered);
+  if (vehicleTypesServed !== undefined) addJson("vehicleTypesServed", vehicleTypesServed);
+  if (sellsParts !== undefined) addBool("sellsParts", !!sellsParts);
+  if (fdacsRegistrationNumber !== undefined) addStr("fdacsRegistrationNumber", fdacsRegistrationNumber || null);
+  if (cityBusinessTaxReceiptNumber !== undefined) addStr("cityBusinessTaxReceiptNumber", cityBusinessTaxReceiptNumber || null);
+  if (countyBusinessTaxReceiptNumber !== undefined) addStr("countyBusinessTaxReceiptNumber", countyBusinessTaxReceiptNumber || null);
+  if (payoutMethod !== undefined) addStr("payoutMethod", payoutMethod || "MANUAL");
+  if (zelleEmail !== undefined) addStr("zelleEmail", zelleEmail || null);
+  if (zellePhone !== undefined) addStr("zellePhone", zellePhone || null);
+  if (bankTransferLabel !== undefined) addStr("bankTransferLabel", bankTransferLabel || null);
+  if (payoutInstructions !== undefined) addStr("payoutInstructions", payoutInstructions || null);
+  if (marketplaceFacilitatorTaxAcknowledged !== undefined) addBool("marketplaceFacilitatorTaxAcknowledged", marketplaceFacilitatorTaxAcknowledged !== false);
+
+  if (insuranceDisclosureAccepted) {
+    sqlParams.push(new Date().toISOString());
+    setClauses.push(`"insuranceDisclosureAcceptedAt" = $${sqlParams.length}`);
+  }
+  if (insuranceDisclosureDeclined) {
+    sqlParams.push(new Date().toISOString());
+    setClauses.push(`"insuranceDisclosureDeclinedAt" = $${sqlParams.length}`);
+  }
+
+  // businessIdentityStatus derivation
+  if (businessIdentityStatus !== undefined || legalName !== undefined || ein !== undefined || sunbizDocumentNumber !== undefined) {
+    const idStatus = businessIdentityStatus || (legalName || ein || sunbizDocumentNumber ? "PROVIDED_UNVERIFIED" : "NOT_PROVIDED");
+    addStr("businessIdentityStatus", idStatus);
+  }
+
+  // businessTaxReceiptStatus derivation
+  if (businessTaxReceiptStatus !== undefined || cityBusinessTaxReceiptNumber !== undefined || countyBusinessTaxReceiptNumber !== undefined) {
+    const taxStatus = businessTaxReceiptStatus || (cityBusinessTaxReceiptNumber || countyBusinessTaxReceiptNumber ? "PROVIDED_UNVERIFIED" : "NOT_PROVIDED");
+    addStr("businessTaxReceiptStatus", taxStatus);
+  }
+
+  if (setClauses.length > 0) {
+    setClauses.push(`"updatedAt" = NOW()`);
+    const sql = `UPDATE "provider_profiles" SET ${setClauses.join(", ")} WHERE "userId" = $1`;
+    await prisma.$executeRawUnsafe(sql, ...sqlParams);
+  }
+
+  // Fetch the updated profile via raw SQL to avoid stale Prisma Client SELECT issues.
+  const profileRows = await prisma.$queryRaw<any[]>`
+    SELECT * FROM "provider_profiles" WHERE "userId" = ${providerId} LIMIT 1
+  `;
+  const profile = profileRows[0] || {};
 
   res.json({
     success: true,

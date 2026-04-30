@@ -21,6 +21,7 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
+  Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
@@ -126,8 +127,8 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
   const [previewName, setPreviewName] = useState("photo.jpg");
   const [previewTarget, setPreviewTarget] = useState<"license" | "insurance">("license");
 
-  // ── Radius state ──
-  const [serviceRadius, setServiceRadius] = useState(50);
+  // ── Radius state (miles) ──
+  const [serviceRadius, setServiceRadius] = useState(30);
   const [radiusSaving, setRadiusSaving] = useState(false);
   const [radiusDone, setRadiusDone] = useState(false);
 
@@ -146,6 +147,8 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
 
   // ── Mobile service state ──
   const [mobileService, setMobileService] = useState(false);
+  const [freeMiles, setFreeMiles] = useState(0);
+  const [feePerMile, setFeePerMile] = useState(0);
   const [mobileSaving, setMobileSaving] = useState(false);
   const [mobileDone, setMobileDone] = useState(false);
 
@@ -265,7 +268,8 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
   const saveRadius = async () => {
     try {
       setRadiusSaving(true);
-      await api.patch("/providers/profile", { serviceRadiusKm: serviceRadius });
+      // Convert miles → km for backend storage
+      await api.patch("/providers/profile", { serviceRadiusKm: Math.round(serviceRadius * 1.60934) });
       if (user) await markStepDone(user.id, "radius");
       setRadiusDone(true);
       goNext();
@@ -315,7 +319,13 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
   const saveMobile = async () => {
     try {
       setMobileSaving(true);
-      await api.patch("/providers/profile", { mobileService });
+      await api.patch("/providers/profile", {
+        mobileService,
+        ...(mobileService && {
+          freeKm: Math.round(freeMiles * 1.60934),
+          extraFeePerKm: feePerMile,
+        }),
+      });
       if (user) await markStepDone(user.id, "mobile");
       setMobileDone(true);
       goNext();
@@ -405,6 +415,41 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
           </Text>
         </View>
 
+        {target === "license" && (
+          <View style={styles.resourceBox}>
+            <Text style={styles.resourceTitle}>Where to get your Business License (Florida)</Text>
+            {[
+              { label: "Division of Corporations (Sunbiz)", url: "https://sunbiz.org" },
+              { label: "State Licensing Board (DBPR)", url: "https://myfloridalicense.com" },
+              { label: "Motor Vehicle Repair (FDACS)", url: "https://www.fdacs.gov/Consumer-Resources/Motor-Vehicle-Repair" },
+            ].map((r) => (
+              <TouchableOpacity key={r.url} style={styles.resourceRow} onPress={() => Linking.openURL(r.url)}>
+                <MaterialCommunityIcons name="open-in-new" size={14} color={color} />
+                <Text style={[styles.resourceLink, { color }]}>{r.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {target === "insurance" && (
+          <View style={styles.resourceBox}>
+            <Text style={styles.resourceTitle}>Where to get your Certificate of Insurance (COI)</Text>
+            <Text style={styles.resourceItem}>
+              Contact your insurance carrier or agent and request an ACORD 25 form showing General Liability coverage.
+            </Text>
+            {[
+              { label: "The Hartford (small business)", url: "https://www.thehartford.com" },
+              { label: "Next Insurance (fast online)", url: "https://www.nextinsurance.com" },
+              { label: "Hiscox Business Insurance", url: "https://www.hiscox.com" },
+            ].map((r) => (
+              <TouchableOpacity key={r.url} style={styles.resourceRow} onPress={() => Linking.openURL(r.url)}>
+                <MaterialCommunityIcons name="open-in-new" size={14} color={color} />
+                <Text style={[styles.resourceLink, { color }]}>{r.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
         {uploads.length > 0 && (
           <View style={styles.uploadedList}>
             {uploads.map((_, i) => (
@@ -449,9 +494,7 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
   };
 
   const renderRadius = () => {
-    const labels = [10, 25, 50, 75, 100, 150];
-    const radiusSteps = [5, 10, 15, 20, 25, 30, 40, 50, 60, 75, 100, 125, 150];
-    const currentIndex = radiusSteps.findIndex(v => v >= serviceRadius) ?? radiusSteps.length - 1;
+    const radiusSteps = [5, 10, 15, 20, 25, 30, 40, 50, 60, 75, 100];
 
     return (
       <View style={styles.stepBody}>
@@ -468,13 +511,13 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
           <MaterialCommunityIcons name="lightbulb-outline" size={16} color={color} />
           <Text style={styles.impactText}>
             <Text style={{ fontWeight: "700" }}>Larger radius = more requests</Text>, but also
-            longer drives. Start with 50 km and adjust later in Profile → Service Area.
+            longer drives. Start with 30 miles and adjust later in Profile → Service Area.
           </Text>
         </View>
 
         <View style={styles.radiusDisplay}>
           <Text style={[styles.radiusNumber, { color }]}>{serviceRadius}</Text>
-          <Text style={styles.radiusUnit}>km radius</Text>
+          <Text style={styles.radiusUnit}>mi radius</Text>
         </View>
 
         <View style={styles.radiusChips}>
@@ -490,9 +533,9 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
         </View>
 
         <Text style={styles.radiusHint}>
-          {serviceRadius <= 20 ? "Small area — perfect for high-demand urban zones." :
-           serviceRadius <= 50 ? "Standard coverage — good balance of volume and distance." :
-           serviceRadius <= 100 ? "Wide coverage — more requests, longer distances." :
+          {serviceRadius <= 15 ? "Small area — perfect for high-demand urban zones." :
+           serviceRadius <= 30 ? "Standard coverage — good balance of volume and distance." :
+           serviceRadius <= 60 ? "Wide coverage — more requests, longer distances." :
            "Regional coverage — great for specialised services."}
         </Text>
 
@@ -728,11 +771,34 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
       </View>
 
       {mobileService && (
-        <View style={styles.mobileTipBox}>
-          <MaterialCommunityIcons name="check-circle" size={16} color={color} />
-          <Text style={styles.mobileTipText}>
-            You can set a free travel distance and per-km fee in Profile → Service Area.
-          </Text>
+        <View style={styles.mobileFieldsCard}>
+          <Text style={styles.mobileFieldsTitle}>Travel Settings</Text>
+
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>Free Travel Distance (miles)</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="e.g. 10"
+              placeholderTextColor="#9ca3af"
+              value={freeMiles > 0 ? String(freeMiles) : ""}
+              onChangeText={(v) => setFreeMiles(Number(v.replace(/[^0-9]/g, "")) || 0)}
+              keyboardType="number-pad"
+            />
+            <Text style={styles.charCount}>Miles you'll travel at no extra charge</Text>
+          </View>
+
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>Fee per Mile Beyond Free Distance ($)</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="e.g. 1.50"
+              placeholderTextColor="#9ca3af"
+              value={feePerMile > 0 ? String(feePerMile) : ""}
+              onChangeText={(v) => setFeePerMile(parseFloat(v.replace(/[^0-9.]/g, "")) || 0)}
+              keyboardType="decimal-pad"
+            />
+            <Text style={styles.charCount}>Charge per mile after the free distance (0 = no extra fee)</Text>
+          </View>
         </View>
       )}
 
@@ -775,20 +841,35 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
       </View>
 
       <View style={styles.doneCard}>
-        <Text style={styles.doneCardTitle}>While you wait, you can:</Text>
+        <Text style={styles.doneCardTitle}>Setup Summary</Text>
         {[
-          { icon: "storefront", text: "Complete your business profile and add photos" },
-          { icon: "file-document", text: "Review and accept the terms of service" },
-          { icon: "cash-multiple", text: "Verify your payout method in Profile → Payouts" },
-          { icon: "bell", text: "Set up push notifications to never miss a request" },
+          { icon: "certificate",       label: "Business License",      done: licenseUploads.length > 0 },
+          { icon: "shield-check",      label: "Insurance Certificate", done: insuranceUploads.length > 0 },
+          { icon: "map-marker-radius", label: "Service Radius",        done: radiusDone },
+          { icon: "clock-time-four",   label: "Business Hours",        done: hoursDone },
+          { icon: "text-box-edit",     label: "Business Bio",          done: descDone },
+          { icon: "car-wrench",        label: "Mobile Service",        done: mobileDone },
         ].map((item, i) => (
           <View key={i} style={styles.doneRow}>
-            <View style={[styles.doneIcon, { backgroundColor: STEP_BG.done }]}>
-              <MaterialCommunityIcons name={item.icon as any} size={16} color={STEP_COLORS.done} />
+            <View style={[styles.doneIcon, { backgroundColor: item.done ? STEP_BG.done : "#fef2f2" }]}>
+              <MaterialCommunityIcons name={item.icon as any} size={16} color={item.done ? STEP_COLORS.done : "#ef4444"} />
             </View>
-            <Text style={styles.doneRowText}>{item.text}</Text>
+            <Text style={[styles.doneRowText, !item.done && { color: "#b91c1c" }]}>{item.label}</Text>
+            <MaterialCommunityIcons
+              name={item.done ? "check-circle" : "alert-circle-outline"}
+              size={18}
+              color={item.done ? "#10b981" : "#ef4444"}
+            />
           </View>
         ))}
+        {[licenseUploads.length === 0, insuranceUploads.length === 0, !radiusDone, !hoursDone].some(Boolean) && (
+          <View style={styles.pendingNotice}>
+            <MaterialCommunityIcons name="information-outline" size={14} color="#92400e" />
+            <Text style={styles.pendingNoticeText}>
+              Pending items can be completed later in Profile. Documents must be verified before you can receive requests.
+            </Text>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -1121,6 +1202,44 @@ const styles = StyleSheet.create({
   bioTipRow: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
   bioTipDot: { width: 6, height: 6, borderRadius: 3, marginTop: 6 },
   bioTipText: { flex: 1, fontSize: 13, color: "#374151" },
+  // Resources
+  resourceBox: {
+    backgroundColor: "#f8faff",
+    borderWidth: 1,
+    borderColor: "#dbeafe",
+    borderRadius: 12,
+    padding: 14,
+    width: "100%",
+    marginBottom: 14,
+    gap: 8,
+  },
+  resourceTitle: { fontSize: 13, fontWeight: "700", color: "#1e40af", marginBottom: 4 },
+  resourceRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  resourceLink: { fontSize: 13, fontWeight: "500", textDecorationLine: "underline" },
+  resourceItem: { fontSize: 13, color: "#374151", lineHeight: 18 },
+  // Mobile fields
+  mobileFieldsCard: {
+    backgroundColor: "#f0fdf4",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#bbf7d0",
+    padding: 16,
+    width: "100%",
+    marginBottom: 12,
+    gap: 4,
+  },
+  mobileFieldsTitle: { fontSize: 14, fontWeight: "700", color: "#065f46", marginBottom: 8 },
+  // Done pending notice
+  pendingNotice: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 6,
+    backgroundColor: "#fffbeb",
+    borderRadius: 10,
+    padding: 10,
+    marginTop: 8,
+  },
+  pendingNoticeText: { flex: 1, fontSize: 12, color: "#92400e", lineHeight: 16 },
   // Mobile
   mobileToggleCard: {
     width: "100%",

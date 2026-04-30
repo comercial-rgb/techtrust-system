@@ -170,7 +170,7 @@ export default function ConfiguracoesPage() {
         city: p.city || "",
         state: p.state || "",
         zipCode: p.zipCode || "",
-        serviceRadius: p.serviceRadiusKm || 25,
+        serviceRadius: p.serviceRadiusKm ? Math.round(p.serviceRadiusKm / 1.60934) : 15,
         averageRating: p.averageRating || 0,
         totalReviews: p.totalReviews || 0,
         isVerified: p.isVerified || false,
@@ -233,7 +233,7 @@ export default function ConfiguracoesPage() {
         city: profile.city,
         state: profile.state,
         zipCode: profile.zipCode,
-        serviceRadiusKm: profile.serviceRadius,
+        serviceRadiusKm: Math.round(profile.serviceRadius * 1.60934),
         specialties: profile.services,
         businessHours: profile.workingHours,
         fdacsRegistrationNumber: profile.fdacsRegistrationNumber || undefined,
@@ -580,7 +580,7 @@ export default function ConfiguracoesPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Raio de Atendimento (km)
+                    Service Radius (miles)
                   </label>
                   <input
                     type="number"
