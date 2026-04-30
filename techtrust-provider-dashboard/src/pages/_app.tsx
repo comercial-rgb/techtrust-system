@@ -1,17 +1,22 @@
 import '@/styles/globals.css'
 import type { AppProps } from 'next/app'
+import { GoogleOAuthProvider } from '@react-oauth/google'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { ToastProvider } from '@/components/Toast'
 import { I18nProvider } from '@/i18n'
 
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ''
+
 export default function App({ Component, pageProps }: AppProps) {
   return (
-    <I18nProvider>
-      <AuthProvider>
-        <ToastProvider>
-          <Component {...pageProps} />
-        </ToastProvider>
-      </AuthProvider>
-    </I18nProvider>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <I18nProvider>
+        <AuthProvider>
+          <ToastProvider>
+            <Component {...pageProps} />
+          </ToastProvider>
+        </AuthProvider>
+      </I18nProvider>
+    </GoogleOAuthProvider>
   )
 }

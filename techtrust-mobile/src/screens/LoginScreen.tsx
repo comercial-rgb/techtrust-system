@@ -226,9 +226,9 @@ export default function LoginScreen({ navigation }: any) {
         const userId = error.data?.userId;
         const phone = error.data?.phone;
         Alert.alert(
-          t.auth.verificationRequired || "Verificação necessária",
+          t.auth.verificationRequired || "Verification Required",
           t.auth.phoneNotVerifiedMessage ||
-            "Seu telefone ainda não foi verificado. Deseja reenviar o código?",
+            "Your phone number has not been verified yet. Would you like to resend the code?",
           [
             { text: t.common.cancel || "Cancelar", style: "cancel" },
             {

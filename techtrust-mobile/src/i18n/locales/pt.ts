@@ -289,6 +289,8 @@ export default {
     sendCode: "Enviar Código",
     verifyCode: "Verificar Código",
     resendCode: "Reenviar Código",
+    verificationRequired: "Verificação necessária",
+    phoneNotVerifiedMessage: "Seu telefone ainda não foi verificado. Deseja reenviar o código?",
     verification: "Verificação",
     verificationComplete: "Verificação completa!",
     invalidCode: "Código inválido",

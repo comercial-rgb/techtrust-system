@@ -24,6 +24,7 @@ interface AuthContextType {
   user: User | null
   loading: boolean
   login: (email: string, password: string) => Promise<void>
+  socialLogin: (provider: 'google' | 'apple', token: string, extra?: { appleUserId?: string; fullName?: string }) => Promise<void>
   logout: () => void
   isAuthenticated: boolean
   hasCompletedOnboarding: boolean
@@ -83,6 +84,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       Cookies.remove('refreshToken')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function socialLogin(
+    provider: 'google' | 'apple',
+    token: string,
+    extra?: { appleUserId?: string; fullName?: string }
+  ) {
+    const response = await api.post('/auth/social', {
+      provider: provider.toUpperCase(),
+      token,
+      appleUserId: extra?.appleUserId,
+      fullName: extra?.fullName,
+    })
+    const data = response.data.data
+
+    if (data.status === 'AUTHENTICATED') {
+      const userData = data.user
+      if (userData.role !== 'PROVIDER') {
+        throw new Error('This account is registered as a customer. To access the provider dashboard, please register your shop.')
+      }
+      Cookies.set('token', data.token, { expires: 7 })
+      Cookies.set('refreshToken', data.refreshToken, { expires: 30 })
+      setUser(userData)
+
+      const onboardingDone = localStorage.getItem('tt_provider_onboarding_done')
+      if (onboardingDone === 'true') {
+        setHasCompletedOnboarding(true)
+        router.push('/dashboard')
+      } else {
+        setHasCompletedOnboarding(false)
+        router.push('/onboarding')
+      }
+    } else {
+      // NEEDS_PASSWORD or any other status — backend created a CLIENT account
+      throw new Error('No provider account found for this social account. Please register your shop using the button below.')
     }
   }
 
@@ -160,6 +197,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       loading,
       login,
+      socialLogin,
       logout,
       isAuthenticated: !!user,
       hasCompletedOnboarding,

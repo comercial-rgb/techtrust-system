@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useAuth } from "../contexts/AuthContext";
+import { useGoogleLogin } from "@react-oauth/google";
 import api from "../services/api";
 import {
   Car,
@@ -8,6 +9,7 @@ import {
   Lock,
   Eye,
   EyeOff,
+  Phone,
   ArrowRight,
   ArrowLeft,
   Shield,
@@ -19,31 +21,194 @@ import {
 import { useI18n } from "../i18n";
 import LangSelector from "../components/LangSelector";
 
+type SocialStep = 'idle' | 'needs_password' | 'needs_otp'
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://techtrust-api.onrender.com/api/v1'
+
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, socialLogin, completeSocialSignup, verifySocialPhone } = useAuth();
   const { translate, language, setLanguage } = useI18n();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [socialLoading, setSocialLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // OTP verification state
+  // Social completion flow state
+  const [socialStep, setSocialStep] = useState<SocialStep>('idle')
+  const [socialUserId, setSocialUserId] = useState('')
+  const [socialEmail, setSocialEmail] = useState('')
+  const [socialPhone, setSocialPhone] = useState('')
+  const [socialPassword, setSocialPassword] = useState('')
+  const [socialConfirmPassword, setSocialConfirmPassword] = useState('')
+  const [socialOtp, setSocialOtp] = useState('')
+  const [showSocialPassword, setShowSocialPassword] = useState(false)
+  const [resending, setResending] = useState(false)
+
+  // OTP verification state (email login)
   const [needsVerification, setNeedsVerification] = useState(false);
   const [verifyUserId, setVerifyUserId] = useState("");
   const [verifyPhone, setVerifyPhone] = useState("");
   const [otpCode, setOtpCode] = useState("");
-  const [resending, setResending] = useState(false);
+  const [emailResending, setEmailResending] = useState(false);
 
   const tr = translate;
 
+  // ─── Apple Sign-In helper ───
+  const signInWithApple = async () => {
+    const clientId = process.env.NEXT_PUBLIC_APPLE_CLIENT_ID
+    if (!clientId) {
+      setError('Apple Sign-In is not configured')
+      return undefined
+    }
+
+    if (!(window as any).AppleID) {
+      await new Promise<void>((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = 'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js'
+        script.onload = () => resolve()
+        script.onerror = () => reject(new Error('Failed to load Apple SDK'))
+        document.head.appendChild(script)
+      })
+    }
+
+    ;(window as any).AppleID.auth.init({
+      clientId,
+      scope: 'name email',
+      redirectURI: window.location.origin + window.location.pathname,
+      usePopup: true,
+    })
+
+    const data = await (window as any).AppleID.auth.signIn()
+    const idToken = data.authorization.id_token
+    const payload = JSON.parse(atob(idToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')))
+    const appleUserId = payload.sub
+    const name = data.user ? `${data.user.name?.firstName || ''} ${data.user.name?.lastName || ''}`.trim() : undefined
+    return { idToken, appleUserId, name }
+  }
+
+  // ─── Google handler ───
+  const handleGoogleLogin = useGoogleLogin({
+    flow: 'implicit',
+    onSuccess: async (tokenResponse) => {
+      setSocialLoading(true)
+      setError('')
+      try {
+        const result = await socialLogin('google', tokenResponse.access_token)
+        if (result.status === 'NEEDS_PASSWORD') {
+          setSocialUserId(result.userId)
+          setSocialEmail(result.email)
+          setSocialStep('needs_password')
+        }
+        // AUTHENTICATED is handled inside socialLogin (redirects)
+      } catch (err: any) {
+        setError(err.message || 'Google sign-in failed')
+      } finally {
+        setSocialLoading(false)
+      }
+    },
+    onError: () => setError('Google sign-in was cancelled or failed'),
+  })
+
+  // ─── Apple handler ───
+  const handleAppleLogin = async () => {
+    setSocialLoading(true)
+    setError('')
+    try {
+      const appleData = await signInWithApple()
+      if (!appleData) return
+      const result = await socialLogin('apple', appleData.idToken, {
+        appleUserId: appleData.appleUserId,
+        fullName: appleData.name,
+      })
+      if (result.status === 'NEEDS_PASSWORD') {
+        setSocialUserId(result.userId)
+        setSocialEmail(result.email)
+        setSocialStep('needs_password')
+      }
+    } catch (err: any) {
+      if (err?.error === 'popup_closed_by_user') {
+        setError('Apple sign-in was cancelled')
+      } else {
+        setError(err.message || 'Apple sign-in failed')
+      }
+    } finally {
+      setSocialLoading(false)
+    }
+  }
+
+  // ─── Complete social signup (needs_password step) ───
+  async function handleCompleteSocialSignup(e: React.FormEvent) {
+    e.preventDefault()
+    setError('')
+
+    const trimmedPhone = socialPhone.trim()
+    if (!trimmedPhone) {
+      setError('Please enter your phone number')
+      return
+    }
+    if (socialPassword.length < 8) {
+      setError('Password must be at least 8 characters')
+      return
+    }
+    if (socialPassword !== socialConfirmPassword) {
+      setError('Passwords do not match')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const result = await completeSocialSignup(socialUserId, trimmedPhone, socialPassword)
+      if (result.status === 'NEEDS_PHONE_VERIFICATION') {
+        setSocialPhone(result.phone || trimmedPhone)
+        setSocialStep('needs_otp')
+      }
+      // AUTHENTICATED is handled inside completeSocialSignup (redirects)
+    } catch (err: any) {
+      setError(err.message || 'Could not complete sign-up. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // ─── Verify social phone OTP ───
+  async function handleVerifySocialOtp(e: React.FormEvent) {
+    e.preventDefault()
+    if (!socialOtp.trim() || socialOtp.trim().length < 4) {
+      setError('Enter the verification code')
+      return
+    }
+    setError('')
+    setLoading(true)
+    try {
+      await verifySocialPhone(socialUserId, socialOtp.trim())
+    } catch (err: any) {
+      setError(err.message || 'Invalid code')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleResendSocialOtp() {
+    setResending(true)
+    try {
+      await fetch(`${API_BASE}/auth/resend-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: socialUserId, method: 'sms' }),
+      })
+    } catch {}
+    setTimeout(() => setResending(false), 30000)
+  }
+
+  // ─── Email login ───
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
 
     try {
-      // Call API directly to get full response data (AuthContext strips details)
       const response = await api.login(email, password);
 
       if (response.error) {
@@ -59,7 +224,6 @@ export default function LoginPage() {
             setVerifyPhone(phone);
             setError("");
           } else {
-            // Old format without userId — retry to trigger OTP
             const retry = await api.login(email, password);
             if (retry.responseData?.userId) {
               setNeedsVerification(true);
@@ -80,7 +244,6 @@ export default function LoginPage() {
         return;
       }
 
-      // Login succeeded — use AuthContext to set state/cookies/redirect
       await login(email, password);
     } catch (err: any) {
       setError(err.message || tr("auth.loginError"));
@@ -104,7 +267,6 @@ export default function LoginPage() {
         setError(res.error);
         return;
       }
-      // Phone verified — now login through AuthContext
       await login(email, password);
     } catch (err: any) {
       setError(err.message || "Invalid code");
@@ -114,12 +276,11 @@ export default function LoginPage() {
   }
 
   async function handleResendOTP() {
-    setResending(true);
+    setEmailResending(true);
     try {
       if (verifyUserId) {
         await api.resendOTP(verifyUserId);
       } else {
-        // Trigger login again to generate new OTP
         const retry = await api.login(email, password);
         if (retry.responseData?.userId) {
           setVerifyUserId(retry.responseData.userId);
@@ -127,7 +288,7 @@ export default function LoginPage() {
         }
       }
     } catch {}
-    setTimeout(() => setResending(false), 30000);
+    setTimeout(() => setEmailResending(false), 30000);
   }
 
   return (
@@ -171,8 +332,8 @@ export default function LoginPage() {
             </div>
           )}
 
+          {/* ─── Email OTP Verification (email login flow) ─── */}
           {needsVerification ? (
-            /* OTP Verification Form */
             <>
               <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-blue-700 text-sm">
                 {tr("signup.otpSent") || "A verification code was sent to your phone"}
@@ -220,10 +381,10 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={handleResendOTP}
-                    disabled={resending}
+                    disabled={emailResending}
                     className="text-primary-600 hover:text-primary-700 font-medium disabled:text-gray-400"
                   >
-                    {resending
+                    {emailResending
                       ? tr("signup.otpResent") || "Code sent!"
                       : tr("signup.resendOtp") || "Resend code"}
                   </button>
@@ -242,9 +403,237 @@ export default function LoginPage() {
                 </div>
               </form>
             </>
+
+          ) : socialStep === 'needs_password' ? (
+            /* ─── Social: Complete Account (set phone + password) ─── */
+            <>
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">Almost there!</h3>
+                <p className="text-gray-600 text-sm">
+                  Complete your account for <span className="font-medium text-gray-800">{socialEmail}</span> to continue.
+                </p>
+              </div>
+
+              <form onSubmit={handleCompleteSocialSignup} className="space-y-5">
+                {/* Phone */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Phone Number
+                  </label>
+                  <div className="relative">
+                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                    <div className="absolute left-12 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium pointer-events-none select-none">
+                      +1
+                    </div>
+                    <input
+                      type="tel"
+                      value={socialPhone}
+                      onChange={(e) => setSocialPhone(e.target.value)}
+                      placeholder="(555) 123-4567"
+                      className="w-full pl-20 pr-4 py-3 rounded-lg border border-gray-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Password */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {tr("auth.password")}
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                    <input
+                      type={showSocialPassword ? 'text' : 'password'}
+                      value={socialPassword}
+                      onChange={(e) => setSocialPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full pl-12 pr-12 py-3 rounded-lg border border-gray-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowSocialPassword(!showSocialPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      {showSocialPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">At least 8 characters</p>
+                </div>
+
+                {/* Confirm Password */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Confirm Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                    <input
+                      type={showSocialPassword ? 'text' : 'password'}
+                      value={socialConfirmPassword}
+                      onChange={(e) => setSocialConfirmPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full pl-12 pr-4 py-3 rounded-lg border border-gray-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="btn btn-primary w-full py-3 text-base disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Setting up...
+                    </span>
+                  ) : (
+                    <span className="flex items-center justify-center gap-2">
+                      Complete Account
+                      <ArrowRight className="w-5 h-5" />
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSocialStep('idle')
+                    setSocialUserId('')
+                    setSocialEmail('')
+                    setSocialPhone('')
+                    setSocialPassword('')
+                    setSocialConfirmPassword('')
+                    setError('')
+                  }}
+                  className="w-full flex items-center justify-center gap-2 text-gray-500 hover:text-gray-700 text-sm py-2"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Back
+                </button>
+              </form>
+            </>
+
+          ) : socialStep === 'needs_otp' ? (
+            /* ─── Social: Phone OTP verification ─── */
+            <>
+              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-blue-700 text-sm">
+                Enter the verification code sent to{' '}
+                <span className="font-medium">{socialPhone}</span>
+              </div>
+
+              <form onSubmit={handleVerifySocialOtp} className="space-y-5">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Verification Code
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={socialOtp}
+                    onChange={(e) => setSocialOtp(e.target.value.replace(/\D/g, ''))}
+                    placeholder="000000"
+                    className="w-full py-3 rounded-lg border border-gray-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all text-center text-2xl tracking-[0.5em] font-mono"
+                    disabled={loading}
+                    autoFocus
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading || socialOtp.length < 4}
+                  className="btn btn-primary w-full py-3 text-base disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Verifying...
+                    </span>
+                  ) : (
+                    tr("signup.verify") || "Verify"
+                  )}
+                </button>
+
+                <div className="flex items-center justify-between text-sm">
+                  <button
+                    type="button"
+                    onClick={handleResendSocialOtp}
+                    disabled={resending}
+                    className="text-primary-600 hover:text-primary-700 font-medium disabled:text-gray-400"
+                  >
+                    {resending ? "Code sent!" : tr("signup.resendOtp") || "Resend code"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSocialStep('needs_password')
+                      setSocialOtp('')
+                      setError('')
+                    }}
+                    className="text-gray-500 hover:text-gray-700 flex items-center gap-1"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    Back
+                  </button>
+                </div>
+              </form>
+            </>
+
           ) : (
+          /* ─── Default: Social buttons + email/password form ─── */
           <>
-          {/* Form */}
+          {/* Social Sign-In */}
+          <div className="mb-6 space-y-3">
+            <button
+              type="button"
+              onClick={() => handleGoogleLogin()}
+              disabled={socialLoading || loading}
+              className="w-full flex items-center justify-center gap-3 py-3 px-4 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium text-gray-700 text-sm shadow-sm"
+            >
+              {socialLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+              ) : (
+                <svg className="w-5 h-5" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+              )}
+              Continue with Google
+            </button>
+
+            <button
+              type="button"
+              onClick={handleAppleLogin}
+              disabled={socialLoading || loading}
+              className="w-full flex items-center justify-center gap-3 py-3 px-4 border border-gray-200 rounded-lg bg-black hover:bg-gray-900 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium text-white text-sm shadow-sm"
+            >
+              {socialLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+              ) : (
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+                </svg>
+              )}
+              Continue with Apple
+            </button>
+          </div>
+
+          <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-200" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-4 bg-white text-gray-400">or sign in with email</span>
+            </div>
+          </div>
+
+          {/* Email/Password Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">

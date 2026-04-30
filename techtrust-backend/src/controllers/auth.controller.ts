@@ -1651,7 +1651,8 @@ export const login = async (req: Request, res: Response) => {
     const hasRealPhone = user.phone && !user.phone.startsWith("+0");
     if (
       hasRealPhone &&
-      (user.status === "PENDING_VERIFICATION" || !user.phoneVerified)
+      user.status === "PENDING_VERIFICATION" &&
+      !user.phoneVerified
     ) {
       console.log("⚠️ Telefone não verificado para:", email);
 

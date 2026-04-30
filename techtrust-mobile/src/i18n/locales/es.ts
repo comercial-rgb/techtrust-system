@@ -290,6 +290,8 @@ export default {
     sendCode: "Enviar Código",
     verifyCode: "Verificar Código",
     resendCode: "Reenviar Código",
+    verificationRequired: "Verificación requerida",
+    phoneNotVerifiedMessage: "Tu número de teléfono aún no ha sido verificado. ¿Deseas reenviar el código?",
     verification: "Verificación",
     verificationComplete: "¡Verificación completa!",
     invalidCode: "Código inválido",

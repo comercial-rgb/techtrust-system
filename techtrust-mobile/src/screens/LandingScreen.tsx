@@ -199,6 +199,36 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
 
     if (normalized in mapById) return mapById[normalized];
 
+    // Backend enum keys (SCREAMING_SNAKE_CASE)
+    const mapByEnum: Record<string, string> = {
+      OIL_CHANGE: "Oil Change",
+      AIR_FILTER: "Air Filter Service",
+      FUEL_SYSTEM: "Fuel System",
+      BRAKES: "Brakes",
+      COOLING_SYSTEM: "Cooling System",
+      TIRES: "Tires & Wheels",
+      BELTS_HOSES: "Belts & Hoses",
+      AC_SERVICE: "A/C & Heating",
+      STEERING: "Steering & Suspension",
+      ELECTRICAL_BASIC: "Electrical System",
+      EXHAUST: "Exhaust System",
+      DRIVETRAIN: "Drivetrain",
+      ENGINE: "Engine",
+      TRANSMISSION: "Transmission",
+      BATTERY: "Battery",
+      GENERAL_REPAIR: "General Repair",
+      FLUID_SERVICES: "Fluid Services",
+      PREVENTIVE_PACKAGES: "Preventive Maintenance",
+      INSPECTION: "Inspection",
+      DIAGNOSTICS: "Diagnostics",
+      DETAILING: "Detailing",
+      TOWING: "Towing",
+      ROADSIDE_ASSIST: "Roadside Assist",
+      LOCKOUT: "Lockout",
+    };
+
+    if (normalized in mapByEnum) return mapByEnum[normalized];
+
     // Back-compat for older values
     const mapByLegacyName: Record<string, string> = {
       "Oil Change": mapById.oilChange,

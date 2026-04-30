@@ -29,6 +29,23 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  socialLogin: (
+    provider: 'google' | 'apple',
+    token: string,
+    extra?: { appleUserId?: string; fullName?: string }
+  ) => Promise<
+    | { status: 'AUTHENTICATED' }
+    | { status: 'NEEDS_PASSWORD'; userId: string; email: string; fullName: string }
+  >;
+  completeSocialSignup: (
+    userId: string,
+    phone: string,
+    password: string
+  ) => Promise<
+    | { status: 'AUTHENTICATED' }
+    | { status: 'NEEDS_PHONE_VERIFICATION'; userId: string; phone: string }
+  >;
+  verifySocialPhone: (userId: string, otpCode: string) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
@@ -94,6 +111,115 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
+  }
+
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://techtrust-api.onrender.com/api/v1'
+
+  function setAuthCookiesAndUser(token: string, userData: any) {
+    const loggedUser: User = {
+      id: userData.id,
+      email: userData.email,
+      fullName: userData.fullName,
+      phone: userData.phone,
+      role: userData.role,
+      avatarUrl: userData.avatarUrl,
+    }
+    Cookies.set('tt_client_token', token, { expires: 7 })
+    Cookies.set('tt_client_user', JSON.stringify(loggedUser), { expires: 7 })
+    setUser(loggedUser)
+    return loggedUser
+  }
+
+  async function socialLogin(
+    provider: 'google' | 'apple',
+    token: string,
+    extra?: { appleUserId?: string; fullName?: string }
+  ): Promise<
+    | { status: 'AUTHENTICATED' }
+    | { status: 'NEEDS_PASSWORD'; userId: string; email: string; fullName: string }
+  > {
+    const res = await fetch(`${apiBase}/auth/social`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        provider: provider.toUpperCase(),
+        token,
+        appleUserId: extra?.appleUserId,
+        fullName: extra?.fullName,
+      }),
+    })
+    const json = await res.json()
+    const data = json?.data
+
+    if (data?.status === 'AUTHENTICATED') {
+      setAuthCookiesAndUser(data.token, data.user)
+      router.push('/dashboard')
+      return { status: 'AUTHENTICATED' }
+    }
+
+    if (data?.status === 'NEEDS_PASSWORD') {
+      return {
+        status: 'NEEDS_PASSWORD',
+        userId: data.userId,
+        email: data.email,
+        fullName: data.fullName || '',
+      }
+    }
+
+    throw new Error('Social sign-in could not complete. Please try again.')
+  }
+
+  async function completeSocialSignup(
+    userId: string,
+    phone: string,
+    password: string
+  ): Promise<
+    | { status: 'AUTHENTICATED' }
+    | { status: 'NEEDS_PHONE_VERIFICATION'; userId: string; phone: string }
+  > {
+    const res = await fetch(`${apiBase}/auth/social/complete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, phone, password }),
+    })
+    const json = await res.json()
+    const data = json?.data
+
+    if (data?.status === 'AUTHENTICATED') {
+      setAuthCookiesAndUser(data.token, data.user)
+      router.push('/dashboard')
+      return { status: 'AUTHENTICATED' }
+    }
+
+    if (data?.status === 'NEEDS_PHONE_VERIFICATION') {
+      return {
+        status: 'NEEDS_PHONE_VERIFICATION',
+        userId: data.userId,
+        phone: data.phone,
+      }
+    }
+
+    const errorMsg = json?.message || json?.error || 'Could not complete sign-up. Please try again.'
+    throw new Error(errorMsg)
+  }
+
+  async function verifySocialPhone(userId: string, otpCode: string): Promise<void> {
+    const res = await fetch(`${apiBase}/auth/verify-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, otpCode, method: 'sms' }),
+    })
+    const json = await res.json()
+    const data = json?.data
+
+    if (!res.ok) {
+      throw new Error(json?.message || json?.error || 'Verification failed')
+    }
+
+    if (data?.token && data?.user) {
+      setAuthCookiesAndUser(data.token, data.user)
+    }
+    router.push('/dashboard')
   }
 
   async function login(email: string, password: string) {
@@ -169,6 +295,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         loading,
         login,
+        socialLogin,
+        completeSocialSignup,
+        verifySocialPhone,
         register,
         logout,
         isAuthenticated: !!user,
