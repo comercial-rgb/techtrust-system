@@ -113,6 +113,13 @@ export default function ProviderBusinessScreen({ navigation }: any) {
       >
         {/* Header */}
         <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="arrow-back" size={22} color="#111827" />
+          </TouchableOpacity>
           <Text style={styles.headerTitle}>My Business</Text>
           <Text style={styles.headerSubtitle}>
             Manage your profile and track performance
@@ -355,6 +362,11 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: 20,
+  },
+  backButton: {
+    marginBottom: 8,
+    padding: 4,
+    alignSelf: "flex-start",
   },
   headerTitle: {
     fontSize: 24,

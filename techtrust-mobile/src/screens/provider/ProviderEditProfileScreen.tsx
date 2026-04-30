@@ -17,12 +17,28 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useI18n } from "../../i18n";
 import { useAuth } from "../../contexts/AuthContext";
 
+const BUSINESS_TYPE_OPTIONS = [
+  { value: 'AUTO_REPAIR',    label: 'Auto Repair Shop',      icon: 'car-wrench',     note: 'General mechanical repair — FDACS license required' },
+  { value: 'BODY_SHOP',      label: 'Body Shop',             icon: 'car-wash',       note: 'Collision/body work — FDACS license required' },
+  { value: 'TIRE_SHOP',      label: 'Tire Shop',             icon: 'tire',           note: 'Tire sales & service — FDACS license required' },
+  { value: 'OIL_CHANGE',     label: 'Quick Lube / Oil Change',icon: 'oil',           note: 'Quick lube / oil change — FDACS license required' },
+  { value: 'AUTO_ELECTRIC',  label: 'Auto Electric',         icon: 'lightning-bolt', note: 'Electrical/diagnostics — FDACS license required' },
+  { value: 'MOBILE_MECHANIC',label: 'Mobile Mechanic',       icon: 'car-arrow-right',note: 'On-site repairs — FDACS license required' },
+  { value: 'TOWING',         label: 'Towing Company',        icon: 'tow-truck',      note: 'Towing / recovery — FL Wrecker permit (FDACS)' },
+  { value: 'DETAILING',      label: 'Auto Detailing',        icon: 'spray',          note: 'Detailing only — BTR license, no FDACS required' },
+  { value: 'MULTI_SERVICE',  label: 'Multi-Service Shop',    icon: 'store',          note: 'Multiple service types — FDACS license required' },
+];
+
 export default function ProviderEditProfileScreen({ navigation }: any) {
   const { t } = useI18n();
   const { user, refreshUser } = useAuth();
   const [businessName, setBusinessName] = useState(
     user?.providerProfile?.businessName || "",
   );
+  const [selectedBusinessType, setSelectedBusinessType] = useState<string>(
+    user?.providerProfile?.businessType || "AUTO_REPAIR",
+  );
+  const [showBusinessTypePicker, setShowBusinessTypePicker] = useState(false);
   const [description, setDescription] = useState(
     user?.providerProfile?.description || "",
   );
@@ -101,6 +117,7 @@ export default function ProviderEditProfileScreen({ navigation }: any) {
       const api = (await import("../../services/api")).default;
       await api.patch("/providers/profile", {
         businessName: businessName.trim(),
+        businessType: selectedBusinessType,
         description: description.trim(),
         businessPhone: phone.trim(),
         businessEmail: email.trim(),
@@ -182,6 +199,60 @@ export default function ProviderEditProfileScreen({ navigation }: any) {
                 t.provider?.businessNamePlaceholder || "Your business name"
               }
             />
+          </View>
+
+          {/* Business Type Picker */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Shop Type *</Text>
+            <TouchableOpacity
+              style={[styles.input, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}
+              onPress={() => setShowBusinessTypePicker(!showBusinessTypePicker)}
+            >
+              <Text style={{ fontSize: 15, color: '#111827' }}>
+                {BUSINESS_TYPE_OPTIONS.find(o => o.value === selectedBusinessType)?.label || 'Select shop type'}
+              </Text>
+              <MaterialCommunityIcons name={showBusinessTypePicker ? "chevron-up" : "chevron-down"} size={20} color="#6b7280" />
+            </TouchableOpacity>
+            {showBusinessTypePicker && (
+              <View style={{
+                backgroundColor: '#fff',
+                borderWidth: 1,
+                borderColor: '#e5e7eb',
+                borderRadius: 12,
+                marginTop: 4,
+                overflow: 'hidden',
+              }}>
+                {BUSINESS_TYPE_OPTIONS.map((opt) => (
+                  <TouchableOpacity
+                    key={opt.value}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      paddingHorizontal: 16,
+                      paddingVertical: 12,
+                      borderBottomWidth: 1,
+                      borderBottomColor: '#f3f4f6',
+                      backgroundColor: selectedBusinessType === opt.value ? '#eff6ff' : '#fff',
+                    }}
+                    onPress={() => { setSelectedBusinessType(opt.value); setShowBusinessTypePicker(false); }}
+                  >
+                    <MaterialCommunityIcons name={opt.icon as any} size={20} color={selectedBusinessType === opt.value ? '#2B5EA7' : '#6b7280'} />
+                    <View style={{ marginLeft: 12, flex: 1 }}>
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: selectedBusinessType === opt.value ? '#2B5EA7' : '#111827' }}>
+                        {opt.label}
+                      </Text>
+                      <Text style={{ fontSize: 12, color: '#9ca3af', marginTop: 1 }}>{opt.note}</Text>
+                    </View>
+                    {selectedBusinessType === opt.value && (
+                      <MaterialCommunityIcons name="check-circle" size={18} color="#2B5EA7" />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+            <Text style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>
+              Affects which compliance licenses are required for your business
+            </Text>
           </View>
 
           <View style={styles.inputGroup}>

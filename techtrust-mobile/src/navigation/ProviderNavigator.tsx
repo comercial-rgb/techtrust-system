@@ -82,6 +82,11 @@ function DashboardStack() {
         name="ScheduleAppointment"
         component={ScheduleAppointmentScreen}
       />
+      {/* Get Started checklist targets — stay within Dashboard tab so goBack returns to Dashboard */}
+      <Stack.Screen name="EditProfile" component={ProviderEditProfileScreen} />
+      <Stack.Screen name="Services" component={ProviderServicesScreen} />
+      <Stack.Screen name="WorkingHours" component={ProviderWorkingHoursScreen} />
+      <Stack.Screen name="ServiceArea" component={ProviderServiceAreaScreen} />
     </Stack.Navigator>
   );
 }

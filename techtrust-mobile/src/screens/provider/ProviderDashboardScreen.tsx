@@ -20,6 +20,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { useFocusEffect } from "@react-navigation/native";
 import { useAuth } from "../../contexts/AuthContext";
 import { logos } from "../../constants/images";
 import { useI18n } from "../../i18n";
@@ -101,7 +102,7 @@ const isNewProvider = (stats: Stats | null): boolean => {
 };
 
 export default function ProviderDashboardScreen({ navigation }: any) {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { t, formatCurrency } = useI18n();
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -118,6 +119,13 @@ export default function ProviderDashboardScreen({ navigation }: any) {
   useEffect(() => {
     loadDashboardData();
   }, []);
+
+  // Refresh user profile whenever the screen comes into focus (e.g. returning from Services/WorkingHours/ServiceArea)
+  useFocusEffect(
+    useCallback(() => {
+      refreshUser().catch(() => {});
+    }, [])
+  );
 
   const toggleAvailability = async () => {
     if (togglingAvailability) return;
@@ -214,28 +222,28 @@ export default function ProviderDashboardScreen({ navigation }: any) {
       label: t.provider?.setupProfile || 'Complete your business profile',
       icon: 'account-edit' as const,
       done: !!(user?.providerProfile?.businessName && user?.providerProfile?.city),
-      action: () => navigation.navigate('ProviderProfile', { screen: 'EditProfile' }),
+      action: () => navigation.navigate('EditProfile'),
     },
     {
       id: 'services',
       label: t.provider?.addServices || 'Add your services & pricing',
       icon: 'toolbox' as const,
       done: Array.isArray(user?.providerProfile?.servicesOffered) && (user.providerProfile.servicesOffered as any[]).length > 0,
-      action: () => navigation.navigate('ProviderProfile', { screen: 'Services' }),
+      action: () => navigation.navigate('Services'),
     },
     {
       id: 'hours',
       label: t.provider?.setHours || 'Set your working hours',
       icon: 'clock-outline' as const,
       done: !!(user?.providerProfile?.workingHours),
-      action: () => navigation.navigate('ProviderProfile', { screen: 'WorkingHours' }),
+      action: () => navigation.navigate('WorkingHours'),
     },
     {
       id: 'area',
       label: t.provider?.defineArea || 'Define your service area',
       icon: 'map-marker-radius' as const,
       done: !!(user?.providerProfile?.serviceRadiusKm),
-      action: () => navigation.navigate('ProviderProfile', { screen: 'ServiceArea' }),
+      action: () => navigation.navigate('ServiceArea'),
     },
   ];
 

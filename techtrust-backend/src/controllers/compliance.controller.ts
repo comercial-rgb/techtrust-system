@@ -106,34 +106,43 @@ export const upsertComplianceItem = async (
       status = "PROVIDED_UNVERIFIED";
     }
 
-    const item = await prisma.complianceItem.upsert({
+    // Use findFirst + update/create to avoid Prisma null-in-composite-unique issues
+    const existing = await prisma.complianceItem.findFirst({
       where: {
-        providerProfileId_type_technicianId: {
-          providerProfileId,
-          type: type as ComplianceType,
-          technicianId: (technicianId || null) as string,
-        },
-      },
-      update: {
-        licenseNumber,
-        issuingAuthority,
-        issueDate: issueDate ? new Date(issueDate) : undefined,
-        expirationDate: expirationDate ? new Date(expirationDate) : undefined,
-        documentUploads: documentUploads || undefined,
-        status,
-      },
-      create: {
         providerProfileId,
         type: type as ComplianceType,
-        status,
-        licenseNumber,
-        issuingAuthority,
-        issueDate: issueDate ? new Date(issueDate) : null,
-        expirationDate: expirationDate ? new Date(expirationDate) : null,
-        documentUploads: documentUploads || [],
         technicianId: technicianId || null,
       },
     });
+
+    let item;
+    if (existing) {
+      item = await prisma.complianceItem.update({
+        where: { id: existing.id },
+        data: {
+          licenseNumber,
+          issuingAuthority,
+          issueDate: issueDate ? new Date(issueDate) : undefined,
+          expirationDate: expirationDate ? new Date(expirationDate) : undefined,
+          documentUploads: documentUploads || undefined,
+          status,
+        },
+      });
+    } else {
+      item = await prisma.complianceItem.create({
+        data: {
+          providerProfileId,
+          type: type as ComplianceType,
+          status,
+          licenseNumber,
+          issuingAuthority,
+          issueDate: issueDate ? new Date(issueDate) : null,
+          expirationDate: expirationDate ? new Date(expirationDate) : null,
+          documentUploads: documentUploads || [],
+          technicianId: technicianId || null,
+        },
+      });
+    }
 
     res.json({ success: true, data: { item } });
   } catch (error: any) {
@@ -176,26 +185,22 @@ export const autoCreateComplianceItems = async (
 
     // If no jurisdiction policies found, fall back to minimal creation
     if (created.length === 0) {
-      // Fallback: at minimum create county BTR
-      await prisma.complianceItem.upsert({
-        where: {
-          providerProfileId_type_technicianId: {
+      // Fallback: at minimum create county BTR (findFirst + create avoids null composite key issues)
+      const existingBtr = await prisma.complianceItem.findFirst({
+        where: { providerProfileId, type: "LOCAL_BTR_COUNTY", technicianId: null },
+      });
+      if (!existingBtr) {
+        await prisma.complianceItem.create({
+          data: {
             providerProfileId,
             type: "LOCAL_BTR_COUNTY",
-            technicianId: null as unknown as string,
+            requirementKey: "LOCAL_BUSINESS_LICENSE_COUNTY",
+            status: "NOT_PROVIDED",
+            issuingAuthority: profile.county ? `${profile.county} County` : undefined,
+            technicianId: null,
           },
-        },
-        update: {},
-        create: {
-          providerProfileId,
-          type: "LOCAL_BTR_COUNTY",
-          requirementKey: "LOCAL_BUSINESS_LICENSE_COUNTY",
-          status: "NOT_PROVIDED",
-          issuingAuthority: profile.county
-            ? `${profile.county} County`
-            : undefined,
-        },
-      });
+        });
+      }
       created.push("LOCAL_BUSINESS_LICENSE_COUNTY");
     }
 
@@ -280,6 +285,9 @@ export const getComplianceSummary = async (
       success: true,
       data: {
         providerPublicStatus: profile.providerPublicStatus,
+        // Business type — used by mobile to show type-specific requirements
+        businessType: profile.businessType || null,
+        businessTypeCat: profile.businessTypeCat,
         // Multi-state jurisdiction info
         jurisdiction: summary.jurisdiction,
         requiredItems: summary.requiredItems,

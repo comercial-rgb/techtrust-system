@@ -32,6 +32,18 @@ import {
   Technician,
 } from "../../services/compliance.service";
 
+const BUSINESS_TYPE_LABELS: Record<string, string> = {
+  AUTO_REPAIR:    'Auto Repair Shop',
+  BODY_SHOP:      'Body Shop',
+  MOBILE_MECHANIC:'Mobile Mechanic',
+  TOWING:         'Towing Company',
+  DETAILING:      'Auto Detailing',
+  TIRE_SHOP:      'Tire Shop',
+  OIL_CHANGE:     'Quick Lube / Oil Change',
+  AUTO_ELECTRIC:  'Auto Electric',
+  MULTI_SERVICE:  'Multi-Service Shop',
+};
+
 export default function ProviderComplianceScreen({ navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -47,6 +59,7 @@ export default function ProviderComplianceScreen({ navigation }: any) {
   const [overallStatus, setOverallStatus] = useState("PENDING");
   const [jurisdiction, setJurisdiction] = useState<any>(null);
   const [requiredItems, setRequiredItems] = useState<any[]>([]);
+  const [businessType, setBusinessType] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -60,6 +73,7 @@ export default function ProviderComplianceScreen({ navigation }: any) {
         setOverallStatus(res.data.overallStatus || res.data.providerPublicStatus || "PENDING");
         setJurisdiction(res.data.jurisdiction || null);
         setRequiredItems(res.data.requiredItems || []);
+        setBusinessType(res.data.businessType || null);
       }
     } catch (error: any) {
       console.error("Error fetching compliance:", error);
@@ -75,16 +89,35 @@ export default function ProviderComplianceScreen({ navigation }: any) {
     }, [fetchData]),
   );
 
-  // D17 — FL-specific requirements (UI preview; backend rule engine creates the actual items)
-  // Only types that exist in the backend ComplianceType enum:
+  // FL requirements vary by business type. Only ComplianceType enum values:
   // FDACS_MOTOR_VEHICLE_REPAIR | LOCAL_BTR_CITY | LOCAL_BTR_COUNTY | EPA_609_TECHNICIAN | STATE_SHOP_REGISTRATION
-  // WORKERS_COMP and ASE_CERTIFICATION are insurance/certification tracks, not compliance documents
-  const FLORIDA_REQUIREMENTS = [
-    { type: 'FDACS_MOTOR_VEHICLE_REPAIR', name: 'FDACS Motor Vehicle Repair License', required: true,  icon: 'shield' },
-    { type: 'LOCAL_BTR_COUNTY',           name: 'Business Tax Receipt – County (BTR)', required: true,  icon: 'document-text' },
-    { type: 'LOCAL_BTR_CITY',             name: 'Business Tax Receipt – City (BTR)',   required: true,  icon: 'document-text' },
-    { type: 'EPA_609_TECHNICIAN',         name: 'EPA Section 609 Certification',       required: false, icon: 'leaf' },
-  ];
+  const getFloridaRequirements = (bType: string | null) => {
+    const type = (bType || 'AUTO_REPAIR').toUpperCase();
+    const btr = [
+      { type: 'LOCAL_BTR_COUNTY', name: 'Business Tax Receipt – County (BTR)', required: true,  icon: 'document-text' },
+      { type: 'LOCAL_BTR_CITY',   name: 'Business Tax Receipt – City (BTR)',   required: true,  icon: 'document-text' },
+    ];
+    if (type === 'DETAILING') {
+      // Auto detailing is NOT covered by FL Motor Vehicle Repair Act — only BTR needed
+      return [...btr];
+    }
+    if (type === 'TOWING') {
+      // Towing in FL is regulated by FDACS under Wrecker Operations (F.S. 323), not the MV Repair Act
+      return [
+        { type: 'STATE_SHOP_REGISTRATION', name: 'FL Wrecker / Towing Permit (FDACS)', required: true, icon: 'shield' },
+        ...btr,
+      ];
+    }
+    // AUTO_REPAIR, BODY_SHOP, TIRE_SHOP, OIL_CHANGE, MOBILE_MECHANIC, AUTO_ELECTRIC, MULTI_SERVICE
+    const epa609Required = ['AUTO_REPAIR', 'MULTI_SERVICE', 'AUTO_ELECTRIC'].includes(type);
+    return [
+      { type: 'FDACS_MOTOR_VEHICLE_REPAIR', name: 'FDACS Motor Vehicle Repair License', required: true,  icon: 'shield' },
+      ...btr,
+      { type: 'EPA_609_TECHNICIAN', name: 'EPA Section 609 Certification (A/C work)', required: epa609Required, icon: 'leaf' },
+    ];
+  };
+
+  const FLORIDA_REQUIREMENTS = getFloridaRequirements(businessType);
 
   const isFloridaProvider = jurisdiction?.stateCode === 'FL' || jurisdiction?.stateName?.toLowerCase().includes('florida');
 
@@ -234,6 +267,14 @@ export default function ProviderComplianceScreen({ navigation }: any) {
               {jurisdiction.isActiveState ? '' : ' (State not yet active)'}
             </Text>
           )}
+          {businessType && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 8, gap: 6 }}>
+              <Ionicons name="business-outline" size={14} color="#6b7280" />
+              <Text style={{ fontSize: 12, color: '#6b7280' }}>
+                {BUSINESS_TYPE_LABELS[businessType] || businessType} · Requirements shown below
+              </Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.taxNoticeCard}>
@@ -270,10 +311,12 @@ export default function ProviderComplianceScreen({ navigation }: any) {
                 <View style={styles.flRequirementsCard}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4, gap: 8 }}>
                     <Ionicons name="flag" size={18} color="#2B5EA7" />
-                    <Text style={{ fontSize: 15, fontWeight: '700', color: '#2B5EA7' }}>Florida Requirements</Text>
+                    <Text style={{ fontSize: 15, fontWeight: '700', color: '#2B5EA7' }}>
+                    Florida Requirements{businessType ? ` · ${BUSINESS_TYPE_LABELS[businessType] || businessType}` : ''}
+                  </Text>
                   </View>
                   <Text style={{ fontSize: 12, color: '#6b7280', marginBottom: 12 }}>
-                    Tap each item to upload your documents
+                    Tap each item to upload your documents. {!businessType && 'Set your shop type in Settings → Edit Profile for tailored requirements.'}
                   </Text>
                   {FLORIDA_REQUIREMENTS.map((req) => (
                     <TouchableOpacity
