@@ -116,12 +116,7 @@ export default function DashboardLayout({
               </div>
             </div>
           </div>
-          {user?.providerProfile?.isVerified && (
-            <div className="mt-2 flex items-center gap-1 text-xs text-green-600">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-              {tr("provider.layout.verified")}
-            </div>
-          )}
+          {/* Verified badge is shown in Settings > Profile tab after admin review */}
         </div>
 
         {/* Navigation */}

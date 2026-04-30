@@ -331,6 +331,9 @@ export const updateProfile = async (req: Request, res: Response) => {
     zelleEmail,
     zellePhone,
     bankTransferLabel,
+    bankAccountType,
+    bankAccountNumber,
+    bankRoutingNumber,
     payoutInstructions,
     marketplaceFacilitatorTaxAcknowledged,
     insuranceDisclosureAccepted,
@@ -437,6 +440,9 @@ export const updateProfile = async (req: Request, res: Response) => {
   if (zelleEmail !== undefined) addStr("zelleEmail", zelleEmail || null);
   if (zellePhone !== undefined) addStr("zellePhone", zellePhone || null);
   if (bankTransferLabel !== undefined) addStr("bankTransferLabel", bankTransferLabel || null);
+  if (bankAccountType !== undefined) addStr("bankAccountType", bankAccountType || null);
+  if (bankAccountNumber !== undefined) addStr("bankAccountNumber", bankAccountNumber || null);
+  if (bankRoutingNumber !== undefined) addStr("bankRoutingNumber", bankRoutingNumber || null);
   if (payoutInstructions !== undefined) addStr("payoutInstructions", payoutInstructions || null);
   if (marketplaceFacilitatorTaxAcknowledged !== undefined) addBool("marketplaceFacilitatorTaxAcknowledged", marketplaceFacilitatorTaxAcknowledged !== false);
 

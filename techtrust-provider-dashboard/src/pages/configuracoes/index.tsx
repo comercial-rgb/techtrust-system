@@ -67,6 +67,9 @@ interface ProviderProfile {
   zelleEmail: string;
   zellePhone: string;
   bankTransferLabel: string;
+  bankAccountType: string;
+  bankAccountNumber: string;
+  bankRoutingNumber: string;
   payoutInstructions: string;
   notifications: {
     newRequests: boolean; quoteAccepted: boolean;
@@ -120,7 +123,8 @@ export default function ConfiguracoesPage() {
     },
     servicesOffered: [], vehicleTypesServed: [],
     mobileService: false, freeKm: 0, extraFeePerKm: 0,
-    payoutMethod: "MANUAL", zelleEmail: "", zellePhone: "", bankTransferLabel: "", payoutInstructions: "",
+    payoutMethod: "MANUAL", zelleEmail: "", zellePhone: "", bankTransferLabel: "",
+    bankAccountType: "", bankAccountNumber: "", bankRoutingNumber: "", payoutInstructions: "",
     notifications: { newRequests: true, quoteAccepted: true, payments: true, reviews: true, marketing: false },
   });
 
@@ -182,6 +186,9 @@ export default function ConfiguracoesPage() {
         zelleEmail: p.zelleEmail || "",
         zellePhone: p.zellePhone || "",
         bankTransferLabel: p.bankTransferLabel || "",
+        bankAccountType: p.bankAccountType || "",
+        bankAccountNumber: p.bankAccountNumber || "",
+        bankRoutingNumber: p.bankRoutingNumber || "",
         payoutInstructions: p.payoutInstructions || "",
         notifications: { newRequests: true, quoteAccepted: true, payments: true, reviews: true, marketing: false },
       });
@@ -222,6 +229,9 @@ export default function ConfiguracoesPage() {
         zelleEmail: profile.zelleEmail || undefined,
         zellePhone: profile.zellePhone || undefined,
         bankTransferLabel: profile.bankTransferLabel || undefined,
+        bankAccountType: profile.bankAccountType || undefined,
+        bankAccountNumber: profile.bankAccountNumber || undefined,
+        bankRoutingNumber: profile.bankRoutingNumber || undefined,
         payoutInstructions: profile.payoutInstructions || undefined,
       });
       setSuccessMessage("Profile saved successfully!");
@@ -236,23 +246,44 @@ export default function ConfiguracoesPage() {
   }
 
   const serviceTypes = [
-    { id: "SCHEDULED_MAINTENANCE", label: "Scheduled Maintenance", icon: Wrench },
-    { id: "REPAIR", label: "Repair", icon: AlertCircle },
-    { id: "INSPECTION", label: "Inspection", icon: Shield },
-    { id: "DETAILING", label: "Detailing", icon: Sparkles },
-    { id: "ROADSIDE_SOS", label: "Roadside SOS", icon: Zap },
-    { id: "TIRE_SERVICE", label: "Tire Service", icon: Car },
-    { id: "DIAGNOSTICS", label: "Diagnostics", icon: Wrench },
+    // Maintenance
+    { id: "OIL_CHANGE", label: "Oil Change", icon: Wrench },
+    { id: "AIR_FILTER", label: "Air Filter Service", icon: Wrench },
+    { id: "FUEL_SYSTEM", label: "Fuel System", icon: Wrench },
     { id: "BRAKES", label: "Brakes", icon: AlertCircle },
+    { id: "COOLING_SYSTEM", label: "Cooling System", icon: Wrench },
+    { id: "TIRES", label: "Tires & Wheels", icon: Car },
+    { id: "BELTS_HOSES", label: "Belts & Hoses", icon: Wrench },
+    // Repairs
+    { id: "AC_SERVICE", label: "A/C & Heating", icon: Wrench },
+    { id: "STEERING", label: "Steering & Suspension", icon: Car },
+    { id: "ELECTRICAL_BASIC", label: "Electrical System", icon: Zap },
+    { id: "EXHAUST", label: "Exhaust System", icon: Wrench },
+    { id: "DRIVETRAIN", label: "Drivetrain", icon: Wrench },
+    { id: "ENGINE", label: "Engine", icon: Wrench },
+    { id: "TRANSMISSION", label: "Transmission", icon: Wrench },
+    { id: "BATTERY", label: "Battery", icon: Zap },
+    { id: "GENERAL_REPAIR", label: "General Repair", icon: Wrench },
+    // Packages & Fluids
+    { id: "FLUID_SERVICES", label: "Fluid Services", icon: Wrench },
+    { id: "PREVENTIVE_PACKAGES", label: "Preventive Maintenance", icon: Shield },
+    // Inspection & Diagnostics
+    { id: "INSPECTION", label: "Inspection", icon: Shield },
+    { id: "DIAGNOSTICS", label: "Diagnostics", icon: Wrench },
+    // Detailing & Roadside
+    { id: "DETAILING", label: "Detailing", icon: Sparkles },
+    { id: "TOWING", label: "Towing", icon: Car },
+    { id: "ROADSIDE_ASSIST", label: "Roadside Assist", icon: Zap },
+    { id: "LOCKOUT", label: "Lockout", icon: AlertCircle },
   ];
 
   const vehicleTypes = [
-    { id: "PASSENGER_CAR", label: "Cars & Sedans" },
-    { id: "TRUCKS_SUVS", label: "Trucks & SUVs" },
-    { id: "MOTORCYCLES", label: "Motorcycles" },
-    { id: "VANS", label: "Vans & Minivans" },
-    { id: "ELECTRIC_VEHICLES", label: "Electric Vehicles" },
-    { id: "HEAVY_VEHICLES", label: "Commercial / Heavy" },
+    { id: "CAR", label: "Car / Sedan" },
+    { id: "SUV", label: "SUV" },
+    { id: "TRUCK", label: "Pickup Truck" },
+    { id: "VAN", label: "Van / Minivan" },
+    { id: "HEAVY_TRUCK", label: "Heavy Truck" },
+    { id: "BUS", label: "Bus / RV" },
   ];
 
   const businessTypes = [
@@ -643,7 +674,7 @@ export default function ConfiguracoesPage() {
                 ))}
               </div>
 
-              {(profile.payoutMethod === "ZELLE" || profile.payoutMethod === "MANUAL") && (
+              {profile.payoutMethod === "ZELLE" && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Zelle Email</label>
@@ -654,6 +685,7 @@ export default function ConfiguracoesPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">Zelle Phone</label>
                     <input type="tel" value={profile.zellePhone} onChange={e => setProfile({...profile, zellePhone: e.target.value})}
                       className="input" placeholder="+1 (555) 000-0000" />
+                    <p className="text-xs text-gray-400 mt-1">Registered phone number or email on your Zelle account</p>
                   </div>
                 </div>
               )}
@@ -661,14 +693,35 @@ export default function ConfiguracoesPage() {
               {profile.payoutMethod === "BANK_TRANSFER" && (
                 <div className="grid grid-cols-1 gap-4 pt-2">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Bank / Account Label</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Bank Name / Account Label</label>
                     <input type="text" value={profile.bankTransferLabel} onChange={e => setProfile({...profile, bankTransferLabel: e.target.value})}
                       className="input" placeholder="e.g. Chase Business Checking" />
                   </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Account Type</label>
+                      <select value={profile.bankAccountType} onChange={e => setProfile({...profile, bankAccountType: e.target.value})} className="input">
+                        <option value="">Select type</option>
+                        <option value="CHECKING">Checking</option>
+                        <option value="SAVINGS">Savings</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Routing Number (ABA)</label>
+                      <input type="text" value={profile.bankRoutingNumber} onChange={e => setProfile({...profile, bankRoutingNumber: e.target.value})}
+                        className="input" placeholder="9-digit routing number" maxLength={9} />
+                    </div>
+                  </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Payment Instructions</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Account Number</label>
+                    <input type="text" value={profile.bankAccountNumber} onChange={e => setProfile({...profile, bankAccountNumber: e.target.value})}
+                      className="input" placeholder="Bank account number" />
+                    <p className="text-xs text-gray-400 mt-1">Your information is stored securely and only used to process payouts.</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Additional Notes (optional)</label>
                     <textarea value={profile.payoutInstructions} onChange={e => setProfile({...profile, payoutInstructions: e.target.value})}
-                      rows={3} className="input resize-none" placeholder="Any additional instructions for the finance team..." />
+                      rows={2} className="input resize-none" placeholder="Any special instructions for the finance team..." />
                   </div>
                 </div>
               )}

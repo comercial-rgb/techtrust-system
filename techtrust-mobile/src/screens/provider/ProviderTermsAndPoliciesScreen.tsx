@@ -220,9 +220,9 @@ export default function ProviderTermsAndPoliciesScreen({ navigation }: any) {
               <Text style={styles.bulletItem}>• Dispute mediation support</Text>
             </View>
 
-            <Text style={styles.sectionHeading}>3. {t.provider?.payments || 'Payments'}</Text>
+            <Text style={styles.sectionHeading}>3. {t.provider?.payments || 'Payouts'}</Text>
             <Text style={styles.paragraph}>
-              Transfers are made within 2 business days after service completion and customer approval. Payments are processed through Stripe Connect to your linked bank account. Minimum withdrawal amount is $50.00.
+              Payouts are processed within 3–5 business days after service completion and customer approval. Payment is sent via your selected payout method: Zelle, bank transfer (ACH), or manual arrangement — configure your preference in Settings → Payout. TechTrust will notify you when a payout is sent.
             </Text>
 
             <Text style={styles.sectionHeading}>4. Payment Example</Text>
@@ -241,7 +241,7 @@ export default function ProviderTermsAndPoliciesScreen({ navigation }: any) {
               </View>
             </View>
             <Text style={[styles.paragraph, { marginTop: 8, fontStyle: 'italic' }]}>
-              Note: The customer pays the processing fee separately. It does not affect your earnings.
+              Note: The customer pays any applicable processing fee separately; it does not affect your net earnings shown above.
             </Text>
 
             <Text style={styles.sectionHeading}>5. Tax Reporting</Text>
