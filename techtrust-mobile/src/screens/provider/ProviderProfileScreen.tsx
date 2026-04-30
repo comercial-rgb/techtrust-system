@@ -427,7 +427,7 @@ export default function ProviderProfileScreen({ navigation }: any) {
             icon="office-building"
             label={t.provider?.businessInfo || "Business Information"}
             subtitle={t.provider?.einLicense || "EIN, license, insurance details"}
-            onPress={() => navigation.navigate("Compliance")}
+            onPress={() => navigation.navigate("ProviderBusiness")}
           />
           <MenuItem
             icon="help-circle"

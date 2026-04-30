@@ -98,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       appleUserId: extra?.appleUserId,
       fullName: extra?.fullName,
     })
-    const data = response.data.data
+    const data = response.data
 
     if (data.status === 'AUTHENTICATED') {
       const userData = data.user
@@ -130,7 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const response = await api.post('/auth/login', { email, password })
-      const data = response.data.data
+      const data = response.data
       const accessToken = data.accessToken || data.token
       const refreshToken = data.refreshToken
       const userData = data.user
