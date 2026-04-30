@@ -19,9 +19,9 @@
  * CUSTO: $0 — lógica interna
  */
 
-import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
+import prisma from '../config/database';
+
 
 // ═══════════════════════════════════════════════
 // Configuração

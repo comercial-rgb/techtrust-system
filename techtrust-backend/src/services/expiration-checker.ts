@@ -4,10 +4,9 @@
  * D-30, D-15, D-7, Expired
  */
 
-import { PrismaClient } from "@prisma/client";
 import * as ruleEngine from "./rule-engine.service";
+import prisma from '../config/database';
 
-const prisma = new PrismaClient();
 
 interface ExpirationAlert {
   providerProfileId: string;

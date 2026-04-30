@@ -4,9 +4,9 @@
  */
 
 import { Request, Response } from "express";
-import { PrismaClient, ComplianceStatus, TechnicianRole } from "@prisma/client";
+import { ComplianceStatus, TechnicianRole } from "@prisma/client";
+import prisma from '../config/database';
 
-const prisma = new PrismaClient();
 
 // ============================================
 // GET /technicians/:providerProfileId

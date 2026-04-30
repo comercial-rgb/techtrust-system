@@ -9,10 +9,9 @@
  * Uploads to Cloudinary, stores URL in DB
  */
 
-import { PrismaClient } from "@prisma/client";
 import { v2 as cloudinary } from "cloudinary";
+import prisma from '../config/database';
 
-const prisma = new PrismaClient();
 
 // pdfmake Node.js setup with PdfPrinter (v0.2.x)
 const PdfPrinter = require("pdfmake/src/printer");

@@ -13,13 +13,12 @@
  */
 
 import {
-  PrismaClient,
   ComplianceType,
   ComplianceStatus,
 } from "@prisma/client";
 import { randomUUID } from "crypto";
+import prisma from '../config/database';
 
-const prisma = new PrismaClient();
 
 // ============================================
 // TYPES

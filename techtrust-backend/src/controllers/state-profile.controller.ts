@@ -5,10 +5,9 @@
  */
 
 import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
 import * as ruleEngine from "../services/rule-engine.service";
+import prisma from '../config/database';
 
-const prisma = new PrismaClient();
 
 // ============================================
 // STATE PROFILES

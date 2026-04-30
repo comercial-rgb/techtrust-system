@@ -17,9 +17,9 @@
  * API PAGA: VehicleDatabases.com $100/mês (quando ativada).
  */
 
-import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
+import prisma from '../config/database';
+
 
 // ═══════════════════════════════════════════════
 // Configuração

@@ -14,14 +14,13 @@
  * Camada 3 (Organic Catalog):  TODOS os usuários
  */
 
-import { PrismaClient } from '@prisma/client';
 import {
   decodeVIN_vPIC,
   getRecalls_NHTSA,
 } from './nhtsa-vpic.service';
 import { getRegionalPricing } from './organic-catalog.service';
+import prisma from '../config/database';
 
-const prisma = new PrismaClient();
 
 // ═══════════════════════════════════════════════
 // Interfaces

@@ -1,6 +1,9 @@
 const { PrismaClient } = require("@prisma/client");
 
-const prisma = new PrismaClient();
+// Limit to 1 connection — this script runs at startup before the server opens its pool
+const dbUrl = process.env.DATABASE_URL || '';
+const scriptUrl = dbUrl + (dbUrl.includes('?') ? '&' : '?') + 'connection_limit=1';
+const prisma = new PrismaClient({ datasources: { db: { url: scriptUrl } } });
 
 async function main() {
   await prisma.$executeRawUnsafe(`

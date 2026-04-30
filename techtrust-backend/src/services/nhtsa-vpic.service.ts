@@ -17,9 +17,8 @@
  */
 
 import axios from 'axios';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../config/database';
 
-const prisma = new PrismaClient();
 const VPIC_BASE = 'https://vpic.nhtsa.dot.gov/api/vehicles';
 
 // ═══════════════════════════════════════════════

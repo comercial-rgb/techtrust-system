@@ -19,9 +19,9 @@
  *   Mês 6+: dados próprios mais precisos que qualquer API externa paga
  */
 
-import { PrismaClient } from '@prisma/client';
+import type { PrismaClient } from '@prisma/client';
+import prisma from '../config/database';
 
-const prisma = new PrismaClient();
 
 // ═══════════════════════════════════════════════
 // Interfaces

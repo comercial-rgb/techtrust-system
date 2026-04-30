@@ -4,9 +4,9 @@
  */
 
 import { Request, Response } from "express";
-import { PrismaClient, VerificationEntityType } from "@prisma/client";
+import { VerificationEntityType } from "@prisma/client";
+import prisma from '../config/database';
 
-const prisma = new PrismaClient();
 
 const DISCLAIMER_VERSION = "1.0";
 const DISCLAIMER_TEXT = `This provider does not have verified insurance coverage on file for this service. By proceeding, you acknowledge that the platform does not provide insurance and is not responsible for damages, loss, or liability arising from services performed by the provider.`;

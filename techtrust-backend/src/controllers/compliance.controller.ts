@@ -5,11 +5,11 @@
  */
 
 import { Request, Response } from "express";
-import { PrismaClient, ComplianceType, ComplianceStatus } from "@prisma/client";
+import { ComplianceType, ComplianceStatus } from "@prisma/client";
 import * as ruleEngine from "../services/rule-engine.service";
 import { buildInsuranceRequirementChecklist } from "../utils/insurance-requirements";
+import prisma from '../config/database';
 
-const prisma = new PrismaClient();
 
 async function resolveProviderProfileId(req: Request): Promise<string | null> {
   const user = (req as any).user;
