@@ -64,11 +64,14 @@ export async function signInWithGoogle(): Promise<GoogleUser | null> {
     }
 
     // Create auth request
+    // usePKCE must be false for implicit Token flow — Google rejects code_challenge_method
+    // in non-authorization-code flows (error 400: invalid_request)
     const request = new AuthSession.AuthRequest({
       clientId,
       redirectUri,
       scopes: ['openid', 'profile', 'email'],
       responseType: AuthSession.ResponseType.Token,
+      usePKCE: false,
     });
 
     // Prompt user

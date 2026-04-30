@@ -521,31 +521,27 @@ export default function LoginScreen({ navigation }: any) {
                 {socialLoading === "google" ? (
                   <ActivityIndicator size="small" color="#ea4335" />
                 ) : (
-                  <MaterialCommunityIcons
-                    name="google"
-                    size={24}
-                    color="#ea4335"
-                  />
+                  <MaterialCommunityIcons name="google" size={22} color="#ea4335" />
                 )}
+                <Text style={styles.socialButtonText}>Google</Text>
               </TouchableOpacity>
-              {Platform.OS === "ios" && (
+
+              {appleAvailable && (
                 <TouchableOpacity
                   style={[
                     styles.socialButton,
+                    styles.socialButtonApple,
                     socialLoading === "apple" && styles.socialButtonLoading,
                   ]}
                   onPress={() => handleSocialLogin("apple")}
                   disabled={socialLoading !== null}
                 >
                   {socialLoading === "apple" ? (
-                    <ActivityIndicator size="small" color="#000" />
+                    <ActivityIndicator size="small" color="#fff" />
                   ) : (
-                    <MaterialCommunityIcons
-                      name="apple"
-                      size={24}
-                      color="#000"
-                    />
+                    <MaterialCommunityIcons name="apple" size={22} color="#fff" />
                   )}
+                  <Text style={[styles.socialButtonText, { color: "#fff" }]}>Apple</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -579,16 +575,6 @@ export default function LoginScreen({ navigation }: any) {
               </TouchableOpacity>
             </View>
 
-            {/* Continue as Guest */}
-            <TouchableOpacity
-              style={styles.guestContainer}
-              onPress={() => navigation.navigate("Landing")}
-            >
-              <Ionicons name="eye-outline" size={18} color="#6b7280" />
-              <Text style={styles.guestText}>
-                {t.auth?.continueAsGuest || "Continue as Guest"}
-              </Text>
-            </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -830,19 +816,29 @@ const styles = StyleSheet.create({
   },
   socialContainer: {
     flexDirection: "row",
-    justifyContent: "center",
-    gap: 16,
+    gap: 12,
     marginBottom: 24,
   },
   socialButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: "#f8fafc",
-    justifyContent: "center",
+    flex: 1,
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: "#f8fafc",
     borderWidth: 1,
     borderColor: "#e5e7eb",
+    gap: 8,
+  },
+  socialButtonApple: {
+    backgroundColor: "#000",
+    borderColor: "#000",
+  },
+  socialButtonText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#374151",
   },
   socialButtonLoading: {
     opacity: 0.7,
@@ -877,23 +873,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#2B5EA7",
     fontWeight: "600",
-  },
-  guestContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    marginTop: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    backgroundColor: "#f9fafb",
-  },
-  guestText: {
-    fontSize: 14,
-    color: "#6b7280",
-    fontWeight: "500",
   },
 });
