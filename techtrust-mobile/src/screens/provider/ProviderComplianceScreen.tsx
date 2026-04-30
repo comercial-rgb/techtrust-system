@@ -76,12 +76,14 @@ export default function ProviderComplianceScreen({ navigation }: any) {
   );
 
   // D17 — FL-specific requirements (UI preview; backend rule engine creates the actual items)
+  // Only types that exist in the backend ComplianceType enum:
+  // FDACS_MOTOR_VEHICLE_REPAIR | LOCAL_BTR_CITY | LOCAL_BTR_COUNTY | EPA_609_TECHNICIAN | STATE_SHOP_REGISTRATION
+  // WORKERS_COMP and ASE_CERTIFICATION are insurance/certification tracks, not compliance documents
   const FLORIDA_REQUIREMENTS = [
-    { type: 'FDACS_MOTOR_VEHICLE_REPAIR', name: 'FDACS Motor Vehicle Repair License', required: true, icon: 'shield' },
-    { type: 'LOCAL_BTR_COUNTY',           name: 'Business Tax Receipt (BTR)',          required: true, icon: 'document-text' },
-    { type: 'WORKERS_COMP',               name: 'Workers Compensation',                required: false, icon: 'people' },
-    { type: 'EPA_609_TECHNICIAN',         name: 'EPA Section 608/609 Certification',   required: false, icon: 'leaf' },
-    { type: 'ASE_CERTIFICATION',          name: 'ASE Certification',                   required: false, icon: 'ribbon' },
+    { type: 'FDACS_MOTOR_VEHICLE_REPAIR', name: 'FDACS Motor Vehicle Repair License', required: true,  icon: 'shield' },
+    { type: 'LOCAL_BTR_COUNTY',           name: 'Business Tax Receipt – County (BTR)', required: true,  icon: 'document-text' },
+    { type: 'LOCAL_BTR_CITY',             name: 'Business Tax Receipt – City (BTR)',   required: true,  icon: 'document-text' },
+    { type: 'EPA_609_TECHNICIAN',         name: 'EPA Section 609 Certification',       required: false, icon: 'leaf' },
   ];
 
   const isFloridaProvider = jurisdiction?.stateCode === 'FL' || jurisdiction?.stateName?.toLowerCase().includes('florida');
