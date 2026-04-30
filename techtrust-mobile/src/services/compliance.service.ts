@@ -333,10 +333,12 @@ export const INSURANCE_TYPE_LABELS: Record<string, string> = {
   GENERAL_LIABILITY: "General Liability",
   GARAGE_LIABILITY: "Garage Liability",
   GARAGE_KEEPERS: "Garage Keeper's",
+  GARAGEKEEPERS: "Garage Keeper's",
   COMMERCIAL_AUTO: "Commercial Auto",
   ON_HOOK: "On-Hook / Towing",
   WORKERS_COMP: "Workers' Compensation",
   PROFESSIONAL_LIABILITY: "Professional / E&O",
+  UMBRELLA_EXCESS: "Umbrella / Excess Liability",
 };
 
 export const COMPLIANCE_TYPE_LABELS: Record<string, string> = {

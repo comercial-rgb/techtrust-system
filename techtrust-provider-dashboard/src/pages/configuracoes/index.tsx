@@ -30,6 +30,20 @@ import {
   FileText,
   CreditCard,
   Info,
+  Droplets,
+  Wind,
+  Thermometer,
+  Disc,
+  Navigation,
+  Settings,
+  RefreshCw,
+  Battery,
+  Search,
+  Activity,
+  Truck,
+  LifeBuoy,
+  ShoppingBag,
+  Package,
 } from "lucide-react";
 
 interface WorkDay { open: string; close: string; closed: boolean }
@@ -60,6 +74,7 @@ interface ProviderProfile {
   };
   servicesOffered: string[];
   vehicleTypesServed: string[];
+  sellsParts: boolean;
   mobileService: boolean;
   freeKm: number;
   extraFeePerKm: number;
@@ -122,6 +137,7 @@ export default function ConfiguracoesPage() {
       sunday: { open: "08:00", close: "14:00", closed: true },
     },
     servicesOffered: [], vehicleTypesServed: [],
+    sellsParts: false,
     mobileService: false, freeKm: 0, extraFeePerKm: 0,
     payoutMethod: "MANUAL", zelleEmail: "", zellePhone: "", bankTransferLabel: "",
     bankAccountType: "", bankAccountNumber: "", bankRoutingNumber: "", payoutInstructions: "",
@@ -179,6 +195,7 @@ export default function ConfiguracoesPage() {
         },
         servicesOffered: Array.isArray(p.servicesOffered) ? p.servicesOffered : [],
         vehicleTypesServed: Array.isArray(p.vehicleTypesServed) ? p.vehicleTypesServed : [],
+        sellsParts: !!p.sellsParts,
         mobileService: !!p.mobileService,
         freeKm: Number(p.freeKm) || 0,
         extraFeePerKm: Number(p.extraFeePerKm) || 0,
@@ -216,6 +233,7 @@ export default function ConfiguracoesPage() {
         businessHours: profile.workingHours,
         servicesOffered: profile.servicesOffered,
         vehicleTypesServed: profile.vehicleTypesServed,
+        sellsParts: profile.sellsParts,
         mobileService: profile.mobileService,
         freeKm: profile.freeKm,
         extraFeePerKm: profile.extraFeePerKm,
@@ -247,34 +265,34 @@ export default function ConfiguracoesPage() {
 
   const serviceTypes = [
     // Maintenance
-    { id: "OIL_CHANGE", label: "Oil Change", icon: Wrench },
-    { id: "AIR_FILTER", label: "Air Filter Service", icon: Wrench },
-    { id: "FUEL_SYSTEM", label: "Fuel System", icon: Wrench },
-    { id: "BRAKES", label: "Brakes", icon: AlertCircle },
-    { id: "COOLING_SYSTEM", label: "Cooling System", icon: Wrench },
+    { id: "OIL_CHANGE", label: "Oil Change", icon: Droplets },
+    { id: "AIR_FILTER", label: "Air Filter Service", icon: Wind },
+    { id: "FUEL_SYSTEM", label: "Fuel System", icon: Zap },
+    { id: "BRAKES", label: "Brakes", icon: Disc },
+    { id: "COOLING_SYSTEM", label: "Cooling System", icon: Thermometer },
     { id: "TIRES", label: "Tires & Wheels", icon: Car },
     { id: "BELTS_HOSES", label: "Belts & Hoses", icon: Wrench },
     // Repairs
-    { id: "AC_SERVICE", label: "A/C & Heating", icon: Wrench },
-    { id: "STEERING", label: "Steering & Suspension", icon: Car },
+    { id: "AC_SERVICE", label: "A/C & Heating", icon: Thermometer },
+    { id: "STEERING", label: "Steering & Suspension", icon: Navigation },
     { id: "ELECTRICAL_BASIC", label: "Electrical System", icon: Zap },
-    { id: "EXHAUST", label: "Exhaust System", icon: Wrench },
-    { id: "DRIVETRAIN", label: "Drivetrain", icon: Wrench },
-    { id: "ENGINE", label: "Engine", icon: Wrench },
-    { id: "TRANSMISSION", label: "Transmission", icon: Wrench },
-    { id: "BATTERY", label: "Battery", icon: Zap },
+    { id: "EXHAUST", label: "Exhaust System", icon: Wind },
+    { id: "DRIVETRAIN", label: "Drivetrain", icon: Settings },
+    { id: "ENGINE", label: "Engine", icon: Settings },
+    { id: "TRANSMISSION", label: "Transmission", icon: RefreshCw },
+    { id: "BATTERY", label: "Battery", icon: Battery },
     { id: "GENERAL_REPAIR", label: "General Repair", icon: Wrench },
     // Packages & Fluids
-    { id: "FLUID_SERVICES", label: "Fluid Services", icon: Wrench },
+    { id: "FLUID_SERVICES", label: "Fluid Services", icon: Droplets },
     { id: "PREVENTIVE_PACKAGES", label: "Preventive Maintenance", icon: Shield },
     // Inspection & Diagnostics
-    { id: "INSPECTION", label: "Inspection", icon: Shield },
-    { id: "DIAGNOSTICS", label: "Diagnostics", icon: Wrench },
+    { id: "INSPECTION", label: "Inspection", icon: Search },
+    { id: "DIAGNOSTICS", label: "Diagnostics", icon: Activity },
     // Detailing & Roadside
     { id: "DETAILING", label: "Detailing", icon: Sparkles },
-    { id: "TOWING", label: "Towing", icon: Car },
-    { id: "ROADSIDE_ASSIST", label: "Roadside Assist", icon: Zap },
-    { id: "LOCKOUT", label: "Lockout", icon: AlertCircle },
+    { id: "TOWING", label: "Towing", icon: Truck },
+    { id: "ROADSIDE_ASSIST", label: "Roadside Assist", icon: LifeBuoy },
+    { id: "LOCKOUT", label: "Lockout", icon: Lock },
   ];
 
   const vehicleTypes = [
@@ -538,6 +556,61 @@ export default function ConfiguracoesPage() {
                     );
                   })}
                 </div>
+              </div>
+
+              {/* Auto Parts Sales */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">Auto Parts Sales</h3>
+                <p className="text-sm text-gray-500 mb-4">Do you sell auto parts to customers?</p>
+
+                <div className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${profile.sellsParts ? "border-primary-500 bg-primary-50" : "border-gray-200"}`}>
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${profile.sellsParts ? "bg-primary-500 text-white" : "bg-gray-100 text-gray-500"}`}>
+                    <ShoppingBag className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900">I sell auto parts</p>
+                    <p className="text-sm text-gray-500">Enable to appear in parts search results</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked={profile.sellsParts}
+                      onChange={e => setProfile({ ...profile, sellsParts: e.target.checked })}
+                      className="sr-only peer" />
+                    <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
+                  </label>
+                </div>
+
+                {profile.sellsParts && (
+                  <div className="mt-4 bg-blue-50 border border-blue-200 rounded-xl p-5 space-y-3">
+                    <div className="flex items-start gap-3">
+                      <Info className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="font-semibold text-blue-800 mb-1">Sales Tax — TechTrust Handles It</p>
+                        <p className="text-sm text-blue-700">
+                          Auto parts sold through TechTrust are subject to Florida sales tax under{" "}
+                          <strong>Florida Statute s. 212.0515, F.S.</strong> (retail sale of tangible personal property).
+                          TechTrust acts as the <strong>Marketplace Facilitator</strong> and collects, remits, and files
+                          all applicable state and local sales tax on your behalf.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <Package className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="font-semibold text-blue-800 mb-1">Dealer License</p>
+                        <p className="text-sm text-blue-700">
+                          Parts sold through TechTrust are listed under TechTrust AutoSolutions LLC&apos;s
+                          Florida retail dealer license number{" "}
+                          <strong>FL-DLR-2024-087543</strong> (fictitious — to be replaced with official number upon issuance).
+                          You do <strong>not</strong> need a separate dealer license to sell parts through this platform.
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-blue-500 border-t border-blue-200 pt-3">
+                      Do not add sales tax on top of your part prices. Enter your cost + markup;
+                      TechTrust adds the correct tax rate at checkout based on the customer&apos;s location.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           )}

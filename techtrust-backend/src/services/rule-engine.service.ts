@@ -17,6 +17,7 @@ import {
   ComplianceType,
   ComplianceStatus,
 } from "@prisma/client";
+import { randomUUID } from "crypto";
 
 const prisma = new PrismaClient();
 
@@ -267,30 +268,44 @@ export async function autoCreateComplianceItemsFromRules(
       }
     }
 
-    await prisma.complianceItem.upsert({
-      where: {
-        providerProfileId_type_technicianId: {
-          providerProfileId,
-          type: complianceType,
-          technicianId: null as unknown as string,
-        },
-      },
-      update: {
-        requirementKey: req.requirementKey,
-      },
-      create: {
-        providerProfileId,
-        type: complianceType,
-        requirementKey: req.requirementKey,
-        status,
-        licenseNumber:
-          req.requirementKey.startsWith("STATE_REPAIR_SHOP_REG") &&
-          profile.fdacsRegistrationNumber
-            ? profile.fdacsRegistrationNumber
-            : undefined,
-        issuingAuthority,
-      },
-    });
+    // Raw SQL upsert to avoid Prisma null-in-unique-constraint bug
+    // (prisma.upsert with technicianId: null fails because PostgreSQL
+    // treats NULL != NULL in unique indexes)
+    const existingRows = await prisma.$queryRaw<{ id: string }[]>`
+      SELECT id FROM "ComplianceItem"
+      WHERE "providerProfileId" = ${providerProfileId}
+        AND "type" = ${complianceType}::"ComplianceType"
+        AND "technicianId" IS NULL
+      LIMIT 1
+    `;
+
+    const licenseNumber =
+      req.requirementKey.startsWith("STATE_REPAIR_SHOP_REG") &&
+      profile.fdacsRegistrationNumber
+        ? profile.fdacsRegistrationNumber
+        : null;
+
+    if (existingRows.length > 0) {
+      await prisma.$executeRaw`
+        UPDATE "ComplianceItem"
+        SET "requirementKey" = ${req.requirementKey}, "updatedAt" = NOW()
+        WHERE "id" = ${existingRows[0].id}
+      `;
+    } else {
+      const newId = randomUUID();
+      await prisma.$executeRaw`
+        INSERT INTO "ComplianceItem" (
+          "id", "providerProfileId", "type", "requirementKey",
+          "status", "licenseNumber", "issuingAuthority",
+          "createdAt", "updatedAt"
+        ) VALUES (
+          ${newId}, ${providerProfileId}, ${complianceType}::"ComplianceType",
+          ${req.requirementKey}, ${status}::"ComplianceStatus",
+          ${licenseNumber}, ${issuingAuthority ?? null},
+          NOW(), NOW()
+        )
+      `;
+    }
     created.push(req.requirementKey);
   }
 

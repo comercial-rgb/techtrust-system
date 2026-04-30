@@ -409,14 +409,6 @@ export const getNearbySOSRequests = async (req: Request, res: Response) => {
       const sosType = r.rawServiceType as string;
       const suggestedPrice = getRateCardPrice(rateCard, sosType);
 
-      // For towing: estimate based on base fee + distance from provider to customer
-      let towingEstimate: number | null = null;
-      if (sosType === "TOWING" && rateCard.TOWING?.active) {
-        const base = rateCard.TOWING.baseFee || 0;
-        const perMile = rateCard.TOWING.perMileRate || 0;
-        towingEstimate = base + distMiles * perMile;
-      }
-
       const isTowing = sosType === "TOWING";
       return {
         id: r.id,
@@ -441,7 +433,7 @@ export const getNearbySOSRequests = async (req: Request, res: Response) => {
     .filter((r) => r.distanceKm <= SOS_BROADCAST_RADIUS_KM)
     .sort((a, b) => a.distanceKm - b.distanceKm);
 
-  res.json({ success: true, data: { requests: nearby } });
+  return res.json({ success: true, data: { requests: nearby } });
 };
 
 // ─── Provider: Accept SOS Request ────────────────────────────────────────────

@@ -55,6 +55,9 @@ export default function TechnicianManagementScreen({ navigation }: any) {
   // Form state
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState("TECHNICIAN");
+  const [dateOfHire, setDateOfHire] = useState("");
+  const [driversLicenseNumber, setDriversLicenseNumber] = useState("");
+  const [driversLicenseState, setDriversLicenseState] = useState("FL");
   const [epa609CertNumber, setEpa609CertNumber] = useState("");
   const [epa609CertType, setEpa609CertType] = useState("");
   const [epa609CertExpiry, setEpa609CertExpiry] = useState("");
@@ -84,6 +87,9 @@ export default function TechnicianManagementScreen({ navigation }: any) {
   const resetForm = () => {
     setFullName("");
     setRole("TECHNICIAN");
+    setDateOfHire("");
+    setDriversLicenseNumber("");
+    setDriversLicenseState("FL");
     setEpa609CertNumber("");
     setEpa609CertType("");
     setEpa609CertExpiry("");
@@ -100,6 +106,9 @@ export default function TechnicianManagementScreen({ navigation }: any) {
     setEditingTech(tech);
     setFullName(tech.fullName);
     setRole(tech.role);
+    setDateOfHire((tech as any).dateOfHire ? new Date((tech as any).dateOfHire).toISOString().split("T")[0] : "");
+    setDriversLicenseNumber((tech as any).driversLicenseNumber || "");
+    setDriversLicenseState((tech as any).driversLicenseState || "FL");
     setEpa609CertNumber(tech.epa609CertNumber || "");
     setEpa609CertType(tech.epa609CertType || "");
     setEpa609CertExpiry(
@@ -153,6 +162,9 @@ export default function TechnicianManagementScreen({ navigation }: any) {
       const data = {
         fullName: fullName.trim(),
         role,
+        dateOfHire: dateOfHire || undefined,
+        driversLicenseNumber: driversLicenseNumber || undefined,
+        driversLicenseState: driversLicenseState || undefined,
         epa609CertNumber: epa609CertNumber || undefined,
         epa609CertType: epa609CertType || undefined,
         epa609CertExpiry: epa609CertExpiry || undefined,
@@ -248,6 +260,26 @@ export default function TechnicianManagementScreen({ navigation }: any) {
           />
         }
       >
+        {/* Why technicians matter — Florida compliance context */}
+        <View style={styles.infoCard}>
+          <View style={styles.infoHeader}>
+            <Ionicons name="information-circle" size={18} color="#1d4ed8" />
+            <Text style={styles.infoTitle}>Why register technicians?</Text>
+          </View>
+          <Text style={styles.infoText}>
+            Florida law requires each technician who handles regulated refrigerants (A/C service)
+            to hold an active EPA 609 certificate — and your shop must be able to
+            produce it on inspection. Operating without a certified tech can result in
+            FDACS fines and service restrictions.
+          </Text>
+          <Text style={[styles.infoText, { marginTop: 6 }]}>
+            Workers' compensation becomes mandatory once you employ 4 or more people
+            (including part-time). Registering technicians here lets TechTrust track
+            your team size, trigger the right compliance requirements, and display
+            trust badges to customers.
+          </Text>
+        </View>
+
         {activeTechs.length === 0 ? (
           <View style={styles.emptyCard}>
             <Ionicons name="people-outline" size={40} color="#9ca3af" />
@@ -410,6 +442,59 @@ export default function TechnicianManagementScreen({ navigation }: any) {
                   </TouchableOpacity>
                 ))}
               </View>
+            </View>
+
+            <Text style={styles.sectionLabel}>Employment Information (Florida)</Text>
+
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Date of Hire</Text>
+              <TextInput
+                style={styles.input}
+                value={dateOfHire}
+                onChangeText={(text) => {
+                  const digits = text.replace(/\D/g, "").slice(0, 8);
+                  let formatted = digits;
+                  if (digits.length > 2)
+                    formatted = digits.slice(0, 2) + "/" + digits.slice(2);
+                  if (digits.length > 4)
+                    formatted =
+                      digits.slice(0, 2) +
+                      "/" +
+                      digits.slice(2, 4) +
+                      "/" +
+                      digits.slice(4);
+                  setDateOfHire(formatted);
+                }}
+                placeholder="MM/DD/YYYY"
+                placeholderTextColor="#9ca3af"
+                keyboardType="numeric"
+                maxLength={10}
+              />
+            </View>
+
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Driver's License Number</Text>
+              <TextInput
+                style={styles.input}
+                value={driversLicenseNumber}
+                onChangeText={setDriversLicenseNumber}
+                placeholder="e.g., A123-456-78-900"
+                placeholderTextColor="#9ca3af"
+                autoCapitalize="characters"
+              />
+            </View>
+
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>License Issuing State</Text>
+              <TextInput
+                style={styles.input}
+                value={driversLicenseState}
+                onChangeText={(v) => setDriversLicenseState(v.toUpperCase().slice(0, 2))}
+                placeholder="FL"
+                placeholderTextColor="#9ca3af"
+                autoCapitalize="characters"
+                maxLength={2}
+              />
             </View>
 
             <Text style={styles.sectionLabel}>EPA 609 Certification</Text>
@@ -666,4 +751,15 @@ const styles = StyleSheet.create({
     borderStyle: "dashed",
   },
   uploadText: { fontSize: 13, fontWeight: "600", color: "#2B5EA7" },
+  infoCard: {
+    backgroundColor: "#eff6ff",
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#bfdbfe",
+  },
+  infoHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 },
+  infoTitle: { fontSize: 14, fontWeight: "700", color: "#1d4ed8" },
+  infoText: { fontSize: 12, color: "#1e3a8a", lineHeight: 18 },
 });

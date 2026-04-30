@@ -33,12 +33,65 @@ import api from "../../services/api";
 const ALL_INSURANCE_TYPES = [
   "GENERAL_LIABILITY",
   "GARAGE_LIABILITY",
-  "GARAGEKEEPERS",
+  "GARAGE_KEEPERS",
   "COMMERCIAL_AUTO",
   "ON_HOOK",
   "WORKERS_COMP",
   "UMBRELLA_EXCESS",
 ];
+
+const INSURANCE_EXPLANATIONS: Record<string, { description: string; threshold?: string; minLimit?: string; badge: string }> = {
+  GENERAL_LIABILITY: {
+    description:
+      "Covers bodily injury and property damage caused to third parties during business operations. Required by Florida law for all registered automotive repair businesses.",
+    threshold: "Required for all providers regardless of business size.",
+    minLimit: "Minimum $1,000,000 per occurrence / $2,000,000 aggregate (FL standard).",
+    badge: "GL Insured",
+  },
+  GARAGE_LIABILITY: {
+    description:
+      "Extends General Liability to cover auto-related operations on your premises — including customer vehicles being driven, serviced, or parked. More comprehensive than standard GL for auto shops.",
+    threshold: "Required if you operate a repair shop with customer vehicles on-site.",
+    minLimit: "Recommended $1,000,000 per occurrence.",
+    badge: "Garage Insured",
+  },
+  GARAGE_KEEPERS: {
+    description:
+      "Protects customer vehicles left in your care, custody, or control — covering theft, fire, vandalism, or damage while the vehicle is at your shop or lot.",
+    threshold: "Required for all shops that hold customer vehicles overnight or for service.",
+    minLimit: "Recommended $100,000 minimum; higher limits for multi-vehicle shops.",
+    badge: "GK Insured",
+  },
+  COMMERCIAL_AUTO: {
+    description:
+      "Covers vehicles owned or operated by your business — including tow trucks, service vans, and company vehicles. Personal auto policies do NOT cover commercial use.",
+    threshold: "Required if your business owns or operates any vehicle.",
+    minLimit: "$1,000,000 combined single limit (CSL) for towing operators.",
+    badge: "Commercial Auto",
+  },
+  ON_HOOK: {
+    description:
+      "Also called 'towing insurance,' covers vehicles being towed on your hook. Applies the moment a vehicle is attached to your tow truck until it is released at the destination.",
+    threshold: "Required for all towing and roadside assist providers on TechTrust.",
+    minLimit: "Recommended $100,000 per occurrence.",
+    badge: "Towing Insured",
+  },
+  WORKERS_COMP: {
+    description:
+      "Covers medical expenses and lost wages for employees injured on the job. In Florida, workers' compensation is mandatory once you employ 4 or more employees (including part-time). Construction and farm labor have different thresholds.",
+    threshold:
+      "Florida Statute §440.02: Required for employers with 4 or more employees. Self-employed owners may opt out with a certificate of exemption.",
+    minLimit: "Statutory limits — set by Florida law, no minimum dollar choice.",
+    badge: "Workers Comp",
+  },
+  UMBRELLA_EXCESS: {
+    description:
+      "Provides additional liability coverage above the limits of your underlying GL, Garage Liability, or Commercial Auto policies. Protects against catastrophic claims.",
+    threshold: "Not legally required; strongly recommended for larger operations.",
+    minLimit: "Typically $1,000,000–$5,000,000 per occurrence.",
+    badge: "Umbrella",
+  },
+};
 
 export default function InsuranceManagementScreen({ navigation }: any) {
   const [policies, setPolicies] = useState<InsurancePolicy[]>([]);
@@ -312,14 +365,41 @@ export default function InsuranceManagementScreen({ navigation }: any) {
 
               {isExpanded && form && (
                 <View style={styles.cardBody}>
+                  {/* Per-type explanation */}
+                  {INSURANCE_EXPLANATIONS[type] && (
+                    <View style={styles.explanationCard}>
+                      <Text style={styles.explanationText}>
+                        {INSURANCE_EXPLANATIONS[type].description}
+                      </Text>
+                      {INSURANCE_EXPLANATIONS[type].threshold && (
+                        <View style={styles.thresholdRow}>
+                          <Ionicons name="information-circle" size={14} color="#92400e" />
+                          <Text style={styles.thresholdText}>
+                            {INSURANCE_EXPLANATIONS[type].threshold}
+                          </Text>
+                        </View>
+                      )}
+                      {INSURANCE_EXPLANATIONS[type].minLimit && (
+                        <View style={styles.thresholdRow}>
+                          <Ionicons name="shield-checkmark" size={14} color="#166534" />
+                          <Text style={[styles.thresholdText, { color: '#166534' }]}>
+                            {INSURANCE_EXPLANATIONS[type].minLimit}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
+
                   {requirement && (
                     <View style={styles.requirementInfo}>
                       <Text style={styles.requirementReason}>
                         {requirement.reason}
                       </Text>
-                      <Text style={styles.customerBadgeText}>
-                        Customer badge: {requirement.customerVisibleBadge}
-                      </Text>
+                      {!!requirement.customerVisibleBadge && (
+                        <Text style={styles.customerBadgeText}>
+                          Customer badge: {requirement.customerVisibleBadge}
+                        </Text>
+                      )}
                     </View>
                   )}
 
@@ -475,6 +555,34 @@ export default function InsuranceManagementScreen({ navigation }: any) {
           );
         })}
 
+        {/* Insurance Partners Banner */}
+        <View style={styles.adBanner}>
+          <View style={styles.adBannerHeader}>
+            <Ionicons name="shield-checkmark" size={18} color="#1d4ed8" />
+            <Text style={styles.adBannerTitle}>Need coverage? Get a quote.</Text>
+          </View>
+          <Text style={styles.adBannerText}>
+            TechTrust partners with licensed Florida insurance agents who specialize
+            in automotive business coverage. Get quotes for GL, Garage Keepers,
+            Workers Comp, and commercial auto in minutes.
+          </Text>
+          <View style={styles.adPartnerRow}>
+            <View style={styles.adPartnerChip}>
+              <Text style={styles.adPartnerName}>Progressive Commercial</Text>
+            </View>
+            <View style={styles.adPartnerChip}>
+              <Text style={styles.adPartnerName}>Nationwide Business</Text>
+            </View>
+            <View style={styles.adPartnerChip}>
+              <Text style={styles.adPartnerName}>State Farm Business</Text>
+            </View>
+          </View>
+          <Text style={styles.adDisclaimer}>
+            TechTrust is not an insurance agent or broker. Provider names shown are for
+            reference only. Always verify coverage directly with your carrier.
+          </Text>
+        </View>
+
         <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
@@ -608,4 +716,39 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   saveBtnText: { color: "#fff", fontSize: 14, fontWeight: "700" },
+  explanationCard: {
+    backgroundColor: "#f0f9ff",
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 12,
+    marginBottom: 4,
+    borderWidth: 1,
+    borderColor: "#bae6fd",
+  },
+  explanationText: { fontSize: 12, color: "#0c4a6e", lineHeight: 18, marginBottom: 6 },
+  thresholdRow: { flexDirection: "row", alignItems: "flex-start", gap: 6, marginTop: 4 },
+  thresholdText: { flex: 1, fontSize: 11, color: "#92400e", lineHeight: 16 },
+  adBanner: {
+    backgroundColor: "#eff6ff",
+    borderRadius: 16,
+    padding: 18,
+    marginTop: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#bfdbfe",
+  },
+  adBannerHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 },
+  adBannerTitle: { fontSize: 15, fontWeight: "700", color: "#1d4ed8" },
+  adBannerText: { fontSize: 12, color: "#1e3a8a", lineHeight: 18, marginBottom: 12 },
+  adPartnerRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 10 },
+  adPartnerChip: {
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#bfdbfe",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  adPartnerName: { fontSize: 12, color: "#1d4ed8", fontWeight: "600" },
+  adDisclaimer: { fontSize: 10, color: "#6b7280", lineHeight: 14, fontStyle: "italic" },
 });
