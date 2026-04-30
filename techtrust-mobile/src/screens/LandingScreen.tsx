@@ -296,7 +296,18 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
       if (selectedCity) params.city = selectedCity;
 
       const res = await api.get("/providers/search", { params });
-      let found = res.data?.data?.providers || [];
+      const raw = res.data?.data?.providers || [];
+      const found: ProviderResult[] = raw.map((p: any) => ({
+        id: p.id,
+        name: p.businessName || p.name || "",
+        city: p.city || "",
+        state: p.state || "",
+        services: Array.isArray(p.servicesOffered) ? p.servicesOffered : (Array.isArray(p.services) ? p.services : []),
+        rating: Number(p.averageRating || p.rating || 0),
+        reviews: Number(p.totalReviews || p.reviews || 0),
+        specialOffers: p.specialOffers || [],
+        languages: p.languages,
+      }));
 
       setSearchResults(found);
     } catch {
