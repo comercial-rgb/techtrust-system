@@ -146,8 +146,6 @@ export default function DashboardPage() {
               iconColor="text-blue-600"
               label={translate('provider.dashboard.pendingRequests')}
               value={stats?.pendingRequests || 0}
-              trend={+2}
-              trendLabel={translate('provider.dashboard.vsYesterday')}
             />
             <StatCard
               icon={<Clock className="w-6 h-6" />}
@@ -162,8 +160,6 @@ export default function DashboardPage() {
               iconColor="text-green-600"
               label={translate('provider.dashboard.completedMonth')}
               value={stats?.completedThisMonth || 0}
-              trend={+15}
-              trendLabel={translate('provider.dashboard.vsLastMonth')}
             />
             <StatCard
               icon={<DollarSign className="w-6 h-6" />}
@@ -171,8 +167,6 @@ export default function DashboardPage() {
               iconColor="text-emerald-600"
               label={translate('provider.dashboard.earningsMonth')}
               value={`$${stats?.earningsThisMonth?.toLocaleString() || 0}`}
-              trend={+8}
-              trendLabel={translate('provider.dashboard.vsLastMonth')}
             />
           </div>
         )}

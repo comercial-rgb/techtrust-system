@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState, ReactNode } from "react";
+import React, { useState, useEffect, ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useAuth } from "@/contexts/AuthContext";
 import { useI18n } from "@/i18n";
 import LangSelector from "@/components/LangSelector";
+import api from "@/services/api";
 import {
   LayoutDashboard,
   ClipboardList,
@@ -19,12 +20,11 @@ import {
   ChevronDown,
   User,
   Star,
-  Wrench,
   Shield,
   Receipt,
-  Droplets,
-  Package,
   Megaphone,
+  AlertTriangle,
+  BarChart2,
 } from "lucide-react";
 
 interface DashboardLayoutProps {
@@ -34,13 +34,13 @@ interface DashboardLayoutProps {
 
 const menuItems = [
   { href: "/dashboard", icon: LayoutDashboard, key: "provider.nav.dashboard" },
-  { href: "/pedidos", icon: ClipboardList, key: "provider.nav.requests" },
+  { href: "/pedidos", icon: ClipboardList, key: "provider.nav.requests", badge: true },
   { href: "/orcamentos", icon: FileText, key: "provider.nav.quotes" },
   { href: "/faturas", icon: Receipt, key: "provider.nav.invoices" },
   { href: "/servicos", icon: Briefcase, key: "provider.nav.services" },
-  { href: "/car-wash", icon: Droplets, key: "provider.nav.carWash" },
-  { href: "/auto-parts", icon: Package, key: "provider.nav.autoParts" },
-  { href: "/promotions", icon: Megaphone, key: "provider.nav.promotions" },
+  { href: "/reviews", icon: Star, key: "provider.nav.reviews" },
+  { href: "/sos", icon: AlertTriangle, key: "provider.nav.sos" },
+  { href: "/reports", icon: BarChart2, key: "provider.nav.reports" },
   { href: "/compliance", icon: Shield, key: "provider.nav.compliance" },
   { href: "/configuracoes", icon: Settings, key: "provider.nav.settings" },
 ];
@@ -54,10 +54,26 @@ export default function DashboardLayout({
   const { translate, language, setLanguage } = useI18n();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
 
   const isActive = (href: string) =>
     router.pathname === href || router.pathname.startsWith(href + "/");
   const tr = translate;
+
+  useEffect(() => {
+    fetchPendingCount();
+  }, []);
+
+  async function fetchPendingCount() {
+    try {
+      const res = await api.get("/providers/pending-requests");
+      const data = res.data;
+      const count = Array.isArray(data) ? data.length : (data?.total ?? data?.count ?? 0);
+      setPendingCount(count);
+    } catch {
+      // silent fail — badge stays at 0
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -72,7 +88,7 @@ export default function DashboardLayout({
       {/* Sidebar */}
       <aside
         className={`
-          fixed top-0 left-0 z-50 h-full w-64 bg-white border-r border-gray-100 
+          fixed top-0 left-0 z-50 h-full w-64 bg-white border-r border-gray-100
           transform transition-transform duration-200 ease-in-out
           lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         `}
@@ -116,11 +132,10 @@ export default function DashboardLayout({
               </div>
             </div>
           </div>
-          {/* Verified badge is shown in Settings > Profile tab after admin review */}
         </div>
 
         {/* Navigation */}
-        <nav className="p-4 space-y-1">
+        <nav className="p-4 space-y-1 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 220px)' }}>
           {menuItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.href);
@@ -141,9 +156,9 @@ export default function DashboardLayout({
                   className={`w-5 h-5 ${active ? "text-primary-500" : "text-gray-400"}`}
                 />
                 {tr(item.key)}
-                {item.href === "/pedidos" && (
+                {item.badge && pendingCount > 0 && (
                   <span className="ml-auto px-2 py-0.5 text-xs font-semibold bg-primary-500 text-white rounded-full">
-                    3
+                    {pendingCount > 99 ? "99+" : pendingCount}
                   </span>
                 )}
               </Link>

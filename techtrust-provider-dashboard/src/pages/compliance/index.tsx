@@ -146,7 +146,9 @@ export default function CompliancePage() {
       } catch {}
 
       const res = await api.get('/compliance/summary')
-      setSummary(res.data?.data || res.data)
+      // Interceptor already unwraps {success,data} → data
+      const payload = res.data?.complianceItems !== undefined ? res.data : (res.data?.data ?? res.data)
+      setSummary(payload)
     } catch (err: any) {
       console.error('Error loading compliance data:', err)
       setError(err.response?.data?.message || 'Failed to load compliance data')

@@ -168,7 +168,8 @@ export default function ConfiguracoesPage() {
     setLoading(true);
     try {
       const response = await api.get("/providers/profile");
-      const p = response.data.data || {};
+      // Interceptor already unwraps {success,data} → data
+      const p = response.data || {};
       const hours = p.businessHours || {};
 
       const parseDay = (day: any): WorkDay =>
@@ -339,6 +340,7 @@ export default function ConfiguracoesPage() {
     { id: "hours", label: "Hours", icon: Clock },
     { id: "identity", label: "Identity & Tax", icon: FileText },
     { id: "payout", label: "Payout", icon: CreditCard },
+    { id: "notifications", label: "Notifications", icon: Bell },
     { id: "security", label: "Security", icon: Lock },
   ];
 
@@ -820,6 +822,42 @@ export default function ConfiguracoesPage() {
                 <p className="text-sm text-amber-700">
                   Stripe direct deposit (instant payout) is coming soon. Until then, payouts are processed manually within 3–5 business days after each completed service.
                 </p>
+              </div>
+            </div>
+          )}
+
+          {/* ── NOTIFICATIONS TAB ── */}
+          {activeTab === "notifications" && (
+            <div className="space-y-6">
+              <h3 className="text-lg font-semibold text-gray-900">Notification Preferences</h3>
+              <p className="text-sm text-gray-500">Choose which events trigger notifications.</p>
+              <div className="space-y-3">
+                {[
+                  { key: "newRequests", label: "New Service Requests", desc: "When a customer sends you a new service request" },
+                  { key: "quoteAccepted", label: "Quote Accepted", desc: "When a customer accepts your quote" },
+                  { key: "payments", label: "Payments", desc: "Payment confirmations and payout updates" },
+                  { key: "reviews", label: "Reviews", desc: "When a customer leaves a review for your service" },
+                  { key: "marketing", label: "Marketing & Promotions", desc: "TechTrust tips, feature announcements, and offers" },
+                ].map(item => {
+                  const key = item.key as keyof typeof profile.notifications;
+                  return (
+                    <div key={item.key} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                      <div>
+                        <p className="font-medium text-gray-700 text-sm">{item.label}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{item.desc}</p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={profile.notifications[key]}
+                          onChange={e => setProfile({ ...profile, notifications: { ...profile.notifications, [key]: e.target.checked } })}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500" />
+                      </label>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

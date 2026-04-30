@@ -75,8 +75,8 @@ export default function ServicosPage() {
     setLoading(true)
     try {
       const response = await api.get('/work-orders')
-      const data = response.data.data
-      const orders = (data.orders || []).map((order: any) => ({
+      const data = response.data
+      const orders = ((data?.orders ?? data) || []).map((order: any) => ({
         id: order.id,
         orderNumber: order.orderNumber || '',
         status: order.status || 'PENDING_START',

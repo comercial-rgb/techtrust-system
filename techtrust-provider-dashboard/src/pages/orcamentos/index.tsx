@@ -73,8 +73,8 @@ export default function OrcamentosPage() {
     setLoading(true)
     try {
       const response = await api.get('/providers/my-quotes')
-      const data = response.data.data
-      const quotesData = (data.quotes || []).map((q: any) => ({
+      const data = response.data
+      const quotesData = ((data?.quotes ?? data) || []).map((q: any) => ({
         id: q.id,
         status: q.status || 'PENDING',
         totalAmount: Number(q.totalAmount) || 0,

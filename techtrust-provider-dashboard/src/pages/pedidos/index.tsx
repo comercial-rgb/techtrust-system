@@ -71,7 +71,7 @@ export default function PedidosPage() {
     setLoading(true)
     try {
       const response = await api.get('/providers/available-requests')
-      const data = response.data.data
+      const data = response.data
       setRequests(data?.requests || data || [])
     } catch (error) {
       console.error('Erro ao carregar pedidos:', error)
