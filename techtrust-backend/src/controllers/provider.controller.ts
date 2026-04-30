@@ -611,6 +611,7 @@ export const searchProvidersByLocation = async (
   const { lat, lng, radius = 50, serviceType, state, city } = req.query;
 
   const hasCoordinates = lat && lng;
+  const hasLocationFilter = !!(state || city);
 
   // Build Prisma where clause
   const whereClause: any = {
@@ -619,8 +620,10 @@ export const searchProvidersByLocation = async (
     },
   };
 
-  // Only require coordinates when doing radius search
-  if (hasCoordinates) {
+  // Only exclude providers without coordinates when doing pure radius search
+  // (no state/city filter). When state/city is provided, include all matching
+  // providers regardless of geocoding status.
+  if (hasCoordinates && !hasLocationFilter) {
     whereClause.baseLatitude = { not: null };
     whereClause.baseLongitude = { not: null };
   }
@@ -672,7 +675,13 @@ export const searchProvidersByLocation = async (
     const longitude = parseFloat(lng as string);
     const radiusKm = parseFloat(radius as string);
 
-    const mappedProviders = filteredByService.map((p) => ({
+    // Providers with geocoded coordinates get distance calculation.
+    // Providers without coordinates (possible when state/city filter is active)
+    // are included as-is with null distance.
+    const withCoords = filteredByService.filter((p) => p.baseLatitude && p.baseLongitude);
+    const withoutCoords = filteredByService.filter((p) => !p.baseLatitude || !p.baseLongitude);
+
+    const mappedProviders = withCoords.map((p) => ({
       ...p,
       baseLocation: {
         latitude: Number(p.baseLatitude),
@@ -680,7 +689,6 @@ export const searchProvidersByLocation = async (
       },
       serviceRadiusKm: Math.max(Number(p.serviceRadiusKm) || radiusKm, radiusKm),
       freeMiles: Number(p.freeKm) > 0 ? kmToMiles(Number(p.freeKm)) : undefined,
-      // extraFeePerKm is stored as $/mile (no unit conversion needed)
       feePerMile: Number(p.extraFeePerKm) > 0 ? Number(p.extraFeePerKm) : undefined,
     }));
 
@@ -690,7 +698,7 @@ export const searchProvidersByLocation = async (
       mappedProviders,
     );
 
-    const enrichedProviders = providersWithDistance.map((item) => ({
+    const enrichedWithDistance = providersWithDistance.map((item) => ({
       id: item.id,
       userId: item.userId,
       businessName: item.businessName,
@@ -710,6 +718,25 @@ export const searchProvidersByLocation = async (
       disclosures: buildProviderDisclosure(item),
       insuranceRequirements: buildInsuranceRequirementChecklist(item),
     }));
+
+    // Providers matched by state/city but without geocoded coordinates
+    const enrichedWithoutCoords = withoutCoords.map((p) => ({
+      id: p.id,
+      userId: p.userId,
+      businessName: p.businessName,
+      city: p.city,
+      state: p.state,
+      serviceRadiusKm: Number(p.serviceRadiusKm),
+      averageRating: p.averageRating,
+      totalReviews: p.totalReviews,
+      servicesOffered: p.servicesOffered,
+      distance: null,
+      travelFee: null,
+      disclosures: buildProviderDisclosure(p),
+      insuranceRequirements: buildInsuranceRequirementChecklist(p),
+    }));
+
+    const enrichedProviders = [...enrichedWithDistance, ...enrichedWithoutCoords];
 
     res.json({
       success: true,
