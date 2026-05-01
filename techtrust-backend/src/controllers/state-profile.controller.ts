@@ -6,7 +6,8 @@
 
 import { Request, Response } from "express";
 import * as ruleEngine from "../services/rule-engine.service";
-import prisma from '../config/database';
+import prisma from "../config/database";
+import { logger } from "../config/logger";
 
 
 // ============================================
@@ -26,7 +27,9 @@ export const listStateProfiles = async (req: Request, res: Response) => {
     });
     res.json({ success: true, data: { profiles } });
   } catch (error: any) {
-    console.error("Error listing state profiles:", error);
+    logger.error(
+      `Error listing state profiles: ${error instanceof Error ? error.message : error}`,
+    );
     res.status(500).json({ success: false, message: "Failed to list state profiles" });
   }
 };
@@ -54,7 +57,9 @@ export const getStateProfile = async (req: Request, res: Response): Promise<any>
 
     res.json({ success: true, data: { profile } });
   } catch (error: any) {
-    console.error("Error getting state profile:", error);
+    logger.error(
+      `Error getting state profile: ${error instanceof Error ? error.message : error}`,
+    );
     res.status(500).json({ success: false, message: "Failed to get state profile" });
   }
 };
@@ -110,7 +115,9 @@ export const upsertStateProfile = async (req: Request, res: Response): Promise<a
 
     res.json({ success: true, data: { profile } });
   } catch (error: any) {
-    console.error("Error upserting state profile:", error);
+    logger.error(
+      `Error upserting state profile: ${error instanceof Error ? error.message : error}`,
+    );
     res.status(500).json({ success: false, message: "Failed to save state profile" });
   }
 };
@@ -128,7 +135,9 @@ export const listComplianceRequirements = async (_req: Request, res: Response) =
     });
     res.json({ success: true, data: { requirements } });
   } catch (error: any) {
-    console.error("Error listing compliance requirements:", error);
+    logger.error(
+      `Error listing compliance requirements: ${error instanceof Error ? error.message : error}`,
+    );
     res.status(500).json({ success: false, message: "Failed to list requirements" });
   }
 };
@@ -184,7 +193,9 @@ export const upsertComplianceRequirement = async (req: Request, res: Response): 
 
     res.json({ success: true, data: { requirement } });
   } catch (error: any) {
-    console.error("Error upserting requirement:", error);
+    logger.error(
+      `Error upserting requirement: ${error instanceof Error ? error.message : error}`,
+    );
     res.status(500).json({ success: false, message: "Failed to save requirement" });
   }
 };
@@ -208,7 +219,9 @@ export const listJurisdictionPolicies = async (req: Request, res: Response) => {
     });
     res.json({ success: true, data: { policies } });
   } catch (error: any) {
-    console.error("Error listing jurisdiction policies:", error);
+    logger.error(
+      `Error listing jurisdiction policies: ${error instanceof Error ? error.message : error}`,
+    );
     res.status(500).json({ success: false, message: "Failed to list policies" });
   }
 };
@@ -291,7 +304,9 @@ export const upsertJurisdictionPolicy = async (req: Request, res: Response): Pro
 
     res.json({ success: true, data: { policy: result } });
   } catch (error: any) {
-    console.error("Error upserting jurisdiction policy:", error);
+    logger.error(
+      `Error upserting jurisdiction policy: ${error instanceof Error ? error.message : error}`,
+    );
     res.status(500).json({ success: false, message: "Failed to save policy" });
   }
 };
@@ -329,7 +344,9 @@ export const resolveProviderRequirements = async (req: Request, res: Response): 
       data: { jurisdiction, requirements, servicesOffered },
     });
   } catch (error: any) {
-    console.error("Error resolving requirements:", error);
+    logger.error(
+      `Error resolving requirements: ${error instanceof Error ? error.message : error}`,
+    );
     res.status(500).json({ success: false, message: "Failed to resolve requirements" });
   }
 };
@@ -346,7 +363,9 @@ export const recalculateEligibility = async (req: Request, res: Response): Promi
       data: { eligibilities: results, providerPublicStatus: status },
     });
   } catch (error: any) {
-    console.error("Error recalculating eligibility:", error);
+    logger.error(
+      `Error recalculating eligibility: ${error instanceof Error ? error.message : error}`,
+    );
     res.status(500).json({ success: false, message: "Failed to recalculate eligibility" });
   }
 };
@@ -361,7 +380,9 @@ export const getActiveStates = async (_req: Request, res: Response) => {
     const states = await ruleEngine.getActiveStates();
     res.json({ success: true, data: { states } });
   } catch (error: any) {
-    console.error("Error listing active states:", error);
+    logger.error(
+      `Error listing active states: ${error instanceof Error ? error.message : error}`,
+    );
     res.status(500).json({ success: false, message: "Failed to list active states" });
   }
 };
@@ -375,7 +396,9 @@ export const getAllStates = async (_req: Request, res: Response) => {
     });
     res.json({ success: true, data: { states } });
   } catch (error: any) {
-    console.error("Error listing all states:", error);
+    logger.error(
+      `Error listing all states: ${error instanceof Error ? error.message : error}`,
+    );
     res.status(500).json({ success: false, message: "Failed to list states" });
   }
 };
@@ -393,7 +416,9 @@ export const listDisclaimers = async (_req: Request, res: Response) => {
     });
     res.json({ success: true, data: { disclaimers } });
   } catch (error: any) {
-    console.error("Error listing disclaimers:", error);
+    logger.error(
+      `Error listing disclaimers: ${error instanceof Error ? error.message : error}`,
+    );
     res.status(500).json({ success: false, message: "Failed to list disclaimers" });
   }
 };
@@ -425,7 +450,9 @@ export const createDisclaimer = async (req: Request, res: Response): Promise<any
 
     res.json({ success: true, data: { disclaimer } });
   } catch (error: any) {
-    console.error("Error creating disclaimer:", error);
+    logger.error(
+      `Error creating disclaimer: ${error instanceof Error ? error.message : error}`,
+    );
     res.status(500).json({ success: false, message: "Failed to create disclaimer" });
   }
 };

@@ -621,7 +621,7 @@ export const cancelServiceRequest = async (req: Request, res: Response) => {
         for (const payment of workOrder.payments) {
           if (payment.id === authorizedPayment.id) continue;
           try {
-            await stripeService.cancelPaymentIntent(payment.stripePaymentIntentId);
+            await stripeService.cancelPaymentIntentIdempotent(payment.stripePaymentIntentId);
             await prisma.payment.update({
               where: { id: payment.id },
               data: {

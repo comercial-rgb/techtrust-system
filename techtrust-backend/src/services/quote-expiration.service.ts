@@ -15,7 +15,8 @@
  */
 
 
-import prisma from '../config/database';
+import prisma from "../config/database";
+import { logger } from "../config/logger";
 
 
 interface QuoteExpirationResult {
@@ -98,7 +99,7 @@ export async function checkQuoteExpirations(): Promise<QuoteExpirationResult> {
           type: "SYSTEM_ALERT",
           title: "Quote Expired",
           message: `${info.count} quote(s) for "${info.requestTitle}" have expired. You may request new quotes.`,
-          data: JSON.stringify({ serviceRequestId: srId }),
+          data: { serviceRequestId: srId },
         },
       });
       result.notificationsSent++;
@@ -112,10 +113,10 @@ export async function checkQuoteExpirations(): Promise<QuoteExpirationResult> {
           type: "SYSTEM_ALERT",
           title: "Quote Expired",
           message: `Your quote ${q.quoteNumber} has expired.`,
-          data: JSON.stringify({
+          data: {
             quoteId: q.id,
             serviceRequestId: q.serviceRequestId,
-          }),
+          },
         },
       });
       result.notificationsSent++;
@@ -170,7 +171,7 @@ export async function checkQuoteExpirations(): Promise<QuoteExpirationResult> {
           type: "SYSTEM_ALERT",
           title: "Service Request Expired",
           message: `Your service request "${req.title}" has expired. You can renew it for $0.99 or create a new request anytime.`,
-          data: JSON.stringify({ serviceRequestId: req.id, canRenew: true }),
+          data: { serviceRequestId: req.id, canRenew: true },
         },
       });
       result.notificationsSent++;
@@ -195,15 +196,15 @@ export function scheduleQuoteExpirationCheck(): void {
         result.expiredShares +
         result.expiredRequests;
       if (total > 0) {
-        console.log(
+        logger.info(
           `[QuoteExpirationCheck] Expired: ${result.expiredQuotes} quotes, ${result.expiredShares} shares, ${result.expiredRequests} requests. Sent ${result.notificationsSent} notifications.`,
         );
       } else {
-        console.log("[QuoteExpirationCheck] No expirations found");
+        logger.debug("[QuoteExpirationCheck] No expirations found");
       }
     })
     .catch((err) =>
-      console.error("[QuoteExpirationCheck] Error:", err),
+      logger.error(`[QuoteExpirationCheck] Error: ${err instanceof Error ? err.message : err}`),
     );
 
   // Schedule recurring checks every hour
@@ -215,14 +216,14 @@ export function scheduleQuoteExpirationCheck(): void {
         result.expiredShares +
         result.expiredRequests;
       if (total > 0) {
-        console.log(
+        logger.info(
           `[QuoteExpirationCheck] Expired: ${result.expiredQuotes} quotes, ${result.expiredShares} shares, ${result.expiredRequests} requests. Sent ${result.notificationsSent} notifications.`,
         );
       }
     } catch (err) {
-      console.error("[QuoteExpirationCheck] Error:", err);
+      logger.error(`[QuoteExpirationCheck] Error: ${err instanceof Error ? err.message : err}`);
     }
   }, ONE_HOUR);
 
-  console.log("[QuoteExpirationCheck] Scheduled every 1 hour");
+  logger.info("[QuoteExpirationCheck] Scheduled every 1 hour");
 }

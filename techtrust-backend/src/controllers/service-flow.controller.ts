@@ -32,7 +32,6 @@ import {
   SUPPLEMENT_RULES,
   SERVICE_FLOW,
   PROVIDER_POINTS,
-  calculateProcessorFee,
   calculateCancellationFee,
   compareProcessorFees,
   calculateFullFeeBreakdown,
@@ -98,7 +97,7 @@ export const approveQuoteWithPaymentHold = async (
   if (quote.serviceRequest.userId !== customerId) {
     throw new AppError("Sem permissão", 403, "FORBIDDEN");
   }
-  // BUG 5 FIX: Allow ACCEPTED status (from prior /quotes/:id/accept call)
+  // Allow ACCEPTED for rare legacy rows (aceite antigo sem hold) — completar hold via approve-quote
   if (quote.status !== "PENDING" && quote.status !== "ACCEPTED") {
     throw new AppError(
       "Este orçamento não está mais disponível",
@@ -275,8 +274,7 @@ export const approveQuoteWithPaymentHold = async (
     // 8. Transaction: aceitar quote + criar/reusar work order + criar payment
     const paymentNumber = `PAY-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
-    // BUG 5 FIX: Check if a WorkOrder already exists for this quote
-    // (created by prior POST /quotes/:id/accept call from mobile)
+    // Reutilizar WO existente para este orçamento (ex.: legado ou retentativa de hold)
     const existingWorkOrder = await prisma.workOrder.findFirst({
       where: { quoteId: quote.id },
     });
@@ -393,11 +391,11 @@ export const approveQuoteWithPaymentHold = async (
         message: `${customer.fullName} accepted your quote for "${quote.serviceRequest.title}". Payment of $${serviceAmount.toFixed(2)} has been authorized. You can start the service.`,
         relatedQuoteId: quoteId,
         relatedWorkOrderId: result.workOrder.id,
-        data: JSON.stringify({
+        data: {
           workOrderId: result.workOrder.id,
           amount: serviceAmount,
           orderNumber,
-        }),
+        },
       },
     });
 
@@ -572,12 +570,12 @@ export const requestSupplement = async (req: Request, res: Response) => {
       title: "Additional Service Requested",
       message: `The provider needs additional work: ${description}. Additional cost: $${Number(additionalAmount).toFixed(2)}. Please approve or decline.`,
       relatedWorkOrderId: workOrderId,
-      data: JSON.stringify({
+      data: {
         supplementId: supplement.id,
         additionalAmount: Number(additionalAmount),
         description,
         timeoutHours: SUPPLEMENT_RULES.CUSTOMER_RESPONSE_TIMEOUT_HOURS,
-      }),
+      },
     },
   });
 
@@ -617,6 +615,7 @@ export const respondToSupplement = async (req: Request, res: Response) => {
                 select: {
                   stripeAccountId: true,
                   stripeOnboardingCompleted: true,
+                  providerLevel: true,
                 },
               },
             },
@@ -686,12 +685,68 @@ export const respondToSupplement = async (req: Request, res: Response) => {
     });
   }
 
-  // Cliente aprovou → tentar criar hold adicional
-  const additionalAmount = Number(supplement.additionalAmount);
-  const supplementPlatformFee = (additionalAmount * 10) / 100; // Legacy: 10% flat estimate for supplements
-  const processorFee = calculateProcessorFee(additionalAmount, "STRIPE");
-  const totalAdditional =
-    additionalAmount + supplementPlatformFee + processorFee.feeAmount;
+  // Cliente aprovou → tentar criar hold adicional (taxas alinhadas a calculateFullFeeBreakdown)
+  const partsAmount = Number(supplement.additionalAmount);
+  const laborAmount = Number(supplement.additionalLabor || 0);
+  const quoteTotal = partsAmount + laborAmount;
+
+  const subscription = await prisma.subscription.findFirst({
+    where: { userId: customerId, status: "ACTIVE" },
+    select: { plan: true },
+  });
+  const clientPlan = subscription?.plan || "FREE";
+  const providerLevel = (supplement.workOrder.provider?.providerProfile
+    ?.providerLevel || "ENTRY") as any;
+
+  let pmResolved = paymentMethodId
+    ? await prisma.paymentMethod.findFirst({
+        where: { id: paymentMethodId, userId: customerId, isActive: true },
+      })
+    : null;
+  if (!pmResolved?.stripePaymentMethodId) {
+    pmResolved = await prisma.paymentMethod.findFirst({
+      where: {
+        userId: customerId,
+        isActive: true,
+        stripePaymentMethodId: { not: null },
+        type: { in: ["credit", "debit"] },
+      },
+      orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }],
+    });
+  }
+  const cardType = (pmResolved?.type as "credit" | "debit") || "credit";
+
+  const fees = calculateFullFeeBreakdown({
+    laborAmount,
+    partsAmount,
+    additionalFees: 0,
+    travelFee: 0,
+    diagnosticFee: 0,
+    shopSuppliesFee: 0,
+    tireFee: 0,
+    batteryFee: 0,
+    taxAmount: 0,
+    quoteTotal,
+    clientPlan,
+    providerLevel,
+    isSOS: false,
+    processor: "STRIPE",
+    cardType,
+    salesTaxAmount: 0,
+    salesTaxRate: 0,
+    salesTaxableAmount: 0,
+  });
+
+  const totalAdditional = fees.totalClientPays;
+
+  const stripePaymentMethodId = pmResolved?.stripePaymentMethodId ?? undefined;
+  if (!stripePaymentMethodId) {
+    throw new AppError(
+      "Nenhum cartão válido para pré-autorizar o suplemento. Cadastre um método em /payment-methods ou informe paymentMethodId no corpo da requisição.",
+      400,
+      "PAYMENT_METHOD_REQUIRED",
+    );
+  }
 
   try {
     // Buscar ou criar customer Stripe
@@ -704,14 +759,6 @@ export const respondToSupplement = async (req: Request, res: Response) => {
       name: customer.fullName,
     });
 
-    let stripePaymentMethodId: string | undefined;
-    if (paymentMethodId) {
-      const pm = await prisma.paymentMethod.findFirst({
-        where: { id: paymentMethodId, userId: customerId, isActive: true },
-      });
-      stripePaymentMethodId = pm?.stripePaymentMethodId || undefined;
-    }
-
     const providerStripeAccountId = supplement.workOrder.provider
       .providerProfile?.stripeOnboardingCompleted
       ? supplement.workOrder.provider.providerProfile.stripeAccountId
@@ -719,11 +766,11 @@ export const respondToSupplement = async (req: Request, res: Response) => {
 
     // Criar hold para suplemento
     const holdResult = await stripeService.createPaymentIntent({
-      amount: Math.round(totalAdditional * 100),
+      amount: fees.stripeChargeAmountCents,
       customerId: stripeCustomerId,
       paymentMethodId: stripePaymentMethodId,
       providerStripeAccountId,
-      platformFeeAmount: Math.round(supplementPlatformFee * 100),
+      platformFeeAmount: fees.stripeApplicationFeeCents,
       captureMethod: "manual",
       confirm: true,
       offSession: true,
@@ -765,8 +812,8 @@ export const respondToSupplement = async (req: Request, res: Response) => {
         where: { id: supplement.workOrderId },
         data: {
           status: SERVICE_FLOW.STATUSES.IN_PROGRESS,
-          additionalAmount: { increment: additionalAmount },
-          finalAmount: { increment: additionalAmount },
+          additionalAmount: { increment: quoteTotal },
+          finalAmount: { increment: quoteTotal },
         },
       }),
     ]);
@@ -781,11 +828,11 @@ export const respondToSupplement = async (req: Request, res: Response) => {
         providerId: supplement.requestedByProviderId,
         paymentProcessor: "STRIPE",
         stripePaymentIntentId: holdResult.paymentIntentId,
-        subtotal: additionalAmount,
-        platformFee: supplementPlatformFee,
-        processingFee: processorFee.feeAmount,
+        subtotal: quoteTotal,
+        platformFee: fees.totalPlatformCommission,
+        processingFee: fees.processorFee,
         totalAmount: totalAdditional,
-        providerAmount: additionalAmount - supplementPlatformFee,
+        providerAmount: fees.providerReceives,
         status: "AUTHORIZED",
         authorizedAt: new Date(),
         paymentType: "SUPPLEMENT",
@@ -799,7 +846,7 @@ export const respondToSupplement = async (req: Request, res: Response) => {
         userId: supplement.requestedByProviderId,
         type: "SUPPLEMENT_APPROVED",
         title: "Supplement Approved!",
-        message: `Customer approved additional work ($${additionalAmount.toFixed(2)}). Payment has been authorized. You can proceed.`,
+        message: `Customer approved additional work ($${quoteTotal.toFixed(2)} line / $${totalAdditional.toFixed(2)} authorized). You can proceed.`,
         relatedWorkOrderId: supplement.workOrderId,
       },
     });
@@ -813,7 +860,7 @@ export const respondToSupplement = async (req: Request, res: Response) => {
       await updateInvoiceWithSupplement(supplement.workOrderId, {
         supplementId,
         description: supplement.description,
-        amount: additionalAmount,
+        amount: quoteTotal,
         approved: true,
         approvedAt: new Date(),
       });
@@ -829,35 +876,44 @@ export const respondToSupplement = async (req: Request, res: Response) => {
       data: {
         supplementId: supplement.id,
         holdAmount: totalAdditional,
-        newWorkOrderTotal: additionalAmount,
+        newWorkOrderTotal: quoteTotal,
       },
     });
   } catch (error: any) {
-    // Hold falhou - fundos insuficientes
     logger.error(`Supplement hold failed: ${error.message}`);
+    const errCode =
+      typeof error?.code === "string" ? error.code : undefined;
+    const holdReason =
+      typeof error?.message === "string"
+        ? error.message.slice(0, 500)
+        : "unknown";
 
     await prisma.paymentSupplement.update({
       where: { id: supplementId },
       data: {
         status: "HOLD_FAILED",
-        holdFailedReason: error.message,
+        holdFailedReason: holdReason,
         approvedByCustomerAt: new Date(),
         customerNote: note,
       },
     });
 
-    // Notificar cliente sobre fundos insuficientes
+    const isHoldAuth =
+      errCode === "SUPPLEMENT_HOLD_NOT_AUTHORIZED" ||
+      errCode === "PAYMENT_HOLD_NOT_AUTHORIZED";
+
     await prisma.notification.create({
       data: {
         userId: customerId,
-        type: "INSUFFICIENT_FUNDS",
-        title: "Insufficient Funds",
-        message: `Unable to place hold for the additional amount ($${additionalAmount.toFixed(2)}). Please add funds or another payment method. The service will continue with the original quote.`,
+        type: isHoldAuth ? "SYSTEM_ALERT" : "INSUFFICIENT_FUNDS",
+        title: isHoldAuth ? "Supplement hold declined" : "Insufficient Funds",
+        message: isHoldAuth
+          ? `Supplement hold was not authorized (${holdReason}). The service will continue with the original quote.`
+          : `Unable to place hold for the additional amount ($${quoteTotal.toFixed(2)}). Please add funds or another payment method. The service will continue with the original quote.`,
         relatedWorkOrderId: supplement.workOrderId,
       },
     });
 
-    // Continuar com orçamento original
     await prisma.workOrder.update({
       where: { id: supplement.workOrderId },
       data: { status: SERVICE_FLOW.STATUSES.IN_PROGRESS },
@@ -865,9 +921,10 @@ export const respondToSupplement = async (req: Request, res: Response) => {
 
     return res.status(402).json({
       success: false,
-      message:
-        "Fundos insuficientes para o suplemento. Serviço continua com orçamento original.",
-      code: "INSUFFICIENT_FUNDS",
+      message: isHoldAuth
+        ? holdReason
+        : "Fundos insuficientes para o suplemento. Serviço continua com orçamento original.",
+      code: isHoldAuth ? errCode! : "INSUFFICIENT_FUNDS",
       data: {
         supplementId: supplement.id,
         proceedWithOriginal: true,
@@ -940,10 +997,10 @@ export const requestCancellation = async (req: Request, res: Response) => {
         title: "Cancellation Request",
         message: `Customer is requesting to cancel the service. Please confirm if any work has been performed or costs incurred. You have ${CANCELLATION_RULES.PROVIDER_VALIDATION_TIMEOUT_HOURS}h to respond.`,
         relatedWorkOrderId: workOrderId,
-        data: JSON.stringify({
+        data: {
           cancellationRequestId: cancellationRequest.id,
           timeoutHours: CANCELLATION_RULES.PROVIDER_VALIDATION_TIMEOUT_HOURS,
-        }),
+        },
       },
     });
 
@@ -1031,7 +1088,7 @@ export const requestCancellation = async (req: Request, res: Response) => {
     if (payment.id === cancellationFeePaymentId) continue;
 
     try {
-      await stripeService.cancelPaymentIntent(payment.stripePaymentIntentId);
+      await stripeService.cancelPaymentIntentIdempotent(payment.stripePaymentIntentId);
 
       await prisma.payment.update({
         where: { id: payment.id },
@@ -1130,7 +1187,7 @@ export const validateCancellation = async (req: Request, res: Response) => {
     // Fornecedor confirma sem custos → liberar holds e cancelar
     for (const payment of cancellation.workOrder.payments) {
       try {
-        await stripeService.cancelPaymentIntent(payment.stripePaymentIntentId);
+        await stripeService.cancelPaymentIntentIdempotent(payment.stripePaymentIntentId);
 
         await prisma.payment.update({
           where: { id: payment.id },
@@ -1189,11 +1246,11 @@ export const validateCancellation = async (req: Request, res: Response) => {
         title: "Cancellation Under Review",
         message: `The provider reported costs of $${Number(reportedCosts).toFixed(2)} for work already performed. Our team will review and contact you.`,
         relatedWorkOrderId: cancellation.workOrderId,
-        data: JSON.stringify({
+        data: {
           cancellationRequestId,
           reportedCosts: Number(reportedCosts),
           providerValidation: validation,
-        }),
+        },
       },
     });
   }
@@ -1269,7 +1326,7 @@ export const uploadServicePhotos = async (req: Request, res: Response) => {
         title: `Service Photos (${photoType})`,
         message: `The provider uploaded ${photoUrls.length} ${photoType} photo(s) for your service. Tap to view.`,
         relatedWorkOrderId: workOrderId,
-        data: JSON.stringify({ photoType, count: photoUrls.length }),
+        data: { photoType, count: photoUrls.length },
       },
     });
   }
@@ -1475,10 +1532,10 @@ export const providerCancelService = async (req: Request, res: Response) => {
           title: "Service Cancelled by Provider",
           message: `Your provider has cancelled the service. Reason: ${reason || 'Not specified'}. ${cancelRules.OFFER_REOPEN_TO_CLIENT ? 'You can re-open this request to find another provider.' : ''}`,
           relatedWorkOrderId: workOrderId,
-          data: JSON.stringify({
+          data: {
             cancellationRequestId: cancellationRequest.id,
             canReopen: cancelRules.OFFER_REOPEN_TO_CLIENT,
-          }),
+          },
         },
       });
     }
@@ -1503,7 +1560,7 @@ export const providerCancelService = async (req: Request, res: Response) => {
   // Release all holds
   for (const payment of workOrder.payments) {
     try {
-      await stripeService.cancelPaymentIntent(payment.stripePaymentIntentId);
+      await stripeService.cancelPaymentIntentIdempotent(payment.stripePaymentIntentId);
 
       await prisma.payment.update({
         where: { id: payment.id },
@@ -1945,11 +2002,11 @@ export const approveServiceAndProcessPayment = async (
             type: "PAYMENT_RECEIVED",
             title: "Referral Fee Earned!",
             message: `You earned a $${referralAmount.toFixed(2)} referral fee for your diagnostic estimate. The service was completed by another provider.`,
-            data: JSON.stringify({
+            data: {
               referralFee: referralAmount,
               workOrderId,
               estimateShareId: estimateShare.id,
-            }),
+            },
           },
         });
 
@@ -2048,10 +2105,10 @@ export const approveServiceAndProcessPayment = async (
       title: "Payment Receipt",
       message: `Your payment of $${totalCaptured.toFixed(2)} has been processed. Receipt #${receipt?.receiptNumber || "pending"}.`,
       relatedWorkOrderId: workOrderId,
-      data: JSON.stringify({
+      data: {
         receiptId: receipt?.id,
         receiptNumber: receipt?.receiptNumber,
-      }),
+      },
     },
   });
 

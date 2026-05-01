@@ -356,11 +356,11 @@ export const updateProfile = async (req: Request, res: Response) => {
     if (geocoded) {
       baseLatitude = geocoded.latitude;
       baseLongitude = geocoded.longitude;
-      console.log(
-        `Geocoding bem-sucedido: ${fullAddress} -> (${baseLatitude}, ${baseLongitude})`,
+      logger.info(
+        `Geocoding ok: (${baseLatitude}, ${baseLongitude})`,
       );
     } else {
-      console.warn(`Geocoding falhou para: ${fullAddress}`);
+      logger.warn(`Geocoding falhou para endereço informado`);
     }
   }
 

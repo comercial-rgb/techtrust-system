@@ -23,6 +23,8 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useI18n } from "../i18n";
 import api from "../services/api";
+import { getPaymentMethods } from "../services/payment.service";
+import * as serviceFlowService from "../services/service-flow.service";
 
 const { width } = Dimensions.get("window");
 
@@ -263,18 +265,64 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
   function handleAcceptQuote(quote: Quote) {
     Alert.alert(
       (t.common as any)?.acceptQuote || "Accept Quote",
-      `${(t.common as any)?.acceptQuoteConfirm || "Accept"} ${quote.provider.businessName} ${(t.common as any)?.for || "for"} $${quote.totalAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}?`,
+      `${(t.common as any)?.acceptQuoteConfirm || "Accept"} ${quote.provider.businessName} ${(t.common as any)?.for || "for"} $${quote.totalAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}? ` +
+        ((t.common as any)?.paymentHoldNote ||
+          "A payment hold will be placed on your default card."),
       [
         { text: t.common?.cancel || "Cancel", style: "cancel" },
         {
           text: (t.common as any)?.accept || "Accept",
           onPress: async () => {
             try {
-              await api.post(`/quotes/${quote.id}/accept`);
-              Alert.alert(t.common?.success || "Success!", (t.common as any)?.quoteAccepted || "Quote accepted!");
+              const methods = await getPaymentMethods();
+              const card =
+                methods.find(
+                  (m) =>
+                    m.isDefault &&
+                    (m.type === "credit" || m.type === "debit") &&
+                    m.stripePaymentMethodId,
+                ) ||
+                methods.find(
+                  (m) =>
+                    (m.type === "credit" || m.type === "debit") &&
+                    m.stripePaymentMethodId,
+                );
+
+              if (!card) {
+                Alert.alert(
+                  t.common?.error || "Error",
+                  (t.common as any)?.addCardOrApplePayToAcceptQuote ||
+                    "Add a payment method: Profile → Payment Methods — use “Add with Apple Pay” on iOS or add a card — then try again.",
+                  [
+                    { text: t.common?.cancel || "Cancel", style: "cancel" },
+                    {
+                      text: (t.nav as any)?.profile || "Profile",
+                      onPress: () =>
+                        navigation.navigate("Profile", {
+                          screen: "PaymentMethods",
+                        }),
+                    },
+                  ],
+                );
+                return;
+              }
+
+              await serviceFlowService.approveQuoteWithHold({
+                quoteId: quote.id,
+                paymentMethodId: card.id,
+                paymentProcessor: "STRIPE",
+              });
+
+              Alert.alert(
+                t.common?.success || "Success!",
+                (t.common as any)?.quoteAccepted || "Quote accepted!",
+              );
               navigation.goBack();
             } catch (err: any) {
-              Alert.alert(t.common?.error || "Error", err?.response?.data?.message || t.common?.tryAgain || "Try again");
+              Alert.alert(
+                t.common?.error || "Error",
+                err?.response?.data?.message || t.common?.tryAgain || "Try again",
+              );
             }
           },
         },

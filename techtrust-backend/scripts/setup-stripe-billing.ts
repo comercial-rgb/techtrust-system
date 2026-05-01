@@ -1,3 +1,4 @@
+import { logger } from "../src/config/logger";
 /**
  * Create or retrieve the Stripe Products/Prices required by TechTrust billing.
  *
@@ -17,7 +18,7 @@ const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 const webhookUrl = process.env.STRIPE_WEBHOOK_URL;
 
 if (!stripeSecretKey) {
-  console.error("Missing STRIPE_SECRET_KEY. Export it before running this script.");
+  logger.error("Missing STRIPE_SECRET_KEY. Export it before running this script.");
   process.exit(1);
 }
 
@@ -151,8 +152,8 @@ async function setupWebhook(): Promise<string | null> {
   const match = existing.data.find((endpoint) => endpoint.url === webhookUrl);
 
   if (match) {
-    console.log(`# Existing webhook endpoint found: ${match.id}`);
-    console.log("# Stripe only reveals STRIPE_WEBHOOK_SECRET when the endpoint is first created.");
+    logger.info(`# Existing webhook endpoint found: ${match.id}`);
+    logger.info("# Stripe only reveals STRIPE_WEBHOOK_SECRET when the endpoint is first created.");
     return null;
   }
 
@@ -177,16 +178,16 @@ async function main() {
     envLines.push(`STRIPE_WEBHOOK_SECRET=${webhookSecret}`);
   }
 
-  console.log("\n# Copy these into the production backend environment:\n");
-  for (const line of envLines) console.log(line);
+  logger.info("\n# Copy these into the production backend environment:\n");
+  for (const line of envLines) logger.info(line);
 
-  console.log("\n# Notes:");
-  console.log("# STRIPE_PRICE_VEHICLE_ADDON_ENTERPRISE is intentionally not created.");
-  console.log("# Enterprise extra vehicles are custom pricing and should not self-activate without a paid Stripe price.");
-  console.log("# Also set STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY from the Stripe dashboard.");
+  logger.info("\n# Notes:");
+  logger.info("# STRIPE_PRICE_VEHICLE_ADDON_ENTERPRISE is intentionally not created.");
+  logger.info("# Enterprise extra vehicles are custom pricing and should not self-activate without a paid Stripe price.");
+  logger.info("# Also set STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY from the Stripe dashboard.");
 }
 
 main().catch((error) => {
-  console.error(error);
+  logger.error(error);
   process.exit(1);
 });

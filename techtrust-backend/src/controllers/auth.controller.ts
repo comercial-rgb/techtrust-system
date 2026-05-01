@@ -1099,6 +1099,9 @@ export const socialLogin = async (req: Request, res: Response) => {
                 create: {
                   businessName: newUserFullName,
                   businessType: "AUTO_REPAIR",
+                  address: "Pending setup",
+                  city: "Pending",
+                  zipCode: "00000",
                 },
               },
             }
@@ -1315,17 +1318,12 @@ export const verifyOTP = async (req: Request, res: Response) => {
     const receivedCode = otpCode || code;
     const verifyMethod = method || "sms"; // 'sms' or 'email'
 
-    console.log("📥 Recebido verify-otp:", {
-      userId,
-      otpCode,
-      code,
-      receivedCode,
-      method: verifyMethod,
-      body: req.body,
-    });
-
     // Trim para garantir que não há espaços
     const cleanOtpCode = receivedCode?.trim();
+
+    logger.debug(
+      `verify-otp: userId=${userId} method=${verifyMethod} codeLen=${cleanOtpCode?.length ?? 0}`,
+    );
 
     // Validar formato do OTP
     if (!validateOTPFormat(cleanOtpCode)) {
@@ -1613,7 +1611,7 @@ export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
 
-    console.log("🔐 Tentativa de login:", { email });
+    logger.debug("auth/login: attempt");
 
     // Buscar usuário
     const user = await prisma.user.findUnique({
@@ -1622,33 +1620,25 @@ export const login = async (req: Request, res: Response) => {
     });
 
     if (!user) {
-      console.log("❌ Usuário não encontrado:", email);
+      logger.debug("auth/login: user not found for email");
       throw new AppError(
         "Email ou senha incorretos",
         401,
         "INVALID_CREDENTIALS",
       );
     }
-
-    console.log("👤 Usuário encontrado:", {
-      id: user.id,
-      status: user.status,
-      phoneVerified: user.phoneVerified,
-    });
 
     // Verificar senha
     const isPasswordValid = await comparePassword(password, user.passwordHash);
 
     if (!isPasswordValid) {
-      console.log("❌ Senha inválida para:", email);
+      logger.debug("auth/login: invalid password");
       throw new AppError(
         "Email ou senha incorretos",
         401,
         "INVALID_CREDENTIALS",
       );
     }
-
-    console.log("✅ Senha válida para:", email);
 
     // Verificar status da conta
     if (user.status === "SUSPENDED") {
@@ -1671,7 +1661,7 @@ export const login = async (req: Request, res: Response) => {
       user.status === "PENDING_VERIFICATION" &&
       !user.phoneVerified
     ) {
-      console.log("⚠️ Telefone não verificado para:", email);
+      logger.debug(`auth/login: phone not verified userId=${user.id}`);
 
       let otpSent = false;
 

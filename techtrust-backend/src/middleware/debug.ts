@@ -1,18 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
+import { logger } from '../config/logger';
 
 /**
  * Middleware de debug para logar requisições
  * Use apenas em desenvolvimento/debug
  */
 export const debugLogger = (req: Request, _res: Response, next: NextFunction) => {
-  console.log('🔍 DEBUG REQUEST:', {
-    method: req.method,
-    url: req.url,
-    body: req.body,
-    headers: {
-      'content-type': req.headers['content-type'],
-      'authorization': req.headers['authorization'] ? 'Bearer ***' : 'none'
-    }
-  });
+  logger.debug(
+    `DEBUG ${req.method} ${req.url} ct=${req.headers['content-type'] || '-'} auth=${req.headers['authorization'] ? 'yes' : 'no'}`,
+  );
   next();
 };

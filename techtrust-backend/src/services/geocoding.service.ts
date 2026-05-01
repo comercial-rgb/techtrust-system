@@ -7,7 +7,8 @@
  * Alternativa: Google Maps Geocoding API (requer chave e cobrança)
  */
 
-import axios from 'axios';
+import axios from "axios";
+import { logger } from "../config/logger";
 
 export interface Location {
   latitude: number;
@@ -56,7 +57,9 @@ export async function geocodeAddress(address: string): Promise<GeocodingResult |
       zipCode: result.address?.postcode
     };
   } catch (error) {
-    console.error('Erro no geocoding:', error);
+    logger.error(
+      `Erro no geocoding: ${error instanceof Error ? error.message : error}`,
+    );
     return null;
   }
 }
@@ -94,7 +97,9 @@ export async function reverseGeocode(latitude: number, longitude: number): Promi
       zipCode: result.address?.postcode
     };
   } catch (error) {
-    console.error('Erro no geocoding reverso:', error);
+    logger.error(
+      `Erro no geocoding reverso: ${error instanceof Error ? error.message : error}`,
+    );
     return null;
   }
 }
@@ -171,7 +176,9 @@ export async function geocodeAddressGoogle(address: string): Promise<GeocodingRe
       zipCode: getComponent('postal_code')
     };
   } catch (error) {
-    console.error('Erro no geocoding (Google):', error);
+    logger.error(
+      `Erro no geocoding (Google): ${error instanceof Error ? error.message : error}`,
+    );
     return null;
   }
 }

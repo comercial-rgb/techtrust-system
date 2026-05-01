@@ -1,3 +1,4 @@
+import { logger } from "../src/config/logger";
 /// <reference types="node" />
 /**
  * ============================================
@@ -13,12 +14,12 @@ import * as bcrypt from 'bcrypt';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Criando dados de teste: Provider + Quote\n');
+  logger.info('🌱 Criando dados de teste: Provider + Quote\n');
 
   // ===========================================
   // 1. Criar Usuário PROVIDER
   // ===========================================
-  console.log('1️⃣ Criando usuário PROVIDER...');
+  logger.info('1️⃣ Criando usuário PROVIDER...');
   
   const providerPassword = await bcrypt.hash('Teste123!', 10);
   
@@ -27,8 +28,8 @@ async function main() {
   });
 
   if (provider) {
-    console.log('   ⚠️  Usuário já existe!');
-    console.log(`   📝 ID: ${provider.id}`);
+    logger.info('   ⚠️  Usuário já existe!');
+    logger.info(`   📝 ID: ${provider.id}`);
   } else {
     provider = await prisma.user.create({
       data: {
@@ -47,22 +48,22 @@ async function main() {
         zipCode: '32802',
       },
     });
-    console.log('   ✅ Usuário PROVIDER criado!');
-    console.log(`   📝 ID: ${provider.id}`);
+    logger.info('   ✅ Usuário PROVIDER criado!');
+    logger.info(`   📝 ID: ${provider.id}`);
   }
 
   // ===========================================
   // 2. Criar ProviderProfile
   // ===========================================
-  console.log('\n2️⃣ Criando ProviderProfile...');
+  logger.info('\n2️⃣ Criando ProviderProfile...');
   
   let providerProfile = await prisma.providerProfile.findUnique({
     where: { userId: provider.id },
   });
 
   if (providerProfile) {
-    console.log('   ⚠️  ProviderProfile já existe!');
-    console.log(`   📝 ID: ${providerProfile.id}`);
+    logger.info('   ⚠️  ProviderProfile já existe!');
+    logger.info(`   📝 ID: ${providerProfile.id}`);
   } else {
     providerProfile = await prisma.providerProfile.create({
       data: {
@@ -88,14 +89,14 @@ async function main() {
         },
       },
     });
-    console.log('   ✅ ProviderProfile criado!');
-    console.log(`   📝 ID: ${providerProfile.id}`);
+    logger.info('   ✅ ProviderProfile criado!');
+    logger.info(`   📝 ID: ${providerProfile.id}`);
   }
 
   // ===========================================
   // 3. Buscar ServiceRequest mais recente
   // ===========================================
-  console.log('\n3️⃣ Buscando ServiceRequest mais recente...');
+  logger.info('\n3️⃣ Buscando ServiceRequest mais recente...');
   
   const serviceRequest = await prisma.serviceRequest.findFirst({
     where: {
@@ -109,19 +110,19 @@ async function main() {
   });
 
   if (!serviceRequest) {
-    console.log('   ❌ Nenhuma ServiceRequest aberta encontrada!');
-    console.log('   💡 Dica: Crie uma solicitação no app mobile primeiro.');
+    logger.info('   ❌ Nenhuma ServiceRequest aberta encontrada!');
+    logger.info('   💡 Dica: Crie uma solicitação no app mobile primeiro.');
     return;
   }
 
-  console.log(`   ✅ ServiceRequest encontrada: ${serviceRequest.requestNumber}`);
-  console.log(`   📝 ID: ${serviceRequest.id}`);
-  console.log(`   🔧 Título: ${serviceRequest.title}`);
+  logger.info(`   ✅ ServiceRequest encontrada: ${serviceRequest.requestNumber}`);
+  logger.info(`   📝 ID: ${serviceRequest.id}`);
+  logger.info(`   🔧 Título: ${serviceRequest.title}`);
 
   // ===========================================
   // 4. Verificar se já existe Quote
   // ===========================================
-  console.log('\n4️⃣ Verificando Quotes existentes...');
+  logger.info('\n4️⃣ Verificando Quotes existentes...');
   
   const existingQuote = await prisma.quote.findFirst({
     where: {
@@ -131,17 +132,17 @@ async function main() {
   });
 
   if (existingQuote) {
-    console.log('   ⚠️  Quote já existe!');
-    console.log(`   📝 Quote ID: ${existingQuote.id}`);
-    console.log(`   📝 Quote Number: ${existingQuote.quoteNumber}`);
-    console.log(`   💰 Valor: R$ ${existingQuote.totalAmount}`);
+    logger.info('   ⚠️  Quote já existe!');
+    logger.info(`   📝 Quote ID: ${existingQuote.id}`);
+    logger.info(`   📝 Quote Number: ${existingQuote.quoteNumber}`);
+    logger.info(`   💰 Valor: R$ ${existingQuote.totalAmount}`);
     return;
   }
 
   // ===========================================
   // 5. Criar Quote
   // ===========================================
-  console.log('\n5️⃣ Criando Quote...');
+  logger.info('\n5️⃣ Criando Quote...');
   
   const quoteNumber = `QUO-${Date.now()}-TEST`;
   
@@ -170,15 +171,15 @@ async function main() {
     },
   });
 
-  console.log('   ✅ Quote criado!');
-  console.log(`   📝 Quote ID: ${quote.id}`);
-  console.log(`   📝 Quote Number: ${quote.quoteNumber}`);
-  console.log(`   💰 Valor Total: R$ ${quote.totalAmount}`);
+  logger.info('   ✅ Quote criado!');
+  logger.info(`   📝 Quote ID: ${quote.id}`);
+  logger.info(`   📝 Quote Number: ${quote.quoteNumber}`);
+  logger.info(`   💰 Valor Total: R$ ${quote.totalAmount}`);
 
   // ===========================================
   // 6. Atualizar ServiceRequest
   // ===========================================
-  console.log('\n6️⃣ Atualizando ServiceRequest...');
+  logger.info('\n6️⃣ Atualizando ServiceRequest...');
   
   await prisma.serviceRequest.update({
     where: { id: serviceRequest.id },
@@ -188,42 +189,42 @@ async function main() {
     },
   });
 
-  console.log('   ✅ ServiceRequest atualizada!');
-  console.log(`   📊 Status: QUOTES_RECEIVED`);
-  console.log(`   📋 Quotes Count: ${serviceRequest.quotesCount + 1}`);
+  logger.info('   ✅ ServiceRequest atualizada!');
+  logger.info(`   📊 Status: QUOTES_RECEIVED`);
+  logger.info(`   📋 Quotes Count: ${serviceRequest.quotesCount + 1}`);
 
   // ===========================================
   // Resumo Final
   // ===========================================
-  console.log('\n' + '='.repeat(60));
-  console.log('✅ DADOS DE TESTE CRIADOS COM SUCESSO!');
-  console.log('='.repeat(60));
-  console.log('\n📋 Resumo:');
-  console.log('');
-  console.log('👨‍🔧 FORNECEDOR:');
-  console.log('   Email: joao.mecanico@teste.com');
-  console.log('   Senha: Teste123!');
-  console.log('   Oficina: Oficina do João');
-  console.log(`   ID: ${provider.id}`);
-  console.log('');
-  console.log('💰 ORÇAMENTO:');
-  console.log(`   Quote Number: ${quote.quoteNumber}`);
-  console.log(`   Para Request: ${serviceRequest.requestNumber}`);
-  console.log(`   Valor Total: R$ ${quote.totalAmount}`);
-  console.log(`   Status: ${quote.status}`);
-  console.log('');
-  console.log('📱 PRÓXIMOS PASSOS:');
-  console.log('   1. Abra o app mobile');
-  console.log('   2. Faça login com: cliente@teste.com / Teste123!');
-  console.log('   3. Vá para "Início" ou "Serviços"');
-  console.log('   4. Abra a solicitação para ver o orçamento');
-  console.log('   5. Aceite o orçamento para criar uma Work Order');
-  console.log('');
+  logger.info('\n' + '='.repeat(60));
+  logger.info('✅ DADOS DE TESTE CRIADOS COM SUCESSO!');
+  logger.info('='.repeat(60));
+  logger.info('\n📋 Resumo:');
+  logger.info('');
+  logger.info('👨‍🔧 FORNECEDOR:');
+  logger.info('   Email: joao.mecanico@teste.com');
+  logger.info('   Senha: Teste123!');
+  logger.info('   Oficina: Oficina do João');
+  logger.info(`   ID: ${provider.id}`);
+  logger.info('');
+  logger.info('💰 ORÇAMENTO:');
+  logger.info(`   Quote Number: ${quote.quoteNumber}`);
+  logger.info(`   Para Request: ${serviceRequest.requestNumber}`);
+  logger.info(`   Valor Total: R$ ${quote.totalAmount}`);
+  logger.info(`   Status: ${quote.status}`);
+  logger.info('');
+  logger.info('📱 PRÓXIMOS PASSOS:');
+  logger.info('   1. Abra o app mobile');
+  logger.info('   2. Faça login com: cliente@teste.com / Teste123!');
+  logger.info('   3. Vá para "Início" ou "Serviços"');
+  logger.info('   4. Abra a solicitação para ver o orçamento');
+  logger.info('   5. Aceite o orçamento para criar uma Work Order');
+  logger.info('');
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Erro:', e);
+    logger.error('❌ Erro:', e);
     process.exit(1);
   })
   .finally(async () => {

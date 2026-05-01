@@ -1,31 +1,32 @@
 import { PrismaClient } from "@prisma/client";
 
+import { logger } from "../src/config/logger";
 const prisma = new PrismaClient();
 
 async function checkOffers() {
   try {
-    console.log("Verificando ofertas no banco...\n");
+    logger.info("Verificando ofertas no banco...\n");
 
     const allOffers = await prisma.specialOffer.findMany();
-    console.log(`Total de ofertas: ${allOffers.length}`);
+    logger.info(`Total de ofertas: ${allOffers.length}`);
 
     if (allOffers.length === 0) {
-      console.log("\n❌ Nenhuma oferta encontrada no banco!");
+      logger.info("\n❌ Nenhuma oferta encontrada no banco!");
     } else {
-      console.log("\nOfertas encontradas:");
+      logger.info("\nOfertas encontradas:");
       allOffers.forEach((offer) => {
-        console.log(`\n  ID: ${offer.id}`);
-        console.log(`  Title: ${offer.title}`);
-        console.log(`  isActive: ${offer.isActive}`);
-        console.log(`  validFrom: ${offer.validFrom}`);
-        console.log(`  validUntil: ${offer.validUntil}`);
-        console.log(`  isFeatured: ${offer.isFeatured}`);
+        logger.info(`\n  ID: ${offer.id}`);
+        logger.info(`  Title: ${offer.title}`);
+        logger.info(`  isActive: ${offer.isActive}`);
+        logger.info(`  validFrom: ${offer.validFrom}`);
+        logger.info(`  validUntil: ${offer.validUntil}`);
+        logger.info(`  isFeatured: ${offer.isFeatured}`);
       });
     }
 
     // Verificar filtro de datas
     const now = new Date();
-    console.log(`\nData atual: ${now.toISOString()}`);
+    logger.info(`\nData atual: ${now.toISOString()}`);
 
     const activeOffers = await prisma.specialOffer.findMany({
       where: {
@@ -39,9 +40,9 @@ async function checkOffers() {
       },
     });
 
-    console.log(`\nOfertas que passam no filtro: ${activeOffers.length}`);
+    logger.info(`\nOfertas que passam no filtro: ${activeOffers.length}`);
   } catch (error) {
-    console.error("Erro:", error);
+    logger.error("Erro:", error);
   } finally {
     await prisma.$disconnect();
   }

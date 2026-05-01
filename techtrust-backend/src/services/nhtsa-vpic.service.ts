@@ -17,7 +17,8 @@
  */
 
 import axios from 'axios';
-import prisma from '../config/database';
+import prisma from "../config/database";
+import { logger } from "../config/logger";
 
 const VPIC_BASE = 'https://vpic.nhtsa.dot.gov/api/vehicles';
 
@@ -363,12 +364,14 @@ export async function decodeVIN_vPIC(vin: string, modelYear?: number): Promise<V
         },
       });
     } catch (cacheErr) {
-      console.warn('[VPIC] Cache write failed (non-blocking):', cacheErr);
+      logger.warn(
+        `[VPIC] Cache write failed (non-blocking): ${cacheErr instanceof Error ? cacheErr.message : cacheErr}`,
+      );
     }
 
     return result;
   } catch (error: any) {
-    console.error('[VPIC] Decode error:', error.message);
+    logger.error(`[VPIC] Decode error: ${error.message}`);
     return {
       success: false,
       tier: 'free',
@@ -446,7 +449,7 @@ export async function getRecalls_NHTSA(
 
     return { success: true, recalls, count: recalls.length };
   } catch (error: any) {
-    console.error('[NHTSA] Recalls error:', error.message);
+    logger.error(`[NHTSA] Recalls error: ${error.message}`);
     return { success: false, recalls: [], count: 0 };
   }
 }

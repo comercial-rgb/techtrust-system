@@ -1,3 +1,4 @@
+import { logger } from "../src/config/logger";
 /**
  * Lista usuários do app (CUSTOMER e PROVIDER)
  */
@@ -26,40 +27,40 @@ async function listAppUsers() {
       }
     });
 
-    console.log('\n╔══════════════════════════════════════════════════════════╗');
-    console.log('║         USUÁRIOS DO APP MOBILE (CLIENTS & PROVIDERS)    ║');
-    console.log('╚══════════════════════════════════════════════════════════╝\n');
+    logger.info('\n╔══════════════════════════════════════════════════════════╗');
+    logger.info('║         USUÁRIOS DO APP MOBILE (CLIENTS & PROVIDERS)    ║');
+    logger.info('╚══════════════════════════════════════════════════════════╝\n');
     
     if (users.length === 0) {
-      console.log('❌ Nenhum usuário encontrado.\n');
+      logger.info('❌ Nenhum usuário encontrado.\n');
       return;
     }
 
     users.forEach((user, index) => {
-      console.log(`${index + 1}. ${user.role === 'CLIENT' ? '👤 CLIENT' : '🔧 PROVIDER'}`);
-      console.log(`   Nome: ${user.fullName || 'N/A'}`);
-      console.log(`   Email: ${user.email}`);
-      console.log(`   Telefone: ${user.phone || 'N/A'}`);
-      console.log(`   Status: ${user.status}`);
-      console.log(`   Criado em: ${new Date(user.createdAt).toLocaleString('pt-BR')}`);
-      console.log('');
+      logger.info(`${index + 1}. ${user.role === 'CLIENT' ? '👤 CLIENT' : '🔧 PROVIDER'}`);
+      logger.info(`   Nome: ${user.fullName || 'N/A'}`);
+      logger.info(`   Email: ${user.email}`);
+      logger.info(`   Telefone: ${user.phone || 'N/A'}`);
+      logger.info(`   Status: ${user.status}`);
+      logger.info(`   Criado em: ${new Date(user.createdAt).toLocaleString('pt-BR')}`);
+      logger.info('');
     });
 
-    console.log(`\n📊 Total: ${users.length} usuários\n`);
-    console.log('⚠️  NOTA IMPORTANTE:');
-    console.log('   As senhas estão criptografadas no banco (bcrypt hash).');
-    console.log('   Para login, use a senha que foi definida ao criar cada usuário.\n');
+    logger.info(`\n📊 Total: ${users.length} usuários\n`);
+    logger.info('⚠️  NOTA IMPORTANTE:');
+    logger.info('   As senhas estão criptografadas no banco (bcrypt hash).');
+    logger.info('   Para login, use a senha que foi definida ao criar cada usuário.\n');
     
     // Contar por tipo
     const clients = users.filter(u => u.role === 'CLIENT').length;
     const providers = users.filter(u => u.role === 'PROVIDER').length;
     
-    console.log('📈 Resumo:');
-    console.log(`   - Clients: ${clients}`);
-    console.log(`   - Providers: ${providers}\n`);
+    logger.info('📈 Resumo:');
+    logger.info(`   - Clients: ${clients}`);
+    logger.info(`   - Providers: ${providers}\n`);
 
   } catch (error) {
-    console.error('❌ Erro ao listar usuários:', error);
+    logger.error('❌ Erro ao listar usuários:', error);
   } finally {
     await prisma.$disconnect();
   }

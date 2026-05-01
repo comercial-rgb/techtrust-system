@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 
+import { logger } from "../src/config/logger";
 const PRODUCTION_DB_URL = 'postgresql://postgres.jfwnkgqvlyamigfzgkys:Techtrust2026abc@aws-1-us-east-1.pooler.supabase.com:5432/postgres';
 
 const prisma = new PrismaClient({
@@ -15,8 +16,8 @@ async function main() {
   const email = process.argv[2] || 'teste4@gmail.com';
   const password = process.argv[3] || 'Winner1995';
 
-  console.log(`🔍 Testando login para: ${email}`);
-  console.log(`🔑 Senha fornecida: ${password}`);
+  logger.info(`🔍 Testando login para: ${email}`);
+  logger.info(`🔑 Senha fornecida: ${password}`);
 
   try {
     const user = await prisma.user.findUnique({
@@ -24,26 +25,26 @@ async function main() {
     });
 
     if (!user) {
-      console.log('❌ Usuário não encontrado!');
+      logger.info('❌ Usuário não encontrado!');
       process.exit(1);
     }
 
-    console.log(`\n👤 Usuário encontrado:`);
-    console.log(`   ID: ${user.id}`);
-    console.log(`   Nome: ${user.fullName}`);
-    console.log(`   Email: ${user.email}`);
-    console.log(`   Status: ${user.status}`);
-    console.log(`   Phone Verified: ${user.phoneVerified}`);
-    console.log(`   Password Hash: ${user.passwordHash.substring(0, 20)}...`);
+    logger.info(`\n👤 Usuário encontrado:`);
+    logger.info(`   ID: ${user.id}`);
+    logger.info(`   Nome: ${user.fullName}`);
+    logger.info(`   Email: ${user.email}`);
+    logger.info(`   Status: ${user.status}`);
+    logger.info(`   Phone Verified: ${user.phoneVerified}`);
+    logger.info(`   Password Hash: ${user.passwordHash.substring(0, 20)}...`);
 
     // Testar a senha
-    console.log(`\n🔐 Testando senha...`);
+    logger.info(`\n🔐 Testando senha...`);
     const isValid = await bcrypt.compare(password, user.passwordHash);
     
     if (isValid) {
-      console.log('✅ SENHA CORRETA! O login deveria funcionar.');
+      logger.info('✅ SENHA CORRETA! O login deveria funcionar.');
     } else {
-      console.log('❌ SENHA INCORRETA! A senha não bate com o hash.');
+      logger.info('❌ SENHA INCORRETA! A senha não bate com o hash.');
       
       // Vamos tentar algumas variações
       const variations = [
@@ -55,13 +56,13 @@ async function main() {
       for (const variation of variations) {
         const test = await bcrypt.compare(variation, user.passwordHash);
         if (test) {
-          console.log(`✅ Variação funciona: "${variation}"`);
+          logger.info(`✅ Variação funciona: "${variation}"`);
         }
       }
     }
 
   } catch (error) {
-    console.error('❌ Erro:', error);
+    logger.error('❌ Erro:', error);
     process.exit(1);
   } finally {
     await prisma.$disconnect();

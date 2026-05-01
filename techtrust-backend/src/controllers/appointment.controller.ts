@@ -148,14 +148,14 @@ export const scheduleAppointment = async (req: Request, res: Response) => {
       type: "APPOINTMENT_SCHEDULED",
       title: "New Appointment Request",
       message: `A customer wants to schedule a diagnostic visit for their ${vehicle.year} ${vehicle.make} ${vehicle.model} on ${schedDate.toLocaleDateString()}.`,
-      data: JSON.stringify({
+      data: {
         appointmentId: appointment.id,
         appointmentNumber,
         scheduledDate: schedDate.toISOString(),
         scheduledTime,
         locationType,
         vehicleInfo: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
-      }),
+      },
     },
   });
 
@@ -342,11 +342,11 @@ export const confirmAppointment = async (req: Request, res: Response) => {
       type: "APPOINTMENT_CONFIRMED",
       title: "Appointment Confirmed!",
       message: `Your diagnostic appointment for your ${appointment.vehicle.year} ${appointment.vehicle.make} ${appointment.vehicle.model} has been confirmed for ${updated.scheduledDate.toLocaleDateString()}${updated.scheduledTime ? ` at ${updated.scheduledTime}` : ""}.`,
-      data: JSON.stringify({
+      data: {
         appointmentId: id,
         scheduledDate: updated.scheduledDate.toISOString(),
         scheduledTime: updated.scheduledTime,
-      }),
+      },
     },
   });
 
@@ -400,10 +400,10 @@ export const providerEnRoute = async (req: Request, res: Response) => {
       message: estimatedArrivalMinutes
         ? `Your provider is on the way! Estimated arrival: ${estimatedArrivalMinutes} minutes.`
         : "Your provider is on the way!",
-      data: JSON.stringify({
+      data: {
         appointmentId: id,
         estimatedArrivalMinutes,
-      }),
+      },
     },
   });
 
@@ -459,7 +459,7 @@ export const checkInAppointment = async (req: Request, res: Response) => {
       title: "Provider Has Arrived",
       message:
         "The provider has checked in and started the diagnostic inspection.",
-      data: JSON.stringify({ appointmentId: id }),
+      data: { appointmentId: id },
     },
   });
 
@@ -548,7 +548,7 @@ export const completeAppointment = async (req: Request, res: Response) => {
       type: "ESTIMATE_CREATED",
       title: "Diagnostic Complete",
       message: `The diagnostic inspection for your ${appointment.vehicle.year} ${appointment.vehicle.make} ${appointment.vehicle.model} is complete. A Written Estimate will be sent shortly.`,
-      data: JSON.stringify({ appointmentId: id, serviceRequestId }),
+      data: { appointmentId: id, serviceRequestId },
     },
   });
 
@@ -612,7 +612,7 @@ export const cancelAppointment = async (req: Request, res: Response) => {
       type: "APPOINTMENT_CANCELLED",
       title: "Appointment Cancelled",
       message: `The appointment ${appointment.appointmentNumber} has been cancelled by the ${cancelledBy.toLowerCase()}.${reason ? ` Reason: ${reason}` : ""}`,
-      data: JSON.stringify({ appointmentId: id, cancelledBy, reason }),
+      data: { appointmentId: id, cancelledBy, reason },
     },
   });
 
@@ -819,13 +819,13 @@ export const reportProviderNoShow = async (req: Request, res: Response) => {
         type: "SYSTEM_ALERT",
         title: "No-Show Reported",
         message: `A no-show has been reported for appointment ${appointment.appointmentNumber}. ${noShowConfig.PROVIDER_POINTS_PENALTY} reputation points applied. You are on hold for ${holdHours} hours (until ${holdUntil.toLocaleDateString()}).`,
-        data: JSON.stringify({
+        data: {
           appointmentId: id,
           noShowCount: newNoShowCount,
           pointsPenalty: noShowConfig.PROVIDER_POINTS_PENALTY,
           holdHours,
           holdUntil: holdUntil.toISOString(),
-        }),
+        },
       },
     }),
 
@@ -836,7 +836,7 @@ export const reportProviderNoShow = async (req: Request, res: Response) => {
         type: "APPOINTMENT_CANCELLED",
         title: "No-Show Confirmed",
         message: `The provider did not show up for your appointment. We've taken action and you can schedule with another provider.`,
-        data: JSON.stringify({ appointmentId: id }),
+        data: { appointmentId: id },
       },
     }),
   ]);

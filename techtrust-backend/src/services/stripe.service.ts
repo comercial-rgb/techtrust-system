@@ -331,6 +331,32 @@ export async function cancelPaymentIntent(paymentIntentId: string): Promise<{
   return { status: intent.status };
 }
 
+/**
+ * Cancela PI; se já estiver cancelado / estado terminal, não falha (reprocessamento admin/webhook).
+ */
+export async function cancelPaymentIntentIdempotent(
+  paymentIntentId: string,
+): Promise<{ status: string }> {
+  try {
+    return await cancelPaymentIntent(paymentIntentId);
+  } catch (e: unknown) {
+    const err = e as { code?: string; message?: string };
+    const msg = (err?.message || "").toLowerCase();
+    if (
+      err?.code === "payment_intent_unexpected_state" ||
+      msg.includes("canceled") ||
+      msg.includes("cancelled") ||
+      msg.includes("has a status of canceled")
+    ) {
+      logger.info(
+        `cancelPaymentIntentIdempotent: PI ${paymentIntentId} ignorado (${err?.message || "unknown"})`,
+      );
+      return { status: "canceled" };
+    }
+    throw e;
+  }
+}
+
 // ============================================
 // PAYMENT METHODS
 // ============================================
@@ -1124,6 +1150,7 @@ export default {
   capturePaymentIntent,
   retrievePaymentIntent,
   cancelPaymentIntent,
+  cancelPaymentIntentIdempotent,
   retrieveSubscription,
   createSetupIntent,
   listPaymentMethods,

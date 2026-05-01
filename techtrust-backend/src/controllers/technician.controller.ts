@@ -5,7 +5,8 @@
 
 import { Request, Response } from "express";
 import { ComplianceStatus, TechnicianRole } from "@prisma/client";
-import prisma from '../config/database';
+import prisma from "../config/database";
+import { logger } from "../config/logger";
 
 
 // ============================================
@@ -23,7 +24,9 @@ export const getTechnicians = async (req: Request, res: Response) => {
 
     res.json({ success: true, data: { technicians } });
   } catch (error: any) {
-    console.error("Error fetching technicians:", error);
+    logger.error(
+      `Error fetching technicians: ${error instanceof Error ? error.message : error}`,
+    );
     res
       .status(500)
       .json({ success: false, message: "Failed to fetch technicians" });
@@ -99,7 +102,9 @@ export const addTechnician = async (
 
     res.status(201).json({ success: true, data: { technician } });
   } catch (error: any) {
-    console.error("Error adding technician:", error);
+    logger.error(
+      `Error adding technician: ${error instanceof Error ? error.message : error}`,
+    );
     res
       .status(500)
       .json({ success: false, message: "Failed to add technician" });
@@ -195,7 +200,9 @@ export const updateTechnician = async (
 
     res.json({ success: true, data: { technician } });
   } catch (error: any) {
-    console.error("Error updating technician:", error);
+    logger.error(
+      `Error updating technician: ${error instanceof Error ? error.message : error}`,
+    );
     res
       .status(500)
       .json({ success: false, message: "Failed to update technician" });
@@ -239,7 +246,9 @@ export const deactivateTechnician = async (
 
     res.json({ success: true, message: "Technician deactivated" });
   } catch (error: any) {
-    console.error("Error deactivating technician:", error);
+    logger.error(
+      `Error deactivating technician: ${error instanceof Error ? error.message : error}`,
+    );
     res
       .status(500)
       .json({ success: false, message: "Failed to deactivate technician" });

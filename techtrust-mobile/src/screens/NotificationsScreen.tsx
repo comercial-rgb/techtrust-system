@@ -3,7 +3,7 @@
  * Usado tanto por Cliente quanto Fornecedor
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -16,16 +16,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../constants/theme";
 import { useI18n } from "../i18n";
+import {
+  mapApiNotificationsToMobileList,
+  type MobileNotificationListItem,
+} from "../utils/notifications";
+import { useNotificationsOptional } from "../contexts/NotificationsContext";
 
-interface Notification {
-  id: string;
-  type: "request" | "quote" | "payment" | "message" | "review" | "system";
-  title: string;
-  message: string;
-  time: string;
-  read: boolean;
-  data?: any;
-}
+type Notification = MobileNotificationListItem;
 
 interface NotificationsScreenProps {
   navigation: any;
@@ -37,6 +34,9 @@ export default function NotificationsScreen({
   userType = "customer",
 }: NotificationsScreenProps) {
   const { t } = useI18n();
+  const notificationsCtx = useNotificationsOptional();
+  const refreshCounts =
+    notificationsCtx?.refreshCounts ?? (async () => {});
   const [refreshing, setRefreshing] = useState(false);
   // Load real notifications from API
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -45,8 +45,8 @@ export default function NotificationsScreen({
     try {
       const api = (await import("../services/api")).default;
       const response = await api.get("/notifications");
-      const data = response.data.data || response.data || [];
-      setNotifications(Array.isArray(data) ? data : []);
+      const raw = response.data?.data ?? response.data ?? [];
+      setNotifications(mapApiNotificationsToMobileList(raw));
     } catch (err) {
       // Keep existing notifications on error
     }
@@ -72,11 +72,22 @@ export default function NotificationsScreen({
     return icons[type] || icons.system;
   };
 
-  const handleNotificationPress = (notification: Notification) => {
-    // Mark as read
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === notification.id ? { ...n, read: true } : n)),
-    );
+  const handleNotificationPress = useCallback(
+    async (notification: Notification) => {
+      if (!notification.read) {
+        try {
+          const api = (await import("../services/api")).default;
+          await api.post(`/notifications/${notification.id}/read`);
+          setNotifications((prev) =>
+            prev.map((n) =>
+              n.id === notification.id ? { ...n, read: true } : n,
+            ),
+          );
+          await refreshCounts();
+        } catch {
+          // keep local state; server may retry on refresh
+        }
+      }
 
     // Navigate based on type
     switch (notification.type) {
@@ -96,10 +107,19 @@ export default function NotificationsScreen({
         // Navigate to review screen
         break;
     }
-  };
+    },
+    [navigation, refreshCounts],
+  );
 
-  const markAllAsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  const markAllAsRead = async () => {
+    try {
+      const api = (await import("../services/api")).default;
+      await api.post("/notifications/read-all");
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      await refreshCounts();
+    } catch {
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    }
   };
 
   const onRefresh = async () => {

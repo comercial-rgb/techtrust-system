@@ -151,6 +151,9 @@ export async function approveQuoteWithHold(params: {
   return data;
 }
 
+/** Alias — mesmo que `approveQuoteWithHold` */
+export const approveQuoteWithPaymentHold = approveQuoteWithHold;
+
 // ============================================
 // 2. SUPLEMENTOS
 // ============================================
@@ -221,6 +224,20 @@ export async function requestCancellation(params: {
   };
 }> {
   const { data } = await api.post('/service-flow/request-cancellation', params);
+  return data;
+}
+
+/**
+ * Fornecedor cancela a ordem de serviço (penalidades conforme regras)
+ */
+export async function providerCancelService(params: {
+  workOrderId: string;
+  reason?: string;
+  hasIncurredCosts?: boolean;
+  reportedCosts?: number;
+  evidencePhotoUrls?: string[];
+}): Promise<{ success: boolean; message: string; data?: any }> {
+  const { data } = await api.post('/service-flow/provider-cancel', params);
   return data;
 }
 
@@ -371,11 +388,13 @@ export async function getReceipt(
 export default {
   // Aprovação com hold
   approveQuoteWithHold,
+  approveQuoteWithPaymentHold,
   // Suplementos
   requestSupplement,
   respondToSupplement,
   // Cancelamento
   requestCancellation,
+  providerCancelService,
   validateCancellation,
   // Fotos
   uploadServicePhotos,

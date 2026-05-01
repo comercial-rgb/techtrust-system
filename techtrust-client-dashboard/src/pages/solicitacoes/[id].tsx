@@ -147,15 +147,44 @@ export default function SolicitacaoDetalhesPage() {
   async function handleAcceptQuote(quoteId: string) {
     setAcceptingQuote(quoteId);
     try {
-      const response = await api.acceptQuote(quoteId);
+      const pmRes = await api.getPaymentMethods();
+      if (pmRes.error) {
+        alert(pmRes.error);
+        return;
+      }
+      const methods = (pmRes.data as any[]) || [];
+      const card =
+        methods.find(
+          (m: any) =>
+            m.isDefault &&
+            (m.type === "credit" || m.type === "debit") &&
+            m.stripePaymentMethodId,
+        ) ||
+        methods.find(
+          (m: any) =>
+            (m.type === "credit" || m.type === "debit") &&
+            m.stripePaymentMethodId,
+        );
+
+      if (!card) {
+        alert(
+          "Adicione um cartão de crédito ou débito em Perfil → Formas de pagamento antes de aceitar o orçamento (é necessária uma pré-autorização).",
+        );
+        return;
+      }
+
+      const response = await api.approveQuoteWithHold({
+        quoteId,
+        paymentMethodId: card.id,
+        paymentProcessor: "STRIPE",
+      });
       if (response.error) {
         alert(response.error);
         return;
       }
-      // Recarregar para ver status atualizado
       loadRequest();
     } catch (err: any) {
-      alert(err.message || 'Erro ao aceitar orçamento');
+      alert(err.message || "Erro ao aceitar orçamento");
     } finally {
       setAcceptingQuote(null);
     }

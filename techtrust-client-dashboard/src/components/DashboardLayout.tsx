@@ -24,6 +24,8 @@ import {
   Send,
   Loader2,
 } from "lucide-react";
+import { api } from "../services/api";
+import type { NormalizedClientNotification } from "../utils/notifications";
 
 interface ChatMessage {
   id: string;
@@ -78,15 +80,6 @@ const menuItems = [
   { href: "/perfil", labelKey: "client.nav.profile", icon: User },
 ];
 
-interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  read: boolean;
-  createdAt: string;
-  type?: string;
-}
-
 export default function DashboardLayout({
   children,
   title,
@@ -97,7 +90,9 @@ export default function DashboardLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<
+    NormalizedClientNotification[]
+  >([]);
   const notifRef = useRef<HTMLDivElement>(null);
 
   // Floating chat
@@ -135,22 +130,12 @@ export default function DashboardLayout({
 
   async function fetchNotifications() {
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/notifications`,
-        {
-          headers: {
-            Authorization: `Bearer ${document.cookie
-              .split("; ")
-              .find((r) => r.startsWith("tt_client_token="))
-              ?.split("=")[1] || ""}`,
-          },
-        }
-      );
-      if (res.ok) {
-        const data = await res.json();
-        const list = data?.data || data || [];
-        setNotifications(Array.isArray(list) ? list : []);
+      const res = await api.getNotifications();
+      if (res.error != null) {
+        setNotifications([]);
+        return;
       }
+      setNotifications(res.data ?? []);
     } catch {
       setNotifications([]);
     }
@@ -158,15 +143,8 @@ export default function DashboardLayout({
 
   async function markAllRead() {
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/notifications/read-all`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${document.cookie
-            .split("; ")
-            .find((r) => r.startsWith("tt_client_token="))
-            ?.split("=")[1] || ""}`,
-        },
-      });
+      const res = await api.markAllNotificationsAsRead();
+      if (res.error != null) return;
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     } catch {}
   }

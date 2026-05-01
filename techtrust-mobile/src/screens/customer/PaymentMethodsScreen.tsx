@@ -24,6 +24,7 @@ import {
   useConfirmSetupIntent,
   usePlatformPay,
   CardFieldInput,
+  PlatformPay,
 } from "@stripe/stripe-react-native";
 import { useI18n } from "../../i18n";
 import { useRoute, CommonActions } from "@react-navigation/native";
@@ -64,8 +65,12 @@ export default function PaymentMethodsScreen({ navigation }: any) {
   const fromCreateRequest = route.params?.fromCreateRequest;
   const addCardMode = route.params?.addCardMode;
   const { confirmSetupIntent } = useConfirmSetupIntent();
-  const { isPlatformPaySupported } = usePlatformPay();
+  const {
+    isPlatformPaySupported,
+    confirmPlatformPaySetupIntent,
+  } = usePlatformPay();
   const [isApplePayReady, setIsApplePayReady] = useState(false);
+  const [isGooglePayReady, setIsGooglePayReady] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
@@ -169,9 +174,21 @@ export default function PaymentMethodsScreen({ navigation }: any) {
 
   useEffect(() => {
     loadPaymentMethods();
-    if (Platform.OS === 'ios') {
-      isPlatformPaySupported().then(setIsApplePayReady).catch(() => setIsApplePayReady(false));
+    if (Platform.OS === "ios") {
+      isPlatformPaySupported()
+        .then(setIsApplePayReady)
+        .catch(() => setIsApplePayReady(false));
+    } else if (Platform.OS === "android") {
+      isPlatformPaySupported({
+        googlePay: {
+          testEnv: __DEV__,
+          existingPaymentMethodRequired: false,
+        },
+      })
+        .then(setIsGooglePayReady)
+        .catch(() => setIsGooglePayReady(false));
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- wallet probe once on mount
   }, []);
 
   const loadPaymentMethods = async () => {
@@ -267,6 +284,139 @@ export default function PaymentMethodsScreen({ navigation }: any) {
       pixKey: "",
     });
     setShowModal(true);
+  };
+
+  useEffect(() => {
+    if (addCardMode) {
+      handleOpenModal();
+    }
+  }, [addCardMode]);
+
+  /** Salva cartão na conta Stripe via Apple Pay (iOS) ou Google Pay (Android). */
+  const handleSaveWithPlatformWallet = async () => {
+    if (Platform.OS === "ios" && !isApplePayReady) {
+      Alert.alert(
+        t.common?.error || "Error",
+        t.customer?.applePayNotAvailable ||
+          "Apple Pay is not available on this device. Add a card manually or configure Apple Wallet.",
+      );
+      return;
+    }
+    if (Platform.OS === "android" && !isGooglePayReady) {
+      Alert.alert(
+        t.common?.error || "Error",
+        t.customer?.googlePayNotAvailable ||
+          "Google Pay is not available. Add a card manually or set up Google Pay.",
+      );
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const setupResponse = await api.post("/payments/setup-intent");
+      const clientSecret = setupResponse.data?.data?.clientSecret;
+      if (!clientSecret) {
+        throw new Error("Failed to create SetupIntent");
+      }
+
+      const walletParams =
+        Platform.OS === "ios"
+          ? {
+              applePay: {
+                cartItems: [
+                  {
+                    label: "TechTrust",
+                    amount: "0.00",
+                    paymentType: PlatformPay.PaymentType.Immediate,
+                  },
+                ],
+                merchantCountryCode: "US",
+                currencyCode: "USD",
+              },
+            }
+          : {
+              googlePay: {
+                testEnv: __DEV__,
+                merchantCountryCode: "US",
+                currencyCode: "USD",
+                merchantName: "TechTrust",
+                existingPaymentMethodRequired: false,
+              },
+            };
+
+      const result = await confirmPlatformPaySetupIntent(
+        clientSecret,
+        walletParams as any,
+      );
+
+      if ((result as any).error) {
+        const err = (result as any).error;
+        if (err?.code !== "Canceled") {
+          throw new Error(err?.message || "Wallet setup failed");
+        }
+        return;
+      }
+
+      const setupIntent = (result as any).setupIntent;
+      const pmId =
+        setupIntent?.paymentMethodId ||
+        (setupIntent?.paymentMethod &&
+          typeof setupIntent.paymentMethod === "object" &&
+          setupIntent.paymentMethod.id) ||
+        (setupIntent?.paymentMethod as string | undefined);
+
+      if (!pmId) {
+        throw new Error("No payment method returned from wallet");
+      }
+
+      const saveResponse = await api.post("/payment-methods/stripe", {
+        stripePaymentMethodId: pmId,
+      });
+      const savedMethod = saveResponse.data?.data;
+      if (savedMethod) {
+        const newMethod: PaymentMethod = {
+          id: savedMethod.id,
+          type: savedMethod.type || "credit",
+          brand: savedMethod.cardBrand,
+          cardBrand: savedMethod.cardBrand,
+          lastFour: savedMethod.cardLast4,
+          cardLast4: savedMethod.cardLast4,
+          holderName: savedMethod.holderName,
+          expiryDate:
+            savedMethod.cardExpMonth && savedMethod.cardExpYear
+              ? `${String(savedMethod.cardExpMonth).padStart(2, "0")}/${String(savedMethod.cardExpYear).slice(-2)}`
+              : undefined,
+          cardExpMonth: savedMethod.cardExpMonth,
+          cardExpYear: savedMethod.cardExpYear,
+          isDefault: savedMethod.isDefault,
+        };
+        setPaymentMethods((prev) => {
+          const next = [...prev, newMethod];
+          AsyncStorage.setItem(
+            PAYMENT_METHODS_KEY,
+            JSON.stringify(next),
+          ).catch(() => {});
+          return next;
+        });
+      }
+
+      setShowModal(false);
+      await loadPaymentMethods();
+      Alert.alert(
+        t.common?.success || "Success",
+        Platform.OS === "ios"
+          ? t.customer?.paymentMethodAddedApplePay ||
+            "Payment method saved with Apple Pay. You can use it for quote holds and service approval."
+          : t.customer?.paymentMethodAddedGooglePay ||
+            "Payment method saved with Google Pay.",
+      );
+    } catch (err: any) {
+      const msg =
+        err.response?.data?.message || err.message || "Wallet setup failed";
+      Alert.alert(t.common?.error || "Error", msg);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleOpenAddBalanceModal = () => {
@@ -621,6 +771,44 @@ export default function PaymentMethodsScreen({ navigation }: any) {
               "Your payment information is encrypted and secure"}
           </Text>
         </View>
+
+        {((Platform.OS === "ios" && isApplePayReady) ||
+          (Platform.OS === "android" && isGooglePayReady)) && (
+          <View style={styles.walletPaySection}>
+            <Text style={styles.walletPayTitle}>
+              {t.customer?.saveWithWallet || "Save with digital wallet"}
+            </Text>
+            <Text style={styles.walletPaySubtitle}>
+              {Platform.OS === "ios"
+                ? t.customer?.applePaySaveSubtitle ||
+                  "Add a card to your TechTrust account using Apple Pay — usable for accepting quotes and approving services."
+                : t.customer?.googlePaySaveSubtitle ||
+                  "Add a card using Google Pay for faster checkout."}
+            </Text>
+            <TouchableOpacity
+              style={styles.walletPayButton}
+              onPress={handleSaveWithPlatformWallet}
+              disabled={saving}
+            >
+              {saving ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <>
+                  <Ionicons
+                    name={Platform.OS === "ios" ? "logo-apple" : "logo-google"}
+                    size={22}
+                    color="#fff"
+                  />
+                  <Text style={styles.walletPayButtonText}>
+                    {Platform.OS === "ios"
+                      ? t.customer?.addWithApplePay || "Add with Apple Pay"
+                      : t.customer?.addWithGooglePay || "Add with Google Pay"}
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Wallet Section */}
         <View style={styles.walletSection}>
@@ -980,8 +1168,8 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                 </>
               )}
 
-              {/* Apple Pay status */}
-              {Platform.OS === 'ios' && (
+              {/* Apple Pay status + save (iOS) */}
+              {Platform.OS === "ios" && (
                 <View style={styles.digitalWalletBanner}>
                   <View style={[styles.dwBannerIcon, { backgroundColor: isApplePayReady ? '#f0fdf4' : '#f9fafb' }]}>
                     <Ionicons name="logo-apple" size={22} color={isApplePayReady ? '#10b981' : '#9ca3af'} />
@@ -990,7 +1178,8 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                     <Text style={styles.dwBannerTitle}>Apple Pay</Text>
                     <Text style={styles.dwBannerDesc}>
                       {isApplePayReady
-                        ? "Available on this device. Apple Pay appears automatically at checkout — no setup needed."
+                        ? (t.customer?.applePaySaveHint ||
+                          "Save your Apple Pay card to TechTrust to authorize quote holds and service payments.")
                         : "Not available. Add a card to your Apple Wallet to enable Apple Pay at checkout."}
                     </Text>
                   </View>
@@ -1000,6 +1189,48 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                     </Text>
                   </View>
                 </View>
+              )}
+              {Platform.OS === "ios" && isApplePayReady && (
+                <TouchableOpacity
+                  style={styles.walletPayButtonModal}
+                  onPress={handleSaveWithPlatformWallet}
+                  disabled={saving}
+                >
+                  <Ionicons name="logo-apple" size={20} color="#fff" />
+                  <Text style={styles.walletPayButtonText}>
+                    {t.customer?.addWithApplePay || "Add with Apple Pay"}
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {Platform.OS === "android" && (
+                <View style={[styles.digitalWalletBanner, { marginTop: 12 }]}>
+                  <View style={[styles.dwBannerIcon, { backgroundColor: isGooglePayReady ? '#f0fdf4' : '#f9fafb' }]}>
+                    <Ionicons name="logo-google" size={22} color={isGooglePayReady ? '#10b981' : '#9ca3af'} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.dwBannerTitle}>Google Pay</Text>
+                    <Text style={styles.dwBannerDesc}>
+                      {isGooglePayReady
+                        ? (t.customer?.googlePaySaveHint ||
+                          "Save a card from Google Pay for holds and payments.")
+                        : (t.customer?.googlePayNotAvailable ||
+                          "Google Pay is not available on this device.")}
+                    </Text>
+                  </View>
+                </View>
+              )}
+              {Platform.OS === "android" && isGooglePayReady && (
+                <TouchableOpacity
+                  style={styles.walletPayButtonModal}
+                  onPress={handleSaveWithPlatformWallet}
+                  disabled={saving}
+                >
+                  <Ionicons name="logo-google" size={20} color="#fff" />
+                  <Text style={styles.walletPayButtonText}>
+                    {t.customer?.addWithGooglePay || "Add with Google Pay"}
+                  </Text>
+                </TouchableOpacity>
               )}
 
               <TouchableOpacity
@@ -1703,6 +1934,52 @@ const styles = StyleSheet.create({
     color: "#6b7280",
     marginTop: 12,
     lineHeight: 18,
+  },
+  walletPaySection: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    padding: 16,
+    backgroundColor: "#f0f7ff",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#bfdbfe",
+  },
+  walletPayTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 6,
+  },
+  walletPaySubtitle: {
+    fontSize: 13,
+    color: "#4b5563",
+    lineHeight: 19,
+    marginBottom: 14,
+  },
+  walletPayButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    backgroundColor: "#111827",
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  walletPayButtonModal: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    backgroundColor: "#111827",
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  walletPayButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "700",
   },
   // Apple Pay / Google Pay status banner
   digitalWalletBanner: {

@@ -292,10 +292,10 @@ export const confirmPayment = async (req: Request, res: Response) => {
         type: 'PAYMENT_RECEIVED',
         title: 'Payment Authorized',
         message: `Payment of $${Number(payment.providerAmount).toFixed(2)} authorized for order ${payment.workOrder.orderNumber}. Funds will be captured upon service completion.`,
-        data: JSON.stringify({
+        data: {
           paymentId: payment.id,
           amount: Number(payment.providerAmount),
-        }),
+        },
       },
     });
 
@@ -549,10 +549,10 @@ export const capturePayment = async (req: Request, res: Response) => {
         type: 'PAYMENT_RECEIVED',
         title: 'Payment Captured',
         message: `Your payment of $${Number(payment.totalAmount).toFixed(2)} for order ${payment.workOrder.orderNumber} has been charged. The service is completed.`,
-        data: JSON.stringify({
+        data: {
           paymentId: payment.id,
           amount: Number(payment.totalAmount),
-        }),
+        },
       },
     });
 
@@ -563,10 +563,10 @@ export const capturePayment = async (req: Request, res: Response) => {
         type: 'PAYMENT_RECEIVED',
         title: 'Payment Received',
         message: `Payment of $${Number(payment.providerAmount).toFixed(2)} has been captured for order ${payment.workOrder.orderNumber}. Funds will be transferred to your account.`,
-        data: JSON.stringify({
+        data: {
           paymentId: payment.id,
           amount: Number(payment.providerAmount),
-        }),
+        },
       },
     });
 
@@ -612,7 +612,7 @@ export const voidPayment = async (req: Request, res: Response) => {
 
   try {
     // Cancelar PaymentIntent no Stripe (libera o hold)
-    await stripeService.cancelPaymentIntent(payment.stripePaymentIntentId);
+    await stripeService.cancelPaymentIntentIdempotent(payment.stripePaymentIntentId);
 
     await prisma.payment.update({
       where: { id: paymentId },

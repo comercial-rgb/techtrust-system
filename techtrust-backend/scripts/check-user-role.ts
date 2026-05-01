@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 
+import { logger } from "../src/config/logger";
 const prisma = new PrismaClient();
 
 async function main() {
@@ -9,21 +10,21 @@ async function main() {
   });
 
   if (!user) {
-    console.log("User NOT FOUND");
+    logger.info("User NOT FOUND");
     return;
   }
 
-  console.log("User ID:", user.id);
-  console.log("Role:", user.role);
-  console.log("Phone Verified:", user.phoneVerified);
-  console.log("Email Verified:", user.emailVerified);
-  console.log("Status:", user.status);
-  console.log("Has Provider Profile:", !!user.providerProfile);
+  logger.info("User ID:", user.id);
+  logger.info("Role:", user.role);
+  logger.info("Phone Verified:", user.phoneVerified);
+  logger.info("Email Verified:", user.emailVerified);
+  logger.info("Status:", user.status);
+  logger.info("Has Provider Profile:", !!user.providerProfile);
   if (user.providerProfile) {
-    console.log("Business Name:", user.providerProfile.businessName);
+    logger.info("Business Name:", user.providerProfile.businessName);
   }
 }
 
 main()
-  .catch(console.error)
+  .catch((e: unknown) => logger.error(String(e)))
   .finally(() => prisma.$disconnect());

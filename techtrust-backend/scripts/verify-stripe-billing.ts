@@ -1,3 +1,4 @@
+import { logger } from "../src/config/logger";
 /**
  * Validate that the production Stripe billing environment is complete.
  *
@@ -85,7 +86,7 @@ async function main() {
       throw new Error(`${envName} (${price.id}) interval mismatch: expected ${expected.interval}, got ${price.recurring?.interval}`);
     }
 
-    console.log(`ok ${envName}=${price.id}`);
+    logger.info(`ok ${envName}=${price.id}`);
   }
 
   const webhookUrl = process.env.STRIPE_WEBHOOK_URL;
@@ -103,15 +104,15 @@ async function main() {
       }
     }
 
-    console.log(`ok STRIPE_WEBHOOK_URL=${webhookUrl}`);
+    logger.info(`ok STRIPE_WEBHOOK_URL=${webhookUrl}`);
   } else {
-    console.log("skipped webhook URL check; set STRIPE_WEBHOOK_URL to validate endpoint events");
+    logger.info("skipped webhook URL check; set STRIPE_WEBHOOK_URL to validate endpoint events");
   }
 
-  console.log("Stripe billing environment is ready.");
+  logger.info("Stripe billing environment is ready.");
 }
 
 main().catch((error) => {
-  console.error(error.message || error);
+  logger.error(error.message || error);
   process.exit(1);
 });

@@ -5,6 +5,7 @@
  */
 
 import axios from "axios";
+import { logger } from "../config/logger";
 
 const NHTSA_API_BASE = "https://vpic.nhtsa.dot.gov/api/vehicles";
 
@@ -178,7 +179,9 @@ export async function decodeVIN(vin: string): Promise<DecodedVehicleData> {
       },
     };
   } catch (error: any) {
-    console.error("Erro ao decodificar VIN:", error);
+    logger.error(
+      `Erro ao decodificar VIN: ${error instanceof Error ? error.message : error}`,
+    );
 
     if (error.code === "ECONNABORTED") {
       return {
@@ -260,7 +263,7 @@ export async function getRecallsByVehicle(
       count: recalls.length,
     };
   } catch (error: any) {
-    console.error("Error fetching NHTSA recalls:", error.message);
+    logger.error(`Error fetching NHTSA recalls: ${error.message}`);
     return {
       success: false,
       error: error.message || "Failed to fetch recall data",

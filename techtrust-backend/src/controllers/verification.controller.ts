@@ -5,7 +5,8 @@
 
 import { Request, Response } from "express";
 import { VerificationEntityType } from "@prisma/client";
-import prisma from '../config/database';
+import prisma from "../config/database";
+import { logger } from "../config/logger";
 
 
 const DISCLAIMER_VERSION = "1.0";
@@ -143,7 +144,9 @@ export const verifyEntity = async (
       data: { previousStatus, newStatus },
     });
   } catch (error: any) {
-    console.error("Error verifying entity:", error);
+    logger.error(
+      `Error verifying entity: ${error instanceof Error ? error.message : error}`,
+    );
     res
       .status(500)
       .json({ success: false, message: "Failed to verify entity" });
@@ -165,7 +168,9 @@ export const getVerificationLogs = async (req: Request, res: Response) => {
 
     res.json({ success: true, data: { logs } });
   } catch (error: any) {
-    console.error("Error fetching verification logs:", error);
+    logger.error(
+      `Error fetching verification logs: ${error instanceof Error ? error.message : error}`,
+    );
     res
       .status(500)
       .json({ success: false, message: "Failed to fetch verification logs" });
@@ -211,7 +216,9 @@ export const acceptRiskDisclaimer = async (
       data: { logId: log.id, disclaimerVersion: DISCLAIMER_VERSION },
     });
   } catch (error: any) {
-    console.error("Error recording risk acceptance:", error);
+    logger.error(
+      `Error recording risk acceptance: ${error instanceof Error ? error.message : error}`,
+    );
     res
       .status(500)
       .json({ success: false, message: "Failed to record risk acceptance" });
@@ -260,7 +267,9 @@ export const checkRiskAcceptance = async (
       },
     });
   } catch (error: any) {
-    console.error("Error checking risk acceptance:", error);
+    logger.error(
+      `Error checking risk acceptance: ${error instanceof Error ? error.message : error}`,
+    );
     res
       .status(500)
       .json({ success: false, message: "Failed to check risk acceptance" });
@@ -342,7 +351,9 @@ export const getPendingVerifications = async (
       },
     });
   } catch (error: any) {
-    console.error("Error fetching pending verifications:", error);
+    logger.error(
+      `Error fetching pending verifications: ${error instanceof Error ? error.message : error}`,
+    );
     res
       .status(500)
       .json({
@@ -440,6 +451,8 @@ async function recalculateProviderStatus(entityType: string, entityId: string) {
       data: { providerPublicStatus: newStatus },
     });
   } catch (error) {
-    console.error("Error recalculating provider status:", error);
+    logger.error(
+      `Error recalculating provider status: ${error instanceof Error ? error.message : error}`,
+    );
   }
 }

@@ -7,7 +7,8 @@
     "dev": "next dev -p 3003",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "deploy:vercel": "vercel --prod"
   },
   "dependencies": {
     "next": "14.0.4",

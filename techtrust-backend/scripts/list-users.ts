@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 
+import { logger } from "../src/config/logger";
 const PRODUCTION_DB_URL = 'postgresql://postgres.jfwnkgqvlyamigfzgkys:Techtrust2026abc@aws-1-us-east-1.pooler.supabase.com:5432/postgres';
 
 const prisma = new PrismaClient({
@@ -11,7 +12,7 @@ const prisma = new PrismaClient({
 });
 
 async function main() {
-  console.log('📋 Lista de TODOS os usuários:\n');
+  logger.info('📋 Lista de TODOS os usuários:\n');
 
   const users = await prisma.user.findMany({
     select: {
@@ -29,10 +30,10 @@ async function main() {
 
   users.forEach((user, i) => {
     const verified = user.phoneVerified ? '✅' : '❌';
-    console.log(`${i + 1}. ${verified} ${user.email} | ${user.status} | ${user.role}`);
+    logger.info(`${i + 1}. ${verified} ${user.email} | ${user.status} | ${user.role}`);
   });
 
-  console.log(`\nTotal: ${users.length} usuários`);
+  logger.info(`\nTotal: ${users.length} usuários`);
   
   await prisma.$disconnect();
 }

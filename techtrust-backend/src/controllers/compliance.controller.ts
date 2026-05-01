@@ -8,7 +8,8 @@ import { Request, Response } from "express";
 import { ComplianceType, ComplianceStatus } from "@prisma/client";
 import * as ruleEngine from "../services/rule-engine.service";
 import { buildInsuranceRequirementChecklist } from "../utils/insurance-requirements";
-import prisma from '../config/database';
+import prisma from "../config/database";
+import { logger } from "../config/logger";
 
 
 async function resolveProviderProfileId(req: Request): Promise<string | null> {
@@ -45,7 +46,9 @@ export const getComplianceItems = async (
 
     res.json({ success: true, data: { items } });
   } catch (error: any) {
-    console.error("Error fetching compliance items:", error);
+    logger.error(
+      `Error fetching compliance items: ${error instanceof Error ? error.message : error}`,
+    );
     res
       .status(500)
       .json({ success: false, message: "Failed to fetch compliance items" });
@@ -146,7 +149,9 @@ export const upsertComplianceItem = async (
 
     res.json({ success: true, data: { item } });
   } catch (error: any) {
-    console.error("Error upserting compliance item:", error);
+    logger.error(
+      `Error upserting compliance item: ${error instanceof Error ? error.message : error}`,
+    );
     res
       .status(500)
       .json({ success: false, message: "Failed to save compliance item" });
@@ -210,7 +215,9 @@ export const autoCreateComplianceItems = async (
 
     res.json({ success: true, data: { created, jurisdiction } });
   } catch (error: any) {
-    console.error("Error auto-creating compliance items:", error);
+    logger.error(
+      `Error auto-creating compliance items: ${error instanceof Error ? error.message : error}`,
+    );
     res
       .status(500)
       .json({
@@ -342,7 +349,9 @@ export const getComplianceSummary = async (
       },
     });
   } catch (error: any) {
-    console.error("Error fetching compliance summary:", error);
+    logger.error(
+      `Error fetching compliance summary: ${error instanceof Error ? error.message : error}`,
+    );
     res
       .status(500)
       .json({ success: false, message: "Failed to fetch compliance summary" });

@@ -8,7 +8,7 @@
     "build": "prisma generate && tsc",
     "postinstall": "prisma generate",
     "start": "node scripts/ensure-runtime-schema.js && node dist/server.js",
-    "test": "jest",
+    "test": "jest --config jest.config.cjs --no-watchman",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "ts-node scripts/safe-prisma.ts migrate",
     "prisma:push": "ts-node scripts/safe-prisma.ts push",
@@ -22,7 +22,8 @@
     "clean-db": "ts-node prisma/clean-database.ts",
     "clean-production": "ts-node scripts/clean-production-db.ts",
     "clean-production-direct": "ts-node scripts/clean-production-direct.ts",
-    "check-otp": "ts-node scripts/check-otp.ts"
+    "check-otp": "ts-node scripts/check-otp.ts",
+    "webhooks:prune-stale": "ts-node scripts/prune-stripe-webhook-events.ts"
   },
   "keywords": [
     "automotive",
@@ -79,6 +80,7 @@
     "jest": "^29.7.0",
     "nodemon": "^3.0.2",
     "prisma": "^5.7.0",
+    "ts-jest": "^29.4.9",
     "ts-node": "^10.9.2",
     "typescript": "5.9.3"
   },

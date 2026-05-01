@@ -17,6 +17,30 @@ import Stripe from 'stripe';
 const router = Router();
 
 /**
+ * Garante que o valor cobrado no Stripe bate com o registro local (anti-tampering / inconsistência).
+ */
+function paymentIntentAmountMatchesPayment(
+  paymentIntent: Stripe.PaymentIntent,
+  payment: { totalAmount: unknown; paymentNumber: string; id: string },
+): boolean {
+  const cur = (paymentIntent.currency || "usd").toLowerCase();
+  if (cur !== "usd") {
+    logger.warn(
+      `Webhook PI ${paymentIntent.id}: moeda ${paymentIntent.currency} — checagem de valor ignorada`,
+    );
+    return true;
+  }
+  const expectedCents = Math.round(Number(payment.totalAmount) * 100);
+  if (paymentIntent.amount !== expectedCents) {
+    logger.error(
+      `SECURITY: PI ${paymentIntent.id} amount=${paymentIntent.amount}c vs payment ${payment.paymentNumber} (${payment.id}) esperado=${expectedCents}c`,
+    );
+    return false;
+  }
+  return true;
+}
+
+/**
  * POST /api/v1/webhooks/stripe
  * Receber webhooks do Stripe
  * 
@@ -42,6 +66,20 @@ router.post('/stripe', async (req: Request, res: Response): Promise<any> => {
   }
 
   logger.info(`Webhook recebido: ${event.type} (${event.id})`);
+
+  const existingEvent = await prisma.stripeWebhookEvent.findUnique({
+    where: { id: event.id },
+  });
+  if (existingEvent?.processedAt) {
+    logger.info(`Webhook Stripe dedupe (já processado): ${event.id}`);
+    return res.json({ received: true, duplicate: true });
+  }
+
+  await prisma.stripeWebhookEvent.upsert({
+    where: { id: event.id },
+    create: { id: event.id, type: event.type },
+    update: {},
+  });
 
   try {
     switch (event.type) {
@@ -120,12 +158,19 @@ router.post('/stripe', async (req: Request, res: Response): Promise<any> => {
         logger.debug(`Webhook event não tratado: ${event.type}`);
     }
 
+    await prisma.stripeWebhookEvent.update({
+      where: { id: event.id },
+      data: { processedAt: new Date() },
+    });
+
     res.json({ received: true });
   } catch (error: any) {
     logger.error(`Erro ao processar webhook ${event.type}:`, error);
-    // Retornar 200 mesmo em erro para o Stripe não reenviar
-    // Erros são logados para investigação manual
-    res.json({ received: true, error: error.message });
+    // 500 → Stripe reenvia; linha em stripe_webhook_events fica sem processedAt para reprocessar com segurança (handlers idempotentes por estado).
+    return res.status(500).json({
+      received: false,
+      error: error?.message || "webhook_processing_error",
+    });
   }
 });
 
@@ -149,8 +194,45 @@ async function handlePaymentIntentAuthorized(paymentIntent: Stripe.PaymentIntent
     return;
   }
 
+  if (payment.status === 'AUTHORIZED') {
+    logger.info(
+      `Payment ${payment.id} já AUTHORIZED (fluxo app ou webhook), ignorando amount_capturable_updated`,
+    );
+    return;
+  }
+
+  if (!paymentIntentAmountMatchesPayment(paymentIntent, payment)) {
+    return;
+  }
+
   if (payment.status !== 'PENDING') {
-    logger.info(`Payment ${payment.id} não está PENDING (${payment.status}), ignorando authorized`);
+    logger.info(
+      `Payment ${payment.id} não está PENDING (${payment.status}), ignorando authorized`,
+    );
+    return;
+  }
+
+  const woStatus = payment.workOrder.status;
+  const preserveQuoteHoldFlow =
+    woStatus === 'PAYMENT_HOLD' || woStatus === 'PENDING_START';
+
+  const chargeId =
+    typeof paymentIntent.latest_charge === 'string'
+      ? paymentIntent.latest_charge
+      : (paymentIntent.latest_charge as { id?: string } | null)?.id || null;
+
+  if (preserveQuoteHoldFlow) {
+    await prisma.payment.update({
+      where: { id: payment.id },
+      data: {
+        status: 'AUTHORIZED',
+        authorizedAt: new Date(),
+        stripeChargeId: chargeId,
+      },
+    });
+    logger.info(
+      `Payment ${payment.paymentNumber} AUTHORIZED via webhook (WO permanece ${woStatus})`,
+    );
     return;
   }
 
@@ -160,9 +242,7 @@ async function handlePaymentIntentAuthorized(paymentIntent: Stripe.PaymentIntent
       data: {
         status: 'AUTHORIZED',
         authorizedAt: new Date(),
-        stripeChargeId: typeof paymentIntent.latest_charge === 'string'
-          ? paymentIntent.latest_charge
-          : (paymentIntent.latest_charge as any)?.id || null,
+        stripeChargeId: chargeId,
       },
     }),
     prisma.workOrder.update({
@@ -171,18 +251,18 @@ async function handlePaymentIntentAuthorized(paymentIntent: Stripe.PaymentIntent
     }),
   ]);
 
-  // Notificar provider
   await prisma.notification.create({
     data: {
       userId: payment.providerId,
       type: 'PAYMENT_RECEIVED',
       title: 'Payment Authorized',
       message: `Payment of $${Number(payment.totalAmount).toFixed(2)} has been authorized for order ${payment.workOrder.orderNumber}. Complete the service to receive funds.`,
-      data: JSON.stringify({
+      data: {
         paymentId: payment.id,
         workOrderId: payment.workOrderId,
         amount: Number(payment.providerAmount),
-      }),
+      },
+      relatedWorkOrderId: payment.workOrderId,
     },
   });
 
@@ -215,7 +295,8 @@ async function handlePaymentIntentCanceled(paymentIntent: Stripe.PaymentIntent) 
       type: 'REMINDER',
       title: 'Hold Released',
       message: `The payment hold of $${Number(payment.totalAmount).toFixed(2)} for ${payment.paymentNumber} has been released.`,
-      data: JSON.stringify({ paymentId: payment.id }),
+      data: { paymentId: payment.id },
+      relatedWorkOrderId: payment.workOrderId,
     },
   });
 
@@ -243,16 +324,73 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
     return;
   }
 
-  // Atualizar pagamento, work order e service request
+  if (!paymentIntentAmountMatchesPayment(paymentIntent, payment)) {
+    return;
+  }
+
+  const chargeId =
+    typeof paymentIntent.latest_charge === 'string'
+      ? paymentIntent.latest_charge
+      : (paymentIntent.latest_charge as { id?: string } | null)?.id || null;
+
+  if (payment.paymentType === 'SUPPLEMENT') {
+    await prisma.$transaction([
+      prisma.payment.update({
+        where: { id: payment.id },
+        data: {
+          status: 'CAPTURED',
+          capturedAt: new Date(),
+          stripeChargeId: chargeId,
+        },
+      }),
+      prisma.paymentSupplement.updateMany({
+        where: { stripePaymentIntentId: paymentIntent.id },
+        data: { status: 'CAPTURED', capturedAt: new Date() },
+      }),
+    ]);
+    logger.info(
+      `Payment ${payment.paymentNumber} (SUPPLEMENT) CAPTURED via webhook — WO não alterada`,
+    );
+    return;
+  }
+
+  if (payment.paymentType === 'CANCELLATION_FEE') {
+    await prisma.payment.update({
+      where: { id: payment.id },
+      data: {
+        status: 'CAPTURED',
+        capturedAt: new Date(),
+        stripeChargeId: chargeId,
+      },
+    });
+    logger.info(
+      `Payment ${payment.paymentNumber} (CANCELLATION_FEE) CAPTURED via webhook`,
+    );
+    return;
+  }
+
+  if (payment.workOrder.status === 'COMPLETED') {
+    await prisma.payment.update({
+      where: { id: payment.id },
+      data: {
+        status: 'CAPTURED',
+        capturedAt: new Date(),
+        stripeChargeId: chargeId,
+      },
+    });
+    logger.info(
+      `Payment ${payment.paymentNumber} CAPTURED via webhook (WO já COMPLETED pelo app)`,
+    );
+    return;
+  }
+
   await prisma.$transaction([
     prisma.payment.update({
       where: { id: payment.id },
       data: {
         status: 'CAPTURED',
         capturedAt: new Date(),
-        stripeChargeId: typeof paymentIntent.latest_charge === 'string'
-          ? paymentIntent.latest_charge
-          : (paymentIntent.latest_charge as any)?.id || null,
+        stripeChargeId: chargeId,
       },
     }),
     prisma.workOrder.update({
@@ -261,22 +399,22 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
     }),
     prisma.serviceRequest.update({
       where: { id: payment.workOrder.serviceRequestId },
-      data: { status: 'COMPLETED' },
+      data: { status: 'COMPLETED', completedAt: new Date() },
     }),
   ]);
 
-  // Criar notificação para provider
   await prisma.notification.create({
     data: {
       userId: payment.providerId,
       type: 'PAYMENT_RECEIVED',
       title: 'Payment Received',
       message: `Payment of $${Number(payment.providerAmount).toFixed(2)} has been received for order ${payment.workOrder.orderNumber}`,
-      data: JSON.stringify({
+      data: {
         paymentId: payment.id,
         workOrderId: payment.workOrderId,
         amount: Number(payment.providerAmount),
-      }),
+      },
+      relatedWorkOrderId: payment.workOrderId,
     },
   });
 
@@ -295,19 +433,26 @@ async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
 
   if (!payment) return;
 
+  if (['CAPTURED', 'REFUNDED', 'CANCELLED', 'AUTHORIZED'].includes(payment.status)) {
+    logger.info(
+      `Payment ${payment.id} em estado terminal ${payment.status}, ignorando payment_failed`,
+    );
+    return;
+  }
+
   await prisma.payment.update({
     where: { id: payment.id },
     data: { status: 'FAILED' },
   });
 
-  // Notificar customer
   await prisma.notification.create({
     data: {
       userId: payment.customerId,
       type: 'REMINDER',
       title: 'Payment Failed',
       message: `Your payment ${payment.paymentNumber} has failed. Please try again.`,
-      data: JSON.stringify({ paymentId: payment.id }),
+      data: { paymentId: payment.id },
+      relatedWorkOrderId: payment.workOrderId,
     },
   });
 
@@ -752,14 +897,26 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
     data: { status: 'PAST_DUE' },
   });
 
-  // Notificar usuário
+  const invoiceTag = `[invoice_fail:${invoice.id}]`;
+  const dup = await prisma.notification.findFirst({
+    where: {
+      userId: dbSub.userId,
+      title: 'Subscription Payment Failed',
+      message: { contains: invoiceTag },
+    },
+  });
+  if (dup) return;
+
   await prisma.notification.create({
     data: {
       userId: dbSub.userId,
       type: 'REMINDER',
       title: 'Subscription Payment Failed',
-      message: 'Your subscription payment has failed. Please update your payment method to avoid service interruption.',
-      data: JSON.stringify({ subscriptionId: dbSub.id }),
+      message: `${invoiceTag} Your subscription payment has failed. Please update your payment method to avoid service interruption.`,
+      data: {
+        subscriptionId: dbSub.id,
+        stripeInvoiceId: invoice.id,
+      },
     },
   });
 }
@@ -781,6 +938,8 @@ async function handleAccountUpdated(account: Stripe.Account) {
 
   const isOnboardingComplete = account.charges_enabled && account.payouts_enabled && account.details_submitted;
 
+  const alreadyComplete = profile.stripeOnboardingCompleted === true;
+
   await prisma.providerProfile.update({
     where: { id: profile.id },
     data: {
@@ -788,7 +947,7 @@ async function handleAccountUpdated(account: Stripe.Account) {
     },
   });
 
-  if (isOnboardingComplete) {
+  if (isOnboardingComplete && !alreadyComplete) {
     logger.info(`Provider ${profile.userId} completou onboarding do Stripe Connect`);
 
     await prisma.notification.create({
@@ -797,7 +956,7 @@ async function handleAccountUpdated(account: Stripe.Account) {
         type: 'REMINDER',
         title: 'Stripe Account Ready',
         message: 'Your Stripe account has been verified! You can now receive payments for your services.',
-        data: JSON.stringify({ type: 'stripe_onboarding_complete' }),
+        data: { type: 'stripe_onboarding_complete' },
       },
     });
   }
@@ -816,6 +975,12 @@ async function handleTransferCreated(transfer: Stripe.Transfer) {
     });
 
     if (payment) {
+      if (payment.stripeTransferId) {
+        logger.info(
+          `Payment ${payment.paymentNumber} já tem transfer ${payment.stripeTransferId}, ignorando`,
+        );
+        return;
+      }
       await prisma.payment.update({
         where: { id: payment.id },
         data: {
@@ -840,29 +1005,58 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
 
   if (!payment) return;
 
-  const refundAmount = charge.amount_refunded / 100; // centavos → dólares
+  const refundedCents = charge.amount_refunded;
+  const chargeTotalCents = charge.amount;
+  const fullyRefunded =
+    chargeTotalCents > 0 && refundedCents >= chargeTotalCents;
+  const refundAmount = refundedCents / 100;
+
+  if (payment.status === "REFUNDED") {
+    logger.info(
+      `Payment ${payment.paymentNumber} já REFUNDED, ignorando charge.refunded`,
+    );
+    return;
+  }
 
   await prisma.payment.update({
     where: { id: payment.id },
     data: {
-      status: 'REFUNDED',
-      refundedAt: new Date(),
       refundAmount,
+      ...(fullyRefunded
+        ? { status: "REFUNDED", refundedAt: new Date() }
+        : {}),
     },
   });
 
-  // Notificar customer
-  await prisma.notification.create({
-    data: {
+  if (!fullyRefunded) {
+    logger.info(
+      `Reembolso parcial registrado para ${payment.paymentNumber}: $${refundAmount.toFixed(2)} (charge ${charge.id})`,
+    );
+    return;
+  }
+
+  const refundTag = `[refund:${charge.id}]`;
+  const dup = await prisma.notification.findFirst({
+    where: {
       userId: payment.customerId,
-      type: 'PAYMENT_RECEIVED',
-      title: 'Refund Processed',
-      message: `A refund of $${refundAmount.toFixed(2)} has been processed for payment ${payment.paymentNumber}.`,
-      data: JSON.stringify({ paymentId: payment.id, refundAmount }),
+      title: "Refund Processed",
+      message: { contains: refundTag },
     },
   });
+  if (!dup) {
+    await prisma.notification.create({
+      data: {
+        userId: payment.customerId,
+        type: "PAYMENT_RECEIVED",
+        title: "Refund Processed",
+        message: `${refundTag} A refund of $${refundAmount.toFixed(2)} has been processed for payment ${payment.paymentNumber}.`,
+        data: { paymentId: payment.id, refundAmount, chargeId: charge.id },
+        relatedWorkOrderId: payment.workOrderId,
+      },
+    });
+  }
 
-  logger.info(`Payment ${payment.paymentNumber} reembolsado: $${refundAmount}`);
+  logger.info(`Payment ${payment.paymentNumber} reembolsado (total): $${refundAmount}`);
 }
 
 /**
@@ -879,20 +1073,31 @@ async function handleDisputeCreated(dispute: Stripe.Dispute) {
 
   if (!payment) return;
 
-  // Notificar admin (criar notificação genérica)
   const admins = await prisma.user.findMany({
     where: { role: 'ADMIN' },
     select: { id: true },
   });
 
+  const disputeTag = `[dispute:${dispute.id}]`;
+
   for (const admin of admins) {
+    const dup = await prisma.notification.findFirst({
+      where: {
+        userId: admin.id,
+        title: '⚠️ Payment Dispute',
+        message: { contains: disputeTag },
+      },
+    });
+    if (dup) continue;
+
     await prisma.notification.create({
       data: {
         userId: admin.id,
         type: 'REMINDER',
         title: '⚠️ Payment Dispute',
-        message: `A dispute has been opened for payment ${payment.paymentNumber} ($${Number(payment.totalAmount).toFixed(2)}). Please review immediately.`,
-        data: JSON.stringify({ paymentId: payment.id, disputeId: dispute.id }),
+        message: `${disputeTag} A dispute has been opened for payment ${payment.paymentNumber} ($${Number(payment.totalAmount).toFixed(2)}). Please review immediately.`,
+        data: { paymentId: payment.id, disputeId: dispute.id },
+        relatedWorkOrderId: payment.workOrderId,
       },
     });
   }

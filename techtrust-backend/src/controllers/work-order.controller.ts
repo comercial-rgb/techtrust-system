@@ -9,6 +9,7 @@ import { Request, Response } from "express";
 import { prisma } from "../config/database";
 import { AppError } from "../middleware/error-handler";
 import { logger } from "../config/logger";
+import { SERVICE_FLOW } from "../config/businessRules";
 
 /**
  * GET /api/v1/work-orders
@@ -134,6 +135,9 @@ export const getWorkOrder = async (req: Request, res: Response) => {
         },
       },
       payments: true,
+      supplements: {
+        orderBy: { createdAt: "desc" },
+      },
     },
   });
 
@@ -158,6 +162,12 @@ export const getWorkOrder = async (req: Request, res: Response) => {
 export const startWorkOrder = async (req: Request, res: Response) => {
   const providerId = req.user!.id;
   const { orderId } = req.params;
+  const {
+    beforePhotoUrls,
+    skipBeforePhotos,
+    waiveBeforePhotosReason,
+    startMileage,
+  } = req.body || {};
 
   const order = await prisma.workOrder.findFirst({
     where: {
@@ -170,7 +180,11 @@ export const startWorkOrder = async (req: Request, res: Response) => {
     throw new AppError("Ordem não encontrada", 404, "ORDER_NOT_FOUND");
   }
 
-  if (order.status !== "PENDING_START") {
+  const isLegacyPending = order.status === "PENDING_START";
+  const isPaymentHold =
+    order.status === SERVICE_FLOW.STATUSES.PAYMENT_HOLD;
+
+  if (!isLegacyPending && !isPaymentHold) {
     throw new AppError(
       "Esta ordem não pode ser iniciada",
       400,
@@ -178,19 +192,71 @@ export const startWorkOrder = async (req: Request, res: Response) => {
     );
   }
 
-  await prisma.workOrder.update({
-    where: { id: orderId },
-    data: {
-      status: "IN_PROGRESS",
-      startedAt: new Date(),
-    },
-  });
+  // Fluxo com hold (service-flow): mesmas regras de POST /service-flow/start-service
+  if (isPaymentHold) {
+    if (SERVICE_FLOW.REQUIRE_BEFORE_PHOTOS_ON_START) {
+      const hasPhotos = beforePhotoUrls && beforePhotoUrls.length > 0;
+      const hasWaiver = skipBeforePhotos === true;
+
+      if (!hasPhotos && !hasWaiver) {
+        throw new AppError(
+          "You must either upload before-photos of the vehicle or acknowledge the waiver to proceed.",
+          400,
+          "BEFORE_PHOTOS_OR_WAIVER_REQUIRED",
+        );
+      }
+
+      if (hasWaiver && !hasPhotos) {
+        logger.warn(
+          `Provider ${providerId} skipped before-photos for WO ${order.orderNumber} via /work-orders/start. Reason: ${waiveBeforePhotosReason || "none given"}.`,
+        );
+      }
+    }
+
+    const beforePhotos = beforePhotoUrls
+      ? beforePhotoUrls.map((url: string) => ({
+          url,
+          uploadedAt: new Date().toISOString(),
+          uploadedBy: providerId,
+        }))
+      : [];
+
+    await prisma.workOrder.update({
+      where: { id: orderId },
+      data: {
+        status: SERVICE_FLOW.STATUSES.IN_PROGRESS,
+        startedAt: new Date(),
+        startMileage: startMileage ? Number(startMileage) : null,
+        beforePhotos: beforePhotos,
+        beforePhotosWaived: skipBeforePhotos === true,
+        beforePhotosWaiverReason: waiveBeforePhotosReason || null,
+      },
+    });
+  } else {
+    await prisma.workOrder.update({
+      where: { id: orderId },
+      data: {
+        status: "IN_PROGRESS",
+        startedAt: new Date(),
+      },
+    });
+  }
 
   // Atualizar service request
   await prisma.serviceRequest.update({
     where: { id: order.serviceRequestId },
     data: {
       status: "IN_PROGRESS",
+    },
+  });
+
+  await prisma.notification.create({
+    data: {
+      userId: order.customerId,
+      type: "SERVICE_STARTED",
+      title: "Service Started!",
+      message: "Your provider has started working on your vehicle.",
+      relatedWorkOrderId: orderId,
     },
   });
 
@@ -273,7 +339,7 @@ export const completeWorkOrder = async (req: Request, res: Response) => {
       type: "SERVICE_COMPLETED",
       title: "Service Completed",
       message: `The provider has completed service for order ${order.orderNumber}. Please review and approve.`,
-      data: JSON.stringify({ workOrderId: order.id }),
+      data: { workOrderId: order.id },
     },
   });
 
@@ -371,6 +437,13 @@ export const reportIssue = async (req: Request, res: Response) => {
     throw new AppError("Ordem não encontrada", 404, "ORDER_NOT_FOUND");
   }
 
+  if (order.status === "DISPUTED") {
+    return res.json({
+      success: true,
+      message: "Esta ordem já está em disputa. Nossa equipe seguirá com o caso.",
+    });
+  }
+
   // Só pode disputar se está em andamento, aguardando aprovação ou completada
   if (
     !["IN_PROGRESS", "AWAITING_APPROVAL", "COMPLETED"].includes(order.status)
@@ -397,13 +470,13 @@ export const reportIssue = async (req: Request, res: Response) => {
       type: "SYSTEM_ALERT",
       title: "Issue Reported",
       message: `Customer reported an issue with order ${order.orderNumber}. ${reason ? `Reason: ${reason}` : ""}`,
-      data: JSON.stringify({ workOrderId: order.id }),
+      data: { workOrderId: order.id },
     },
   });
 
   logger.warn(`Disputa aberta: ${order.orderNumber}`);
 
-  res.json({
+  return res.json({
     success: true,
     message: "Problema reportado. Nossa equipe entrará em contato em breve.",
   });

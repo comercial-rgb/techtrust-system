@@ -11,6 +11,7 @@
 import {
   calculateTravelFee as calculateTravelFeeFromRules,
 } from "../config/businessRules";
+import { logger } from "../config/logger";
 
 export interface Location {
   latitude: number;
@@ -132,7 +133,7 @@ export async function calculateRoadDistance(
     const corrected = haversine * HAVERSINE_ROAD_CORRECTION_FACTOR;
     const estimatedMinutes = Math.round((corrected / 30) * 60); // ~30km/h urban
 
-    console.warn(
+    logger.warn(
       `[Distance] OSRM unavailable (${error.message}), using Haversine * ${HAVERSINE_ROAD_CORRECTION_FACTOR}`,
     );
 

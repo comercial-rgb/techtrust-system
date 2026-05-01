@@ -1,3 +1,4 @@
+import { logger } from "../src/config/logger";
 /**
  * Seed Content - Banners, Offers, Articles
  * Restaura conteúdo da Home do app
@@ -9,12 +10,12 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🌱 Seeding content (banners, offers, articles)...\n");
+  logger.info("🌱 Seeding content (banners, offers, articles)...\n");
 
   // ===========================================
   // BANNERS
   // ===========================================
-  console.log("1️⃣ Creating banners...");
+  logger.info("1️⃣ Creating banners...");
 
   const banners = [
     {
@@ -54,12 +55,12 @@ async function main() {
   for (const banner of banners) {
     await prisma.banner.create({ data: banner });
   }
-  console.log(`   ✅ ${banners.length} banners created`);
+  logger.info(`   ✅ ${banners.length} banners created`);
 
   // ===========================================
   // SPECIAL OFFERS
   // ===========================================
-  console.log("\n2️⃣ Creating special offers...");
+  logger.info("\n2️⃣ Creating special offers...");
 
   const offers = [
     {
@@ -138,12 +139,12 @@ async function main() {
   for (const offer of offers) {
     await prisma.specialOffer.create({ data: offer });
   }
-  console.log(`   ✅ ${offers.length} special offers created`);
+  logger.info(`   ✅ ${offers.length} special offers created`);
 
   // ===========================================
   // ARTICLES
   // ===========================================
-  console.log("\n3️⃣ Creating articles...");
+  logger.info("\n3️⃣ Creating articles...");
 
   const articles = [
     {
@@ -195,24 +196,24 @@ async function main() {
   for (const article of articles) {
     await prisma.article.create({ data: article });
   }
-  console.log(`   ✅ ${articles.length} articles created`);
+  logger.info(`   ✅ ${articles.length} articles created`);
 
   // ===========================================
   // SUMMARY
   // ===========================================
-  console.log("\n" + "=".repeat(50));
-  console.log("✅ CONTENT SEED COMPLETE!");
-  console.log("=".repeat(50));
-  console.log(`\n📊 Created:`);
-  console.log(`   🖼️  ${banners.length} banners`);
-  console.log(`   🏷️  ${offers.length} special offers`);
-  console.log(`   📰 ${articles.length} articles`);
-  console.log("");
+  logger.info("\n" + "=".repeat(50));
+  logger.info("✅ CONTENT SEED COMPLETE!");
+  logger.info("=".repeat(50));
+  logger.info(`\n📊 Created:`);
+  logger.info(`   🖼️  ${banners.length} banners`);
+  logger.info(`   🏷️  ${offers.length} special offers`);
+  logger.info(`   📰 ${articles.length} articles`);
+  logger.info("");
 }
 
 main()
   .catch((e) => {
-    console.error("❌ Error seeding content:", e);
+    logger.error("❌ Error seeding content:", e);
     process.exit(1);
   })
   .finally(async () => {

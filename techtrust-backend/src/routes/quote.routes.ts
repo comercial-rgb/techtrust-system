@@ -46,7 +46,7 @@ router.get(
 
 /**
  * POST /api/v1/quotes/:quoteId/accept
- * Cliente aceita
+ * @deprecated Retorna 400 — use POST /api/v1/service-flow/approve-quote (hold obrigatório).
  */
 router.post(
   '/:quoteId/accept',

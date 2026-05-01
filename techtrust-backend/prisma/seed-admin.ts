@@ -1,3 +1,4 @@
+import { logger } from "../src/config/logger";
 /**
  * ============================================
  * SEED ADMIN USER
@@ -12,7 +13,7 @@ const bcrypt = require('bcryptjs');
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🔧 Criando usuário administrador...\n');
+  logger.info('🔧 Criando usuário administrador...\n');
 
   const adminEmail = 'admin@techtrust.com';
   const adminPhone = '+5511999999999';
@@ -29,9 +30,9 @@ async function main() {
   });
 
   if (existingAdmin) {
-    console.log('⚠️  Usuário admin já existe!');
-    console.log(`   Email: ${existingAdmin.email}`);
-    console.log(`   Role: ${existingAdmin.role}`);
+    logger.info('⚠️  Usuário admin já existe!');
+    logger.info(`   Email: ${existingAdmin.email}`);
+    logger.info(`   Role: ${existingAdmin.role}`);
     
     // Atualizar para ADMIN se não for
     if (existingAdmin.role !== 'ADMIN') {
@@ -39,7 +40,7 @@ async function main() {
         where: { id: existingAdmin.id },
         data: { role: 'ADMIN', status: 'ACTIVE' }
       });
-      console.log('✅ Atualizado para role ADMIN');
+      logger.info('✅ Atualizado para role ADMIN');
     }
     return;
   }
@@ -62,22 +63,22 @@ async function main() {
     }
   });
 
-  console.log('✅ Usuário administrador criado com sucesso!\n');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('   CREDENCIAIS DE ACESSO');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log(`   📧 Email: ${adminEmail}`);
-  console.log(`   📱 Telefone: ${adminPhone}`);
-  console.log(`   🔑 Senha: ${adminPassword}`);
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-  console.log(`   ID: ${admin.id}`);
-  console.log(`   Role: ${admin.role}`);
-  console.log(`   Status: ${admin.status}`);
+  logger.info('✅ Usuário administrador criado com sucesso!\n');
+  logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  logger.info('   CREDENCIAIS DE ACESSO');
+  logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  logger.info(`   📧 Email: ${adminEmail}`);
+  logger.info(`   📱 Telefone: ${adminPhone}`);
+  logger.info(`   🔑 Senha: ${adminPassword}`);
+  logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+  logger.info(`   ID: ${admin.id}`);
+  logger.info(`   Role: ${admin.role}`);
+  logger.info(`   Status: ${admin.status}`);
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Erro ao criar admin:', e);
+    logger.error('❌ Erro ao criar admin:', e);
     process.exit(1);
   })
   .finally(async () => {

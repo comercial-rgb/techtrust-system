@@ -7,6 +7,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { validationResult, ValidationChain } from 'express-validator';
+import { logger } from '../config/logger';
 import { AppError } from './error-handler';
 
 /**
@@ -15,12 +16,10 @@ import { AppError } from './error-handler';
 export const validate = (validations: ValidationChain[]) => {
   return async (req: Request, _res: Response, next: NextFunction) => {
     try {
-      // DEBUG: Log do body recebido
       if (req.url.includes('verify-otp')) {
-        console.log('🔍 VALIDATION - verify-otp body:', JSON.stringify(req.body));
-        console.log('🔍 VALIDATION - otpCode presente?', 'otpCode' in req.body);
-        console.log('🔍 VALIDATION - otpCode valor:', req.body?.otpCode);
-        console.log('🔍 VALIDATION - Content-Type:', req.headers['content-type']);
+        logger.debug(
+          `validation verify-otp keys=${Object.keys(req.body || {}).join(',')} hasOtpField=${'otpCode' in (req.body || {})} contentType=${req.headers['content-type']}`,
+        );
       }
       
       // Executar todas as validações

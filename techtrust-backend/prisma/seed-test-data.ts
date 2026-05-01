@@ -1,13 +1,14 @@
+import { logger } from "../src/config/logger";
 /// <reference types="node" />
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Criando dados de teste...\n');
+  logger.info('🌱 Criando dados de teste...\n');
 
   // 1. Criar usuário PROVIDER (João Mecânico)
-  console.log('1️⃣ Criando usuário PROVIDER...');
+  logger.info('1️⃣ Criando usuário PROVIDER...');
   
   const existingProvider = await prisma.user.findFirst({
     where: { 
@@ -20,8 +21,8 @@ async function main() {
 
   let provider;
   if (existingProvider) {
-    console.log('   ⚠️  Usuário João Mecânico já existe!');
-    console.log(`   📝 ID: ${existingProvider.id}`);
+    logger.info('   ⚠️  Usuário João Mecânico já existe!');
+    logger.info(`   📝 ID: ${existingProvider.id}`);
     provider = existingProvider;
   } else {
     provider = await prisma.user.create({
@@ -37,12 +38,12 @@ async function main() {
         phoneVerified: true,
       },
     });
-    console.log('   ✅ Usuário PROVIDER criado!');
-    console.log(`   📝 ID: ${provider.id}`);
+    logger.info('   ✅ Usuário PROVIDER criado!');
+    logger.info(`   📝 ID: ${provider.id}`);
   }
 
   // 2. Criar ProviderProfile
-  console.log('\n2️⃣ Criando ProviderProfile...');
+  logger.info('\n2️⃣ Criando ProviderProfile...');
   
   const existingProfile = await prisma.providerProfile.findUnique({
     where: { userId: provider.id }
@@ -50,7 +51,7 @@ async function main() {
 
   let providerProfile;
   if (existingProfile) {
-    console.log('   ⚠️  ProviderProfile já existe!');
+    logger.info('   ⚠️  ProviderProfile já existe!');
     providerProfile = existingProfile;
   } else {
     providerProfile = await prisma.providerProfile.create({
@@ -67,20 +68,20 @@ async function main() {
         specialties: ['oil_change', 'brake_repair', 'engine_diagnostic'],
       },
     });
-    console.log('   ✅ ProviderProfile criado!');
-    console.log(`   📝 ID: ${providerProfile.id}`);
+    logger.info('   ✅ ProviderProfile criado!');
+    logger.info(`   📝 ID: ${providerProfile.id}`);
   }
 
   // 3. Buscar uma ServiceRequest existente para criar o Quote
-  console.log('\n3️⃣ Buscando ServiceRequest existente...');
+  logger.info('\n3️⃣ Buscando ServiceRequest existente...');
   
   const serviceRequest = await prisma.serviceRequest.findFirst({
     orderBy: { createdAt: 'desc' }
   });
 
   if (!serviceRequest) {
-    console.log('   ⚠️  Nenhuma ServiceRequest encontrada!');
-    console.log('   ℹ️  Criando uma ServiceRequest de teste...');
+    logger.info('   ⚠️  Nenhuma ServiceRequest encontrada!');
+    logger.info('   ℹ️  Criando uma ServiceRequest de teste...');
     
     // Buscar um usuário CLIENT existente
     let clientUser = await prisma.user.findFirst({
@@ -102,7 +103,7 @@ async function main() {
           phoneVerified: true,
         },
       });
-      console.log('   ✅ Usuário CLIENT criado!');
+      logger.info('   ✅ Usuário CLIENT criado!');
     }
 
     // Buscar ou criar um veículo
@@ -122,7 +123,7 @@ async function main() {
           isPrimary: true,
         },
       });
-      console.log('   ✅ Veículo criado!');
+      logger.info('   ✅ Veículo criado!');
     }
 
     // Criar ServiceRequest
@@ -140,14 +141,14 @@ async function main() {
         quoteDeadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 dias
       },
     });
-    console.log('   ✅ ServiceRequest criada!');
-    console.log(`   📝 ID: ${newServiceRequest.id}`);
+    logger.info('   ✅ ServiceRequest criada!');
+    logger.info(`   📝 ID: ${newServiceRequest.id}`);
 
     // Criar o Quote para esta ServiceRequest
     await createQuote(newServiceRequest.id, provider.id);
   } else {
-    console.log(`   ✅ ServiceRequest encontrada: ${serviceRequest.id}`);
-    console.log(`   📝 Request Number: ${serviceRequest.requestNumber}`);
+    logger.info(`   ✅ ServiceRequest encontrada: ${serviceRequest.id}`);
+    logger.info(`   📝 Request Number: ${serviceRequest.requestNumber}`);
     
     // Verificar se já existe um Quote para este provider e request
     const existingQuote = await prisma.quote.findFirst({
@@ -158,19 +159,19 @@ async function main() {
     });
 
     if (existingQuote) {
-      console.log('\n4️⃣ Quote já existe!');
-      console.log(`   📝 Quote ID: ${existingQuote.id}`);
-      console.log(`   📝 Quote Number: ${existingQuote.quoteNumber}`);
+      logger.info('\n4️⃣ Quote já existe!');
+      logger.info(`   📝 Quote ID: ${existingQuote.id}`);
+      logger.info(`   📝 Quote Number: ${existingQuote.quoteNumber}`);
     } else {
       await createQuote(serviceRequest.id, provider.id);
     }
   }
 
-  console.log('\n✅ Dados de teste criados com sucesso!');
+  logger.info('\n✅ Dados de teste criados com sucesso!');
 }
 
 async function createQuote(serviceRequestId: string, providerId: string) {
-  console.log('\n4️⃣ Criando Quote...');
+  logger.info('\n4️⃣ Criando Quote...');
   
   const quote = await prisma.quote.create({
     data: {
@@ -206,15 +207,15 @@ async function createQuote(serviceRequestId: string, providerId: string) {
     },
   });
 
-  console.log('   ✅ Quote criado!');
-  console.log(`   📝 ID: ${quote.id}`);
-  console.log(`   📝 Quote Number: ${quote.quoteNumber}`);
-  console.log(`   💰 Total: $${quote.totalAmount}`);
+  logger.info('   ✅ Quote criado!');
+  logger.info(`   📝 ID: ${quote.id}`);
+  logger.info(`   📝 Quote Number: ${quote.quoteNumber}`);
+  logger.info(`   💰 Total: $${quote.totalAmount}`);
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Erro:', e);
+    logger.error('❌ Erro:', e);
     process.exit(1);
   })
   .finally(async () => {

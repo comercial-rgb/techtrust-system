@@ -22,6 +22,7 @@ import * as Sharing from "expo-sharing";
 import { useI18n } from "../../i18n";
 import api from "../../services/api";
 import * as serviceFlowService from "../../services/service-flow.service";
+import { getPaymentMethods } from "../../services/payment.service";
 import PriceBreakdownCard, {
   PriceBreakdownData,
   PriceLineItem,
@@ -270,39 +271,44 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
           text: t.quote?.acceptAndHold || "Accept & Hold Payment",
           onPress: async () => {
             try {
-              // Step 1: Accept quote via backend (creates WorkOrder)
-              const acceptResponse = await api.post(
-                `/quotes/${quote.id}/accept`,
-              );
-              const workOrderId = acceptResponse.data?.data?.workOrder?.id;
-
-              if (!workOrderId) {
-                throw new Error("Work order not created");
-              }
-
-              // Step 2: Create payment hold via service-flow
-              try {
-                await serviceFlowService.approveQuoteWithPaymentHold(
-                  workOrderId,
-                  quote.id,
-                  "STRIPE",
+              const methods = await getPaymentMethods();
+              const card =
+                methods.find(
+                  (m) =>
+                    m.isDefault &&
+                    (m.type === "credit" || m.type === "debit") &&
+                    m.stripePaymentMethodId,
+                ) ||
+                methods.find(
+                  (m) =>
+                    (m.type === "credit" || m.type === "debit") &&
+                    m.stripePaymentMethodId,
                 );
-              } catch (holdError: any) {
-                // Payment hold failed but WO was created - inform user
-                console.warn("Payment hold failed:", holdError);
+
+              if (!card) {
                 Alert.alert(
-                  t.common?.warning || "Warning",
-                  t.quote?.quoteAcceptedNoHold ||
-                    "Quote accepted but payment hold could not be placed. Please add a payment method and try again from the work order.",
+                  t.common?.error || "Error",
+                  t.quote?.addCardOrApplePayToAccept ||
+                    "Add a payment method: open Payment Methods and use “Add with Apple Pay” (iOS) or add a card. Then return here to accept the quote.",
                   [
+                    { text: t.common?.cancel || "Cancel", style: "cancel" },
                     {
-                      text: t.common?.ok || "OK",
-                      onPress: () => navigation.goBack(),
+                      text: t.profile?.paymentMethods || "Payment Methods",
+                      onPress: () =>
+                        navigation.navigate("Profile", {
+                          screen: "PaymentMethods",
+                        }),
                     },
                   ],
                 );
                 return;
               }
+
+              await serviceFlowService.approveQuoteWithHold({
+                quoteId: quote.id,
+                paymentMethodId: card.id,
+                paymentProcessor: "STRIPE",
+              });
 
               Alert.alert(
                 t.common?.success || "Success!",

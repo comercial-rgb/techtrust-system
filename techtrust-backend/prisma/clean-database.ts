@@ -1,3 +1,4 @@
+import { logger } from "../src/config/logger";
 /**
  * Script para limpar banco de dados de testes
  * Permite reutilizar e-mails e limpar dados de teste
@@ -13,50 +14,50 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function cleanDatabase() {
-  console.log('🧹 Iniciando limpeza do banco de dados...\n');
+  logger.info('🧹 Iniciando limpeza do banco de dados...\n');
 
   try {
     // Limpar dados em ordem (devido às relações)
-    console.log('🗑️  Deletando notificações...');
+    logger.info('🗑️  Deletando notificações...');
     await prisma.notification.deleteMany({});
 
-    console.log('🗑️  Deletando mensagens de chat...');
+    logger.info('🗑️  Deletando mensagens de chat...');
     await prisma.chatMessage.deleteMany({});
 
-    console.log('🗑️  Deletando avaliações...');
+    logger.info('🗑️  Deletando avaliações...');
     await prisma.review.deleteMany({});
 
-    console.log('🗑️  Deletando métodos de pagamento...');
+    logger.info('🗑️  Deletando métodos de pagamento...');
     await prisma.paymentMethod.deleteMany({});
 
-    console.log('🗑️  Deletando pagamentos...');
+    logger.info('🗑️  Deletando pagamentos...');
     await prisma.payment.deleteMany({});
 
-    console.log('🗑️  Deletando ordens de serviço...');
+    logger.info('🗑️  Deletando ordens de serviço...');
     await prisma.workOrder.deleteMany({});
 
-    console.log('🗑️  Deletando cotações...');
+    logger.info('🗑️  Deletando cotações...');
     await prisma.quote.deleteMany({});
 
-    console.log('🗑️  Deletando solicitações de serviço...');
+    logger.info('🗑️  Deletando solicitações de serviço...');
     await prisma.serviceRequest.deleteMany({});
 
-    console.log('🗑️  Deletando agendamentos de manutenção...');
+    logger.info('🗑️  Deletando agendamentos de manutenção...');
     await prisma.vehicleMaintenanceSchedule.deleteMany({});
 
-    console.log('🗑️  Deletando veículos...');
+    logger.info('🗑️  Deletando veículos...');
     await prisma.vehicle.deleteMany({});
 
-    console.log('🗑️  Deletando zonas de cobertura...');
+    logger.info('🗑️  Deletando zonas de cobertura...');
     await prisma.coverageZone.deleteMany({});
 
-    console.log('🗑️  Deletando perfis de fornecedores...');
+    logger.info('🗑️  Deletando perfis de fornecedores...');
     await prisma.providerProfile.deleteMany({});
 
-    console.log('🗑️  Deletando assinaturas...');
+    logger.info('🗑️  Deletando assinaturas...');
     await prisma.subscription.deleteMany({});
 
-    console.log('🗑️  Deletando usuários...');
+    logger.info('🗑️  Deletando usuários...');
     const deletedUsers = await prisma.user.deleteMany({
       where: {
         // Não deletar admins criados pelo seed
@@ -66,20 +67,20 @@ async function cleanDatabase() {
       }
     });
 
-    console.log(`✅ ${deletedUsers.count} usuários deletados`);
+    logger.info(`✅ ${deletedUsers.count} usuários deletados`);
 
-    console.log('🗑️  Deletando conteúdo (banners, ofertas, artigos, avisos)...');
+    logger.info('🗑️  Deletando conteúdo (banners, ofertas, artigos, avisos)...');
     await prisma.banner.deleteMany({});
     await prisma.specialOffer.deleteMany({});
     await prisma.article.deleteMany({});
     await prisma.notice.deleteMany({});
 
-    console.log('\n✨ Banco de dados limpo com sucesso!');
-    console.log('ℹ️  Usuários ADMIN foram preservados');
-    console.log('ℹ️  Você pode agora criar novos usuários com os mesmos e-mails\n');
+    logger.info('\n✨ Banco de dados limpo com sucesso!');
+    logger.info('ℹ️  Usuários ADMIN foram preservados');
+    logger.info('ℹ️  Você pode agora criar novos usuários com os mesmos e-mails\n');
 
   } catch (error) {
-    console.error('❌ Erro ao limpar banco de dados:', error);
+    logger.error('❌ Erro ao limpar banco de dados:', error);
     throw error;
   } finally {
     await prisma.$disconnect();
@@ -88,26 +89,26 @@ async function cleanDatabase() {
 
 // Executar apenas se chamado diretamente
 if (require.main === module) {
-  console.log('⚠️  ATENÇÃO: Este script irá deletar TODOS os dados de teste!');
-  console.log('⚠️  Usuários ADMIN serão preservados\n');
+  logger.info('⚠️  ATENÇÃO: Este script irá deletar TODOS os dados de teste!');
+  logger.info('⚠️  Usuários ADMIN serão preservados\n');
 
   // Verificar se está em produção
   if (process.env.NODE_ENV === 'production') {
-    console.error('❌ ERRO: Este script não pode ser executado em produção!');
+    logger.error('❌ ERRO: Este script não pode ser executado em produção!');
     process.exit(1);
   }
 
   // Aguardar 3 segundos para permitir cancelamento
-  console.log('⏳ Iniciando em 3 segundos... (Ctrl+C para cancelar)');
+  logger.info('⏳ Iniciando em 3 segundos... (Ctrl+C para cancelar)');
   
   setTimeout(() => {
     cleanDatabase()
       .then(() => {
-        console.log('✅ Concluído!');
+        logger.info('✅ Concluído!');
         process.exit(0);
       })
       .catch((error) => {
-        console.error('❌ Falha:', error);
+        logger.error('❌ Falha:', error);
         process.exit(1);
       });
   }, 3000);

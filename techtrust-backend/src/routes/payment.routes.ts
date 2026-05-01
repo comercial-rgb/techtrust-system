@@ -1,11 +1,13 @@
 import { Router } from 'express';
 import * as paymentController from '../controllers/payment.controller';
 import { authenticate } from '../middleware/auth';
+import { paymentFlowRateLimiter } from '../middleware/rate-limiter';
 import { asyncHandler } from '../utils/async-handler';
 
 const router = Router();
 
 router.use(authenticate);
+router.use(paymentFlowRateLimiter);
 
 // Criar PaymentIntent para work order (pré-autorização)
 router.post('/create-intent', asyncHandler(paymentController.createPaymentIntent));

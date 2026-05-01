@@ -76,7 +76,12 @@ export const createTicket = async (req: Request, res: Response, next: NextFuncti
           type: 'SYSTEM_ALERT',
           title: `New Support Ticket ${ticketNumber}`,
           message: `${user?.fullName || 'Customer'}: ${subject}`,
-          data: JSON.stringify({ ticketId: ticket.id, ticketNumber, topic, language: ticket.language }),
+          data: {
+            ticketId: ticket.id,
+            ticketNumber,
+            topic,
+            language: ticket.language,
+          },
         },
       });
 
@@ -287,7 +292,7 @@ export const sendTicketMessage = async (req: Request, res: Response, next: NextF
           type: 'SYSTEM_ALERT',
           title: `Support Reply - ${ticket.ticketNumber}`,
           message: message.substring(0, 100),
-          data: JSON.stringify({ ticketId, ticketNumber: ticket.ticketNumber }),
+          data: { ticketId, ticketNumber: ticket.ticketNumber },
         },
       });
       if (io) {
@@ -337,7 +342,7 @@ export const updateTicketStatus = async (req: Request, res: Response, next: Next
           type: 'SYSTEM_ALERT',
           title: `Ticket ${ticket.ticketNumber} ${status === 'RESOLVED' ? 'Resolved' : 'Closed'}`,
           message: `Your support ticket has been ${status.toLowerCase()}.`,
-          data: JSON.stringify({ ticketId, ticketNumber: ticket.ticketNumber }),
+          data: { ticketId, ticketNumber: ticket.ticketNumber },
         },
       });
     }

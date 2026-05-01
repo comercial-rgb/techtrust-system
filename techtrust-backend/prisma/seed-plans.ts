@@ -1,3 +1,4 @@
+import { logger } from "../src/config/logger";
 /**
  * Seed ONLY plan templates (safe for production)
  */
@@ -5,7 +6,7 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("📋 Seeding subscription plan templates...\n");
+  logger.info("📋 Seeding subscription plan templates...\n");
 
   const planTemplates = [
     {
@@ -79,12 +80,12 @@ async function main() {
       },
       create: template,
     });
-    console.log(`  ✅ ${result.name} (${result.planKey}) - $${result.monthlyPrice}/mo`);
+    logger.info(`  ✅ ${result.name} (${result.planKey}) - $${result.monthlyPrice}/mo`);
   }
 
-  console.log("\n✅ Done! 4 plan templates seeded.");
+  logger.info("\n✅ Done! 4 plan templates seeded.");
 }
 
 main()
-  .catch(console.error)
+  .catch((e: unknown) => logger.error(String(e)))
   .finally(() => prisma.$disconnect());

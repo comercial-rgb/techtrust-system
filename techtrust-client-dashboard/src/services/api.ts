@@ -4,11 +4,15 @@
  */
 
 import Cookies from "js-cookie";
+import {
+  normalizeNotificationList,
+  type NormalizedClientNotification,
+} from "../utils/notifications";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "https://techtrust-api.onrender.com/api/v1";
 
-interface ApiResponse<T = any> {
+export interface ApiResponse<T = any> {
   data?: T;
   error?: string;
   message?: string;
@@ -229,9 +233,24 @@ class ApiService {
     return this.request<any>(`/quotes/${id}`);
   }
 
-  async acceptQuote(id: string) {
-    return this.request(`/quotes/${id}/accept`, {
+  /**
+   * Aceitar orçamento com hold no cartão (fluxo completo — alinhado ao mobile).
+   */
+  async approveQuoteWithHold(data: {
+    quoteId: string;
+    paymentMethodId: string;
+    paymentProcessor?: "STRIPE" | "CHASE";
+  }) {
+    return this.request<{
+      workOrder: { id: string; orderNumber: string; status: string };
+      payment: { id: string; status: string };
+    }>("/service-flow/approve-quote", {
       method: "POST",
+      body: JSON.stringify({
+        quoteId: data.quoteId,
+        paymentMethodId: data.paymentMethodId,
+        paymentProcessor: data.paymentProcessor ?? "STRIPE",
+      }),
     });
   }
 
@@ -375,17 +394,35 @@ class ApiService {
   // NOTIFICATIONS
   // ============================================
 
-  async getNotifications() {
-    return this.request<any[]>("/notifications");
+  async getNotifications(): Promise<
+    ApiResponse<NormalizedClientNotification[]>
+  > {
+    const res = await this.request<unknown[]>("/notifications");
+    if (res.error != null) {
+      return {
+        error: res.error,
+        message: res.message,
+        code: res.code,
+        responseData: res.responseData,
+      };
+    }
+    const raw = res.data;
+    return {
+      data: normalizeNotificationList(Array.isArray(raw) ? raw : []),
+    };
   }
 
-  async markNotificationAsRead(id: string) {
+  async markNotificationAsRead(
+    id: string,
+  ): Promise<ApiResponse<{ success: boolean; message?: string }>> {
     return this.request(`/notifications/${id}/read`, {
       method: "POST",
     });
   }
 
-  async markAllNotificationsAsRead() {
+  async markAllNotificationsAsRead(): Promise<
+    ApiResponse<{ success: boolean; message?: string }>
+  > {
     return this.request("/notifications/read-all", {
       method: "POST",
     });

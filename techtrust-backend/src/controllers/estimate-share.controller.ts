@@ -117,12 +117,12 @@ export const shareEstimate = async (req: Request, res: Response) => {
       type: "COMPETING_ESTIMATE_RECEIVED" as any,
       title: "Competing Estimate Opportunity",
       message: `A customer is looking for competing quotes for ${estimate.serviceRequest.title} on a ${vehicleInfo}. Check it out!`,
-      data: JSON.stringify({
+      data: {
         shareId: share.id,
         shareNumber,
         serviceType: estimate.serviceRequest.serviceType,
         vehicleInfo,
-      }),
+      },
     }));
 
     await prisma.notification.createMany({ data: notifications });
@@ -426,11 +426,11 @@ export const submitCompetingQuote = async (req: Request, res: Response) => {
       type: "COMPETING_ESTIMATE_RECEIVED",
       title: "New Competing Estimate",
       message: `A provider submitted a competing quote of $${Number(totalAmount).toFixed(2)} for your shared estimate. Compare and choose the best option!`,
-      data: JSON.stringify({
+      data: {
         shareId: share.id,
         competingQuoteId: result.id,
         amount: Number(totalAmount),
-      }),
+      },
     },
   });
 

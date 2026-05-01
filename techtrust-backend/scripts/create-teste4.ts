@@ -1,10 +1,11 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
 
+import { logger } from "../src/config/logger";
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("Creating teste4@gmail.com...");
+  logger.info("Creating teste4@gmail.com...");
 
   const hash = await bcrypt.hash("Teste123!", 10);
 
@@ -40,18 +41,18 @@ async function main() {
         currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
       },
     });
-    console.log("FREE subscription created");
+    logger.info("FREE subscription created");
   }
 
-  console.log(
+  logger.info(
     `✅ User created: ${user.email} | ID: ${user.id} | Status: ${user.status}`,
   );
-  console.log(`🔑 Password: Teste123!`);
+  logger.info(`🔑 Password: Teste123!`);
 
   await prisma.$disconnect();
 }
 
 main().catch((e) => {
-  console.error("Error:", e);
+  logger.error("Error:", e);
   process.exit(1);
 });

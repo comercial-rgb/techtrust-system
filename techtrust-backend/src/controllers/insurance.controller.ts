@@ -10,6 +10,7 @@ import {
   InsurancePolicyStatus,
 } from "@prisma/client";
 import { buildInsuranceRequirementChecklist } from "../utils/insurance-requirements";
+import { logger } from "../config/logger";
 
 const prisma = new PrismaClient();
 
@@ -47,7 +48,9 @@ export const getInsurancePolicies = async (
 
     res.json({ success: true, data: { policies } });
   } catch (error: any) {
-    console.error("Error fetching insurance policies:", error);
+    logger.error(
+      `Error fetching insurance policies: ${error instanceof Error ? error.message : error}`,
+    );
     res
       .status(500)
       .json({ success: false, message: "Failed to fetch insurance policies" });
@@ -164,7 +167,9 @@ export const upsertInsurancePolicy = async (
 
     res.json({ success: true, data: { policy } });
   } catch (error: any) {
-    console.error("Error upserting insurance policy:", error);
+    logger.error(
+      `Error upserting insurance policy: ${error instanceof Error ? error.message : error}`,
+    );
     res
       .status(500)
       .json({ success: false, message: "Failed to save insurance policy" });
@@ -251,7 +256,9 @@ export const batchUpsertInsurance = async (
 
     res.json({ success: true, data: { policies: results } });
   } catch (error: any) {
-    console.error("Error batch upserting insurance:", error);
+    logger.error(
+      `Error batch upserting insurance: ${error instanceof Error ? error.message : error}`,
+    );
     res
       .status(500)
       .json({ success: false, message: "Failed to save insurance policies" });
@@ -304,7 +311,9 @@ export const getInsuranceRequirements = async (
       },
     });
   } catch (error: any) {
-    console.error("Error fetching insurance requirements:", error);
+    logger.error(
+      `Error fetching insurance requirements: ${error instanceof Error ? error.message : error}`,
+    );
     res.status(500).json({
       success: false,
       message: "Failed to fetch insurance requirements",

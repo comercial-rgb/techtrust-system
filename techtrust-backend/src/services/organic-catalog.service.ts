@@ -19,8 +19,9 @@
  *   Mês 6+: dados próprios mais precisos que qualquer API externa paga
  */
 
-import type { PrismaClient } from '@prisma/client';
-import prisma from '../config/database';
+import type { PrismaClient } from "@prisma/client";
+import prisma from "../config/database";
+import { logger } from "../config/logger";
 
 
 // ═══════════════════════════════════════════════
@@ -129,7 +130,9 @@ export async function feedCatalogFromCompletedService(
       });
     }
   } catch (err) {
-    console.error('[CATALOG] feedCatalogFromCompletedService error:', err);
+    logger.error(
+      `[CATALOG] feedCatalogFromCompletedService error: ${err instanceof Error ? err.message : err}`,
+    );
     // Falha silenciosa — não bloqueia o pagamento
   }
 }
@@ -330,7 +333,7 @@ export async function recalculateCatalogPrices(): Promise<number> {
     }
   }
 
-  console.log(`[CATALOG] Recalculated ${updated} catalog entries`);
+  logger.info(`[CATALOG] Recalculated ${updated} catalog entries`);
   return updated;
 }
 

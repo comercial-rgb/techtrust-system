@@ -199,12 +199,12 @@ export const sendMessage = async (req: Request, res: Response, next: NextFunctio
         type: 'CHAT_MESSAGE',
         title: 'New Message',
         message: `New message from ${chatMessage.fromUser.fullName}`,
-        data: JSON.stringify({
+        data: {
           conversationId,
           messageId: chatMessage.id,
           fromUserId: userId,
           serviceRequestId,
-        }),
+        },
       },
     });
 

@@ -372,11 +372,11 @@ export const completeInvoice = async (req: Request, res: Response) => {
       type: "REPAIR_INVOICE_GENERATED",
       title: "Repair Invoice Ready",
       message: `Your repair invoice ${invoice.invoiceNumber} is ready for review. Final total: $${Number(updated.finalTotal).toFixed(2)}.`,
-      data: JSON.stringify({
+      data: {
         invoiceId: id,
         invoiceNumber: invoice.invoiceNumber,
         finalTotal: Number(updated.finalTotal),
-      }),
+      },
     },
   });
 
@@ -457,7 +457,7 @@ export const disputeInvoice = async (req: Request, res: Response) => {
       type: "REPAIR_INVOICE_GENERATED",
       title: "Invoice Disputed",
       message: `Customer has disputed invoice ${invoice.invoiceNumber}.${reason ? ` Reason: ${reason}` : ""}`,
-      data: JSON.stringify({ invoiceId: id, reason }),
+      data: { invoiceId: id, reason },
     },
   });
 

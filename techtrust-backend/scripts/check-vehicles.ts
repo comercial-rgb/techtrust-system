@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 
+import { logger } from "../src/config/logger";
 const prisma = new PrismaClient();
 
 async function main() {
@@ -8,17 +9,17 @@ async function main() {
     include: { user: { select: { id: true, fullName: true, email: true } } },
   });
 
-  console.log("\n=== ALL VEHICLES IN DATABASE ===");
-  console.log("Total:", allVehicles.length);
+  logger.info("\n=== ALL VEHICLES IN DATABASE ===");
+  logger.info("Total:", allVehicles.length);
   allVehicles.forEach((v) => {
-    console.log("---");
-    console.log("  Vehicle ID:", v.id);
-    console.log("  User:", v.user.fullName, "-", v.user.email);
-    console.log("  User ID:", v.user.id);
-    console.log("  Make:", v.make, "| Model:", v.model, "| Year:", v.year);
-    console.log("  Plate:", v.plateNumber, "| VIN:", v.vin);
-    console.log("  isPrimary:", v.isPrimary, "| isActive:", v.isActive);
-    console.log("  Created:", v.createdAt);
+    logger.info("---");
+    logger.info("  Vehicle ID:", v.id);
+    logger.info("  User:", v.user.fullName, "-", v.user.email);
+    logger.info("  User ID:", v.user.id);
+    logger.info("  Make:", v.make, "| Model:", v.model, "| Year:", v.year);
+    logger.info("  Plate:", v.plateNumber, "| VIN:", v.vin);
+    logger.info("  isPrimary:", v.isPrimary, "| isActive:", v.isActive);
+    logger.info("  Created:", v.createdAt);
   });
 
   // All users (customers)
@@ -27,12 +28,12 @@ async function main() {
     select: { id: true, fullName: true, email: true },
   });
 
-  console.log("\n=== ALL CUSTOMERS ===");
+  logger.info("\n=== ALL CUSTOMERS ===");
   customers.forEach((c) => {
-    console.log("  ", c.id, "-", c.fullName, "-", c.email);
+    logger.info("  ", c.id, "-", c.fullName, "-", c.email);
   });
 
   await prisma.$disconnect();
 }
 
-main().catch(console.error);
+main().catch((e: unknown) => logger.error(String(e)));

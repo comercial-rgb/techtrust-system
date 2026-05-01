@@ -18,7 +18,8 @@
  */
 
 
-import prisma from '../config/database';
+import prisma from "../config/database";
+import { logger } from "../config/logger";
 
 
 // ═══════════════════════════════════════════════
@@ -215,7 +216,7 @@ export async function updateCreditState(
     },
   });
 
-  console.log(
+  logger.info(
     `[CREDIT] ${provider}: ${creditsLeft}/${plan.creditsTotal} (${(percentLeft * 100).toFixed(1)}%) — Status: ${status}`,
   );
 
@@ -252,22 +253,24 @@ async function notifyAdminCreditStatus(
           title: `${severity} — API Credits Low`,
           message: `${provider}: ${state.creditsLeft}/${state.creditsTotal} credits remaining (${(state.percentLeft * 100).toFixed(1)}%). ` +
             `Status: ${state.status}. Est. ${state.daysRemaining} days remaining at current rate.`,
-          data: JSON.stringify({
-            action: 'API_CREDIT_ALERT',
+          data: {
+            action: "API_CREDIT_ALERT",
             provider,
             status: state.status,
             creditsLeft: state.creditsLeft,
             percentLeft: state.percentLeft,
-          }),
+          },
         },
       });
     }
 
-    console.log(
+    logger.info(
       `[CREDIT] Admin notified: ${provider} status changed to ${state.status}`,
     );
   } catch (err) {
-    console.error('[CREDIT] notifyAdminCreditStatus error:', err);
+    logger.error(
+      `[CREDIT] notifyAdminCreditStatus error: ${err instanceof Error ? err.message : err}`,
+    );
   }
 }
 
@@ -340,10 +343,10 @@ export function startCreditMonitor(): void {
     // TODO: Quando VehicleDatabases for ativado:
     // const billing = await fetchVDBBilling();
     // await updateCreditState('vehicledatabases', billing.creditsLeft);
-    console.log('[CREDIT] Monitor check — no active paid APIs yet');
+    logger.debug("[CREDIT] Monitor check — no active paid APIs yet");
   }, SIX_HOURS);
 
-  console.log('[CREDIT] Monitor started (every 6h)');
+  logger.info("[CREDIT] Monitor started (every 6h)");
 }
 
 /**
@@ -353,6 +356,6 @@ export function stopCreditMonitor(): void {
   if (creditMonitorInterval) {
     clearInterval(creditMonitorInterval);
     creditMonitorInterval = null;
-    console.log('[CREDIT] Monitor stopped');
+    logger.info("[CREDIT] Monitor stopped");
   }
 }

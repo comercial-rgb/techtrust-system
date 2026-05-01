@@ -11,6 +11,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useI18n } from '../i18n';
 import { CANCELLATION_RULES, DISPUTE_RULES } from '../config/businessRules';
 import * as serviceFlowService from '../services/service-flow.service';
+import { getPaymentMethods } from '../services/dashboard.service';
 import api from '../services/api';
 
 export default function WorkOrderDetailsScreen({ navigation, route }: any) {
@@ -24,6 +25,35 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
   const [showDisputeModal, setShowDisputeModal] = useState(false);
   const [disputeReason, setDisputeReason] = useState('');
   const [processingAction, setProcessingAction] = useState(false);
+  const [supplementActionLoading, setSupplementActionLoading] = useState(false);
+
+  const pendingSupplement = useMemo(() => {
+    const list = workOrder?.supplements;
+    if (!Array.isArray(list) || list.length === 0) return null;
+    return list.find((s: any) => s.status === 'REQUESTED') ?? null;
+  }, [workOrder]);
+
+  const latestHoldFailedSupplement = useMemo(() => {
+    const list = workOrder?.supplements;
+    if (!Array.isArray(list) || list.length === 0) return null;
+    return list.find((s: any) => s.status === 'HOLD_FAILED') ?? null;
+  }, [workOrder]);
+
+  const supplementPartsRows = useMemo(() => {
+    if (!pendingSupplement) return [];
+    const raw = pendingSupplement.additionalParts;
+    let arr: any[] = [];
+    if (Array.isArray(raw)) arr = raw;
+    else if (typeof raw === 'string') {
+      try {
+        const p = JSON.parse(raw);
+        if (Array.isArray(p)) arr = p;
+      } catch {
+        arr = [];
+      }
+    }
+    return arr;
+  }, [pendingSupplement]);
 
   // Reload details when screen gains focus or workOrderId changes
   useFocusEffect(
@@ -58,6 +88,7 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
       case 'PENDING_START': return { label: t.workOrder?.awaitingStart || 'Awaiting Start', color: '#f59e0b', bgColor: '#fef3c7' };
       case 'PAYMENT_HOLD': return { label: t.workOrder?.paymentHold || 'Payment Hold', color: '#8b5cf6', bgColor: '#ede9fe' };
       case 'IN_PROGRESS': return { label: t.workOrder?.inProgress || 'In Progress', color: '#3b82f6', bgColor: '#dbeafe' };
+      case 'SUPPLEMENT_REQUESTED': return { label: t.workOrder?.supplementRequested || 'Awaiting supplement approval', color: '#d97706', bgColor: '#fef3c7' };
       case 'AWAITING_APPROVAL': return { label: t.workOrder?.awaitingApproval || 'Awaiting Approval', color: '#8b5cf6', bgColor: '#ede9fe' };
       case 'AWAITING_PAYMENT': return { label: t.workOrder?.awaitingPayment || 'Awaiting Payment', color: '#8b5cf6', bgColor: '#ede9fe' };
       case 'COMPLETED': return { label: t.workOrder?.completed || 'Completed', color: '#10b981', bgColor: '#d1fae5' };
@@ -130,7 +161,10 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
   const handleCancel = async () => {
     setProcessingAction(true);
     try {
-      await serviceFlowService.requestCancellation(workOrderId, 'Customer requested cancellation');
+      await serviceFlowService.requestCancellation({
+        workOrderId,
+        reason: 'Customer requested cancellation',
+      });
       
       setShowCancelModal(false);
       Alert.alert(
@@ -197,77 +231,174 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
           <Text style={styles.orderNumber}>#{workOrder?.orderNumber}</Text>
         </View>
 
-        {/* Pending Additional Parts Alert */}
-        {workOrder?.pendingAdditionalParts && workOrder.pendingAdditionalParts.status === 'pending' && (
+        {latestHoldFailedSupplement && !pendingSupplement && (
+          <View style={[styles.additionalPartsAlert, { borderColor: '#fecaca' }]}>
+            <View style={styles.alertHeader}>
+              <View style={styles.alertIconContainer}>
+                <Ionicons name="card-outline" size={24} color="#dc2626" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.alertTitle}>
+                  {t.workOrder?.supplementHoldFailed || 'Supplement payment could not be authorized'}
+                </Text>
+                <Text style={styles.alertSubtitle}>
+                  {t.workOrder?.supplementHoldFailedHint ||
+                    'The service continues with the original quote. You can ask your provider to send a new supplement request if needed.'}
+                </Text>
+                {latestHoldFailedSupplement.holdFailedReason ? (
+                  <Text style={[styles.alertReasonText, { marginTop: 8 }]}>
+                    {String(latestHoldFailedSupplement.holdFailedReason).slice(0, 280)}
+                  </Text>
+                ) : null}
+              </View>
+            </View>
+          </View>
+        )}
+
+        {pendingSupplement && (
           <View style={styles.additionalPartsAlert}>
             <View style={styles.alertHeader}>
               <View style={styles.alertIconContainer}>
                 <Ionicons name="alert-circle" size={24} color="#f59e0b" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.alertTitle}>{t.workOrder?.additionalPartsRequested || 'Additional Parts Requested'}</Text>
-                <Text style={styles.alertSubtitle}>{t.workOrder?.providerNeedsApproval || 'The provider needs your approval for additional parts'}</Text>
+                <Text style={styles.alertTitle}>{t.workOrder?.additionalPartsRequested || 'Additional work requested'}</Text>
+                <Text style={styles.alertSubtitle}>{t.workOrder?.providerNeedsApproval || 'Your provider needs approval to continue with extra parts or labor'}</Text>
               </View>
             </View>
-            
+
             <View style={styles.alertReasonBox}>
-              <Text style={styles.alertReasonLabel}>{t.workOrder?.reasonForRequest || 'Reason:'}</Text>
-              <Text style={styles.alertReasonText}>{workOrder.pendingAdditionalParts.reason}</Text>
+              <Text style={styles.alertReasonLabel}>{t.workOrder?.reasonForRequest || 'Description'}</Text>
+              <Text style={styles.alertReasonText}>{pendingSupplement.description}</Text>
+              {pendingSupplement.reason ? (
+                <Text style={[styles.alertReasonText, { marginTop: 8 }]}>{pendingSupplement.reason}</Text>
+              ) : null}
             </View>
-            
-            <View style={styles.alertPartsList}>
-              {workOrder.pendingAdditionalParts.parts.map((part: any, index: number) => (
-                <View key={index} style={styles.alertPartRow}>
-                  <Text style={styles.alertPartName}>{part.description}</Text>
-                  <Text style={styles.alertPartQty}>x{part.quantity}</Text>
-                  <Text style={styles.alertPartPrice}>${(part.quantity * part.unitPrice).toFixed(2)}</Text>
-                </View>
-              ))}
-              <View style={styles.alertTotalRow}>
-                <Text style={styles.alertTotalLabel}>{t.common?.total || 'Total'}:</Text>
-                <Text style={styles.alertTotalValue}>${workOrder.pendingAdditionalParts.totalAmount.toFixed(2)}</Text>
+
+            {supplementPartsRows.length > 0 ? (
+              <View style={styles.alertPartsList}>
+                {supplementPartsRows.map((part: any, index: number) => {
+                  const qty = Number(part.quantity) || 0;
+                  const unit = Number(part.unitPrice) || 0;
+                  const line = qty * unit;
+                  return (
+                    <View key={index} style={styles.alertPartRow}>
+                      <Text style={styles.alertPartName}>{part.description}</Text>
+                      <Text style={styles.alertPartQty}>x{qty}</Text>
+                      <Text style={styles.alertPartPrice}>${line.toFixed(2)}</Text>
+                    </View>
+                  );
+                })}
               </View>
+            ) : null}
+
+            <View style={styles.alertTotalRow}>
+              <Text style={styles.alertTotalLabel}>{t.common?.total || 'Line total'}:</Text>
+              <Text style={styles.alertTotalValue}>
+                $
+                {(
+                  Number(pendingSupplement.additionalAmount || 0) +
+                  Number(pendingSupplement.additionalLabor || 0)
+                ).toFixed(2)}
+              </Text>
             </View>
-            
+
             <View style={styles.alertActions}>
-              <TouchableOpacity 
-                style={styles.alertDeclineBtn}
-                onPress={() => Alert.alert(
-                  t.workOrder?.declinePartsTitle || 'Decline Parts',
-                  t.workOrder?.declinePartsMessage || 'Are you sure you want to decline these additional parts?',
-                  [
-                    { text: t.common?.cancel || 'Cancel', style: 'cancel' },
-                    { text: t.common?.confirm || 'Confirm', style: 'destructive', onPress: () => {
-                      setWorkOrder((prev: any) => ({ ...prev, pendingAdditionalParts: null }));
-                      Alert.alert(t.common?.success || 'Success', t.workOrder?.partsDeclined || 'Additional parts declined');
-                    }}
-                  ]
-                )}
+              <TouchableOpacity
+                style={[styles.alertDeclineBtn, supplementActionLoading && styles.btnDisabled]}
+                disabled={supplementActionLoading}
+                onPress={() =>
+                  Alert.alert(
+                    t.workOrder?.declinePartsTitle || 'Decline',
+                    t.workOrder?.declinePartsMessage || 'Decline this additional work?',
+                    [
+                      { text: t.common?.cancel || 'Cancel', style: 'cancel' },
+                      {
+                        text: t.common?.confirm || 'Confirm',
+                        style: 'destructive',
+                        onPress: async () => {
+                          setSupplementActionLoading(true);
+                          try {
+                            await serviceFlowService.respondToSupplement({
+                              supplementId: pendingSupplement.id,
+                              approved: false,
+                            });
+                            await loadDetails();
+                            Alert.alert(t.common?.success || 'Success', t.workOrder?.partsDeclined || 'Declined. Service continues with the original scope.');
+                          } catch (error: any) {
+                            Alert.alert(t.common?.error || 'Error', error?.response?.data?.message || t.common?.tryAgain || 'Try again');
+                          } finally {
+                            setSupplementActionLoading(false);
+                          }
+                        },
+                      },
+                    ],
+                  )
+                }
               >
                 <Ionicons name="close" size={18} color="#ef4444" />
                 <Text style={styles.alertDeclineText}>{t.common?.decline || 'Decline'}</Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={styles.alertApproveBtn}
-                onPress={() => Alert.alert(
-                  t.workOrder?.approvePartsTitle || 'Approve Parts',
-                  t.workOrder?.approvePartsMessage || `Approve additional parts for $${workOrder.pendingAdditionalParts.totalAmount.toFixed(2)}?`,
-                  [
-                    { text: t.common?.cancel || 'Cancel', style: 'cancel' },
-                    { text: t.common?.approve || 'Approve', onPress: () => {
-                      setWorkOrder((prev: any) => ({ 
-                        ...prev, 
-                        pendingAdditionalParts: null,
-                        finalAmount: prev.finalAmount + workOrder.pendingAdditionalParts.totalAmount
-                      }));
-                      Alert.alert(t.common?.success || 'Success', t.workOrder?.partsApproved || 'Additional parts approved! The total has been updated.');
-                    }}
-                  ]
-                )}
+
+              <TouchableOpacity
+                style={[styles.alertApproveBtn, supplementActionLoading && styles.btnDisabled]}
+                disabled={supplementActionLoading}
+                onPress={() =>
+                  Alert.alert(
+                    t.workOrder?.approvePartsTitle || 'Approve',
+                    t.workOrder?.approvePartsMessage ||
+                      `Authorize card hold for the supplement (parts/labor total shown above, plus fees)?`,
+                    [
+                      { text: t.common?.cancel || 'Cancel', style: 'cancel' },
+                      {
+                        text: t.common?.approve || 'Approve',
+                        onPress: async () => {
+                          setSupplementActionLoading(true);
+                          try {
+                            const methods = await getPaymentMethods();
+                            const defaultPm =
+                              methods.find((m: any) => m.isDefault) || methods[0];
+                            const res = await serviceFlowService.respondToSupplement({
+                              supplementId: pendingSupplement.id,
+                              approved: true,
+                              paymentMethodId: defaultPm?.id,
+                            });
+                            if (res?.success === false) {
+                              Alert.alert(
+                                t.common?.error || 'Error',
+                                res.message || t.common?.tryAgain || 'Try again',
+                              );
+                            } else {
+                              await loadDetails();
+                              Alert.alert(
+                                t.common?.success || 'Success',
+                                res?.message || t.workOrder?.partsApproved || 'Supplement approved.',
+                              );
+                            }
+                          } catch (error: any) {
+                            const msg =
+                              error?.response?.data?.message ||
+                              error?.message ||
+                              t.common?.tryAgain ||
+                              'Try again';
+                            Alert.alert(t.common?.error || 'Error', msg);
+                          } finally {
+                            setSupplementActionLoading(false);
+                          }
+                        },
+                      },
+                    ],
+                  )
+                }
               >
-                <Ionicons name="checkmark" size={18} color="#fff" />
-                <Text style={styles.alertApproveText}>{t.common?.approve || 'Approve'}</Text>
+                {supplementActionLoading ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <>
+                    <Ionicons name="checkmark" size={18} color="#fff" />
+                    <Text style={styles.alertApproveText}>{t.common?.approve || 'Approve'}</Text>
+                  </>
+                )}
               </TouchableOpacity>
             </View>
           </View>

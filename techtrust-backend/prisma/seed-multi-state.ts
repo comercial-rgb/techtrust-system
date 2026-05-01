@@ -1,3 +1,4 @@
+import { logger } from "../src/config/logger";
 /**
  * ============================================================
  * MULTI-STATE COMPLIANCE SEED
@@ -16,12 +17,12 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🏗️  Seeding multi-state compliance architecture...\n");
+  logger.info("🏗️  Seeding multi-state compliance architecture...\n");
 
   // ════════════════════════════════════════
   // 1. COMPLIANCE REQUIREMENTS CATALOG
   // ════════════════════════════════════════
-  console.log("📋 Creating compliance requirements catalog...");
+  logger.info("📋 Creating compliance requirements catalog...");
 
   const requirements = [
     {
@@ -111,13 +112,13 @@ async function main() {
       },
       create: req,
     });
-    console.log(`  ✅ ${req.requirementKey} (${req.scope})`);
+    logger.info(`  ✅ ${req.requirementKey} (${req.scope})`);
   }
 
   // ════════════════════════════════════════
   // 2. STATE PROFILES
   // ════════════════════════════════════════
-  console.log("\n🗺️  Creating state profiles...");
+  logger.info("\n🗺️  Creating state profiles...");
 
   // Florida - ACTIVE (first state)
   await prisma.stateProfile.upsert({
@@ -141,7 +142,7 @@ async function main() {
         "First active state. FDACS Motor Vehicle Repair Act (F.S. 559.901-935). Towing regulated under F.S. 715.07.",
     },
   });
-  console.log("  ✅ FL - Florida (ACTIVE)");
+  logger.info("  ✅ FL - Florida (ACTIVE)");
 
   // Pre-seed other major states as INACTIVE (ready for expansion)
   const inactiveStates = [
@@ -240,13 +241,13 @@ async function main() {
         isActive: false,
       },
     });
-    console.log(`  ⏸️  ${state.stateCode} - ${state.stateName} (inactive)`);
+    logger.info(`  ⏸️  ${state.stateCode} - ${state.stateName} (inactive)`);
   }
 
   // ════════════════════════════════════════
   // 3. FLORIDA JURISDICTION POLICIES
   // ════════════════════════════════════════
-  console.log("\n📜 Creating Florida jurisdiction policies...");
+  logger.info("\n📜 Creating Florida jurisdiction policies...");
 
   // State-wide policy for Florida
   // Note: Prisma TS types don't allow null in composite unique where,
@@ -318,7 +319,7 @@ async function main() {
         isMandatory: req.isMandatory,
       },
     });
-    console.log(
+    logger.info(
       `  ✅ FL → ${req.requirementKey}${req.displayNameOverride ? ` (${req.displayNameOverride})` : ""}`
     );
   }
@@ -326,7 +327,7 @@ async function main() {
   // ════════════════════════════════════════
   // 4. DEFAULT DISCLAIMERS
   // ════════════════════════════════════════
-  console.log("\n⚖️  Creating default disclaimers...");
+  logger.info("\n⚖️  Creating default disclaimers...");
 
   const disclaimers = [
     {
@@ -381,11 +382,11 @@ The selected provider's A/C technician certification status has not been verifie
 
     if (!existing) {
       await prisma.disclaimerVersion.create({ data: { ...d, isActive: true } });
-      console.log(
+      logger.info(
         `  ✅ Disclaimer ${d.version} for ${d.serviceType || "ALL"} / ${d.stateCode || "ALL"}`
       );
     } else {
-      console.log(
+      logger.info(
         `  ⏭️  Disclaimer ${d.version} for ${d.serviceType || "ALL"} / ${d.stateCode || "ALL"} already exists`
       );
     }
@@ -394,7 +395,7 @@ The selected provider's A/C technician certification status has not been verifie
   // ════════════════════════════════════════
   // 5. PLATFORM LEGAL TERMS (embedded in disclaimer)
   // ════════════════════════════════════════
-  console.log("\n📄 Creating platform legal marketplace disclaimer...");
+  logger.info("\n📄 Creating platform legal marketplace disclaimer...");
 
   const platformDisclaimer = {
     serviceType: null,
@@ -425,14 +426,14 @@ Use of the TechTrust platform constitutes acceptance of these terms.`,
     await prisma.disclaimerVersion.create({
       data: { ...platformDisclaimer, isActive: true },
     });
-    console.log("  ✅ Platform marketplace disclaimer created");
+    logger.info("  ✅ Platform marketplace disclaimer created");
   }
 
-  console.log("\n✅ Multi-state compliance seed complete!");
-  console.log("   - 4 compliance requirements in catalog");
-  console.log("   - 9 state profiles (1 active: FL)");
-  console.log("   - 1 jurisdiction policy (FL state-wide with 4 requirements)");
-  console.log("   - 4 disclaimer versions");
+  logger.info("\n✅ Multi-state compliance seed complete!");
+  logger.info("   - 4 compliance requirements in catalog");
+  logger.info("   - 9 state profiles (1 active: FL)");
+  logger.info("   - 1 jurisdiction policy (FL state-wide with 4 requirements)");
+  logger.info("   - 4 disclaimer versions");
 }
 
 export { main as seedMultiState };
@@ -440,7 +441,7 @@ export { main as seedMultiState };
 if (require.main === module) {
   main()
     .catch((e) => {
-      console.error("❌ Seed failed:", e);
+      logger.error("❌ Seed failed:", e);
       process.exit(1);
     })
     .finally(async () => {

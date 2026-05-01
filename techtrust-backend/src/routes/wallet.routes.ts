@@ -1,11 +1,13 @@
 import { Router } from "express";
 import * as walletController from "../controllers/wallet.controller";
 import { authenticate } from "../middleware/auth";
+import { paymentFlowRateLimiter } from "../middleware/rate-limiter";
 import { asyncHandler } from "../utils/async-handler";
 
 const router = Router();
 
 router.use(authenticate);
+router.use(paymentFlowRateLimiter);
 
 // GET /wallet - Get balance and recent transactions
 router.get("/", asyncHandler(walletController.getWallet));

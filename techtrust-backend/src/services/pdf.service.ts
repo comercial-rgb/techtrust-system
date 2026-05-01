@@ -10,7 +10,8 @@
  */
 
 import { v2 as cloudinary } from "cloudinary";
-import prisma from '../config/database';
+import prisma from "../config/database";
+import { logger } from "../config/logger";
 
 
 // pdfmake Node.js setup with PdfPrinter (v0.2.x)
@@ -570,12 +571,14 @@ export async function generateRepairInvoicePdf(
       data: { pdfUrl: url },
     });
 
-    console.log(
-      `[PDF] Generated repair invoice PDF: ${invoice.invoiceNumber} → ${url}`,
+    logger.info(
+      `[PDF] Generated repair invoice PDF: ${invoice.invoiceNumber} (id ${invoiceId})`,
     );
     return url;
   } catch (error) {
-    console.error("[PDF] Error generating repair invoice PDF:", error);
+    logger.error(
+      `[PDF] Error generating repair invoice PDF: ${error instanceof Error ? error.message : error}`,
+    );
     throw error;
   }
 }
@@ -773,12 +776,14 @@ export async function generateReceiptPdf(receiptId: string): Promise<string> {
       data: { pdfUrl: url },
     });
 
-    console.log(
-      `[PDF] Generated receipt PDF: ${receipt.receiptNumber} → ${url}`,
+    logger.info(
+      `[PDF] Generated receipt PDF: ${receipt.receiptNumber} (id ${receiptId})`,
     );
     return url;
   } catch (error) {
-    console.error("[PDF] Error generating receipt PDF:", error);
+    logger.error(
+      `[PDF] Error generating receipt PDF: ${error instanceof Error ? error.message : error}`,
+    );
     throw error;
   }
 }

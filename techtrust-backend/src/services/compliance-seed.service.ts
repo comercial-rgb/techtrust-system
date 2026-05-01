@@ -1,10 +1,11 @@
 import { prisma } from "../config/database";
+import { logger } from "../config/logger";
 
 export async function seedMultiStateCompliance(): Promise<void> {
-  console.log("🏗️  Seeding multi-state compliance architecture...\n");
+  logger.info("🏗️  Seeding multi-state compliance architecture...\n");
 
   // 1. COMPLIANCE REQUIREMENTS CATALOG
-  console.log("📋 Creating compliance requirements catalog...");
+  logger.info("📋 Creating compliance requirements catalog...");
 
   const requirements = [
     {
@@ -70,11 +71,11 @@ export async function seedMultiStateCompliance(): Promise<void> {
       },
       create: req,
     });
-    console.log(`  ✅ ${req.requirementKey} (${req.scope})`);
+    logger.info(`  ✅ ${req.requirementKey} (${req.scope})`);
   }
 
   // 2. STATE PROFILES
-  console.log("\n🗺️  Creating state profiles...");
+  logger.info("\n🗺️  Creating state profiles...");
 
   await prisma.stateProfile.upsert({
     where: { stateCode: "FL" },
@@ -97,7 +98,7 @@ export async function seedMultiStateCompliance(): Promise<void> {
         "First active state. FDACS Motor Vehicle Repair Act (F.S. 559.901-935). Towing regulated under F.S. 715.07.",
     },
   });
-  console.log("  ✅ FL - Florida (ACTIVE)");
+  logger.info("  ✅ FL - Florida (ACTIVE)");
 
   const inactiveStates = [
     { stateCode: "TX", stateName: "Texas", stateRepairShopRegRequired: false, stateRepairShopRegDisplayName: null, stateRepairShopRegAuthority: null, defaultLocalLicenseModel: "COUNTY_ONLY" as const, towingRegulationLevel: "MEDIUM" as const, notesInternal: "Texas does not require state-level repair shop registration." },
@@ -116,11 +117,11 @@ export async function seedMultiStateCompliance(): Promise<void> {
       update: {},
       create: { ...state, isActive: false },
     });
-    console.log(`  ⏸️  ${state.stateCode} - ${state.stateName} (inactive)`);
+    logger.info(`  ⏸️  ${state.stateCode} - ${state.stateName} (inactive)`);
   }
 
   // 3. FLORIDA JURISDICTION POLICIES
-  console.log("\n📜 Creating Florida jurisdiction policies...");
+  logger.info("\n📜 Creating Florida jurisdiction policies...");
 
   let flStatePolicy = await prisma.jurisdictionPolicy.findFirst({
     where: { stateCode: "FL", countyName: null, cityName: null },
@@ -160,11 +161,11 @@ export async function seedMultiStateCompliance(): Promise<void> {
         isMandatory: req.isMandatory,
       },
     });
-    console.log(`  ✅ FL → ${req.requirementKey}${req.displayNameOverride ? ` (${req.displayNameOverride})` : ""}`);
+    logger.info(`  ✅ FL → ${req.requirementKey}${req.displayNameOverride ? ` (${req.displayNameOverride})` : ""}`);
   }
 
   // 4. DEFAULT DISCLAIMERS
-  console.log("\n⚖️  Creating default disclaimers...");
+  logger.info("\n⚖️  Creating default disclaimers...");
 
   const disclaimers = [
     {
@@ -193,14 +194,14 @@ export async function seedMultiStateCompliance(): Promise<void> {
     });
     if (!existing) {
       await prisma.disclaimerVersion.create({ data: { ...d, isActive: true } });
-      console.log(`  ✅ Disclaimer ${d.version} for ${d.serviceType || "ALL"} / ${d.stateCode || "ALL"}`);
+      logger.info(`  ✅ Disclaimer ${d.version} for ${d.serviceType || "ALL"} / ${d.stateCode || "ALL"}`);
     } else {
-      console.log(`  ⏭️  Disclaimer ${d.version} for ${d.serviceType || "ALL"} / ${d.stateCode || "ALL"} already exists`);
+      logger.info(`  ⏭️  Disclaimer ${d.version} for ${d.serviceType || "ALL"} / ${d.stateCode || "ALL"} already exists`);
     }
   }
 
   // 5. PLATFORM LEGAL TERMS
-  console.log("\n📄 Creating platform legal marketplace disclaimer...");
+  logger.info("\n📄 Creating platform legal marketplace disclaimer...");
 
   const platformDisclaimer = {
     serviceType: null,
@@ -215,8 +216,8 @@ export async function seedMultiStateCompliance(): Promise<void> {
 
   if (!existingPlatform) {
     await prisma.disclaimerVersion.create({ data: { ...platformDisclaimer, isActive: true } });
-    console.log("  ✅ Platform marketplace disclaimer created");
+    logger.info("  ✅ Platform marketplace disclaimer created");
   }
 
-  console.log("\n✅ Multi-state compliance seed complete!");
+  logger.info("\n✅ Multi-state compliance seed complete!");
 }

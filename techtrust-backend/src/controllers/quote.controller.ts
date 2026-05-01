@@ -392,6 +392,8 @@ export const getQuotesForRequest = async (req: Request, res: Response) => {
  * Ver detalhes de um orçamento
  */
 export const getQuote = async (req: Request, res: Response) => {
+  const userId = req.user!.id;
+  const userRole = req.user!.role;
   const { quoteId } = req.params;
 
   const quote = await prisma.quote.findUnique({
@@ -440,6 +442,20 @@ export const getQuote = async (req: Request, res: Response) => {
     throw new AppError("Orçamento não encontrado", 404, "QUOTE_NOT_FOUND");
   }
 
+  if (userRole === "ADMIN") {
+    // suporte / backoffice
+  } else if (userRole === "CLIENT") {
+    if (quote.serviceRequest.userId !== userId) {
+      throw new AppError("Orçamento não encontrado", 404, "QUOTE_NOT_FOUND");
+    }
+  } else if (userRole === "PROVIDER") {
+    if (quote.providerId !== userId) {
+      throw new AppError("Orçamento não encontrado", 404, "QUOTE_NOT_FOUND");
+    }
+  } else {
+    throw new AppError("Sem permissão", 403, "FORBIDDEN");
+  }
+
   // Enrich response with computed fields for mobile consumption
   const enrichedQuote = {
     ...quote,
@@ -482,9 +498,10 @@ export const getQuote = async (req: Request, res: Response) => {
 
 /**
  * POST /api/v1/quotes/:quoteId/accept
- * Cliente aceita orçamento
+ * @deprecated Removido — aceite sem pré-autorização não é mais permitido.
+ * Use POST /api/v1/service-flow/approve-quote com quoteId e paymentMethodId.
  */
-export const acceptQuote = async (req: Request, res: Response) => {
+export const acceptQuote = async (req: Request, _res: Response) => {
   const userId = req.user!.id;
   const { quoteId } = req.params;
 
@@ -499,7 +516,6 @@ export const acceptQuote = async (req: Request, res: Response) => {
     throw new AppError("Orçamento não encontrado", 404, "QUOTE_NOT_FOUND");
   }
 
-  // Verificar se solicitação pertence ao usuário
   if (quote.serviceRequest.userId !== userId) {
     throw new AppError(
       "Você não tem permissão para aceitar este orçamento",
@@ -508,83 +524,32 @@ export const acceptQuote = async (req: Request, res: Response) => {
     );
   }
 
-  // Verificar se ainda está válido
   if (new Date() > quote.validUntil) {
     throw new AppError("Este orçamento expirou", 400, "QUOTE_EXPIRED");
   }
 
-  // Verificar se status permite aceitação
-  if (quote.status !== "PENDING") {
+  if (quote.status === "PENDING") {
     throw new AppError(
-      "Este orçamento não pode mais ser aceito",
+      "Este fluxo foi descontinuado. Para aceitar o orçamento é obrigatória a pré-autorização no cartão: " +
+        "POST /api/v1/service-flow/approve-quote com JSON { quoteId, paymentMethodId } (paymentMethodId = id do método em GET /api/v1/payment-methods).",
       400,
-      "QUOTE_NOT_AVAILABLE",
+      "QUOTE_ACCEPT_DEPRECATED",
     );
   }
 
-  // Usar transaction
-  await prisma.$transaction([
-    // Aceitar orçamento
-    prisma.quote.update({
-      where: { id: quoteId },
-      data: {
-        status: "ACCEPTED",
-        acceptedAt: new Date(),
-      },
-    }),
-    // Rejeitar outros orçamentos
-    prisma.quote.updateMany({
-      where: {
-        serviceRequestId: quote.serviceRequestId,
-        id: { not: quoteId },
-        status: "PENDING",
-      },
-      data: {
-        status: "REJECTED",
-        rejectedAt: new Date(),
-      },
-    }),
-    // Atualizar solicitação
-    prisma.serviceRequest.update({
-      where: { id: quote.serviceRequestId },
-      data: {
-        status: "QUOTE_ACCEPTED",
-        acceptedQuoteId: quoteId,
-      },
-    }),
-  ]);
+  if (quote.status === "ACCEPTED") {
+    throw new AppError(
+      "Orçamento já consta como aceito. Se ainda precisa registrar o hold de pagamento (ex.: dados antigos), use POST /api/v1/service-flow/approve-quote com quoteId e paymentMethodId.",
+      400,
+      "QUOTE_ACCEPT_USE_HOLD_FLOW",
+    );
+  }
 
-  // Criar Work Order
-  const orderNumber = `WO-${Date.now()}-${Math.random().toString(36).substring(7).toUpperCase()}`;
-
-  const workOrder = await prisma.workOrder.create({
-    data: {
-      orderNumber,
-      serviceRequestId: quote.serviceRequestId,
-      quoteId: quote.id,
-      customerId: userId,
-      providerId: quote.providerId,
-      vehicleId: quote.serviceRequest.vehicleId,
-      status: "PENDING_START",
-      originalAmount: quote.totalAmount,
-      finalAmount: quote.totalAmount,
-      warrantyMonths: quote.warrantyMonths,
-      warrantyMileage: quote.warrantyMileage,
-    },
-  });
-
-  logger.info(
-    `Orçamento aceito: ${quote.quoteNumber}, Work Order criada: ${workOrder.orderNumber}`,
+  throw new AppError(
+    "Este orçamento não pode mais ser aceito",
+    400,
+    "QUOTE_NOT_AVAILABLE",
   );
-
-  res.json({
-    success: true,
-    message: "Orçamento aceito! Ordem de serviço criada.",
-    data: {
-      quote,
-      workOrder,
-    },
-  });
 };
 
 /**

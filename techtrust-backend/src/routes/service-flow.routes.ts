@@ -15,10 +15,12 @@
 import { Router } from 'express';
 import * as serviceFlowController from '../controllers/service-flow.controller';
 import { authenticate } from '../middleware/auth';
+import { paymentFlowRateLimiter } from '../middleware/rate-limiter';
 import { asyncHandler } from '../utils/async-handler';
 
 const router = Router();
 router.use(authenticate);
+router.use(paymentFlowRateLimiter);
 
 // 1. Aprovação de orçamento + hold no cartão
 router.post('/approve-quote', asyncHandler(serviceFlowController.approveQuoteWithPaymentHold));

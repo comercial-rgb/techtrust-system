@@ -7,9 +7,13 @@
 
 import { Router, Request, Response } from "express";
 import { prisma } from "../config/database";
+import { logger } from "../config/logger";
 import { authenticate, authorize } from "../middleware/auth";
 import { asyncHandler } from "../utils/async-handler";
+import { validateAdminWorkOrderStatusPatch } from "../utils/admin-work-order-status";
 import { hashPassword } from "../utils/password";
+import { adminCancelWorkOrderWithStripe } from "../services/admin-work-order-cancel.service";
+import { adminRefundCapturedPayment } from "../services/admin-payment-refund.service";
 
 const router = Router();
 
@@ -331,8 +335,7 @@ router.patch(
       data: { status },
     });
 
-    // Log de auditoria (poderia salvar em tabela de logs)
-    console.log(
+    logger.info(
       `[ADMIN] Status do usuário ${id} alterado para ${status}. Motivo: ${reason || "Não informado"}`,
     );
 
@@ -352,7 +355,7 @@ router.post(
       data: { status: "SUSPENDED" },
     });
 
-    console.log(
+    logger.warn(
       `[ADMIN] Usuário ${id} banido. Permanente: ${permanent}. Motivo: ${reason}`,
     );
 
@@ -939,23 +942,61 @@ router.patch(
   "/work-orders/:id/status",
   asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { status, reason } = req.body;
+    const {
+      status,
+      reason,
+      forceComplete,
+      forceReopen,
+    } = req.body as {
+      status?: string;
+      reason?: string;
+      forceComplete?: boolean;
+      forceReopen?: boolean;
+    };
 
-    const updateData: any = { status };
+    const existing = await prisma.workOrder.findUnique({ where: { id } });
+    if (!existing) {
+      res.status(404).json({ message: "Ordem não encontrada" });
+      return;
+    }
+
+    const hasAuthorizedPaymentHold = !!(await prisma.payment.findFirst({
+      where: { workOrderId: id, status: "AUTHORIZED" },
+      select: { id: true },
+    }));
+
+    const validation = validateAdminWorkOrderStatusPatch({
+      currentStatus: existing.status,
+      nextStatus: status || "",
+      hasAuthorizedPaymentHold,
+      forceComplete: !!forceComplete,
+      forceReopen: !!forceReopen,
+      reason,
+    });
+
+    if (!validation.ok) {
+      res.status(400).json({
+        message: validation.message,
+        code: validation.code,
+      });
+      return;
+    }
+
+    const updateData: Record<string, unknown> = { status };
 
     if (status === "COMPLETED") {
       updateData.completedAt = new Date();
-    } else if (status === "IN_PROGRESS") {
+    } else if (status === "IN_PROGRESS" && !existing.startedAt) {
       updateData.startedAt = new Date();
     }
 
     const order = await prisma.workOrder.update({
       where: { id },
-      data: updateData,
+      data: updateData as any,
     });
 
-    console.log(
-      `[ADMIN] Status da ordem ${id} alterado para ${status}. Motivo: ${reason || "N/A"}`,
+    logger.warn(
+      `[ADMIN] WO ${id} status ${existing.status} → ${status}. reason=${reason || "N/A"} forceComplete=${!!forceComplete} forceReopen=${!!forceReopen}`,
     );
 
     res.json({ message: "Status atualizado", order });
@@ -967,24 +1008,26 @@ router.post(
   "/work-orders/:id/cancel",
   asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { reason = "Cancelado pelo admin", refund = false } = req.body;
+    const {
+      reason = "Cancelado pelo admin",
+      refund = false,
+    } = req.body as { reason?: string; refund?: boolean };
 
-    const order = await prisma.workOrder.update({
-      where: { id },
-      data: { status: "CANCELLED" },
+    const result = await adminCancelWorkOrderWithStripe({
+      workOrderId: id,
+      reason,
+      refundCaptured: !!refund,
     });
 
-    console.log(`[ADMIN] Ordem ${id} cancelada. Motivo: ${reason}`);
+    const order = await prisma.workOrder.findUnique({ where: { id } });
 
-    // Processar reembolso se necessário
-    if (refund) {
-      await prisma.payment.updateMany({
-        where: { workOrderId: id, status: "CAPTURED" },
-        data: { status: "REFUNDED" },
-      });
-    }
-
-    res.json({ message: "Ordem cancelada", order, refundProcessed: refund });
+    res.json({
+      message: "Ordem cancelada",
+      order,
+      refundProcessed: !!refund,
+      stripeLedger: result.ledger,
+      supplementActions: result.supplementActions,
+    });
   }),
 );
 
@@ -1124,36 +1167,30 @@ router.get(
   }),
 );
 
-// Processar reembolso
+// Processar reembolso (Stripe + banco; parcial acumulável)
 router.post(
   "/payments/:id/refund",
   asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { reason, amount } = req.body;
+    const { reason, amount } = req.body as {
+      reason?: string;
+      amount?: number;
+    };
 
-    const payment = await prisma.payment.findUnique({ where: { id } });
-
-    if (!payment) {
-      res.status(404).json({ message: "Pagamento não encontrado" });
-      return;
-    }
-
-    const refundAmount = amount || payment.totalAmount;
-
-    const updatedPayment = await prisma.payment.update({
-      where: { id },
-      data: {
-        status: "REFUNDED",
-        refundAmount: refundAmount,
-        refundedAt: new Date(),
-      },
+    const updatedPayment = await adminRefundCapturedPayment({
+      paymentId: id,
+      reason,
+      amountDollars: amount,
     });
 
-    console.log(
-      `[ADMIN] Reembolso de R$ ${refundAmount} processado. Motivo: ${reason}`,
+    logger.info(
+      `[ADMIN] Reembolso Stripe OK — pagamento ${id} status=${updatedPayment.status} refundAmount=${updatedPayment.refundAmount}. Motivo: ${reason || "N/A"}`,
     );
 
-    res.json({ message: "Reembolso processado", payment: updatedPayment });
+    res.json({
+      message: "Reembolso processado no Stripe",
+      payment: updatedPayment,
+    });
   }),
 );
 
@@ -1186,7 +1223,7 @@ router.post(
       data: { status: "PENDING" },
     });
 
-    console.log(`[ADMIN] Pagamento ${id} bloqueado. Motivo: ${reason}`);
+    logger.info(`[ADMIN] Pagamento ${id} bloqueado. Motivo: ${reason}`);
 
     res.json({ message: "Pagamento bloqueado", payment });
   }),
@@ -1260,7 +1297,7 @@ router.delete(
 
     await prisma.review.delete({ where: { id } });
 
-    console.log(`[ADMIN] Avaliação ${id} removida. Motivo: ${reason}`);
+    logger.info(`[ADMIN] Avaliação ${id} removida. Motivo: ${reason}`);
 
     res.json({ message: "Avaliação removida" });
   }),
@@ -1359,7 +1396,7 @@ router.post(
       },
     });
 
-    console.log(`[ADMIN] Assinatura ${id} cancelada. Motivo: ${reason}`);
+    logger.info(`[ADMIN] Assinatura ${id} cancelada. Motivo: ${reason}`);
 
     res.json({ message: "Assinatura cancelada", subscription });
   }),
@@ -1760,7 +1797,7 @@ router.put(
   asyncHandler(async (req: Request, res: Response) => {
     const config = req.body;
     // Em produção, salvar em tabela de configurações
-    console.log("[ADMIN] Configurações atualizadas:", config);
+    logger.info("[ADMIN] Configurações atualizadas", { keys: Object.keys(config || {}) });
     res.json({ message: "Configurações atualizadas", config });
   }),
 );
@@ -1770,8 +1807,8 @@ router.post(
   "/config/maintenance",
   asyncHandler(async (req: Request, res: Response) => {
     const { enabled, message } = req.body;
-    console.log(
-      `[ADMIN] Modo manutenção: ${enabled ? "ATIVADO" : "DESATIVADO"}. Mensagem: ${message}`,
+    logger.warn(
+      `[ADMIN] Modo manutenção: ${enabled ? "ATIVADO" : "DESATIVADO"}. Mensagem: ${message || "—"}`,
     );
     res.json({
       message: `Modo manutenção ${enabled ? "ativado" : "desativado"}`,
@@ -1814,8 +1851,8 @@ router.post(
     });
 
     // TODO: Enviar notificações reais via FCM/Email/SMS
-    console.log(
-      `[ADMIN] Notificação broadcast enviada para ${recipients.length} usuários`,
+    logger.info(
+      `[ADMIN] Notificação broadcast para ${recipients.length} usuários (title="${title}")`,
     );
 
     res.json({
@@ -1861,7 +1898,7 @@ router.post(
   "/system/backup",
   asyncHandler(async (_req: Request, res: Response) => {
     // Em produção, disparar job de backup
-    console.log("[ADMIN] Backup manual solicitado");
+    logger.info("[ADMIN] Backup manual solicitado");
     res.json({
       message: "Backup iniciado",
       timestamp: new Date().toISOString(),
@@ -1873,7 +1910,7 @@ router.post(
   "/system/clear-cache",
   asyncHandler(async (_req: Request, res: Response) => {
     // Em produção, limpar cache Redis
-    console.log("[ADMIN] Cache limpo");
+    logger.info("[ADMIN] Cache limpo");
     res.json({ message: "Cache limpo" });
   }),
 );
@@ -1882,7 +1919,7 @@ router.post(
   "/system/force-logout-all",
   asyncHandler(async (_req: Request, res: Response) => {
     // Em produção, invalidar todos os tokens
-    console.log("[ADMIN] Logout forçado de todos os usuários");
+    logger.warn("[ADMIN] Logout forçado de todos os usuários");
     res.json({ message: "Todos os usuários foram deslogados" });
   }),
 );

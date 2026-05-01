@@ -5,7 +5,8 @@
  */
 
 import * as ruleEngine from "./rule-engine.service";
-import prisma from '../config/database';
+import prisma from "../config/database";
+import { logger } from "../config/logger";
 
 
 interface ExpirationAlert {
@@ -154,7 +155,9 @@ async function recalculateProviderStatusOnExpiration(
       });
     }
   } catch (error) {
-    console.error("Error recalculating provider status on expiration:", error);
+    logger.error(
+      `Error recalculating provider status on expiration: ${error instanceof Error ? error.message : error}`,
+    );
   }
 }
 
@@ -169,34 +172,40 @@ export function scheduleExpirationCheck() {
   checkExpirations()
     .then((alerts) => {
       if (alerts.length > 0) {
-        console.log(
+        logger.info(
           `[ExpirationCheck] Found ${alerts.length} expiration alerts`,
         );
         alerts.forEach((a) => {
-          console.log(
-            `  - ${a.providerName}: ${a.entityType}/${a.itemType} → ${a.alertLevel} (${a.daysUntilExpiry} days)`,
+          logger.info(
+            `[ExpirationCheck] ${a.providerName}: ${a.entityType}/${a.itemType} → ${a.alertLevel} (${a.daysUntilExpiry} days)`,
           );
         });
       } else {
-        console.log("[ExpirationCheck] No expiration alerts");
+        logger.debug("[ExpirationCheck] No expiration alerts");
       }
     })
-    .catch((err) => console.error("[ExpirationCheck] Error:", err));
+    .catch((err) =>
+      logger.error(
+        `[ExpirationCheck] Error: ${err instanceof Error ? err.message : err}`,
+      ),
+    );
 
   // Schedule recurring checks
   setInterval(async () => {
     try {
       const alerts = await checkExpirations();
       if (alerts.length > 0) {
-        console.log(
+        logger.info(
           `[ExpirationCheck] Found ${alerts.length} expiration alerts`,
         );
         // TODO: Send push notifications / emails to providers with upcoming expirations
       }
     } catch (err) {
-      console.error("[ExpirationCheck] Error:", err);
+      logger.error(
+        `[ExpirationCheck] Error: ${err instanceof Error ? err.message : err}`,
+      );
     }
   }, SIX_HOURS);
 
-  console.log("[ExpirationCheck] Scheduled every 6 hours");
+  logger.info("[ExpirationCheck] Scheduled every 6 hours");
 }

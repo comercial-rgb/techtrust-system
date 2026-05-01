@@ -1,4 +1,5 @@
 /// <reference types="node" />
+import { logger } from "../src/config/logger";
 /**
  * ============================================
  * SEED - Dados Iniciais de Teste
@@ -13,12 +14,12 @@ import * as bcrypt from "bcrypt";
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🌱 Iniciando seed do banco de dados...\n");
+  logger.info("🌱 Iniciando seed do banco de dados...\n");
 
   // ===========================================
   // 1. Criar usuário ADMIN
   // ===========================================
-  console.log("1️⃣ Criando usuário ADMIN...");
+  logger.info("1️⃣ Criando usuário ADMIN...");
 
   const adminPassword = await bcrypt.hash("Admin123!", 10);
 
@@ -37,12 +38,12 @@ async function main() {
       phoneVerified: true,
     },
   });
-  console.log(`   ✅ Admin criado: ${admin.email}`);
+  logger.info(`   ✅ Admin criado: ${admin.email}`);
 
   // ===========================================
   // 1.5 Seed Subscription Plan Templates
   // ===========================================
-  console.log("\n📋 Seeding subscription plan templates...");
+  logger.info("\n📋 Seeding subscription plan templates...");
 
   const planTemplates = [
     {
@@ -117,12 +118,12 @@ async function main() {
       create: template,
     });
   }
-  console.log("   ✅ Plan templates seeded (Free, Starter, Pro, Enterprise)");
+  logger.info("   ✅ Plan templates seeded (Free, Starter, Pro, Enterprise)");
 
   // ===========================================
   // 2. Criar usuário CLIENT de teste
   // ===========================================
-  console.log("\n2️⃣ Criando usuário CLIENT de teste...");
+  logger.info("\n2️⃣ Criando usuário CLIENT de teste...");
 
   const clientPassword = await bcrypt.hash("Teste123!", 10);
 
@@ -145,7 +146,7 @@ async function main() {
       zipCode: "32801",
     },
   });
-  console.log(`   ✅ Cliente criado: ${client.email}`);
+  logger.info(`   ✅ Cliente criado: ${client.email}`);
 
   // Criar assinatura FREE para o cliente
   const existingSubscription = await prisma.subscription.findFirst({
@@ -164,15 +165,15 @@ async function main() {
         currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       },
     });
-    console.log("   ✅ Assinatura FREE criada");
+    logger.info("   ✅ Assinatura FREE criada");
   } else {
-    console.log("   ⚠️ Assinatura já existe");
+    logger.info("   ⚠️ Assinatura já existe");
   }
 
   // ===========================================
   // 3. Criar usuário PROVIDER de teste
   // ===========================================
-  console.log("\n3️⃣ Criando usuário PROVIDER de teste...");
+  logger.info("\n3️⃣ Criando usuário PROVIDER de teste...");
 
   const providerPassword = await bcrypt.hash("Teste123!", 10);
 
@@ -195,7 +196,7 @@ async function main() {
       zipCode: "32802",
     },
   });
-  console.log(`   ✅ Fornecedor criado: ${provider.email}`);
+  logger.info(`   ✅ Fornecedor criado: ${provider.email}`);
 
   // Criar perfil do fornecedor
   await prisma.providerProfile.upsert({
@@ -232,12 +233,12 @@ async function main() {
       },
     },
   });
-  console.log("   ✅ Perfil do fornecedor criado");
+  logger.info("   ✅ Perfil do fornecedor criado");
 
   // ===========================================
   // 4. Criar veículo de teste para o cliente
   // ===========================================
-  console.log("\n4️⃣ Criando veículo de teste...");
+  logger.info("\n4️⃣ Criando veículo de teste...");
 
   let vehicle = await prisma.vehicle.findFirst({
     where: { userId: client.id, plateNumber: "ABC1234" },
@@ -257,11 +258,11 @@ async function main() {
         isActive: true,
       },
     });
-    console.log(
+    logger.info(
       `   ✅ Veículo criado: ${vehicle.make} ${vehicle.model} - ${vehicle.plateNumber}`,
     );
   } else {
-    console.log(`   ⚠️ Veículo já existe: ${vehicle.make} ${vehicle.model}`);
+    logger.info(`   ⚠️ Veículo já existe: ${vehicle.make} ${vehicle.model}`);
   }
 
   // ===========================================
@@ -285,12 +286,12 @@ async function main() {
       },
     });
   }
-  console.log(`   ✅ Veículo 2 criado: ${vehicle2.make} ${vehicle2.model}`);
+  logger.info(`   ✅ Veículo 2 criado: ${vehicle2.make} ${vehicle2.model}`);
 
   // ===========================================
   // 6. Criar solicitação de serviço de exemplo
   // ===========================================
-  console.log("\n5️⃣ Criando solicitação de serviço...");
+  logger.info("\n5️⃣ Criando solicitação de serviço...");
 
   const requestNumber = `SR-${Date.now()}-SEED`;
 
@@ -312,12 +313,12 @@ async function main() {
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 horas
     },
   });
-  console.log(`   ✅ Solicitação criada: ${serviceRequest.requestNumber}`);
+  logger.info(`   ✅ Solicitação criada: ${serviceRequest.requestNumber}`);
 
   // ===========================================
   // 7. Criar orçamento do fornecedor
   // ===========================================
-  console.log("\n6️⃣ Criando orçamento...");
+  logger.info("\n6️⃣ Criando orçamento...");
 
   const quoteNumber = `QT-${Date.now()}-SEED`;
 
@@ -353,43 +354,43 @@ async function main() {
         "Peças originais ou de qualidade equivalente. Tempo estimado: 1h30.",
     },
   });
-  console.log(`   ✅ Orçamento criado: ${quote.quoteNumber}`);
-  console.log(`   💰 Valor total: R$ ${quote.totalAmount.toFixed(2)}`);
+  logger.info(`   ✅ Orçamento criado: ${quote.quoteNumber}`);
+  logger.info(`   💰 Valor total: R$ ${quote.totalAmount.toFixed(2)}`);
 
   // ===========================================
   // Resumo Final
   // ===========================================
-  console.log("\n" + "=".repeat(50));
-  console.log("✅ SEED CONCLUÍDO COM SUCESSO!");
-  console.log("=".repeat(50));
-  console.log("\n📋 Dados de teste criados:");
-  console.log("");
-  console.log("👤 ADMIN:");
-  console.log("   Email: admin@techtrust.com");
-  console.log("   Senha: Admin123!");
-  console.log("");
-  console.log("👤 CLIENTE:");
-  console.log("   Email: cliente@teste.com");
-  console.log("   Senha: Teste123!");
-  console.log("   Veículos: Honda Civic 2020, Toyota Corolla 2022");
-  console.log("");
-  console.log("👨‍🔧 FORNECEDOR:");
-  console.log("   Email: fornecedor@teste.com");
-  console.log("   Senha: Teste123!");
-  console.log("   Oficina: Oficina do João");
-  console.log("");
-  console.log("📝 SOLICITAÇÃO DE TESTE:");
-  console.log(`   Request: ${serviceRequest.requestNumber}`);
-  console.log(`   Quote: ${quote.quoteNumber}`);
-  console.log("");
-  console.log("🚀 Backend pronto para uso!");
-  console.log("   Execute: npm run dev");
-  console.log("");
+  logger.info("\n" + "=".repeat(50));
+  logger.info("✅ SEED CONCLUÍDO COM SUCESSO!");
+  logger.info("=".repeat(50));
+  logger.info("\n📋 Dados de teste criados:");
+  logger.info("");
+  logger.info("👤 ADMIN:");
+  logger.info("   Email: admin@techtrust.com");
+  logger.info("   Senha: Admin123!");
+  logger.info("");
+  logger.info("👤 CLIENTE:");
+  logger.info("   Email: cliente@teste.com");
+  logger.info("   Senha: Teste123!");
+  logger.info("   Veículos: Honda Civic 2020, Toyota Corolla 2022");
+  logger.info("");
+  logger.info("👨‍🔧 FORNECEDOR:");
+  logger.info("   Email: fornecedor@teste.com");
+  logger.info("   Senha: Teste123!");
+  logger.info("   Oficina: Oficina do João");
+  logger.info("");
+  logger.info("📝 SOLICITAÇÃO DE TESTE:");
+  logger.info(`   Request: ${serviceRequest.requestNumber}`);
+  logger.info(`   Quote: ${quote.quoteNumber}`);
+  logger.info("");
+  logger.info("🚀 Backend pronto para uso!");
+  logger.info("   Execute: npm run dev");
+  logger.info("");
 }
 
 main()
   .catch((e) => {
-    console.error("❌ Erro no seed:", e);
+    logger.error("❌ Erro no seed:", e);
     process.exit(1);
   })
   .finally(async () => {

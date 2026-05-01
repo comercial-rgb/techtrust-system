@@ -1,3 +1,4 @@
+import { logger } from "../src/config/logger";
 /**
  * Seed Car Wash Catalog Data
  * Pre-defined services, amenities, and payment methods
@@ -8,7 +9,7 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🚿 Seeding Car Wash catalog data...\n");
+  logger.info("🚿 Seeding Car Wash catalog data...\n");
 
   // ============================================
   // SERVICE CATALOG
@@ -74,7 +75,7 @@ async function main() {
       create: s,
     });
   }
-  console.log(`  ✅ ${services.length} car wash services created/updated`);
+  logger.info(`  ✅ ${services.length} car wash services created/updated`);
 
   // ============================================
   // AMENITY CATALOG
@@ -98,7 +99,7 @@ async function main() {
       create: a,
     });
   }
-  console.log(`  ✅ ${amenities.length} amenities created/updated`);
+  logger.info(`  ✅ ${amenities.length} amenities created/updated`);
 
   // ============================================
   // PAYMENT METHOD CATALOG
@@ -122,14 +123,14 @@ async function main() {
       create: pm,
     });
   }
-  console.log(`  ✅ ${paymentMethods.length} payment methods created/updated`);
+  logger.info(`  ✅ ${paymentMethods.length} payment methods created/updated`);
 
-  console.log("\n🎉 Car Wash catalog seed complete!\n");
+  logger.info("\n🎉 Car Wash catalog seed complete!\n");
 }
 
 main()
   .catch((e) => {
-    console.error("Error seeding car wash catalog:", e);
+    logger.error("Error seeding car wash catalog:", e);
     process.exit(1);
   })
   .finally(async () => {

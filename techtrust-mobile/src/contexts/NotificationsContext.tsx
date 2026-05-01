@@ -15,7 +15,7 @@ interface NotificationsState {
   unreadNotificationsCount: number;
 }
 
-interface NotificationsContextType extends NotificationsState {
+export interface NotificationsContextType extends NotificationsState {
   // Messages
   markMessagesAsRead: (chatId?: string) => void;
   incrementUnreadMessages: (count?: number) => void;
@@ -198,13 +198,29 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     try {
       const api = (await import('../services/api')).default;
       const response = await api.get('/notifications/counts');
-      const data = response.data.data || response.data;
-      setState(prev => ({
-        ...prev,
-        unreadMessagesCount: data.unreadMessages ?? prev.unreadMessagesCount,
-        pendingRequestsCount: data.pendingRequests ?? prev.pendingRequestsCount,
-        unreadNotificationsCount: data.unreadNotifications ?? prev.unreadNotificationsCount,
-      }));
+      const data = response.data?.data ?? response.data;
+      if (!data || typeof data !== 'object') return;
+
+      const body = data as Record<string, unknown>;
+      setState((prev) => {
+        const newState = {
+          ...prev,
+          unreadMessagesCount:
+            typeof body.unreadMessages === 'number'
+              ? body.unreadMessages
+              : prev.unreadMessagesCount,
+          pendingRequestsCount:
+            typeof body.pendingRequests === 'number'
+              ? body.pendingRequests
+              : prev.pendingRequestsCount,
+          unreadNotificationsCount:
+            typeof body.unreadNotifications === 'number'
+              ? body.unreadNotifications
+              : prev.unreadNotificationsCount,
+        };
+        void saveCounts(newState);
+        return newState;
+      });
     } catch (error) {
       // Silently fail - counts will update next time
     }
@@ -237,4 +253,9 @@ export function useNotifications() {
     throw new Error('useNotifications must be used within a NotificationsProvider');
   }
   return context;
+}
+
+/** Use when a screen may render outside NotificationsProvider (e.g. tests, storybook). */
+export function useNotificationsOptional(): NotificationsContextType | undefined {
+  return useContext(NotificationsContext);
 }

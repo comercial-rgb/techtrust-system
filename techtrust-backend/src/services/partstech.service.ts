@@ -24,7 +24,8 @@
  */
 
 import axios, { AxiosInstance } from 'axios';
-import prisma from '../config/database';
+import prisma from "../config/database";
+import { logger } from "../config/logger";
 
 
 // ═══════════════════════════════════════════════
@@ -102,7 +103,7 @@ export async function connectPartsTechAccount(
       connectedAt: new Date(),
     };
   } catch (error: any) {
-    console.error('[PARTSTECH] Connection error:', error.message);
+    logger.error(`[PARTSTECH] Connection error: ${error.message}`);
     return {
       connected: false,
       error: 'Failed to connect PartsTech account. Please try again.',
@@ -224,7 +225,7 @@ export async function searchPartsByVIN(
       vin,
     };
   } catch (error: any) {
-    console.error('[PARTSTECH] Search error:', error.message);
+    logger.error(`[PARTSTECH] Search error: ${error.message}`);
     return {
       success: false,
       parts: [],
@@ -313,7 +314,9 @@ async function validatePartsTechApiKey(apiKey: string): Promise<boolean> {
     }
     // Se for outro erro (timeout, rede), presumir que key pode ser válida
     // mas API indisponível — logar e retornar true para não bloquear
-    console.warn('[PARTSTECH] Validation request failed (non-auth):', error.message);
+    logger.warn(
+      `[PARTSTECH] Validation request failed (non-auth): ${error.message}`,
+    );
     return true;
   }
 }

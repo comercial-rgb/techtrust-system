@@ -112,11 +112,28 @@ export default function ServicoDetalhesPage() {
 
   async function handleStartService() {
     if (!workOrder) return
-    
+
+    const isPaymentHold = workOrder.status === 'PAYMENT_HOLD'
+    if (isPaymentHold) {
+      const ok = confirm(
+        t('services.detail.paymentHoldStartWaiver') ||
+          'Esta ordem tem pré-autorização no cartão do cliente. Para iniciar sem fotos “antes” do veículo, você assume a responsabilidade por reclamações de danos, conforme política TechTrust. Deseja continuar?',
+      )
+      if (!ok) return
+    }
+
     setActionLoading(true)
     try {
-      await api.post(`/work-orders/${workOrder.id}/start`)
-      
+      const body =
+        isPaymentHold
+          ? {
+              skipBeforePhotos: true,
+              waiveBeforePhotosReason:
+                'Provider acknowledged waiver via TechTrust Provider Dashboard (before-condition photos skipped).',
+            }
+          : {}
+      await api.post(`/work-orders/${workOrder.id}/start`, body)
+
       // Reload the work order to get updated data from the server
       await loadWorkOrder()
     } catch (error: any) {
@@ -152,6 +169,7 @@ export default function ServicoDetalhesPage() {
   const getStatusInfo = (status: string) => {
     const statuses: Record<string, { label: string; color: string; bgColor: string }> = {
       PENDING_START: { label: t('services.detail.pendingStart'), color: 'text-yellow-700', bgColor: 'bg-yellow-100' },
+      PAYMENT_HOLD: { label: t('services.detail.paymentHold') || 'Pagamento autorizado (hold)', color: 'text-violet-700', bgColor: 'bg-violet-100' },
       IN_PROGRESS: { label: t('common.status.inProgress'), color: 'text-blue-700', bgColor: 'bg-blue-100' },
       AWAITING_APPROVAL: { label: t('common.status.awaitingApproval'), color: 'text-purple-700', bgColor: 'bg-purple-100' },
       COMPLETED: { label: t('common.status.completed'), color: 'text-green-700', bgColor: 'bg-green-100' },
@@ -255,7 +273,7 @@ export default function ServicoDetalhesPage() {
 
           {/* Action buttons */}
           <div className="flex flex-wrap gap-3">
-            {workOrder.status === 'PENDING_START' && (
+            {(workOrder.status === 'PENDING_START' || workOrder.status === 'PAYMENT_HOLD') && (
               <button
                 onClick={handleStartService}
                 disabled={actionLoading}

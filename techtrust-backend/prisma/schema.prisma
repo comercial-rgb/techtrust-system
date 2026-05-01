@@ -1342,6 +1342,17 @@ model Payment {
   @@map("payments")
 }
 
+/// Stripe webhook delivery id (evt_...) — dedupe at-least-once retries.
+model StripeWebhookEvent {
+  id          String    @id
+  type        String
+  receivedAt  DateTime  @default(now())
+  processedAt DateTime?
+
+  @@index([processedAt])
+  @@map("stripe_webhook_events")
+}
+
 model Subscription {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())

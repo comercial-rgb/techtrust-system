@@ -4,6 +4,7 @@ import path from "path";
 import fs from "fs";
 import { v2 as cloudinary } from "cloudinary";
 import { authenticate } from "../middleware/auth";
+import { logger } from "../config/logger";
 
 const router = Router();
 
@@ -21,10 +22,10 @@ if (useCloudinary) {
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET,
   });
-  console.log("✅ Cloudinary configured for image uploads");
+  logger.info("Cloudinary configured for image uploads");
 } else {
-  console.log(
-    "⚠️ Cloudinary not configured - using local storage (images will be lost on redeploy)",
+  logger.warn(
+    "Cloudinary not configured — using local storage (images may be lost on redeploy)",
   );
 }
 
@@ -96,8 +97,8 @@ const uploadToCloudinary = (
         {
           public_id: publicId,
           folder: "techtrust",
-        resource_type: "auto",
-        transformation: [],  // No transformation for PDFs
+          resource_type: "auto",
+          transformation: [],
         },
         (error, result) => {
           if (error) {
@@ -140,7 +141,7 @@ router.post(
         imageUrl = result.secure_url;
         filename = result.public_id;
 
-        console.log(`✅ Image uploaded to Cloudinary: ${imageUrl}`);
+        logger.info(`Image uploaded to Cloudinary: ${imageUrl}`);
       } else {
         // Local storage fallback
         const protocol = req.protocol;
@@ -150,7 +151,7 @@ router.post(
         imageUrl = `${baseUrl}/uploads/${req.file.filename}`;
         filename = req.file.filename!;
 
-        console.log(`📁 Image saved locally: ${imageUrl}`);
+        logger.info(`Image saved locally: ${imageUrl}`);
       }
 
       return res.json({
@@ -164,7 +165,7 @@ router.post(
         storage: useCloudinary ? "cloudinary" : "local",
       });
     } catch (error: any) {
-      console.error("Upload error:", error);
+      logger.error(`Upload error: ${error?.message || String(error)}`);
       return res
         .status(500)
         .json({ error: error.message || "Error uploading file" });
@@ -187,7 +188,7 @@ router.delete(
           ? filename
           : `techtrust/${filename}`;
         await cloudinary.uploader.destroy(publicId);
-        console.log(`✅ Image deleted from Cloudinary: ${publicId}`);
+        logger.info(`Image deleted from Cloudinary: ${publicId}`);
       } else {
         // Delete from local storage
         const filePath = path.join(__dirname, "../../uploads", filename);
@@ -201,7 +202,7 @@ router.delete(
 
       return res.json({ success: true, message: "File deleted successfully" });
     } catch (error: any) {
-      console.error("Delete error:", error);
+      logger.error(`Delete upload error: ${error?.message || String(error)}`);
       return res
         .status(500)
         .json({ error: error.message || "Error deleting file" });

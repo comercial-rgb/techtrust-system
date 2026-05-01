@@ -20,7 +20,8 @@
  */
 
 
-import prisma from '../config/database';
+import prisma from "../config/database";
+import { logger } from "../config/logger";
 
 
 // ═══════════════════════════════════════════════
@@ -111,11 +112,13 @@ export async function captureMileageFromService(params: {
       },
     });
 
-    console.log(
-      `[MILEAGE] Auto-captured ${params.mileage} mi for vehicle ${params.vehicleId} from ${params.source}`,
+    logger.debug(
+      `[MILEAGE] Auto-captured mileage for vehicle ${params.vehicleId} from ${params.source}`,
     );
   } catch (err) {
-    console.error('[MILEAGE] captureMileageFromService error:', err);
+    logger.error(
+      `[MILEAGE] captureMileageFromService error: ${err instanceof Error ? err.message : err}`,
+    );
     // Falha silenciosa
   }
 }
@@ -187,10 +190,10 @@ export async function checkStaleMileageAndNotify(): Promise<{
           type: 'SYSTEM_ALERT',
           title: 'Update Your Mileage',
           message: `Keep your ${vehicle.year} ${vehicle.make} ${vehicle.model} maintenance schedule accurate. Tap to update your current mileage.`,
-          data: JSON.stringify({
-            action: 'UPDATE_MILEAGE',
+          data: {
+            action: "UPDATE_MILEAGE",
             vehicleId: vehicle.id,
-          }),
+          },
         },
       });
 
@@ -207,12 +210,14 @@ export async function checkStaleMileageAndNotify(): Promise<{
     }
 
     if (result.notified > 0) {
-      console.log(
+      logger.info(
         `[MILEAGE] Stale check: ${result.checked} vehicles checked, ${result.notified} notified`,
       );
     }
   } catch (err) {
-    console.error('[MILEAGE] checkStaleMileageAndNotify error:', err);
+    logger.error(
+      `[MILEAGE] checkStaleMileageAndNotify error: ${err instanceof Error ? err.message : err}`,
+    );
   }
 
   return result;
@@ -337,8 +342,8 @@ export async function updateMileageManual(params: {
     },
   });
 
-  console.log(
-    `[MILEAGE] Manual update: ${vehicle.currentMileage} → ${params.mileage} for vehicle ${params.vehicleId}`,
+  logger.debug(
+    `[MILEAGE] Manual mileage update for vehicle ${params.vehicleId}`,
   );
 
   return {
@@ -406,15 +411,23 @@ export function startMileageReminderCron(): void {
 
   // Rodar imediatamente na inicialização (com delay de 30s)
   setTimeout(() => {
-    checkStaleMileageAndNotify().catch(console.error);
+    checkStaleMileageAndNotify().catch((err) =>
+      logger.error(
+        `[MILEAGE] cron error: ${err instanceof Error ? err.message : err}`,
+      ),
+    );
   }, 30_000);
 
   // Depois a cada 12h
   mileageCronInterval = setInterval(() => {
-    checkStaleMileageAndNotify().catch(console.error);
+    checkStaleMileageAndNotify().catch((err) =>
+      logger.error(
+        `[MILEAGE] cron error: ${err instanceof Error ? err.message : err}`,
+      ),
+    );
   }, TWELVE_HOURS);
 
-  console.log('[MILEAGE] Reminder cron started (every 12h)');
+  logger.info("[MILEAGE] Reminder cron started (every 12h)");
 }
 
 /**
@@ -424,6 +437,6 @@ export function stopMileageReminderCron(): void {
   if (mileageCronInterval) {
     clearInterval(mileageCronInterval);
     mileageCronInterval = null;
-    console.log('[MILEAGE] Reminder cron stopped');
+    logger.info("[MILEAGE] Reminder cron stopped");
   }
 }

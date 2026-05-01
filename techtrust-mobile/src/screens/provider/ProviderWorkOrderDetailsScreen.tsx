@@ -37,7 +37,15 @@ interface QuoteLineItem {
 interface WorkOrder {
   id: string;
   orderNumber: string;
-  status: 'PENDING_START' | 'IN_PROGRESS' | 'AWAITING_APPROVAL' | 'COMPLETED';
+  status:
+    | 'PENDING_START'
+    | 'PAYMENT_HOLD'
+    | 'IN_PROGRESS'
+    | 'SUPPLEMENT_REQUESTED'
+    | 'AWAITING_APPROVAL'
+    | 'COMPLETED'
+    | 'CANCELLED'
+    | 'DISPUTED';
   finalAmount: number;
   createdAt: string;
   startedAt?: string;
@@ -126,28 +134,66 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
   const handleStartService = async () => {
     if (!workOrder) return;
 
+    const isPaymentHold = workOrder.status === 'PAYMENT_HOLD';
+
+    const doStart = async () => {
+      setActionLoading(true);
+      try {
+        const body =
+          isPaymentHold
+            ? {
+                skipBeforePhotos: true,
+                waiveBeforePhotosReason:
+                  'Provider acknowledged waiver via TechTrust mobile app (before-condition photos skipped).',
+              }
+            : {};
+        await api.post(`/work-orders/${workOrderId}/start`, body);
+        await loadWorkOrder();
+        Alert.alert(
+          t.common?.success || 'Success',
+          t.workOrder?.serviceStartedSuccess || 'Service started successfully!',
+        );
+      } catch (error: any) {
+        const msg =
+          error.response?.data?.message ||
+          t.workOrder?.couldNotStart ||
+          'Could not start the service.';
+        Alert.alert(t.common?.error || 'Error', msg);
+      } finally {
+        setActionLoading(false);
+      }
+    };
+
+    if (isPaymentHold) {
+      Alert.alert(
+        t.workOrder?.startService || 'Start Service',
+        t.workOrder?.paymentHoldStartWaiverBody ||
+          'A payment hold is active on this job. Either upload before photos using the full workflow, or confirm you are skipping before photos and accept responsibility for damage claims, as required by TechTrust.',
+        [
+          { text: t.common?.cancel || 'Cancel', style: 'cancel' },
+          {
+            text:
+              t.workOrder?.skipBeforePhotosConfirm ||
+              'Skip before photos — I accept responsibility',
+            style: 'destructive',
+            onPress: () => void doStart(),
+          },
+        ],
+      );
+      return;
+    }
+
     Alert.alert(
       t.workOrder?.startService || 'Start Service',
-      t.workOrder?.confirmStartService || 'Confirm you want to start this service now?',
+      t.workOrder?.confirmStartService ||
+        'Confirm you want to start this service now?',
       [
         { text: t.common?.cancel || 'Cancel', style: 'cancel' },
         {
           text: t.workOrder?.start || 'Start',
-          onPress: async () => {
-            setActionLoading(true);
-            try {
-              await api.post(`/work-orders/${workOrderId}/start`);
-              await loadWorkOrder();
-              Alert.alert(t.common?.success || 'Success', t.workOrder?.serviceStartedSuccess || 'Service started successfully!');
-            } catch (error: any) {
-              const msg = error.response?.data?.message || t.workOrder?.couldNotStart || 'Could not start the service.';
-              Alert.alert(t.common?.error || 'Error', msg);
-            } finally {
-              setActionLoading(false);
-            }
-          },
+          onPress: () => void doStart(),
         },
-      ]
+      ],
     );
   };
 
@@ -156,10 +202,11 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
 
     setActionLoading(true);
     try {
-      await serviceFlowService.completeService(
+      await serviceFlowService.completeService({
         workOrderId,
-        completionNotes || undefined
-      );
+        completionNotes: completionNotes || undefined,
+        clientPresent: true,
+      });
       setShowCompleteModal(false);
       await loadWorkOrder();
       Alert.alert(t.common?.success || 'Success', t.workOrder?.markedAsCompleted || 'Service marked as completed! Awaiting customer approval.');
@@ -188,7 +235,9 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
   const canProviderCancel = useMemo(() => {
     if (!workOrder) return false;
     // Can cancel before start or while in progress (with penalty)
-    return ['PENDING_START', 'IN_PROGRESS'].includes(workOrder.status);
+    return ['PENDING_START', 'PAYMENT_HOLD', 'IN_PROGRESS'].includes(
+      workOrder.status,
+    );
   }, [workOrder]);
 
   // Handle provider cancellation
@@ -203,7 +252,11 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
 
     setActionLoading(true);
     try {
-      await serviceFlowService.requestCancellation(workOrderId, cancelReason);
+      await serviceFlowService.providerCancelService({
+        workOrderId,
+        reason: cancelReason.trim(),
+        hasIncurredCosts: false,
+      });
       
       const penaltyPoints = PROVIDER_POINTS_SYSTEM.NEGATIVE_ACTIONS.CANCEL_AFTER_ACCEPT;
       
@@ -227,6 +280,7 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
   const getStatusInfo = (status: string) => {
     const statuses: Record<string, { icon: string; color: string; bg: string; label: string }> = {
       PENDING_START: { icon: 'clock-outline', color: '#f59e0b', bg: '#fef3c7', label: t.workOrder?.statusPendingStart || 'Pending Start' },
+      PAYMENT_HOLD: { icon: 'credit-card-outline', color: '#7c3aed', bg: '#ede9fe', label: t.workOrder?.paymentHold || 'Payment hold' },
       IN_PROGRESS: { icon: 'progress-wrench', color: '#3b82f6', bg: '#dbeafe', label: t.workOrder?.statusInProgress || 'In Progress' },
       AWAITING_APPROVAL: { icon: 'clock-check-outline', color: '#8b5cf6', bg: '#ede9fe', label: t.workOrder?.statusAwaitingApproval || 'Awaiting Approval' },
       COMPLETED: { icon: 'check-circle', color: '#10b981', bg: '#d1fae5', label: t.workOrder?.statusCompleted || 'Completed' },
@@ -287,7 +341,8 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
 
         {/* Action Buttons */}
         <View style={styles.actionsContainer}>
-          {workOrder.status === 'PENDING_START' && (
+          {(workOrder.status === 'PENDING_START' ||
+            workOrder.status === 'PAYMENT_HOLD') && (
             <TouchableOpacity
               style={[styles.actionButton, styles.startButton]}
               onPress={handleStartService}
@@ -847,16 +902,16 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
                     const totalAmount = validItems.reduce((sum, item) => {
                       return sum + (parseFloat(item.quantity) || 0) * (parseFloat(item.unitPrice) || 0);
                     }, 0);
-                    await serviceFlowService.requestSupplement(
+                    await serviceFlowService.requestSupplement({
                       workOrderId,
-                      totalAmount,
-                      additionalPartsReason,
-                      validItems.map(item => ({
+                      description: additionalPartsReason.trim(),
+                      additionalAmount: totalAmount,
+                      additionalParts: validItems.map(item => ({
                         description: item.description,
                         quantity: parseFloat(item.quantity) || 1,
                         unitPrice: parseFloat(item.unitPrice) || 0,
-                      }))
-                    );
+                      })),
+                    });
                     setShowAdditionalPartsModal(false);
                     setAdditionalPartsReason('');
                     setAdditionalItems([{ type: 'part', description: '', quantity: '1', unitPrice: '' }]);

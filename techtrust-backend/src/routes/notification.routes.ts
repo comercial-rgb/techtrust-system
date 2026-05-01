@@ -37,10 +37,17 @@ router.get(
 
     res.json({
       success: true,
-      data: notifications.map((n) => ({
-        ...n,
-        data: typeof n.data === 'string' ? JSON.parse(n.data) : n.data,
-      })),
+      data: notifications.map((n) => {
+        let parsedData: unknown = n.data;
+        if (typeof n.data === "string") {
+          try {
+            parsedData = JSON.parse(n.data);
+          } catch {
+            parsedData = { _parseError: true, _raw: n.data };
+          }
+        }
+        return { ...n, data: parsedData };
+      }),
     });
   }),
 );
