@@ -52,6 +52,7 @@ interface SocialLoginResult {
   fullName?: string;
   phone?: string | null;
   provider?: string;
+  userRole?: string;
 }
 
 interface AuthContextType {
@@ -69,6 +70,7 @@ interface AuthContextType {
     provider: string,
     token: string,
     extra?: { appleUserId?: string; fullName?: string },
+    role?: "CLIENT" | "PROVIDER",
   ) => Promise<SocialLoginResult>;
   completeSocialSignup: (
     userId: string,
@@ -507,6 +509,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     provider: string,
     token: string,
     extra?: { appleUserId?: string; fullName?: string },
+    role?: "CLIENT" | "PROVIDER",
   ): Promise<SocialLoginResult> => {
     try {
       const response = await api.post("/auth/social", {
@@ -514,6 +517,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         token,
         appleUserId: extra?.appleUserId,
         fullName: extra?.fullName,
+        ...(role ? { role } : {}),
       });
 
       const data = response.data.data;
@@ -567,6 +571,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         fullName: data.fullName,
         phone: data.phone,
         provider: data.provider,
+        userRole: data.user?.role,
       };
     } catch (error: any) {
       const message =

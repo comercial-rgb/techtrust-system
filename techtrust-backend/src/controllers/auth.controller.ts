@@ -868,7 +868,12 @@ export const socialLogin = async (req: Request, res: Response) => {
       appleUserId,
       fullName: providedName,
       phone,
+      role: requestedRole,
     } = req.body;
+
+    // Only CLIENT and PROVIDER are valid roles for social signup
+    const intendedRole: "CLIENT" | "PROVIDER" =
+      requestedRole === "PROVIDER" ? "PROVIDER" : "CLIENT";
 
     if (!provider || !token) {
       throw new AppError(
@@ -1060,20 +1065,22 @@ export const socialLogin = async (req: Request, res: Response) => {
       newPasswordHash = await hashPassword(randomPass);
     }
 
+    const newUserFullName =
+      socialUser.name || providedName || socialUser.email.split("@")[0];
+
     const newUser = await prisma.user.create({
       data: {
-        fullName:
-          socialUser.name || providedName || socialUser.email.split("@")[0],
+        fullName: newUserFullName,
         email: socialUser.email.toLowerCase(),
         phone: newUserPhone,
         passwordHash: newPasswordHash,
         authProvider: provider.toUpperCase(),
         [socialIdField]: socialUser.id,
         avatarUrl: socialUser.picture || null,
-        emailVerified: true, // Verified by social provider
+        emailVerified: true,
         phoneVerified: hasRealPhone,
         status: isApple ? "ACTIVE" : "PENDING_VERIFICATION",
-        role: "CLIENT",
+        role: intendedRole,
         language: "EN",
       },
     });
@@ -1091,7 +1098,20 @@ export const socialLogin = async (req: Request, res: Response) => {
       },
     });
 
-    logger.info(`New social user created (${provider}): ${newUser.email}`);
+    // Create placeholder providerProfile so the app can route them to onboarding
+    if (intendedRole === "PROVIDER") {
+      await prisma.providerProfile.create({
+        data: {
+          userId: newUser.id,
+          businessName: newUserFullName,
+          businessType: "AUTO_REPAIR",
+        },
+      });
+    }
+
+    logger.info(
+      `New social user created (${provider}, role=${intendedRole}): ${newUser.email}`,
+    );
 
     // Apple: return AUTHENTICATED directly (no password screen)
     if (isApple) {

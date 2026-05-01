@@ -108,6 +108,19 @@ export default function LoginScreen({ navigation }: any) {
     }
   };
 
+  // Validate role after social auth — provider tab must return a PROVIDER account
+  const validateSocialRole = (userRole: string | undefined): boolean => {
+    if (loginType === "provider" && userRole && userRole !== "PROVIDER") {
+      Alert.alert(
+        "Wrong account type",
+        "This Google/Apple account is linked to a customer account. To access the provider dashboard, please register a provider account or sign in with your provider email and password.",
+        [{ text: "OK" }],
+      );
+      return false;
+    }
+    return true;
+  };
+
   // Handle Google Sign-In
   const handleGoogleLogin = async () => {
     setSocialLoading("google");
@@ -115,13 +128,15 @@ export default function LoginScreen({ navigation }: any) {
       const googleUser = await signInWithGoogle();
 
       if (googleUser) {
-        // Send to backend for authentication/registration
         const result = await socialLogin("GOOGLE", googleUser.id, {
           fullName: googleUser.name,
         });
 
+        if (result.status === "AUTHENTICATED") {
+          if (!validateSocialRole(result.userRole)) return;
+        }
+
         if (result.status === "NEEDS_PASSWORD") {
-          // Navigate to complete signup screen
           navigation.navigate("CompleteSocialSignup", {
             userId: result.userId,
             email: result.email,
@@ -130,7 +145,6 @@ export default function LoginScreen({ navigation }: any) {
             provider: "Google",
           });
         }
-        // If AUTHENTICATED, AuthContext already set the user
       }
     } catch (error: any) {
       if (error.message !== "Google Sign-In not configured") {
@@ -157,11 +171,14 @@ export default function LoginScreen({ navigation }: any) {
       const appleUser = await signInWithApple();
 
       if (appleUser) {
-        // Send to backend for authentication/registration
         const result = await socialLogin("APPLE", appleUser.identityToken, {
           appleUserId: appleUser.id,
           fullName: appleUser.fullName || undefined,
         });
+
+        if (result.status === "AUTHENTICATED") {
+          if (!validateSocialRole(result.userRole)) return;
+        }
 
         if (result.status === "NEEDS_PASSWORD") {
           navigation.navigate("CompleteSocialSignup", {
@@ -186,7 +203,6 @@ export default function LoginScreen({ navigation }: any) {
     } else if (provider === "apple") {
       handleAppleLogin();
     } else {
-      // Facebook - will be implemented with expo-facebook SDK
       Alert.alert(
         t.common?.comingSoon || "Coming Soon",
         `Facebook ${t.auth?.socialLoginComingSoon || "login will be available soon!"}`,
@@ -508,6 +524,16 @@ export default function LoginScreen({ navigation }: any) {
               <View style={styles.dividerLine} />
             </View>
 
+            {/* Social Login info */}
+            <View style={styles.socialInfoBanner}>
+              <MaterialCommunityIcons name="information-outline" size={15} color="#6b7280" />
+              <Text style={styles.socialInfoText}>
+                {loginType === "provider"
+                  ? "If your Google/Apple account is already linked to a provider account, you'll sign in directly. Otherwise, use email & password above."
+                  : "If you already have an account with this email, it will be linked automatically."}
+              </Text>
+            </View>
+
             {/* Social Login */}
             <View style={styles.socialContainer}>
               <TouchableOpacity
@@ -813,6 +839,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     color: "#9ca3af",
     fontSize: 14,
+  },
+  socialInfoBanner: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 6,
+    backgroundColor: "#f9fafb",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginBottom: 12,
+  },
+  socialInfoText: {
+    flex: 1,
+    fontSize: 12,
+    color: "#6b7280",
+    lineHeight: 17,
   },
   socialContainer: {
     flexDirection: "row",
