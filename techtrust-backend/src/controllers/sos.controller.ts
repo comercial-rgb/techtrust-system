@@ -521,20 +521,13 @@ export const updateAvailability = async (req: Request, res: Response) => {
     throw new AppError(`status must be one of: ${validStatuses.join(", ")}`, 400, "INVALID_STATUS");
   }
 
-  // Ensure profile row exists
-  await prisma.$executeRawUnsafe(`
-    INSERT INTO "provider_profiles" ("id", "userId", "updatedAt")
-    VALUES (gen_random_uuid(), $1, NOW())
-    ON CONFLICT ("userId") DO NOTHING
-  `, providerId);
-
-  await prisma.$executeRawUnsafe(`
-    UPDATE "provider_profiles"
-    SET "availabilityStatus" = $2,
-        ${status === "ONLINE" ? '"lastOnlineAt" = NOW(),' : ""}
-        "updatedAt" = NOW()
-    WHERE "userId" = $1
-  `, providerId, status);
+  await prisma.providerProfile.update({
+    where: { userId: providerId },
+    data: {
+      availabilityStatus: status,
+      ...(status === "ONLINE" ? { lastOnlineAt: new Date() } : {}),
+    },
+  });
 
   res.json({ success: true, data: { availabilityStatus: status } });
 };
