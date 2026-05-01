@@ -1068,6 +1068,7 @@ export const socialLogin = async (req: Request, res: Response) => {
     const newUserFullName =
       socialUser.name || providedName || socialUser.email.split("@")[0];
 
+    // Single atomic transaction: user + subscription + providerProfile (if PROVIDER)
     const newUser = await prisma.user.create({
       data: {
         fullName: newUserFullName,
@@ -1082,32 +1083,28 @@ export const socialLogin = async (req: Request, res: Response) => {
         status: isApple ? "ACTIVE" : "PENDING_VERIFICATION",
         role: intendedRole,
         language: "EN",
-      },
-    });
-
-    // Create FREE subscription
-    await prisma.subscription.create({
-      data: {
-        userId: newUser.id,
-        plan: "FREE",
-        price: 0,
-        maxVehicles: 1,
-        status: "ACTIVE",
-        currentPeriodStart: new Date(),
-        currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      },
-    });
-
-    // Create placeholder providerProfile so the app can route them to onboarding
-    if (intendedRole === "PROVIDER") {
-      await prisma.providerProfile.create({
-        data: {
-          userId: newUser.id,
-          businessName: newUserFullName,
-          businessType: "AUTO_REPAIR",
+        subscriptions: {
+          create: {
+            plan: "FREE",
+            price: 0,
+            maxVehicles: 1,
+            status: "ACTIVE",
+            currentPeriodStart: new Date(),
+            currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          },
         },
-      });
-    }
+        ...(intendedRole === "PROVIDER"
+          ? {
+              providerProfile: {
+                create: {
+                  businessName: newUserFullName,
+                  businessType: "AUTO_REPAIR",
+                },
+              },
+            }
+          : {}),
+      },
+    });
 
     logger.info(
       `New social user created (${provider}, role=${intendedRole}): ${newUser.email}`,

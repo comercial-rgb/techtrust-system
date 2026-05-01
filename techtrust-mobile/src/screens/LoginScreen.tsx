@@ -128,7 +128,7 @@ export default function LoginScreen({ navigation }: any) {
       const googleUser = await signInWithGoogle();
 
       if (googleUser) {
-        const result = await socialLogin("GOOGLE", googleUser.id, {
+        const result = await socialLogin("GOOGLE", googleUser.accessToken, {
           fullName: googleUser.name,
         });
 

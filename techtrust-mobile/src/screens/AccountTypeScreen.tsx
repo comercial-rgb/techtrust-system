@@ -128,7 +128,7 @@ export default function AccountTypeScreen({ navigation }: any) {
       if (pendingSocialProvider === "google") {
         const googleUser = await signInWithGoogle();
         if (!googleUser) { setSocialLoading(false); return; }
-        result = await socialLogin("GOOGLE", googleUser.id, { fullName: googleUser.name }, role);
+        result = await socialLogin("GOOGLE", googleUser.accessToken, { fullName: googleUser.name }, role);
       } else {
         const appleUser = await signInWithApple();
         if (!appleUser) { setSocialLoading(false); return; }

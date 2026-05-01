@@ -41,6 +41,7 @@ export interface GoogleUser {
   email: string;
   name: string;
   picture?: string;
+  accessToken: string;
 }
 
 export async function signInWithGoogle(): Promise<GoogleUser | null> {
@@ -93,6 +94,7 @@ export async function signInWithGoogle(): Promise<GoogleUser | null> {
         email: userInfo.email,
         name: userInfo.name,
         picture: userInfo.picture,
+        accessToken: result.authentication.accessToken,
       };
     }
 
