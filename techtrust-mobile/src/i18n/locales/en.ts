@@ -880,7 +880,7 @@ export default {
     getStarted: "Get Started",
     completeSetup: "Complete your setup",
     setupProfile: "Complete your business profile",
-    addServices: "Add your services & pricing",
+    addServices: "Add your services",
     setHours: "Set your working hours",
     defineArea: "Define your service area",
     noRequestsYet: "No pending requests",

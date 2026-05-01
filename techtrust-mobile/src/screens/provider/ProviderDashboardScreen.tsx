@@ -475,38 +475,53 @@ export default function ProviderDashboardScreen({ navigation }: any) {
         {/* Onboarding Checklist — only for new providers */}
         {showNewProvider && (
           <View style={styles.onboardingContainer}>
-            <View style={styles.onboardingHeader}>
-              <MaterialCommunityIcons name="rocket-launch" size={24} color="#2B5EA7" />
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={styles.onboardingTitle}>
-                  {t.provider?.getStarted || 'Get Started'}
+            {completedSteps === totalSteps ? (
+              // All steps done — show completion state
+              <View style={{ alignItems: 'center', paddingVertical: 8 }}>
+                <MaterialCommunityIcons name="check-decagram" size={40} color="#10b981" />
+                <Text style={{ fontSize: 17, fontWeight: '700', color: '#1f2937', marginTop: 10 }}>
+                  You're all set!
                 </Text>
-                <Text style={styles.onboardingSubtitle}>
-                  {t.provider?.completeSetup || `Complete your setup (${completedSteps}/${totalSteps})`}
+                <Text style={{ fontSize: 13, color: '#6b7280', marginTop: 4, textAlign: 'center' }}>
+                  Your profile is ready. You'll start receiving service requests from customers in your area.
                 </Text>
               </View>
-            </View>
-            {/* Progress bar */}
-            <View style={styles.progressBarBg}>
-              <View style={[styles.progressBarFill, { width: `${(completedSteps / totalSteps) * 100}%` }]} />
-            </View>
-            {onboardingChecklist.map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                style={styles.checklistItem}
-                onPress={item.action}
-              >
-                <MaterialCommunityIcons
-                  name={item.done ? 'check-circle' : 'circle-outline'}
-                  size={22}
-                  color={item.done ? '#10b981' : '#d1d5db'}
-                />
-                <Text style={[styles.checklistLabel, item.done && styles.checklistLabelDone]}>
-                  {item.label}
-                </Text>
-                <MaterialCommunityIcons name="chevron-right" size={18} color="#9ca3af" />
-              </TouchableOpacity>
-            ))}
+            ) : (
+              <>
+                <View style={styles.onboardingHeader}>
+                  <MaterialCommunityIcons name="rocket-launch" size={24} color="#2B5EA7" />
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={styles.onboardingTitle}>
+                      {t.provider?.getStarted || 'Get Started'}
+                    </Text>
+                    <Text style={styles.onboardingSubtitle}>
+                      {`${completedSteps}/${totalSteps} steps complete`}
+                    </Text>
+                  </View>
+                </View>
+                {/* Progress bar */}
+                <View style={styles.progressBarBg}>
+                  <View style={[styles.progressBarFill, { width: `${(completedSteps / totalSteps) * 100}%` }]} />
+                </View>
+                {onboardingChecklist.map((item) => (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={styles.checklistItem}
+                    onPress={item.action}
+                  >
+                    <MaterialCommunityIcons
+                      name={item.done ? 'check-circle' : 'circle-outline'}
+                      size={22}
+                      color={item.done ? '#10b981' : '#d1d5db'}
+                    />
+                    <Text style={[styles.checklistLabel, item.done && styles.checklistLabelDone]}>
+                      {item.label}
+                    </Text>
+                    {!item.done && <MaterialCommunityIcons name="chevron-right" size={18} color="#9ca3af" />}
+                  </TouchableOpacity>
+                ))}
+              </>
+            )}
           </View>
         )}
 

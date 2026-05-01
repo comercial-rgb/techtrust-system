@@ -569,6 +569,11 @@ model ProviderProfile {
   commissionRate      Decimal       @default(15) @db.Decimal(5, 2) // Current commission %
   levelCalculatedAt   DateTime?     // Last time level was auto-calculated
 
+  // ===== Roadside SOS Availability =====
+  availabilityStatus String   @default("OFFLINE") // ONLINE | OFFLINE | BUSY
+  lastOnlineAt       DateTime?
+  sosRateCard        Json     @default("{}")
+
   // ===== Relations =====
   complianceItems      ComplianceItem[]
   technicians          Technician[]

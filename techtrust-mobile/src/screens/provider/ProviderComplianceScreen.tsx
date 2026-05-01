@@ -32,6 +32,18 @@ import {
   Technician,
 } from "../../services/compliance.service";
 
+const REASON_CODE_LABELS: Record<string, string> = {
+  EPA_609_MISSING: 'EPA 609 certification required for A/C work',
+  GENERAL_LIABILITY_NOT_PROVIDED: 'General liability insurance not declared',
+  GENERAL_LIABILITY_EXPIRED: 'General liability insurance is expired',
+  COMMERCIAL_AUTO_INSURANCE_MISSING: 'Commercial auto insurance required',
+  ON_HOOK_INSURANCE_MISSING: 'On-hook/towing insurance required',
+  STATE_REGISTRATION_EXPIRED: 'State shop registration is expired',
+  FDACS_MISSING: 'FDACS Motor Vehicle Repair license required',
+  BTR_CITY_MISSING: 'City Business Tax Receipt required',
+  BTR_COUNTY_MISSING: 'County Business Tax Receipt required',
+};
+
 const SERVICE_TYPE_LABELS: Record<string, string> = {
   AC_SERVICE: 'A/C Service',
   OIL_CHANGE: 'Oil Change',
@@ -593,7 +605,12 @@ export default function ProviderComplianceScreen({ navigation }: any) {
                     {SERVICE_TYPE_LABELS[service] || service.replace(/_/g, " ")}
                   </Text>
                   {!gate.allowed && gate.reason && (
-                    <Text style={styles.gateReason}>{gate.reason}</Text>
+                    <Text style={styles.gateReason}>
+                      {gate.reason
+                        .split(', ')
+                        .map((code) => REASON_CODE_LABELS[code] || code.replace(/_/g, ' ').toLowerCase())
+                        .join(' · ')}
+                    </Text>
                   )}
                 </View>
               </View>

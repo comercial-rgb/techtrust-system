@@ -898,7 +898,7 @@ export default {
     getStarted: "Comenzar",
     completeSetup: "Completa tu configuración",
     setupProfile: "Completa el perfil de tu negocio",
-    addServices: "Agrega tus servicios y precios",
+    addServices: "Agrega tus servicios",
     setHours: "Establece tus horarios de trabajo",
     defineArea: "Define tu área de servicio",
     noRequestsYet: "Sin solicitudes pendientes",
