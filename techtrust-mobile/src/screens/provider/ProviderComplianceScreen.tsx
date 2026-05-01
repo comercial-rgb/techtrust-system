@@ -143,15 +143,15 @@ export default function ProviderComplianceScreen({ navigation }: any) {
 
   const isFloridaProvider = jurisdiction?.stateCode === 'FL' || jurisdiction?.stateName?.toLowerCase().includes('florida');
 
-  // Attempt auto-create then refresh; if it fails still refresh in case something was partially created
+  // Auto-create any missing compliance items for this jurisdiction, then refresh
   const handleManageCompliance = async () => {
-    if (complianceItems.length > 0) return; // items already exist, nothing to auto-create
     try {
       setLoading(true);
       await autoCreateComplianceItems();
       await fetchData();
     } catch {
       await fetchData().catch(() => {});
+      // Only alert if we still have nothing after attempting creation
       if (complianceItems.length === 0) {
         Alert.alert(
           "Setup Required",
@@ -170,14 +170,17 @@ export default function ProviderComplianceScreen({ navigation }: any) {
       const result = await upsertComplianceItem({ type });
       // API returns { success, data: { item: {...} } } — unwrap correctly
       const item = result?.data?.item || result?.data || result;
-      await fetchData();
+      setLoading(false);
       if (item?.id) {
+        // Navigate immediately; useFocusEffect will refresh the list on return
         navigation.navigate("ComplianceItemDetail", { item });
+      } else {
+        // Item created but no id returned — just refresh
+        await fetchData();
       }
     } catch {
-      Alert.alert("Error", "Could not create compliance item. Please try again.");
-    } finally {
       setLoading(false);
+      Alert.alert("Error", "Could not create compliance item. Please try again.");
     }
   };
 
