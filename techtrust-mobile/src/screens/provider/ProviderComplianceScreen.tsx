@@ -604,14 +604,15 @@ export default function ProviderComplianceScreen({ navigation }: any) {
                   <Text style={styles.gateService}>
                     {SERVICE_TYPE_LABELS[service] || service.replace(/_/g, " ")}
                   </Text>
-                  {!gate.allowed && gate.reason && (
-                    <Text style={styles.gateReason}>
-                      {gate.reason
-                        .split(', ')
-                        .map((code) => REASON_CODE_LABELS[code] || code.replace(/_/g, ' ').toLowerCase())
-                        .join(' · ')}
-                    </Text>
-                  )}
+                  {!gate.allowed && gate.reason && (() => {
+                    const GL_SOFT_CODES = new Set(['GENERAL_LIABILITY_NOT_PROVIDED', 'GENERAL_LIABILITY_EXPIRED']);
+                    const hardReasons = gate.reason.split(', ').filter(c => !GL_SOFT_CODES.has(c));
+                    return hardReasons.length > 0 ? (
+                      <Text style={styles.gateReason}>
+                        {hardReasons.map(c => REASON_CODE_LABELS[c] || c.replace(/_/g, ' ').toLowerCase()).join(' · ')}
+                      </Text>
+                    ) : null;
+                  })()}
                 </View>
               </View>
             ))}

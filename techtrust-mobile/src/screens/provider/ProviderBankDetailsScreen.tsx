@@ -172,6 +172,18 @@ export default function ProviderBankDetailsScreen({ navigation }: any) {
     { name: 'PNC Bank', routingNumber: '043000096' },
     { name: 'US Bank', routingNumber: '122105155' },
     { name: 'TD Bank', routingNumber: '031101266' },
+    { name: 'Ally Bank', routingNumber: '124003116' },
+    { name: 'Truist', routingNumber: '053101121' },
+    { name: 'Regions', routingNumber: '062000019' },
+    { name: 'KeyBank', routingNumber: '041001039' },
+    { name: 'Huntington', routingNumber: '044000024' },
+    { name: 'Fifth Third', routingNumber: '042000314' },
+    { name: 'M&T Bank', routingNumber: '022000046' },
+    { name: 'BMO Harris', routingNumber: '071025661' },
+    { name: 'Discover', routingNumber: '031100649' },
+    { name: 'Citizens Bank', routingNumber: '011500120' },
+    { name: 'Santander', routingNumber: '011075150' },
+    { name: 'Navy Federal', routingNumber: '256074974' },
   ];
 
   return (
@@ -260,10 +272,12 @@ export default function ProviderBankDetailsScreen({ navigation }: any) {
                 <Text style={styles.detailLabel}>{t.provider?.accountHolder || 'Account Holder'}</Text>
                 <Text style={styles.detailValue}>{account.holderName}</Text>
               </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>{'Tax ID (EIN/SSN)'}</Text>
-                <Text style={styles.detailValue}>***-**-{account.taxId.slice(-4)}</Text>
-              </View>
+              {account.taxId ? (
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>{'Tax ID (EIN/SSN)'}</Text>
+                  <Text style={styles.detailValue}>***-**-{account.taxId.slice(-4)}</Text>
+                </View>
+              ) : null}
             </View>
 
             <View style={styles.accountActions}>
@@ -395,13 +409,13 @@ export default function ProviderBankDetailsScreen({ navigation }: any) {
               placeholder={t.provider?.accountHolderPlaceholder || 'Full name or business name'}
             />
 
-            <Text style={styles.inputLabel}>{'Tax ID (EIN or SSN)'} *</Text>
+            <Text style={styles.inputLabel}>{'Tax ID (EIN or SSN)'}{' '}<Text style={{ color: '#9ca3af', fontWeight: '400' }}>{'(optional — not required for foreign providers)'}</Text></Text>
             <TextInput
               style={styles.input}
               value={newAccount.taxId}
               onChangeText={val => setNewAccount({ ...newAccount, taxId: val })}
               placeholder="XX-XXXXXXX or XXX-XX-XXXX"
-              keyboardType="numeric"
+              keyboardType="default"
             />
 
             {/* Form Actions */}

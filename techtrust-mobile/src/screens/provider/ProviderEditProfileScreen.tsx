@@ -118,7 +118,7 @@ export default function ProviderEditProfileScreen({ navigation }: any) {
       await api.patch("/providers/profile", {
         businessName: businessName.trim(),
         businessType: selectedBusinessType,
-        description: description.trim(),
+        businessDescription: description.trim(),
         businessPhone: phone.trim(),
         businessEmail: email.trim(),
         website: website.trim(),
