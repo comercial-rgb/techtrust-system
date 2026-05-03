@@ -17,12 +17,13 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useFocusEffect } from '@react-navigation/native';
 import { useI18n } from '../../i18n';
 import { CANCELLATION_RULES, PROVIDER_POINTS_SYSTEM } from '../../config/businessRules';
 import api from '../../services/api';
 import * as serviceFlowService from '../../services/service-flow.service';
+import { log } from "../../utils/logger";
 
 interface QuoteLineItem {
   id: string;
@@ -84,7 +85,12 @@ interface WorkOrder {
 }
 
 export default function ProviderWorkOrderDetailsScreen({ route, navigation }: any) {
-  const { t } = useI18n();
+  const { t, language, formatCurrency } = useI18n();
+  const fiatSymbol = (t as any).formats?.currencySymbol ?? "$";
+  const dateTimeLocale = useMemo(
+    () => (language === "pt" ? "pt-BR" : language === "es" ? "es-ES" : "en-US"),
+    [language],
+  );
   const { workOrderId } = route.params;
   const [loading, setLoading] = useState(true);
   const [workOrder, setWorkOrder] = useState<WorkOrder | null>(null);
@@ -124,7 +130,7 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
         setWorkOrder(null);
       }
     } catch (error) {
-      console.error('Error loading work order:', error);
+      log.error('Error loading work order:', error);
       setWorkOrder(null);
     } finally {
       setLoading(false);
@@ -290,11 +296,11 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
 
   const formatDateTime = (dateStr: string) => {
     const date = new Date(dateStr);
-    return date.toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
+    return date.toLocaleString(dateTimeLocale, {
+      day: "2-digit",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -335,7 +341,9 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
 
           <View style={styles.amountRow}>
             <Text style={styles.amountLabel}>{t.workOrder?.totalAmount || 'Total Amount'}</Text>
-            <Text style={styles.amountValue}>${workOrder.finalAmount.toFixed(2)}</Text>
+            <Text style={styles.amountValue}>
+              {formatCurrency(workOrder.finalAmount)}
+            </Text>
           </View>
         </View>
 
@@ -490,7 +498,7 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
                   <View style={styles.lineItemHeader}>
                     <Text style={styles.lineItemDescription}>{item.description}</Text>
                     <Text style={styles.lineItemTotal}>
-                      ${(item.quantity * item.unitPrice).toFixed(2)}
+                      {formatCurrency(item.quantity * item.unitPrice)}
                     </Text>
                   </View>
                   <View style={styles.lineItemDetails}>
@@ -506,14 +514,16 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
                       {t.common?.qty || 'Qty'}: {item.quantity}
                     </Text>
                     <Text style={styles.lineItemUnitPrice}>
-                      @ ${item.unitPrice.toFixed(2)}
+                      @ {formatCurrency(item.unitPrice)}
                     </Text>
                   </View>
                 </View>
               ))}
               <View style={styles.subtotalRow}>
                 <Text style={styles.subtotalLabel}>{t.workOrder?.partsSubtotal || 'Parts Subtotal'}</Text>
-                <Text style={styles.subtotalValue}>${workOrder.quote.partsCost.toFixed(2)}</Text>
+                <Text style={styles.subtotalValue}>
+                  {formatCurrency(workOrder.quote.partsCost)}
+                </Text>
               </View>
             </View>
           )}
@@ -530,7 +540,7 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
                   <View style={styles.lineItemHeader}>
                     <Text style={styles.lineItemDescription}>{item.description}</Text>
                     <Text style={styles.lineItemTotal}>
-                      ${(item.quantity * item.unitPrice).toFixed(2)}
+                      {formatCurrency(item.quantity * item.unitPrice)}
                     </Text>
                   </View>
                   {item.quantity > 1 && (
@@ -539,7 +549,7 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
                         {t.common?.qty || 'Qty'}: {item.quantity}
                       </Text>
                       <Text style={styles.lineItemUnitPrice}>
-                        @ ${item.unitPrice.toFixed(2)}
+                        @ {formatCurrency(item.unitPrice)}
                       </Text>
                     </View>
                   )}
@@ -547,7 +557,9 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
               ))}
               <View style={styles.subtotalRow}>
                 <Text style={styles.subtotalLabel}>{t.workOrder?.laborSubtotal || 'Labor Subtotal'}</Text>
-                <Text style={styles.subtotalValue}>${workOrder.quote.laborCost.toFixed(2)}</Text>
+                <Text style={styles.subtotalValue}>
+                  {formatCurrency(workOrder.quote.laborCost)}
+                </Text>
               </View>
             </View>
           )}
@@ -559,7 +571,9 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
             </View>
             <View style={[styles.quoteRow, styles.totalRow]}>
               <Text style={styles.totalLabel}>{t.common?.total || 'Total'}</Text>
-              <Text style={styles.totalValue}>${workOrder.finalAmount.toFixed(2)}</Text>
+              <Text style={styles.totalValue}>
+                {formatCurrency(workOrder.finalAmount)}
+              </Text>
             </View>
           </View>
           {workOrder.quote.notes && (
@@ -616,7 +630,9 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.inputLabel}>{t.workOrder?.finalAmount || 'Final Amount'} ($)</Text>
+            <Text style={styles.inputLabel}>
+              {t.workOrder?.finalAmount || "Final Amount"}
+            </Text>
             <TextInput
               style={styles.input}
               value={finalAmount}
@@ -834,7 +850,7 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
                           newItems[index].unitPrice = text;
                           setAdditionalItems(newItems);
                         }}
-                        placeholder="$"
+                        placeholder={fiatSymbol}
                         keyboardType="decimal-pad"
                       />
                     </View>
@@ -865,11 +881,13 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
               <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>{t.provider?.additionalTotal || 'Additional Total'}:</Text>
                 <Text style={styles.totalValue}>
-                  ${additionalItems.reduce((sum, item) => {
-                    const qty = parseFloat(item.quantity) || 0;
-                    const price = parseFloat(item.unitPrice) || 0;
-                    return sum + (qty * price);
-                  }, 0).toFixed(2)}
+                  {formatCurrency(
+                    additionalItems.reduce((sum, item) => {
+                      const qty = parseFloat(item.quantity) || 0;
+                      const price = parseFloat(item.unitPrice) || 0;
+                      return sum + qty * price;
+                    }, 0),
+                  )}
                 </Text>
               </View>
             </ScrollView>
@@ -1223,6 +1241,9 @@ const styles = StyleSheet.create({
     color: '#1f2937',
   },
   totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingTop: 12,
     marginTop: 8,
     borderTopWidth: 1,
@@ -1473,25 +1494,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#2B5EA7',
     fontWeight: '500',
-  },
-  totalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
-  },
-  totalLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
-  },
-  totalValue: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#f59e0b',
   },
   warningBox: {
     flexDirection: 'row',

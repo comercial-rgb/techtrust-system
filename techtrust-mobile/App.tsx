@@ -11,6 +11,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StripeProvider } from "@stripe/stripe-react-native";
 import { Alert, AppState, Platform } from "react-native";
 import * as Updates from "expo-updates";
+import { log } from "./src/utils/logger";
 import { AuthProvider, useAuth } from "./src/contexts/AuthContext";
 import { ThemeProvider } from "./src/contexts/ThemeContext";
 import { NotificationsProvider } from "./src/contexts/NotificationsContext";
@@ -61,10 +62,10 @@ export default function App() {
         const data = await response.json();
         if (data.success && data.data?.publishableKey) {
           setStripePublishableKey(data.data.publishableKey);
-          console.log("💳 [Stripe] Publishable key loaded");
+          log.info("💳 [Stripe] Publishable key loaded");
         }
       } catch (e) {
-        console.warn("💳 [Stripe] Failed to fetch config:", e);
+        log.warn("💳 [Stripe] Failed to fetch config:", e);
       }
     }
     fetchStripeConfig();
@@ -82,22 +83,22 @@ export default function App() {
         // Wait for app to be fully ready before checking updates
         // This prevents crashes on iOS first launch
         if (!appIsReady.current) {
-          console.log("🔄 [OTA] Waiting for app to be ready...");
+          log.debug("🔄 [OTA] Waiting for app to be ready...");
           return;
         }
 
-        console.log("🔄 [OTA] Checking for updates...");
-        console.log("🔄 [OTA] Current update ID:", Updates.updateId);
-        console.log("🔄 [OTA] Channel:", Updates.channel);
+        log.debug("🔄 [OTA] Checking for updates...");
+        log.debug("🔄 [OTA] Current update ID:", Updates.updateId);
+        log.debug("🔄 [OTA] Channel:", Updates.channel);
 
         const update = await Updates.checkForUpdateAsync();
 
         if (!isMounted) return;
 
         if (update.isAvailable) {
-          console.log("📦 [OTA] Update available! Downloading...");
+          log.info("📦 [OTA] Update available! Downloading...");
           const fetchResult = await Updates.fetchUpdateAsync();
-          console.log("📥 [OTA] Download complete, isNew:", fetchResult.isNew);
+          log.info("📥 [OTA] Download complete, isNew:", fetchResult.isNew);
 
           if (fetchResult.isNew && isMounted) {
             // Give the app a moment to stabilize before reloading
@@ -106,16 +107,19 @@ export default function App() {
               try {
                 await Updates.reloadAsync();
               } catch (reloadErr) {
-                console.warn("⚠️ [OTA] Reload failed, will apply on next launch:", reloadErr);
+                log.warn("⚠️ [OTA] Reload failed, will apply on next launch:", reloadErr);
               }
             }, 1500);
           }
         } else {
-          console.log("✅ [OTA] App is up to date");
+          log.debug("✅ [OTA] App is up to date");
         }
       } catch (e) {
         // Silently fail — common on first launch or poor connectivity
-        console.warn("⚠️ [OTA] Update check failed (non-fatal):", e instanceof Error ? e.message : e);
+        log.warn(
+          "⚠️ [OTA] Update check failed (non-fatal):",
+          e instanceof Error ? e.message : e,
+        );
       }
     }
 

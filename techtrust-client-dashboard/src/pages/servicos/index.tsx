@@ -16,6 +16,7 @@ import {
   Calendar,
 } from 'lucide-react';
 
+import { logApiError } from "../../utils/logger";
 interface WorkOrder {
   id: string;
   orderNumber: string;
@@ -78,7 +79,7 @@ export default function ServicosPage() {
         setWorkOrders([]);
       }
     } catch (error) {
-      console.error('Error loading services:', error);
+      logApiError('Error loading services:', error);
     } finally {
       setLoading(false);
     }

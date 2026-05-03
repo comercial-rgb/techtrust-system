@@ -13,6 +13,7 @@ import {
   Link2, Bell, Square, Circle, ArrowUp, ArrowDown, Lightbulb, ChevronDown,
 } from 'lucide-react';
 
+import { logApiError } from "../../utils/logger";
 type IconType = React.FC<{ className?: string }>;
 
 interface Vehicle {
@@ -386,7 +387,7 @@ export default function NovaSolicitacaoPage() {
         }
       }
     } catch (err) {
-      console.error('Error loading vehicles:', err);
+      logApiError('Error loading vehicles:', err);
     } finally {
       setLoading(false);
     }

@@ -22,6 +22,7 @@ import {
   Sparkles,
 } from 'lucide-react'
 import Link from 'next/link'
+import { logApiError } from "../../utils/logger";
 
 interface ServiceRequest {
   id: string
@@ -74,7 +75,7 @@ export default function PedidosPage() {
       const data = response.data
       setRequests(data?.requests || data || [])
     } catch (error) {
-      console.error('Erro ao carregar pedidos:', error)
+      logApiError('Erro ao carregar pedidos:', error)
       setRequests([])
     } finally {
       setLoading(false)

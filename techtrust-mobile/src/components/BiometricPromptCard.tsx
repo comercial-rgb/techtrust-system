@@ -24,6 +24,7 @@ import {
   BiometricInfo,
 } from '../services/authService';
 import { useI18n } from '../i18n';
+import { log } from "../utils/logger";
 
 interface BiometricPromptCardProps {
   visible: boolean;
@@ -122,7 +123,7 @@ export default function BiometricPromptCard({
         setIsAuthenticating(false);
       }
     } catch (error) {
-      console.error('Error enabling biometric:', error);
+      log.error('Error enabling biometric:', error);
       setIsAuthenticating(false);
     }
   };

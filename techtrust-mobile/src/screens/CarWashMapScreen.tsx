@@ -17,6 +17,7 @@ import { useI18n } from '../i18n';
 import carWashService from '../services/carWash.service';
 import { CarWashListItem, CarWashSearchFilters } from '../types/carWash';
 import { colors, spacing, borderRadius, fontSize, fontWeight, shadows } from '../constants/theme';
+import { log } from "../utils/logger";
 
 // Error boundary to catch native MapView crashes
 class MapErrorBoundary extends Component<
@@ -26,7 +27,7 @@ class MapErrorBoundary extends Component<
   state = { hasError: false };
   static getDerivedStateFromError() { return { hasError: true }; }
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error('MapView crash caught:', error, info);
+    log.error('MapView crash caught:', error, info);
   }
   render() {
     return this.state.hasError ? this.props.fallback : this.props.children;
@@ -55,7 +56,8 @@ const CAR_WASH_TYPE_COLORS: Record<string, string> = {
 const RADIUS_OPTIONS = [5, 10, 15, 25];
 
 export default function CarWashMapScreen({ navigation }: any) {
-  const { t } = useI18n();
+  const { t, formatCurrency } = useI18n();
+  const cwT = (t as any).carWash;
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [carWashes, setCarWashes] = useState<CarWashListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,7 +95,7 @@ export default function CarWashMapScreen({ navigation }: any) {
       setLocation(coords);
       await searchCarWashes(coords);
     } catch (error) {
-      console.error('Location error:', error);
+      log.error('Location error:', error);
       setLocation({ lat: 39.8283, lng: -98.5795 });
     } finally {
       setLoading(false);
@@ -118,7 +120,7 @@ export default function CarWashMapScreen({ navigation }: any) {
       const result = await carWashService.searchNearby(loc.lat, loc.lng, currentFilters);
       setCarWashes(result.carWashes);
     } catch (error) {
-      console.error('Search error:', error);
+      log.error('Search error:', error);
     } finally {
       setLoading(false);
     }
@@ -168,7 +170,9 @@ export default function CarWashMapScreen({ navigation }: any) {
       {/* Promoted/Featured badges */}
       {item.isPromoted && (
         <View style={styles.sponsoredBadge}>
-          <Text style={styles.sponsoredText}>Sponsored</Text>
+          <Text style={styles.sponsoredText}>
+            {cwT?.sponsoredBadge || "Sponsored"}
+          </Text>
         </View>
       )}
 
@@ -218,7 +222,9 @@ export default function CarWashMapScreen({ navigation }: any) {
           <View style={styles.cardRow}>
             <Ionicons name="location-outline" size={13} color={colors.textSecondary} />
             <Text style={styles.cardSubtext}>
-              {item.distanceMiles} mi away · {item.estimatedDriveMinutes} min drive
+              {item.distanceMiles} {cwT?.mile || "mi"} ·{" "}
+              {item.estimatedDriveMinutes}{" "}
+              {cwT?.minutesShort || "min"}
             </Text>
           </View>
 
@@ -229,14 +235,15 @@ export default function CarWashMapScreen({ navigation }: any) {
               {(item.averageRating || 0).toFixed(1)}
             </Text>
             <Text style={styles.cardSubtext}>
-              ({item.totalReviews} {item.totalReviews === 1 ? 'review' : 'reviews'})
+              ({item.totalReviews}{" "}
+              {item.totalReviews === 1 ? cwT?.review || "review" : cwT?.reviews || "reviews"})
             </Text>
           </View>
 
           {/* Price */}
           {item.priceFrom !== null && (
             <Text style={styles.cardPrice}>
-              From ${item.priceFrom.toFixed(0)}
+              {cwT?.startingAt || "Starting at"} {formatCurrency(Number(item.priceFrom))}
             </Text>
           )}
 
@@ -245,9 +252,8 @@ export default function CarWashMapScreen({ navigation }: any) {
             <View style={[styles.statusDot, { backgroundColor: item.isOpenNow ? colors.success : colors.error }]} />
             <Text style={[styles.cardStatus, { color: item.isOpenNow ? colors.success : colors.error }]}>
               {item.isOpenNow
-                ? `Open Now${item.closesAt ? ` · Closes at ${formatTime(item.closesAt)}` : ''}`
-                : `Closed${item.opensAt ? ` · Opens at ${formatTime(item.opensAt)}` : ''}`
-              }
+                ? `${cwT?.openStatus || "Open Now"}${item.closesAt ? ` · ${cwT?.closesAt || "Closes at"} ${formatTime(item.closesAt)}` : ""}`
+                : `${cwT?.closedStatus || "Closed"}${item.opensAt ? ` · ${cwT?.opensAt || "Opens at"} ${formatTime(item.opensAt)}` : ""}`}
             </Text>
           </View>
 
@@ -256,13 +262,17 @@ export default function CarWashMapScreen({ navigation }: any) {
             {item.hasMembershipPlans && (
               <View style={styles.membershipBadge}>
                 <Ionicons name="infinite" size={10} color="#8b5cf6" />
-                <Text style={styles.membershipBadgeText}>Unlimited Plans</Text>
+                <Text style={styles.membershipBadgeText}>
+                  {cwT?.unlimitedPlans || "Unlimited Plans"}
+                </Text>
               </View>
             )}
             {item.hasFreeVacuum && (
               <View style={styles.vacuumBadge}>
                 <MaterialCommunityIcons name="vacuum" size={10} color="#10b981" />
-                <Text style={styles.vacuumBadgeText}>Free Vacuum</Text>
+                <Text style={styles.vacuumBadgeText}>
+                  {cwT?.freeVacuum || "Free Vacuum"}
+                </Text>
               </View>
             )}
             {item.isEcoFriendly && (
@@ -381,7 +391,7 @@ export default function CarWashMapScreen({ navigation }: any) {
                 textStyle={[styles.chipText, filters.radiusMiles === r && styles.chipTextSelected]}
                 compact
               >
-                {r} mi
+                {r} {cwT?.mile || "mi"}
               </Chip>
             ))}
           </View>
@@ -394,7 +404,7 @@ export default function CarWashMapScreen({ navigation }: any) {
             >
               <Ionicons name="time" size={14} color={openNowFilter ? colors.white : colors.primary} />
               <Text style={[styles.toggleFilterText, openNowFilter && styles.toggleFilterTextActive]}>
-                Open Now
+                {cwT?.openNow || "Open Now"}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -403,7 +413,7 @@ export default function CarWashMapScreen({ navigation }: any) {
             >
               <Ionicons name="infinite" size={14} color={membershipFilter ? colors.white : '#8b5cf6'} />
               <Text style={[styles.toggleFilterText, membershipFilter && styles.toggleFilterTextActive]}>
-                Membership
+                {cwT?.membership || "Membership"}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -412,13 +422,15 @@ export default function CarWashMapScreen({ navigation }: any) {
             >
               <MaterialCommunityIcons name="vacuum" size={14} color={freeVacuumFilter ? colors.white : '#10b981'} />
               <Text style={[styles.toggleFilterText, freeVacuumFilter && styles.toggleFilterTextActive]}>
-                Free Vacuum
+                {cwT?.freeVacuum || "Free Vacuum"}
               </Text>
             </TouchableOpacity>
           </View>
 
           {/* Sort By */}
-          <Text style={styles.filterLabel}>Sort By</Text>
+          <Text style={styles.filterLabel}>
+            {cwT?.sortBy || "Sort By"}
+          </Text>
           <View style={styles.chipRow}>
             {(['distance', 'rating', 'price'] as const).map(s => (
               <Chip
@@ -429,7 +441,11 @@ export default function CarWashMapScreen({ navigation }: any) {
                 textStyle={[styles.chipText, filters.sortBy === s && styles.chipTextSelected]}
                 compact
               >
-                {s === 'distance' ? 'Nearest' : s === 'rating' ? 'Highest Rated' : 'Lowest Price'}
+                {s === "distance"
+                  ? cwT?.sortDistance || "Nearest"
+                  : s === "rating"
+                    ? cwT?.sortRating || "Highest Rated"
+                    : cwT?.sortPrice || "Lowest Price"}
               </Chip>
             ))}
           </View>
@@ -450,14 +466,18 @@ export default function CarWashMapScreen({ navigation }: any) {
           onPress={() => setViewMode('map')}
         >
           <Ionicons name="map" size={16} color={viewMode === 'map' ? '#fff' : colors.primary} />
-          <Text style={[styles.viewToggleText, viewMode === 'map' && styles.viewToggleTextActive]}>Map</Text>
+          <Text style={[styles.viewToggleText, viewMode === 'map' && styles.viewToggleTextActive]}>
+            {cwT?.viewMapTab || "Map"}
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.viewToggleBtn, viewMode === 'list' && styles.viewToggleBtnActive]}
           onPress={() => setViewMode('list')}
         >
           <Ionicons name="list" size={16} color={viewMode === 'list' ? '#fff' : colors.primary} />
-          <Text style={[styles.viewToggleText, viewMode === 'list' && styles.viewToggleTextActive]}>List</Text>
+          <Text style={[styles.viewToggleText, viewMode === 'list' && styles.viewToggleTextActive]}>
+            {cwT?.viewListTab || "List"}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -471,12 +491,16 @@ export default function CarWashMapScreen({ navigation }: any) {
                 fallback={
                   <View style={[styles.mapLoading, { justifyContent: 'center', alignItems: 'center' }]}>
                     <MaterialCommunityIcons name="map-marker-off" size={40} color={colors.textSecondary} />
-                    <Text style={{ color: colors.textSecondary, fontSize: 14, marginTop: 8 }}>Map unavailable</Text>
+                    <Text style={{ color: colors.textSecondary, fontSize: 14, marginTop: 8 }}>
+                      {cwT?.mapUnavailable || "Map unavailable"}
+                    </Text>
                     <TouchableOpacity
                       onPress={() => setViewMode('list')}
                       style={{ backgroundColor: colors.primary, paddingHorizontal: 20, paddingVertical: 8, borderRadius: 8, marginTop: 8 }}
                     >
-                      <Text style={{ color: '#fff', fontWeight: '600' }}>Switch to List View</Text>
+                      <Text style={{ color: '#fff', fontWeight: '600' }}>
+                        {cwT?.switchToListView || "Switch to List View"}
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 }
@@ -521,8 +545,8 @@ export default function CarWashMapScreen({ navigation }: any) {
                       <Marker
                         key={cw.id}
                         coordinate={{ latitude: Number(cw.latitude), longitude: Number(cw.longitude) }}
-                        title={cw.businessName || 'Car Wash'}
-                        description={`${(cw.averageRating || 0).toFixed(1)}★ · ${cw.distanceMiles || '?'} mi${cw.isOpenNow ? ' · Open' : ''}`}
+                        title={cw.businessName || cwT?.markerDefaultTitle || "Car Wash"}
+                        description={`${(cw.averageRating || 0).toFixed(1)}★ · ${cw.distanceMiles ?? "?"} ${cwT?.mile || "mi"}${cw.isOpenNow ? ` · ${cwT?.openStatus || "Open Now"}` : ""}`}
                         pinColor={typeColor}
                         onPress={() => setSelectedPin(cw.id)}
                       />
@@ -535,12 +559,16 @@ export default function CarWashMapScreen({ navigation }: any) {
                 {mapError ? (
                   <View style={{ alignItems: 'center', gap: 8 }}>
                     <MaterialCommunityIcons name="map-marker-off" size={40} color={colors.textSecondary} />
-                    <Text style={{ color: colors.textSecondary, fontSize: 14 }}>Map unavailable</Text>
+                    <Text style={{ color: colors.textSecondary, fontSize: 14 }}>
+                      {cwT?.mapUnavailable || "Map unavailable"}
+                    </Text>
                     <TouchableOpacity
                       onPress={() => setViewMode('list')}
                       style={{ backgroundColor: colors.primary, paddingHorizontal: 20, paddingVertical: 8, borderRadius: 8, marginTop: 4 }}
                     >
-                      <Text style={{ color: '#fff', fontWeight: '600' }}>Switch to List View</Text>
+                      <Text style={{ color: '#fff', fontWeight: '600' }}>
+                        {cwT?.switchToListView || "Switch to List View"}
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 ) : (
@@ -554,18 +582,34 @@ export default function CarWashMapScreen({ navigation }: any) {
           <View style={styles.mapStats}>
             <View style={styles.mapStatItem}>
               <MaterialCommunityIcons name="car-wash" size={14} color={colors.primary} />
-              <Text style={styles.mapStatText}>{carWashes.length} found</Text>
+              <Text style={styles.mapStatText}>
+                {(cwT?.mapStatFound || "{{count}} found").replace(
+                  "{{count}}",
+                  String(carWashes.length),
+                )}
+              </Text>
             </View>
             <View style={styles.mapStatItem}>
               <Ionicons name="time" size={14} color="#10b981" />
-              <Text style={styles.mapStatText}>{carWashes.filter(c => c.isOpenNow).length} open</Text>
+              <Text style={styles.mapStatText}>
+                {(cwT?.mapStatOpen || "{{count}} open").replace(
+                  "{{count}}",
+                  String(carWashes.filter((c) => c.isOpenNow).length),
+                )}
+              </Text>
             </View>
             <View style={styles.mapStatItem}>
               <Ionicons name="star" size={14} color="#f59e0b" />
               <Text style={styles.mapStatText}>
-                {carWashes.length > 0
-                  ? (carWashes.reduce((s, c) => s + (c.averageRating || 0), 0) / carWashes.length).toFixed(1)
-                  : '--'} avg
+                {(cwT?.mapStatAvg || "{{rating}} avg").replace(
+                  "{{rating}}",
+                  carWashes.length > 0
+                    ? (
+                        carWashes.reduce((s, c) => s + (c.averageRating || 0), 0) /
+                        carWashes.length
+                      ).toFixed(1)
+                    : "--",
+                )}
               </Text>
             </View>
           </View>
@@ -593,15 +637,17 @@ export default function CarWashMapScreen({ navigation }: any) {
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                       <Ionicons name="star" size={12} color="#f59e0b" />
                       <Text style={{ fontSize: 12, color: '#374151' }}>{(cw.averageRating || 0).toFixed(1)}</Text>
-                      <Text style={{ fontSize: 12, color: '#9ca3af' }}>· {cw.distanceMiles} mi</Text>
+                      <Text style={{ fontSize: 12, color: '#9ca3af' }}>
+                        · {cw.distanceMiles} {cwT?.mile || "mi"}
+                      </Text>
                       <View style={[styles.statusDot, { backgroundColor: cw.isOpenNow ? '#10b981' : '#ef4444', marginLeft: 4 }]} />
                       <Text style={{ fontSize: 11, color: cw.isOpenNow ? '#10b981' : '#ef4444' }}>
-                        {cw.isOpenNow ? 'Open' : 'Closed'}
+                        {cw.isOpenNow ? cwT?.openStatus || "Open Now" : cwT?.closedStatus || "Closed"}
                       </Text>
                     </View>
                     {cw.priceFrom !== null && (
                       <Text style={{ fontSize: 12, color: colors.primary, fontWeight: '600', marginTop: 2 }}>
-                        From ${cw.priceFrom.toFixed(0)}
+                        {cwT?.startingAt || "Starting at"} {formatCurrency(Number(cw.priceFrom))}
                       </Text>
                     )}
                   </View>
@@ -892,6 +938,12 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: borderRadius.md,
+  },
+  pinPreviewName: {
+    flex: 1,
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.semibold,
+    color: colors.text,
   },
   loadingContainer: {
     flex: 1,

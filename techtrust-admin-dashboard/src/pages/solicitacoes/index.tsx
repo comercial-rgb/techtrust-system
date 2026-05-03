@@ -17,6 +17,8 @@ import {
   Calendar,
 } from 'lucide-react';
 
+import { logApiError } from "../../utils/logger";
+
 interface ServiceRequest {
   id: string;
   requestNumber: string;
@@ -52,7 +54,7 @@ export default function SolicitacoesPage() {
       const list = response.data?.data?.serviceRequests || response.data?.data || response.data?.serviceRequests || [];
       setRequests(Array.isArray(list) ? list : []);
     } catch (error) {
-      console.error('Erro ao carregar solicitações:', error);
+      logApiError('Erro ao carregar solicitações:', error);
       setRequests([]);
     } finally {
       setLoading(false);

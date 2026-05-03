@@ -13,9 +13,10 @@ import {
   RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useI18n } from "../../i18n";
+import { log } from "../../utils/logger";
 
 interface WorkOrder {
   id: string;
@@ -40,7 +41,7 @@ interface WorkOrder {
 }
 
 export default function ProviderWorkOrdersScreen({ navigation }: any) {
-  const { t, language } = useI18n();
+  const { t, language, formatCurrency } = useI18n();
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [filteredWorkOrders, setFilteredWorkOrders] = useState<WorkOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -106,7 +107,7 @@ export default function ProviderWorkOrdersScreen({ navigation }: any) {
 
       setWorkOrders(mappedWorkOrders);
     } catch (error) {
-      console.error("Error loading services:", error);
+      log.error("Error loading services:", error);
       setWorkOrders([]);
     } finally {
       setLoading(false);
@@ -227,7 +228,7 @@ export default function ProviderWorkOrdersScreen({ navigation }: any) {
           </View>
           <View style={styles.amountContainer}>
             <Text style={styles.amountText}>
-              ${item.finalAmount.toFixed(2)}
+              {formatCurrency(item.finalAmount)}
             </Text>
           </View>
         </View>

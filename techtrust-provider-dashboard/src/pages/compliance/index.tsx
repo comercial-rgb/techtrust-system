@@ -27,6 +27,7 @@ import {
   ShieldCheck,
 } from 'lucide-react'
 
+import { logApiError } from "../../utils/logger";
 // ─── Types ───
 interface ComplianceItem {
   id: string
@@ -151,7 +152,7 @@ export default function CompliancePage() {
       const payload = res.data?.complianceItems !== undefined ? res.data : (res.data?.data ?? res.data)
       setSummary(payload)
     } catch (err: any) {
-      console.error('Error loading compliance data:', err)
+      logApiError('Error loading compliance data:', err)
       setError(err.response?.data?.message || 'Failed to load compliance data')
     } finally {
       setLoading(false)
@@ -203,7 +204,7 @@ export default function CompliancePage() {
       // Reload data
       await loadComplianceData()
     } catch (err: any) {
-      console.error('Upload error:', err)
+      logApiError('Upload error:', err)
       setError(err.message || 'Upload failed')
     } finally {
       setUploading(null)
@@ -677,7 +678,7 @@ function AddInsuranceButton({ onAdd }: { onAdd: () => void }) {
       setFormData({ type: 'GENERAL_LIABILITY', carrierName: '', policyNumber: '', coverageLimit: '', expirationDate: '' })
       onAdd()
     } catch (err) {
-      console.error('Error adding insurance:', err)
+      logApiError('Error adding insurance:', err)
     } finally {
       setSubmitting(false)
     }

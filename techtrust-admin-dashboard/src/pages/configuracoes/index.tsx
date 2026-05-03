@@ -5,6 +5,7 @@ import AdminLayout from '../../components/AdminLayout';
 import QuickBooksConnectionPanel from '../../components/QuickBooksConnectionPanel';
 import { Settings, Save, DollarSign, Bell, Shield, Clock, Percent, MessageSquare, Mail, Smartphone } from 'lucide-react';
 import { adminApi as api } from '../../services/api';
+import { logApiError } from "../../utils/logger";
 
 interface SystemConfig {
   platformFee: number;
@@ -60,7 +61,7 @@ export default function ConfiguracoesPage() {
       const serverConfig = response.data?.data || response.data || {};
       setConfig(prev => ({ ...prev, ...serverConfig }));
     } catch (error) {
-      console.error('Erro ao carregar configurações:', error);
+      logApiError('Erro ao carregar configurações:', error);
     } finally {
       setLoading(false);
     }
@@ -72,7 +73,7 @@ export default function ConfiguracoesPage() {
       await api.updateSettings(config);
       alert('Configurações salvas com sucesso!');
     } catch (error) {
-      console.error('Erro ao salvar configurações:', error);
+      logApiError('Erro ao salvar configurações:', error);
       alert('Erro ao salvar configurações');
     } finally {
       setSaving(false);

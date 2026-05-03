@@ -4,7 +4,7 @@
  * photos/notes prompt, contextual progress text, grouped info
  */
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   View,
   Text,
@@ -22,9 +22,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useI18n } from "../i18n";
+import { interpolate } from "../i18n/interpolate";
 import api from "../services/api";
 import { getPaymentMethods } from "../services/payment.service";
 import * as serviceFlowService from "../services/service-flow.service";
+import { log } from "../utils/logger";
 
 const { width } = Dimensions.get("window");
 
@@ -94,7 +96,7 @@ function getStepIndex(status?: string): number {
 }
 
 export default function RequestDetailsScreen({ navigation, route }: any) {
-  const { t } = useI18n();
+  const { t, formatDate, formatTime, formatCurrency } = useI18n();
   const td = (t as any).requestDetails || {};
   const { requestId } = route.params || { requestId: "1" };
   const [loading, setLoading] = useState(true);
@@ -104,23 +106,7 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
   const [photos, setPhotos] = useState<string[]>([]);
   const pulseAnim = useState(new Animated.Value(1))[0];
 
-  useEffect(() => {
-    loadDetails();
-  }, []);
-
-  // Pulse animation for current step
-  useEffect(() => {
-    const pulse = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1.4, duration: 800, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
-      ]),
-    );
-    pulse.start();
-    return () => pulse.stop();
-  }, []);
-
-  async function loadDetails() {
+  const loadDetails = useCallback(async () => {
     try {
       setLoading(true);
       const requestRes = await api.get(`/service-requests/${requestId}`);
@@ -141,6 +127,7 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
               businessName:
                 q.provider?.providerProfile?.businessName ||
                 q.provider?.fullName ||
+                t.common?.provider ||
                 "Provider",
               rating: q.provider?.providerProfile?.averageRating || 0,
               totalReviews: q.provider?.providerProfile?.totalReviews || 0,
@@ -168,6 +155,7 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
                       q.provider?.providerProfile?.businessName ||
                       q.provider?.businessName ||
                       q.provider?.fullName ||
+                      t.common?.provider ||
                       "Provider",
                     rating: q.provider?.providerProfile?.averageRating || q.provider?.rating || 0,
                     totalReviews:
@@ -192,12 +180,30 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
     } catch (err: any) {
       Alert.alert(
         t.common?.error || "Error",
-        err?.response?.data?.message || t.common?.tryAgain || "Could not load details",
+        err?.response?.data?.message ||
+          td.loadDetailsFailed ||
+          "Could not load request details. Please try again.",
       );
     } finally {
       setLoading(false);
     }
-  }
+  }, [requestId, t]);
+
+  useEffect(() => {
+    loadDetails();
+  }, [loadDetails]);
+
+  // Pulse animation for current step
+  useEffect(() => {
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.4, duration: 800, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+      ]),
+    );
+    pulse.start();
+    return () => pulse.stop();
+  }, []);
 
   async function handleAddPhotos() {
     try {
@@ -205,7 +211,8 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
       if (status !== "granted") {
         Alert.alert(
           t.common?.error || "Error",
-          "Camera roll permission is required to add photos.",
+          td.cameraRollPermissionRequired ||
+            "Camera roll permission is required to add photos.",
         );
         return;
       }
@@ -244,34 +251,43 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
         setPhotos(allPhotos);
         Alert.alert(
           t.common?.success || "Success",
-          `${result.assets.length} photo(s) added successfully!`,
+          (td.photosAddedSuccess || "{{count}} photo(s) added successfully!")
+            .replace(/\{count\}/g, String(result.assets.length))
+            .replace("%d", String(result.assets.length)),
         );
       } catch (uploadErr: any) {
         // If upload endpoint doesn't exist, store URIs locally
         const localUris = result.assets.map((a) => a.uri);
         setPhotos((prev) => [...prev, ...localUris]);
         Alert.alert(
-          t.common?.success || "Photos Added",
-          "Photos saved locally. They will be uploaded when the service starts.",
+          t.common?.success || td.photosSavedLocallyTitle || "Photos Added",
+          td.photosSavedLocallyBody ||
+            "Photos saved locally. They will be uploaded when the service starts.",
         );
       } finally {
         setUploadingPhotos(false);
       }
     } catch (err) {
-      console.error("Error adding photos:", err);
+      log.error("Error adding photos:", err);
     }
   }
 
   function handleAcceptQuote(quote: Quote) {
+    const tq = (t as any).quote || {};
     Alert.alert(
-      (t.common as any)?.acceptQuote || "Accept Quote",
-      `${(t.common as any)?.acceptQuoteConfirm || "Accept"} ${quote.provider.businessName} ${(t.common as any)?.for || "for"} $${quote.totalAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}? ` +
-        ((t.common as any)?.paymentHoldNote ||
-          "A payment hold will be placed on your default card."),
+      tq.acceptQuote || "Accept Quote",
+      interpolate(
+        tq.customerAcceptQuoteAlertBody ||
+          "Accept the quote from {{provider}} for {{amount}}? A payment hold will be placed on your default card.",
+        {
+          provider: quote.provider.businessName,
+          amount: formatCurrency(quote.totalAmount),
+        },
+      ),
       [
         { text: t.common?.cancel || "Cancel", style: "cancel" },
         {
-          text: (t.common as any)?.accept || "Accept",
+          text: t.common?.accept || "Accept",
           onPress: async () => {
             try {
               const methods = await getPaymentMethods();
@@ -291,12 +307,12 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
               if (!card) {
                 Alert.alert(
                   t.common?.error || "Error",
-                  (t.common as any)?.addCardOrApplePayToAcceptQuote ||
-                    "Add a payment method: Profile → Payment Methods — use “Add with Apple Pay” on iOS or add a card — then try again.",
+                  tq.addCardOrApplePayToAccept ||
+                    "Add a payment method: open Payment Methods and use “Add with Apple Pay” (iOS) or add a card. Then return here to accept the quote.",
                   [
                     { text: t.common?.cancel || "Cancel", style: "cancel" },
                     {
-                      text: (t.nav as any)?.profile || "Profile",
+                      text: t.nav?.profile || "Profile",
                       onPress: () =>
                         navigation.navigate("Profile", {
                           screen: "PaymentMethods",
@@ -315,13 +331,15 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
 
               Alert.alert(
                 t.common?.success || "Success!",
-                (t.common as any)?.quoteAccepted || "Quote accepted!",
+                td.quoteAcceptedSuccess || "Quote accepted!",
               );
               navigation.goBack();
             } catch (err: any) {
               Alert.alert(
                 t.common?.error || "Error",
-                err?.response?.data?.message || t.common?.tryAgain || "Try again",
+                err?.response?.data?.message ||
+                  td.quoteAcceptFailed ||
+                  "Could not accept quote. Please try again.",
               );
             }
           },
@@ -350,9 +368,13 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
   async function handleShare() {
     try {
       const v = request?.vehicle ? `${request.vehicle.year} ${request.vehicle.make} ${request.vehicle.model}` : "";
+      const shareTitle = td.shareTitle || "TechTrust Service Request";
+      const vehicleLbl = td.shareVehicleLabel || "Vehicle:";
+      const refLbl = td.shareRefLabel || "Ref:";
+      const statusLbl = td.shareStatusLabel || "Status:";
       await Share.share({
-        message: `TechTrust Service Request\n${request?.title || ""}\nVehicle: ${v}\nRef: #${request?.requestNumber || ""}\nStatus: ${getStatusLabel(request?.status)}`,
-        title: "TechTrust Service Request",
+        message: `${shareTitle}\n${request?.title || ""}\n${vehicleLbl} ${v}\n${refLbl} #${request?.requestNumber || ""}\n${statusLbl} ${getStatusLabel(request?.status)}`,
+        title: shareTitle,
       });
     } catch {}
   }
@@ -373,7 +395,7 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
       td.cancelRequest || "Cancel Request",
       td.cancelRequestConfirm || "Are you sure you want to cancel this service request? This cannot be undone.",
       [
-        { text: t.common?.cancel || "No, keep it", style: "cancel" },
+        { text: td.cancelRequestKeep || "No, keep it", style: "cancel" },
         {
           text: td.yesCancel || "Yes, cancel",
           style: "destructive",
@@ -383,7 +405,12 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
               Alert.alert(t.common?.success || "Success", td.requestCancelled || "Request cancelled.");
               loadDetails();
             } catch (err: any) {
-              Alert.alert(t.common?.error || "Error", err?.response?.data?.message || "Could not cancel request");
+              Alert.alert(
+                t.common?.error || "Error",
+                err?.response?.data?.message ||
+                  td.cancelRequestFailed ||
+                  "Could not cancel request",
+              );
             }
           },
         },
@@ -409,12 +436,14 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
   }
 
   function getStatusLabel(status?: string): string {
+    const tsr = (t as any).serviceRequest || {};
+    const two = (t as any).workOrder || {};
     const l: Record<string, string> = {
-      SEARCHING_PROVIDERS: (t.common as any)?.searching || "Searching",
-      QUOTES_RECEIVED: t.common?.quotesReceived || "Quotes Received",
-      QUOTE_ACCEPTED: (t.common as any)?.accepted || "Accepted",
-      SCHEDULED: (t.common as any)?.scheduled || "Scheduled",
-      IN_PROGRESS: (t.common as any)?.inProgress || "In Progress",
+      SEARCHING_PROVIDERS: tsr.searching || "Searching",
+      QUOTES_RECEIVED: tsr.quotesReceived || "Quotes Received",
+      QUOTE_ACCEPTED: t.provider?.accepted || "Accepted",
+      SCHEDULED: two.scheduled || "Scheduled",
+      IN_PROGRESS: two.inProgress || "In Progress",
       COMPLETED: t.common?.completed || "Completed",
       CANCELLED: t.common?.cancelled || "Cancelled",
     };
@@ -433,7 +462,9 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
     if (st === "SCHEDULED") return td.progressScheduled || "Your service is scheduled. Check the date and time below.";
     if (st === "QUOTE_ACCEPTED") return td.progressAccepted || "Quote accepted! The provider will contact you to schedule.";
     if (st === "QUOTES_RECEIVED" || (st === "SEARCHING_PROVIDERS" && quotes.length > 0)) {
-      return (td.progressQuotesReady || "You have %d quote(s) ready to review! Compare and choose the best one.").replace("%d", String(quotes.length));
+      return (td.progressQuotesReady || "You have %d quote(s) ready to review! Compare and choose the best one.")
+        .replace(/\{count\}/g, String(quotes.length))
+        .replace("%d", String(quotes.length));
     }
     if (st === "SEARCHING_PROVIDERS") {
       if (hrs < 2) return td.progressSearchingNew || "Your request was sent to nearby service providers. Most quotes arrive within 2-4 hours.";
@@ -449,7 +480,16 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
     let desc = request.description;
     const metaSep = desc.indexOf("\n---\n");
     if (metaSep !== -1) desc = desc.substring(0, metaSep).trim();
-    if (/^(Vehicle Type:|Scope:)/i.test(desc)) return [];
+    const descLower = desc.toLowerCase();
+    if (
+      descLower.startsWith("vehicle type:") ||
+      descLower.startsWith("scope:") ||
+      descLower.startsWith("tipo de veículo:") ||
+      descLower.startsWith("tipo de vehículo:") ||
+      descLower.startsWith("escopo:") ||
+      descLower.startsWith("alcance:")
+    )
+      return [];
     if (desc === request?.title) return [];
     if (!desc) return [];
 
@@ -528,7 +568,9 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
           <Ionicons name="arrow-back" size={24} color="#111827" />
         </TouchableOpacity>
-        <Text style={s.headerTitle}>{td.serviceRequest || "Service Request"}</Text>
+        <Text style={s.headerTitle}>
+          {td.serviceRequest || t.provider?.serviceRequest || "Service Request"}
+        </Text>
         <TouchableOpacity onPress={handleShare} style={s.shareBtn}>
           <Ionicons name="share-outline" size={22} color="#6b7280" />
         </TouchableOpacity>
@@ -570,7 +612,9 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
                 <Ionicons name="pricetags-outline" size={14} color="#6b7280" />
                 <Text style={s.stepperInfoText}>
                   {quotes.length > 0
-                    ? (td.quotesReceivedCount || "%d quote(s) received").replace("%d", String(quotes.length))
+                    ? (td.quotesReceivedCount || "%d quote(s) received")
+                        .replace(/\{count\}/g, String(quotes.length))
+                        .replace("%d", String(quotes.length))
                     : td.noQuotesYet || "No quotes yet"}
                 </Text>
               </View>
@@ -649,9 +693,9 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
               <><View style={s.kvRow}><Text style={s.kvLabel}>{td.whatsIncluded || "What's Included"}</Text><Text style={s.kvValue}>{getScopeLabel(request.serviceScope)}</Text></View><View style={s.kvDivider} /></>
             )}
             {request?.urgency && (
-              <><View style={s.kvRow}><Text style={s.kvLabel}>{(t.common as any)?.urgency || "Urgency"}</Text><Text style={[s.kvValue, { color: request.urgency === "urgent" ? "#ef4444" : request.urgency === "high" ? "#f59e0b" : "#374151", fontWeight: "600" }]}>{request.urgency.charAt(0).toUpperCase() + request.urgency.slice(1)}</Text></View><View style={s.kvDivider} /></>
+              <><View style={s.kvRow}><Text style={s.kvLabel}>{(t as any).createRequest?.urgency || "Urgency"}</Text><Text style={[s.kvValue, { color: request.urgency === "urgent" ? "#ef4444" : request.urgency === "high" ? "#f59e0b" : "#374151", fontWeight: "600" }]}>{request.urgency.charAt(0).toUpperCase() + request.urgency.slice(1)}</Text></View><View style={s.kvDivider} /></>
             )}
-            <View style={s.kvRow}><Text style={s.kvLabel}>{td.submitted || "Submitted"}</Text><Text style={s.kvValue}>{request?.createdAt ? new Date(request.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "-"}</Text></View>
+            <View style={s.kvRow}><Text style={s.kvLabel}>{td.submitted || "Submitted"}</Text><Text style={s.kvValue}>{request?.createdAt ? `${formatDate(request.createdAt)} ${formatTime(request.createdAt)}` : "-"}</Text></View>
           </View>
         </View>
 
@@ -712,10 +756,14 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
 
         {/* ═══ QUOTES ═══ */}
         <View style={s.sectionHeader}>
-          <Text style={s.sectionTitle}>{(t.common as any)?.quotes || "Quotes"} ({quotes.length})</Text>
+          <Text style={s.sectionTitle}>
+            {t.nav?.quotes || "Quotes"} ({quotes.length})
+          </Text>
           {quotes.length > 0 && (
             <View style={s.quoteBadge}>
-              <Text style={s.quoteBadgeText}>{quotes.length > 1 ? (td.compareNow || "Compare now!") : td.reviewQuote || "Review"}</Text>
+              <Text style={s.quoteBadgeText}>
+                {quotes.length > 1 ? td.compareNow || "Compare Now" : td.reviewQuote || "Review"}
+              </Text>
             </View>
           )}
         </View>
@@ -731,7 +779,7 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
         {quotes.map((quote, idx) => (
           <TouchableOpacity key={quote.id} style={[s.quoteCard, idx === bestValueIndex && s.quoteCardBest]} onPress={() => handleViewQuoteDetails(quote)}>
             {idx === bestValueIndex && (
-              <View style={s.bestBadge}><Ionicons name="trophy" size={12} color="#047857" /><Text style={s.bestText}>{(t.common as any)?.bestValue || "Best Value"}</Text></View>
+              <View style={s.bestBadge}><Ionicons name="trophy" size={12} color="#047857" /><Text style={s.bestText}>{td.bestValue || "Best Value"}</Text></View>
             )}
             <View style={s.providerRow}>
               <View style={s.avatar}><Ionicons name="business" size={20} color="#2B5EA7" /></View>
@@ -742,13 +790,13 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
                   <Text style={s.ratingText}>{quote.provider.rating.toFixed(1)} ({quote.provider.totalReviews} {quote.provider.totalReviews === 1 ? td.review || "review" : td.reviews || "reviews"})</Text>
                 </View>
               </View>
-              <Text style={s.quoteTotal}>${quote.totalAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</Text>
+              <Text style={s.quoteTotal}>{formatCurrency(quote.totalAmount)}</Text>
             </View>
 
             <View style={s.costBreakdown}>
-              <View style={s.costItem}><Text style={s.costLabel}>{t.workOrder?.parts || "Parts"}</Text><Text style={s.costValue}>${quote.partsCost.toLocaleString("en-US", { minimumFractionDigits: 2 })}</Text></View>
+              <View style={s.costItem}><Text style={s.costLabel}>{t.workOrder?.parts || "Parts"}</Text><Text style={s.costValue}>{formatCurrency(quote.partsCost)}</Text></View>
               <View style={s.costDividerV} />
-              <View style={s.costItem}><Text style={s.costLabel}>{t.workOrder?.labor || "Labor"}</Text><Text style={s.costValue}>${quote.laborCost.toLocaleString("en-US", { minimumFractionDigits: 2 })}</Text></View>
+              <View style={s.costItem}><Text style={s.costLabel}>{t.workOrder?.labor || "Labor"}</Text><Text style={s.costValue}>{formatCurrency(quote.laborCost)}</Text></View>
               {quote.estimatedTime ? <><View style={s.costDividerV} /><View style={s.costItem}><Text style={s.costLabel}>{t.workOrder?.estimatedTime || "Est. Time"}</Text><Text style={s.costValue}>{quote.estimatedTime}</Text></View></> : null}
             </View>
 
@@ -757,6 +805,7 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
                 <Ionicons name="warning-outline" size={16} color="#b45309" />
                 <Text style={s.disclosureWarningText}>
                   {quote.provider.disclosures.insurance.message ||
+                    td.quoteInsuranceMissingMessage ||
                     "This provider has not supplied insurance information. TechTrust does not provide insurance coverage for this provider's work."}
                 </Text>
               </View>
@@ -768,22 +817,22 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
               <View style={s.disclosureWarning}>
                 <Ionicons name="shield-outline" size={16} color="#b45309" />
                 <Text style={s.disclosureWarningText}>
-                  Required insurance missing for this provider's services:{" "}
+                  {td.quoteInsuranceRequiredIntro}{" "}
                   {quote.provider.insuranceRequirements
                     .filter((item) => item.level === "REQUIRED" && !item.complete)
                     .map((item) => item.label)
                     .join(", ")}
-                  . TechTrust does not provide insurance coverage for this provider's work.
+                  . {td.quoteInsuranceRequiredOutro}
                 </Text>
               </View>
             )}
 
             <View style={s.quoteActions}>
               <TouchableOpacity style={s.chatBtn} onPress={(e) => { e.stopPropagation(); handleChat(quote); }}>
-                <Ionicons name="chatbubble-outline" size={16} color="#2B5EA7" /><Text style={s.chatText}>{(t.common as any)?.chat || "Chat"}</Text>
+                <Ionicons name="chatbubble-outline" size={16} color="#2B5EA7" /><Text style={s.chatText}>{t.nav?.chat || "Chat"}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={s.acceptBtn} onPress={(e) => { e.stopPropagation(); handleAcceptQuote(quote); }}>
-                <Ionicons name="checkmark" size={16} color="#fff" /><Text style={s.acceptText}>{(t.common as any)?.accept || "Accept"}</Text>
+                <Ionicons name="checkmark" size={16} color="#fff" /><Text style={s.acceptText}>{t.common?.accept || "Accept"}</Text>
               </TouchableOpacity>
             </View>
           </TouchableOpacity>
@@ -791,20 +840,50 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
 
         {/* Renew */}
         {(isCancelled || isStale) && (
-          <TouchableOpacity style={s.renewBtn} onPress={() => {
-            Alert.alert((t.common as any)?.renewRequest || "Renew Request", (t.common as any)?.renewRequestConfirm || "This will reopen your request to receive more quotes. Continue?", [
-              { text: t.common?.cancel || "Cancel", style: "cancel" },
-              { text: (t.common as any)?.renew || "Renew", onPress: async () => { try { await api.post(`/service-requests/${requestId}/renew`); Alert.alert(t.common?.success || "Success!", (t.common as any)?.renewSuccess || "Your request has been renewed."); loadDetails(); } catch (err: any) { Alert.alert(t.common?.error || "Error", err?.response?.data?.message || "Could not renew request"); } } },
-            ]);
-          }}>
-            <Ionicons name="refresh" size={20} color="#2B5EA7" /><Text style={s.renewBtnText}>{(t.common as any)?.renewForMoreQuotes || "Renew Request for More Quotes"}</Text>
+          <TouchableOpacity
+            style={s.renewBtn}
+            onPress={() => {
+              Alert.alert(
+                td.renewRequestTitle || "Renew Request",
+                td.renewRequestConfirm ||
+                  "This will reopen your request to receive more quotes. Continue?",
+                [
+                  { text: t.common?.cancel || "Cancel", style: "cancel" },
+                  {
+                    text: td.renewConfirmAction || "Renew",
+                    onPress: async () => {
+                      try {
+                        await api.post(`/service-requests/${requestId}/renew`);
+                        Alert.alert(
+                          t.common?.success || "Success!",
+                          td.renewSuccess || "Your request has been renewed.",
+                        );
+                        loadDetails();
+                      } catch (err: any) {
+                        Alert.alert(
+                          t.common?.error || "Error",
+                          err?.response?.data?.message ||
+                            td.renewFailed ||
+                            "Could not renew request. Please try again.",
+                        );
+                      }
+                    },
+                  },
+                ],
+              );
+            }}
+          >
+            <Ionicons name="refresh" size={20} color="#2B5EA7" />
+            <Text style={s.renewBtnText}>
+              {td.renewCta || "Renew for more quotes"}
+            </Text>
           </TouchableOpacity>
         )}
 
         {/* ═══ REFERENCE NUMBER (bottom) ═══ */}
         {request?.requestNumber && (
           <View style={s.refSection}>
-            <Text style={s.refLabel}>{td.referenceNumber || "Reference Number"}</Text>
+            <Text style={s.refLabel}>{td.referenceNumber || "Reference #"}</Text>
             <Text style={s.refValue}>#{request.requestNumber?.includes('-') ? `SR-${request.requestNumber.split('-').pop()}` : request.requestNumber}</Text>
           </View>
         )}

@@ -98,7 +98,7 @@ export default function CompleteSocialSignupScreen({ navigation, route }: any) {
     } catch (error: any) {
       Alert.alert(
         t.common?.error || "Error",
-        error.message || "Failed to complete registration",
+        error.message || t.auth?.completeRegistrationFailed || "Failed to complete registration",
       );
     } finally {
       setLoading(false);

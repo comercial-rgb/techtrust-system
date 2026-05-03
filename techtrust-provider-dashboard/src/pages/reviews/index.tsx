@@ -17,6 +17,7 @@ import {
   Wrench,
 } from 'lucide-react'
 
+import { logApiError } from "../../utils/logger";
 interface Review {
   id: string
   customerName: string
@@ -101,7 +102,7 @@ export default function ReviewsPage() {
       setReplyModal(null)
       setReplyText('')
     } catch (err) {
-      console.error('Reply error:', err)
+      logApiError('Reply error:', err)
     } finally {
       setSubmitting(false)
     }

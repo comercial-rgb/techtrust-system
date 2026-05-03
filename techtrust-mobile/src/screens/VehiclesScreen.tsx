@@ -37,6 +37,7 @@ import {
   LoadingOverlay,
   SuccessAnimation,
 } from "../components";
+import { log } from "../utils/logger";
 
 export default function VehiclesScreen({ navigation, route }: any) {
   const { t } = useI18n();
@@ -81,7 +82,7 @@ export default function VehiclesScreen({ navigation, route }: any) {
       const response = await api.get("/vehicles");
       setVehicles(response.data.data || []);
     } catch (err) {
-      console.error("Error loading vehicles:", err);
+      log.error("Error loading vehicles:", err);
       // 📱 Works offline - don't show error, just empty list
       // error(t.vehicle?.loadError || 'Could not load vehicles');
       setVehicles([]); // Empty list to work without backend

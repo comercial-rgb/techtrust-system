@@ -155,7 +155,7 @@ interface Message {
 type ScreenPhase = 'topics' | 'faq_detail' | 'chat';
 
 export default function SupportChatScreen({ navigation, route }: any) {
-  const { t } = useI18n();
+  const { t, formatTime } = useI18n();
   const initialSubject = route?.params?.subject || '';
 
   // Phase control
@@ -251,7 +251,10 @@ export default function SupportChatScreen({ navigation, route }: any) {
         connectSocket(ticket.id);
       }
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to create support ticket');
+      Alert.alert(
+        t.common?.error || 'Error',
+        error.response?.data?.message || t.chat?.ticketCreateFailed || 'Failed to create support ticket',
+      );
     } finally {
       setLoading(false);
     }
@@ -291,7 +294,7 @@ export default function SupportChatScreen({ navigation, route }: any) {
         connectSocket(detail.id);
       }
     } catch (error: any) {
-      Alert.alert('Error', 'Failed to load ticket');
+      Alert.alert(t.common?.error || 'Error', t.chat?.ticketLoadFailed || 'Failed to load ticket');
     } finally {
       setLoading(false);
     }
@@ -357,19 +360,6 @@ export default function SupportChatScreen({ navigation, route }: any) {
     } catch (error) {
       // Message was already added optimistically
     }
-  };
-
-  // ============================================
-  // FORMAT HELPERS
-  // ============================================
-
-  const formatTime = (timestamp: string) => {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
   };
 
   // ============================================

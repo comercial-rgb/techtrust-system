@@ -18,6 +18,7 @@ import {
   Shield,
 } from "lucide-react";
 import Link from "next/link";
+import { logApiError } from "../../utils/logger";
 
 export default function EstimatesPage() {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
@@ -76,7 +77,7 @@ export default function EstimatesPage() {
       const quotesArrays = await Promise.all(quotesPromises);
       setAllQuotes(quotesArrays.flat());
     } catch (error) {
-      console.error("Error loading estimates:", error);
+      logApiError("Error loading estimates:", error);
     } finally {
       setLoading(false);
     }

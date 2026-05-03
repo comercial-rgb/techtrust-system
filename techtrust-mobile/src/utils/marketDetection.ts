@@ -144,7 +144,7 @@ export function formatMarketCurrency(
   if (config.currency === "BRL") {
     return `${config.currencySymbol} ${amount.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }
-  return `${config.currencySymbol}${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `${config.currencySymbol}${amount.toLocaleString(config.currencyLocale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 /**
@@ -169,7 +169,7 @@ export function formatMarketTime(
   const d = typeof date === "string" ? new Date(date) : date;
   const config = getMarketConfig(language);
   if (config.timeFormat === "12h") {
-    return d.toLocaleTimeString("en-US", {
+    return d.toLocaleTimeString(config.dateLocale, {
       hour: "numeric",
       minute: "2-digit",
       hour12: true,

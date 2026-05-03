@@ -5,36 +5,36 @@ import * as sos from "../controllers/sos.controller";
 
 const router = Router();
 
-// ── Customer routes ───────────────────────────────────────────────────────────
-// All require authentication as CUSTOMER
+// ── Client routes ─────────────────────────────────────────────────────────────
+// All require authentication as CLIENT
 router.post(
   "/request",
   authenticate,
-  authorize("CUSTOMER"),
+  authorize("CLIENT"),
   asyncHandler(sos.createSOSRequest),
 );
 router.get(
   "/request/:requestId/status",
   authenticate,
-  authorize("CUSTOMER"),
+  authorize("CLIENT"),
   asyncHandler(sos.getSOSStatus),
 );
 router.post(
   "/request/:requestId/confirm",
   authenticate,
-  authorize("CUSTOMER"),
+  authorize("CLIENT"),
   asyncHandler(sos.confirmSOSAccept),
 );
 router.post(
   "/request/:requestId/decline",
   authenticate,
-  authorize("CUSTOMER"),
+  authorize("CLIENT"),
   asyncHandler(sos.declineSOSAccept),
 );
 router.delete(
   "/request/:requestId",
   authenticate,
-  authorize("CUSTOMER"),
+  authorize("CLIENT"),
   asyncHandler(sos.cancelSOSRequest),
 );
 

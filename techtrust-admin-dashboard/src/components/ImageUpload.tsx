@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { Upload, X, Image as ImageIcon } from 'lucide-react';
 import { adminApi as api } from '../services/api';
+import { logApiError } from "../utils/logger";
 
 type ContentType = 'banner' | 'offer' | 'article' | 'notice' | 'general';
 
@@ -69,7 +70,7 @@ export default function ImageUpload({ value, onChange, label = 'Imagem', require
       setPreview(imageUrl);
       onChange(imageUrl);
     } catch (error) {
-      console.error('Upload error:', error);
+      logApiError('Upload error:', error);
       alert('Erro ao fazer upload da imagem');
     } finally {
       setUploading(false);

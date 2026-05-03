@@ -24,6 +24,8 @@ import {
   Archive,
 } from 'lucide-react';
 
+import { logApiError } from "../../utils/logger";
+
 interface SupportTicket {
   id: string;
   ticketNumber: string;
@@ -131,7 +133,7 @@ export default function SuportePage() {
         setStats(statsRes.data.data);
       }
     } catch (error) {
-      console.error('Error loading support data:', error);
+      logApiError('Error loading support data:', error);
     } finally {
       setLoading(false);
     }
@@ -144,7 +146,7 @@ export default function SuportePage() {
         setSelectedTicket(res.data.data);
       }
     } catch (error) {
-      console.error('Error loading ticket:', error);
+      logApiError('Error loading ticket:', error);
     }
   }
 
@@ -164,7 +166,7 @@ export default function SuportePage() {
         await loadData();
       }
     } catch (error) {
-      console.error('Error sending reply:', error);
+      logApiError('Error sending reply:', error);
     } finally {
       setSending(false);
     }
@@ -178,7 +180,7 @@ export default function SuportePage() {
         await openTicket(selectedTicket);
       }
     } catch (error) {
-      console.error('Error updating status:', error);
+      logApiError('Error updating status:', error);
     }
   }
 

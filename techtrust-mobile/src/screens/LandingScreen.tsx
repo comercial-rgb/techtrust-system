@@ -4,7 +4,7 @@
  * Contém: Anúncios, Busca de Fornecedores, Ofertas, Benefícios, Artigos, Avisos
  */
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -123,8 +123,12 @@ interface LandingScreenProps {
 }
 
 export default function LandingScreen({ navigation }: LandingScreenProps) {
-  const { t, language, setLanguage } = useI18n();
+  const { t, language, setLanguage, formatCurrency } = useI18n();
   const { isAuthenticated, user, logout } = useAuth();
+  const landingDateLocale = useMemo(
+    () => (language === "pt" ? "pt-BR" : language === "es" ? "es-ES" : "en-US"),
+    [language],
+  );
   const scrollX = useRef(new Animated.Value(0)).current;
   const bannerRef = useRef<FlatList>(null);
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
@@ -522,14 +526,22 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
     // Support both API field (discountLabel) and legacy field (discount)
     const discountDisplay = (item as any).discountLabel || item.discount || "";
 
-    // Format prices - API returns Decimal (number), legacy returns string like "$89.99"
+    // Format prices — API number or legacy "$89.99" / "FREE"
+    const freeLbl = t.common?.free || "Free";
     const formatPrice = (val: any): string => {
-      if (!val) return "";
-      if (typeof val === "string" && (val.startsWith("$") || val === "FREE"))
+      if (val == null || val === "") return "";
+      if (typeof val === "string") {
+        const tr = val.trim();
+        if (/^free$/i.test(tr)) return freeLbl;
+        const cleaned = tr.replace(/^\s*[$£€]\s*/, "").replace(/,/g, "");
+        const parsed = Number(cleaned);
+        if (!Number.isNaN(parsed))
+          return parsed === 0 ? freeLbl : formatCurrency(parsed);
         return val;
+      }
       const num = Number(val);
       if (isNaN(num)) return String(val);
-      return num === 0 ? "FREE" : `$${num.toFixed(2)}`;
+      return num === 0 ? freeLbl : formatCurrency(num);
     };
     const originalPrice = formatPrice(item.originalPrice);
     const discountedPrice = formatPrice(item.discountedPrice);
@@ -541,7 +553,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
       if (raw.includes("T") || (raw.includes("-") && raw.length > 10)) {
         const d = new Date(raw);
         validUntilStr = !isNaN(d.getTime())
-          ? d.toLocaleDateString("en-US", {
+          ? d.toLocaleDateString(landingDateLocale, {
               month: "short",
               day: "numeric",
               year: "numeric",
@@ -707,7 +719,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
           {item.category && <Text style={styles.articleCategory}>{item.category}</Text>}
           {item.publishedAt && (
             <Text style={styles.articleReadTime}>
-              {new Date(item.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              {new Date(item.publishedAt).toLocaleDateString(landingDateLocale, { month: 'short', day: 'numeric' })}
             </Text>
           )}
         </View>
@@ -739,14 +751,19 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
             <View style={styles.loggedInBanner}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.loggedInText}>
-                  {`Welcome back, ${user.fullName || ''}`}
+                  {(t.customer?.welcomeBackName || "Welcome back, {{name}}").replace(
+                    "{{name}}",
+                    user.fullName || "",
+                  )}
                 </Text>
               </View>
               <TouchableOpacity
                 style={styles.goToDashboardBtn}
                 onPress={() => navigation.navigate('DashboardMain')}
               >
-                <Text style={styles.goToDashboardText}>My Dashboard</Text>
+                <Text style={styles.goToDashboardText}>
+                  {t.customer?.myDashboard || "My Dashboard"}
+                </Text>
                 <Ionicons name="arrow-forward" size={14} color="#2B5EA7" />
               </TouchableOpacity>
             </View>
@@ -1781,20 +1798,39 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                     ? imgStr
                     : `${process.env.EXPO_PUBLIC_API_URL || "https://techtrust-api.onrender.com"}${imgStr.startsWith("/") ? imgStr : "/" + imgStr}`
                   : null;
+                const freeLbl = t.common?.free || "Free";
+                const discLbl = (selectedOffer as any).discountLabel as
+                  | string
+                  | undefined;
+                const rawDisc = selectedOffer.discount as unknown;
+                const discNum =
+                  rawDisc != null && rawDisc !== ""
+                    ? Number(rawDisc)
+                    : NaN;
                 const modalDiscount =
-                  (selectedOffer as any).discountLabel ||
-                  selectedOffer.discount ||
-                  "";
+                  discLbl ||
+                  (!Number.isNaN(discNum)
+                    ? ((t as any).landing?.offers?.percentOff || "{{percent}}% OFF").replace(
+                        "{{percent}}",
+                        String(discNum),
+                      )
+                    : rawDisc != null && String(rawDisc).trim() !== ""
+                      ? String(rawDisc)
+                      : (t as any).landing?.offers?.promoBadge || "PROMO");
                 const fmtPr = (val: any): string => {
-                  if (!val) return "";
-                  if (
-                    typeof val === "string" &&
-                    (val.startsWith("$") || val === "FREE")
-                  )
+                  if (val == null || val === "") return "";
+                  if (typeof val === "string") {
+                    const tr = val.trim();
+                    if (/^free$/i.test(tr)) return freeLbl;
+                    const cleaned = tr.replace(/^\s*[$£€]\s*/, "").replace(/,/g, "");
+                    const parsed = Number(cleaned);
+                    if (!Number.isNaN(parsed))
+                      return parsed === 0 ? freeLbl : formatCurrency(parsed);
                     return val;
+                  }
                   const n = Number(val);
                   if (isNaN(n)) return String(val);
-                  return n === 0 ? "FREE" : `$${n.toFixed(2)}`;
+                  return n === 0 ? freeLbl : formatCurrency(n);
                 };
                 const mOriginal = fmtPr(selectedOffer.originalPrice);
                 const mDiscounted = fmtPr(selectedOffer.discountedPrice);
@@ -1807,7 +1843,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                   ) {
                     const d = new Date(raw);
                     mValidUntil = !isNaN(d.getTime())
-                      ? d.toLocaleDateString("en-US", {
+                      ? d.toLocaleDateString(landingDateLocale, {
                           month: "short",
                           day: "numeric",
                           year: "numeric",
@@ -1867,7 +1903,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                       <View style={styles.offerModalPricing}>
                         <View>
                           <Text style={styles.offerModalPriceLabel}>
-                            Regular Price
+                            {t.landing?.offers?.regularPrice || "Regular Price"}
                           </Text>
                           <Text style={styles.offerModalOriginalPrice}>
                             {mOriginal}
@@ -1880,7 +1916,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                         />
                         <View>
                           <Text style={styles.offerModalPriceLabel}>
-                            Special Price
+                            {t.landing?.offers?.specialPrice || "Special Price"}
                           </Text>
                           <Text style={styles.offerModalDiscountedPrice}>
                             {mDiscounted}
@@ -1891,14 +1927,16 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                       <View style={styles.offerModalValidity}>
                         <Ionicons name="time" size={18} color="#f59e0b" />
                         <Text style={styles.offerModalValidityText}>
-                          Valid until {mValidUntil}
+                          {(t.landing?.offers?.validUntilWithDate ||
+                            "Valid until {{date}}").replace("{{date}}", mValidUntil)}
                         </Text>
                       </View>
 
                       {!isAuthenticated ? (
                         <View style={styles.offerModalAuth}>
                           <Text style={styles.offerModalAuthText}>
-                            Login or sign up to take advantage of this offer!
+                            {t.landing?.offers?.authPrompt ||
+                              "Log in or sign up to take advantage of this offer!"}
                           </Text>
                           <View style={styles.offerModalAuthButtons}>
                             <TouchableOpacity
@@ -1909,7 +1947,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                               }}
                             >
                               <Text style={styles.offerModalLoginButtonText}>
-                                Login
+                                {t.auth?.login || "Login"}
                               </Text>
                             </TouchableOpacity>
                             <TouchableOpacity
@@ -1920,7 +1958,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                               }}
                             >
                               <Text style={styles.offerModalSignupButtonText}>
-                                Sign Up
+                                {t.auth?.signup || "Sign Up"}
                               </Text>
                             </TouchableOpacity>
                           </View>

@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import AdminLayout from '../../components/AdminLayout';
 import { Tag, Plus, Edit, Trash2, CheckCircle, XCircle, DollarSign, Users, Car, Crown, Star, Zap } from 'lucide-react';
 import api from '../../services/api';
+import { logApiError } from "../../utils/logger";
 
 interface SubscriptionPlan {
   id: string;
@@ -111,7 +112,7 @@ export default function AssinaturasPage() {
         setPlans(DEFAULT_PLANS);
       }
     } catch (error) {
-      console.error('Erro ao carregar planos:', error);
+      logApiError('Erro ao carregar planos:', error);
       // Use default plans on error
       setPlans(DEFAULT_PLANS);
     } finally {
@@ -169,7 +170,7 @@ export default function AssinaturasPage() {
       
       setShowModal(false);
     } catch (error) {
-      console.error('Erro ao salvar plano:', error);
+      logApiError('Erro ao salvar plano:', error);
       // Still update locally for demo purposes
       if (editingPlan) {
         setPlans(plans.map(p => p.id === editingPlan.id ? { 
@@ -199,7 +200,7 @@ export default function AssinaturasPage() {
       await api.delete(`/admin/subscription-plans/${planId}`);
       setPlans(plans.filter(p => p.id !== planId));
     } catch (error) {
-      console.error('Erro ao excluir plano:', error);
+      logApiError('Erro ao excluir plano:', error);
       // Still remove locally for demo
       setPlans(plans.filter(p => p.id !== planId));
     }
@@ -210,7 +211,7 @@ export default function AssinaturasPage() {
       await api.patch(`/admin/subscription-plans/${plan.id}`, { isActive: !plan.isActive });
       setPlans(plans.map(p => p.id === plan.id ? { ...p, isActive: !p.isActive } : p));
     } catch (error) {
-      console.error('Erro ao atualizar status:', error);
+      logApiError('Erro ao atualizar status:', error);
       setPlans(plans.map(p => p.id === plan.id ? { ...p, isActive: !p.isActive } : p));
     }
   };

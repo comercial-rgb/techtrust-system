@@ -26,7 +26,8 @@ import { useI18n } from "../i18n";
 import * as paymentService from "../services/payment.service";
 
 export default function PaymentScreen({ navigation, route }: any) {
-  const { t } = useI18n();
+  const { t, formatCurrency } = useI18n();
+  const tp = t.payment;
   const { confirmPayment: stripeConfirmPayment } = useConfirmPayment();
   const { confirmPlatformPayPayment, isPlatformPaySupported } = usePlatformPay();
   const [isApplePayReady, setIsApplePayReady] = useState(false);
@@ -340,7 +341,7 @@ export default function PaymentScreen({ navigation, route }: any) {
             <Text style={styles.amountLabel}>
               {t.payment?.totalToPay || "Total to pay:"}
             </Text>
-            <Text style={styles.amountValue}>${displayAmount.toFixed(2)}</Text>
+            <Text style={styles.amountValue}>{formatCurrency(displayAmount)}</Text>
           </View>
         </View>
 
@@ -355,7 +356,7 @@ export default function PaymentScreen({ navigation, route }: any) {
                 {t.payment?.serviceAmount || "Service"}
               </Text>
               <Text style={styles.breakdownValue}>
-                ${breakdown.serviceAmount.toFixed(2)}
+                {formatCurrency(breakdown.serviceAmount)}
               </Text>
             </View>
             <View style={styles.breakdownRow}>
@@ -363,7 +364,7 @@ export default function PaymentScreen({ navigation, route }: any) {
                 {t.payment?.platformFee || "Platform fee"}
               </Text>
               <Text style={styles.breakdownValue}>
-                ${breakdown.platformFee.toFixed(2)}
+                {formatCurrency(breakdown.platformFee)}
               </Text>
             </View>
             <View style={styles.breakdownRow}>
@@ -371,18 +372,27 @@ export default function PaymentScreen({ navigation, route }: any) {
                 {t.payment?.processingFee || "Processing fee"}
               </Text>
               <Text style={styles.breakdownValue}>
-                ${breakdown.stripeFee.toFixed(2)}
+                {formatCurrency(breakdown.stripeFee)}
               </Text>
             </View>
             {/* Sales Tax (Marketplace Facilitator) */}
             {(breakdown.salesTaxAmount ?? 0) > 0 && (
               <View style={styles.breakdownRow}>
                 <Text style={[styles.breakdownLabel, { color: "#dc2626" }]}>
-                  Sales Tax ({((breakdown.salesTaxRate || 0) * 100).toFixed(1)}%
-                  {breakdown.salesTaxCounty ? ` — ${breakdown.salesTaxCounty}` : ""})
+                  {(tp?.salesTaxWithCounty || "Sales Tax ({{rate}}%{{county}})")
+                    .replace(
+                      "{{rate}}",
+                      ((breakdown.salesTaxRate || 0) * 100).toFixed(1),
+                    )
+                    .replace(
+                      "{{county}}",
+                      breakdown.salesTaxCounty
+                        ? `${tp?.salesTaxCountySeparator || " — "}${breakdown.salesTaxCounty}`
+                        : "",
+                    )}
                 </Text>
                 <Text style={[styles.breakdownValue, { color: "#dc2626" }]}>
-                  ${(breakdown.salesTaxAmount || 0).toFixed(2)}
+                  {formatCurrency(breakdown.salesTaxAmount || 0)}
                 </Text>
               </View>
             )}
@@ -391,7 +401,7 @@ export default function PaymentScreen({ navigation, route }: any) {
                 {t.payment?.total || "Total"}
               </Text>
               <Text style={styles.breakdownTotalValue}>
-                ${breakdown.totalAmount.toFixed(2)}
+                {formatCurrency(breakdown.totalAmount)}
               </Text>
             </View>
             <View style={styles.providerReceives}>
@@ -401,8 +411,8 @@ export default function PaymentScreen({ navigation, route }: any) {
                 color="#6b7280"
               />
               <Text style={styles.providerReceivesText}>
-                {t.payment?.providerReceives || "Provider receives"}: $
-                {breakdown.providerWillReceive.toFixed(2)}
+                {t.payment?.providerReceives || "Provider receives"}:{" "}
+                {formatCurrency(breakdown.providerWillReceive)}
               </Text>
             </View>
 
@@ -411,8 +421,8 @@ export default function PaymentScreen({ navigation, route }: any) {
               <View style={styles.mpfNotice}>
                 <Ionicons name="shield-checkmark" size={16} color="#1d4ed8" />
                 <Text style={styles.mpfNoticeText}>
-                  Sales tax collected and remitted by TechTrust as a Marketplace
-                  Facilitator under Florida Statute §212.05965.
+                  {tp?.mpfNotice ||
+                    "Sales tax collected and remitted by TechTrust as a Marketplace Facilitator under Florida Statute §212.05965."}
                 </Text>
               </View>
             )}
@@ -429,14 +439,16 @@ export default function PaymentScreen({ navigation, route }: any) {
           <View style={styles.applePayContainer}>
             <PlatformPayButton
               onPress={handleApplePay}
-              type={PlatformPay.ButtonType.Plain}
+              type={PlatformPay.ButtonType.Default}
               appearance={PlatformPay.ButtonStyle.Black}
               borderRadius={12}
               style={styles.applePayButton}
             />
             <View style={styles.applePayDivider}>
               <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or pay with card</Text>
+              <Text style={styles.dividerText}>
+                {tp?.orPayWithCard || "or pay with card"}
+              </Text>
               <View style={styles.dividerLine} />
             </View>
           </View>
@@ -569,7 +581,7 @@ export default function PaymentScreen({ navigation, route }: any) {
             <>
               <Ionicons name="lock-closed" size={20} color="#fff" />
               <Text style={styles.payText}>
-                {t.payment?.pay || "Pay"} ${displayAmount.toFixed(2)}
+                {t.payment?.pay || "Pay"} {formatCurrency(displayAmount)}
               </Text>
             </>
           )}

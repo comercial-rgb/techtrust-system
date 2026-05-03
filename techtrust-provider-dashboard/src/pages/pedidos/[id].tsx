@@ -33,6 +33,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import Link from "next/link";
+import { logApiError } from "../../utils/logger";
 
 interface ServiceRequest {
   id: string;
@@ -71,8 +72,10 @@ export default function PedidoDetalhesPage() {
   const [loading, setLoading] = useState(true);
   const [request, setRequest] = useState<ServiceRequest | null>(null);
   const [showQuoteForm, setShowQuoteForm] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [quoteSubmitted, setQuoteSubmitted] = useState(false);
+  const [providerLevel, setProviderLevel] = useState<string>("ENTRY");
 
   // OE Parts state
   const [oePartsExpanded, setOePartsExpanded] = useState(false);
@@ -116,6 +119,15 @@ export default function PedidoDetalhesPage() {
     }
   }, [isAuthenticated, id]);
 
+  useEffect(() => {
+    if (isAuthenticated) {
+      api.get("/provider/profile").then((res: any) => {
+        const level = res.data?.data?.providerLevel || res.data?.providerLevel;
+        if (level) setProviderLevel(level);
+      }).catch(() => {/* silent — default ENTRY */});
+    }
+  }, [isAuthenticated]);
+
   async function loadRequest() {
     setLoading(true);
     try {
@@ -155,7 +167,7 @@ export default function PedidoDetalhesPage() {
         photos: data.photos,
       });
     } catch (error) {
-      console.error("Erro ao carregar pedido:", error);
+      logApiError("Erro ao carregar pedido:", error);
     } finally {
       setLoading(false);
     }
@@ -209,7 +221,7 @@ export default function PedidoDetalhesPage() {
       setQuoteSubmitted(true);
       setShowQuoteForm(false);
     } catch (error: any) {
-      console.error("Erro ao enviar orçamento:", error);
+      logApiError("Erro ao enviar orçamento:", error);
       const message =
         error.response?.data?.message ||
         "Erro ao enviar orçamento. Tente novamente.";
@@ -299,6 +311,13 @@ export default function PedidoDetalhesPage() {
     };
   };
 
+  const TIER_CONFIG: Record<string, { laborRate: number; partsRate: number; partsMax: number; nextLevel: string | null; nextLaborRate: number | null; completionsNeeded: number | null; label: string }> = {
+    ENTRY:        { laborRate: 0.15, partsRate: 0.11, partsMax: 10,  nextLevel: "INTERMEDIATE", nextLaborRate: 12, completionsNeeded: 20,  label: "Entry"       },
+    INTERMEDIATE: { laborRate: 0.12, partsRate: 0.10, partsMax: 12,  nextLevel: "ADVANCED",     nextLaborRate: 10, completionsNeeded: 30,  label: "Intermediate" },
+    ADVANCED:     { laborRate: 0.10, partsRate: 0.09, partsMax: 13,  nextLevel: "PREMIUM_TIER", nextLaborRate: 8,  completionsNeeded: 50,  label: "Advanced"    },
+    PREMIUM_TIER: { laborRate: 0.08, partsRate: 0.08, partsMax: 15,  nextLevel: null,           nextLaborRate: null, completionsNeeded: null, label: "Premium" },
+  };
+
   const calculateTotal = () => {
     const parts = parseFloat(partsCost) || 0;
     const labor = parseFloat(laborCost) || 0;
@@ -306,6 +325,26 @@ export default function PedidoDetalhesPage() {
     const tires = (parseInt(newTireCount) || 0) * 1.0;
     const batteries = (parseInt(newBatteryCount) || 0) * 1.5;
     return parts + labor + supplies + tires + batteries;
+  };
+
+  const calculateBreakdown = () => {
+    const parts = parseFloat(partsCost) || 0;
+    const labor = parseFloat(laborCost) || 0;
+    const supplies = parseFloat(shopSuppliesFee) || 0;
+    const tires = (parseInt(newTireCount) || 0) * 1.0;
+    const batteries = (parseInt(newBatteryCount) || 0) * 1.5;
+    const grandTotal = parts + labor + supplies + tires + batteries;
+    const tier = TIER_CONFIG[providerLevel] ?? TIER_CONFIG.ENTRY;
+    const laborCommission = labor * tier.laborRate;
+    const partsCommission = Math.min(parts * tier.partsRate, tier.partsMax);
+    const suppliesCommission = 0; // shop supplies not subject to parts commission
+    const totalCommission = laborCommission + partsCommission;
+    return {
+      parts, labor, supplies, tires, batteries, grandTotal,
+      laborCommission, partsCommission, totalCommission,
+      youReceive: Math.max(0, grandTotal - totalCommission),
+      tier,
+    };
   };
 
   if (authLoading || !isAuthenticated) {
@@ -1012,43 +1051,206 @@ export default function PedidoDetalhesPage() {
                   </div>
                 </div>
 
-                {/* Total */}
-                <div className="bg-gray-50 rounded-xl p-4 mb-6">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600">
-                      {t("requests.quoteModal.quoteTotal")}
-                    </span>
-                    <span className="text-2xl font-bold text-primary-600">
-                      ${calculateTotal().toFixed(2)}
-                    </span>
-                  </div>
-                  <p className="text-xs text-gray-400 mt-1">
-                    {t("requests.quoteModal.commissionNote")}
-                  </p>
-                </div>
+                {/* Real-time Financial Summary */}
+                {(() => {
+                  const bd = calculateBreakdown();
+                  const hasValues = bd.grandTotal > 0;
+                  return (
+                    <div className="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50 p-5 mb-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <DollarSign className="w-5 h-5 text-blue-600" />
+                          <span className="font-semibold text-gray-900">Financial Summary</span>
+                        </div>
+                        <span className="text-xs font-semibold bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full">
+                          {bd.tier.label} Tier
+                        </span>
+                      </div>
+
+                      <div className="space-y-2 text-sm mb-4">
+                        {bd.parts > 0 && (
+                          <div className="flex justify-between text-gray-600">
+                            <span>Parts</span><span>${bd.parts.toFixed(2)}</span>
+                          </div>
+                        )}
+                        {bd.labor > 0 && (
+                          <div className="flex justify-between text-gray-600">
+                            <span>Labor</span><span>${bd.labor.toFixed(2)}</span>
+                          </div>
+                        )}
+                        {bd.supplies > 0 && (
+                          <div className="flex justify-between text-gray-600">
+                            <span>Shop Supplies</span><span>${bd.supplies.toFixed(2)}</span>
+                          </div>
+                        )}
+                        {bd.tires > 0 && (
+                          <div className="flex justify-between text-gray-600">
+                            <span>Tire Fee (FDACS)</span><span>${bd.tires.toFixed(2)}</span>
+                          </div>
+                        )}
+                        {bd.batteries > 0 && (
+                          <div className="flex justify-between text-gray-600">
+                            <span>Battery Fee (FDACS)</span><span>${bd.batteries.toFixed(2)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between font-semibold text-gray-900 border-t border-blue-100 pt-2">
+                          <span>Customer pays</span>
+                          <span className="text-lg text-blue-700">${bd.grandTotal.toFixed(2)}</span>
+                        </div>
+                      </div>
+
+                      <div className="bg-white rounded-xl p-3 space-y-1.5 text-sm mb-4">
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Platform deductions</p>
+                        {bd.labor > 0 && (
+                          <div className="flex justify-between text-red-600">
+                            <span>Labor commission ({Math.round(bd.tier.laborRate * 100)}%)</span>
+                            <span>-${bd.laborCommission.toFixed(2)}</span>
+                          </div>
+                        )}
+                        {bd.parts > 0 && (
+                          <div className="flex justify-between text-red-600">
+                            <span>Parts commission ({Math.round(bd.tier.partsRate * 100)}%, max ${bd.tier.partsMax})</span>
+                            <span>-${bd.partsCommission.toFixed(2)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between font-bold text-green-700 border-t border-gray-100 pt-2">
+                          <span>You will receive</span>
+                          <span className="text-xl">${bd.youReceive.toFixed(2)}</span>
+                        </div>
+                        <p className="text-xs text-gray-400">Paid after client approves the completed service</p>
+                      </div>
+
+                      {/* Tier progression */}
+                      {bd.tier.nextLevel && (
+                        <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3 mb-3">
+                          <span className="text-amber-500 text-base">⚡</span>
+                          <p className="text-xs text-amber-800">
+                            <span className="font-semibold">Your commission drops to {bd.tier.nextLaborRate}%</span> after {bd.tier.completionsNeeded} completed services.
+                            Keep growing on TechTrust and unlock Premium rates of just 8%.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Why TechTrust */}
+                      <div className="grid grid-cols-1 gap-1.5">
+                        {[
+                          { icon: "🔒", text: "Payment guaranteed — client card held before service starts" },
+                          { icon: "⚖️", text: "TechTrust mediates any disputes on your behalf" },
+                          { icon: "📄", text: "FDACS-compliant invoices generated automatically" },
+                          { icon: "📈", text: "Your rate drops as you complete more services" },
+                        ].map((item, i) => (
+                          <div key={i} className="flex items-start gap-2 text-xs text-gray-600">
+                            <span>{item.icon}</span>
+                            <span>{item.text}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 <button
-                  type="submit"
+                  type="button"
                   disabled={submitting}
+                  onClick={() => {
+                    if (!partsCost || !laborCost || !laborDescription || !estimatedDuration) {
+                      alert("Preencha todos os campos obrigatórios");
+                      return;
+                    }
+                    setShowConfirmModal(true);
+                  }}
                   className="btn btn-primary w-full py-3 text-lg disabled:opacity-50"
                 >
-                  {submitting ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      {t("requests.quoteModal.sending")}
-                    </span>
-                  ) : (
-                    <span className="flex items-center justify-center gap-2">
-                      <Send className="w-5 h-5" />
-                      {t("requests.quoteModal.submit")}
-                    </span>
-                  )}
+                  <span className="flex items-center justify-center gap-2">
+                    <Send className="w-5 h-5" />
+                    Review & Send Quote
+                  </span>
                 </button>
               </form>
             )}
           </div>
         )}
       </div>
+
+      {/* Pre-submit Confirmation Modal */}
+      {showConfirmModal && (() => {
+        const bd = calculateBreakdown();
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold text-gray-900">Confirm Quote</h3>
+                  <button onClick={() => setShowConfirmModal(false)} className="p-1.5 hover:bg-gray-100 rounded-lg">
+                    <X className="w-5 h-5 text-gray-500" />
+                  </button>
+                </div>
+
+                {/* Service & quote recap */}
+                <div className="bg-gray-50 rounded-xl p-3 mb-4 text-sm text-gray-600">
+                  <p className="font-semibold text-gray-900 mb-0.5">{request?.title}</p>
+                  <p>{request?.vehicle?.make} {request?.vehicle?.model} {request?.vehicle?.year}</p>
+                </div>
+
+                {/* Financial confirmation */}
+                <div className="space-y-2 text-sm mb-4">
+                  <div className="flex justify-between font-semibold text-gray-900">
+                    <span>Customer pays</span>
+                    <span className="text-blue-700">${bd.grandTotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-red-600">
+                    <span>Total commission ({bd.tier.label} tier)</span>
+                    <span>-${bd.totalCommission.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between font-bold text-green-700 border-t border-gray-200 pt-2">
+                    <span>You will receive</span>
+                    <span className="text-xl">${bd.youReceive.toFixed(2)}</span>
+                  </div>
+                </div>
+
+                {/* Guarantee note */}
+                <div className="flex items-start gap-2 bg-green-50 border border-green-200 rounded-xl p-3 mb-5 text-xs text-green-800">
+                  <Shield className="w-4 h-4 text-green-600 mt-0.5 shrink-0" />
+                  <span>
+                    <strong>Payment is guaranteed.</strong> The client's card will be charged before the service begins. You're protected even if the client becomes unresponsive after completion.
+                  </span>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmModal(false)}
+                    className="flex-1 btn btn-outline py-3"
+                  >
+                    Back to Edit
+                  </button>
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={() => {
+                      setShowConfirmModal(false);
+                      handleSubmitQuote(new Event("submit") as any);
+                    }}
+                    className="flex-1 btn btn-primary py-3 disabled:opacity-50"
+                  >
+                    {submitting ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Sending…
+                      </span>
+                    ) : (
+                      <span className="flex items-center justify-center gap-2">
+                        <Send className="w-4 h-4" />
+                        Confirm & Send
+                      </span>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </DashboardLayout>
   );
 }

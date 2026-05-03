@@ -19,6 +19,7 @@ import {
   useToast,
   AnimatedProgressBar,
 } from '../components';
+import { log } from "../utils/logger";
 
 interface WorkOrder {
   id: string;
@@ -42,7 +43,7 @@ interface WorkOrder {
 }
 
 export default function WorkOrdersScreen({ navigation }: any) {
-  const { t } = useI18n();
+  const { t, formatCurrency } = useI18n();
   const theme = useTheme();
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,7 +62,7 @@ export default function WorkOrdersScreen({ navigation }: any) {
       const response = await api.get('/work-orders');
       setWorkOrders(response.data.data?.orders || response.data.data || []);
     } catch (err) {
-      console.error('Error loading work orders:', err);
+      log.error('Error loading work orders:', err);
       error(t.workOrder?.loadError || 'Error loading services');
       setWorkOrders([]);
     } finally {
@@ -204,7 +205,7 @@ export default function WorkOrdersScreen({ navigation }: any) {
               icon="clipboard-text-outline"
               title="Nenhum serviço"
               description="Crie uma solicitação para começar!"
-              actionLabel="Nova Solicitação"
+              actionLabel={t.customer?.newRequest || "New Request"}
               onAction={() => navigation.navigate('CreateRequest')}
             />
           </FadeInView>
@@ -265,9 +266,11 @@ export default function WorkOrdersScreen({ navigation }: any) {
                   )}
 
                   <View style={styles.priceRow}>
-                    <Text variant="bodyMedium" style={styles.priceLabel}>Valor:</Text>
+                    <Text variant="bodyMedium" style={styles.priceLabel}>
+                      {t.workOrder?.finalAmount || "Final Amount"}
+                    </Text>
                     <Text variant="titleMedium" style={[styles.priceValue, { color: theme.colors.primary }]}>
-                      R$ {Number(order.finalAmount).toFixed(2)}
+                      {formatCurrency(Number(order.finalAmount))}
                     </Text>
                   </View>
                 </Card.Content>
@@ -280,7 +283,7 @@ export default function WorkOrdersScreen({ navigation }: any) {
       {/* ✨ FAB */}
       <FAB
         icon="plus"
-        label="Nova Solicitação"
+        label={t.customer?.newRequest || "New Request"}
         style={[styles.fab, { backgroundColor: theme.colors.primary }]}
         onPress={() => navigation.navigate('CreateRequest')}
       />

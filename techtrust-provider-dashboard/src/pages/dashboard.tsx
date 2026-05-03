@@ -19,6 +19,7 @@ import {
   AlertCircle,
 } from 'lucide-react'
 import Link from 'next/link'
+import { logApiError } from "../utils/logger";
 
 interface DashboardStats {
   pendingRequests: number
@@ -85,7 +86,7 @@ export default function DashboardPage() {
         amount: wo.finalAmount || undefined,
       })))
     } catch (error) {
-      console.error('Erro ao carregar dashboard:', error)
+      logApiError('Erro ao carregar dashboard:', error)
     } finally {
       setLoading(false)
     }

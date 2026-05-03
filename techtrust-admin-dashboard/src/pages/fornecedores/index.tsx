@@ -22,6 +22,8 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 
+import { logApiError } from "../../utils/logger";
+
 interface Provider {
   id: string;
   companyName: string;
@@ -79,7 +81,7 @@ export default function FornecedoresPage() {
       const providersList = response.data?.providers || response.data || [];
       setProviders(Array.isArray(providersList) ? providersList : []);
     } catch (error) {
-      console.error('Erro ao carregar fornecedores:', error);
+      logApiError('Erro ao carregar fornecedores:', error);
       setProviders([]);
     } finally {
       setLoading(false);
@@ -134,7 +136,7 @@ export default function FornecedoresPage() {
         setProviders(providers.map(p => p.id === selectedProvider.id ? { ...p, status: 'SUSPENDED' as const } : p));
       }
     } catch (error) {
-      console.error('Erro ao executar ação:', error);
+      logApiError('Erro ao executar ação:', error);
       alert('Erro ao executar ação');
     }
     setShowActionModal(false);

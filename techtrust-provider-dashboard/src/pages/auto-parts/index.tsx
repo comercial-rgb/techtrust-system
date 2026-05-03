@@ -21,6 +21,7 @@ import {
   Filter,
 } from 'lucide-react'
 import Link from 'next/link'
+import { logApiError } from "../../utils/logger";
 
 interface PartsStore {
   id: string
@@ -113,7 +114,7 @@ export default function AutoPartsPage() {
         if (productsRes?.data?.data) setProducts(productsRes.data.data)
       }
     } catch (error) {
-      console.error('Error loading parts store data:', error)
+      logApiError('Error loading parts store data:', error)
     } finally {
       setLoading(false)
     }

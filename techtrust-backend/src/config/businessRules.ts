@@ -841,6 +841,117 @@ export const REVIEW_RULES = {
   SEPARATE_DIAGNOSTIC_SERVICE_REVIEW: true,
 };
 
+// ─── PIX PAYMENT (Brasileiros viajando nos EUA) ─────────────────────────────
+
+/**
+ * PIX só está disponível para usuários com userCountry = "BR".
+ * O valor é cobrado em BRL e convertido para USD no momento do pagamento.
+ * A conversão usa a taxa de mercado com um spread de 2% para cobrir
+ * o custo de câmbio e variações durante o processamento.
+ *
+ * Gateway PIX: Asaas (API brasileira que emite cobranças PIX instantâneas).
+ * O pagamento é confirmado via webhook Asaas → TechTrust backend.
+ */
+export const PIX_RULES = {
+  /** Habilitar pagamento via PIX */
+  ENABLED: true,
+
+  /** Restrito a usuários brasileiros (ISO 3166-1 alpha-2) */
+  ELIGIBLE_USER_COUNTRY: 'BR' as const,
+
+  /**
+   * Spread sobre a taxa de câmbio BRL/USD.
+   * Protege contra variação entre criação e confirmação do PIX.
+   * Ex: taxa = 5.00 → taxa aplicada = 5.10 (2% a menos de dólares por real)
+   */
+  CONVERSION_SPREAD_PERCENT: 2,
+
+  /** Cache da taxa de câmbio (segundos) — evita excesso de chamadas à API */
+  EXCHANGE_RATE_CACHE_TTL_SECONDS: 300,
+
+  /**
+   * Taxa de câmbio fallback (BRL por 1 USD).
+   * Usada quando a API de câmbio estiver indisponível.
+   * Deve ser revisada manualmente a cada 30 dias.
+   */
+  EXCHANGE_RATE_FALLBACK_BRL_PER_USD: 5.80,
+
+  /** Tempo de expiração do QR Code PIX (minutos) */
+  QR_CODE_EXPIRATION_MINUTES: 30,
+
+  /** Valor mínimo em BRL */
+  MIN_AMOUNT_BRL: 5,
+
+  /** Valor máximo por transação PIX em BRL (~$5.000 USD) */
+  MAX_AMOUNT_BRL: 30_000,
+
+  /**
+   * Taxa de processamento PIX: zero — o spread de câmbio já cobre o custo.
+   * Não cobrar processorFee adicional em transações PIX.
+   */
+  PROCESSOR_FEE_PERCENT: 0,
+  PROCESSOR_FEE_FIXED: 0,
+
+  /** Tipos de chave PIX aceitos */
+  ACCEPTED_KEY_TYPES: ['cpf', 'cnpj', 'email', 'phone', 'random'] as const,
+} as const;
+
+export type PixKeyType = typeof PIX_RULES.ACCEPTED_KEY_TYPES[number];
+
+/**
+ * Valida o formato de uma chave PIX pelo tipo.
+ * Retorna true se válida, false caso contrário.
+ */
+export function validatePixKey(key: string, type: PixKeyType): boolean {
+  switch (type) {
+    case 'cpf': {
+      // 11 dígitos, aceita com ou sem pontuação
+      const digits = key.replace(/\D/g, '');
+      return digits.length === 11;
+    }
+    case 'cnpj': {
+      // 14 dígitos, aceita com ou sem pontuação
+      const digits = key.replace(/\D/g, '');
+      return digits.length === 14;
+    }
+    case 'email': {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(key);
+    }
+    case 'phone': {
+      // Telefone brasileiro: +55 seguido de DDD + número (10 ou 11 dígitos)
+      const digits = key.replace(/\D/g, '');
+      // Com 55: total 12-13 dígitos; sem 55: 10-11 dígitos
+      if (digits.startsWith('55')) {
+        return digits.length === 12 || digits.length === 13;
+      }
+      return digits.length === 10 || digits.length === 11;
+    }
+    case 'random': {
+      // UUID v4
+      return /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(key);
+    }
+    default:
+      return false;
+  }
+}
+
+/**
+ * Normaliza chave PIX: remove pontuação para CPF/CNPJ, formata telefone com +55.
+ */
+export function normalizePixKey(key: string, type: PixKeyType): string {
+  switch (type) {
+    case 'cpf':
+    case 'cnpj':
+      return key.replace(/\D/g, '');
+    case 'phone': {
+      const digits = key.replace(/\D/g, '');
+      return digits.startsWith('55') ? `+${digits}` : `+55${digits}`;
+    }
+    default:
+      return key.trim().toLowerCase();
+  }
+}
+
 // ─── WALLET & TIPS ──────────────────────────────────────────────────────────
 
 export const WALLET_RULES = {
@@ -1201,6 +1312,22 @@ export function calculateProcessorFee(
   const feeFixed = PROCESSOR_FEES.CHASE.FIXED_CENTS / 100;
   const feeAmount = (amount * feePercent) / 100 + feeFixed;
   return { feeAmount: Math.round(feeAmount * 100) / 100, feePercent, feeFixed };
+}
+
+/**
+ * Apply a validated discount to a quote total.
+ * Returns the discounted total (floored at 0).
+ */
+export function applyDiscount(
+  quoteTotal: number,
+  discountType: 'PERCENTAGE' | 'FIXED',
+  discountValue: number,
+): { discountedTotal: number; discountAmount: number } {
+  const discountAmount = discountType === 'PERCENTAGE'
+    ? parseFloat(((quoteTotal * discountValue) / 100).toFixed(2))
+    : parseFloat(Math.min(discountValue, quoteTotal).toFixed(2));
+  const discountedTotal = parseFloat(Math.max(0, quoteTotal - discountAmount).toFixed(2));
+  return { discountedTotal, discountAmount };
 }
 
 /**

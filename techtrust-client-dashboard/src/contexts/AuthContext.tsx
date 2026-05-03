@@ -13,6 +13,7 @@ import React, {
 import Cookies from "js-cookie";
 import { useRouter } from "next/router";
 import { api } from "../services/api";
+import { logApiError, logDev } from "../utils/logger";
 
 interface User {
   id: string;
@@ -100,14 +101,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             });
           }
         } catch (e) {
-          console.log("Token inválido, limpando sessão");
+          logDev("Token inválido, limpando sessão");
           Cookies.remove("tt_client_token");
           Cookies.remove("tt_client_user");
           setUser(null);
         }
       }
     } catch (error) {
-      console.error("Erro ao verificar auth:", error);
+      logApiError("Erro ao verificar auth:", error);
     } finally {
       setLoading(false);
     }

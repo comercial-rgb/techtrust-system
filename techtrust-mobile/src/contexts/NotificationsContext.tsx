@@ -5,6 +5,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { log } from "../utils/logger";
 
 // ============================================
 // TYPES
@@ -80,7 +81,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
         setViewedRequests(JSON.parse(viewed));
       }
     } catch (error) {
-      console.error('Error loading notification counts:', error);
+      log.error('Error loading notification counts:', error);
     }
   };
 
@@ -92,7 +93,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
         AsyncStorage.setItem(STORAGE_KEYS.UNREAD_NOTIFICATIONS, String(newState.unreadNotificationsCount)),
       ]);
     } catch (error) {
-      console.error('Error saving notification counts:', error);
+      log.error('Error saving notification counts:', error);
     }
   };
 
@@ -144,7 +145,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     try {
       await AsyncStorage.setItem(STORAGE_KEYS.VIEWED_REQUESTS, JSON.stringify(newViewed));
     } catch (error) {
-      console.error('Error saving viewed requests:', error);
+      log.error('Error saving viewed requests:', error);
     }
   }, [viewedRequests]);
 

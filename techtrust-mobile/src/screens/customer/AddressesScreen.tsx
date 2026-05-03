@@ -21,6 +21,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from "expo-location";
 import api from "../../services/api";
 import { useI18n } from "../../i18n";
+import { log } from "../../utils/logger";
 
 // Google Places API key (optional - falls back to Nominatim/OSM)
 const GOOGLE_PLACES_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_KEY || "";
@@ -77,6 +78,7 @@ interface Address {
 
 export default function AddressesScreen({ navigation }: any) {
   const { t } = useI18n();
+  const ab = (t as any).addressBook || {};
   const [loading, setLoading] = useState(true);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [showModal, setShowModal] = useState(false);
@@ -154,7 +156,7 @@ export default function AddressesScreen({ navigation }: any) {
         setSearchResults(results);
       }
     } catch (err) {
-      console.log("Address search error:", err);
+      log.debug("Address search error:", err);
       setSearchResults([]);
     } finally {
       setSearching(false);
@@ -188,7 +190,11 @@ export default function AddressesScreen({ navigation }: any) {
       setGettingLocation(true);
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Location access is needed to auto-fill your address.');
+        Alert.alert(
+          t.addressBook?.permissionAutoFillTitle || 'Permission Required',
+          t.addressBook?.permissionAutoFillBody ||
+            'Location access is needed to auto-fill your address.',
+        );
         return;
       }
       const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
@@ -208,10 +214,18 @@ export default function AddressesScreen({ navigation }: any) {
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
         }));
-        Alert.alert('Location Found', 'Address fields have been auto-filled. Please verify and adjust if needed.');
+        Alert.alert(
+          t.addressBook?.locationFoundTitle || 'Location Found',
+          t.addressBook?.locationFoundBody ||
+            'Address fields have been auto-filled. Please verify and adjust if needed.',
+        );
       }
     } catch (err) {
-      Alert.alert('Location Error', 'Could not determine your location. Please enter the address manually.');
+      Alert.alert(
+        t.addressBook?.locationErrorTitle || 'Location Error',
+        t.addressBook?.locationErrorBody ||
+          'Could not determine your location. Please enter the address manually.',
+      );
     } finally {
       setGettingLocation(false);
     }
@@ -281,14 +295,14 @@ export default function AddressesScreen({ navigation }: any) {
           try {
             await api.patch("/users/me", { addressesJson: parsed });
           } catch (e) {
-            console.log("Could not sync local addresses to API");
+            log.debug("Could not sync local addresses to API");
           }
         } else {
           setAddresses([]);
         }
       }
     } catch (error) {
-      console.error("Error loading addresses from API:", error);
+      log.error("Error loading addresses from API:", error);
       // Fallback to local storage
       try {
         const savedAddresses = await AsyncStorage.getItem(ADDRESSES_KEY);
@@ -329,6 +343,8 @@ export default function AddressesScreen({ navigation }: any) {
         city: "",
         state: "",
         zipCode: "",
+        latitude: undefined,
+        longitude: undefined,
       });
     }
     setShowModal(true);
@@ -366,7 +382,7 @@ export default function AddressesScreen({ navigation }: any) {
       try {
         await api.patch("/users/me", { addressesJson: updatedAddresses });
       } catch (e) {
-        console.log("Could not sync addresses to API, saving locally");
+        log.debug("Could not sync addresses to API, saving locally");
       }
       // Also save locally as cache
       await AsyncStorage.setItem(
@@ -437,6 +453,14 @@ export default function AddressesScreen({ navigation }: any) {
       default:
         return "location";
     }
+  };
+
+  const addressPresetLabel = (label: string) => {
+    const k = label.toLowerCase();
+    if (k === "home") return ab.addressLabelHome || "Home";
+    if (k === "work") return ab.addressLabelWork || "Work";
+    if (k === "other") return ab.addressLabelOther || "Other";
+    return label;
   };
 
   if (loading) {
@@ -518,7 +542,9 @@ export default function AddressesScreen({ navigation }: any) {
                     />
                   </View>
                   <View style={styles.addressLabelContainer}>
-                    <Text style={styles.addressLabel}>{address.label}</Text>
+                    <Text style={styles.addressLabel}>
+                      {addressPresetLabel(address.label)}
+                    </Text>
                     {address.isDefault && (
                       <View style={styles.defaultBadge}>
                         <Text style={styles.defaultBadgeText}>
@@ -619,7 +645,9 @@ export default function AddressesScreen({ navigation }: any) {
                   <Ionicons name="navigate" size={20} color="#2B5EA7" />
                 )}
                 <Text style={{ fontSize: 14, fontWeight: '600', color: '#2B5EA7', flex: 1 }}>
-                  {gettingLocation ? 'Getting location...' : 'Use Current Location'}
+                  {gettingLocation
+                    ? ab.addressFormGettingLocation || "Getting location..."
+                    : ab.addressFormUseCurrentLocation || "Use Current Location"}
                 </Text>
                 <Ionicons name="chevron-forward" size={16} color="#93c5fd" />
               </TouchableOpacity>
@@ -627,11 +655,15 @@ export default function AddressesScreen({ navigation }: any) {
               {/* D4: Address Search Autocomplete */}
               <View style={{ marginBottom: 16 }}>
                 <Text style={styles.inputLabel}>
-                  <Ionicons name="search" size={13} color="#6b7280" /> Search Address
+                  <Ionicons name="search" size={13} color="#6b7280" />{" "}
+                  {ab.addressFormSearchLabel || "Search Address"}
                 </Text>
                 <TextInput
                   style={[styles.input, { marginBottom: searchResults.length > 0 ? 0 : 16 }]}
-                  placeholder="Start typing an address..."
+                  placeholder={
+                    ab.addressFormSearchPlaceholder ||
+                    "Start typing an address..."
+                  }
                   value={searchQuery}
                   onChangeText={handleSearchInput}
                   autoCorrect={false}
@@ -664,9 +696,11 @@ export default function AddressesScreen({ navigation }: any) {
                 )}
               </View>
 
-              <Text style={styles.inputLabel}>Label *</Text>
+              <Text style={styles.inputLabel}>
+                {ab.addressFormLabelSection || "Label *"}
+              </Text>
               <View style={styles.labelOptions}>
-                {["Home", "Work", "Other"].map((label) => (
+                {(["Home", "Work", "Other"] as const).map((label) => (
                   <TouchableOpacity
                     key={label}
                     style={[
@@ -687,7 +721,7 @@ export default function AddressesScreen({ navigation }: any) {
                           styles.labelOptionTextActive,
                       ]}
                     >
-                      {label}
+                      {addressPresetLabel(label)}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -695,10 +729,14 @@ export default function AddressesScreen({ navigation }: any) {
 
               <View style={styles.inputRow}>
                 <View style={[styles.inputHalf, { flex: 1 }]}>
-                  <Text style={styles.inputLabel}>Number *</Text>
+                  <Text style={styles.inputLabel}>
+                    {ab.addressFormNumberLabel || "Number *"}
+                  </Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="123"
+                    placeholder={
+                      ab.addressFormNumberPlaceholder || "123"
+                    }
                     value={formData.number}
                     onChangeText={(text) =>
                       setFormData({ ...formData, number: text })
@@ -706,10 +744,14 @@ export default function AddressesScreen({ navigation }: any) {
                   />
                 </View>
                 <View style={[styles.inputHalf, { flex: 2 }]}>
-                  <Text style={styles.inputLabel}>Street *</Text>
+                  <Text style={styles.inputLabel}>
+                    {ab.addressFormStreetLabel || "Street *"}
+                  </Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="Main St"
+                    placeholder={
+                      ab.addressFormStreetPlaceholder || "Main St"
+                    }
                     value={formData.street}
                     onChangeText={(text) =>
                       setFormData({ ...formData, street: text })
@@ -718,10 +760,15 @@ export default function AddressesScreen({ navigation }: any) {
                 </View>
               </View>
 
-              <Text style={styles.inputLabel}>Complement</Text>
+              <Text style={styles.inputLabel}>
+                {ab.addressFormComplementLabel || "Complement"}
+              </Text>
               <TextInput
                 style={styles.input}
-                placeholder="Apt, Suite, Unit, etc."
+                placeholder={
+                  ab.addressFormComplementPlaceholder ||
+                  "Apt, Suite, Unit, etc."
+                }
                 value={formData.complement}
                 onChangeText={(text) =>
                   setFormData({ ...formData, complement: text })
@@ -730,10 +777,14 @@ export default function AddressesScreen({ navigation }: any) {
 
               <View style={styles.inputRow}>
                 <View style={[styles.inputHalf, { flex: 2 }]}>
-                  <Text style={styles.inputLabel}>City *</Text>
+                  <Text style={styles.inputLabel}>
+                    {ab.addressFormCityLabel || "City *"}
+                  </Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="City"
+                    placeholder={
+                      ab.addressFormCityPlaceholder || "City"
+                    }
                     value={formData.city}
                     onChangeText={(text) =>
                       setFormData({ ...formData, city: text })
@@ -741,14 +792,18 @@ export default function AddressesScreen({ navigation }: any) {
                   />
                 </View>
                 <View style={[styles.inputHalf, { flex: 1 }]}>
-                  <Text style={styles.inputLabel}>State *</Text>
+                  <Text style={styles.inputLabel}>
+                    {ab.addressFormStateLabel || "State *"}
+                  </Text>
                   {/* D31 — State Dropdown */}
                   <TouchableOpacity
                     style={[styles.input, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}
                     onPress={() => setShowStateDropdown(!showStateDropdown)}
                   >
                     <Text style={{ fontSize: 16, color: formData.state ? '#111827' : '#9ca3af' }}>
-                      {formData.state || 'State'}
+                      {formData.state ||
+                        ab.addressFormStatePlaceholder ||
+                        "State"}
                     </Text>
                     <Ionicons name="chevron-down" size={16} color="#9ca3af" />
                   </TouchableOpacity>
@@ -799,10 +854,14 @@ export default function AddressesScreen({ navigation }: any) {
                 </View>
               </View>
 
-              <Text style={styles.inputLabel}>ZIP Code *</Text>
+              <Text style={styles.inputLabel}>
+                {ab.addressFormZipLabel || "ZIP Code *"}
+              </Text>
               <TextInput
                 style={styles.input}
-                placeholder="32801"
+                placeholder={
+                  ab.addressFormZipPlaceholder || "32801"
+                }
                 value={formData.zipCode}
                 onChangeText={(text) =>
                   setFormData({ ...formData, zipCode: text })
@@ -817,7 +876,9 @@ export default function AddressesScreen({ navigation }: any) {
                 disabled={saving}
               >
                 <Text style={styles.saveButtonText}>
-                  {saving ? "Saving..." : "Save Address"}
+                  {saving
+                    ? t.common?.saving || "Saving..."
+                    : ab.addressFormSave || "Save Address"}
                 </Text>
               </TouchableOpacity>
             </ScrollView>

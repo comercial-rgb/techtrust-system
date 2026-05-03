@@ -233,6 +233,7 @@ export interface CreateSalesReceiptParams {
   paymentNumber: string;
   customerName: string;
   customerEmail: string;
+  qboCustomerId?: string; // resolved by findOrCreateQBOCustomer
   transactionDate: string; // YYYY-MM-DD
   // Line items
   partsAmount: number;
@@ -241,10 +242,14 @@ export interface CreateSalesReceiptParams {
   processingFee: number;
   travelFee?: number;
   shopSuppliesFee?: number;
-  // Sales tax
-  salesTaxAmount: number;
-  salesTaxRate: number;
+  // Sales tax — FL Marketplace Facilitator
+  salesTaxAmount: number;     // total = state + county
+  salesTaxRate: number;       // combined rate (e.g. 0.07 for 7%)
   salesTaxCounty?: string;
+  // Breakdown for QBO & DR-15 filing
+  stateTaxAmount?: number;    // 6% state portion
+  countySurtaxAmount?: number; // 0.5–2.5% county surtax portion
+  taxableAmount?: number;     // base amount that was taxed (parts + supplies)
   // Total
   totalAmount: number;
   // Reference
@@ -355,22 +360,56 @@ export async function createSalesReceipt(params: CreateSalesReceiptParams): Prom
     });
   }
 
+  // Build county/state tax detail for DR-15 filing accuracy
+  // FL rate: 6% state + county surtax (varies 0.5–2.5%)
+  const FL_STATE_RATE = 0.06;
+  const taxableBase = params.taxableAmount ?? (params.partsAmount + (params.shopSuppliesFee ?? 0));
+  const stateTaxAmt = params.stateTaxAmount ?? +(taxableBase * FL_STATE_RATE).toFixed(2);
+  const countySurtaxAmt = params.countySurtaxAmount ?? +(params.salesTaxAmount - stateTaxAmt).toFixed(2);
+
   const salesReceipt: any = {
     DocNumber: params.paymentNumber,
     TxnDate: params.transactionDate,
-    PrivateNote: params.memo || `Stripe: ${params.stripePaymentIntentId || "N/A"}`,
+    PrivateNote: [
+      params.memo || `Stripe: ${params.stripePaymentIntentId || "N/A"}`,
+      `County: ${params.salesTaxCounty || "FL"}`,
+      `Tax: $${params.salesTaxAmount.toFixed(2)} (FL state $${stateTaxAmt.toFixed(2)} + county surtax $${countySurtaxAmt.toFixed(2)})`,
+      `Taxable base: $${taxableBase.toFixed(2)}`,
+    ].join(" | "),
     CustomerMemo: { value: `TechTrust Service - ${params.paymentNumber}` },
     Line: lines,
-    // Tax detail (FL Sales Tax)
+    // Tax detail — state (6%) + county surtax split for DR-15 reconciliation
     TxnTaxDetail: {
       TotalTax: params.salesTaxAmount,
+      TaxLine: [
+        {
+          Amount: stateTaxAmt,
+          DetailType: "TaxLineDetail",
+          TaxLineDetail: {
+            TaxRateRef: { name: "FL State Sales Tax 6%" },
+            PercentBased: true,
+            TaxPercent: 6,
+            NetAmountTaxable: taxableBase,
+          },
+        },
+        ...(countySurtaxAmt > 0
+          ? [{
+              Amount: countySurtaxAmt,
+              DetailType: "TaxLineDetail",
+              TaxLineDetail: {
+                TaxRateRef: { name: `${params.salesTaxCounty || "FL"} County Surtax` },
+                PercentBased: true,
+                TaxPercent: +((countySurtaxAmt / taxableBase) * 100).toFixed(4),
+                NetAmountTaxable: taxableBase,
+              },
+            }]
+          : []),
+      ],
     },
   };
 
-  // Set customer ref if we can find/create them
-  // For now, use display name
   salesReceipt.CustomerRef = {
-    value: "1", // Default customer — should be looked up/created
+    value: params.qboCustomerId || "1",
     name: params.customerName,
   };
 
@@ -390,6 +429,41 @@ export async function createSalesReceipt(params: CreateSalesReceiptParams): Prom
   } catch (err: any) {
     logger.error(`Failed to create QBO sales receipt: ${err.message}`);
     throw err;
+  }
+}
+
+/**
+ * Find an existing QBO Customer by email, or create one.
+ * Returns the QBO Customer ID (string integer, e.g. "42").
+ * Falls back to "1" (default) if lookup and creation both fail.
+ */
+async function findOrCreateQBOCustomer(email: string, name: string): Promise<string> {
+  // 1. Try to find by email
+  try {
+    const query = `SELECT * FROM Customer WHERE PrimaryEmailAddr = '${email.replace(/'/g, "\\'")}'`;
+    const result = await qboRequest("GET", `query?query=${encodeURIComponent(query)}`);
+    const customers = result?.QueryResponse?.Customer;
+    if (customers && customers.length > 0) {
+      logger.info(`QBO customer found for ${email}: ID ${customers[0].Id}`);
+      return String(customers[0].Id);
+    }
+  } catch (err: any) {
+    logger.warn(`QBO customer lookup failed for ${email}: ${err.message}`);
+  }
+
+  // 2. Create new customer
+  try {
+    const displayName = `${name} (${email})`.slice(0, 500); // QBO max 500 chars
+    const result = await qboRequest("POST", "customer", {
+      DisplayName: displayName,
+      PrimaryEmailAddr: { Address: email },
+    });
+    const newId = String(result?.Customer?.Id || "1");
+    logger.info(`QBO customer created for ${email}: ID ${newId}`);
+    return newId;
+  } catch (err: any) {
+    logger.warn(`QBO customer creation failed for ${email}: ${err.message}. Using default customer.`);
+    return "1";
   }
 }
 
@@ -422,20 +496,39 @@ export async function syncCapturedPaymentToQuickBooks(paymentId: string): Promis
     .toISOString()
     .slice(0, 10);
 
+  const salesTaxTotal  = Number(payment.salesTaxAmount  || 0);
+  const salesTaxRate   = Number(payment.salesTaxRate    || 0);
+  const taxableBase    = Number(payment.salesTaxableAmount || 0);
+  const partsAmt       = Number(quote?.partsCost        || 0);
+  const shopSupplies   = Number(quote?.shopSuppliesFee  || 0);
+  const effectiveBase  = taxableBase > 0 ? taxableBase : partsAmt + shopSupplies;
+
+  // Derive state (6%) and county surtax portions
+  const stateTaxAmt    = +(effectiveBase * 0.06).toFixed(2);
+  const countySurtaxAmt= +(Math.max(0, salesTaxTotal - stateTaxAmt)).toFixed(2);
+
+  const customerEmail = payment.customer?.email || "customer@techtrustautosolutions.com";
+  const customerName  = payment.customer?.fullName || "TechTrust Customer";
+  const qboCustomerId = await findOrCreateQBOCustomer(customerEmail, customerName);
+
   return createSalesReceipt({
     paymentNumber: payment.paymentNumber,
-    customerName: payment.customer?.fullName || "TechTrust Customer",
-    customerEmail: payment.customer?.email || "customer@techtrustautosolutions.com",
+    customerName,
+    customerEmail,
+    qboCustomerId,
     transactionDate: txnDate,
-    partsAmount: Number(quote?.partsCost || 0),
+    partsAmount: partsAmt,
     laborAmount: Number(quote?.laborCost || 0),
     travelFee: Number(quote?.travelFee || 0),
-    shopSuppliesFee: Number(quote?.shopSuppliesFee || 0),
+    shopSuppliesFee: shopSupplies,
     appServiceFee: Number(payment.appServiceFee || 0),
     processingFee: Number(payment.processingFee || 0),
-    salesTaxAmount: Number(payment.salesTaxAmount || 0),
-    salesTaxRate: Number(payment.salesTaxRate || 0),
+    salesTaxAmount: salesTaxTotal,
+    salesTaxRate,
     salesTaxCounty: payment.salesTaxCounty || undefined,
+    stateTaxAmount: stateTaxAmt,
+    countySurtaxAmount: countySurtaxAmt,
+    taxableAmount: effectiveBase,
     totalAmount: Number(payment.totalAmount || 0),
     stripePaymentIntentId: payment.stripePaymentIntentId || undefined,
     memo: `TechTrust Marketplace — Payment ${payment.paymentNumber}`,

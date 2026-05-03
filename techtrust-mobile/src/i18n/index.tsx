@@ -8,6 +8,7 @@ import React, {
   useContext,
   useState,
   useEffect,
+  useMemo,
   ReactNode,
 } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -16,6 +17,7 @@ import api from "../services/api";
 import en from "./locales/en";
 import pt from "./locales/pt";
 import es from "./locales/es";
+import { log } from "../utils/logger";
 
 // Available languages
 export type Language = "en" | "pt" | "es";
@@ -34,14 +36,28 @@ export const languages: {
 // Translations type
 type Translations = typeof en;
 
-const translations: Record<Language, Translations> = {
+/** pt/es may temporarily omit keys present in en; runtime fallbacks handle missing strings. */
+const translations = {
   en,
-  pt,
-  es,
-};
+  pt: pt as unknown as Translations,
+  es: es as unknown as Translations,
+} as Record<Language, Translations>;
 
 // Storage key
-const LANGUAGE_KEY = "@techtrust_language";
+export const LANGUAGE_KEY = "@techtrust_language";
+
+/** Resolved app language from storage (for use outside React, e.g. biometric prompts). */
+export async function getStoredAppLanguage(): Promise<Language> {
+  try {
+    const saved = await AsyncStorage.getItem(LANGUAGE_KEY);
+    if (saved === "en" || saved === "pt" || saved === "es") {
+      return saved;
+    }
+  } catch {
+    /* ignore */
+  }
+  return "en";
+}
 
 // Context
 interface I18nContextType {
@@ -104,10 +120,10 @@ export function I18nProvider({ children }: I18nProviderProps) {
         }
       } catch (apiError) {
         // Silently fail - use local language
-        console.log("Could not sync language from backend, using local");
+        log.debug("Could not sync language from backend, using local");
       }
     } catch (error) {
-      console.error("Error loading language:", error);
+      log.error("Error loading language:", error);
     } finally {
       setIsLoaded(true);
     }
@@ -125,14 +141,27 @@ export function I18nProvider({ children }: I18nProviderProps) {
           await api.patch("/users/me", { language: lang.toUpperCase() });
         }
       } catch (apiError) {
-        console.log("Could not sync language to backend:", apiError);
+        log.debug("Could not sync language to backend:", apiError);
       }
     } catch (error) {
-      console.error("Error saving language:", error);
+      log.error("Error saving language:", error);
     }
   };
 
-  const t = translations[language];
+  /** pt/es may omit `createRequest` keys; merge English so UI never shows undefined. */
+  const t = useMemo((): Translations => {
+    const base = translations[language];
+    if (language === "en") return base;
+    const enCr = translations.en.createRequest as Record<
+      string,
+      string | undefined
+    >;
+    const locCr = base.createRequest as Record<string, string | undefined>;
+    return {
+      ...base,
+      createRequest: { ...enCr, ...locCr },
+    } as Translations;
+  }, [language]);
 
   const formatCurrency = (amount: number): string => {
     const { currency, currencySymbol } = t.formats;
@@ -205,9 +234,33 @@ export function useI18n() {
   return context;
 }
 
+function getByPath(obj: unknown, pathKeys: string[]): unknown {
+  let cur: any = obj;
+  for (const k of pathKeys) {
+    if (cur && typeof cur === "object" && k in cur) {
+      cur = cur[k];
+    } else {
+      return undefined;
+    }
+  }
+  return cur;
+}
+
 // Simple translate function for use outside React components
 export function translate(key: string, language: Language = "en"): string {
   const keys = key.split(".");
+  if (language !== "en" && keys[0] === "createRequest" && keys.length > 1) {
+    const loc = getByPath(translations[language], keys);
+    if (typeof loc === "string" && loc.length > 0) {
+      return loc;
+    }
+    const enVal = getByPath(translations.en, keys);
+    if (typeof enVal === "string") {
+      return enVal;
+    }
+    return key;
+  }
+
   let value: any = translations[language];
 
   for (const k of keys) {
@@ -226,4 +279,6 @@ export default {
   useI18n,
   languages,
   translate,
+  getStoredAppLanguage,
+  LANGUAGE_KEY,
 };

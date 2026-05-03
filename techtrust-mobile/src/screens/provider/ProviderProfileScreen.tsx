@@ -16,7 +16,7 @@ import {
   Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAuth } from "../../contexts/AuthContext";
 import { useI18n, languages, Language } from "../../i18n";
 import api from "../../services/api";
@@ -33,7 +33,7 @@ interface ProviderStats {
 
 export default function ProviderProfileScreen({ navigation }: any) {
   const { user, logout } = useAuth();
-  const { language, setLanguage, t } = useI18n();
+  const { language, setLanguage, t, formatCurrency } = useI18n();
   const [stats, setStats] = useState<ProviderStats | null>(null);
   const [notifications, setNotifications] = useState({
     newRequests: true,
@@ -276,7 +276,7 @@ export default function ProviderProfileScreen({ navigation }: any) {
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Text style={[styles.statValue, { color: "#10b981" }]}>
-              ${(Number(stats?.totalEarnings || 0) / 1000).toFixed(1)}k
+              {formatCurrency(Number(stats?.totalEarnings || 0))}
             </Text>
             <Text style={styles.statLabel}>
               {t.provider?.earnings || "Earnings"}
@@ -316,8 +316,10 @@ export default function ProviderProfileScreen({ navigation }: any) {
           />
           <MenuItem
             icon="shield-check"
-            label="Compliance & Licensing"
-            subtitle="FDACS, Insurance, EPA 609"
+            label={t.provider?.complianceMenuTitle || "Compliance & Licensing"}
+            subtitle={
+              t.provider?.complianceMenuSubtitle || "FDACS, Insurance, EPA 609"
+            }
             onPress={() => navigation.navigate("Compliance")}
           />
         </View>

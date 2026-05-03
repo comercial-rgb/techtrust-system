@@ -11,6 +11,7 @@ import {
   Search,
 } from 'lucide-react';
 
+import { logApiError } from "../../utils/logger";
 export default function NovoVeiculoPage() {
   const { isAuthenticated, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -56,7 +57,7 @@ export default function NovoVeiculoPage() {
         if (v.engineType) setColor(v.color || '');
       }
     } catch (err) {
-      console.error('VIN decode error:', err);
+      logApiError('VIN decode error:', err);
     } finally {
       setVinDecoding(false);
     }

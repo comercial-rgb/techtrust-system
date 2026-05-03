@@ -17,10 +17,11 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useI18n } from "../../i18n";
 import { useAuth } from "../../contexts/AuthContext";
 import * as fdacsService from "../../services/fdacs.service";
+import { log } from "../../utils/logger";
 
 export default function EstimateSharesScreen({ navigation }: any) {
   const { user } = useAuth();
-  const { t } = useI18n();
+  const { t, formatDate, formatCurrency } = useI18n();
   const isProvider = user?.role === "PROVIDER";
   const [loading, setLoading] = useState(true);
   const [shares, setShares] = useState<fdacsService.EstimateShare[]>([]);
@@ -43,7 +44,7 @@ export default function EstimateSharesScreen({ navigation }: any) {
         setShares(res.data?.shares || []);
       }
     } catch (error) {
-      console.error("Error loading shares:", error);
+      log.error("Error loading shares:", error);
     } finally {
       setLoading(false);
     }
@@ -113,7 +114,8 @@ export default function EstimateSharesScreen({ navigation }: any) {
           <View style={styles.metaItem}>
             <Ionicons name="cash-outline" size={14} color="#6b7280" />
             <Text style={styles.metaText}>
-              {t.fdacs.originalTotal}: ${Number(item.originalTotal).toFixed(2)}
+              {t.fdacs.originalTotal}:{" "}
+              {formatCurrency(Number(item.originalTotal))}
             </Text>
           </View>
         </View>
@@ -122,7 +124,7 @@ export default function EstimateSharesScreen({ navigation }: any) {
           <View style={styles.expiresRow}>
             <Ionicons name="time-outline" size={14} color="#f59e0b" />
             <Text style={styles.expiresText}>
-              {t.fdacs.expires}: {new Date(item.expiresAt).toLocaleDateString()}
+              {t.fdacs.expires}: {formatDate(item.expiresAt)}
             </Text>
           </View>
         )}

@@ -14,6 +14,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useI18n } from '../i18n';
 
 export interface Article {
   id: string;
@@ -37,28 +38,24 @@ export default function ArticlesSection({
   showHeader = true,
   loading = false,
 }: ArticlesSectionProps) {
+  const { t, formatDate } = useI18n();
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
 
   const handleImageError = (articleId: string) => {
     setImageErrors(prev => ({ ...prev, [articleId]: true }));
   };
 
-  const formatDate = (dateString: string) => {
+  const formatArticleMetaDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - date.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays} days ago`;
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-    
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric',
-      year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined 
-    });
+    if (diffDays === 0) return t.common?.today || 'Today';
+    if (diffDays === 1) return t.common?.yesterday || 'Yesterday';
+    if (diffDays < 7) return `${diffDays} ${t.common?.days || 'days'}`;
+
+    return formatDate(dateString);
   };
 
   const renderArticle = ({ item }: { item: Article }) => {
@@ -94,7 +91,7 @@ export default function ArticlesSection({
               <Ionicons name="information-circle" size={14} color="#3b82f6" />
               <Text style={styles.categoryText}>Article</Text>
             </View>
-            <Text style={styles.dateText}>{formatDate(item.publishDate)}</Text>
+            <Text style={styles.dateText}>{formatArticleMetaDate(item.publishDate)}</Text>
           </View>
           
           <Text style={styles.articleTitle} numberOfLines={2}>

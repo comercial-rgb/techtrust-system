@@ -4,7 +4,7 @@
  * Each conversation linked to a service request with a conversation ID
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -20,6 +20,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { FadeInView } from '../components/Animated';
 import { useI18n } from '../i18n';
 import api from '../services/api';
+import { log } from "../utils/logger";
 
 interface ChatPreview {
   conversationId: string;
@@ -45,7 +46,11 @@ interface ChatPreview {
 }
 
 export default function ChatListScreen({ navigation }: any) {
-  const { t } = useI18n();
+  const { t, language, formatTime } = useI18n();
+  const chatLocale = useMemo(
+    () => (language === "pt" ? "pt-BR" : language === "es" ? "es-ES" : "en-US"),
+    [language],
+  );
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [chats, setChats] = useState<ChatPreview[]>([]);
@@ -64,7 +69,7 @@ export default function ChatListScreen({ navigation }: any) {
         setChats(data.data || []);
       }
     } catch (error) {
-      console.error('Error loading chats:', error);
+      log.error('Error loading chats:', error);
       setChats([]);
     } finally {
       setLoading(false);
@@ -77,24 +82,20 @@ export default function ChatListScreen({ navigation }: any) {
     setRefreshing(false);
   }
 
-  function formatTime(timestamp: string) {
+  function formatChatPreviewTime(timestamp: string) {
     const date = new Date(timestamp);
     const now = new Date();
     const diff = now.getTime() - date.getTime();
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
     if (days === 0) {
-      return date.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true,
-      });
+      return formatTime(timestamp);
     } else if (days === 1) {
       return t.common.yesterday || 'Yesterday';
     } else if (days < 7) {
-      return date.toLocaleDateString('en-US', { weekday: 'short' });
+      return date.toLocaleDateString(chatLocale, { weekday: 'short' });
     } else {
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      return date.toLocaleDateString(chatLocale, { month: 'short', day: 'numeric' });
     }
   }
 
@@ -126,7 +127,7 @@ export default function ChatListScreen({ navigation }: any) {
                 styles.chatTime,
                 item.unreadCount > 0 && styles.chatTimeUnread
               ]}>
-                {formatTime(item.lastMessage.createdAt)}
+                {formatChatPreviewTime(item.lastMessage.createdAt)}
               </Text>
             </View>
 
@@ -203,7 +204,7 @@ export default function ChatListScreen({ navigation }: any) {
       ) : (
         <FlatList
           data={chats}
-          keyExtractor={item => item.id}
+          keyExtractor={(item) => item.conversationId}
           renderItem={renderChat}
           contentContainerStyle={styles.chatList}
           showsVerticalScrollIndicator={false}

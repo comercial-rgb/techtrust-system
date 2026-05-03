@@ -7,7 +7,7 @@ import {
   StyleSheet,
   ScrollView,
 } from "react-native";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useI18n } from "../../i18n";
 
 export type PartCondition = "NEW" | "USED" | "REBUILT" | "RECONDITIONED";
@@ -30,7 +30,7 @@ interface Props {
 }
 
 export default function QuoteLineItemsEditor({ items, onChange }: Props) {
-  const { t } = useI18n();
+  const { t, formatCurrency } = useI18n();
   const addItem = () => {
     const newItem: QuoteLineItem = {
       id: Math.random().toString(36).slice(2),
@@ -261,7 +261,7 @@ export default function QuoteLineItemsEditor({ items, onChange }: Props) {
               </View>
               <View style={styles.inlineField}>
                 <Text style={styles.smallLabel}>
-                  {t.quote?.unitPrice || "Unit Price"} ($)
+                  {t.quote?.unitPrice || "Unit Price"}
                 </Text>
                 <TextInput
                   style={styles.input}
@@ -278,7 +278,7 @@ export default function QuoteLineItemsEditor({ items, onChange }: Props) {
                 </Text>
                 <View style={styles.totalBadge}>
                   <Text style={styles.totalBadgeText}>
-                    ${totalForItem(item).toFixed(2)}
+                    {formatCurrency(totalForItem(item))}
                   </Text>
                 </View>
               </View>
@@ -291,20 +291,22 @@ export default function QuoteLineItemsEditor({ items, onChange }: Props) {
           <Text style={styles.summaryLabel}>
             {t.quote?.subtotalParts || "Subtotal Parts"}
           </Text>
-          <Text style={styles.summaryValue}>${partsTotal.toFixed(2)}</Text>
+          <Text style={styles.summaryValue}>{formatCurrency(partsTotal)}</Text>
         </View>
         <View style={styles.summaryRow}>
           <Text style={styles.summaryLabel}>
             {t.quote?.subtotalServices || "Subtotal Services"}
           </Text>
-          <Text style={styles.summaryValue}>${laborTotal.toFixed(2)}</Text>
+          <Text style={styles.summaryValue}>{formatCurrency(laborTotal)}</Text>
         </View>
         <View style={styles.divider} />
         <View style={styles.summaryRow}>
           <Text style={styles.summaryTotalLabel}>
             {t.common?.total || "Total"}
           </Text>
-          <Text style={styles.summaryTotalValue}>${grandTotal.toFixed(2)}</Text>
+          <Text style={styles.summaryTotalValue}>
+            {formatCurrency(grandTotal)}
+          </Text>
         </View>
       </View>
     </View>

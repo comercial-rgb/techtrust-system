@@ -3,7 +3,7 @@
  * Shows full details of a submitted quote
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -14,8 +14,10 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useI18n } from '../../i18n';
+import { interpolate } from '../../i18n/interpolate';
+import { log } from "../../utils/logger";
 
 interface QuoteLineItem {
   id: string;
@@ -66,33 +68,37 @@ interface QuoteDetails {
 
 export default function ProviderQuoteDetailsScreen({ route, navigation }: any) {
   const { quoteId } = route.params;
-  const { t } = useI18n();
+  const { t, language, formatCurrency } = useI18n();
+  const quoteDateLocale = useMemo(
+    () => (language === "pt" ? "pt-BR" : language === "es" ? "es-ES" : "en-US"),
+    [language],
+  );
   const [loading, setLoading] = useState(true);
   const [quote, setQuote] = useState<QuoteDetails | null>(null);
 
-  useEffect(() => {
-    loadQuoteDetails();
-  }, [quoteId]);
-
-  const loadQuoteDetails = async () => {
+  const loadQuoteDetails = useCallback(async () => {
     setLoading(true);
     try {
       // Fetch quote details from API
       const { getQuoteDetails } = await import('../../services/dashboard.service');
       const data = await getQuoteDetails(quoteId);
-      
+
       if (data) {
         setQuote(data);
       } else {
         setQuote(null);
       }
     } catch (error) {
-      console.error('Error loading quote:', error);
+      log.error('Error loading quote:', error);
       setQuote(null);
     } finally {
       setLoading(false);
     }
-  };
+  }, [quoteId]);
+
+  useEffect(() => {
+    loadQuoteDetails();
+  }, [loadQuoteDetails]);
 
   const getStatusInfo = (status: string) => {
     const statuses: Record<string, { icon: string; color: string; bg: string; label: string }> = {
@@ -106,12 +112,12 @@ export default function ProviderQuoteDetailsScreen({ route, navigation }: any) {
 
   const formatDateTime = (dateStr: string) => {
     const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+    return date.toLocaleString(quoteDateLocale, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -119,13 +125,24 @@ export default function ProviderQuoteDetailsScreen({ route, navigation }: any) {
     const now = new Date();
     const expires = new Date(expiresAt);
     const diffMs = expires.getTime() - now.getTime();
-    
-    if (diffMs <= 0) return t.provider?.expired || 'Expired';
-    
-    const hours = Math.floor(diffMs / (1000 * 60 * 60));
-    if (hours < 24) return `${hours}${t.common?.hoursRemaining || 'h remaining'}`;
-    const days = Math.floor(hours / 24);
-    return `${days}${t.common?.daysRemaining || 'd'} ${hours % 24}${t.common?.hoursShort || 'h'} ${t.common?.remaining || 'remaining'}`;
+
+    if (diffMs <= 0) {
+      return t.provider?.expired || t.quote?.expired || "Expired";
+    }
+
+    const totalHours = Math.floor(diffMs / (1000 * 60 * 60));
+    if (totalHours < 24) {
+      return interpolate(
+        t.common?.quoteExpiresUnder24h || "{{hours}}h remaining",
+        { hours: totalHours },
+      );
+    }
+    const days = Math.floor(totalHours / 24);
+    const hours = totalHours % 24;
+    return interpolate(
+      t.common?.quoteExpires24hPlus || "{{days}}d {{hours}}h remaining",
+      { days, hours },
+    );
   };
 
   const handleCancelQuote = () => {
@@ -210,7 +227,7 @@ export default function ProviderQuoteDetailsScreen({ route, navigation }: any) {
               <Text style={styles.rejectionText}>{quote.rejectionReason}</Text>
             )}
           </View>
-          <Text style={styles.totalAmount}>${quote.totalAmount.toFixed(2)}</Text>
+          <Text style={styles.totalAmount}>{formatCurrency(quote.totalAmount)}</Text>
         </View>
 
         {/* Service Request Info */}
@@ -252,12 +269,14 @@ export default function ProviderQuoteDetailsScreen({ route, navigation }: any) {
                 <Text style={styles.lineItemDescription}>{item.description}</Text>
                 <Text style={styles.lineItemQty}>{t.common?.qty || 'Qty'}: {item.quantity}</Text>
               </View>
-              <Text style={styles.lineItemPrice}>${(item.quantity * item.unitPrice).toFixed(2)}</Text>
+              <Text style={styles.lineItemPrice}>
+                {formatCurrency(item.quantity * item.unitPrice)}
+              </Text>
             </View>
           ))}
           <View style={styles.subtotalRow}>
             <Text style={styles.subtotalLabel}>{t.provider?.partsSubtotal || 'Parts Subtotal'}</Text>
-            <Text style={styles.subtotalValue}>${quote.partsCost.toFixed(2)}</Text>
+            <Text style={styles.subtotalValue}>{formatCurrency(quote.partsCost)}</Text>
           </View>
 
           {/* Labor */}
@@ -268,18 +287,20 @@ export default function ProviderQuoteDetailsScreen({ route, navigation }: any) {
                 <Text style={styles.lineItemDescription}>{item.description}</Text>
                 <Text style={styles.lineItemQty}>{t.common?.qty || 'Qty'}: {item.quantity}</Text>
               </View>
-              <Text style={styles.lineItemPrice}>${(item.quantity * item.unitPrice).toFixed(2)}</Text>
+              <Text style={styles.lineItemPrice}>
+                {formatCurrency(item.quantity * item.unitPrice)}
+              </Text>
             </View>
           ))}
           <View style={styles.subtotalRow}>
             <Text style={styles.subtotalLabel}>{t.provider?.laborSubtotal || 'Labor Subtotal'}</Text>
-            <Text style={styles.subtotalValue}>${quote.laborCost.toFixed(2)}</Text>
+            <Text style={styles.subtotalValue}>{formatCurrency(quote.laborCost)}</Text>
           </View>
 
           {/* Total */}
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>{t.provider?.totalQuote || 'Total Quote'}</Text>
-            <Text style={styles.totalValue}>${quote.totalAmount.toFixed(2)}</Text>
+            <Text style={styles.totalValue}>{formatCurrency(quote.totalAmount)}</Text>
           </View>
         </View>
 

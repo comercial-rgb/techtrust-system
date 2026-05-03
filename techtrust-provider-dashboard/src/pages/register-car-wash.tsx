@@ -18,11 +18,30 @@ import {
   ArrowLeft,
   ArrowRight,
   CheckCircle,
+  ChevronDown,
 } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import LangSelector from '@/components/LangSelector'
 import api from '@/services/api'
 import { US_STATES, CITIES_BY_STATE } from '@/constants/location'
+
+const DIAL_COUNTRIES = [
+  { code: 'US', flag: '🇺🇸', name: 'United States', dial: '+1' },
+  { code: 'BR', flag: '🇧🇷', name: 'Brasil',         dial: '+55' },
+  { code: 'MX', flag: '🇲🇽', name: 'México',         dial: '+52' },
+  { code: 'CA', flag: '🇨🇦', name: 'Canada',         dial: '+1' },
+  { code: 'GB', flag: '🇬🇧', name: 'United Kingdom', dial: '+44' },
+  { code: 'PT', flag: '🇵🇹', name: 'Portugal',       dial: '+351' },
+  { code: 'ES', flag: '🇪🇸', name: 'España',         dial: '+34' },
+  { code: 'AR', flag: '🇦🇷', name: 'Argentina',      dial: '+54' },
+  { code: 'CO', flag: '🇨🇴', name: 'Colombia',       dial: '+57' },
+  { code: 'FR', flag: '🇫🇷', name: 'France',         dial: '+33' },
+  { code: 'DE', flag: '🇩🇪', name: 'Germany',        dial: '+49' },
+  { code: 'IT', flag: '🇮🇹', name: 'Italy',          dial: '+39' },
+  { code: 'AU', flag: '🇦🇺', name: 'Australia',      dial: '+61' },
+]
+
+const flagSrc = (code: string) => `https://flagcdn.com/w40/${code.toLowerCase()}.png`
 
 const CAR_WASH_SERVICES = [
   { key: 'EXTERIOR_WASH', label: 'Exterior Wash', emoji: '🚿' },
@@ -62,6 +81,8 @@ export default function RegisterCarWashPage() {
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
+  const [selectedDialCountry, setSelectedDialCountry] = useState(DIAL_COUNTRIES[0])
+  const [showDialDropdown, setShowDialDropdown] = useState(false)
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -87,16 +108,9 @@ export default function RegisterCarWashPage() {
   const [otpMethod, setOtpMethod] = useState<'sms' | 'email'>('sms')
   const [resending, setResending] = useState(false)
 
-  function formatPhone(val: string) {
-    const d = val.replace(/\D/g, '').slice(0, 10)
-    if (d.length <= 3) return d
-    if (d.length <= 6) return `(${d.slice(0, 3)}) ${d.slice(3)}`
-    return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`
-  }
-
   function phoneToE164(val: string) {
     const d = val.replace(/\D/g, '')
-    return d.length === 10 ? `+1${d}` : ''
+    return d ? `${selectedDialCountry.dial}${d}` : ''
   }
 
   function toggleService(key: string) {
@@ -135,7 +149,7 @@ export default function RegisterCarWashPage() {
         vehicleTypesServed: ['CAR', 'SUV', 'TRUCK', 'VAN'],
         sellsParts: false,
         marketplaceType: 'CAR_WASH',
-        selectedListingPlan: selectedPlan,
+        marketplacePlan: selectedPlan,
         preferredOtpMethod: otpMethod,
         language: language.toUpperCase(),
       })
@@ -307,11 +321,36 @@ export default function RegisterCarWashPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Phone *</label>
-                  <div className="flex">
-                    <span className="inline-flex items-center gap-1.5 px-3 border border-r-0 border-gray-200 bg-gray-50 text-gray-500 text-sm rounded-l-xl">
-                      <Phone className="w-4 h-4" /> +1
-                    </span>
-                    <input type="tel" value={phone} onChange={e => setPhone(formatPhone(e.target.value))} placeholder="(305) 555-0123" className="input rounded-l-none !pl-3" />
+                  <div className="flex gap-2">
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setShowDialDropdown(!showDialDropdown)}
+                        className="flex items-center gap-1.5 px-3 py-3 rounded-xl border border-gray-200 hover:border-gray-300 bg-white text-sm font-medium text-gray-700 whitespace-nowrap"
+                      >
+                        <img src={flagSrc(selectedDialCountry.code)} alt={selectedDialCountry.code} className="h-4 w-6 rounded-[2px] object-cover" />
+                        <span className="text-gray-600">{selectedDialCountry.dial}</span>
+                        <ChevronDown className="w-3 h-3 text-gray-400" />
+                      </button>
+                      {showDialDropdown && (
+                        <div className="absolute left-0 top-full mt-1 z-50 bg-white border border-gray-200 rounded-xl shadow-lg w-56 max-h-64 overflow-y-auto">
+                          {DIAL_COUNTRIES.map(c => (
+                            <button key={c.code} type="button"
+                              onClick={() => { setSelectedDialCountry(c); setShowDialDropdown(false) }}
+                              className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50 ${selectedDialCountry.code === c.code ? 'bg-cyan-50 text-cyan-700 font-medium' : 'text-gray-700'}`}>
+                              <img src={flagSrc(c.code)} alt={c.code} className="h-4 w-6 rounded-[2px] object-cover" />
+                              <span className="flex-1 text-left">{c.name}</span>
+                              <span className="text-gray-400">{c.dial}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="relative flex-1">
+                      <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input type="tel" value={phone} onChange={e => setPhone(e.target.value.replace(/[^\d\s\-()]/g, ''))}
+                        placeholder="(305) 555-0123" className="input !pl-11 w-full" />
+                    </div>
                   </div>
                 </div>
                 <div>
@@ -335,7 +374,7 @@ export default function RegisterCarWashPage() {
                 <button onClick={() => {
                   if (!fullName.trim() || fullName.trim().split(' ').length < 2) { setError('Enter your full name'); return }
                   if (!email.trim() || !/\S+@\S+\.\S+/.test(email)) { setError('Enter a valid email'); return }
-                  if (!phoneToE164(phone)) { setError('Enter a valid US phone number'); return }
+                  if (phone.replace(/\D/g, '').length < 5) { setError('Enter a valid phone number'); return }
                   if (password.length < 8) { setError('Password must be at least 8 characters'); return }
                   if (password !== confirmPassword) { setError('Passwords do not match'); return }
                   setError(''); setStep('business')

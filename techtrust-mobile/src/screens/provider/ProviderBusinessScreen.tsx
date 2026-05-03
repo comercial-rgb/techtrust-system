@@ -15,8 +15,32 @@ import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../contexts/AuthContext";
 import api from "../../services/api";
 import { colors } from "../../constants/theme";
+import { log } from "../../utils/logger";
+import { useI18n } from "../../i18n";
 
 const { width } = Dimensions.get("window");
+
+function businessTypeLabel(raw: string, t: { common: Record<string, string> }): string {
+  const norm = (raw || "").toUpperCase().replace(/\s+/g, "_");
+  const c = t.common;
+  switch (norm) {
+    case "AUTO_REPAIR":
+      return c.autoRepair || "Auto Repair Shop";
+    case "TIRE_SHOP":
+      return c.tireShop || "Tire Shop";
+    case "AUTO_ELECTRIC":
+      return c.autoElectric || "Auto Electric";
+    case "BODY_SHOP":
+      return c.bodyShop || "Body Shop";
+    case "TOWING":
+      return c.towing || "Towing";
+    case "MULTI_SERVICE":
+      return c.multiService || "Multi-Service";
+    default:
+      if (raw && !raw.includes("_")) return raw;
+      return raw.replace(/_/g, " ") || c.autoRepair || "Auto Repair Shop";
+  }
+}
 
 interface ProviderProfile {
   businessName: string;
@@ -36,6 +60,7 @@ interface ProviderProfile {
 
 export default function ProviderBusinessScreen({ navigation }: any) {
   const { user } = useAuth();
+  const { t } = useI18n();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [profile, setProfile] = useState<ProviderProfile | null>(null);
@@ -58,8 +83,13 @@ export default function ProviderBusinessScreen({ navigation }: any) {
           : {};
 
       setProfile({
-        businessName: p.businessName || p.name || user?.fullName || "My Shop",
-        businessType: p.businessType || "Auto Repair",
+        businessName:
+          p.businessName ||
+          p.name ||
+          user?.fullName ||
+          t.providerBusiness?.defaultShopName ||
+          "My Shop",
+        businessType: p.businessType || "AUTO_REPAIR",
         city: p.city || "",
         state: p.state || "",
         phone: p.phone || "",
@@ -73,12 +103,12 @@ export default function ProviderBusinessScreen({ navigation }: any) {
         pendingRequests: Number(s.pendingRequests ?? s.totalPending) || 0,
       });
     } catch (error) {
-      console.error("Error loading business data:", error);
+      log.error("Error loading business data:", error);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user]);
+  }, [user, t]);
 
   useEffect(() => {
     loadData();
@@ -120,9 +150,12 @@ export default function ProviderBusinessScreen({ navigation }: any) {
           >
             <Ionicons name="arrow-back" size={22} color="#111827" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>My Business</Text>
+          <Text style={styles.headerTitle}>
+            {t.provider?.myBusiness || "My Business"}
+          </Text>
           <Text style={styles.headerSubtitle}>
-            Manage your profile and track performance
+            {t.providerBusiness?.subtitle ||
+              "Manage your profile and track performance"}
           </Text>
         </View>
 
@@ -137,31 +170,42 @@ export default function ProviderBusinessScreen({ navigation }: any) {
                   : "—"}
               </Text>
               <Text style={styles.metricLabel}>
-                {profile.totalReviews} reviews
+                {profile.totalReviews}{" "}
+                {t.provider?.reviews || "reviews"}
               </Text>
             </View>
             <View style={styles.metricCard}>
               <Ionicons name="checkmark-circle-outline" size={20} color="#10B981" />
               <Text style={styles.metricValue}>{profile.completedServices}</Text>
-              <Text style={styles.metricLabel}>Completed</Text>
+              <Text style={styles.metricLabel}>
+                {t.provider?.completed || "Completed"}
+              </Text>
             </View>
             <View style={styles.metricCard}>
               <Ionicons name="time-outline" size={20} color="#F59E0B" />
               <Text style={styles.metricValue}>{profile.pendingRequests}</Text>
-              <Text style={styles.metricLabel}>Pending</Text>
+              <Text style={styles.metricLabel}>
+                {t.common?.pending || "Pending"}
+              </Text>
             </View>
             <View style={styles.metricCard}>
               <Ionicons name="navigate-circle-outline" size={20} color="#3B82F6" />
               <Text style={styles.metricValue}>
-                {radiusMiles > 0 ? `${radiusMiles}mi` : "—"}
+                {radiusMiles > 0
+                  ? `${radiusMiles}${t.providerBusiness?.radiusMiSuffix || "mi"}`
+                  : "—"}
               </Text>
-              <Text style={styles.metricLabel}>Radius</Text>
+              <Text style={styles.metricLabel}>
+                {t.common?.radius || "Radius"}
+              </Text>
             </View>
           </View>
         )}
 
         {/* Business Profile card */}
-        <Text style={styles.sectionTitle}>Your Business Profile</Text>
+        <Text style={styles.sectionTitle}>
+          {t.providerBusiness?.businessProfileSection || "Your Business Profile"}
+        </Text>
 
         {!profile?.businessName ? (
           <View style={styles.emptyCard}>
@@ -170,15 +214,20 @@ export default function ProviderBusinessScreen({ navigation }: any) {
               size={48}
               color="#D1D5DB"
             />
-            <Text style={styles.emptyText}>Complete your profile</Text>
+            <Text style={styles.emptyText}>
+              {t.providerBusiness?.emptyTitle || "Complete your profile"}
+            </Text>
             <Text style={styles.emptySubtext}>
-              Add your shop details so customers can find and contact you
+              {t.providerBusiness?.emptySubtitle ||
+                "Add your shop details so customers can find and contact you"}
             </Text>
             <TouchableOpacity
               style={styles.setupButton}
               onPress={() => navigation.navigate("EditProfile")}
             >
-              <Text style={styles.setupButtonText}>Set Up Profile</Text>
+              <Text style={styles.setupButtonText}>
+                {t.providerBusiness?.setUpProfile || "Set Up Profile"}
+              </Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -194,7 +243,9 @@ export default function ProviderBusinessScreen({ navigation }: any) {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.profileName}>{profile.businessName}</Text>
-                <Text style={styles.profileType}>Auto Repair Shop</Text>
+                <Text style={styles.profileType}>
+                  {businessTypeLabel(profile.businessType, t)}
+                </Text>
               </View>
               {profile.isVerified && (
                 <View style={styles.verifiedBadge}>
@@ -231,20 +282,27 @@ export default function ProviderBusinessScreen({ navigation }: any) {
               {profile.mobileService && (
                 <View style={styles.tag}>
                   <MaterialCommunityIcons name="car-arrow-right" size={13} color="#2B5EA7" />
-                  <Text style={styles.tagText}>Mobile Service</Text>
+                  <Text style={styles.tagText}>
+                    {t.provider?.mobileService || "Mobile Service"}
+                  </Text>
                 </View>
               )}
               {profile.roadsideAssistance && (
                 <View style={[styles.tag, { backgroundColor: "#FEF2F2" }]}>
                   <MaterialCommunityIcons name="alert-circle-outline" size={13} color="#DC2626" />
-                  <Text style={[styles.tagText, { color: "#DC2626" }]}>Roadside SOS</Text>
+                  <Text style={[styles.tagText, { color: "#DC2626" }]}>
+                    {t.sos?.titleRoadsideSos || "Roadside SOS"}
+                  </Text>
                 </View>
               )}
               {radiusMiles > 0 && (
                 <View style={[styles.tag, { backgroundColor: "#F0FDF4" }]}>
                   <MaterialCommunityIcons name="map-marker-radius-outline" size={13} color="#16A34A" />
                   <Text style={[styles.tagText, { color: "#16A34A" }]}>
-                    {radiusMiles} mi radius
+                    {(t.providerBusiness?.radiusTagWithMiles || "{{miles}} mi radius").replace(
+                      "{{miles}}",
+                      String(radiusMiles),
+                    )}
                   </Text>
                 </View>
               )}
@@ -255,20 +313,25 @@ export default function ProviderBusinessScreen({ navigation }: any) {
               onPress={() => navigation.navigate("EditProfile")}
             >
               <Ionicons name="create-outline" size={16} color={colors.primary} />
-              <Text style={styles.editProfileText}>Edit Profile</Text>
+              <Text style={styles.editProfileText}>
+                {t.provider?.editProfile || "Edit Profile"}
+              </Text>
             </TouchableOpacity>
           </View>
         )}
 
         {/* Quick Actions */}
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
+        <Text style={styles.sectionTitle}>
+          {t.provider?.quickActions || "Quick Actions"}
+        </Text>
         <View style={styles.actionsGrid}>
           <TouchableOpacity
             style={styles.actionCard}
             onPress={() =>
               Alert.alert(
-                "Web Dashboard",
-                "For full business management, visit provider.techtrustautosolutions.com on your browser."
+                t.provider?.webDashboardTitle || "Web Dashboard",
+                t.provider?.webDashboardMessage ||
+                  "For full business management, visit provider.techtrustautosolutions.com on your browser.",
               )
             }
           >
@@ -277,28 +340,36 @@ export default function ProviderBusinessScreen({ navigation }: any) {
               size={24}
               color="#3B82F6"
             />
-            <Text style={styles.actionText}>Full Dashboard</Text>
+            <Text style={styles.actionText}>
+              {t.providerBusiness?.fullDashboard || "Full Dashboard"}
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.actionCard}
             onPress={() => navigation.navigate("ProviderReviews")}
           >
             <Ionicons name="star-outline" size={24} color="#F59E0B" />
-            <Text style={styles.actionText}>Reviews</Text>
+            <Text style={styles.actionText}>
+              {t.common?.reviews || "Reviews"}
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.actionCard}
             onPress={() => navigation.navigate("Reports")}
           >
             <Ionicons name="bar-chart-outline" size={24} color="#10B981" />
-            <Text style={styles.actionText}>Reports</Text>
+            <Text style={styles.actionText}>
+              {t.provider?.reports || "Reports"}
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.actionCard}
             onPress={() => navigation.navigate("EditProfile")}
           >
             <Ionicons name="settings-outline" size={24} color="#6B7280" />
-            <Text style={styles.actionText}>Settings</Text>
+            <Text style={styles.actionText}>
+              {t.provider?.settings || "Settings"}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -309,10 +380,12 @@ export default function ProviderBusinessScreen({ navigation }: any) {
             onPress={() => navigation.navigate("Compliance")}
           >
             <View style={styles.planCardContent}>
-              <Text style={styles.planTitle}>Get Verified</Text>
+              <Text style={styles.planTitle}>
+                {t.providerBusiness?.getVerifiedTitle || "Get Verified"}
+              </Text>
               <Text style={styles.planDesc}>
-                Upload your license and insurance to earn the Verified Business
-                badge and rank higher in customer searches.
+                {t.providerBusiness?.getVerifiedDesc ||
+                  "Upload your license and insurance to earn the Verified Business badge and rank higher in customer searches."}
               </Text>
             </View>
             <MaterialCommunityIcons
@@ -327,11 +400,11 @@ export default function ProviderBusinessScreen({ navigation }: any) {
           <View style={[styles.planCard, { backgroundColor: "#F0FDF4", borderColor: "#BBF7D0" }]}>
             <View style={styles.planCardContent}>
               <Text style={[styles.planTitle, { color: "#166534" }]}>
-                Verified Business
+                {t.providerBusiness?.verifiedBusinessTitle || "Verified Business"}
               </Text>
               <Text style={[styles.planDesc, { color: "#15803D" }]}>
-                Your business is verified. Customers see your Verified badge in
-                search results, boosting trust and acceptance rates.
+                {t.providerBusiness?.verifiedBusinessDesc ||
+                  "Your business is verified. Customers see your Verified badge in search results, boosting trust and acceptance rates."}
               </Text>
             </View>
             <MaterialCommunityIcons

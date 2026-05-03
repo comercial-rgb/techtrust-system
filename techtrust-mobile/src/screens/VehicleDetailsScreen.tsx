@@ -3,7 +3,7 @@
  * Modern design with maintenance history and total spent
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -28,6 +28,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { FadeInView, ScalePress } from "../components/Animated";
 import { useI18n } from "../i18n";
 import { getVehicleRecalls, RecallItem } from "../services/nhtsa.service";
+import { log } from "../utils/logger";
 
 interface MaintenanceRecord {
   id: string;
@@ -74,8 +75,46 @@ interface VehicleDetails {
   transmission?: string;
 }
 
+const PAST_SERVICE_TYPE_IDS = [
+  "Oil Change",
+  "Brake Service",
+  "Tire Rotation",
+  "Battery",
+  "AC Repair",
+  "Transmission",
+  "Engine",
+  "Body Work",
+  "Other",
+] as const;
+
+function pastServiceTypeDisplayLabel(
+  typeId: string,
+  tr: Record<string, string | undefined> | undefined,
+): string {
+  if (!tr) return typeId;
+  const keyById: Record<string, string> = {
+    "Oil Change": "pastServiceTypeOilChange",
+    "Brake Service": "pastServiceTypeBrakeService",
+    "Tire Rotation": "pastServiceTypeTireRotation",
+    Battery: "pastServiceTypeBattery",
+    "AC Repair": "pastServiceTypeAcRepair",
+    Transmission: "pastServiceTypeTransmission",
+    Engine: "pastServiceTypeEngine",
+    "Body Work": "pastServiceTypeBodyWork",
+    Other: "pastServiceTypeOther",
+  };
+  const k = keyById[typeId];
+  const label = k ? tr[k] : undefined;
+  return label || typeId;
+}
+
 export default function VehicleDetailsScreen({ navigation, route }: any) {
-  const { t } = useI18n();
+  const { t, language, formatCurrency } = useI18n();
+  const fiatSymbol = ((t as any).formats?.currencySymbol as string | undefined) || "$";
+  const vehicleLocale = useMemo(
+    () => (language === "pt" ? "pt-BR" : language === "es" ? "es-ES" : "en-US"),
+    [language],
+  );
   const { vehicleId } = route.params || {};
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -129,10 +168,22 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
         t.profile?.changeProfilePhoto || 'Vehicle Photo',
         '',
         [
-          { text: 'Take Photo', onPress: () => setVehiclePhoto(`https://ui-avatars.com/api/?name=${encodeURIComponent((vehicle?.make || '') + '+' + (vehicle?.model || ''))}&background=1976d2&color=fff&size=400`) },
-          { text: 'Choose from Gallery', onPress: () => setVehiclePhoto(`https://ui-avatars.com/api/?name=${encodeURIComponent((vehicle?.make || '') + '+' + (vehicle?.model || ''))}&background=059669&color=fff&size=400`) },
-          { text: t.common?.cancel || 'Cancel', style: 'cancel' },
-        ]
+          {
+            text: t.profile?.takePhoto || "Take Photo",
+            onPress: () =>
+              setVehiclePhoto(
+                `https://ui-avatars.com/api/?name=${encodeURIComponent((vehicle?.make || "") + "+" + (vehicle?.model || ""))}&background=1976d2&color=fff&size=400`,
+              ),
+          },
+          {
+            text: t.profile?.chooseFromLibrary || "Choose from Gallery",
+            onPress: () =>
+              setVehiclePhoto(
+                `https://ui-avatars.com/api/?name=${encodeURIComponent((vehicle?.make || "") + "+" + (vehicle?.model || ""))}&background=059669&color=fff&size=400`,
+              ),
+          },
+          { text: t.common?.cancel || "Cancel", style: "cancel" },
+        ],
       );
     }
   };
@@ -140,7 +191,10 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
   // D13 — Save past service record
   const handleSavePastService = () => {
     if (!pastServiceData.type || !pastServiceData.date || !pastServiceData.cost) {
-      Alert.alert('Error', 'Please fill in service type, date, and cost.');
+      Alert.alert(
+        t.common?.error || 'Error',
+        t.vehicle?.pastServiceFillRequired || 'Please fill in service type, date, and cost.',
+      );
       return;
     }
 
@@ -152,7 +206,10 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
         date: pastServiceData.date,
         mileage: parseInt(pastServiceData.mileage) || 0,
         cost: parseFloat(pastServiceData.cost) || 0,
-        provider: pastServiceData.provider || 'Self / Other',
+        provider:
+          pastServiceData.provider ||
+          t.vehicle?.pastServiceProviderDefault ||
+          "Self / other",
         status: 'completed',
       };
 
@@ -165,7 +222,10 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
 
     setShowPastServiceModal(false);
     setPastServiceData({ type: '', description: '', date: '', mileage: '', cost: '', provider: '' });
-    Alert.alert('Success', 'Past service record added.');
+    Alert.alert(
+      t.common?.success || 'Success',
+      t.vehicle?.pastServiceRecordAdded || 'Past service record added.',
+    );
   };
 
   useEffect(() => {
@@ -226,7 +286,7 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
         });
       }
     } catch (error) {
-      console.error("Error loading vehicle:", error);
+      log.error("Error loading vehicle:", error);
     } finally {
       setLoading(false);
     }
@@ -268,7 +328,7 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
         }
       }
     } catch (error) {
-      console.error("Error loading recalls:", error);
+      log.error("Error loading recalls:", error);
     } finally {
       setRecallsLoading(false);
     }
@@ -278,7 +338,7 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
     if (!date) return null;
     const d = new Date(date);
     if (isNaN(d.getTime())) return null;
-    return d.toLocaleDateString("en-US", {
+    return d.toLocaleDateString(vehicleLocale, {
       month: "short",
       day: "numeric",
       year: "numeric",
@@ -286,11 +346,8 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
   }
 
   function formatMileage(miles: number) {
-    return miles.toLocaleString('en-US') + " mi";
-  }
-
-  function formatCurrency(amount: number) {
-    return "$" + amount.toFixed(2);
+    const mileAbbr = ((t as any).carWash?.mile as string | undefined) || "mi";
+    return `${miles.toLocaleString(vehicleLocale)} ${mileAbbr}`;
   }
 
   function isExpiringSoon(date: string) {
@@ -509,15 +566,18 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 14, fontWeight: '700', color: '#991b1b' }}>
-                  Safety Recall Alert
+                  {t.vehicle?.recallsBannerTitle || "Safety recall alert"}
                 </Text>
                 <Text style={{ fontSize: 13, color: '#7f1d1d', marginTop: 4, lineHeight: 18 }}>
                   {recalls.length === 1
                     ? `${recalls[0].component}: ${recalls[0].summary?.substring(0, 100)}...`
-                    : `${recalls.length} active safety recalls found for this vehicle.`}
+                    : (t.vehicle?.recallsBannerMultiple ||
+                        "{{count}} active safety recalls found for this vehicle."
+                      ).replace("{{count}}", String(recalls.length))}
                 </Text>
                 <Text style={{ fontSize: 12, color: '#b91c1c', marginTop: 6, fontWeight: '600' }}>
-                  Contact nearest dealer for free repair.
+                  {t.vehicle?.recallsBannerDealerNote ||
+                    "Contact nearest dealer for free repair."}
                 </Text>
               </View>
               <TouchableOpacity
@@ -754,7 +814,7 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.sectionTitle}>
-                {"Safety Recalls"}
+                {t.vehicle?.safetyRecalls || "Safety recalls"}
               </Text>
               {recalls.length > 0 && (
                 <View style={{ backgroundColor: "#fef2f2", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 }}>
@@ -764,14 +824,19 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
             </View>
             {recallsLoading ? (
               <View style={[styles.infoCard, { alignItems: "center", paddingVertical: 20 }]}>
-                <Text style={{ color: "#9ca3af" }}>Loading recalls...</Text>
+                <Text style={{ color: "#9ca3af" }}>
+                  {t.vehicle?.recallsLoading || "Loading recalls..."}
+                </Text>
               </View>
             ) : recalls.length === 0 ? (
               <View style={[styles.infoCard, { alignItems: "center", paddingVertical: 20 }]}>
                 <Ionicons name="shield-checkmark" size={32} color="#10b981" />
-                <Text style={{ marginTop: 8, fontSize: 14, fontWeight: "600", color: "#10b981" }}>No Active Recalls</Text>
+                <Text style={{ marginTop: 8, fontSize: 14, fontWeight: "600", color: "#10b981" }}>
+                  {t.vehicle?.recallsNoneActive || "No active recalls"}
+                </Text>
                 <Text style={{ marginTop: 4, fontSize: 12, color: "#9ca3af", textAlign: "center" }}>
-                  This vehicle has no open safety recalls from NHTSA.
+                  {t.vehicle?.recallsNoneDetail ||
+                    "This vehicle has no open safety recalls from NHTSA."}
                 </Text>
               </View>
             ) : (
@@ -794,8 +859,13 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
                             {recall.component}
                           </Text>
                           <Text style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>
-                            Campaign #{recall.nhtsaCampaignNumber}
-                            {recall.reportReceivedDate ? ` • ${new Date(recall.reportReceivedDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}` : ""}
+                            {(t.vehicle?.recallsCampaignLine || "Campaign #{{id}}").replace(
+                              "{{id}}",
+                              String(recall.nhtsaCampaignNumber ?? ""),
+                            )}
+                            {recall.reportReceivedDate && formatDate(recall.reportReceivedDate)
+                              ? ` • ${formatDate(recall.reportReceivedDate)}`
+                              : ""}
                           </Text>
                         </View>
                         <Ionicons name={isExpanded ? "chevron-up" : "chevron-down"} size={18} color="#9ca3af" />
@@ -804,19 +874,25 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
                         <View style={{ marginTop: 12, gap: 10 }}>
                           {recall.summary ? (
                             <View>
-                              <Text style={{ fontSize: 11, fontWeight: "700", color: "#6b7280", textTransform: "uppercase", letterSpacing: 0.5 }}>Summary</Text>
+                              <Text style={{ fontSize: 11, fontWeight: "700", color: "#6b7280", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                                {t.vehicle?.recallsSummaryLabel || "Summary"}
+                              </Text>
                               <Text style={{ fontSize: 13, color: "#374151", marginTop: 4, lineHeight: 18 }}>{recall.summary}</Text>
                             </View>
                           ) : null}
                           {recall.consequence ? (
                             <View>
-                              <Text style={{ fontSize: 11, fontWeight: "700", color: "#ef4444", textTransform: "uppercase", letterSpacing: 0.5 }}>Risk</Text>
+                              <Text style={{ fontSize: 11, fontWeight: "700", color: "#ef4444", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                                {t.vehicle?.recallsRiskLabel || "Risk"}
+                              </Text>
                               <Text style={{ fontSize: 13, color: "#374151", marginTop: 4, lineHeight: 18 }}>{recall.consequence}</Text>
                             </View>
                           ) : null}
                           {recall.remedy ? (
                             <View>
-                              <Text style={{ fontSize: 11, fontWeight: "700", color: "#10b981", textTransform: "uppercase", letterSpacing: 0.5 }}>Remedy</Text>
+                              <Text style={{ fontSize: 11, fontWeight: "700", color: "#10b981", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                                {t.vehicle?.recallsRemedyLabel || "Remedy"}
+                              </Text>
                               <Text style={{ fontSize: 13, color: "#374151", marginTop: 4, lineHeight: 18 }}>{recall.remedy}</Text>
                             </View>
                           ) : null}
@@ -907,10 +983,16 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
                         },
                       });
                     } else if (record.status === "scheduled") {
+                      const dateStr = formatDate(record.date) || "";
+                      const schedBody = (t.vehicle?.scheduledServiceDetailBody || "")
+                        .replace(/\{\{\s*type\s*\}\}/g, record.type)
+                        .replace(/\{\{\s*description\s*\}\}/g, record.description)
+                        .replace(/\{\{\s*date\s*\}\}/g, dateStr);
                       Alert.alert(
                         t.vehicle?.scheduledService || "Scheduled Service",
-                        `${record.type}\n\n${record.description}\n\nScheduled for: ${formatDate(record.date)}`,
-                        [{ text: "OK" }],
+                        schedBody ||
+                          `${record.type}\n\n${record.description}\n\nScheduled for: ${dateStr || record.date}`,
+                        [{ text: t.common?.ok || "OK" }],
                       );
                     }
                   }}
@@ -1148,17 +1230,21 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
                   <Ionicons name="checkmark-circle" size={52} color="#2B5EA7" />
                 </View>
                 <Text style={{ fontSize: 26, fontWeight: '800', color: '#111827', textAlign: 'center', marginBottom: 10 }}>
-                  Your vehicle is ready!
+                  {t.vehicle?.onboardingWelcomeTitle || "Your vehicle is ready!"}
                 </Text>
                 <Text style={{ fontSize: 15, color: '#6b7280', textAlign: 'center', lineHeight: 22, marginBottom: 28 }}>
-                  {vehicle?.year} {vehicle?.make} {vehicle?.model} has been added to your garage.
+                  {(t.vehicle?.onboardingWelcomeSubtitle ||
+                    "{{year}} {{make}} {{model}} has been added to your garage.")
+                    .replace("{{year}}", String(vehicle?.year ?? ""))
+                    .replace("{{make}}", vehicle?.make ?? "")
+                    .replace("{{model}}", vehicle?.model ?? "")}
                 </Text>
 
                 <View style={{ width: '100%', gap: 12 }}>
                   {[
-                    { icon: 'shield-checkmark-outline', color: '#10b981', bg: '#d1fae5', title: 'Accurate Quotes', desc: 'Providers see your vehicle details and quote the right price.' },
-                    { icon: 'time-outline', color: '#2B5EA7', bg: '#dbeafe', title: 'Service History', desc: 'Every service is automatically logged for resale value.' },
-                    { icon: 'notifications-outline', color: '#f59e0b', bg: '#fef3c7', title: 'Recall Alerts', desc: 'Get notified about safety recalls from NHTSA.' },
+                    { icon: 'shield-checkmark-outline', color: '#10b981', bg: '#d1fae5', title: t.vehicle?.onboardingBulletAccurateQuotesTitle, desc: t.vehicle?.onboardingBulletAccurateQuotesDesc },
+                    { icon: 'time-outline', color: '#2B5EA7', bg: '#dbeafe', title: t.vehicle?.onboardingBulletServiceHistoryTitle, desc: t.vehicle?.onboardingBulletServiceHistoryDesc },
+                    { icon: 'notifications-outline', color: '#f59e0b', bg: '#fef3c7', title: t.vehicle?.onboardingBulletRecallAlertsTitle, desc: t.vehicle?.onboardingBulletRecallAlertsDesc },
                   ].map(item => (
                     <View key={item.title} style={{ flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#f8fafc', borderRadius: 14, padding: 14, gap: 12 }}>
                       <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: item.bg, justifyContent: 'center', alignItems: 'center' }}>
@@ -1182,10 +1268,11 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
                     <Ionicons name="document-text-outline" size={36} color="#f59e0b" />
                   </View>
                   <Text style={{ fontSize: 22, fontWeight: '800', color: '#111827', textAlign: 'center', marginBottom: 8 }}>
-                    Complete your profile
+                    {t.vehicle?.onboardingCompleteProfileTitle || "Complete your profile"}
                   </Text>
                   <Text style={{ fontSize: 14, color: '#6b7280', textAlign: 'center', lineHeight: 20 }}>
-                    The more you fill in, the better your experience
+                    {t.vehicle?.onboardingCompleteProfileSubtitle ||
+                      "The more you fill in, the better your experience"}
                   </Text>
                 </View>
 
@@ -1194,18 +1281,18 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
                     icon: 'car-outline',
                     color: '#2B5EA7',
                     bg: '#dbeafe',
-                    title: 'Vehicle Information',
-                    desc: 'VIN, mileage, color, fuel type — helps providers prepare the right parts and tools before your appointment.',
-                    action: 'Edit vehicle',
+                    title: t.vehicle?.vehicleInformation || "Vehicle information",
+                    desc: t.vehicle?.onboardingVehicleCardDesc,
+                    action: t.vehicle?.editVehicle || "Edit Vehicle",
                     onAction: () => { setShowOnboarding(false); navigation.navigate('AddVehicle', { vehicle }); },
                   },
                   {
                     icon: 'shield-outline',
                     color: '#059669',
                     bg: '#d1fae5',
-                    title: 'Insurance Details',
-                    desc: 'Store your policy info securely. Get expiry reminders and have everything ready when you need it.',
-                    action: 'Manage Insurance',
+                    title: t.vehicle?.onboardingInsuranceCardTitle || "Insurance details",
+                    desc: t.vehicle?.onboardingInsuranceCardDesc,
+                    action: t.vehicle?.manageInsurance || "Manage Insurance",
                     onAction: () => { setShowOnboarding(false); navigation.navigate('Insurance', { vehicleId: vehicle?.id }); },
                   },
                 ].map(item => (
@@ -1221,7 +1308,9 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
                       style={{ alignSelf: 'flex-start', backgroundColor: item.bg, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 }}
                       onPress={item.onAction}
                     >
-                      <Text style={{ fontSize: 13, fontWeight: '600', color: item.color }}>{item.action} →</Text>
+                      <Text style={{ fontSize: 13, fontWeight: '600', color: item.color }}>
+                        {item.action} →
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 ))}
@@ -1236,10 +1325,11 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
                     <Ionicons name="grid-outline" size={36} color="#7c3aed" />
                   </View>
                   <Text style={{ fontSize: 22, fontWeight: '800', color: '#111827', textAlign: 'center', marginBottom: 8 }}>
-                    Here's what you can do
+                    {t.vehicle?.onboardingStep2Title || "Here's what you can do"}
                   </Text>
                   <Text style={{ fontSize: 14, color: '#6b7280', textAlign: 'center', lineHeight: 20 }}>
-                    Every button in Vehicle Details explained
+                    {t.vehicle?.onboardingStep2Subtitle ||
+                      "Every button in Vehicle Details explained"}
                   </Text>
                 </View>
 
@@ -1248,36 +1338,36 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
                     icon: 'add-circle-outline',
                     color: '#fff',
                     bg: '#2B5EA7',
-                    title: 'Request Service',
-                    desc: 'Get quotes from verified mechanics nearby. Compare prices and pick the best deal.',
+                    title: t.vehicle?.requestService || "Request Service",
+                    desc: t.vehicle?.onboardingDescRequestService,
                   },
                   {
                     icon: 'shield-checkmark-outline',
                     color: '#2B5EA7',
                     bg: '#dbeafe',
-                    title: 'Manage Insurance',
-                    desc: 'Add, update or renew your insurance policy. Get alerts before it expires.',
+                    title: t.vehicle?.manageInsurance || "Manage Insurance",
+                    desc: t.vehicle?.onboardingDescManageInsurance,
                   },
                   {
                     icon: 'swap-horizontal-outline',
                     color: '#7c3aed',
                     bg: '#ede9fe',
-                    title: 'Transfer Vehicle',
-                    desc: 'Digitally transfer ownership when selling. The full service history goes with the vehicle.',
+                    title: t.vehicle?.transferVehicle || "Transfer Vehicle",
+                    desc: t.vehicle?.onboardingDescTransferVehicle,
                   },
                   {
                     icon: 'construct-outline',
                     color: '#ea580c',
                     bg: '#fff7ed',
-                    title: 'Find Parts',
-                    desc: "Search OEM and aftermarket parts matched specifically to your vehicle's year, make and model.",
+                    title: t.vehicle?.findParts || "Find Parts",
+                    desc: t.vehicle?.onboardingDescFindParts,
                   },
                   {
                     icon: 'time-outline',
                     color: '#6b7280',
                     bg: '#f3f4f6',
-                    title: 'Add Past Service',
-                    desc: 'Log services done before using TechTrust to build a complete maintenance timeline.',
+                    title: t.vehicle?.addPastService || "Add Past Service",
+                    desc: t.vehicle?.onboardingDescAddPastService,
                   },
                 ].map(item => (
                   <View key={item.title} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 14, backgroundColor: '#f8fafc', borderRadius: 14, padding: 14 }}>
@@ -1307,7 +1397,9 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
               }}
             >
               <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff' }}>
-                {onboardingStep < 2 ? 'Next →' : 'Get Started'}
+                {onboardingStep < 2
+                  ? (t.vehicle?.onboardingNext || "Next →")
+                  : (t.vehicle?.onboardingGetStarted || "Get started")}
               </Text>
             </TouchableOpacity>
             {onboardingStep < 2 && (
@@ -1315,7 +1407,9 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
                 style={{ paddingVertical: 12, alignItems: 'center' }}
                 onPress={() => setShowOnboarding(false)}
               >
-                <Text style={{ fontSize: 14, color: '#9ca3af' }}>Skip for now</Text>
+                <Text style={{ fontSize: 14, color: '#9ca3af' }}>
+                  {t.vehicle?.onboardingSkipForNow || "Skip for now"}
+                </Text>
               </TouchableOpacity>
             )}
           </View>
@@ -1334,39 +1428,51 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
             <TouchableOpacity onPress={() => setShowPastServiceModal(false)} style={styles.backBtn}>
               <Ionicons name="close" size={24} color="#111827" />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Add Past Service</Text>
+            <Text style={styles.headerTitle}>
+              {t.vehicle?.pastServiceModalTitle || t.vehicle?.addPastService}
+            </Text>
             <TouchableOpacity onPress={handleSavePastService}>
-              <Text style={{ fontSize: 16, fontWeight: '600', color: '#2B5EA7' }}>Save</Text>
+              <Text style={{ fontSize: 16, fontWeight: '600', color: '#2B5EA7' }}>
+                {t.common?.save || "Save"}
+              </Text>
             </TouchableOpacity>
           </View>
           <ScrollView style={{ padding: 16 }} showsVerticalScrollIndicator={false}>
-            <Text style={styles.pastServiceLabel}>Service Type *</Text>
+            <Text style={styles.pastServiceLabel}>
+              {t.vehicle?.pastServiceTypeLabel || "Service type *"}
+            </Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-              {['Oil Change', 'Brake Service', 'Tire Rotation', 'Battery', 'AC Repair', 'Transmission', 'Engine', 'Body Work', 'Other'].map(type => (
+              {PAST_SERVICE_TYPE_IDS.map((type) => (
                 <TouchableOpacity
                   key={type}
                   style={[styles.pastServiceChip, pastServiceData.type === type && styles.pastServiceChipActive]}
                   onPress={() => setPastServiceData(prev => ({ ...prev, type }))}
                 >
-                  <Text style={[styles.pastServiceChipText, pastServiceData.type === type && { color: '#fff' }]}>{type}</Text>
+                  <Text style={[styles.pastServiceChipText, pastServiceData.type === type && { color: '#fff' }]}>
+                    {pastServiceTypeDisplayLabel(type, t.vehicle as Record<string, string | undefined>)}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </View>
 
-            <Text style={styles.pastServiceLabel}>Description</Text>
+            <Text style={styles.pastServiceLabel}>
+              {t.vehicle?.pastServiceDescriptionLabel || "Description"}
+            </Text>
             <TextInput
               style={styles.pastServiceInput}
-              placeholder="Describe the service performed..."
+              placeholder={t.vehicle?.pastServiceDescriptionPlaceholder || "Describe the service performed..."}
               value={pastServiceData.description}
               onChangeText={text => setPastServiceData(prev => ({ ...prev, description: text }))}
               multiline
               numberOfLines={3}
             />
 
-            <Text style={styles.pastServiceLabel}>Date * (MM/DD/YYYY)</Text>
+            <Text style={styles.pastServiceLabel}>
+              {t.vehicle?.pastServiceDateLabel || "Date * (MM/DD/YYYY)"}
+            </Text>
             <TextInput
               style={styles.pastServiceInput}
-              placeholder="01/15/2024"
+              placeholder={t.vehicle?.pastServiceDatePlaceholder || "01/15/2024"}
               value={pastServiceData.date}
               onChangeText={text => setPastServiceData(prev => ({ ...prev, date: text }))}
               keyboardType="numeric"
@@ -1374,20 +1480,27 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
 
             <View style={{ flexDirection: 'row', gap: 12 }}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.pastServiceLabel}>Mileage</Text>
+                <Text style={styles.pastServiceLabel}>
+                  {t.vehicle?.pastServiceMileageLabel || "Mileage"}
+                </Text>
                 <TextInput
                   style={styles.pastServiceInput}
-                  placeholder="45,000"
+                  placeholder={t.vehicle?.pastServiceMileagePlaceholder || "45,000"}
                   value={pastServiceData.mileage}
                   onChangeText={text => setPastServiceData(prev => ({ ...prev, mileage: text }))}
                   keyboardType="numeric"
                 />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.pastServiceLabel}>Cost * ($)</Text>
+                <Text style={styles.pastServiceLabel}>
+                  {(t.vehicle?.pastServiceCostWithSymbol || "Cost * ({{symbol}})").replace(
+                    "{{symbol}}",
+                    fiatSymbol,
+                  )}
+                </Text>
                 <TextInput
                   style={styles.pastServiceInput}
-                  placeholder="150.00"
+                  placeholder={t.vehicle?.pastServiceCostPlaceholder || "150.00"}
                   value={pastServiceData.cost}
                   onChangeText={text => setPastServiceData(prev => ({ ...prev, cost: text }))}
                   keyboardType="decimal-pad"
@@ -1395,10 +1508,12 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
               </View>
             </View>
 
-            <Text style={styles.pastServiceLabel}>Service Provider</Text>
+            <Text style={styles.pastServiceLabel}>
+              {t.vehicle?.pastServiceProviderLabel || "Service provider"}
+            </Text>
             <TextInput
               style={styles.pastServiceInput}
-              placeholder="e.g., Jiffy Lube, Local Mechanic"
+              placeholder={t.vehicle?.pastServiceProviderPlaceholder || "e.g., Jiffy Lube, local mechanic"}
               value={pastServiceData.provider}
               onChangeText={text => setPastServiceData(prev => ({ ...prev, provider: text }))}
             />

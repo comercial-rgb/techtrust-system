@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import DashboardLayout from '../../components/DashboardLayout';
 import { api } from '../../services/api';
 import { Check, Star, Zap, Shield, Crown, Loader2 } from 'lucide-react';
+import { logApiError } from "../../utils/logger";
 
 interface Plan {
   id: string;
@@ -82,7 +83,7 @@ export default function PlanosPage() {
         setCurrentSub(subData);
       }
     } catch (err) {
-      console.error('Failed to load plans:', err);
+      logApiError('Failed to load plans:', err);
     } finally {
       setLoading(false);
     }

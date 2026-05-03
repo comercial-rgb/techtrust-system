@@ -25,6 +25,7 @@ import {
   Filter,
 } from "lucide-react";
 import { adminApi as api } from "../../services/api";
+import { logApiError } from "../../utils/logger";
 
 // Types
 interface Banner {
@@ -208,7 +209,7 @@ export default function ConteudoPage() {
       setArticles(((articlesRes as any).data || []) as Article[]);
       setNotices(((noticesRes as any).data || []) as Notice[]);
     } catch (error) {
-      console.error("Error loading content:", error);
+      logApiError("Error loading content:", error);
       setBanners([]);
       setOffers([]);
       setArticles([]);
@@ -231,7 +232,7 @@ export default function ConteudoPage() {
       loadData();
       closeModal();
     } catch (error) {
-      console.error("Error saving banner:", error);
+      logApiError("Error saving banner:", error);
     }
   }
 
@@ -246,7 +247,7 @@ export default function ConteudoPage() {
       loadData();
       closeModal();
     } catch (error) {
-      console.error("Error saving offer:", error);
+      logApiError("Error saving offer:", error);
     }
   }
 
@@ -261,7 +262,7 @@ export default function ConteudoPage() {
       loadData();
       closeModal();
     } catch (error) {
-      console.error("Error saving article:", error);
+      logApiError("Error saving article:", error);
     }
   }
 
@@ -276,7 +277,7 @@ export default function ConteudoPage() {
       loadData();
       closeModal();
     } catch (error) {
-      console.error("Error saving notice:", error);
+      logApiError("Error saving notice:", error);
     }
   }
 
@@ -286,7 +287,7 @@ export default function ConteudoPage() {
       await api.delete(`/admin/content/${type}/${id}`);
       loadData();
     } catch (error) {
-      console.error("Error deleting item:", error);
+      logApiError("Error deleting item:", error);
     }
   }
 
@@ -298,7 +299,7 @@ export default function ConteudoPage() {
       });
       loadData();
     } catch (error) {
-      console.error("Error toggling status:", error);
+      logApiError("Error toggling status:", error);
     }
   }
 

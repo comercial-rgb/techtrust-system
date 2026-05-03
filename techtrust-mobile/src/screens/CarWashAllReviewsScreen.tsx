@@ -17,7 +17,7 @@ import { colors, spacing, borderRadius, fontSize, fontWeight } from '../constant
 type SortOption = 'recent' | 'highest' | 'lowest';
 
 export default function CarWashAllReviewsScreen({ route, navigation }: any) {
-  const { t } = useI18n();
+  const { t, formatDate } = useI18n();
   const { carWashId } = route.params;
 
   const [reviews, setReviews] = useState<CarWashReview[]>([]);
@@ -64,11 +64,6 @@ export default function CarWashAllReviewsScreen({ route, navigation }: any) {
   const handleSortChange = (option: SortOption) => {
     if (option === sortBy) return;
     setSortBy(option);
-  };
-
-  const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   const renderStars = (rating: number) => {

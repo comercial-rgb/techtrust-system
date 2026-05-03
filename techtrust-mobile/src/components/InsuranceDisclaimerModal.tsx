@@ -15,8 +15,10 @@ import {
   Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { acceptRiskDisclaimer } from "../../services/compliance.service";
+import { acceptRiskDisclaimer } from "../services/compliance.service";
 import { Platform } from "react-native";
+import { log } from "../utils/logger";
+import { useI18n } from "../i18n";
 
 interface Props {
   visible: boolean;
@@ -37,10 +39,15 @@ export default function InsuranceDisclaimerModal({
   onAccept,
   onDecline,
 }: Props) {
+  const { t } = useI18n();
   const [accepted, setAccepted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const defaultDisclaimer = `This provider (${providerName}) does not have verified insurance coverage on file for this service. By proceeding, you acknowledge and agree that:
+  const rd = (t as any).riskDisclaimer || {};
+  const defaultDisclaimer =
+    (
+      rd.defaultDisclaimerBody ||
+      `This provider ({{providerName}}) does not have verified insurance coverage on file for this service. By proceeding, you acknowledge and agree that:
 
 1. The TechTrust platform does not provide insurance and is not responsible for any damages, loss, or liability arising from services performed by this provider.
 
@@ -48,13 +55,15 @@ export default function InsuranceDisclaimerModal({
 
 3. TechTrust recommends only using providers with verified insurance coverage for your protection.
 
-4. This acceptance will be recorded for audit and compliance purposes.`;
+4. This acceptance will be recorded for audit and compliance purposes.`
+    ).replace(/\{\{providerName\}\}/g, providerName);
 
   const handleAccept = async () => {
     if (!accepted) {
       Alert.alert(
-        "Required",
-        "You must check the acknowledgment box to proceed.",
+        t.riskDisclaimer?.mustAcknowledgeTitle || "Required",
+        t.riskDisclaimer?.mustAcknowledgeBody ||
+          "You must check the acknowledgment box to proceed.",
       );
       return;
     }
@@ -69,10 +78,11 @@ export default function InsuranceDisclaimerModal({
       onAccept();
     } catch (error: any) {
       Alert.alert(
-        "Error",
-        "Failed to record your acknowledgment. Please try again.",
+        t.riskDisclaimer?.recordFailedTitle || "Error",
+        t.riskDisclaimer?.recordFailedBody ||
+          "Failed to record your acknowledgment. Please try again.",
       );
-      console.error("Risk acceptance error:", error);
+      log.error("Risk acceptance error:", error);
     } finally {
       setSubmitting(false);
     }
@@ -87,7 +97,9 @@ export default function InsuranceDisclaimerModal({
             <View style={styles.warningIcon}>
               <Ionicons name="warning" size={28} color="#d97706" />
             </View>
-            <Text style={styles.title}>Insurance Notice</Text>
+            <Text style={styles.title}>
+              {rd.modalTitle || "Insurance Notice"}
+            </Text>
           </View>
 
           {/* Content */}
@@ -110,15 +122,17 @@ export default function InsuranceDisclaimerModal({
               {accepted && <Ionicons name="checkmark" size={16} color="#fff" />}
             </View>
             <Text style={styles.checkboxLabel}>
-              I understand and accept the risks of proceeding without verified
-              insurance coverage
+              {rd.checkboxAckLabel ||
+                "I understand and accept the risks of proceeding without verified insurance coverage"}
             </Text>
           </TouchableOpacity>
 
           {/* Actions */}
           <View style={styles.actions}>
             <TouchableOpacity style={styles.declineBtn} onPress={onDecline}>
-              <Text style={styles.declineBtnText}>Go Back</Text>
+              <Text style={styles.declineBtnText}>
+                {rd.goBack || "Go Back"}
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.acceptBtn, !accepted && styles.acceptBtnDisabled]}
@@ -128,7 +142,9 @@ export default function InsuranceDisclaimerModal({
               {submitting ? (
                 <ActivityIndicator color="#fff" size="small" />
               ) : (
-                <Text style={styles.acceptBtnText}>Proceed</Text>
+                <Text style={styles.acceptBtnText}>
+                  {rd.proceed || "Proceed"}
+                </Text>
               )}
             </TouchableOpacity>
           </View>

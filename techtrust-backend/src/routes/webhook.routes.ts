@@ -12,17 +12,21 @@ import { Router, Request, Response } from 'express';
 import { prisma } from '../config/database';
 import { logger } from '../config/logger';
 import * as stripeService from '../services/stripe.service';
+import * as quickbooksService from '../services/quickbooks.service';
 import Stripe from 'stripe';
+import crypto from 'crypto';
 
 const router = Router();
 
 /**
- * Garante que o valor cobrado no Stripe bate com o registro local (anti-tampering / inconsistência).
+ * Garante que o valor cobrado no Stripe bate com o registro local.
+ * Em caso de divergência: loga com severidade SECURITY, marca payment como FAILED
+ * e notifica admins — nunca silencia a discrepância.
  */
-function paymentIntentAmountMatchesPayment(
+async function assertPaymentIntentAmountMatches(
   paymentIntent: Stripe.PaymentIntent,
-  payment: { totalAmount: unknown; paymentNumber: string; id: string },
-): boolean {
+  payment: { totalAmount: unknown; paymentNumber: string; id: string; workOrderId: string },
+): Promise<boolean> {
   const cur = (paymentIntent.currency || "usd").toLowerCase();
   if (cur !== "usd") {
     logger.warn(
@@ -30,14 +34,46 @@ function paymentIntentAmountMatchesPayment(
     );
     return true;
   }
+
   const expectedCents = Math.round(Number(payment.totalAmount) * 100);
-  if (paymentIntent.amount !== expectedCents) {
-    logger.error(
-      `SECURITY: PI ${paymentIntent.id} amount=${paymentIntent.amount}c vs payment ${payment.paymentNumber} (${payment.id}) esperado=${expectedCents}c`,
-    );
-    return false;
+  if (paymentIntent.amount === expectedCents) return true;
+
+  logger.error(
+    `SECURITY: amount mismatch PI ${paymentIntent.id} — Stripe=${paymentIntent.amount}c, ` +
+    `local=${expectedCents}c (payment ${payment.id})`,
+  );
+
+  // Marcar payment como FAILED para não deixar em PENDING indefinidamente
+  await prisma.payment.update({
+    where: { id: payment.id },
+    data: { status: 'FAILED' },
+  });
+
+  // Notificar todos os admins
+  const admins = await prisma.user.findMany({
+    where: { role: 'ADMIN' },
+    select: { id: true },
+  });
+
+  const alertTag = `[amount_mismatch:${payment.id}]`;
+  for (const admin of admins) {
+    const dup = await prisma.notification.findFirst({
+      where: { userId: admin.id, message: { contains: alertTag } },
+    });
+    if (dup) continue;
+    await prisma.notification.create({
+      data: {
+        userId: admin.id,
+        type: 'SYSTEM_ALERT',
+        title: '⚠️ Payment Amount Mismatch',
+        message: `${alertTag} PI ${paymentIntent.id}: Stripe=${paymentIntent.amount}c vs expected=${expectedCents}c. Payment ${payment.id} marked FAILED.`,
+        data: { paymentId: payment.id, stripeAmount: paymentIntent.amount, expectedCents },
+        relatedWorkOrderId: payment.workOrderId,
+      },
+    });
   }
-  return true;
+
+  return false;
 }
 
 /**
@@ -201,7 +237,7 @@ async function handlePaymentIntentAuthorized(paymentIntent: Stripe.PaymentIntent
     return;
   }
 
-  if (!paymentIntentAmountMatchesPayment(paymentIntent, payment)) {
+  if (!(await assertPaymentIntentAmountMatches(paymentIntent, payment))) {
     return;
   }
 
@@ -324,7 +360,7 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
     return;
   }
 
-  if (!paymentIntentAmountMatchesPayment(paymentIntent, payment)) {
+  if (!(await assertPaymentIntentAmountMatches(paymentIntent, payment))) {
     return;
   }
 
@@ -355,14 +391,16 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
   }
 
   if (payment.paymentType === 'CANCELLATION_FEE') {
-    await prisma.payment.update({
-      where: { id: payment.id },
-      data: {
-        status: 'CAPTURED',
-        capturedAt: new Date(),
-        stripeChargeId: chargeId,
-      },
-    });
+    await prisma.$transaction([
+      prisma.payment.update({
+        where: { id: payment.id },
+        data: {
+          status: 'CAPTURED',
+          capturedAt: new Date(),
+          stripeChargeId: chargeId,
+        },
+      }),
+    ]);
     logger.info(
       `Payment ${payment.paymentNumber} (CANCELLATION_FEE) CAPTURED via webhook`,
     );
@@ -419,6 +457,37 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
   });
 
   logger.info(`Payment ${payment.paymentNumber} marcado como CAPTURED via webhook`);
+
+  // Auto-sync to QuickBooks after capture (non-blocking — failure must never prevent WO completion)
+  // Retries: attempt 1 immediately, then 30 s, 5 min, 30 min before giving up.
+  if (quickbooksService.isQuickBooksConfigured()) {
+    const qboRetryDelaysMs = [0, 30_000, 300_000, 1_800_000]; // 0 s, 30 s, 5 min, 30 min
+    const paymentId = payment.id;
+    const paymentNumber = payment.paymentNumber;
+    const scheduleQboSync = (attemptIndex: number) => {
+      setTimeout(async () => {
+        try {
+          await quickbooksService.syncCapturedPaymentToQuickBooks(paymentId);
+          logger.info(`QBO auto-sync OK for payment ${paymentNumber} (attempt ${attemptIndex + 1})`);
+        } catch (qboErr: any) {
+          const nextIndex = attemptIndex + 1;
+          if (nextIndex < qboRetryDelaysMs.length) {
+            logger.warn(
+              `QBO auto-sync attempt ${attemptIndex + 1}/${qboRetryDelaysMs.length} failed ` +
+              `for ${paymentNumber}: ${qboErr.message}. Retrying in ${qboRetryDelaysMs[nextIndex] / 1000}s.`,
+            );
+            scheduleQboSync(nextIndex);
+          } else {
+            logger.error(
+              `QBO auto-sync FAILED all ${qboRetryDelaysMs.length} attempts for payment ${paymentNumber}: ` +
+              `${qboErr.message}. Run POST /api/v1/quickbooks/sync-payment/${paymentId} manually.`,
+            );
+          }
+        }
+      }, qboRetryDelaysMs[attemptIndex]);
+    };
+    setImmediate(() => scheduleQboSync(0));
+  }
 }
 
 /**
@@ -846,16 +915,23 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
 }
 
 /**
- * Fatura paga (renovação de assinatura)
+ * Fatura paga (renovação de assinatura).
+ * Atualiza status para ACTIVE (recovery de PAST_DUE),
+ * reseta uso mensal e sincroniza datas do período de cobrança.
  */
 async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
   if (!invoice.subscription) return;
+
+  // Processar somente faturas recorrentes de assinatura (billing_reason = subscription_cycle ou subscription_update)
+  // Ignorar faturas de primeira cobrança (já tratadas em checkout.session.completed)
+  const billingReason = (invoice as any).billing_reason as string | undefined;
+  if (billingReason === 'subscription_create') return;
 
   const subscriptionId = typeof invoice.subscription === 'string'
     ? invoice.subscription
     : invoice.subscription.id;
 
-  logger.info(`Invoice paid for subscription: ${subscriptionId}`);
+  logger.info(`Invoice paid (${billingReason ?? 'unknown'}) for subscription: ${subscriptionId}`);
 
   const dbSub = await prisma.subscription.findUnique({
     where: { stripeSubscriptionId: subscriptionId },
@@ -863,14 +939,24 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
 
   if (!dbSub) return;
 
-  // Resetar uso mensal
+  // Sincronizar datas do período com o que o Stripe retorna na invoice
+  const periodStart = invoice.period_start ? new Date(invoice.period_start * 1000) : undefined;
+  const periodEnd   = invoice.period_end   ? new Date(invoice.period_end   * 1000) : undefined;
+
   await prisma.subscription.update({
     where: { id: dbSub.id },
     data: {
+      // Transition PAST_DUE → ACTIVE ao recuperar o pagamento
       status: 'ACTIVE',
+      // Resetar uso mensal apenas em renovação de ciclo
       serviceRequestsThisMonth: 0,
+      // Sincronizar datas de período
+      ...(periodStart ? { currentPeriodStart: periodStart } : {}),
+      ...(periodEnd   ? { currentPeriodEnd:   periodEnd   } : {}),
     },
   });
+
+  logger.info(`Subscription ${dbSub.id} renovada: ACTIVE, uso resetado, período ${periodStart?.toISOString()} → ${periodEnd?.toISOString()}`);
 }
 
 /**
@@ -1101,6 +1187,212 @@ async function handleDisputeCreated(dispute: Stripe.Dispute) {
       },
     });
   }
+}
+
+// ============================================
+// ASAAS WEBHOOK — PIX Payments (Brazilian users)
+// ============================================
+
+/**
+ * POST /api/v1/webhooks/asaas
+ *
+ * Recebe eventos do Asaas para cobranças PIX.
+ * Asaas envia um token de autenticação no header "asaas-access-token".
+ * Validar contra ASAAS_WEBHOOK_TOKEN para evitar chamadas não autorizadas.
+ *
+ * Eventos tratados:
+ *   PAYMENT_RECEIVED  → PIX confirmado → capturar pagamento + concluir ordem
+ *   PAYMENT_OVERDUE   → PIX expirado sem pagamento → cancelar
+ *   PAYMENT_DELETED   → Cobrança removida → cancelar
+ */
+router.post('/asaas', async (req: Request, res: Response): Promise<any> => {
+  // Verificar token Asaas (não é HMAC; é um bearer token fixo configurado no dashboard Asaas)
+  const token = req.headers['asaas-access-token'] as string | undefined;
+  const expectedToken = process.env.ASAAS_WEBHOOK_TOKEN;
+
+  if (!expectedToken) {
+    logger.error('ASAAS_WEBHOOK_TOKEN não configurado — rejeitando webhook');
+    return res.status(500).json({ error: 'Webhook token not configured' });
+  }
+
+  // Comparação em tempo constante para prevenir timing attacks
+  const tokenValid = token != null && (() => {
+    try {
+      const a = Buffer.from(token);
+      const b = Buffer.from(expectedToken);
+      // timingSafeEqual exige buffers de mesmo tamanho
+      if (a.length !== b.length) return false;
+      return crypto.timingSafeEqual(a, b);
+    } catch {
+      return false;
+    }
+  })();
+
+  if (!tokenValid) {
+    logger.warn('Asaas webhook com token inválido');
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const event = req.body as { event: string; payment?: { id: string; externalReference?: string; status: string; value: number } };
+
+  if (!event?.event || !event?.payment?.id) {
+    return res.status(400).json({ error: 'Invalid payload' });
+  }
+
+  const asaasPaymentId = event.payment.id;
+  const externalRef = event.payment.externalReference; // paymentId do TechTrust
+
+  logger.info(`Asaas webhook: ${event.event} | PIX ${asaasPaymentId}`);
+
+  // Idempotência: verificar se já processamos este evento
+  const idempotencyKey = `asaas_${event.event}_${asaasPaymentId}`;
+  const already = await prisma.stripeWebhookEvent.findUnique({
+    where: { id: idempotencyKey },
+  });
+  if (already?.processedAt) {
+    logger.info(`Asaas event já processado: ${idempotencyKey}`);
+    return res.status(200).json({ received: true });
+  }
+
+  await prisma.stripeWebhookEvent.upsert({
+    where: { id: idempotencyKey },
+    create: { id: idempotencyKey, type: event.event },
+    update: {},
+  });
+
+  try {
+    switch (event.event) {
+      case 'PAYMENT_RECEIVED':
+      case 'PAYMENT_CONFIRMED':
+        await handleAsaasPixConfirmed(asaasPaymentId, externalRef, event.payment.value ?? 0);
+        break;
+
+      case 'PAYMENT_OVERDUE':
+      case 'PAYMENT_DELETED':
+        await handleAsaasPixExpiredOrDeleted(asaasPaymentId, externalRef);
+        break;
+
+      default:
+        logger.info(`Asaas event ignorado: ${event.event}`);
+    }
+
+    await prisma.stripeWebhookEvent.update({
+      where: { id: idempotencyKey },
+      data: { processedAt: new Date() },
+    });
+
+    return res.status(200).json({ received: true });
+  } catch (err) {
+    logger.error(`Erro ao processar Asaas webhook ${event.event} (${asaasPaymentId}): ${err}`);
+    // Retorna 500 para Asaas retentar
+    return res.status(500).json({ error: 'Processing error' });
+  }
+});
+
+async function handleAsaasPixConfirmed(
+  asaasPaymentId: string,
+  externalRef: string | undefined,
+  paidAmountBrl: number,
+) {
+  // Localizar pagamento pelo pixPaymentId (primário) ou pelo externalReference (fallback)
+  // Evitar `OR: [{}, ...]` que faz full-table scan — buscar somente pelo que existe
+  const payment = await prisma.payment.findFirst({
+    where: externalRef
+      ? { OR: [{ pixPaymentId: asaasPaymentId }, { id: externalRef }], cardType: 'pix' }
+      : { pixPaymentId: asaasPaymentId, cardType: 'pix' },
+  });
+
+  if (!payment) {
+    logger.warn(`Asaas PIX confirmado mas payment não encontrado: ${asaasPaymentId}`);
+    return;
+  }
+
+  if (payment.status === 'CAPTURED') {
+    logger.info(`PIX já capturado: ${payment.paymentNumber}`);
+    return;
+  }
+
+  // Validação de valor: valor pago deve bater com o valor cobrado (anti-fraude)
+  // Tolerância de R$0.02 para diferenças de arredondamento
+  const expectedBrl = Number(payment.pixAmountBrl ?? 0);
+  if (expectedBrl > 0 && Math.abs(paidAmountBrl - expectedBrl) > 0.02) {
+    logger.error(
+      `SECURITY: PIX amount mismatch — payment ${payment.paymentNumber}: ` +
+      `esperado R$ ${expectedBrl.toFixed(2)}, recebido R$ ${paidAmountBrl.toFixed(2)}`,
+    );
+    // Não processar — admin precisa investigar manualmente
+    return;
+  }
+
+  await prisma.$transaction([
+    prisma.payment.update({
+      where: { id: payment.id },
+      data: {
+        status: 'CAPTURED',
+        authorizedAt: new Date(),
+        capturedAt: new Date(),
+        pixPaidAt: new Date(),
+        // Substituir placeholder pelo ID real do Asaas
+        stripePaymentIntentId: asaasPaymentId,
+      },
+    }),
+    prisma.workOrder.update({
+      where: { id: payment.workOrderId },
+      data: { status: 'COMPLETED' },
+    }),
+  ]);
+
+  // Notificar cliente e provider
+  await prisma.notification.createMany({
+    data: [
+      {
+        userId: payment.customerId,
+        type: 'PAYMENT_RECEIVED',
+        title: 'Pagamento PIX confirmado!',
+        message: `Seu pagamento PIX de R$ ${Number(payment.pixAmountBrl).toFixed(2)} foi confirmado. O serviço foi concluído.`,
+        data: { paymentId: payment.id },
+        relatedWorkOrderId: payment.workOrderId,
+      },
+      {
+        userId: payment.providerId,
+        type: 'PAYMENT_RECEIVED',
+        title: 'Pagamento recebido (PIX)',
+        message: `Pagamento confirmado para a ordem ${payment.paymentNumber}. Valor líquido: $${Number(payment.providerAmount).toFixed(2)}.`,
+        data: { paymentId: payment.id },
+        relatedWorkOrderId: payment.workOrderId,
+      },
+    ],
+  });
+
+  logger.info(`PIX capturado via webhook Asaas: ${payment.paymentNumber}`);
+}
+
+async function handleAsaasPixExpiredOrDeleted(asaasPaymentId: string, externalRef?: string) {
+  const payment = await prisma.payment.findFirst({
+    where: externalRef
+      ? { OR: [{ pixPaymentId: asaasPaymentId }, { id: externalRef }], cardType: 'pix', status: 'PENDING' }
+      : { pixPaymentId: asaasPaymentId, cardType: 'pix', status: 'PENDING' },
+  });
+
+  if (!payment) return;
+
+  await prisma.payment.update({
+    where: { id: payment.id },
+    data: { status: 'CANCELLED' },
+  });
+
+  await prisma.notification.create({
+    data: {
+      userId: payment.customerId,
+      type: 'SYSTEM_ALERT',
+      title: 'QR Code PIX expirado',
+      message: 'O QR Code PIX expirou sem pagamento. Acesse o app para gerar uma nova cobrança.',
+      data: { paymentId: payment.id, workOrderId: payment.workOrderId },
+      relatedWorkOrderId: payment.workOrderId,
+    },
+  });
+
+  logger.info(`PIX expirado/cancelado via webhook Asaas: ${payment.paymentNumber}`);
 }
 
 export default router;

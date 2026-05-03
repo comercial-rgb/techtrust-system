@@ -4,7 +4,7 @@
  * Modern design with visual timeline
  */
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -24,6 +24,7 @@ import {
   getServiceRequests,
   getWorkOrders,
 } from "../services/dashboard.service";
+import { log } from "../utils/logger";
 
 // Solicitações abertas (recebendo orçamentos)
 interface ServiceRequest {
@@ -60,7 +61,11 @@ interface WorkOrder {
 }
 
 export default function CustomerWorkOrdersScreen({ navigation }: any) {
-  const { t } = useI18n();
+  const { t, language, formatCurrency } = useI18n();
+  const listDateLocale = useMemo(
+    () => (language === "pt" ? "pt-BR" : language === "es" ? "es-ES" : "en-US"),
+    [language],
+  );
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
@@ -116,7 +121,7 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
         })),
       );
     } catch (error) {
-      console.error("Error loading services:", error);
+      log.error("Error loading services:", error);
       setServiceRequests([]);
       setWorkOrders([]);
     } finally {
@@ -227,12 +232,11 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
     }
   };
 
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString("en-US", {
+  const formatShortDate = (date: string) =>
+    new Date(date).toLocaleDateString(listDateLocale, {
       day: "2-digit",
       month: "short",
     });
-  };
 
   const filterOptions =
     activeTab === "requests"
@@ -523,7 +527,7 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
               <View style={[styles.statCard, { backgroundColor: "#fef3c7" }]}>
                 <Ionicons name="wallet" size={20} color="#f59e0b" />
                 <Text style={[styles.statValue, { color: "#b45309" }]}>
-                  ${stats.totalSpent.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                  {formatCurrency(stats.totalSpent)}
                 </Text>
                 <Text style={styles.statLabel}>
                   {t.workOrder?.spent || "Spent"}
@@ -896,11 +900,11 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
                           color="#9ca3af"
                         />
                         <Text style={styles.dateText}>
-                          {formatDate(wo.createdAt)}
+                          {formatShortDate(wo.createdAt)}
                         </Text>
                       </View>
                       <Text style={styles.amount}>
-                        ${wo.finalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {formatCurrency(wo.finalAmount)}
                       </Text>
                     </View>
 

@@ -22,10 +22,12 @@ import {
   Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import MapView, { Circle, PROVIDER_GOOGLE } from "react-native-maps";
 import { useFocusEffect } from "@react-navigation/native";
 import api from "../../services/api";
+import { log } from "../../utils/logger";
+import { useI18n } from "../../i18n";
 
 // ─── Florida counties grouped by metro region ─────────────────────────────────
 const FL_COUNTY_REGIONS = [
@@ -70,6 +72,7 @@ const FL_COUNTY_REGIONS = [
 const ALL_COUNTIES = FL_COUNTY_REGIONS.flatMap(r => r.data);
 
 export default function ProviderServiceAreaScreen({ navigation }: any) {
+  const { t } = useI18n();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -124,7 +127,7 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
       const counties = Array.isArray(p.serviceCounties) ? p.serviceCounties : [];
       setServiceCounties(counties.filter((c: any) => ALL_COUNTIES.includes(c)));
     } catch (err) {
-      console.error("Error loading service area:", err);
+      log.error("Error loading service area:", err);
     } finally {
       setLoading(false);
     }
@@ -144,10 +147,19 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
         travelChargeType,
         serviceCounties,
       });
-      Alert.alert("Saved", "Service area updated successfully.");
+      Alert.alert(
+        t.provider?.serviceAreaSaveAlertTitle || "Saved",
+        t.provider?.serviceAreaSaveAlertBody ||
+          "Service area updated successfully.",
+      );
       navigation.goBack();
     } catch (err: any) {
-      Alert.alert("Error", err?.response?.data?.message || "Failed to save. Please try again.");
+      Alert.alert(
+        t.common?.error || "Error",
+        err?.response?.data?.message ||
+          t.provider?.serviceAreaSaveAlertFailed ||
+          "Failed to save. Please try again.",
+      );
     } finally {
       setSaving(false);
     }
@@ -205,13 +217,16 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Service Area</Text>
         <TouchableOpacity
-          onPress={() => Alert.alert(
-            "How Service Area Works",
-            "• Service Radius: customers within this distance from your base address can find you.\n\n" +
-            "• County Coverage: explicitly declare which FL counties you serve — useful when you're willing to travel beyond your radius to a particular area.\n\n" +
-            "Both radius and county are used to match you with incoming service requests.",
-            [{ text: "OK" }]
-          )}
+          onPress={() =>
+            Alert.alert(
+              t.provider?.serviceAreaHowItWorksTitle || "How Service Area Works",
+              t.provider?.serviceAreaHowItWorksBody ||
+                "• Service Radius: customers within this distance from your base address can find you.\n\n" +
+                "• County Coverage: explicitly declare which FL counties you serve — useful when you're willing to travel beyond your radius to a particular area.\n\n" +
+                "Both radius and county are used to match you with incoming service requests.",
+              [{ text: t.common?.ok || "OK" }],
+            )
+          }
           style={styles.headerBtn}
         >
           <MaterialCommunityIcons name="information" size={24} color="#2B5EA7" />

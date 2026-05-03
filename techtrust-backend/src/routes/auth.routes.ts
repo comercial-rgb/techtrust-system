@@ -42,6 +42,7 @@ router.post(
  */
 router.post(
   "/resend-otp",
+  authRateLimiter,
   validate(resendOTPValidation),
   asyncHandler(authController.resendOTP),
 );

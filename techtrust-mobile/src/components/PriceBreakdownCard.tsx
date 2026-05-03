@@ -7,6 +7,7 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useI18n } from "../i18n";
 
 /** Platform business rules (must match backend businessRules.ts) */
 const STRIPE_FEE_PERCENT = 2.9;
@@ -109,6 +110,24 @@ export function calculatePlatformFee(serviceTotal: number): number {
   return 0; // Platform fee is no longer added to client — it's deducted from provider
 }
 
+function partConditionLabel(
+  cond: string,
+  tq: Record<string, string | undefined>,
+): string {
+  switch (cond) {
+    case "NEW":
+      return tq.condNew || cond;
+    case "USED":
+      return tq.condUsed || cond;
+    case "REBUILT":
+      return tq.condRebuilt || cond;
+    case "RECONDITIONED":
+      return tq.condRecond || cond;
+    default:
+      return cond;
+  }
+}
+
 export default function PriceBreakdownCard({
   data,
   showPlatformFees = true,
@@ -116,6 +135,11 @@ export default function PriceBreakdownCard({
   title,
 }: PriceBreakdownCardProps) {
   const [expanded, setExpanded] = useState(!compact);
+  const { t, formatCurrency } = useI18n();
+  const tp = t.payment;
+  const tq = t.quote;
+  const tpb = (tp as { priceBreakdown?: Record<string, string> }).priceBreakdown;
+  const pb = (key: string, fallback: string) => tpb?.[key] ?? fallback;
 
   const clientPlan = data.clientPlan || "FREE";
   const { appServiceFee, processingFee, customerTotal } = calculateCustomerTotal(
@@ -138,15 +162,16 @@ export default function PriceBreakdownCard({
       >
         <View style={styles.headerLeft}>
           <Ionicons name="receipt-outline" size={20} color="#2B5EA7" />
-          <Text style={styles.headerTitle}>{title || "Price Breakdown"}</Text>
+          <Text style={styles.headerTitle}>
+            {title || pb("title", "Price Breakdown")}
+          </Text>
         </View>
         {compact && (
           <View style={styles.headerRight}>
             <Text style={styles.headerTotal}>
-              $
-              {showPlatformFees
-                ? customerTotal.toFixed(2)
-                : data.serviceTotal.toFixed(2)}
+              {formatCurrency(
+                showPlatformFees ? customerTotal : data.serviceTotal,
+              )}
             </Text>
             <Ionicons
               name={expanded ? "chevron-up" : "chevron-down"}
@@ -164,7 +189,9 @@ export default function PriceBreakdownCard({
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Ionicons name="cog-outline" size={16} color="#6b7280" />
-                <Text style={styles.sectionLabel}>Parts</Text>
+                <Text style={styles.sectionLabel}>
+                  {tq?.parts || "Parts"}
+                </Text>
               </View>
               {partsItems.map((item, idx) => (
                 <View key={idx} style={styles.lineItem}>
@@ -184,7 +211,10 @@ export default function PriceBreakdownCard({
                         <Text
                           style={[styles.lineItemCode, { color: "#2B5EA7" }]}
                         >
-                          {item.partCondition}
+                          {partConditionLabel(
+                            item.partCondition,
+                            (tq || {}) as Record<string, string | undefined>,
+                          )}
                         </Text>
                       )}
                     </View>
@@ -194,15 +224,15 @@ export default function PriceBreakdownCard({
                       <Text
                         style={[styles.lineItemAmount, { color: "#16a34a" }]}
                       >
-                        NO CHARGE
+                        {t.quote?.noCharge || "No charge"}
                       </Text>
                     ) : (
                       <>
                         <Text style={styles.lineItemQty}>
-                          {item.quantity} × ${item.unitPrice.toFixed(2)}
+                          {item.quantity} × {formatCurrency(item.unitPrice)}
                         </Text>
                         <Text style={styles.lineItemAmount}>
-                          ${(item.quantity * item.unitPrice).toFixed(2)}
+                          {formatCurrency(item.quantity * item.unitPrice)}
                         </Text>
                       </>
                     )}
@@ -210,9 +240,11 @@ export default function PriceBreakdownCard({
                 </View>
               ))}
               <View style={styles.subtotalRow}>
-                <Text style={styles.subtotalLabel}>Parts subtotal</Text>
+                <Text style={styles.subtotalLabel}>
+                  {pb("partsSubtotal", "Parts subtotal")}
+                </Text>
                 <Text style={styles.subtotalValue}>
-                  ${data.partsSubtotal.toFixed(2)}
+                  {formatCurrency(data.partsSubtotal)}
                 </Text>
               </View>
             </View>
@@ -223,7 +255,9 @@ export default function PriceBreakdownCard({
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Ionicons name="construct-outline" size={16} color="#6b7280" />
-                <Text style={styles.sectionLabel}>Labor</Text>
+                <Text style={styles.sectionLabel}>
+                  {tq?.labor || "Labor"}
+                </Text>
               </View>
               {laborItems.map((item, idx) => (
                 <View key={idx} style={styles.lineItem}>
@@ -234,18 +268,20 @@ export default function PriceBreakdownCard({
                   </View>
                   <View style={styles.lineItemRight}>
                     <Text style={styles.lineItemQty}>
-                      {item.quantity} × ${item.unitPrice.toFixed(2)}
+                      {item.quantity} × {formatCurrency(item.unitPrice)}
                     </Text>
                     <Text style={styles.lineItemAmount}>
-                      ${(item.quantity * item.unitPrice).toFixed(2)}
+                      {formatCurrency(item.quantity * item.unitPrice)}
                     </Text>
                   </View>
                 </View>
               ))}
               <View style={styles.subtotalRow}>
-                <Text style={styles.subtotalLabel}>Labor subtotal</Text>
+                <Text style={styles.subtotalLabel}>
+                  {pb("laborSubtotal", "Labor subtotal")}
+                </Text>
                 <Text style={styles.subtotalValue}>
-                  ${data.laborSubtotal.toFixed(2)}
+                  {formatCurrency(data.laborSubtotal)}
                 </Text>
               </View>
             </View>
@@ -259,11 +295,11 @@ export default function PriceBreakdownCard({
                 <View style={styles.totalRowLeft}>
                   <Ionicons name="pricetag-outline" size={14} color="#10b981" />
                   <Text style={[styles.totalLabel, { color: "#10b981" }]}>
-                    Discount
+                    {tq?.discount || "Discount"}
                   </Text>
                 </View>
                 <Text style={[styles.totalValue, { color: "#10b981" }]}>
-                  -${data.discount.toFixed(2)}
+                  -{formatCurrency(data.discount)}
                 </Text>
               </View>
             )}
@@ -274,14 +310,16 @@ export default function PriceBreakdownCard({
                 <View style={styles.totalRowLeft}>
                   <Ionicons name="car-outline" size={14} color="#f59e0b" />
                   <Text style={styles.totalLabel}>
-                    Travel fee
                     {data.distanceKm
-                      ? ` (${data.distanceKm.toFixed(1)} km)`
-                      : ""}
+                      ? pb("travelFeeWithKm", "Travel fee ({{km}} km)").replace(
+                          "{{km}}",
+                          data.distanceKm.toFixed(1),
+                        )
+                      : pb("travelFee", "Travel fee")}
                   </Text>
                 </View>
                 <Text style={styles.totalValue}>
-                  ${data.travelFee.toFixed(2)}
+                  {formatCurrency(data.travelFee)}
                 </Text>
               </View>
             )}
@@ -290,11 +328,11 @@ export default function PriceBreakdownCard({
                 <View style={styles.totalRowLeft}>
                   <Ionicons name="car-outline" size={14} color="#10b981" />
                   <Text style={[styles.totalLabel, { color: "#10b981" }]}>
-                    Travel fee
+                    {pb("travelFee", "Travel fee")}
                   </Text>
                 </View>
                 <Text style={[styles.totalValue, { color: "#10b981" }]}>
-                  FREE
+                  {t.common?.free || "Free"}
                 </Text>
               </View>
             )}
@@ -308,10 +346,12 @@ export default function PriceBreakdownCard({
                   size={14}
                   color="#6b7280"
                 />
-                <Text style={styles.totalLabel}>Tax (estimate)</Text>
+                <Text style={styles.totalLabel}>
+                  {pb("taxEstimate", "Tax (estimate)")}
+                </Text>
               </View>
               <Text style={styles.totalValue}>
-                ${data.taxAmount.toFixed(2)}
+                {formatCurrency(data.taxAmount)}
               </Text>
             </View>
             )}
@@ -326,21 +366,32 @@ export default function PriceBreakdownCard({
                     color="#dc2626"
                   />
                   <Text style={styles.totalLabel}>
-                    Sales Tax ({((data.salesTaxRate || 0) * 100).toFixed(1)}%
-                    {data.salesTaxCounty ? ` — ${data.salesTaxCounty} Co.` : ""})
+                    {(tp?.salesTaxWithCounty || "Sales Tax ({{rate}}%{{county}})")
+                      .replace(
+                        "{{rate}}",
+                        ((data.salesTaxRate || 0) * 100).toFixed(1),
+                      )
+                      .replace(
+                        "{{county}}",
+                        data.salesTaxCounty
+                          ? `${tp?.salesTaxCountySeparator || " — "}${data.salesTaxCounty}`
+                          : "",
+                      )}
                   </Text>
                 </View>
                 <Text style={[styles.totalValue, { color: "#dc2626" }]}>
-                  ${(data.salesTaxAmount || 0).toFixed(2)}
+                  {formatCurrency(data.salesTaxAmount || 0)}
                 </Text>
               </View>
             )}
 
             {/* Service Subtotal line */}
             <View style={[styles.totalRow, styles.serviceSubtotalRow]}>
-              <Text style={styles.serviceSubtotalLabel}>Service subtotal</Text>
+              <Text style={styles.serviceSubtotalLabel}>
+                {pb("serviceSubtotal", "Service subtotal")}
+              </Text>
               <Text style={styles.serviceSubtotalValue}>
-                ${data.serviceTotal.toFixed(2)}
+                {formatCurrency(data.serviceTotal)}
               </Text>
             </View>
 
@@ -356,11 +407,11 @@ export default function PriceBreakdownCard({
                         color="#2B5EA7"
                       />
                       <Text style={styles.totalLabel}>
-                        App service fee
+                        {pb("appServiceFee", "App service fee")}
                       </Text>
                     </View>
                     <Text style={styles.totalValue}>
-                      ${appServiceFee.toFixed(2)}
+                      {formatCurrency(appServiceFee)}
                     </Text>
                   </View>
                 )}
@@ -373,11 +424,11 @@ export default function PriceBreakdownCard({
                         color="#10b981"
                       />
                       <Text style={[styles.totalLabel, { color: "#10b981" }]}>
-                        App service fee
+                        {pb("appServiceFee", "App service fee")}
                       </Text>
                     </View>
                     <Text style={[styles.totalValue, { color: "#10b981" }]}>
-                      Included
+                      {(t as any).customer?.scopeBothIncluded || "Included"}
                     </Text>
                   </View>
                 )}
@@ -386,10 +437,12 @@ export default function PriceBreakdownCard({
                 <View style={styles.totalRow}>
                   <View style={styles.totalRowLeft}>
                     <Ionicons name="card-outline" size={14} color="#6b7280" />
-                    <Text style={styles.totalLabel}>Processing fee</Text>
+                    <Text style={styles.totalLabel}>
+                      {tp?.processingFee || "Processing fee"}
+                    </Text>
                   </View>
                   <Text style={styles.totalValue}>
-                    ${processingFee.toFixed(2)}
+                    {formatCurrency(processingFee)}
                   </Text>
                 </View>
               </>
@@ -398,13 +451,14 @@ export default function PriceBreakdownCard({
             {/* Grand Total */}
             <View style={styles.grandTotalRow}>
               <Text style={styles.grandTotalLabel}>
-                {showPlatformFees ? "Total you pay" : "Grand Total"}
+                {showPlatformFees
+                  ? pb("totalYouPay", "Total you pay")
+                  : tq?.grandTotal || pb("grandTotalService", "Grand Total")}
               </Text>
               <Text style={styles.grandTotalValue}>
-                $
-                {showPlatformFees
-                  ? customerTotal.toFixed(2)
-                  : data.serviceTotal.toFixed(2)}
+                {formatCurrency(
+                  showPlatformFees ? customerTotal : data.serviceTotal,
+                )}
               </Text>
             </View>
           </View>
@@ -418,8 +472,10 @@ export default function PriceBreakdownCard({
                 color="#2B5EA7"
               />
               <Text style={styles.infoNoteText}>
-                A temporary hold will be placed on your card. You will only be
-                charged after you review and approve the completed service.
+                {pb(
+                  "cardHoldNote",
+                  "A temporary hold will be placed on your card. You will only be charged after you review and approve the completed service.",
+                )}
               </Text>
             </View>
           )}

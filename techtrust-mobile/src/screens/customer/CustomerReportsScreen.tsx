@@ -16,8 +16,19 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useI18n } from '../../i18n';
+import { log } from "../../utils/logger";
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+/** Accepts API numbers or localized money strings (e.g. "$1,234.56"). */
+function parseMoneyField(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const n = parseFloat(value.replace(/[^0-9.-]/g, ""));
+    return Number.isFinite(n) ? n : 0;
+  }
+  return 0;
+}
 
 interface MonthlySpending {
   month: string;
@@ -39,7 +50,7 @@ interface VehicleSpending {
 }
 
 export default function CustomerReportsScreen({ navigation }: any) {
-  const { t } = useI18n();
+  const { t, formatCurrency } = useI18n();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState('6M');
@@ -72,7 +83,7 @@ export default function CustomerReportsScreen({ navigation }: any) {
       setServiceCategories(reportsData.serviceCategories);
       setVehicleSpending(reportsData.vehicleSpending);
     } catch (error) {
-      console.error('Error loading reports:', error);
+      log.error('Error loading reports:', error);
       // Dados vazios em caso de erro
       setStats({ totalSpent: 0, servicesCompleted: 0, vehiclesServiced: 0, avgServiceCost: 0, savings: 0 });
       setMonthlySpending([]);
@@ -132,7 +143,9 @@ export default function CustomerReportsScreen({ navigation }: any) {
         <View style={styles.summaryCard}>
           <View style={styles.summaryMain}>
             <Text style={styles.summaryLabel}>{t.customer?.totalSpent || 'Total Spent'}</Text>
-            <Text style={styles.summaryValue}>${stats.totalSpent.toFixed(2)}</Text>
+            <Text style={styles.summaryValue}>
+              {formatCurrency(parseMoneyField(stats.totalSpent))}
+            </Text>
           </View>
           <View style={styles.summaryDivider} />
           <View style={styles.summaryStats}>
@@ -153,7 +166,9 @@ export default function CustomerReportsScreen({ navigation }: any) {
             <View style={styles.summaryStatItem}>
               <Ionicons name="trending-down" size={20} color="#8b5cf6" />
               <View>
-                <Text style={styles.summaryStatValue}>${stats.savings}</Text>
+                <Text style={styles.summaryStatValue}>
+                  {formatCurrency(parseMoneyField(stats.savings))}
+                </Text>
                 <Text style={styles.summaryStatLabel}>{t.customer?.saved || 'Saved'}</Text>
               </View>
             </View>
@@ -177,7 +192,9 @@ export default function CustomerReportsScreen({ navigation }: any) {
                     />
                   </View>
                   <Text style={styles.chartLabel}>{item.month}</Text>
-                  <Text style={styles.chartAmount}>${item.amount}</Text>
+                  <Text style={styles.chartAmount}>
+                    {formatCurrency(Number(item.amount) || 0)}
+                  </Text>
                 </View>
               ))}
             </View>
@@ -197,7 +214,9 @@ export default function CustomerReportsScreen({ navigation }: any) {
                       <View style={[styles.categoryDot, { backgroundColor: category.color }]} />
                       <Text style={styles.categoryName}>{category.name}</Text>
                     </View>
-                    <Text style={styles.categoryAmount}>${category.amount.toFixed(2)}</Text>
+                    <Text style={styles.categoryAmount}>
+                      {formatCurrency(category.amount)}
+                    </Text>
                   </View>
                   <View style={styles.categoryBarBackground}>
                     <View 
@@ -234,7 +253,9 @@ export default function CustomerReportsScreen({ navigation }: any) {
                 <Text style={styles.vehicleMeta}>{vehicle.servicesCount} services</Text>
               </View>
               <View style={styles.vehicleAmount}>
-                <Text style={styles.vehicleAmountValue}>${vehicle.totalSpent.toFixed(2)}</Text>
+                <Text style={styles.vehicleAmountValue}>
+                  {formatCurrency(vehicle.totalSpent)}
+                </Text>
                 <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
               </View>
             </TouchableOpacity>

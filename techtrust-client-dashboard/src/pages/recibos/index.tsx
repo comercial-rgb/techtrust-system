@@ -18,6 +18,7 @@ import {
   CalendarDays,
 } from 'lucide-react';
 
+import { logApiError } from "../../utils/logger";
 interface Payment {
   id: string;
   paymentNumber: string;
@@ -92,7 +93,7 @@ export default function RecibosPage() {
         })));
       }
     } catch (err) {
-      console.error('Error loading payments:', err);
+      logApiError('Error loading payments:', err);
     } finally {
       setLoading(false);
     }

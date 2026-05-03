@@ -35,6 +35,7 @@ import {
   BiometricInfo,
 } from "../../services/authService";
 import * as ImagePicker from "expo-image-picker";
+import { log } from "../../utils/logger";
 
 // Generate arrays for date picker
 const MONTHS = [
@@ -124,14 +125,25 @@ export default function PersonalInfoScreen({ navigation }: any) {
       if (sessionId) {
         await api.post('/users/me/sessions/revoke', { sessionId });
         setSessions(prev => prev.filter(s => s.id !== sessionId));
-        Alert.alert('Session Ended', 'The session has been logged out.');
+        Alert.alert(
+          t.profile?.sessionEndedTitle || 'Session ended',
+          t.profile?.sessionEndedBody || 'The session has been logged out.',
+        );
       } else {
         await api.post('/users/me/sessions/revoke', { revokeAll: true });
         setSessions(prev => prev.filter(s => s.isCurrentSession));
-        Alert.alert('Done', 'All other sessions have been logged out.');
+        Alert.alert(
+          t.profile?.otherSessionsLoggedOutTitle || 'Done',
+          t.profile?.otherSessionsLoggedOutBody ||
+            'All other sessions have been logged out.',
+        );
       }
     } catch {
-      Alert.alert('Error', 'Could not revoke session. Please try again.');
+      Alert.alert(
+        t.common?.error || 'Error',
+        t.profile?.revokeSessionFailed ||
+          'Could not revoke session. Please try again.',
+      );
     }
   };
 
@@ -158,7 +170,7 @@ export default function PersonalInfoScreen({ navigation }: any) {
         }));
       }
     } catch (error) {
-      console.error("Error loading user profile:", error);
+      log.error("Error loading user profile:", error);
       // Fallback to user context data
       if (user) {
         setFormData((prev) => ({
@@ -240,7 +252,7 @@ export default function PersonalInfoScreen({ navigation }: any) {
         );
       }
     } catch (error) {
-      console.error("Error toggling biometric:", error);
+      log.error("Error toggling biometric:", error);
       Alert.alert(
         t.common?.error || "Error",
         t.common?.tryAgain || "Please try again",
@@ -318,7 +330,11 @@ export default function PersonalInfoScreen({ navigation }: any) {
         // D10 — Take Photo with camera
         const { status } = await ImagePicker.requestCameraPermissionsAsync();
         if (status !== 'granted') {
-          Alert.alert('Permission Denied', 'Camera access is required to take a photo.');
+          Alert.alert(
+            t.profile?.permissionCameraTitle || 'Permission denied',
+            t.profile?.permissionCameraBody ||
+              'Camera access is required to take a photo.',
+          );
           return;
         }
         const result = await ImagePicker.launchCameraAsync({
@@ -338,7 +354,10 @@ export default function PersonalInfoScreen({ navigation }: any) {
         // D10 — Choose from Library
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
-          Alert.alert('Permission Denied', 'Gallery access is required.');
+          Alert.alert(
+            t.profile?.permissionGalleryTitle || 'Permission denied',
+            t.profile?.permissionGalleryBody || 'Gallery access is required.',
+          );
           return;
         }
         const result = await ImagePicker.launchImageLibraryAsync({
@@ -375,7 +394,7 @@ export default function PersonalInfoScreen({ navigation }: any) {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
     } catch (error) {
-      console.log('Photo upload pending — will sync when API endpoint is ready');
+      log.debug('Photo upload pending — will sync when API endpoint is ready');
     }
   };
 
@@ -443,7 +462,7 @@ export default function PersonalInfoScreen({ navigation }: any) {
       // Reload data to confirm it was saved
       await loadUserProfile();
     } catch (error: any) {
-      console.error("Error saving profile:", error);
+      log.error("Error saving profile:", error);
       const errorMsg =
         error.response?.data?.message ||
         error.message ||
@@ -457,9 +476,12 @@ export default function PersonalInfoScreen({ navigation }: any) {
     }
   };
 
+  const profileDateLocale =
+    language === "pt" ? "pt-BR" : language === "es" ? "es-ES" : "en-US";
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
+    return date.toLocaleDateString(profileDateLocale, {
       month: "long",
       day: "numeric",
       year: "numeric",

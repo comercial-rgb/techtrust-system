@@ -16,6 +16,7 @@ import {
   Filter,
 } from 'lucide-react';
 
+import { logApiError } from "../../utils/logger";
 interface ServiceRequest {
   id: string;
   requestNumber: string;
@@ -71,7 +72,7 @@ export default function SolicitacoesPage() {
         setRequests([]);
       }
     } catch (error) {
-      console.error('Erro ao carregar solicitações:', error);
+      logApiError('Erro ao carregar solicitações:', error);
     } finally {
       setLoading(false);
     }

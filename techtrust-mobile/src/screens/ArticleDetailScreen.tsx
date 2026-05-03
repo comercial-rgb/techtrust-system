@@ -16,6 +16,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { log } from "../utils/logger";
+import { useI18n } from "../i18n";
+import type { Language } from "../i18n";
 
 interface Article {
   id: string;
@@ -28,21 +31,33 @@ interface Article {
   author?: string;
 }
 
+const LOCALE_BY_LANG: Record<Language, string> = {
+  en: "en-US",
+  pt: "pt-BR",
+  es: "es-ES",
+};
+
 export default function ArticleDetailScreen({ route, navigation }: any) {
   const article: Article = route.params?.article;
   const [imageError, setImageError] = useState(false);
+  const { t, language } = useI18n();
+  const ad = t.articleDetail;
 
   if (!article) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
           <Ionicons name="alert-circle-outline" size={64} color="#9ca3af" />
-          <Text style={styles.errorText}>Article not found</Text>
+          <Text style={styles.errorText}>
+            {ad?.notFoundTitle || "Article not found"}
+          </Text>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <Text style={styles.backButtonText}>Go Back</Text>
+            <Text style={styles.backButtonText}>
+              {ad?.goBack || "Go Back"}
+            </Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -51,21 +66,22 @@ export default function ArticleDetailScreen({ route, navigation }: any) {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
+    return date.toLocaleDateString(LOCALE_BY_LANG[language] || "en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
 
   const handleShare = async () => {
     try {
+      const suffix = ad?.shareReadMoreSuffix || "Read more on TechTrust";
       await Share.share({
-        message: `${article.title}\n\n${article.summary || ''}\n\nRead more on TechTrust`,
+        message: `${article.title}\n\n${article.summary || ""}\n\n${suffix}`,
         title: article.title,
       });
     } catch (error) {
-      console.error('Error sharing article:', error);
+      log.error('Error sharing article:', error);
     }
   };
 
@@ -79,7 +95,9 @@ export default function ArticleDetailScreen({ route, navigation }: any) {
         >
           <Ionicons name="arrow-back" size={24} color="#111827" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Article</Text>
+        <Text style={styles.headerTitle}>
+          {ad?.headerTitle || "Article"}
+        </Text>
         <TouchableOpacity
           style={styles.headerButton}
           onPress={handleShare}
@@ -116,7 +134,9 @@ export default function ArticleDetailScreen({ route, navigation }: any) {
           <View style={styles.metaContainer}>
             <View style={styles.categoryBadge}>
               <Ionicons name="information-circle" size={14} color="#3b82f6" />
-              <Text style={styles.categoryText}>Article</Text>
+              <Text style={styles.categoryText}>
+                {ad?.badgeArticle || "Article"}
+              </Text>
             </View>
             <Text style={styles.dateText}>{formatDate(article.publishDate)}</Text>
           </View>
@@ -130,7 +150,9 @@ export default function ArticleDetailScreen({ route, navigation }: any) {
               <View style={styles.authorAvatar}>
                 <Ionicons name="person" size={16} color="#6b7280" />
               </View>
-              <Text style={styles.authorText}>By {article.author}</Text>
+              <Text style={styles.authorText}>
+                {ad?.byPrefix || "By"} {article.author}
+              </Text>
             </View>
           )}
 
@@ -151,7 +173,8 @@ export default function ArticleDetailScreen({ route, navigation }: any) {
             <View style={styles.noContentContainer}>
               <Ionicons name="document-text-outline" size={48} color="#9ca3af" />
               <Text style={styles.noContentText}>
-                Full article content will be displayed here
+                {ad?.noContentPlaceholder ||
+                  "Full article content will be displayed here"}
               </Text>
             </View>
           )}
@@ -159,10 +182,14 @@ export default function ArticleDetailScreen({ route, navigation }: any) {
           {/* Tags or Categories could go here */}
           <View style={styles.tagsContainer}>
             <View style={styles.tag}>
-              <Text style={styles.tagText}>Automotive</Text>
+              <Text style={styles.tagText}>
+                {ad?.tagAutomotive || "Automotive"}
+              </Text>
             </View>
             <View style={styles.tag}>
-              <Text style={styles.tagText}>Maintenance</Text>
+              <Text style={styles.tagText}>
+                {ad?.tagMaintenance || "Maintenance"}
+              </Text>
             </View>
           </View>
         </View>

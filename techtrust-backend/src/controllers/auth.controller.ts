@@ -105,6 +105,83 @@ async function insertProviderProfileRaw(p: {
 /** Verifica se Twilio Verify está habilitado */
 const isVerifyEnabled = () => !!process.env.TWILIO_VERIFY_SERVICE_SID;
 
+/** Plan config for marketplace listing plans */
+const MARKETPLACE_PLAN_CONFIG = {
+  BASIC:    { searchRadius: 10, maxPhotos: 5,  maxProducts: 50,  transactionFee: 8.0 },
+  PRO:      { searchRadius: 20, maxPhotos: 15, maxProducts: 200, transactionFee: 6.0 },
+  PRO_PLUS: { searchRadius: 50, maxPhotos: 30, maxProducts: 9999, transactionFee: 4.0 },
+} as const;
+
+/**
+ * Auto-creates a CarWash or PartsStore record after a marketplace provider signup.
+ * Called for all 3 signup paths (new user, existing email, existing phone).
+ */
+async function createMarketplaceListing(
+  userId: string,
+  marketplaceType: string,
+  listingPlan: "BASIC" | "PRO" | "PRO_PLUS",
+  data: {
+    businessName: string;
+    address: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    offersDelivery?: boolean;
+  },
+): Promise<void> {
+  const plan = MARKETPLACE_PLAN_CONFIG[listingPlan] ?? MARKETPLACE_PLAN_CONFIG.BASIC;
+  const id = randomUUID();
+  try {
+    if (marketplaceType === "CAR_WASH") {
+      await prisma.$executeRaw`
+        INSERT INTO "car_washes" (
+          "id", "providerId", "businessName",
+          "address", "city", "state", "zipCode",
+          "latitude", "longitude", "carWashTypes",
+          "status", "listingPlan", "searchRadius", "maxPhotos",
+          "createdAt", "updatedAt"
+        ) VALUES (
+          ${id}, ${userId}, ${data.businessName},
+          ${data.address}, ${data.city}, ${data.state}, ${data.zipCode},
+          0.0, 0.0, '[]'::jsonb,
+          'PENDING_APPROVAL',
+          ${listingPlan}::"MarketplaceListingPlan",
+          ${plan.searchRadius}, ${plan.maxPhotos},
+          NOW(), NOW()
+        )
+        ON CONFLICT DO NOTHING
+      `;
+      logger.info(`CarWash record auto-created for userId=${userId} plan=${listingPlan}`);
+    } else if (marketplaceType === "AUTO_PARTS") {
+      // PartsStore.providerId → ProviderProfile.id (not User.id)
+      const profile = await prisma.providerProfile.findUnique({ where: { userId } });
+      if (profile) {
+        await prisma.$executeRaw`
+          INSERT INTO "parts_stores" (
+            "id", "providerId", "storeName",
+            "address", "city", "state", "zipCode",
+            "offersDelivery", "listingPlan",
+            "searchRadius", "maxProducts", "transactionFee",
+            "isActive", "isVerified", "createdAt", "updatedAt"
+          ) VALUES (
+            ${id}, ${profile.id}, ${data.businessName},
+            ${data.address}, ${data.city}, ${data.state}, ${data.zipCode},
+            ${data.offersDelivery ?? false},
+            ${listingPlan}::"MarketplaceListingPlan",
+            ${plan.searchRadius}, ${plan.maxProducts}, ${plan.transactionFee},
+            true, false, NOW(), NOW()
+          )
+          ON CONFLICT DO NOTHING
+        `;
+        logger.info(`PartsStore record auto-created for userId=${userId} plan=${listingPlan}`);
+      }
+    }
+  } catch (err: any) {
+    // Non-fatal: listing can be created later from dashboard
+    logger.error(`Failed to auto-create marketplace listing for userId=${userId}:`, err.message);
+  }
+}
+
 // Brazilian landline: +55 + 2-digit area code + 8-digit number (no leading 9)
 const isBrLandline = (phone: string): boolean => {
   const digits = phone.replace(/\D/g, "");
@@ -252,12 +329,20 @@ export const signup = async (req: Request, res: Response) => {
       insuranceDisclosureAccepted,
       marketplaceFacilitatorTaxAcknowledged,
       marketplaceType, // 'CAR_WASH' | 'AUTO_PARTS' — for MARKETPLACE role signups
-      marketplacePlan, // plan selected for marketplace
+      marketplacePlan, // plan selected for marketplace ('basic' | 'pro' | 'pro_plus')
+      offersDelivery,  // boolean — auto parts store offers delivery
       preferredOtpMethod, // 'sms' | 'email' — user chooses verification method
     } = req.body;
 
     void accountType;
-    void marketplacePlan;
+    // Normalize marketplacePlan to DB enum (basic → BASIC, pro_plus → PRO_PLUS)
+    const normalizedListingPlan = (
+      ["BASIC", "PRO", "PRO_PLUS"].includes(
+        (String(marketplacePlan || "")).toUpperCase(),
+      )
+        ? String(marketplacePlan).toUpperCase()
+        : "BASIC"
+    ) as "BASIC" | "PRO" | "PRO_PLUS";
     const normalizedSelectedPlan =
       typeof selectedPlan === "string" ? selectedPlan.toUpperCase() : "FREE";
     const selectedClientPlan = ["STARTER", "PRO", "ENTERPRISE"].includes(
@@ -380,6 +465,22 @@ export const signup = async (req: Request, res: Response) => {
             insuranceDisclosureAcceptedAt: insuranceDisclosureAccepted ? new Date() : null,
           });
           logger.info(`ProviderProfile upserted (email path): ${email}`);
+          // Auto-create CarWash or PartsStore listing if marketplace signup
+          if (marketplaceType && businessName) {
+            await createMarketplaceListing(
+              existingEmail.id,
+              marketplaceType,
+              normalizedListingPlan,
+              {
+                businessName,
+                address: businessAddress || "",
+                city: businessCity || "",
+                state: businessState || "FL",
+                zipCode: businessZipCode || "",
+                offersDelivery: offersDelivery === true,
+              },
+            );
+          }
         }
 
         if (userRole === "CLIENT") {
@@ -521,6 +622,22 @@ export const signup = async (req: Request, res: Response) => {
             insuranceDisclosureAcceptedAt: insuranceDisclosureAccepted ? new Date() : null,
           });
           logger.info(`ProviderProfile upserted (phone path): ${phone}`);
+          // Auto-create CarWash or PartsStore listing if marketplace signup
+          if (marketplaceType && businessName) {
+            await createMarketplaceListing(
+              existingPhone.id,
+              marketplaceType,
+              normalizedListingPlan,
+              {
+                businessName,
+                address: businessAddress || "",
+                city: businessCity || "",
+                state: businessState || "FL",
+                zipCode: businessZipCode || "",
+                offersDelivery: offersDelivery === true,
+              },
+            );
+          }
         }
 
         if (userRole === "CLIENT") {
@@ -659,6 +776,22 @@ export const signup = async (req: Request, res: Response) => {
         insuranceDisclosureAcceptedAt: insuranceDisclosureAccepted ? new Date() : null,
       });
       logger.info(`ProviderProfile criado (new user path): ${email}`);
+      // Auto-create CarWash or PartsStore listing if marketplace signup
+      if (marketplaceType && businessName) {
+        await createMarketplaceListing(
+          user.id,
+          marketplaceType,
+          normalizedListingPlan,
+          {
+            businessName,
+            address: businessAddress || "",
+            city: businessCity || "",
+            state: businessState || "FL",
+            zipCode: businessZipCode || "",
+            offersDelivery: offersDelivery === true,
+          },
+        );
+      }
     }
 
     // Criar assinatura local com o plano escolhido; checkout captura o cartão após OTP.
@@ -686,14 +819,16 @@ export const signup = async (req: Request, res: Response) => {
         logger.info(`OTP enviado por EMAIL (preferência do usuário) para: ${email}`);
       } catch (emailError: any) {
         logger.error("Erro ao enviar OTP via email:", emailError.message);
-        // Fallback para SMS
-        try {
-          await issueSmsOTP(user.id, phone, language || "EN");
-          otpSent = true;
-          otpMethod = "sms";
-          logger.info(`OTP enviado por SMS (fallback de email) para: ${phone}`);
-        } catch (smsError: any) {
-          logger.error("Erro ao enviar OTP via SMS (fallback):", smsError.message);
+        // Fallback para SMS — apenas se o usuário forneceu telefone
+        if (phone) {
+          try {
+            await issueSmsOTP(user.id, phone, language || "EN");
+            otpSent = true;
+            otpMethod = "sms";
+            logger.info(`OTP enviado por SMS (fallback de email) para: ${phone}`);
+          } catch (smsError: any) {
+            logger.error("Erro ao enviar OTP via SMS (fallback):", smsError.message);
+          }
         }
       }
     } else {

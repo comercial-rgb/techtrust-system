@@ -2,7 +2,7 @@
  * PaymentMethodsScreen - Gerenciamento de Formas de Pagamento
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -29,6 +29,7 @@ import {
 import { useI18n } from "../../i18n";
 import { useRoute, CommonActions } from "@react-navigation/native";
 import api from "../../services/api";
+import { log } from "../../utils/logger";
 
 // Storage keys
 const PAYMENT_METHODS_KEY = "@TechTrust:paymentMethods";
@@ -59,7 +60,12 @@ interface WalletTransaction {
 }
 
 export default function PaymentMethodsScreen({ navigation }: any) {
-  const { t, language } = useI18n();
+  const { t, language, formatCurrency } = useI18n();
+  const fiatSymbol = (t as any).formats?.currencySymbol ?? "$";
+  const listLocale = useMemo(
+    () => (language === "pt" ? "pt-BR" : language === "es" ? "es-ES" : "en-US"),
+    [language],
+  );
   const route = useRoute<any>();
   const fromDashboard = route.params?.fromDashboard;
   const fromCreateRequest = route.params?.fromCreateRequest;
@@ -224,7 +230,7 @@ export default function PaymentMethodsScreen({ navigation }: any) {
           JSON.stringify(methods),
         );
       } catch (apiError) {
-        console.log("API unavailable, loading from cache:", apiError);
+        log.debug("API unavailable, loading from cache:", apiError);
         // Fallback to AsyncStorage
         const savedMethods = await AsyncStorage.getItem(PAYMENT_METHODS_KEY);
         if (savedMethods) {
@@ -252,7 +258,7 @@ export default function PaymentMethodsScreen({ navigation }: any) {
           );
         }
       } catch (walletApiError) {
-        console.log("Wallet API unavailable, loading from cache");
+        log.debug("Wallet API unavailable, loading from cache");
         // Fallback to local cache
         const [savedBalance, savedTransactions] = await Promise.all([
           AsyncStorage.getItem(WALLET_BALANCE_KEY),
@@ -265,7 +271,7 @@ export default function PaymentMethodsScreen({ navigation }: any) {
         else setRecentTransactions([]);
       }
     } catch (error) {
-      console.error("Error loading payment methods:", error);
+      log.error("Error loading payment methods:", error);
       setPaymentMethods([]);
       setWalletBalance(0);
       setRecentTransactions([]);
@@ -437,14 +443,21 @@ export default function PaymentMethodsScreen({ navigation }: any) {
     if (amount < 10) {
       Alert.alert(
         t.common?.error || "Error",
-        t.customer?.minimumAmount || "Minimum amount is $10.00.",
+        (t.customer?.minimumAmount || "Minimum amount is {{amount}}.").replace(
+          "{{amount}}",
+          formatCurrency(10),
+        ),
       );
       return;
     }
     if (amount > 1000) {
       Alert.alert(
         t.common?.error || "Error",
-        "Maximum amount is $1,000.00 per transaction.",
+        (t.customer?.walletMaximumPerTransaction ||
+          "Maximum amount is {{amount}} per transaction.").replace(
+          "{{amount}}",
+          formatCurrency(1000),
+        ),
       );
       return;
     }
@@ -457,7 +470,8 @@ export default function PaymentMethodsScreen({ navigation }: any) {
       if (cardMethods.length === 0) {
         Alert.alert(
           t.common?.error || "Error",
-          "Please add a credit or debit card first.",
+          t.customer?.addCardBeforeWalletTopUp ||
+            "Please add a credit or debit card first.",
         );
         return;
       }
@@ -471,9 +485,16 @@ export default function PaymentMethodsScreen({ navigation }: any) {
       : "card";
 
     // Confirmation dialog
+    const methodLabel =
+      addBalanceMethod === "card"
+        ? cardLabel
+        : addBalanceMethod.toUpperCase();
     Alert.alert(
-      "Confirm Payment",
-      `You're adding $${amount.toFixed(2)} using ${addBalanceMethod === "card" ? cardLabel : addBalanceMethod.toUpperCase()}. Confirm?`,
+      t.customer?.confirmAddToWalletTitle || "Confirm Payment",
+      (t.customer?.confirmAddToWalletBody ||
+        "You're adding {{amount}} using {{method}}. Confirm?")
+        .replace("{{amount}}", formatCurrency(amount))
+        .replace("{{method}}", methodLabel),
       [
         { text: t.common?.cancel || "Cancel", style: "cancel" },
         {
@@ -498,9 +519,13 @@ export default function PaymentMethodsScreen({ navigation }: any) {
 
               setShowAddBalanceModal(false);
               setAddBalanceAmount("");
+              const newBal = data?.balance ?? walletBalance + amount;
               Alert.alert(
                 t.common?.success || "Success",
-                `$${amount.toFixed(2)} added. New balance: $${(data?.balance || walletBalance + amount).toFixed(2)}`,
+                (t.customer?.addToWalletSuccessBody ||
+                  "{{amount}} added. New balance: {{balance}}")
+                  .replace("{{amount}}", formatCurrency(amount))
+                  .replace("{{balance}}", formatCurrency(newBal)),
               );
             } catch (err: any) {
               const message = err?.response?.data?.message
@@ -657,7 +682,7 @@ export default function PaymentMethodsScreen({ navigation }: any) {
     try {
       await api.patch(`/payment-methods/${methodId}/default`);
     } catch (error) {
-      console.log("API set-default failed (local change kept):", error);
+      log.debug("API set-default failed (local change kept):", error);
     }
   };
 
@@ -684,7 +709,7 @@ export default function PaymentMethodsScreen({ navigation }: any) {
             try {
               await api.delete(`/payment-methods/${methodId}`);
             } catch (error) {
-              console.log("API delete failed (local change kept):", error);
+              log.debug("API delete failed (local change kept):", error);
             }
           },
         },
@@ -822,7 +847,7 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                   {t.customer?.walletBalance || "Wallet Balance"}
                 </Text>
                 <Text style={styles.walletBalance}>
-                  ${walletBalance.toFixed(2)}
+                  {formatCurrency(walletBalance)}
                 </Text>
               </View>
             </View>
@@ -872,7 +897,7 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                     <Text style={styles.transactionDate}>
                       {(() => {
                         try {
-                          return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(transaction.date));
+                          return new Intl.DateTimeFormat(listLocale, { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(transaction.date));
                         } catch {
                           return transaction.date;
                         }
@@ -888,8 +913,7 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                       },
                     ]}
                   >
-                    {transaction.type === "credit" ? "+" : "-"}$
-                    {transaction.amount.toFixed(2)}
+                    {`${transaction.type === "credit" ? "+" : "-"}${formatCurrency(Math.abs(transaction.amount))}`}
                   </Text>
                 </View>
               ))}
@@ -1271,7 +1295,7 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                 {t.customer?.amount || "Amount"} *
               </Text>
               <View style={styles.amountInputContainer}>
-                <Text style={styles.currencySymbol}>$</Text>
+                <Text style={styles.currencySymbol}>{fiatSymbol}</Text>
                 <TextInput
                   style={styles.amountInput}
                   placeholder="0.00"
@@ -1281,7 +1305,10 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                 />
               </View>
               <Text style={styles.minimumAmountText}>
-                {t.customer?.minimumAmountNote || "Minimum: $10.00"}
+                {(t.customer?.minimumAmountNote || "Minimum: {{amount}}").replace(
+                  "{{amount}}",
+                  formatCurrency(10),
+                )}
               </Text>
 
               {/* Quick Amount Buttons */}
@@ -1292,7 +1319,9 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                     style={styles.quickAmountButton}
                     onPress={() => setAddBalanceAmount(amount.toString())}
                   >
-                    <Text style={styles.quickAmountText}>${amount}</Text>
+                    <Text style={styles.quickAmountText}>
+                      {formatCurrency(amount)}
+                    </Text>
                   </TouchableOpacity>
                 ))}
               </View>

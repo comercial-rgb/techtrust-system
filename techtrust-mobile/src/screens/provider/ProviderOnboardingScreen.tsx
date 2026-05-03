@@ -29,6 +29,7 @@ import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../../contexts/AuthContext";
+import { useI18n } from "../../i18n";
 import api from "../../services/api";
 
 // ─── Step IDs ─────────────────────────────────────────────────────────────────
@@ -122,6 +123,8 @@ const to12h = (time: string): string => {
 
 export default function ProviderOnboardingScreen({ navigation }: any) {
   const { user, completeOnboarding } = useAuth();
+  const { t } = useI18n();
+  const po = t.providerOnboarding;
   const [currentStep, setCurrentStep] = useState(0);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -189,29 +192,41 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
 
   const handleSkip = () => {
     Alert.alert(
-      "Skip Setup?",
-      "You can complete these steps later from your Profile. Your account may have limited visibility until documents are verified.",
+      t.provider?.skipSetupTitle || "Skip Setup?",
+      t.provider?.skipSetupMessage ||
+        "You can complete these steps later from your Profile. Your account may have limited visibility until documents are verified.",
       [
-        { text: "Cancel", style: "cancel" },
-        { text: "Skip Anyway", style: "destructive", onPress: () => completeOnboarding() },
-      ]
+        { text: t.common?.cancel || "Cancel", style: "cancel" },
+        {
+          text: t.provider?.skipAnywayOnboarding || "Skip Anyway",
+          style: "destructive",
+          onPress: () => completeOnboarding(),
+        },
+      ],
     );
   };
 
   // ── Upload helpers ─────────────────────────────────────────────────────────
   const handleUploadTap = (target: "license" | "insurance") => {
     setPreviewTarget(target);
-    Alert.alert("Upload Document", "How would you like to add your document?", [
-      { text: "Take Photo", onPress: () => handleCamera(target) },
-      { text: "Choose File", onPress: () => handleFilePicker(target) },
-      { text: "Cancel", style: "cancel" },
-    ]);
+    Alert.alert(
+      t.provider?.uploadDocumentOptionsTitle || "Upload Document",
+      t.provider?.uploadDocumentOptionsMessage || "How would you like to add your document?",
+      [
+        { text: t.provider?.takePhoto || "Take Photo", onPress: () => handleCamera(target) },
+        { text: t.provider?.pickDocumentFile || "Choose File", onPress: () => handleFilePicker(target) },
+        { text: t.common?.cancel || "Cancel", style: "cancel" },
+      ],
+    );
   };
 
   const handleCamera = async (target: "license" | "insurance") => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("Permission Denied", "Camera access is required to take photos.");
+      Alert.alert(
+        t.provider?.onboardingCameraDeniedTitle || "Permission Denied",
+        t.provider?.onboardingCameraDeniedBody || "Camera access is required to take photos.",
+      );
       return;
     }
     const result = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: 0.8 });
@@ -263,9 +278,16 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
         await api.post("/insurance", { type: "GENERAL_LIABILITY", hasCoverage: true, coiUploads: newUploads }).catch(() => {});
         if (user) await markStepDone(user.id, "insurance");
       }
-      Alert.alert("Uploaded!", "Document saved successfully.");
+      Alert.alert(
+        t.provider?.documentUploadedTitle || "Uploaded!",
+        t.provider?.documentUploadedBody || "Document saved successfully.",
+      );
     } catch {
-      Alert.alert("Upload Failed", "Could not upload document. Please try again.");
+      Alert.alert(
+        t.provider?.documentUploadFailedTitle || "Upload Failed",
+        t.provider?.documentUploadFailedBody ||
+          "Could not upload document. Please try again.",
+      );
     } finally {
       setUploading(false);
       setPreviewUri(null);
@@ -282,7 +304,11 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
       setRadiusDone(true);
       goNext();
     } catch {
-      Alert.alert("Error", "Could not save service radius. Please try again.");
+      Alert.alert(
+        t.common?.error || "Error",
+        t.provider?.saveServiceRadiusFailed ||
+          "Could not save service radius. Please try again.",
+      );
     } finally {
       setRadiusSaving(false);
     }
@@ -301,7 +327,11 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
       setHoursDone(true);
       goNext();
     } catch {
-      Alert.alert("Error", "Could not save business hours. Please try again.");
+      Alert.alert(
+        t.common?.error || "Error",
+        t.provider?.saveBusinessHoursFailed ||
+          "Could not save business hours. Please try again.",
+      );
     } finally {
       setHoursSaving(false);
     }
@@ -317,7 +347,11 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
       setDescDone(true);
       goNext();
     } catch {
-      Alert.alert("Error", "Could not save description. Please try again.");
+      Alert.alert(
+        t.common?.error || "Error",
+        t.provider?.saveBusinessDescriptionFailed ||
+          "Could not save description. Please try again.",
+      );
     } finally {
       setDescSaving(false);
     }
@@ -338,7 +372,11 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
       setMobileDone(true);
       goNext();
     } catch {
-      Alert.alert("Error", "Could not save mobile service setting.");
+      Alert.alert(
+        t.common?.error || "Error",
+        t.provider?.saveMobileServiceSettingFailed ||
+          "Could not save mobile service setting.",
+      );
     } finally {
       setMobileSaving(false);
     }
@@ -356,31 +394,35 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
       <View style={[styles.iconCircle, { backgroundColor: bgColor }]}>
         <MaterialCommunityIcons name="hand-wave" size={60} color={color} />
       </View>
-      <Text style={styles.title}>Welcome to TechTrust!</Text>
+      <Text style={styles.title}>
+        {po?.welcomeTitle || "Welcome to TechTrust!"}
+      </Text>
       <Text style={styles.subtitle}>
-        Let's get your business ready to receive service requests. This takes
-        about 5 minutes and you'll only need to do it once.
+        {po?.welcomeSubtitle ||
+          "Let's get your business ready to receive service requests. This takes about 5 minutes and you'll only need to do it once."}
       </Text>
 
       <View style={styles.reviewBanner}>
         <MaterialCommunityIcons name="clock-alert" size={20} color="#1d4ed8" />
         <View style={{ flex: 1 }}>
-          <Text style={styles.reviewBannerTitle}>Account Under Review</Text>
+          <Text style={styles.reviewBannerTitle}>
+            {po?.accountUnderReviewTitle || "Account Under Review"}
+          </Text>
           <Text style={styles.reviewBannerText}>
-            Our team will verify your documents within 1–2 business days. You'll
-            receive a notification once approved and can start receiving requests.
+            {po?.accountUnderReviewBody ||
+              "Our team will verify your documents within 1–2 business days. You'll receive a notification once approved and can start receiving requests."}
           </Text>
         </View>
       </View>
 
       <View style={styles.benefitList}>
         {[
-          { icon: "certificate",      text: "Upload your business license for verification" },
-          { icon: "shield-check",     text: "Confirm your insurance coverage" },
-          { icon: "map-marker-radius",text: "Set your service area radius" },
-          { icon: "clock-time-four",  text: "Configure your business hours" },
-          { icon: "text-box-edit",    text: "Write a bio that wins more customers" },
-          { icon: "car-wrench",       text: "Enable mobile / on-site service" },
+          { icon: "certificate", text: po?.benefitLicense || "Upload your business license for verification" },
+          { icon: "shield-check", text: po?.benefitInsurance || "Confirm your insurance coverage" },
+          { icon: "map-marker-radius", text: po?.benefitRadius || "Set your service area radius" },
+          { icon: "clock-time-four", text: po?.benefitHours || "Configure your business hours" },
+          { icon: "text-box-edit", text: po?.benefitBio || "Write a bio that wins more customers" },
+          { icon: "car-wrench", text: po?.benefitMobile || "Enable mobile / on-site service" },
         ].map((b, i) => (
           <View key={i} style={styles.benefitRow}>
             <View style={[styles.benefitIcon, { backgroundColor: bgColor }]}>
@@ -396,16 +438,24 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
   const renderUpload = (target: "license" | "insurance") => {
     const uploads = target === "license" ? licenseUploads : insuranceUploads;
     const titleMap = {
-      license: "Business License",
-      insurance: "Insurance Certificate",
+      license: po?.businessLicenseTitle || "Business License",
+      insurance: po?.insuranceCertificateTitle || "Insurance Certificate",
     };
     const subtitleMap = {
-      license: "Upload your state business license or registration certificate. Required to appear in search results and receive requests.",
-      insurance: "Upload your Certificate of Insurance (COI) showing General Liability coverage. Customers can see if you are insured.",
+      license:
+        po?.businessLicenseSubtitle ||
+        "Upload your state business license or registration certificate. Required to appear in search results and receive requests.",
+      insurance:
+        po?.insuranceCertificateSubtitle ||
+        "Upload your Certificate of Insurance (COI) showing General Liability coverage. Customers can see if you are insured.",
     };
     const impactMap = {
-      license: "Without a verified business license, your profile will show an 'Unverified' badge and customers may skip you.",
-      insurance: "Providers with verified insurance get a trust badge and appear higher in search results.",
+      license:
+        po?.businessLicenseImpact ||
+        "Without a verified business license, your profile will show an 'Unverified' badge and customers may skip you.",
+      insurance:
+        po?.insuranceCertificateImpact ||
+        "Providers with verified insurance get a trust badge and appear higher in search results.",
     };
 
     return (
@@ -419,17 +469,23 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
         <View style={styles.impactBox}>
           <MaterialCommunityIcons name="lightbulb-outline" size={16} color={color} />
           <Text style={styles.impactText}>
-            <Text style={{ fontWeight: "700" }}>Impact:</Text> {impactMap[target]}
+            <Text style={{ fontWeight: "700" }}>{po?.impactLabel || "Impact:"}</Text>{" "}
+            {impactMap[target]}
           </Text>
         </View>
 
         {target === "license" && (
           <View style={styles.resourceBox}>
-            <Text style={styles.resourceTitle}>Where to get your Business License (Florida)</Text>
+            <Text style={styles.resourceTitle}>
+              {po?.resourceLicenseTitle || "Where to get your Business License (Florida)"}
+            </Text>
             {[
-              { label: "Division of Corporations (Sunbiz)", url: "https://sunbiz.org" },
-              { label: "State Licensing Board (DBPR)", url: "https://myfloridalicense.com" },
-              { label: "Motor Vehicle Repair (FDACS)", url: "https://www.fdacs.gov/Consumer-Resources/Motor-Vehicle-Repair" },
+              { label: po?.linkSunbiz || "Division of Corporations (Sunbiz)", url: "https://sunbiz.org" },
+              { label: po?.linkDbpr || "State Licensing Board (DBPR)", url: "https://myfloridalicense.com" },
+              {
+                label: po?.linkFdacsRepair || "Motor Vehicle Repair (FDACS)",
+                url: "https://www.fdacs.gov/Consumer-Resources/Motor-Vehicle-Repair",
+              },
             ].map((r) => (
               <TouchableOpacity key={r.url} style={styles.resourceRow} onPress={() => Linking.openURL(r.url)}>
                 <MaterialCommunityIcons name="open-in-new" size={14} color={color} />
@@ -441,14 +497,17 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
 
         {target === "insurance" && (
           <View style={styles.resourceBox}>
-            <Text style={styles.resourceTitle}>Where to get your Certificate of Insurance (COI)</Text>
+            <Text style={styles.resourceTitle}>
+              {po?.resourceInsuranceTitle || "Where to get your Certificate of Insurance (COI)"}
+            </Text>
             <Text style={styles.resourceItem}>
-              Contact your insurance carrier or agent and request an ACORD 25 form showing General Liability coverage.
+              {po?.resourceInsuranceIntro ||
+                "Contact your insurance carrier or agent and request an ACORD 25 form showing General Liability coverage."}
             </Text>
             {[
-              { label: "The Hartford (small business)", url: "https://www.thehartford.com" },
-              { label: "Next Insurance (fast online)", url: "https://www.nextinsurance.com" },
-              { label: "Hiscox Business Insurance", url: "https://www.hiscox.com" },
+              { label: po?.linkHartford || "The Hartford (small business)", url: "https://www.thehartford.com" },
+              { label: po?.linkNextInsurance || "Next Insurance (fast online)", url: "https://www.nextinsurance.com" },
+              { label: po?.linkHiscox || "Hiscox Business Insurance", url: "https://www.hiscox.com" },
             ].map((r) => (
               <TouchableOpacity key={r.url} style={styles.resourceRow} onPress={() => Linking.openURL(r.url)}>
                 <MaterialCommunityIcons name="open-in-new" size={14} color={color} />
@@ -463,7 +522,12 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
             {uploads.map((_, i) => (
               <View key={i} style={styles.uploadedItem}>
                 <MaterialCommunityIcons name="file-check" size={20} color="#10b981" />
-                <Text style={styles.uploadedText}>Document {i + 1} uploaded</Text>
+                <Text style={styles.uploadedText}>
+                  {(po?.documentUploadedTemplate || "Document {{index}} uploaded").replace(
+                    "{{index}}",
+                    String(i + 1),
+                  )}
+                </Text>
                 <MaterialCommunityIcons name="check-circle" size={18} color="#10b981" />
               </View>
             ))}
@@ -484,9 +548,13 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
                 <MaterialCommunityIcons name="folder-open" size={28} color={color} />
               </View>
               <Text style={[styles.uploadBtnLabel, { color }]}>
-                {uploads.length > 0 ? "Upload Another Document" : "Tap to Upload Document"}
+                {uploads.length > 0
+                  ? po?.uploadAnotherDocument || "Upload Another Document"
+                  : po?.tapToUploadDocument || "Tap to Upload Document"}
               </Text>
-              <Text style={styles.uploadBtnHint}>Take a photo or choose a file (JPG, PNG, PDF)</Text>
+              <Text style={styles.uploadBtnHint}>
+                {po?.uploadFormatsHint || "Take a photo or choose a file (JPG, PNG, PDF)"}
+              </Text>
             </>
           )}
         </TouchableOpacity>
@@ -494,7 +562,8 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
         <View style={[styles.requiredBadge, { backgroundColor: "#fffbeb" }]}>
           <MaterialCommunityIcons name="alert-circle-outline" size={16} color="#d97706" />
           <Text style={styles.requiredText}>
-            Required · You can also upload later from Profile → Compliance
+            {po?.requiredComplianceNote ||
+              "Required · You can also upload later from Profile → Compliance"}
           </Text>
         </View>
       </View>
@@ -509,23 +578,27 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
         <View style={[styles.iconCircle, { backgroundColor: bgColor }]}>
           <MaterialCommunityIcons name="map-marker-radius" size={60} color={color} />
         </View>
-        <Text style={styles.title}>Service Radius</Text>
+        <Text style={styles.title}>
+          {po?.serviceRadiusTitle || "Service Radius"}
+        </Text>
         <Text style={styles.subtitle}>
-          How far are you willing to travel for service requests (or how far
-          should customers be able to find you)?
+          {po?.serviceRadiusSubtitle ||
+            "How far are you willing to travel for service requests (or how far should customers be able to find you)?"}
         </Text>
 
         <View style={styles.impactBox}>
           <MaterialCommunityIcons name="lightbulb-outline" size={16} color={color} />
           <Text style={styles.impactText}>
-            <Text style={{ fontWeight: "700" }}>Larger radius = more requests</Text>, but also
-            longer drives. Start with 30 miles and adjust later in Profile → Service Area.
+            {po?.radiusImpactText ||
+              "Larger radius = more requests, but also longer drives. Start with 30 miles and adjust later in Profile → Service Area."}
           </Text>
         </View>
 
         <View style={styles.radiusDisplay}>
           <Text style={[styles.radiusNumber, { color }]}>{serviceRadius}</Text>
-          <Text style={styles.radiusUnit}>mi radius</Text>
+          <Text style={styles.radiusUnit}>
+            {po?.radiusUnit || "mi radius"}
+          </Text>
         </View>
 
         <View style={styles.radiusChips}>
@@ -541,17 +614,25 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
         </View>
 
         <Text style={styles.radiusHint}>
-          {serviceRadius <= 15 ? "Small area — perfect for high-demand urban zones." :
-           serviceRadius <= 30 ? "Standard coverage — good balance of volume and distance." :
-           serviceRadius <= 60 ? "Wide coverage — more requests, longer distances." :
-           "Regional coverage — great for specialised services."}
+          {serviceRadius <= 15
+            ? po?.radiusHintSmall || "Small area — perfect for high-demand urban zones."
+            : serviceRadius <= 30
+              ? po?.radiusHintStandard ||
+                "Standard coverage — good balance of volume and distance."
+              : serviceRadius <= 60
+                ? po?.radiusHintWide ||
+                  "Wide coverage — more requests, longer distances."
+                : po?.radiusHintRegional ||
+                  "Regional coverage — great for specialised services."}
         </Text>
 
         <TouchableOpacity style={[styles.saveBtn, { backgroundColor: color }]} onPress={saveRadius} disabled={radiusSaving}>
           {radiusSaving ? <ActivityIndicator color="#fff" /> : (
             <>
               <Ionicons name="checkmark-circle" size={20} color="#fff" />
-              <Text style={styles.saveBtnText}>Save Service Radius</Text>
+              <Text style={styles.saveBtnText}>
+                {po?.saveServiceRadius || "Save Service Radius"}
+              </Text>
             </>
           )}
         </TouchableOpacity>
@@ -564,17 +645,19 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
       <View style={[styles.iconCircle, { backgroundColor: bgColor }]}>
         <MaterialCommunityIcons name="clock-time-four" size={60} color={color} />
       </View>
-      <Text style={styles.title}>Business Hours</Text>
+      <Text style={styles.title}>
+        {po?.businessHoursTitle || "Business Hours"}
+      </Text>
       <Text style={styles.subtitle}>
-        Set when you're open. Customers see your hours on your profile and
-        we only send you requests during working hours.
+        {po?.businessHoursSubtitle ||
+          "Set when you're open. Customers see your hours on your profile and we only send you requests during working hours."}
       </Text>
 
       <View style={styles.impactBox}>
         <MaterialCommunityIcons name="lightbulb-outline" size={16} color={color} />
         <Text style={styles.impactText}>
-          <Text style={{ fontWeight: "700" }}>If you skip this:</Text> Your schedule
-          shows as "hours not set" — customers may contact a competitor instead.
+          {po?.hoursImpactText ||
+            'If you skip this: Your schedule shows as "hours not set" — customers may contact a competitor instead.'}
         </Text>
       </View>
 
@@ -612,7 +695,9 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
                 </TouchableOpacity>
               </View>
             ) : (
-              <Text style={styles.closedText}>Closed</Text>
+              <Text style={styles.closedText}>
+                {po?.closed || "Closed"}
+              </Text>
             )}
           </View>
         ))}
@@ -622,7 +707,9 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
         {hoursSaving ? <ActivityIndicator color="#fff" /> : (
           <>
             <Ionicons name="checkmark-circle" size={20} color="#fff" />
-            <Text style={styles.saveBtnText}>Save Business Hours</Text>
+            <Text style={styles.saveBtnText}>
+              {po?.saveBusinessHours || "Save Business Hours"}
+            </Text>
           </>
         )}
       </TouchableOpacity>
@@ -633,29 +720,31 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
           <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                {editingField === "openTime" ? "Opening Time" : "Closing Time"}
+                {editingField === "openTime"
+                  ? po?.openingTime || "Opening Time"
+                  : po?.closingTime || "Closing Time"}
               </Text>
               <TouchableOpacity onPress={() => setShowTimePicker(false)}>
                 <Ionicons name="close" size={24} color="#374151" />
               </TouchableOpacity>
             </View>
             <ScrollView>
-              {TIME_OPTIONS.map((t) => {
+              {TIME_OPTIONS.map((timeOpt) => {
                 const isSelected = editingDay !== null &&
-                  schedule[editingDay][editingField] === t;
+                  schedule[editingDay][editingField] === timeOpt;
                 return (
                   <TouchableOpacity
-                    key={t}
+                    key={timeOpt}
                     style={[styles.modalItem, isSelected && styles.modalItemSelected]}
                     onPress={() => {
                       if (editingDay === null) return;
                       const s = [...schedule];
-                      s[editingDay] = { ...s[editingDay], [editingField]: t };
+                      s[editingDay] = { ...s[editingDay], [editingField]: timeOpt };
                       setSchedule(s);
                       setShowTimePicker(false);
                     }}
                   >
-                    <Text style={[styles.modalItemText, isSelected && { color, fontWeight: "700" }]}>{to12h(t)}</Text>
+                    <Text style={[styles.modalItemText, isSelected && { color, fontWeight: "700" }]}>{to12h(timeOpt)}</Text>
                     {isSelected && <Ionicons name="checkmark" size={18} color={color} />}
                   </TouchableOpacity>
                 );
@@ -673,26 +762,32 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
         <View style={[styles.iconCircle, { backgroundColor: bgColor }]}>
           <MaterialCommunityIcons name="text-box-edit" size={60} color={color} />
         </View>
-        <Text style={styles.title}>Business Bio</Text>
+        <Text style={styles.title}>
+          {po?.businessBioTitle || "Business Bio"}
+        </Text>
         <Text style={styles.subtitle}>
-          Write a short description about your shop — your experience, specialties,
-          and what makes you stand out.
+          {po?.businessBioSubtitle ||
+            "Write a short description about your shop — your experience, specialties, and what makes you stand out."}
         </Text>
 
         <View style={styles.impactBox}>
           <MaterialCommunityIcons name="lightbulb-outline" size={16} color={color} />
           <Text style={styles.impactText}>
-            <Text style={{ fontWeight: "700" }}>Profiles with a bio</Text> get up to
-            3× more quote requests. Customers want to know who they're trusting with
-            their car.
+            {po?.bioImpactText ||
+              "Profiles with a bio get up to 3× more quote requests. Customers want to know who they're trusting with their car."}
           </Text>
         </View>
 
         <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Your Story (optional)</Text>
+          <Text style={styles.label}>
+            {po?.yourStoryOptional || "Your Story (optional)"}
+          </Text>
           <TextInput
             style={[styles.input, styles.textArea]}
-            placeholder={'e.g. "Family-owned shop with 15 years experience in South Florida. We specialise in Japanese imports and offer free diagnostics with every visit."'}
+            placeholder={
+              po?.bioPlaceholder ||
+              'e.g. "Family-owned shop with 15 years experience in South Florida. We specialise in Japanese imports and offer free diagnostics with every visit."'
+            }
             placeholderTextColor="#9ca3af"
             value={description}
             onChangeText={setDescription}
@@ -705,12 +800,14 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
         </View>
 
         <View style={styles.bioTips}>
-          <Text style={styles.bioTipsTitle}>Tips for a great bio:</Text>
+          <Text style={styles.bioTipsTitle}>
+            {po?.bioTipsTitle || "Tips for a great bio:"}
+          </Text>
           {[
-            "Years in business and family/professional background",
-            "Vehicle types or brands you specialise in",
-            "Any certifications or unique services you offer",
-            "What customers love most about your shop",
+            po?.bioTip1 || "Years in business and family/professional background",
+            po?.bioTip2 || "Vehicle types or brands you specialise in",
+            po?.bioTip3 || "Any certifications or unique services you offer",
+            po?.bioTip4 || "What customers love most about your shop",
           ].map((tip, i) => (
             <View key={i} style={styles.bioTipRow}>
               <View style={[styles.bioTipDot, { backgroundColor: color }]} />
@@ -728,7 +825,9 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
             <>
               <Ionicons name="checkmark-circle" size={20} color="#fff" />
               <Text style={styles.saveBtnText}>
-                {description.trim() ? "Save Bio" : "Skip for Now"}
+                {description.trim()
+                  ? po?.saveBio || "Save Bio"
+                  : po?.skipForNow || "Skip for Now"}
               </Text>
             </>
           )}
@@ -742,17 +841,19 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
       <View style={[styles.iconCircle, { backgroundColor: bgColor }]}>
         <MaterialCommunityIcons name="car-wrench" size={60} color={color} />
       </View>
-      <Text style={styles.title}>Mobile Service</Text>
+      <Text style={styles.title}>
+        {po?.mobileServiceTitle || "Mobile Service"}
+      </Text>
       <Text style={styles.subtitle}>
-        Can you travel to the customer's location to perform services?
-        Mobile providers get significantly more requests.
+        {po?.mobileServiceSubtitle ||
+          "Can you travel to the customer's location to perform services? Mobile providers get significantly more requests."}
       </Text>
 
       <View style={styles.impactBox}>
         <MaterialCommunityIcons name="lightbulb-outline" size={16} color={color} />
         <Text style={styles.impactText}>
-          <Text style={{ fontWeight: "700" }}>Mobile providers get ~40% more requests</Text> because
-          many customers prefer on-site service for routine maintenance and roadside issues.
+          {po?.mobileImpactText ||
+            "Mobile providers get ~40% more requests because many customers prefer on-site service for routine maintenance and roadside issues."}
         </Text>
       </View>
 
@@ -761,12 +862,16 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
           <MaterialCommunityIcons name="car-wrench" size={28} color={mobileService ? color : "#9ca3af"} />
           <View style={{ flex: 1 }}>
             <Text style={styles.mobileToggleTitle}>
-              {mobileService ? "Mobile Service Enabled" : "Mobile Service Disabled"}
+              {mobileService
+                ? po?.mobileEnabledTitle || "Mobile Service Enabled"
+                : po?.mobileDisabledTitle || "Mobile Service Disabled"}
             </Text>
             <Text style={styles.mobileToggleSubtitle}>
               {mobileService
-                ? "You'll appear in mobile service searches and on-site request matching."
-                : "You only appear in requests where customers come to your location."}
+                ? po?.mobileEnabledSubtitle ||
+                  "You'll appear in mobile service searches and on-site request matching."
+                : po?.mobileDisabledSubtitle ||
+                  "You only appear in requests where customers come to your location."}
             </Text>
           </View>
           <Switch
@@ -780,26 +885,34 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
 
       {mobileService && (
         <View style={styles.mobileFieldsCard}>
-          <Text style={styles.mobileFieldsTitle}>Travel Settings</Text>
+          <Text style={styles.mobileFieldsTitle}>
+            {po?.travelSettings || "Travel Settings"}
+          </Text>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Free Travel Distance (miles)</Text>
+            <Text style={styles.label}>
+              {po?.freeTravelMilesLabel || "Free Travel Distance (miles)"}
+            </Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. 10"
+              placeholder={po?.freeTravelPlaceholder || "e.g. 10"}
               placeholderTextColor="#9ca3af"
               value={freeMiles > 0 ? String(freeMiles) : ""}
               onChangeText={(v) => setFreeMiles(Number(v.replace(/[^0-9]/g, "")) || 0)}
               keyboardType="number-pad"
             />
-            <Text style={styles.charCount}>Miles you'll travel at no extra charge</Text>
+            <Text style={styles.charCount}>
+              {po?.freeTravelHint || "Miles you'll travel at no extra charge"}
+            </Text>
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Fee per Mile Beyond Free Distance ($)</Text>
+            <Text style={styles.label}>
+              {po?.feePerMileLabel || "Fee per Mile Beyond Free Distance ($)"}
+            </Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. 1.50"
+              placeholder={po?.feePerMilePlaceholder || "e.g. 1.50"}
               placeholderTextColor="#9ca3af"
               value={feePerMile}
               onChangeText={(v) => {
@@ -808,7 +921,10 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
               }}
               keyboardType="decimal-pad"
             />
-            <Text style={styles.charCount}>Charge per mile after the free distance (0 = no extra fee)</Text>
+            <Text style={styles.charCount}>
+              {po?.feePerMileHint ||
+                "Charge per mile after the free distance (0 = no extra fee)"}
+            </Text>
           </View>
         </View>
       )}
@@ -821,7 +937,9 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
         {mobileSaving ? <ActivityIndicator color="#fff" /> : (
           <>
             <Ionicons name="checkmark-circle" size={20} color="#fff" />
-            <Text style={styles.saveBtnText}>Save & Continue</Text>
+            <Text style={styles.saveBtnText}>
+              {po?.saveAndContinue || "Save & Continue"}
+            </Text>
           </>
         )}
       </TouchableOpacity>
@@ -833,33 +951,62 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
       <View style={[styles.iconCircle, { backgroundColor: bgColor }]}>
         <MaterialCommunityIcons name="check-circle" size={60} color={color} />
       </View>
-      <Text style={styles.title}>Setup Complete!</Text>
+      <Text style={styles.title}>
+        {po?.setupCompleteTitle || "Setup Complete!"}
+      </Text>
       <Text style={styles.subtitle}>
-        Your profile is set up. Once our team verifies your documents, you'll
-        automatically start receiving matching service requests.
+        {po?.setupCompleteSubtitle ||
+          "Your profile is set up. Once our team verifies your documents, you'll automatically start receiving matching service requests."}
       </Text>
 
       <View style={styles.reviewBanner}>
         <MaterialCommunityIcons name="clock-alert-outline" size={20} color="#1d4ed8" />
         <View style={{ flex: 1 }}>
-          <Text style={styles.reviewBannerTitle}>What Happens Next</Text>
+          <Text style={styles.reviewBannerTitle}>
+            {po?.whatHappensNextTitle || "What Happens Next"}
+          </Text>
           <Text style={styles.reviewBannerText}>
-            1. Our team reviews your documents (1–2 business days){"\n"}
-            2. You receive a notification once approved{"\n"}
-            3. Service requests matching your area and capabilities start appearing
+            {po?.whatHappensNextBody ||
+              "1. Our team reviews your documents (1–2 business days)\n2. You receive a notification once approved\n3. Service requests matching your area and capabilities start appearing"}
           </Text>
         </View>
       </View>
 
       <View style={styles.doneCard}>
-        <Text style={styles.doneCardTitle}>Setup Summary</Text>
+        <Text style={styles.doneCardTitle}>
+          {po?.setupSummaryTitle || "Setup Summary"}
+        </Text>
         {[
-          { icon: "certificate",       label: "Business License",      done: licenseUploads.length > 0 },
-          { icon: "shield-check",      label: "Insurance Certificate", done: insuranceUploads.length > 0 },
-          { icon: "map-marker-radius", label: "Service Radius",        done: radiusDone },
-          { icon: "clock-time-four",   label: "Business Hours",        done: hoursDone },
-          { icon: "text-box-edit",     label: "Business Bio",          done: descDone },
-          { icon: "car-wrench",        label: "Mobile Service",        done: mobileDone },
+          {
+            icon: "certificate",
+            label: po?.summaryBusinessLicense || "Business License",
+            done: licenseUploads.length > 0,
+          },
+          {
+            icon: "shield-check",
+            label: po?.summaryInsuranceCertificate || "Insurance Certificate",
+            done: insuranceUploads.length > 0,
+          },
+          {
+            icon: "map-marker-radius",
+            label: po?.summaryServiceRadius || "Service Radius",
+            done: radiusDone,
+          },
+          {
+            icon: "clock-time-four",
+            label: po?.summaryBusinessHours || "Business Hours",
+            done: hoursDone,
+          },
+          {
+            icon: "text-box-edit",
+            label: po?.summaryBusinessBio || "Business Bio",
+            done: descDone,
+          },
+          {
+            icon: "car-wrench",
+            label: po?.summaryMobileService || "Mobile Service",
+            done: mobileDone,
+          },
         ].map((item, i) => (
           <View key={i} style={styles.doneRow}>
             <View style={[styles.doneIcon, { backgroundColor: item.done ? STEP_BG.done : "#fef2f2" }]}>
@@ -877,7 +1024,8 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
           <View style={styles.pendingNotice}>
             <MaterialCommunityIcons name="information-outline" size={14} color="#92400e" />
             <Text style={styles.pendingNoticeText}>
-              Pending items can be completed later in Profile. Documents must be verified before you can receive requests.
+              {po?.pendingNoticeText ||
+                "Pending items can be completed later in Profile. Documents must be verified before you can receive requests."}
             </Text>
           </View>
         )}
@@ -919,7 +1067,9 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
         </View>
         <Text style={styles.headerCounter}>{currentStep + 1} / {totalSteps}</Text>
         <TouchableOpacity style={styles.skipHeaderBtn} onPress={handleSkip}>
-          <Text style={styles.skipHeaderText}>Skip all</Text>
+          <Text style={styles.skipHeaderText}>
+            {po?.skipAll || "Skip all"}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -943,12 +1093,16 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
       <View style={styles.footer}>
         {isLast ? (
           <TouchableOpacity style={[styles.nextBtn, { backgroundColor: color }]} onPress={finishOnboarding}>
-            <Text style={styles.nextBtnText}>Go to Dashboard</Text>
+            <Text style={styles.nextBtnText}>
+              {po?.goToDashboard || "Go to Dashboard"}
+            </Text>
             <MaterialCommunityIcons name="arrow-right" size={20} color="#fff" />
           </TouchableOpacity>
         ) : hasSaveBtn ? (
           <TouchableOpacity style={styles.skipStepBtn} onPress={goNext}>
-            <Text style={styles.skipStepText}>Skip this step</Text>
+            <Text style={styles.skipStepText}>
+              {po?.skipThisStep || "Skip this step"}
+            </Text>
             <MaterialCommunityIcons name="arrow-right" size={16} color="#9ca3af" />
           </TouchableOpacity>
         ) : isUploadStep ? (
@@ -959,15 +1113,15 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
             <Text style={styles.nextBtnText}>
               {(stepId === "license" && licenseUploads.length > 0) ||
                (stepId === "insurance" && insuranceUploads.length > 0)
-                ? "Next"
-                : "Skip for Now"}
+                ? po?.next || "Next"
+                : po?.skipForNow || "Skip for Now"}
             </Text>
             <MaterialCommunityIcons name="arrow-right" size={20} color="#fff" />
           </TouchableOpacity>
         ) : (
           <TouchableOpacity style={[styles.nextBtn, { backgroundColor: color }]} onPress={goNext}>
             <Text style={styles.nextBtnText}>
-              {isFirst ? "Let's Start" : "Next"}
+              {isFirst ? po?.letsStart || "Let's Start" : po?.next || "Next"}
             </Text>
             <MaterialCommunityIcons name="arrow-right" size={20} color="#fff" />
           </TouchableOpacity>
@@ -981,7 +1135,9 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
             <TouchableOpacity onPress={() => setPreviewUri(null)} style={styles.previewCloseBtn}>
               <MaterialCommunityIcons name="close" size={24} color="#fff" />
             </TouchableOpacity>
-            <Text style={styles.previewTitle}>Review Document</Text>
+            <Text style={styles.previewTitle}>
+              {po?.reviewDocumentTitle || "Review Document"}
+            </Text>
             <View style={{ width: 40 }} />
           </View>
           <View style={styles.previewImgContainer}>
@@ -989,14 +1145,19 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
               <Image source={{ uri: previewUri }} style={styles.previewImg} resizeMode="contain" />
             )}
           </View>
-          <Text style={styles.previewHint}>Make sure the document is clear and all text is readable.</Text>
+          <Text style={styles.previewHint}>
+            {po?.reviewDocumentHint ||
+              "Make sure the document is clear and all text is readable."}
+          </Text>
           <View style={styles.previewActions}>
             <TouchableOpacity
               style={styles.previewRetakeBtn}
               onPress={() => { setPreviewUri(null); handleCamera(previewTarget); }}
             >
               <MaterialCommunityIcons name="camera-retake" size={20} color="#2B5EA7" />
-              <Text style={styles.previewRetakeText}>Retake</Text>
+              <Text style={styles.previewRetakeText}>
+                {po?.retake || "Retake"}
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.previewConfirmBtn}
@@ -1006,7 +1167,9 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
               {uploading ? <ActivityIndicator color="#fff" /> : (
                 <>
                   <MaterialCommunityIcons name="check" size={20} color="#fff" />
-                  <Text style={styles.previewConfirmText}>Use This Photo</Text>
+                  <Text style={styles.previewConfirmText}>
+                    {po?.useThisPhoto || "Use This Photo"}
+                  </Text>
                 </>
               )}
             </TouchableOpacity>

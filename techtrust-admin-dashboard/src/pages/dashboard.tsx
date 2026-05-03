@@ -20,6 +20,8 @@ import {
   ArrowDownRight,
 } from 'lucide-react';
 
+import { logApiError } from "../utils/logger";
+
 interface DashboardStats {
   users: {
     total: number;
@@ -89,7 +91,7 @@ export default function DashboardPage() {
 
       setRecentActivities(data.recentActivities || []);
     } catch (error) {
-      console.error('Erro ao carregar dashboard:', error);
+      logApiError('Erro ao carregar dashboard:', error);
       // Mantém valores zerados em caso de erro
       setStats({
         users: { total: 0, customers: 0, providers: 0, newThisMonth: 0 },

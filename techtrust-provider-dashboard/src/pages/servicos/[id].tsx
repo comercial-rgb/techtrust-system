@@ -26,6 +26,7 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import Link from 'next/link'
+import { logApiError } from "../../utils/logger";
 
 interface WorkOrder {
   id: string
@@ -104,7 +105,7 @@ export default function ServicoDetalhesPage() {
       setWorkOrder(workOrderData)
       setFinalAmount(workOrderData.finalAmount?.toString() || '0')
     } catch (error) {
-      console.error('Erro ao carregar serviço:', error)
+      logApiError('Erro ao carregar serviço:', error)
     } finally {
       setLoading(false)
     }
@@ -137,7 +138,7 @@ export default function ServicoDetalhesPage() {
       // Reload the work order to get updated data from the server
       await loadWorkOrder()
     } catch (error: any) {
-      console.error('Erro ao iniciar serviço:', error)
+      logApiError('Erro ao iniciar serviço:', error)
       const message = error.response?.data?.message || 'Erro ao iniciar serviço. Tente novamente.'
       alert(message)
     } finally {
@@ -158,7 +159,7 @@ export default function ServicoDetalhesPage() {
       // Reload the work order to get updated data from the server
       await loadWorkOrder()
     } catch (error: any) {
-      console.error('Erro ao concluir serviço:', error)
+      logApiError('Erro ao concluir serviço:', error)
       const message = error.response?.data?.message || 'Erro ao concluir serviço. Tente novamente.'
       alert(message)
     } finally {

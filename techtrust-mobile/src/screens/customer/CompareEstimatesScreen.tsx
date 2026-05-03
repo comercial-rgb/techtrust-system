@@ -18,11 +18,12 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useI18n } from "../../i18n";
 import { useAuth } from "../../contexts/AuthContext";
 import * as fdacsService from "../../services/fdacs.service";
+import { log } from "../../utils/logger";
 
 export default function CompareEstimatesScreen({ route, navigation }: any) {
   const { shareId } = route.params;
   const { user } = useAuth();
-  const { t } = useI18n();
+  const { t, formatCurrency } = useI18n();
   const [loading, setLoading] = useState(true);
   const [share, setShare] = useState<any>(null);
 
@@ -38,7 +39,7 @@ export default function CompareEstimatesScreen({ route, navigation }: any) {
       const res = await fdacsService.getSharedEstimateDetail(shareId);
       setShare(res.data?.share || null);
     } catch (error) {
-      console.error("Error loading shared estimate:", error);
+      log.error("Error loading shared estimate:", error);
     } finally {
       setLoading(false);
     }
@@ -150,7 +151,7 @@ export default function CompareEstimatesScreen({ route, navigation }: any) {
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>{t.fdacs.totalEstimate}</Text>
             <Text style={styles.totalValue}>
-              ${Number(original?.totalAmount || 0).toFixed(2)}
+              {formatCurrency(Number(original?.totalAmount || 0))}
             </Text>
           </View>
 
@@ -158,7 +159,7 @@ export default function CompareEstimatesScreen({ route, navigation }: any) {
             <View style={styles.breakdownRow}>
               <Text style={styles.breakdownLabel}>{t.fdacs.labor}</Text>
               <Text style={styles.breakdownValue}>
-                ${Number(original.laborCost).toFixed(2)}
+                {formatCurrency(Number(original.laborCost))}
               </Text>
             </View>
           )}
@@ -166,7 +167,7 @@ export default function CompareEstimatesScreen({ route, navigation }: any) {
             <View style={styles.breakdownRow}>
               <Text style={styles.breakdownLabel}>{t.fdacs.parts}</Text>
               <Text style={styles.breakdownValue}>
-                ${Number(original.partsCost).toFixed(2)}
+                {formatCurrency(Number(original.partsCost))}
               </Text>
             </View>
           )}
@@ -237,13 +238,15 @@ export default function CompareEstimatesScreen({ route, navigation }: any) {
                       savings > 0 && { color: "#10b981" },
                     ]}
                   >
-                    ${Number(cq.totalAmount || 0).toFixed(2)}
+                    {formatCurrency(Number(cq.totalAmount || 0))}
                   </Text>
                 </View>
 
                 {savings > 0 && (
                   <Text style={styles.savingsText}>
-                    {t.fdacs.youSave.replace("${amount}", savings.toFixed(2))}
+                    {t.fdacs.youSave
+                      .replace("${amount}", formatCurrency(savings))
+                      .replace("{{amount}}", formatCurrency(savings))}
                   </Text>
                 )}
 
@@ -251,7 +254,7 @@ export default function CompareEstimatesScreen({ route, navigation }: any) {
                   <View style={styles.breakdownRow}>
                     <Text style={styles.breakdownLabel}>{t.fdacs.labor}</Text>
                     <Text style={styles.breakdownValue}>
-                      ${Number(cq.laborCost).toFixed(2)}
+                      {formatCurrency(Number(cq.laborCost))}
                     </Text>
                   </View>
                 )}
@@ -259,7 +262,7 @@ export default function CompareEstimatesScreen({ route, navigation }: any) {
                   <View style={styles.breakdownRow}>
                     <Text style={styles.breakdownLabel}>{t.fdacs.parts}</Text>
                     <Text style={styles.breakdownValue}>
-                      ${Number(cq.partsCost).toFixed(2)}
+                      {formatCurrency(Number(cq.partsCost))}
                     </Text>
                   </View>
                 )}

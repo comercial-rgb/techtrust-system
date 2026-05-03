@@ -19,6 +19,7 @@ import {
   LogOut,
 } from 'lucide-react';
 
+import { logApiError } from "../../utils/logger";
 export default function PerfilPage() {
   const { user, isAuthenticated, loading: authLoading, logout } = useAuth();
   const { translate: t } = useI18n();
@@ -57,7 +58,7 @@ export default function PerfilPage() {
         vehiclesCount: Array.isArray(vehicles) ? vehicles.length : 0,
       });
     } catch (error) {
-      console.error('Erro ao carregar stats:', error);
+      logApiError('Erro ao carregar stats:', error);
     }
   }
 

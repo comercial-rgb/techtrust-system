@@ -13,9 +13,10 @@ import { CANCELLATION_RULES, DISPUTE_RULES } from '../config/businessRules';
 import * as serviceFlowService from '../services/service-flow.service';
 import { getPaymentMethods } from '../services/dashboard.service';
 import api from '../services/api';
+import { log } from "../utils/logger";
 
 export default function WorkOrderDetailsScreen({ navigation, route }: any) {
-  const { t } = useI18n();
+  const { t, formatDate, formatCurrency } = useI18n();
   const { workOrderId } = route.params || { workOrderId: '1' };
   const [loading, setLoading] = useState(true);
   const [workOrder, setWorkOrder] = useState<any>(null);
@@ -76,7 +77,7 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
         setWorkOrder(null);
       }
     } catch (error) {
-      console.error('Error loading work order details:', error);
+      log.error('Error loading work order details:', error);
       setWorkOrder(null);
     } finally {
       setLoading(false);
@@ -170,7 +171,7 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
       Alert.alert(
         t.common?.success || 'Success',
         t.businessRules?.cancellation?.cancelledSuccessfully || 'Service cancelled successfully',
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
+        [{ text: t.common?.ok || 'OK', onPress: () => navigation.goBack() }]
       );
     } catch (error: any) {
       const msg = error.response?.data?.message || t.common?.tryAgain || 'Try again';
@@ -196,7 +197,7 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
       Alert.alert(
         t.common?.success || 'Success',
         t.businessRules?.dispute?.submittedSuccessfully || 'Dispute submitted. Please wait for our analysis.',
-        [{ text: 'OK', onPress: () => loadDetails() }]
+        [{ text: t.common?.ok || 'OK', onPress: () => loadDetails() }]
       );
     } catch (error: any) {
       Alert.alert(t.common?.error || 'Error', error?.response?.data?.message || t.common?.tryAgain || 'Try again');
@@ -285,7 +286,7 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
                     <View key={index} style={styles.alertPartRow}>
                       <Text style={styles.alertPartName}>{part.description}</Text>
                       <Text style={styles.alertPartQty}>x{qty}</Text>
-                      <Text style={styles.alertPartPrice}>${line.toFixed(2)}</Text>
+                      <Text style={styles.alertPartPrice}>{formatCurrency(line)}</Text>
                     </View>
                   );
                 })}
@@ -477,12 +478,14 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
                 <Text style={styles.lineItemDesc}>{item.description}</Text>
                 <Text style={styles.lineItemQty}>{t.common?.qty || 'Qtd'}: {item.quantity}</Text>
               </View>
-              <Text style={styles.lineItemPrice}>${(item.quantity * item.unitPrice).toFixed(2)}</Text>
+              <Text style={styles.lineItemPrice}>
+                {formatCurrency(Number(item.quantity) * Number(item.unitPrice))}
+              </Text>
             </View>
           ))}
           <View style={styles.subtotalRow}>
             <Text style={styles.subtotalLabel}>{t.workOrder?.partsSubtotal || 'Parts Subtotal'}</Text>
-            <Text style={styles.subtotalValue}>${workOrder?.partsCost}</Text>
+            <Text style={styles.subtotalValue}>{formatCurrency(Number(workOrder?.partsCost) || 0)}</Text>
           </View>
 
           {/* Labor Section */}
@@ -493,12 +496,14 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
                 <Text style={styles.lineItemDesc}>{item.description}</Text>
                 <Text style={styles.lineItemQty}>{t.common?.qty || 'Qty'}: {item.quantity}</Text>
               </View>
-              <Text style={styles.lineItemPrice}>${(item.quantity * item.unitPrice).toFixed(2)}</Text>
+              <Text style={styles.lineItemPrice}>
+                {formatCurrency(Number(item.quantity) * Number(item.unitPrice))}
+              </Text>
             </View>
           ))}
           <View style={styles.subtotalRow}>
             <Text style={styles.subtotalLabel}>{t.workOrder?.laborSubtotal || 'Labor Subtotal'}</Text>
-            <Text style={styles.subtotalValue}>${workOrder?.laborCost}</Text>
+            <Text style={styles.subtotalValue}>{formatCurrency(Number(workOrder?.laborCost) || 0)}</Text>
           </View>
 
           {/* Estimated Time */}
@@ -508,7 +513,10 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
           </View>
 
           {/* Total */}
-          <View style={[styles.priceRow, styles.totalRow]}><Text style={styles.totalLabel}>{t.common?.total || 'Total'}</Text><Text style={styles.totalValue}>${workOrder?.finalAmount}</Text></View>
+          <View style={[styles.priceRow, styles.totalRow]}>
+            <Text style={styles.totalLabel}>{t.common?.total || "Total"}</Text>
+            <Text style={styles.totalValue}>{formatCurrency(Number(workOrder?.finalAmount) || 0)}</Text>
+          </View>
         </View>
 
         {/* Warranty Info */}
@@ -541,7 +549,7 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
               <View style={styles.timelineDot} />
               <View style={styles.timelineContent}>
                 <Text style={styles.timelineLabel}>{item.label}</Text>
-                <Text style={styles.timelineDate}>{new Date(item.date).toLocaleDateString('en-US')}</Text>
+                <Text style={styles.timelineDate}>{formatDate(item.date)}</Text>
               </View>
             </View>
           ))}
@@ -554,7 +562,9 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
               <Ionicons name="shield-checkmark" size={24} color="#10b981" />
               <View style={{ flex: 1, marginLeft: 12 }}>
                 <Text style={styles.paymentHeldTitle}>{t.workOrder?.paymentHeld || 'Payment Held'}</Text>
-                <Text style={styles.paymentHeldAmount}>${workOrder?.finalAmount?.toFixed(2)}</Text>
+                <Text style={styles.paymentHeldAmount}>
+                  {formatCurrency(Number(workOrder?.finalAmount) || 0)}
+                </Text>
                 <Text style={styles.paymentHeldNote}>
                   {t.workOrder?.serviceCompletedByProvider || 'The provider has completed the service. Please review and approve.'}
                 </Text>
@@ -625,7 +635,7 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
               <Text style={styles.feeReason}>{cancellationInfo.reason}</Text>
               <View style={styles.feeRow}>
                 <Text style={styles.feePercent}>{cancellationInfo.feePercent}%</Text>
-                <Text style={styles.feeAmount}>${cancellationInfo.feeAmount.toFixed(2)}</Text>
+                <Text style={styles.feeAmount}>{formatCurrency(cancellationInfo.feeAmount)}</Text>
               </View>
             </View>
 

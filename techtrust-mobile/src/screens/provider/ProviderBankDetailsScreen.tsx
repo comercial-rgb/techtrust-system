@@ -14,7 +14,7 @@ import {
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useI18n } from '../../i18n';
 
 type VerificationStatus = 'unverified' | 'pending' | 'verified' | 'failed';
@@ -62,9 +62,10 @@ export default function ProviderBankDetailsScreen({ navigation }: any) {
         accs.map(a => a.id === accountId ? { ...a, verificationStatus: 'pending' as VerificationStatus } : a)
       );
       Alert.alert(
-        'Micro-Deposits Initiated',
-        'Two small deposits (under $1.00 each) will appear in your bank account within 1-2 business days. Once received, tap "Verify" to enter the amounts.',
-        [{ text: 'OK' }]
+        t.providerBank?.microDepositsInitiatedTitle || 'Micro-Deposits Initiated',
+        t.providerBank?.microDepositsInitiatedBody ||
+          'Two small deposits (under $1.00 each) will appear in your bank account within 1-2 business days. Once received, tap "Verify" to enter the amounts.',
+        [{ text: t.common?.ok || 'OK' }],
       );
       return;
     }
@@ -83,7 +84,10 @@ export default function ProviderBankDetailsScreen({ navigation }: any) {
     const amount2 = parseFloat(microDeposit2);
 
     if (isNaN(amount1) || isNaN(amount2) || amount1 <= 0 || amount2 <= 0) {
-      Alert.alert('Error', 'Please enter both deposit amounts (e.g., 0.32)');
+      Alert.alert(
+        t.common?.error || 'Error',
+        t.providerBank?.enterBothDeposits || 'Please enter both deposit amounts (e.g., 0.32)',
+      );
       return;
     }
 
@@ -93,7 +97,11 @@ export default function ProviderBankDetailsScreen({ navigation }: any) {
     );
     setVerifyModalVisible(false);
     setVerifyingAccountId(null);
-    Alert.alert('Account Verified!', 'Your bank account has been successfully verified.');
+    Alert.alert(
+      t.providerBank?.accountVerifiedTitle || 'Account Verified!',
+      t.providerBank?.accountVerifiedBody ||
+        'Your bank account has been successfully verified.',
+    );
   };
 
   const getVerificationBadge = (status: VerificationStatus) => {
@@ -140,7 +148,10 @@ export default function ProviderBankDetailsScreen({ navigation }: any) {
     }
 
     if (newAccount.routingNumber.length !== 9) {
-      Alert.alert(t.common?.error || 'Error', 'Routing number must be 9 digits');
+      Alert.alert(
+        t.common?.error || 'Error',
+        t.common?.routingNumberMustBe9 || 'Routing number must be 9 digits',
+      );
       return;
     }
 

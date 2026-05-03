@@ -24,8 +24,14 @@ import {
   COMPLIANCE_TYPE_LABELS,
 } from "../../services/compliance.service";
 import api from "../../services/api";
+import { log } from "../../utils/logger";
+import { useI18n } from "../../i18n";
+import { interpolate } from "../../i18n/interpolate";
 
 export default function ComplianceItemDetailScreen({ route, navigation }: any) {
+  const { t, formatDate } = useI18n();
+  const tc = (t as any).providerCompliance || {};
+  const ci = t.complianceItem || ({} as NonNullable<typeof t.complianceItem>);
   const { item } = route.params;
   const [registrationNumber, setRegistrationNumber] = useState(
     item.registrationNumber || "",
@@ -41,7 +47,18 @@ export default function ComplianceItemDetailScreen({ route, navigation }: any) {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  const statusInfo = getComplianceStatusLabel(item.status);
+  const statusBase = getComplianceStatusLabel(item.status);
+  const statusLabelMap: Record<string, string | undefined> = {
+    VERIFIED: tc.itemStatusVerified,
+    PROVIDED_UNVERIFIED: tc.itemStatusUnderReview,
+    COMPLIANCE_PENDING: tc.itemStatusPending,
+    NOT_APPLICABLE: tc.itemStatusNA,
+    EXPIRED: tc.itemStatusExpired,
+  };
+  const statusInfo = {
+    ...statusBase,
+    label: statusLabelMap[item.status] || statusBase.label,
+  };
 
   const handleUploadDocument = async () => {
     try {
@@ -67,11 +84,17 @@ export default function ComplianceItemDetailScreen({ route, navigation }: any) {
 
       if (uploadRes.data?.url) {
         setDocumentUploads((prev) => [...prev, uploadRes.data.url]);
-        Alert.alert("Success", "Document uploaded");
+        Alert.alert(
+          t.complianceItem?.documentUploadedTitle || "Success",
+          t.complianceItem?.documentUploadedBody || "Document uploaded",
+        );
       }
     } catch (error: any) {
-      Alert.alert("Error", "Failed to upload document");
-      console.error("Upload error:", error);
+      Alert.alert(
+        t.common?.error || "Error",
+        t.complianceItem?.uploadDocumentFailed || "Failed to upload document",
+      );
+      log.error("Upload error:", error);
     } finally {
       setUploading(false);
     }
@@ -87,26 +110,35 @@ export default function ComplianceItemDetailScreen({ route, navigation }: any) {
         documentUploads,
         technicianId: item.technicianId || undefined,
       });
-      Alert.alert("Success", "Compliance item updated", [
-        { text: "OK", onPress: () => navigation.goBack() },
-      ]);
+      Alert.alert(
+        t.complianceItem?.itemUpdatedTitle || "Success",
+        t.complianceItem?.itemUpdatedBody || "Compliance item updated",
+        [{ text: t.common?.ok || "OK", onPress: () => navigation.goBack() }],
+      );
     } catch (error: any) {
-      Alert.alert("Error", error?.response?.data?.message || "Failed to save");
+      Alert.alert(
+        t.common?.error || "Error",
+        error?.response?.data?.message || t.complianceItem?.saveFailed || "Failed to save",
+      );
     } finally {
       setSaving(false);
     }
   };
 
   const removeDocument = (index: number) => {
-    Alert.alert("Remove Document", "Are you sure?", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(
+      t.complianceItem?.removeDocumentTitle || "Remove Document",
+      t.complianceItem?.removeDocumentMessage || "Are you sure?",
+      [
+      { text: t.common?.cancel || "Cancel", style: "cancel" },
       {
-        text: "Remove",
+        text: t.common?.remove || "Remove",
         style: "destructive",
         onPress: () =>
           setDocumentUploads((prev) => prev.filter((_, i) => i !== index)),
       },
-    ]);
+    ],
+    );
   };
 
   return (
@@ -119,7 +151,9 @@ export default function ComplianceItemDetailScreen({ route, navigation }: any) {
           <Ionicons name="arrow-back" size={24} color="#1f2937" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
-          {COMPLIANCE_TYPE_LABELS[item.type] || item.type}
+          {(tc as any)[`complianceType_${item.type}`] ||
+            COMPLIANCE_TYPE_LABELS[item.type] ||
+            item.type}
         </Text>
         <View style={{ width: 40 }} />
       </View>
@@ -127,7 +161,9 @@ export default function ComplianceItemDetailScreen({ route, navigation }: any) {
       <ScrollView style={styles.content}>
         {/* Status */}
         <View style={styles.statusCard}>
-          <Text style={styles.statusLabel}>Current Status</Text>
+          <Text style={styles.statusLabel}>
+            {ci.currentStatus || "Current Status"}
+          </Text>
           <View
             style={[
               styles.statusBadge,
@@ -140,8 +176,10 @@ export default function ComplianceItemDetailScreen({ route, navigation }: any) {
           </View>
           {item.lastVerifiedAt && (
             <Text style={styles.verifiedDate}>
-              Last verified:{" "}
-              {new Date(item.lastVerifiedAt).toLocaleDateString()}
+              {interpolate(
+                ci.lastVerifiedLine || "Last verified: {{date}}",
+                { date: formatDate(item.lastVerifiedAt) },
+              )}
             </Text>
           )}
         </View>
@@ -150,21 +188,23 @@ export default function ComplianceItemDetailScreen({ route, navigation }: any) {
         <View style={styles.field}>
           <Text style={styles.fieldLabel}>
             {item.type === "FDACS_MOTOR_VEHICLE_REPAIR"
-              ? "FDACS Registration Number"
-              : "License/Registration Number"}
+              ? ci.labelFdacsRegNumber || "FDACS Registration Number"
+              : ci.labelLicenseRegNumber || "License/Registration Number"}
           </Text>
           <TextInput
             style={styles.input}
             value={registrationNumber}
             onChangeText={setRegistrationNumber}
-            placeholder="Enter registration number"
+            placeholder={ci.regPlaceholder || "Enter registration number"}
             placeholderTextColor="#9ca3af"
           />
         </View>
 
         {/* Expiration Date */}
         <View style={styles.field}>
-          <Text style={styles.fieldLabel}>Expiration Date</Text>
+          <Text style={styles.fieldLabel}>
+            {ci.expirationLabel || "Expiration Date"}
+          </Text>
           <TextInput
             style={styles.input}
             value={expirationDate}
@@ -182,28 +222,34 @@ export default function ComplianceItemDetailScreen({ route, navigation }: any) {
                   digits.slice(4);
               setExpirationDate(formatted);
             }}
-            placeholder="MM/DD/YYYY"
+            placeholder={ci.datePlaceholder || "MM/DD/YYYY"}
             placeholderTextColor="#9ca3af"
             keyboardType="numeric"
             maxLength={10}
           />
           <Text style={styles.fieldHint}>
-            Format: MM/DD/YYYY (e.g., 12/31/2026)
+            {ci.expirationHint ||
+              "Format: MM/DD/YYYY (e.g., 12/31/2026)"}
           </Text>
         </View>
 
         {/* Documents */}
         <View style={styles.field}>
-          <Text style={styles.fieldLabel}>Supporting Documents</Text>
+          <Text style={styles.fieldLabel}>
+            {ci.supportingDocsTitle || "Supporting Documents"}
+          </Text>
           <Text style={styles.fieldHint}>
-            Upload license, registration, or certificate images/PDFs
+            {ci.supportingDocsHint ||
+              "Upload license, registration, or certificate images/PDFs"}
           </Text>
 
           {documentUploads.map((url, index) => (
             <View key={index} style={styles.documentRow}>
               <Ionicons name="document-attach" size={18} color="#2B5EA7" />
               <Text style={styles.documentText} numberOfLines={1}>
-                Document {index + 1}
+                {interpolate(ci.documentNumber || "Document {{index}}", {
+                  index: index + 1,
+                })}
               </Text>
               <TouchableOpacity onPress={() => removeDocument(index)}>
                 <Ionicons name="close-circle" size={20} color="#ef4444" />
@@ -221,7 +267,9 @@ export default function ComplianceItemDetailScreen({ route, navigation }: any) {
             ) : (
               <>
                 <Ionicons name="cloud-upload" size={20} color="#2B5EA7" />
-                <Text style={styles.uploadBtnText}>Upload Document</Text>
+                <Text style={styles.uploadBtnText}>
+                  {ci.uploadDocument || "Upload Document"}
+                </Text>
               </>
             )}
           </TouchableOpacity>
@@ -236,7 +284,9 @@ export default function ComplianceItemDetailScreen({ route, navigation }: any) {
           {saving ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.saveBtnText}>Save Changes</Text>
+            <Text style={styles.saveBtnText}>
+              {ci.saveChanges || "Save Changes"}
+            </Text>
           )}
         </TouchableOpacity>
 

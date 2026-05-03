@@ -22,6 +22,7 @@ import {
   TrendingDown,
 } from 'lucide-react'
 import Link from 'next/link'
+import { logApiError } from "../../utils/logger";
 
 interface Quote {
   id: string
@@ -100,7 +101,7 @@ export default function OrcamentosPage() {
       }))
       setQuotes(quotesData)
     } catch (error) {
-      console.error('Erro ao carregar orçamentos:', error)
+      logApiError('Erro ao carregar orçamentos:', error)
     } finally {
       setLoading(false)
     }

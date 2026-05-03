@@ -20,7 +20,7 @@ import { TextInput, Text, useTheme } from "react-native-paper";
 import { useAuth } from "../contexts/AuthContext";
 import { useI18n } from "../i18n";
 import { Ionicons } from "@expo/vector-icons";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as paymentService from "../services/payment.service";
 import { US_STATES, CITIES_BY_STATE } from "../constants/us-states";
 
@@ -101,7 +101,7 @@ const DEFAULT_CLIENT_PLANS: ClientPlanOption[] = [
 
 export default function SignupScreen({ navigation, route }: any) {
   const theme = useTheme();
-  const { t, language } = useI18n();
+  const { t, language, formatCurrency } = useI18n();
   const { signUp } = useAuth();
 
   const [fullName, setFullName] = useState("");
@@ -515,7 +515,7 @@ export default function SignupScreen({ navigation, route }: any) {
         email,
         ...(normalizedPhone ? { phone: normalizedPhone } : {}),
         password,
-        language: "PT",
+        language: language.toUpperCase(),
         role: selectedRole === "MARKETPLACE" ? "PROVIDER" : selectedRole,
         preferredOtpMethod: effectiveOtpMethod,
         ...(selectedRole === "CLIENT" ? {
@@ -856,7 +856,9 @@ export default function SignupScreen({ navigation, route }: any) {
                           </View>
                           <View style={{ alignItems: "flex-end" }}>
                             <Text style={{ fontWeight: "700", color: planColor, fontSize: 15 }}>
-                              {plan.price === 0 ? "Free" : `$${plan.price.toFixed(2)}`}
+                              {plan.price === 0
+                                ? t.common?.free || "Free"
+                                : formatCurrency(plan.price)}
                             </Text>
                             {plan.price > 0 && (
                               <Text style={{ fontSize: 10, color: "#9ca3af" }}>/mo</Text>
@@ -1649,7 +1651,7 @@ export default function SignupScreen({ navigation, route }: any) {
                           key: "basic" as const,
                           name: "Basic",
                           emoji: "⭐",
-                          price: "$29.99",
+                          priceAmount: 29.99,
                           color: "#6b7280",
                           activeColor: "#4b5563",
                           badge: null,
@@ -1661,7 +1663,7 @@ export default function SignupScreen({ navigation, route }: any) {
                           key: "pro" as const,
                           name: "Pro",
                           emoji: "🚀",
-                          price: "$49.99",
+                          priceAmount: 49.99,
                           color: "#7c3aed",
                           activeColor: "#6d28d9",
                           badge: "POPULAR",
@@ -1673,7 +1675,7 @@ export default function SignupScreen({ navigation, route }: any) {
                           key: "pro_plus" as const,
                           name: "Pro+",
                           emoji: "👑",
-                          price: "$89.99",
+                          priceAmount: 89.99,
                           color: "#d97706",
                           activeColor: "#b45309",
                           badge: "BEST VALUE",
@@ -1705,7 +1707,8 @@ export default function SignupScreen({ navigation, route }: any) {
                                   )}
                                 </View>
                                 <Text style={[mkStyles.planPrice, { color: active ? plan.color : "#374151" }]}>
-                                  {plan.price}<Text style={mkStyles.planPriceSuffix}>/mo</Text>
+                                  {formatCurrency(plan.priceAmount)}
+                                  <Text style={mkStyles.planPriceSuffix}>/mo</Text>
                                 </Text>
                               </View>
                               <View style={[mkStyles.planRadio, { borderColor: active ? plan.color : "#d1d5db" }]}>

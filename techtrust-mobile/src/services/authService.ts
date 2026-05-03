@@ -9,6 +9,8 @@ import * as WebBrowser from 'expo-web-browser';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
+import { log } from "../utils/logger";
+import { getStoredAppLanguage, translate } from "../i18n";
 
 // Complete auth session for web browser
 WebBrowser.maybeCompleteAuthSession();
@@ -60,7 +62,7 @@ export async function signInWithGoogle(): Promise<GoogleUser | null> {
     });
 
     if (!clientId) {
-      console.log('Google Client ID not configured');
+      log.debug('Google Client ID not configured');
       throw new Error('Google Sign-In not configured');
     }
 
@@ -100,7 +102,7 @@ export async function signInWithGoogle(): Promise<GoogleUser | null> {
 
     return null;
   } catch (error) {
-    console.error('Google Sign-In error:', error);
+    log.error('Google Sign-In error:', error);
     throw error;
   }
 }
@@ -151,7 +153,7 @@ export async function signInWithApple(): Promise<AppleUser | null> {
       // User canceled the sign-in
       return null;
     }
-    console.error('Apple Sign-In error:', error);
+    log.error('Apple Sign-In error:', error);
     throw error;
   }
 }
@@ -188,7 +190,7 @@ export async function getBiometricInfo(): Promise<BiometricInfo> {
       isEnrolled,
     };
   } catch (error) {
-    console.error('Error getting biometric info:', error);
+    log.error('Error getting biometric info:', error);
     return {
       isAvailable: false,
       biometricType: 'none',
@@ -198,19 +200,23 @@ export async function getBiometricInfo(): Promise<BiometricInfo> {
 }
 
 export async function authenticateWithBiometric(
-  promptMessage: string = 'Authenticate to continue'
+  promptMessage?: string,
 ): Promise<boolean> {
   try {
+    const lang = await getStoredAppLanguage();
+    const prompt =
+      promptMessage ??
+      translate("common.authenticateToContinue", lang);
     const result = await LocalAuthentication.authenticateAsync({
-      promptMessage,
-      fallbackLabel: 'Use passcode',
-      cancelLabel: 'Cancel',
+      promptMessage: prompt,
+      fallbackLabel: translate("biometric.usePasscode", lang),
+      cancelLabel: translate("common.cancel", lang),
       disableDeviceFallback: false,
     });
 
     return result.success;
   } catch (error) {
-    console.error('Biometric authentication error:', error);
+    log.error('Biometric authentication error:', error);
     return false;
   }
 }
@@ -224,7 +230,7 @@ export async function storeCredentials(email: string, password: string): Promise
     await SecureStore.setItemAsync(STORED_EMAIL_KEY, email);
     await SecureStore.setItemAsync(STORED_PASSWORD_KEY, password);
   } catch (error) {
-    console.error('Error storing credentials:', error);
+    log.error('Error storing credentials:', error);
     throw error;
   }
 }
@@ -239,7 +245,7 @@ export async function getStoredCredentials(): Promise<{ email: string; password:
     }
     return null;
   } catch (error) {
-    console.error('Error getting stored credentials:', error);
+    log.error('Error getting stored credentials:', error);
     return null;
   }
 }
@@ -249,7 +255,7 @@ export async function clearStoredCredentials(): Promise<void> {
     await SecureStore.deleteItemAsync(STORED_EMAIL_KEY);
     await SecureStore.deleteItemAsync(STORED_PASSWORD_KEY);
   } catch (error) {
-    console.error('Error clearing credentials:', error);
+    log.error('Error clearing credentials:', error);
   }
 }
 
@@ -262,7 +268,7 @@ export async function isBiometricLoginEnabled(): Promise<boolean> {
     const value = await SecureStore.getItemAsync(BIOMETRIC_ENABLED_KEY);
     return value === 'true';
   } catch (error) {
-    console.error('Error checking biometric enabled:', error);
+    log.error('Error checking biometric enabled:', error);
     return false;
   }
 }
@@ -271,7 +277,7 @@ export async function setBiometricLoginEnabled(enabled: boolean): Promise<void> 
   try {
     await SecureStore.setItemAsync(BIOMETRIC_ENABLED_KEY, enabled ? 'true' : 'false');
   } catch (error) {
-    console.error('Error setting biometric enabled:', error);
+    log.error('Error setting biometric enabled:', error);
     throw error;
   }
 }
@@ -289,7 +295,7 @@ export async function setBiometricPromptShown(): Promise<void> {
   try {
     await SecureStore.setItemAsync(BIOMETRIC_PROMPT_SHOWN_KEY, 'true');
   } catch (error) {
-    console.error('Error setting biometric prompt shown:', error);
+    log.error('Error setting biometric prompt shown:', error);
   }
 }
 
@@ -297,7 +303,7 @@ export async function resetBiometricPromptShown(): Promise<void> {
   try {
     await SecureStore.deleteItemAsync(BIOMETRIC_PROMPT_SHOWN_KEY);
   } catch (error) {
-    console.error('Error resetting biometric prompt shown:', error);
+    log.error('Error resetting biometric prompt shown:', error);
   }
 }
 
@@ -306,7 +312,7 @@ export async function resetBiometricPromptShown(): Promise<void> {
 // ============================================
 
 export async function attemptBiometricLogin(
-  promptMessage: string = 'Log in with biometrics'
+  promptMessage?: string,
 ): Promise<{ email: string; password: string } | null> {
   try {
     // Check if biometric login is enabled
@@ -315,8 +321,12 @@ export async function attemptBiometricLogin(
       return null;
     }
 
+    const lang = await getStoredAppLanguage();
+    const prompt =
+      promptMessage ?? translate("biometric.attemptLoginPrompt", lang);
+
     // Verify biometrics
-    const authenticated = await authenticateWithBiometric(promptMessage);
+    const authenticated = await authenticateWithBiometric(prompt);
     if (!authenticated) {
       return null;
     }
@@ -325,7 +335,7 @@ export async function attemptBiometricLogin(
     const credentials = await getStoredCredentials();
     return credentials;
   } catch (error) {
-    console.error('Biometric login error:', error);
+    log.error('Biometric login error:', error);
     return null;
   }
 }
@@ -340,7 +350,7 @@ export async function disableBiometricLogin(): Promise<void> {
     await clearStoredCredentials();
     await resetBiometricPromptShown();
   } catch (error) {
-    console.error('Error disabling biometric login:', error);
+    log.error('Error disabling biometric login:', error);
     throw error;
   }
 }

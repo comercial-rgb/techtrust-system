@@ -24,6 +24,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../../contexts/AuthContext";
+import { useI18n } from "../../i18n";
 import api from "../../services/api";
 
 // ─── Step IDs ─────────────────────────────────────────────────────────────────
@@ -81,6 +82,8 @@ const TIME_OPTIONS = [
 
 export default function MarketplaceOnboardingScreen({ navigation }: any) {
   const { user, completeOnboarding } = useAuth();
+  const { t } = useI18n();
+  const mo = t.marketplaceOnboarding;
   const [currentStep, setCurrentStep] = useState(0);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -122,12 +125,17 @@ export default function MarketplaceOnboardingScreen({ navigation }: any) {
 
   const handleSkip = () => {
     Alert.alert(
-      "Skip Setup?",
-      "You can complete these settings later from your Profile.",
+      t.provider?.skipSetupTitle || "Skip Setup?",
+      t.marketplaceOnboarding?.skipSetupBody ||
+        "You can complete these settings later from your Profile.",
       [
-        { text: "Cancel", style: "cancel" },
-        { text: "Skip Anyway", style: "destructive", onPress: () => completeOnboarding() },
-      ]
+        { text: t.common?.cancel || "Cancel", style: "cancel" },
+        {
+          text: t.provider?.skipAnywayOnboarding || "Skip Anyway",
+          style: "destructive",
+          onPress: () => completeOnboarding(),
+        },
+      ],
     );
   };
 
@@ -143,7 +151,11 @@ export default function MarketplaceOnboardingScreen({ navigation }: any) {
       if (user) await markStepDone(user.id, "hours");
       goNext();
     } catch {
-      Alert.alert("Error", "Could not save business hours. Please try again.");
+      Alert.alert(
+        t.common?.error || "Error",
+        t.provider?.saveBusinessHoursFailed ||
+          "Could not save business hours. Please try again.",
+      );
     } finally {
       setHoursSaving(false);
     }
@@ -158,7 +170,11 @@ export default function MarketplaceOnboardingScreen({ navigation }: any) {
       if (user) await markStepDone(user.id, "description");
       goNext();
     } catch {
-      Alert.alert("Error", "Could not save description. Please try again.");
+      Alert.alert(
+        t.common?.error || "Error",
+        t.provider?.saveBusinessDescriptionFailed ||
+          "Could not save description. Please try again.",
+      );
     } finally {
       setDescSaving(false);
     }
@@ -175,30 +191,45 @@ export default function MarketplaceOnboardingScreen({ navigation }: any) {
       <View style={[styles.iconCircle, { backgroundColor: bgColor }]}>
         <MaterialCommunityIcons name="store-check" size={60} color={color} />
       </View>
-      <Text style={styles.title}>Welcome to TechTrust!</Text>
+      <Text style={styles.title}>
+        {t.onboarding?.welcomeTitle || "Welcome to TechTrust!"}
+      </Text>
       <Text style={styles.subtitle}>
-        Your marketplace listing is under review. Let's take 2 minutes to set up
-        your profile so customers can find you and know when to visit.
+        {mo?.welcomeSubtitle ||
+          "Your marketplace listing is under review. Let's take 2 minutes to set up your profile so customers can find you and know when to visit."}
       </Text>
 
       <View style={styles.reviewBanner}>
         <MaterialCommunityIcons name="clock-alert" size={20} color="#1d4ed8" />
         <View style={{ flex: 1 }}>
-          <Text style={styles.reviewBannerTitle}>Listing Under Review</Text>
+          <Text style={styles.reviewBannerTitle}>
+            {mo?.listingUnderReviewTitle || "Listing Under Review"}
+          </Text>
           <Text style={styles.reviewBannerText}>
-            Our team verifies all marketplace listings before they go live.
-            You'll receive a notification once your listing is approved (typically
-            1–2 business days).
+            {mo?.listingUnderReviewBody ||
+              "Our team verifies all marketplace listings before they go live. You'll receive a notification once your listing is approved (typically 1–2 business days)."}
           </Text>
         </View>
       </View>
 
       <View style={styles.benefitList}>
         {[
-          { icon: "clock-time-four",  text: "Set your opening hours so customers know when you're open" },
-          { icon: "text-box-edit",    text: "Write a bio to stand out from other listings" },
-          { icon: "star",             text: "Verified listings appear higher in search results" },
-          { icon: "bell",             text: "Receive booking and review notifications in real time" },
+          {
+            icon: "clock-time-four",
+            text: mo?.benefitHours || "Set your opening hours so customers know when you're open",
+          },
+          {
+            icon: "text-box-edit",
+            text: mo?.benefitBio || "Write a bio to stand out from other listings",
+          },
+          {
+            icon: "star",
+            text: mo?.benefitVerified || "Verified listings appear higher in search results",
+          },
+          {
+            icon: "bell",
+            text: mo?.benefitNotifications || "Receive booking and review notifications in real time",
+          },
         ].map((b, i) => (
           <View key={i} style={styles.benefitRow}>
             <View style={[styles.benefitIcon, { backgroundColor: bgColor }]}>
@@ -216,17 +247,19 @@ export default function MarketplaceOnboardingScreen({ navigation }: any) {
       <View style={[styles.iconCircle, { backgroundColor: bgColor }]}>
         <MaterialCommunityIcons name="clock-time-four" size={60} color={color} />
       </View>
-      <Text style={styles.title}>Opening Hours</Text>
+      <Text style={styles.title}>
+        {mo?.openingHoursTitle || "Opening Hours"}
+      </Text>
       <Text style={styles.subtitle}>
-        Show customers when they can visit. Businesses with visible hours get
-        significantly more walk-ins and bookings.
+        {mo?.openingHoursSubtitle ||
+          "Show customers when they can visit. Businesses with visible hours get significantly more walk-ins and bookings."}
       </Text>
 
       <View style={styles.impactBox}>
         <MaterialCommunityIcons name="lightbulb-outline" size={16} color={color} />
         <Text style={styles.impactText}>
-          <Text style={{ fontWeight: "700" }}>If you skip this:</Text> Your listing shows
-          "Hours not set" — customers may choose a competitor with visible hours.
+          {mo?.hoursImpactText ||
+            'If you skip this: Your listing shows "Hours not set" — customers may choose a competitor with visible hours.'}
         </Text>
       </View>
 
@@ -264,7 +297,9 @@ export default function MarketplaceOnboardingScreen({ navigation }: any) {
                 </TouchableOpacity>
               </View>
             ) : (
-              <Text style={styles.closedText}>Closed</Text>
+              <Text style={styles.closedText}>
+                {mo?.closed || "Closed"}
+              </Text>
             )}
           </View>
         ))}
@@ -274,7 +309,9 @@ export default function MarketplaceOnboardingScreen({ navigation }: any) {
         {hoursSaving ? <ActivityIndicator color="#fff" /> : (
           <>
             <Ionicons name="checkmark-circle" size={20} color="#fff" />
-            <Text style={styles.saveBtnText}>Save Opening Hours</Text>
+            <Text style={styles.saveBtnText}>
+              {mo?.saveOpeningHours || "Save Opening Hours"}
+            </Text>
           </>
         )}
       </TouchableOpacity>
@@ -285,28 +322,30 @@ export default function MarketplaceOnboardingScreen({ navigation }: any) {
           <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                {editingField === "openTime" ? "Opening Time" : "Closing Time"}
+                {editingField === "openTime"
+                  ? mo?.openingTime || "Opening Time"
+                  : mo?.closingTime || "Closing Time"}
               </Text>
               <TouchableOpacity onPress={() => setShowTimePicker(false)}>
                 <Ionicons name="close" size={24} color="#374151" />
               </TouchableOpacity>
             </View>
             <ScrollView>
-              {TIME_OPTIONS.map((t) => {
-                const isSelected = editingDay !== null && schedule[editingDay][editingField] === t;
+              {TIME_OPTIONS.map((timeOpt) => {
+                const isSelected = editingDay !== null && schedule[editingDay][editingField] === timeOpt;
                 return (
                   <TouchableOpacity
-                    key={t}
+                    key={timeOpt}
                     style={[styles.modalItem, isSelected && styles.modalItemSelected]}
                     onPress={() => {
                       if (editingDay === null) return;
                       const s = [...schedule];
-                      s[editingDay] = { ...s[editingDay], [editingField]: t };
+                      s[editingDay] = { ...s[editingDay], [editingField]: timeOpt };
                       setSchedule(s);
                       setShowTimePicker(false);
                     }}
                   >
-                    <Text style={[styles.modalItemText, isSelected && { color, fontWeight: "700" }]}>{t}</Text>
+                    <Text style={[styles.modalItemText, isSelected && { color, fontWeight: "700" }]}>{timeOpt}</Text>
                     {isSelected && <Ionicons name="checkmark" size={18} color={color} />}
                   </TouchableOpacity>
                 );
@@ -324,25 +363,30 @@ export default function MarketplaceOnboardingScreen({ navigation }: any) {
         <View style={[styles.iconCircle, { backgroundColor: bgColor }]}>
           <MaterialCommunityIcons name="text-box-edit" size={60} color={color} />
         </View>
-        <Text style={styles.title}>Tell Your Story</Text>
+        <Text style={styles.title}>
+          {mo?.tellYourStoryTitle || "Tell Your Story"}
+        </Text>
         <Text style={styles.subtitle}>
-          A compelling description helps customers choose you over competitors.
-          Share what makes your business special.
+          {mo?.tellYourStorySubtitle ||
+            "A compelling description helps customers choose you over competitors. Share what makes your business special."}
         </Text>
 
         <View style={styles.impactBox}>
           <MaterialCommunityIcons name="lightbulb-outline" size={16} color={color} />
           <Text style={styles.impactText}>
-            <Text style={{ fontWeight: "700" }}>Listings with a description</Text> receive
-            3× more views and 2× more bookings. Customers want to know what to expect.
+            {mo?.descriptionImpactText ||
+              "Listings with a description receive 3× more views and 2× more bookings. Customers want to know what to expect."}
           </Text>
         </View>
 
         <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Business Description (optional)</Text>
+          <Text style={styles.label}>
+            {mo?.businessDescriptionOptional || "Business Description (optional)"}
+          </Text>
           <TextInput
             style={[styles.input, styles.textArea]}
             placeholder={
+              mo?.descriptionPlaceholder ||
               'e.g. "Family-owned car wash in Miami since 2010. We offer express washes, full detailing, and monthly unlimited wash memberships. Eco-friendly soaps and fast service — in and out in 15 minutes!"'
             }
             placeholderTextColor="#9ca3af"
@@ -357,12 +401,14 @@ export default function MarketplaceOnboardingScreen({ navigation }: any) {
         </View>
 
         <View style={styles.bioTips}>
-          <Text style={styles.bioTipsTitle}>What customers want to know:</Text>
+          <Text style={styles.bioTipsTitle}>
+            {mo?.descriptionTipsTitle || "What customers want to know:"}
+          </Text>
           {[
-            "How long you've been in business",
-            "What services or packages you offer",
-            "What makes you different (speed, eco-friendly, price, etc.)",
-            "Any loyalty programs, memberships, or special deals",
+            mo?.descriptionTip1 || "How long you've been in business",
+            mo?.descriptionTip2 || "What services or packages you offer",
+            mo?.descriptionTip3 || "What makes you different (speed, eco-friendly, price, etc.)",
+            mo?.descriptionTip4 || "Any loyalty programs, memberships, or special deals",
           ].map((tip, i) => (
             <View key={i} style={styles.bioTipRow}>
               <View style={[styles.bioTipDot, { backgroundColor: color }]} />
@@ -380,7 +426,9 @@ export default function MarketplaceOnboardingScreen({ navigation }: any) {
             <>
               <Ionicons name="checkmark-circle" size={20} color="#fff" />
               <Text style={styles.saveBtnText}>
-                {description.trim() ? "Save Description" : "Skip for Now"}
+                {description.trim()
+                  ? mo?.saveDescription || "Save Description"
+                  : mo?.skipForNow || "Skip for Now"}
               </Text>
             </>
           )}
@@ -394,32 +442,48 @@ export default function MarketplaceOnboardingScreen({ navigation }: any) {
       <View style={[styles.iconCircle, { backgroundColor: bgColor }]}>
         <MaterialCommunityIcons name="check-circle" size={60} color={color} />
       </View>
-      <Text style={styles.title}>You're Ready!</Text>
+      <Text style={styles.title}>
+        {mo?.youreReadyTitle || "You're Ready!"}
+      </Text>
       <Text style={styles.subtitle}>
-        Your listing is set up. Once approved by our team, customers will find
-        you on the TechTrust marketplace map.
+        {mo?.youreReadySubtitle ||
+          "Your listing is set up. Once approved by our team, customers will find you on the TechTrust marketplace map."}
       </Text>
 
       <View style={styles.reviewBanner}>
         <MaterialCommunityIcons name="clock-alert-outline" size={20} color="#1d4ed8" />
         <View style={{ flex: 1 }}>
-          <Text style={styles.reviewBannerTitle}>What Happens Next</Text>
+          <Text style={styles.reviewBannerTitle}>
+            {mo?.whatHappensNextTitle || "What Happens Next"}
+          </Text>
           <Text style={styles.reviewBannerText}>
-            1. Our team reviews your listing (1–2 business days){"\n"}
-            2. You'll get a push notification when approved{"\n"}
-            3. Customers can find and visit your business on the map{"\n"}
-            4. You can manage services, pricing, and reviews from your dashboard
+            {mo?.whatHappensNextBody ||
+              "1. Our team reviews your listing (1–2 business days)\n2. You'll get a push notification when approved\n3. Customers can find and visit your business on the map\n4. You can manage services, pricing, and reviews from your dashboard"}
           </Text>
         </View>
       </View>
 
       <View style={styles.doneCard}>
-        <Text style={styles.doneCardTitle}>While you wait, you can:</Text>
+        <Text style={styles.doneCardTitle}>
+          {mo?.whileYouWaitTitle || "While you wait, you can:"}
+        </Text>
         {[
-          { icon: "image-multiple", text: "Add photos of your business and services" },
-          { icon: "cash-multiple",  text: "Set up your payout method in Profile → Payouts" },
-          { icon: "tag",            text: "Configure your services and pricing" },
-          { icon: "star-circle",    text: "Ask your first customers to leave a review" },
+          {
+            icon: "image-multiple",
+            text: mo?.whileWaitPhoto || "Add photos of your business and services",
+          },
+          {
+            icon: "cash-multiple",
+            text: mo?.whileWaitPayout || "Set up your payout method in Profile → Payouts",
+          },
+          {
+            icon: "tag",
+            text: mo?.whileWaitPricing || "Configure your services and pricing",
+          },
+          {
+            icon: "star-circle",
+            text: mo?.whileWaitReview || "Ask your first customers to leave a review",
+          },
         ].map((item, i) => (
           <View key={i} style={styles.doneRow}>
             <View style={[styles.doneIcon, { backgroundColor: STEP_BG.done }]}>
@@ -458,7 +522,9 @@ export default function MarketplaceOnboardingScreen({ navigation }: any) {
         </View>
         <Text style={styles.headerCounter}>{currentStep + 1} / {totalSteps}</Text>
         <TouchableOpacity style={styles.skipHeaderBtn} onPress={handleSkip}>
-          <Text style={styles.skipHeaderText}>Skip all</Text>
+          <Text style={styles.skipHeaderText}>
+            {mo?.skipAll || "Skip all"}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -483,24 +549,32 @@ export default function MarketplaceOnboardingScreen({ navigation }: any) {
         {!isFirst && (
           <TouchableOpacity style={styles.footerBackBtn} onPress={goBack}>
             <Ionicons name="arrow-back" size={18} color="#6b7280" />
-            <Text style={styles.footerBackText}>Back</Text>
+            <Text style={styles.footerBackText}>
+              {mo?.back || "Back"}
+            </Text>
           </TouchableOpacity>
         )}
         <View style={{ flex: 1 }} />
 
         {isLast ? (
           <TouchableOpacity style={[styles.nextBtn, { backgroundColor: color }]} onPress={finishOnboarding}>
-            <Text style={styles.nextBtnText}>Go to Dashboard</Text>
+            <Text style={styles.nextBtnText}>
+              {mo?.goToDashboard || "Go to Dashboard"}
+            </Text>
             <MaterialCommunityIcons name="arrow-right" size={20} color="#fff" />
           </TouchableOpacity>
         ) : hasSaveBtn ? (
           <TouchableOpacity style={styles.skipStepBtn} onPress={goNext}>
-            <Text style={styles.skipStepText}>Skip this step</Text>
+            <Text style={styles.skipStepText}>
+              {mo?.skipThisStep || "Skip this step"}
+            </Text>
             <MaterialCommunityIcons name="arrow-right" size={16} color="#9ca3af" />
           </TouchableOpacity>
         ) : (
           <TouchableOpacity style={[styles.nextBtn, { backgroundColor: color }]} onPress={goNext}>
-            <Text style={styles.nextBtnText}>{isFirst ? "Let's Start" : "Next"}</Text>
+            <Text style={styles.nextBtnText}>
+              {isFirst ? mo?.letsStart || "Let's Start" : mo?.next || "Next"}
+            </Text>
             <MaterialCommunityIcons name="arrow-right" size={20} color="#fff" />
           </TouchableOpacity>
         )}

@@ -1,4 +1,5 @@
 import api from "./api";
+import { log } from "../utils/logger";
 
 export interface Banner {
   id: string;
@@ -73,7 +74,7 @@ export const getHomeData = async (): Promise<HomeData> => {
     const response = await api.get("/content/home-data");
     return response.data.data;
   } catch (error: any) {
-    console.error("Erro ao buscar dados da home:", error);
+    log.error("Erro ao buscar dados da home:", error);
     throw error;
   }
 };
@@ -86,7 +87,7 @@ export const getBanners = async (): Promise<Banner[]> => {
     const response = await api.get("/content/banners");
     return response.data?.data ?? response.data;
   } catch (error: any) {
-    console.error("Erro ao buscar banners:", error);
+    log.error("Erro ao buscar banners:", error);
     throw error;
   }
 };
@@ -99,7 +100,7 @@ export const getOffers = async (): Promise<SpecialOffer[]> => {
     const response = await api.get("/content/offers");
     return response.data?.data ?? response.data;
   } catch (error: any) {
-    console.error("Erro ao buscar ofertas:", error);
+    log.error("Erro ao buscar ofertas:", error);
     throw error;
   }
 };
@@ -112,7 +113,7 @@ export const getFeaturedProviders = async (): Promise<FeaturedProvider[]> => {
     const response = await api.get("/content/featured-providers");
     return response.data.data;
   } catch (error: any) {
-    console.error("Erro ao buscar fornecedores em destaque:", error);
+    log.error("Erro ao buscar fornecedores em destaque:", error);
     throw error;
   }
 };
@@ -127,7 +128,7 @@ export const getArticles = async (): Promise<Article[]> => {
     if (Array.isArray(response.data?.articles)) return response.data.articles;
     return response.data;
   } catch (error: any) {
-    console.error("Erro ao buscar artigos:", error);
+    log.error("Erro ao buscar artigos:", error);
     throw error;
   }
 };

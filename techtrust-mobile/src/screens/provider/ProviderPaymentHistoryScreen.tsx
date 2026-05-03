@@ -2,7 +2,7 @@
  * ProviderPaymentHistoryScreen - Histórico de Pagamentos (API)
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,9 +14,10 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useI18n } from '../../i18n';
 import * as paymentService from '../../services/payment.service';
+import { log } from "../../utils/logger";
 
 interface Payment {
   id: string;
@@ -40,7 +41,11 @@ interface Payment {
 type FilterType = 'all' | 'CAPTURED' | 'PENDING' | 'REFUNDED';
 
 export default function ProviderPaymentHistoryScreen({ navigation }: any) {
-  const { t } = useI18n();
+  const { t, language, formatCurrency } = useI18n();
+  const paymentDateLocale = useMemo(
+    () => (language === "pt" ? "pt-BR" : language === "es" ? "es-ES" : "en-US"),
+    [language],
+  );
   const [filter, setFilter] = useState<FilterType>('all');
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,7 +61,7 @@ export default function ProviderPaymentHistoryScreen({ navigation }: any) {
       setPayments(historyRes.data as any);
       setBalance(balanceRes);
     } catch (err) {
-      console.error('Error loading payment history:', err);
+      log.error('Error loading payment history:', err);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -105,7 +110,10 @@ export default function ProviderPaymentHistoryScreen({ navigation }: any) {
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { day: '2-digit', month: 'short' });
+    return date.toLocaleDateString(paymentDateLocale, {
+      day: "2-digit",
+      month: "short",
+    });
   };
 
   const renderPaymentItem = ({ item }: { item: Payment }) => (
@@ -136,15 +144,21 @@ export default function ProviderPaymentHistoryScreen({ navigation }: any) {
       <View style={styles.paymentDetails}>
         <View style={styles.detailCol}>
           <Text style={styles.detailLabel}>{t.provider?.totalValue || 'Total'}</Text>
-          <Text style={styles.detailValue}>${item.totalAmount.toFixed(2)}</Text>
+          <Text style={styles.detailValue}>
+            {formatCurrency(item.totalAmount)}
+          </Text>
         </View>
         <View style={styles.detailCol}>
           <Text style={styles.detailLabel}>{t.provider?.fee || 'Fee'}</Text>
-          <Text style={[styles.detailValue, { color: '#ef4444' }]}>-${item.platformFee.toFixed(2)}</Text>
+          <Text style={[styles.detailValue, { color: '#ef4444' }]}>
+            -{formatCurrency(item.platformFee)}
+          </Text>
         </View>
         <View style={styles.detailCol}>
           <Text style={styles.detailLabel}>{t.provider?.netAmount || 'You receive'}</Text>
-          <Text style={[styles.detailValue, styles.netValue]}>${item.providerAmount.toFixed(2)}</Text>
+          <Text style={[styles.detailValue, styles.netValue]}>
+            {formatCurrency(item.providerAmount)}
+          </Text>
         </View>
       </View>
 
@@ -201,14 +215,14 @@ export default function ProviderPaymentHistoryScreen({ navigation }: any) {
           <MaterialCommunityIcons name="check-circle" size={24} color="#16a34a" />
           <Text style={styles.summaryLabel}>{t.provider?.received || 'Received'}</Text>
           <Text style={[styles.summaryValue, { color: '#16a34a' }]}>
-            ${balance.available.toFixed(2)}
+            {formatCurrency(balance.available)}
           </Text>
         </View>
         <View style={[styles.summaryCard, { backgroundColor: '#fef3c7' }]}>
           <MaterialCommunityIcons name="clock-outline" size={24} color="#d97706" />
           <Text style={styles.summaryLabel}>{t.provider?.toReceive || 'Pending'}</Text>
           <Text style={[styles.summaryValue, { color: '#d97706' }]}>
-            ${balance.pending.toFixed(2)}
+            {formatCurrency(balance.pending)}
           </Text>
         </View>
       </View>

@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import AdminLayout from '../../components/AdminLayout';
 import { adminApi } from '../../services/api';
 import { Search, Star, User, Building2, Trash2, Flag, MessageSquare } from 'lucide-react';
+import { logApiError } from "../../utils/logger";
 
 interface Review {
   id: string;
@@ -33,7 +34,7 @@ export default function AvaliacoesPage() {
       const list = response.data?.data?.reviews || response.data?.data || response.data?.reviews || [];
       setReviews(Array.isArray(list) ? list : []);
     } catch (error) {
-      console.error('Erro ao carregar avaliações:', error);
+      logApiError('Erro ao carregar avaliações:', error);
       setReviews([]);
     } finally {
       setLoading(false);

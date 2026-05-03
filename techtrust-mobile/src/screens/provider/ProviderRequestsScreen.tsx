@@ -14,10 +14,11 @@ import {
   RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useI18n } from "../../i18n";
 import { getServiceTypeInfo as getServiceTypeInfoFromTree } from "../../constants/serviceTree";
+import { log } from "../../utils/logger";
 
 interface ServiceRequest {
   id: string;
@@ -102,7 +103,7 @@ export default function ProviderRequestsScreen({ navigation }: any) {
 
       setRequests(mappedRequests);
     } catch (error) {
-      console.error("Erro ao carregar pedidos:", error);
+      log.error("Erro ao carregar pedidos:", error);
       setRequests([]);
     } finally {
       setLoading(false);

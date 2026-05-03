@@ -19,11 +19,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { logos } from "../constants/images";
 import { useI18n } from "../i18n";
 import api from "../services/api";
+import { log } from "../utils/logger";
 
 const TIP_PRESETS = [5, 10, 15, 20];
 
 export default function RatingScreen({ navigation, route }: any) {
-  const { t } = useI18n();
+  const { t, formatDate, formatCurrency } = useI18n();
+  const fiatSymbol =
+    ((t as { formats?: { currencySymbol?: string } }).formats
+      ?.currencySymbol as string | undefined) || "$";
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -40,7 +44,7 @@ export default function RatingScreen({ navigation, route }: any) {
   const serviceData = {
     title: serviceTitle || t.rating?.serviceCompleted || "Service Completed",
     provider: providerName || t.common?.provider || "Provider",
-    date: serviceDate || new Date().toLocaleDateString("en-US"),
+    date: serviceDate || formatDate(new Date()),
   };
 
   const ratingLabels = [
@@ -84,7 +88,7 @@ export default function RatingScreen({ navigation, route }: any) {
       });
       return true;
     } catch (err: any) {
-      console.log("Tip error:", err?.response?.data?.message);
+      log.debug("Tip error:", err?.response?.data?.message);
       // Don't block the review if tip fails
       if (err?.response?.data?.code === "INSUFFICIENT_BALANCE") {
         Alert.alert(
@@ -124,7 +128,7 @@ export default function RatingScreen({ navigation, route }: any) {
       }
 
       const tipMsg = tipSent
-        ? `\n${t.rating?.tipSent || "Tip of"} $${tipAmount?.toFixed(2)} ${t.rating?.tipSentSuccess || "sent successfully!"}`
+        ? `\n${t.rating?.tipSent || "Tip of"} ${formatCurrency(tipAmount || 0)} ${t.rating?.tipSentSuccess || "sent successfully!"}`
         : "";
 
       Alert.alert(
@@ -283,7 +287,7 @@ export default function RatingScreen({ navigation, route }: any) {
                       styles.tipPresetTextSelected,
                   ]}
                 >
-                  ${preset}
+                  {formatCurrency(preset)}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -292,7 +296,7 @@ export default function RatingScreen({ navigation, route }: any) {
           {/* Custom Amount */}
           <View style={styles.tipCustomRow}>
             <Text style={styles.tipCustomLabel}>
-              {t.rating?.customAmount || "Custom"}: $
+              {t.rating?.customAmount || "Custom"}: {fiatSymbol}
             </Text>
             <TextInput
               style={styles.tipCustomInput}
@@ -335,7 +339,8 @@ export default function RatingScreen({ navigation, route }: any) {
       <View style={styles.footer}>
         {tipAmount && tipAmount > 0 ? (
           <Text style={styles.tipSummary}>
-            {t.rating?.includingTip || "Including tip"}: ${tipAmount.toFixed(2)}
+            {t.rating?.includingTip || "Including tip"}:{" "}
+            {formatCurrency(tipAmount)}
           </Text>
         ) : null}
         <TouchableOpacity

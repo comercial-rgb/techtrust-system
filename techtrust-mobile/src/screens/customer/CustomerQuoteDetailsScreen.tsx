@@ -20,6 +20,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import { useI18n } from "../../i18n";
+import { interpolate } from "../../i18n/interpolate";
 import api from "../../services/api";
 import * as serviceFlowService from "../../services/service-flow.service";
 import { getPaymentMethods } from "../../services/payment.service";
@@ -28,6 +29,7 @@ import PriceBreakdownCard, {
   PriceLineItem,
   calculateCustomerTotal,
 } from "../../components/PriceBreakdownCard";
+import { log } from "../../utils/logger";
 
 interface QuoteLineItem {
   id: string;
@@ -143,7 +145,11 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
             quoteData.quoteNumber || `QT-${quoteData.id.substring(0, 4)}`,
           status: quoteData.status,
           provider: {
-            name: providerData.fullName || providerData.name || "Provider",
+            name:
+              providerData.fullName ||
+              providerData.name ||
+              t.sos?.providerFallback ||
+              "Provider",
             phone: providerData.phone || "",
             email: providerData.email || "",
             address:
@@ -158,12 +164,16 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
               : undefined,
           },
           request: {
-            title: requestData.title || requestData.serviceType || "Service",
+            title:
+              requestData.title ||
+              requestData.serviceType ||
+              t.quote?.service ||
+              "Service",
             description: requestData.description || "",
           },
           vehicle: {
-            make: vehicleData.make || "N/A",
-            model: vehicleData.model || "N/A",
+            make: vehicleData.make || t.common?.naShort || "N/A",
+            model: vehicleData.model || t.common?.naShort || "N/A",
             year: vehicleData.year || 0,
             plate:
               vehicleData.plateNumber ||
@@ -203,7 +213,7 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
         setQuote(null);
       }
     } catch (error) {
-      console.error("Error loading quote details:", error);
+      log.error("Error loading quote details:", error);
       setQuote(null);
     } finally {
       setLoading(false);
@@ -211,31 +221,33 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
   };
 
   const getStatusInfo = (status: string) => {
+    const q = t.quote;
+    const p = t.provider;
     switch (status) {
       case "PENDING":
         return {
-          label: "Pending",
+          label: q?.pending || "Pending",
           color: "#f59e0b",
           bgColor: "#fef3c7",
           icon: "time",
         };
       case "ACCEPTED":
         return {
-          label: "Accepted",
+          label: p?.accepted || "Accepted",
           color: "#10b981",
           bgColor: "#d1fae5",
           icon: "checkmark-circle",
         };
       case "REJECTED":
         return {
-          label: "Rejected",
+          label: q?.rejected || "Rejected",
           color: "#ef4444",
           bgColor: "#fee2e2",
           icon: "close-circle",
         };
       case "EXPIRED":
         return {
-          label: "Expired",
+          label: q?.expired || "Expired",
           color: "#6b7280",
           bgColor: "#f3f4f6",
           icon: "alert-circle",
@@ -256,15 +268,30 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
     const { appServiceFee, processingFee, customerTotal } =
       calculateCustomerTotal(quote.grandTotal);
 
+    const q = t.quote;
+    const acceptHoldLines = [
+      interpolate(q?.acceptHoldLineService || "Service: {{amount}}", {
+        amount: formatCurrency(quote.grandTotal),
+      }),
+      ...(appServiceFee > 0
+        ? [
+            interpolate(q?.acceptHoldLineAppFee || "App service fee: {{amount}}", {
+              amount: formatCurrency(appServiceFee),
+            }),
+          ]
+        : []),
+      interpolate(q?.acceptHoldLineProcessing || "Processing fee: {{amount}}", {
+        amount: formatCurrency(processingFee),
+      }),
+      q?.acceptHoldBreakSeparator || "━━━━━━━━━━━━━━━━",
+      interpolate(q?.acceptHoldTotalHold || "Total hold: {{amount}}", {
+        amount: formatCurrency(customerTotal),
+      }),
+    ].join("\n");
+
     Alert.alert(
       t.quote?.acceptQuote || "Accept Quote",
-      `${t.quote?.acceptQuoteConfirm || "By accepting this quote, a payment hold will be placed on your card:"}\n\n` +
-        `Service: $${quote.grandTotal.toFixed(2)}\n` +
-        (appServiceFee > 0 ? `App service fee: $${appServiceFee.toFixed(2)}\n` : "") +
-        `Processing fee: $${processingFee.toFixed(2)}\n` +
-        `━━━━━━━━━━━━━━━━\n` +
-        `Total hold: $${customerTotal.toFixed(2)}\n\n` +
-        `${t.quote?.chargeOnlyAfterApproval || "You will only be charged after you review and approve the completed service."}`,
+      `${t.quote?.acceptQuoteConfirm || "By accepting this quote, a payment hold will be placed on your card:"}\n\n${acceptHoldLines}\n\n${t.quote?.chargeOnlyAfterApproval || "You will only be charged after you review and approve the completed service."}`,
       [
         { text: t.common?.cancel || "Cancel", style: "cancel" },
         {
@@ -312,7 +339,7 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
 
               Alert.alert(
                 t.common?.success || "Success!",
-                `${t.quote?.quoteAcceptedPaymentHeld || "Quote accepted! A payment hold of"} $${customerTotal.toFixed(2)} ${t.quote?.hasBeenPlaced || "has been placed. You will only be charged when you confirm service completion."}`,
+                `${t.quote?.quoteAcceptedPaymentHeld || "Quote accepted! A payment hold of"} ${formatCurrency(customerTotal)} ${t.quote?.hasBeenPlaced || "has been placed. You will only be charged when you confirm service completion."}`,
                 [
                   {
                     text: t.common?.ok || "OK",
@@ -324,7 +351,7 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
               const msg =
                 error.response?.data?.message ||
                 error.message ||
-                "Failed to accept quote";
+                t.customerQuotes?.failedToAcceptQuote || "Failed to accept quote";
               Alert.alert(t.common?.error || "Error", msg);
             }
           },
@@ -334,47 +361,86 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
   };
 
   const handleRejectQuote = () => {
-    Alert.alert("Reject Quote", "Are you sure you want to reject this quote?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Reject",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await api.post(`/quotes/${quote!.id}/reject`);
-            Alert.alert(
-              "Quote Rejected",
-              "You can still view other quotes for this request.",
-            );
-            navigation.goBack();
-          } catch (error: any) {
-            const msg =
-              error.response?.data?.message || "Failed to reject quote";
-            Alert.alert("Error", msg);
-          }
+    Alert.alert(
+      t.customerQuotes?.rejectTitle || "Reject Quote",
+      t.customerQuotes?.rejectMessage || "Are you sure you want to reject this quote?",
+      [
+        { text: t.common?.cancel || "Cancel", style: "cancel" },
+        {
+          text: t.customerQuotes?.rejectAction || "Reject",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await api.post(`/quotes/${quote!.id}/reject`);
+              Alert.alert(
+                t.customerQuotes?.quoteRejectedTitle || "Quote Rejected",
+                t.customerQuotes?.quoteRejectedBody ||
+                  "You can still view other quotes for this request.",
+              );
+              navigation.goBack();
+            } catch (error: any) {
+              const msg =
+                error.response?.data?.message ||
+                t.customerQuotes?.failedToRejectQuote ||
+                "Failed to reject quote";
+              Alert.alert(t.common?.error || "Error", msg);
+            }
+          },
         },
-      },
-    ]);
+      ],
+    );
   };
 
   const generatePdfHtml = () => {
     if (!quote) return "";
 
+    const cq = t.customerQuotes;
+    const q = t.quote;
+    const c = t.common;
+    const v = t.vehicle;
+
+    const escapeHtml = (s: string) =>
+      s
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+
     const { appServiceFee, processingFee, customerTotal } =
       calculateCustomerTotal(quote.grandTotal);
+
+    const pdfTitle = interpolate(cq?.pdfDocTitle || "Quote {{number}}", {
+      number: quote.quoteNumber,
+    });
+    const travelKm =
+      quote.distanceKm != null ? quote.distanceKm.toFixed(1) : "";
+    const travelFeeLabel = travelKm
+      ? interpolate(cq?.pdfTravelFeeKmLabel || "Travel Fee ({{km}} km):", {
+          km: travelKm,
+        })
+      : cq?.pdfTravelFeeLabel || "Travel Fee:";
+    const monthsUnit = q?.months || "months";
+    const daysUnit = q?.days || "days";
+    const includedLabel =
+      ((t as { customer?: { scopeBothIncluded?: string } }).customer
+        ?.scopeBothIncluded as string | undefined) || "Included";
 
     const itemsHtml = quote.items
       .map(
         (item) => `
       <tr>
         <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">
-          <div style="font-weight: 500;">${item.description}</div>
-          ${item.partCode ? `<div style="font-size: 12px; color: #6b7280;">Code: ${item.partCode}</div>` : ""}
+          <div style="font-weight: 500;">${escapeHtml(item.description)}</div>
+          ${
+            item.partCode
+              ? `<div style="font-size: 12px; color: #6b7280;">${escapeHtml(cq?.pdfCodeLabel || "Code:")} ${escapeHtml(item.partCode)}</div>`
+              : ""
+          }
         </td>
-        <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.type === "PART" ? "Part" : "Labor"}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.type === "PART" ? q?.part || "Part" : q?.labor || "Labor"}</td>
         <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity}</td>
-        <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: right;">$${item.unitPrice.toFixed(2)}</td>
-        <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 500;">$${(item.quantity * item.unitPrice).toFixed(2)}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: right;">${formatCurrency(item.unitPrice)}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 500;">${formatCurrency(item.quantity * item.unitPrice)}</td>
       </tr>
     `,
       )
@@ -385,7 +451,7 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
       <html>
       <head>
         <meta charset="utf-8">
-        <title>Quote ${quote.quoteNumber}</title>
+        <title>${escapeHtml(pdfTitle)}</title>
         <style>
           body { font-family: Arial, sans-serif; padding: 40px; color: #1f2937; }
           .header { display: flex; justify-content: space-between; margin-bottom: 30px; border-bottom: 2px solid #2B5EA7; padding-bottom: 20px; }
@@ -413,45 +479,45 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
         <div class="header">
           <div>
             <div class="logo">TechTrust</div>
-            <div style="color: #6b7280; font-size: 12px;">Trusted Automotive Services</div>
+            <div style="color: #6b7280; font-size: 12px;">${escapeHtml(cq?.pdfTagline || "Trusted Automotive Services")}</div>
           </div>
           <div class="quote-info">
-            <div class="quote-number">${quote.quoteNumber}</div>
-            <div style="color: #6b7280; font-size: 12px;">Date: ${formatDate(quote.createdAt)}</div>
-            <div style="color: #6b7280; font-size: 12px;">Valid Until: ${formatDate(quote.validUntil)}</div>
+            <div class="quote-number">${escapeHtml(quote.quoteNumber)}</div>
+            <div style="color: #6b7280; font-size: 12px;">${escapeHtml(cq?.pdfDateLabel || "Date:")} ${escapeHtml(formatDate(quote.createdAt))}</div>
+            <div style="color: #6b7280; font-size: 12px;">${escapeHtml(cq?.pdfValidUntilLabel || "Valid Until:")} ${escapeHtml(formatDate(quote.validUntil))}</div>
           </div>
         </div>
 
         <div class="info-grid">
           <div class="info-box">
-            <div class="section-title">Provider</div>
-            <div class="info-value">${quote.provider.name}</div>
-            <div style="font-size: 13px; color: #6b7280; margin-top: 4px;">${quote.provider.address}</div>
-            <div style="font-size: 13px; color: #6b7280;">${quote.provider.phone}</div>
+            <div class="section-title">${escapeHtml(c?.provider || "Provider")}</div>
+            <div class="info-value">${escapeHtml(quote.provider.name)}</div>
+            <div style="font-size: 13px; color: #6b7280; margin-top: 4px;">${escapeHtml(quote.provider.address)}</div>
+            <div style="font-size: 13px; color: #6b7280;">${escapeHtml(quote.provider.phone)}</div>
           </div>
           <div class="info-box">
-            <div class="section-title">Vehicle</div>
-            <div class="info-value">${quote.vehicle.year} ${quote.vehicle.make} ${quote.vehicle.model}</div>
-            <div style="font-size: 13px; color: #6b7280; margin-top: 4px;">Plate: ${quote.vehicle.plate}</div>
+            <div class="section-title">${escapeHtml(c?.vehicle || "Vehicle")}</div>
+            <div class="info-value">${escapeHtml(`${quote.vehicle.year} ${quote.vehicle.make} ${quote.vehicle.model}`)}</div>
+            <div style="font-size: 13px; color: #6b7280; margin-top: 4px;">${escapeHtml(v?.plate || "Plate")}: ${escapeHtml(quote.vehicle.plate)}</div>
           </div>
         </div>
 
         <div class="section" style="margin-top: 25px;">
-          <div class="section-title">Service Requested</div>
-          <div style="font-weight: 500;">${quote.request.title}</div>
-          <div style="font-size: 13px; color: #6b7280;">${quote.request.description}</div>
+          <div class="section-title">${escapeHtml(cq?.pdfServiceRequested || "Service Requested")}</div>
+          <div style="font-weight: 500;">${escapeHtml(quote.request.title)}</div>
+          <div style="font-size: 13px; color: #6b7280;">${escapeHtml(quote.request.description)}</div>
         </div>
 
         <div class="section">
-          <div class="section-title">Quote Items</div>
+          <div class="section-title">${escapeHtml(cq?.pdfQuoteItems || "Quote Items")}</div>
           <table>
             <thead>
               <tr>
-                <th>Description</th>
-                <th style="text-align: center;">Type</th>
-                <th style="text-align: center;">Qty</th>
-                <th style="text-align: right;">Unit Price</th>
-                <th style="text-align: right;">Total</th>
+                <th>${escapeHtml(cq?.pdfThDescription || "Description")}</th>
+                <th style="text-align: center;">${escapeHtml(cq?.pdfThType || "Type")}</th>
+                <th style="text-align: center;">${escapeHtml(q?.qty || "Qty")}</th>
+                <th style="text-align: right;">${escapeHtml(q?.unitPrice || "Unit Price")}</th>
+                <th style="text-align: right;">${escapeHtml(q?.total || "Total")}</th>
               </tr>
             </thead>
             <tbody>
@@ -462,19 +528,19 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
 
         <div class="totals">
           <div class="totals-row">
-            <span class="totals-label">Parts Subtotal:</span>
-            <span class="totals-value">$${quote.partsTotal.toFixed(2)}</span>
+            <span class="totals-label">${escapeHtml(cq?.pdfPartsSubtotal || "Parts Subtotal:")}</span>
+            <span class="totals-value">${formatCurrency(quote.partsTotal)}</span>
           </div>
           <div class="totals-row">
-            <span class="totals-label">Labor Subtotal:</span>
-            <span class="totals-value">$${quote.laborTotal.toFixed(2)}</span>
+            <span class="totals-label">${escapeHtml(cq?.pdfLaborSubtotal || "Labor Subtotal:")}</span>
+            <span class="totals-value">${formatCurrency(quote.laborTotal)}</span>
           </div>
           ${
             quote.discount > 0
               ? `
           <div class="totals-row">
-            <span class="totals-label">Discount:</span>
-            <span class="totals-value" style="color: #10b981;">-$${quote.discount.toFixed(2)}</span>
+            <span class="totals-label">${escapeHtml(q?.discount || "Discount")}:</span>
+            <span class="totals-value" style="color: #10b981;">-${formatCurrency(quote.discount)}</span>
           </div>
           `
               : ""
@@ -483,42 +549,42 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
             quote.travelFee > 0
               ? `
           <div class="totals-row">
-            <span class="totals-label">Travel Fee${quote.distanceKm ? ` (${quote.distanceKm.toFixed(1)} km)` : ""}:</span>
-            <span class="totals-value">$${quote.travelFee.toFixed(2)}</span>
+            <span class="totals-label">${escapeHtml(travelFeeLabel)}</span>
+            <span class="totals-value">${formatCurrency(quote.travelFee)}</span>
           </div>
           `
               : ""
           }
           <div class="totals-row">
-            <span class="totals-label">Tax:</span>
-            <span class="totals-value">$${quote.tax.toFixed(2)}</span>
+            <span class="totals-label">${escapeHtml(q?.tax || "Tax")}:</span>
+            <span class="totals-value">${formatCurrency(quote.tax)}</span>
           </div>
           <div class="totals-row" style="border-top: 1px solid #e5e7eb; padding-top: 8px; margin-top: 8px;">
-            <span class="totals-label" style="font-weight: 600;">Service Subtotal:</span>
-            <span class="totals-value" style="font-weight: 600;">$${quote.grandTotal.toFixed(2)}</span>
+            <span class="totals-label" style="font-weight: 600;">${escapeHtml(cq?.pdfServiceSubtotal || "Service Subtotal:")}</span>
+            <span class="totals-value" style="font-weight: 600;">${formatCurrency(quote.grandTotal)}</span>
           </div>
           <div class="totals-row">
-            <span class="totals-label">App Service Fee:</span>
-            <span class="totals-value">${appServiceFee > 0 ? `$${appServiceFee.toFixed(2)}` : "Included"}</span>
+            <span class="totals-label">${escapeHtml(cq?.pdfAppServiceFee || "App Service Fee:")}</span>
+            <span class="totals-value">${appServiceFee > 0 ? formatCurrency(appServiceFee) : escapeHtml(includedLabel)}</span>
           </div>
           <div class="totals-row">
-            <span class="totals-label">Processing Fee:</span>
-            <span class="totals-value">$${processingFee.toFixed(2)}</span>
+            <span class="totals-label">${escapeHtml(cq?.pdfProcessingFee || "Processing Fee:")}</span>
+            <span class="totals-value">${formatCurrency(processingFee)}</span>
           </div>
           <div class="totals-row grand-total">
-            <span class="totals-label" style="font-weight: bold; color: #1f2937;">Total You Pay:</span>
-            <span class="totals-value" style="font-size: 20px;">$${customerTotal.toFixed(2)}</span>
+            <span class="totals-label" style="font-weight: bold; color: #1f2937;">${escapeHtml(cq?.pdfTotalYouPay || "Total You Pay:")}</span>
+            <span class="totals-value" style="font-size: 20px;">${formatCurrency(customerTotal)}</span>
           </div>
         </div>
 
         <div class="section" style="margin-top: 25px;">
           <div class="warranty-box">
-            <div class="section-title" style="margin-bottom: 8px;">Warranty Information</div>
+            <div class="section-title" style="margin-bottom: 8px;">${escapeHtml(cq?.pdfWarrantyTitle || "Warranty Information")}</div>
             <div style="font-size: 13px;">
-              <strong>Parts:</strong> ${quote.warranty.partsMonths} months • 
-              <strong>Service:</strong> ${quote.warranty.serviceDays} days
+              <strong>${escapeHtml(cq?.pdfWarrantyPartsLabel || "Parts:")}</strong> ${quote.warranty.partsMonths} ${escapeHtml(monthsUnit)}${escapeHtml(cq?.pdfWarrantyBullet || " • ")}
+              <strong>${escapeHtml(cq?.pdfWarrantyServiceLabel || "Service:")}</strong> ${quote.warranty.serviceDays} ${escapeHtml(daysUnit)}
             </div>
-            <div style="font-size: 12px; color: #6b7280; margin-top: 6px;">${quote.warranty.terms}</div>
+            <div style="font-size: 12px; color: #6b7280; margin-top: 6px;">${escapeHtml(quote.warranty.terms)}</div>
           </div>
         </div>
 
@@ -526,16 +592,16 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
           quote.notes
             ? `
         <div class="section">
-          <div class="section-title">Notes</div>
-          <div style="font-size: 13px; color: #374151;">${quote.notes}</div>
+          <div class="section-title">${escapeHtml(q?.notes || "Notes")}</div>
+          <div style="font-size: 13px; color: #374151;">${escapeHtml(quote.notes)}</div>
         </div>
         `
             : ""
         }
 
         <div class="footer">
-          <div>Thank you for choosing TechTrust!</div>
-          <div style="margin-top: 4px;">Questions? Contact us at support@techtrust.com</div>
+          <div>${escapeHtml(cq?.pdfFooterThanks || "Thank you for choosing TechTrust!")}</div>
+          <div style="margin-top: 4px;">${escapeHtml(cq?.pdfFooterContact || "Questions? Contact us at support@techtrust.com")}</div>
         </div>
       </body>
       </html>
@@ -552,51 +618,121 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(uri, {
           mimeType: "application/pdf",
-          dialogTitle: `Quote ${quote.quoteNumber}`,
+          dialogTitle: interpolate(
+            t.customerQuotes?.pdfShareDialogTitle || "Quote {{number}}",
+            { number: quote.quoteNumber },
+          ),
           UTI: "com.adobe.pdf",
         });
       } else {
         Alert.alert(
-          "Sharing not available",
-          "Sharing is not available on this device.",
+          t.customerQuotes?.sharingUnavailableTitle || "Sharing not available",
+          t.customerQuotes?.sharingUnavailableBody ||
+            "Sharing is not available on this device.",
         );
       }
     } catch (error) {
-      console.error("Error generating PDF:", error);
-      Alert.alert("Error", "Could not generate PDF. Please try again.");
+      log.error("Error generating PDF:", error);
+      Alert.alert(
+        t.common?.error || "Error",
+        t.customerQuotes?.pdfGenerateFailed ||
+          "Could not generate PDF. Please try again.",
+      );
     }
   };
 
   const handleShareText = async () => {
     if (!quote) return;
 
+    const cq = t.customerQuotes;
     const { appServiceFee, processingFee, customerTotal } =
       calculateCustomerTotal(quote.grandTotal);
 
-    const text = `
-Quote: ${quote.quoteNumber}
-Provider: ${quote.provider.name}
-Service: ${quote.request.title}
-Vehicle: ${quote.vehicle.year} ${quote.vehicle.make} ${quote.vehicle.model}
+    const vehicleLine = `${quote.vehicle.year} ${quote.vehicle.make} ${quote.vehicle.model}`;
 
-Parts: $${quote.partsTotal.toFixed(2)}
-Labor: $${quote.laborTotal.toFixed(2)}${quote.travelFee > 0 ? `\nTravel Fee: $${quote.travelFee.toFixed(2)}` : ""}${quote.discount > 0 ? `\nDiscount: -$${quote.discount.toFixed(2)}` : ""}
-Tax: $${quote.tax.toFixed(2)}
-Service Subtotal: $${quote.grandTotal.toFixed(2)}${appServiceFee > 0 ? `\nApp Service Fee: $${appServiceFee.toFixed(2)}` : ""}
-Processing Fee: $${processingFee.toFixed(2)}
-━━━━━━━━━━━━━━━━
-Total: $${customerTotal.toFixed(2)}
+    const lines: string[] = [
+      interpolate(cq?.shareLineQuote || "Quote: {{number}}", {
+        number: quote.quoteNumber,
+      }),
+      interpolate(cq?.shareLineProvider || "Provider: {{name}}", {
+        name: quote.provider.name,
+      }),
+      interpolate(cq?.shareLineService || "Service: {{title}}", {
+        title: quote.request.title,
+      }),
+      interpolate(cq?.shareLineVehicle || "Vehicle: {{vehicle}}", {
+        vehicle: vehicleLine,
+      }),
+      interpolate(cq?.shareLineParts || "Parts: {{amount}}", {
+        amount: formatCurrency(quote.partsTotal),
+      }),
+      interpolate(cq?.shareLineLabor || "Labor: {{amount}}", {
+        amount: formatCurrency(quote.laborTotal),
+      }),
+    ];
 
-Valid until: ${formatDate(quote.validUntil)}
-    `.trim();
+    if (quote.travelFee > 0) {
+      lines.push(
+        interpolate(cq?.shareLineTravelFee || "Travel fee: {{amount}}", {
+          amount: formatCurrency(quote.travelFee),
+        }),
+      );
+    }
+    if (quote.discount > 0) {
+      lines.push(
+        interpolate(cq?.shareLineDiscount || "Discount: {{amount}}", {
+          amount: `-${formatCurrency(quote.discount)}`,
+        }),
+      );
+    }
+    lines.push(
+      interpolate(cq?.shareLineTax || "Tax: {{amount}}", {
+        amount: formatCurrency(quote.tax),
+      }),
+    );
+    lines.push(
+      interpolate(
+        cq?.shareLineServiceSubtotal || "Service subtotal: {{amount}}",
+        { amount: formatCurrency(quote.grandTotal) },
+      ),
+    );
+    if (appServiceFee > 0) {
+      lines.push(
+        interpolate(cq?.shareLineAppFee || "App service fee: {{amount}}", {
+          amount: formatCurrency(appServiceFee),
+        }),
+      );
+    }
+    lines.push(
+      interpolate(
+        cq?.shareLineProcessingFee || "Processing fee: {{amount}}",
+        { amount: formatCurrency(processingFee) },
+      ),
+    );
+    lines.push(cq?.shareSeparator || "━━━━━━━━━━━━━━━━");
+    lines.push(
+      interpolate(cq?.shareLineTotal || "Total: {{amount}}", {
+        amount: formatCurrency(customerTotal),
+      }),
+    );
+    lines.push("");
+    lines.push(
+      interpolate(cq?.shareLineValidUntil || "Valid until: {{date}}", {
+        date: formatDate(quote.validUntil),
+      }),
+    );
+
+    const text = lines.join("\n").trim();
 
     try {
       await Share.share({
         message: text,
-        title: `Quote ${quote.quoteNumber}`,
+        title: interpolate(cq?.pdfShareDialogTitle || "Quote {{number}}", {
+          number: quote.quoteNumber,
+        }),
       });
     } catch (error) {
-      console.error("Error sharing:", error);
+      log.error("Error sharing:", error);
     }
   };
 
@@ -782,10 +918,12 @@ Valid until: ${formatDate(quote.validUntil)}
             >
               <Ionicons name="location" size={14} color="#2B5EA7" />
               <Text style={{ fontSize: 12, color: "#1e40af" }}>
-                {(quote.distanceKm * 0.621371).toFixed(1)} mi away
+                {(quote.distanceKm * 0.621371).toFixed(1)}{" "}
+                {(t as any).carWash?.mile || "mi"}{" "}
+                {t.quote?.milesAwaySuffix || "away"}
                 {quote.travelFee > 0
-                  ? ` • Travel fee: $${quote.travelFee.toFixed(2)}`
-                  : " • No travel fee"}
+                  ? ` • ${(t as any).customer?.travelFee || "Travel Fee"}: ${formatCurrency(quote.travelFee)}`
+                  : ` • ${t.quote?.noTravelFeeShort || "No travel fee"}`}
               </Text>
             </View>
           ) : null}

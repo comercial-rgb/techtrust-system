@@ -31,6 +31,8 @@ import ProviderOnboardingScreen from "../screens/provider/ProviderOnboardingScre
 import ProviderServicesScreen from "../screens/provider/ProviderServicesScreen";
 import CustomerOnboardingScreen from "../screens/customer/CustomerOnboardingScreen";
 import MarketplaceOnboardingScreen from "../screens/marketplace/MarketplaceOnboardingScreen";
+import { log } from "../utils/logger";
+import { getStoredAppLanguage, translate } from "../i18n";
 
 const Stack = createNativeStackNavigator();
 
@@ -53,7 +55,7 @@ class ProviderErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: any, errorInfo: any) {
-    console.error("Provider view crashed:", error, errorInfo);
+    log.error("Provider view crashed:", error, errorInfo);
     // Include component stack for debugging
     if (errorInfo?.componentStack) {
       this.setState((prev) => ({
@@ -65,7 +67,8 @@ class ProviderErrorBoundary extends React.Component<
 
   handleCopyError = async () => {
     const fullError = `Error: ${this.state.errorMessage}\n\nStack: ${this.state.errorStack}`;
-    Alert.alert("Error Details", fullError);
+    const lang = await getStoredAppLanguage();
+    Alert.alert(translate("common.errorDetailsTitle", lang), fullError);
   };
 
   render() {

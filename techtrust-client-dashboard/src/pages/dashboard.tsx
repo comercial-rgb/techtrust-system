@@ -26,6 +26,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 
+import { logApiError } from "../utils/logger";
 interface Banner {
   id: string;
   title: string;
@@ -182,7 +183,7 @@ export default function DashboardPage() {
         totalSpent,
       });
     } catch (error) {
-      console.error('Erro ao carregar dashboard:', error);
+      logApiError('Erro ao carregar dashboard:', error);
       setStats({
         activeServices: 0,
         pendingQuotes: 0,

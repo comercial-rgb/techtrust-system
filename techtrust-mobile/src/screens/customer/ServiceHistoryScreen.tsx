@@ -19,6 +19,7 @@ import { CommonActions } from '@react-navigation/native';
 import { useI18n } from '../../i18n';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import { log } from "../../utils/logger";
 
 interface ServiceRecord {
   id: string;
@@ -41,7 +42,9 @@ interface ServiceRecord {
 }
 
 export default function ServiceHistoryScreen({ navigation }: any) {
-  const { t } = useI18n();
+  const { t, language, formatCurrency } = useI18n();
+  const listDateLocale =
+    language === 'pt' ? 'pt-BR' : language === 'es' ? 'es-ES' : 'en-US';
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [services, setServices] = useState<ServiceRecord[]>([]);
@@ -57,7 +60,7 @@ export default function ServiceHistoryScreen({ navigation }: any) {
       // Endpoint: api.get('/work-orders?status=COMPLETED,CANCELLED')
       setServices([]);
     } catch (error) {
-      console.error('Error loading service history:', error);
+      log.error('Error loading service history:', error);
       setServices([]);
     } finally {
       setLoading(false);
@@ -77,26 +80,30 @@ export default function ServiceHistoryScreen({ navigation }: any) {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric', 
-      year: 'numeric' 
+    return date.toLocaleDateString(listDateLocale, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
     });
-  };
-
-  const formatCurrency = (amount: number) => {
-    return '$' + amount.toFixed(2);
   };
 
   // D12 — Export service history to PDF
   const handleExportPDF = async () => {
     if (services.length === 0) {
-      Alert.alert('No Data', 'No service records to export.');
+      Alert.alert(
+        t.serviceHistoryExport?.noDataTitle || 'No Data',
+        t.serviceHistoryExport?.noDataBody || 'No service records to export.',
+      );
       return;
     }
 
     try {
       const completedServices = services.filter(s => s.status === 'completed');
+      const generatedOn = new Date().toLocaleDateString(listDateLocale, {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
       const html = `
         <html>
         <head>
@@ -120,7 +127,7 @@ export default function ServiceHistoryScreen({ navigation }: any) {
         </head>
         <body>
           <h1>Service History Report</h1>
-          <div class="subtitle">Generated on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+          <div class="subtitle">Generated on ${generatedOn}</div>
           <div class="stats">
             <div class="stat">
               <div class="stat-value">${completedServices.length}</div>
@@ -165,11 +172,20 @@ export default function ServiceHistoryScreen({ navigation }: any) {
           UTI: 'com.adobe.pdf',
         });
       } else {
-        Alert.alert('PDF Generated', 'File saved to: ' + uri);
+        Alert.alert(
+          t.serviceHistoryExport?.pdfGeneratedTitle || 'PDF Generated',
+          (t.serviceHistoryExport?.pdfSavedTo || 'File saved to: {{path}}').replace(
+            /\{\{\s*path\s*\}\}/g,
+            uri,
+          ),
+        );
       }
     } catch (error) {
-      console.error('PDF export error:', error);
-      Alert.alert('Error', 'Failed to generate PDF.');
+      log.error('PDF export error:', error);
+      Alert.alert(
+        t.common?.error || 'Error',
+        t.serviceHistoryExport?.pdfFailed || 'Failed to generate PDF.',
+      );
     }
   };
 

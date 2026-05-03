@@ -18,6 +18,7 @@ import {
   X,
 } from 'lucide-react'
 
+import { logApiError } from "../utils/logger";
 interface OnboardingStep {
   id: string
   type: 'info' | 'upload' | 'complete'
@@ -125,7 +126,7 @@ export default function OnboardingPage() {
         [step.id]: [...(prev[step.id] || []), url],
       }))
     } catch (err: any) {
-      console.error('Upload error:', err)
+      logApiError('Upload error:', err)
       setError(err.response?.data?.message || err.message || 'Upload failed')
     } finally {
       setUploading(false)
@@ -161,7 +162,7 @@ export default function OnboardingPage() {
 
       router.push('/dashboard')
     } catch (err: any) {
-      console.error('Finish error:', err)
+      logApiError('Finish error:', err)
       setError(err.message || 'Error completing onboarding')
     } finally {
       setFinishing(false)

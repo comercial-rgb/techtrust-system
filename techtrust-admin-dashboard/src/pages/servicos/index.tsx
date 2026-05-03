@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import AdminLayout from '../../components/AdminLayout';
 import { adminApi } from '../../services/api';
 import { Search, Wrench, Clock, CheckCircle, CreditCard, Eye, Building2, User, Car } from 'lucide-react';
+import { logApiError } from "../../utils/logger";
 
 interface WorkOrder {
   id: string;
@@ -35,7 +36,7 @@ export default function ServicosPage() {
       const list = response.data?.data?.workOrders || response.data?.data || response.data?.workOrders || [];
       setWorkOrders(Array.isArray(list) ? list : []);
     } catch (error) {
-      console.error('Erro ao carregar serviços:', error);
+      logApiError('Erro ao carregar serviços:', error);
       setWorkOrders([]);
     } finally {
       setLoading(false);

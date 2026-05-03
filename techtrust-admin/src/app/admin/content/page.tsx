@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { logApiError } from '../../../utils/logger';
 import { 
   MdAnnouncement, MdLocalOffer, MdArticle, MdNotifications,
   MdAdd, MdEdit, MdDelete, MdVisibility, MdVisibilityOff,
@@ -122,7 +123,7 @@ export default function ContentManagementPage() {
         setStats(data);
       }
     } catch (error) {
-      console.error('Erro ao carregar estatísticas:', error);
+      logApiError('Erro ao carregar estatísticas:', error);
     }
   };
 
@@ -143,7 +144,7 @@ export default function ContentManagementPage() {
         }
       }
     } catch (error) {
-      console.error('Erro ao carregar conteúdo:', error);
+      logApiError('Erro ao carregar conteúdo:', error);
     } finally {
       setLoading(false);
     }
@@ -175,7 +176,7 @@ export default function ContentManagementPage() {
         loadStats();
       }
     } catch (error) {
-      console.error('Erro ao excluir:', error);
+      logApiError('Erro ao excluir:', error);
     }
   };
 
@@ -194,7 +195,7 @@ export default function ContentManagementPage() {
         loadStats();
       }
     } catch (error) {
-      console.error('Erro ao atualizar status:', error);
+      logApiError('Erro ao atualizar status:', error);
     }
   };
 
@@ -218,7 +219,7 @@ export default function ContentManagementPage() {
         loadStats();
       }
     } catch (error) {
-      console.error('Erro ao salvar:', error);
+      logApiError('Erro ao salvar:', error);
     }
   };
 

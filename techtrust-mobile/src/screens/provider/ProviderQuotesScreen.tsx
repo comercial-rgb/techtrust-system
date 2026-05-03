@@ -13,9 +13,10 @@ import {
   RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useI18n } from "../../i18n";
+import { log } from "../../utils/logger";
 
 interface Quote {
   id: string;
@@ -42,7 +43,7 @@ interface Quote {
 }
 
 export default function ProviderQuotesScreen({ navigation }: any) {
-  const { t } = useI18n();
+  const { t, formatCurrency } = useI18n();
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [filteredQuotes, setFilteredQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
@@ -101,7 +102,7 @@ export default function ProviderQuotesScreen({ navigation }: any) {
 
       setQuotes(mappedQuotes);
     } catch (error) {
-      console.error("Erro ao carregar orçamentos:", error);
+      log.error("Erro ao carregar orçamentos:", error);
       setQuotes([]);
     } finally {
       setLoading(false);
@@ -218,7 +219,7 @@ export default function ProviderQuotesScreen({ navigation }: any) {
           </View>
           <View style={styles.amountContainer}>
             <Text style={styles.amountText}>
-              ${item.totalAmount.toFixed(2)}
+              {formatCurrency(item.totalAmount)}
             </Text>
             {item.status === "PENDING" && item.expiresIn && (
               <Text style={styles.expiresText}>{item.expiresIn} rest.</Text>
@@ -235,7 +236,8 @@ export default function ProviderQuotesScreen({ navigation }: any) {
               color="#6b7280"
             />
             <Text style={styles.detailText}>
-              {t.provider?.parts || "Parts"}: ${item.partsCost.toFixed(2)}
+              {t.provider?.parts || "Parts"}:{" "}
+              {formatCurrency(item.partsCost)}
             </Text>
           </View>
           <View style={styles.detailItem}>
@@ -245,7 +247,8 @@ export default function ProviderQuotesScreen({ navigation }: any) {
               color="#6b7280"
             />
             <Text style={styles.detailText}>
-              {t.provider?.laborShort || "Labor"}: ${item.laborCost.toFixed(2)}
+              {t.provider?.laborShort || "Labor"}:{" "}
+              {formatCurrency(item.laborCost)}
             </Text>
           </View>
           <View style={styles.detailItem}>

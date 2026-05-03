@@ -22,27 +22,63 @@ import {
   Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import api from "../../services/api";
+import { useI18n } from "../../i18n";
 
 const { width } = Dimensions.get("window");
 
 // ─── SOS Types ────────────────────────────────────────────────────────────────
 
 const SOS_TYPES = [
-  { key: "JUMP_START",      label: "Jump Start",         icon: "battery-charging" as const, color: "#f59e0b", bg: "#fef3c7", desc: "Battery won't start" },
-  { key: "FLAT_TIRE",       label: "Flat Tire",          icon: "car-tire-alert" as const,   color: "#3b82f6", bg: "#dbeafe", desc: "Need spare mounted" },
-  { key: "FUEL_DELIVERY",   label: "Fuel Delivery",      icon: "gas-station" as const,       color: "#10b981", bg: "#d1fae5", desc: "Ran out of gas" },
-  { key: "LOCKOUT",         label: "Lockout",            icon: "key-variant" as const,       color: "#8b5cf6", bg: "#ede9fe", desc: "Keys locked inside" },
-  { key: "BATTERY_REPLACE", label: "Battery Replace",    icon: "car-battery" as const,       color: "#ec4899", bg: "#fce7f3", desc: "Battery needs replacing" },
-  { key: "TOWING",          label: "Towing",             icon: "tow-truck" as const,         color: "#dc2626", bg: "#fee2e2", desc: "Need vehicle towed" },
-];
+  { key: "JUMP_START", icon: "battery-charging" as const, color: "#f59e0b", bg: "#fef3c7" },
+  { key: "FLAT_TIRE", icon: "car-tire-alert" as const, color: "#3b82f6", bg: "#dbeafe" },
+  { key: "FUEL_DELIVERY", icon: "gas-station" as const, color: "#10b981", bg: "#d1fae5" },
+  { key: "LOCKOUT", icon: "key-variant" as const, color: "#8b5cf6", bg: "#ede9fe" },
+  { key: "BATTERY_REPLACE", icon: "car-battery" as const, color: "#ec4899", bg: "#fce7f3" },
+  { key: "TOWING", icon: "tow-truck" as const, color: "#dc2626", bg: "#fee2e2" },
+] as const;
 
 type Step = "SELECT" | "LOCATION" | "BROADCAST" | "OFFER" | "CONFIRMED" | "CANCELLED" | "NO_PROVIDERS";
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function CustomerSOSScreen({ navigation, route }: any) {
+  const { t, formatCurrency } = useI18n();
+
+  const getSosTypeText = useCallback(
+    (key: string) => {
+      const map: Record<string, { label: string; desc: string }> = {
+        JUMP_START: {
+          label: t.sos?.typeJumpStart || "Jump start",
+          desc: t.sos?.typeJumpStartDesc || "Battery won't start",
+        },
+        FLAT_TIRE: {
+          label: t.sos?.typeFlatTire || "Flat tire",
+          desc: t.sos?.typeFlatTireDesc || "Need spare mounted",
+        },
+        FUEL_DELIVERY: {
+          label: t.sos?.typeFuelDelivery || "Fuel delivery",
+          desc: t.sos?.typeFuelDeliveryDesc || "Ran out of gas",
+        },
+        LOCKOUT: {
+          label: t.sos?.typeLockout || "Lockout",
+          desc: t.sos?.typeLockoutDesc || "Keys locked inside",
+        },
+        BATTERY_REPLACE: {
+          label: t.sos?.typeBatteryReplace || "Battery replace",
+          desc: t.sos?.typeBatteryReplaceDesc || "Battery needs replacing",
+        },
+        TOWING: {
+          label: t.sos?.typeTowing || "Towing",
+          desc: t.sos?.typeTowingDesc || "Need vehicle towed",
+        },
+      };
+      return map[key] ?? { label: key, desc: "" };
+    },
+    [t],
+  );
+
   const [step, setStep] = useState<Step>("SELECT");
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -147,8 +183,9 @@ export default function CustomerSOSScreen({ navigation, route }: any) {
   const captureLocation = async () => {
     if (!vehicleId) {
       Alert.alert(
-        "Vehicle Required",
-        "Please go to your Vehicles tab and add a vehicle before requesting SOS assistance."
+        t.sos?.vehicleRequiredTitle || "Vehicle required",
+        t.sos?.vehicleAddFirstMessage ||
+          "Please go to your Vehicles tab and add a vehicle before requesting SOS assistance.",
       );
       return;
     }
@@ -157,7 +194,11 @@ export default function CustomerSOSScreen({ navigation, route }: any) {
       const Location = await import("expo-location");
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert("Location Required", "TechTrust needs your location to find nearby providers.");
+        Alert.alert(
+          t.sos?.locationRequiredTitle || "Location required",
+          t.sos?.locationRequiredMessage ||
+            "TechTrust needs your location to find nearby providers.",
+        );
         setLocationLoading(false);
         return;
       }
@@ -165,7 +206,11 @@ export default function CustomerSOSScreen({ navigation, route }: any) {
       setLocation({ lat: loc.coords.latitude, lng: loc.coords.longitude });
       setStep("LOCATION");
     } catch {
-      Alert.alert("Error", "Could not get your location. Make sure GPS is enabled.");
+      Alert.alert(
+        t.common?.error || "Error",
+        t.sos?.gpsErrorMessage ||
+          "Could not get your location. Make sure GPS is enabled.",
+      );
     } finally {
       setLocationLoading(false);
     }
@@ -176,7 +221,11 @@ export default function CustomerSOSScreen({ navigation, route }: any) {
   const submitSOS = async () => {
     if (!location || !selectedType) return;
     if (!vehicleId) {
-      Alert.alert("Vehicle Required", "Please select a vehicle first from your profile.");
+      Alert.alert(
+        t.sos?.vehicleRequiredTitle || "Vehicle required",
+        t.sos?.vehicleSelectMessage ||
+          "Please select a vehicle first from your profile.",
+      );
       return;
     }
     setSubmitting(true);
@@ -192,8 +241,11 @@ export default function CustomerSOSScreen({ navigation, route }: any) {
       setPriceRange(data.estimatedPriceRange);
       setStep("BROADCAST");
     } catch (e: any) {
-      const msg = e.response?.data?.message || "Could not submit SOS. Try again.";
-      Alert.alert("Error", msg);
+      const msg =
+        e.response?.data?.message ||
+        t.sos?.submitFailed ||
+        "Could not submit SOS. Try again.";
+      Alert.alert(t.common?.error || "Error", msg);
     } finally {
       setSubmitting(false);
     }
@@ -208,8 +260,11 @@ export default function CustomerSOSScreen({ navigation, route }: any) {
       await api.post(`/sos/request/${requestId}/confirm`);
       setStep("CONFIRMED");
     } catch (e: any) {
-      const msg = e.response?.data?.message || "Could not confirm. The offer may have expired.";
-      Alert.alert("Error", msg);
+      const msg =
+        e.response?.data?.message ||
+        t.sos?.confirmOfferExpired ||
+        "Could not confirm. The offer may have expired.";
+      Alert.alert(t.common?.error || "Error", msg);
     } finally {
       setConfirming(false);
     }
@@ -226,10 +281,14 @@ export default function CustomerSOSScreen({ navigation, route }: any) {
   };
 
   const cancelSOS = () => {
-    Alert.alert("Cancel SOS?", "Are you sure you want to stop looking for a provider?", [
-      { text: "Keep Searching", style: "cancel" },
+    Alert.alert(
+      t.sos?.cancelSosTitle || "Cancel SOS?",
+      t.sos?.cancelSosMessage ||
+        "Are you sure you want to stop looking for a provider?",
+      [
+      { text: t.sos?.keepSearching || "Keep searching", style: "cancel" },
       {
-        text: "Cancel",
+        text: t.sos?.cancelRequest || "Cancel request",
         style: "destructive",
         onPress: async () => {
           if (requestId) {
@@ -241,7 +300,10 @@ export default function CustomerSOSScreen({ navigation, route }: any) {
     ]);
   };
 
-  const selectedTypeInfo = SOS_TYPES.find((t) => t.key === selectedType);
+  const selectedDef = SOS_TYPES.find((d) => d.key === selectedType);
+  const selectedTypeText = selectedType
+    ? getSosTypeText(selectedType)
+    : { label: "", desc: "" };
 
   // ─────────────────────────────────────────────────────────────────────────
   // RENDER STEPS
@@ -255,55 +317,64 @@ export default function CustomerSOSScreen({ navigation, route }: any) {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <MaterialCommunityIcons name="arrow-left" size={24} color="#111827" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Roadside SOS</Text>
+          <Text style={styles.headerTitle}>
+            {t.sos?.titleRoadsideSos || "Roadside SOS"}
+          </Text>
           <View style={{ width: 40 }} />
         </View>
 
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
           <View style={styles.sosAlert}>
             <MaterialCommunityIcons name="alert-circle" size={24} color="#dc2626" />
-            <Text style={styles.sosAlertText}>What do you need help with?</Text>
+            <Text style={styles.sosAlertText}>
+              {t.sos?.whatDoYouNeedHelp || "What do you need help with?"}
+            </Text>
           </View>
 
           <View style={styles.typesGrid}>
-            {SOS_TYPES.map((t) => (
+            {SOS_TYPES.map((item) => {
+              const copy = getSosTypeText(item.key);
+              return (
               <TouchableOpacity
-                key={t.key}
-                onPress={() => setSelectedType(t.key)}
+                key={item.key}
+                onPress={() => setSelectedType(item.key)}
                 style={[
                   styles.typeCard,
-                  selectedType === t.key && { borderColor: t.color, borderWidth: 2 },
+                  selectedType === item.key && { borderColor: item.color, borderWidth: 2 },
                 ]}
               >
-                <View style={[styles.typeIcon, { backgroundColor: t.bg }]}>
-                  <MaterialCommunityIcons name={t.icon} size={28} color={t.color} />
+                <View style={[styles.typeIcon, { backgroundColor: item.bg }]}>
+                  <MaterialCommunityIcons name={item.icon} size={28} color={item.color} />
                 </View>
-                <Text style={styles.typeLabel}>{t.label}</Text>
-                <Text style={styles.typeDesc}>{t.desc}</Text>
-                {selectedType === t.key && (
+                <Text style={styles.typeLabel}>{copy.label}</Text>
+                <Text style={styles.typeDesc}>{copy.desc}</Text>
+                {selectedType === item.key && (
                   <MaterialCommunityIcons
                     name="check-circle"
                     size={18}
-                    color={t.color}
+                    color={item.color}
                     style={{ position: "absolute", top: 8, right: 8 }}
                   />
                 )}
               </TouchableOpacity>
-            ))}
+            );
+            })}
           </View>
 
           {selectedType && (
             <TouchableOpacity
               onPress={captureLocation}
               disabled={locationLoading}
-              style={[styles.ctaBtn, { backgroundColor: selectedTypeInfo?.color || "#dc2626" }]}
+              style={[styles.ctaBtn, { backgroundColor: selectedDef?.color || "#dc2626" }]}
             >
               {locationLoading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
                 <>
                   <MaterialCommunityIcons name="map-marker-radius" size={20} color="#fff" />
-                  <Text style={styles.ctaBtnText}>Confirm My Location</Text>
+                  <Text style={styles.ctaBtnText}>
+                    {t.sos?.confirmMyLocation || "Confirm my location"}
+                  </Text>
                 </>
               )}
             </TouchableOpacity>
@@ -321,17 +392,19 @@ export default function CustomerSOSScreen({ navigation, route }: any) {
           <TouchableOpacity onPress={() => setStep("SELECT")} style={styles.backBtn}>
             <MaterialCommunityIcons name="arrow-left" size={24} color="#111827" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Confirm Location</Text>
+          <Text style={styles.headerTitle}>
+            {t.sos?.headerConfirmLocation || "Confirm location"}
+          </Text>
           <View style={{ width: 40 }} />
         </View>
 
         <View style={{ flex: 1, padding: 24, justifyContent: "center" }}>
           <View style={styles.locationCard}>
             <View style={{ alignItems: "center", marginBottom: 24 }}>
-              <View style={[styles.typeIcon, { backgroundColor: selectedTypeInfo?.bg, width: 64, height: 64, borderRadius: 18 }]}>
-                <MaterialCommunityIcons name={selectedTypeInfo?.icon || "ambulance"} size={34} color={selectedTypeInfo?.color} />
+              <View style={[styles.typeIcon, { backgroundColor: selectedDef?.bg, width: 64, height: 64, borderRadius: 18 }]}>
+                <MaterialCommunityIcons name={selectedDef?.icon || "ambulance"} size={34} color={selectedDef?.color} />
               </View>
-              <Text style={{ fontSize: 20, fontWeight: "700", color: "#111827", marginTop: 12 }}>{selectedTypeInfo?.label}</Text>
+              <Text style={{ fontSize: 20, fontWeight: "700", color: "#111827", marginTop: 12 }}>{selectedTypeText.label}</Text>
             </View>
 
             <View style={styles.coordRow}>
@@ -341,12 +414,15 @@ export default function CustomerSOSScreen({ navigation, route }: any) {
               </Text>
             </View>
             <Text style={styles.coordNote}>
-              Your GPS location has been captured. Providers within 50 miles will be notified.
+              {t.sos?.gpsCapturedNote ||
+                "Your GPS location has been captured. Providers within 50 miles will be notified."}
             </Text>
 
             {priceRange === null && (
               <View style={styles.estimateBox}>
-                <Text style={styles.estimateTitle}>Looking for nearby providers...</Text>
+                <Text style={styles.estimateTitle}>
+                  {t.sos?.lookingForNearbyProviders || "Looking for nearby providers..."}
+                </Text>
               </View>
             )}
 
@@ -360,7 +436,7 @@ export default function CustomerSOSScreen({ navigation, route }: any) {
               ) : (
                 <>
                   <MaterialCommunityIcons name="broadcast" size={20} color="#fff" />
-                  <Text style={styles.ctaBtnText}>Send SOS</Text>
+                  <Text style={styles.ctaBtnText}>{t.sos?.sendSos || "Send SOS"}</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -369,7 +445,9 @@ export default function CustomerSOSScreen({ navigation, route }: any) {
               onPress={() => { setStep("SELECT"); setLocation(null); }}
               style={{ marginTop: 12, alignItems: "center" }}
             >
-              <Text style={{ color: "#6b7280", fontSize: 14 }}>Change service type</Text>
+              <Text style={{ color: "#6b7280", fontSize: 14 }}>
+                {t.sos?.changeServiceType || "Change service type"}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -402,26 +480,43 @@ export default function CustomerSOSScreen({ navigation, route }: any) {
             </View>
           </View>
 
-          <Text style={styles.broadcastTitle}>Looking for help...</Text>
+          <Text style={styles.broadcastTitle}>
+            {t.sos?.broadcastLookingHelp || "Looking for help..."}
+          </Text>
           <Text style={styles.broadcastSubtitle}>
-            Notifying {selectedTypeInfo?.label} providers near your location.
-            {"\n"}This usually takes less than 2 minutes.
+            {(t.sos?.broadcastNotifying ||
+              "Notifying {{service}} providers near your location.\nThis usually takes less than 2 minutes.").replace(
+              "{{service}}",
+              selectedTypeText.label,
+            )}
           </Text>
 
           {priceRange && priceRange.count > 0 && priceRange.min !== null && (
             <View style={styles.priceRangeBadge}>
-              <Text style={styles.priceRangeLabel}>Estimated cost</Text>
-              <Text style={styles.priceRangeValue}>
-                ${priceRange.min}–${priceRange.max}
+              <Text style={styles.priceRangeLabel}>
+                {t.sos?.estimatedCost || "Estimated cost"}
               </Text>
-              <Text style={styles.priceRangeNote}>based on {priceRange.count} nearby provider{priceRange.count > 1 ? "s" : ""}</Text>
+              <Text style={styles.priceRangeValue}>
+                {formatCurrency(Number(priceRange.min))}–
+                {formatCurrency(Number(priceRange.max))}
+              </Text>
+              <Text style={styles.priceRangeNote}>
+                {priceRange.count === 1
+                  ? t.sos?.basedOnOneProvider || "based on 1 nearby provider"
+                  : (t.sos?.basedOnProviders || "based on {{count}} nearby providers").replace(
+                      "{{count}}",
+                      String(priceRange.count),
+                    )}
+              </Text>
             </View>
           )}
 
           <ActivityIndicator color="#ef4444" style={{ marginTop: 32 }} size="small" />
 
           <TouchableOpacity onPress={cancelSOS} style={styles.cancelBtn}>
-            <Text style={styles.cancelBtnText}>Cancel SOS</Text>
+            <Text style={styles.cancelBtnText}>
+              {t.sos?.cancelSosButton || "Cancel SOS"}
+            </Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -437,9 +532,12 @@ export default function CustomerSOSScreen({ navigation, route }: any) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: "#111827" }]}>
         <View style={{ flex: 1, justifyContent: "center", padding: 24 }}>
-          <Text style={styles.broadcastTitle}>Provider Found!</Text>
+          <Text style={styles.broadcastTitle}>
+            {t.sos?.providerFoundTitle || "Provider found!"}
+          </Text>
           <Text style={[styles.broadcastSubtitle, { marginBottom: 24 }]}>
-            A nearby provider has accepted your request.
+            {t.sos?.providerFoundSubtitle ||
+              "A nearby provider has accepted your request."}
           </Text>
 
           <View style={styles.offerCard}>
@@ -450,23 +548,32 @@ export default function CustomerSOSScreen({ navigation, route }: any) {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.providerName}>
-                  {confirmedProvider?.name || "Nearby Provider"}
+                  {confirmedProvider?.name || t.sos?.nearbyProvider || "Nearby provider"}
                 </Text>
-                <Text style={styles.providerSub}>Roadside specialist</Text>
+                <Text style={styles.providerSub}>
+                  {t.sos?.roadsideSpecialist || "Roadside specialist"}
+                </Text>
               </View>
             </View>
 
             {/* Price */}
             <View style={styles.priceRow}>
-              <Text style={styles.priceLabel}>Total for {selectedTypeInfo?.label}</Text>
-              <Text style={styles.priceValue}>${offeredPrice?.toFixed(2)}</Text>
+              <Text style={styles.priceLabel}>
+                {(t.sos?.totalForService || "Total for {{service}}").replace(
+                  "{{service}}",
+                  selectedTypeText.label,
+                )}
+              </Text>
+              <Text style={styles.priceValue}>
+                {offeredPrice != null ? formatCurrency(offeredPrice) : ""}
+              </Text>
             </View>
 
             {/* Countdown */}
             <View style={[styles.countdownRow, { borderColor: urgencyColor }]}>
               <MaterialCommunityIcons name="clock-outline" size={18} color={urgencyColor} />
               <Text style={[styles.countdownText, { color: urgencyColor }]}>
-                {countdownDisplay} to decide
+                {`${countdownDisplay} ${t.sos?.countdownToDecide || "to decide"}`}
               </Text>
             </View>
 
@@ -481,13 +588,17 @@ export default function CustomerSOSScreen({ navigation, route }: any) {
               ) : (
                 <>
                   <MaterialCommunityIcons name="check" size={22} color="#fff" />
-                  <Text style={styles.confirmBtnText}>Accept — ${offeredPrice?.toFixed(2)}</Text>
+                  <Text style={styles.confirmBtnText}>
+                    {`${t.sos?.acceptLabel || "Accept"} — ${offeredPrice != null ? formatCurrency(offeredPrice) : ""}`}
+                  </Text>
                 </>
               )}
             </TouchableOpacity>
 
             <TouchableOpacity onPress={declineProvider} style={styles.declineBtn}>
-              <Text style={styles.declineBtnText}>Decline — look for another provider</Text>
+              <Text style={styles.declineBtnText}>
+                {t.sos?.declineFindAnother || "Decline — look for another provider"}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -503,9 +614,12 @@ export default function CustomerSOSScreen({ navigation, route }: any) {
           <View style={styles.confirmedIcon}>
             <MaterialCommunityIcons name="check-circle" size={56} color="#22c55e" />
           </View>
-          <Text style={styles.confirmedTitle}>Help is on the way!</Text>
+          <Text style={styles.confirmedTitle}>
+            {t.sos?.helpOnTheWay || "Help is on the way!"}
+          </Text>
           <Text style={styles.broadcastSubtitle}>
-            Your provider has been dispatched. Stay safe and remain with your vehicle.
+            {t.sos?.dispatchedStaySafe ||
+              "Your provider has been dispatched. Stay safe and remain with your vehicle."}
           </Text>
 
           <View style={styles.confirmedCard}>
@@ -514,13 +628,20 @@ export default function CustomerSOSScreen({ navigation, route }: any) {
                 <MaterialCommunityIcons name="account-wrench" size={28} color="#2B5EA7" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.providerName}>{confirmedProvider?.name || "Provider"}</Text>
-                <Text style={styles.providerSub}>En route to your location</Text>
+                <Text style={styles.providerName}>
+                  {confirmedProvider?.name || t.sos?.providerFallback || "Provider"}
+                </Text>
+                <Text style={styles.providerSub}>
+                  {t.sos?.enRouteToYou || "En route to your location"}
+                </Text>
               </View>
             </View>
             {offeredPrice && (
               <Text style={{ color: "#22c55e", fontWeight: "700", fontSize: 18, textAlign: "center", marginTop: 12 }}>
-                Confirmed: ${offeredPrice.toFixed(2)}
+                {(t.sos?.confirmedAmount || "Confirmed: {{amount}}").replace(
+                  "{{amount}}",
+                  formatCurrency(offeredPrice),
+                )}
               </Text>
             )}
           </View>
@@ -529,7 +650,7 @@ export default function CustomerSOSScreen({ navigation, route }: any) {
             onPress={() => navigation.goBack()}
             style={[styles.ctaBtn, { backgroundColor: "#22c55e", marginTop: 32 }]}
           >
-            <Text style={styles.ctaBtnText}>Done</Text>
+            <Text style={styles.ctaBtnText}>{t.sos?.done || "Done"}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -545,10 +666,12 @@ export default function CustomerSOSScreen({ navigation, route }: any) {
             <MaterialCommunityIcons name="alert-circle-outline" size={56} color="#ef4444" />
           </View>
 
-          <Text style={styles.confirmedTitle}>No Providers Available</Text>
+          <Text style={styles.confirmedTitle}>
+            {t.sos?.noProvidersTitle || "No providers available"}
+          </Text>
           <Text style={styles.broadcastSubtitle}>
-            No nearby provider accepted within 30 minutes.{"\n"}
-            You can try again or contact support directly.
+            {t.sos?.noProvidersMessage ||
+              "No nearby provider accepted within 30 minutes.\nYou can try again or contact support directly."}
           </Text>
 
           <View style={{ width: "100%", gap: 12, marginTop: 32 }}>
@@ -563,19 +686,22 @@ export default function CustomerSOSScreen({ navigation, route }: any) {
               style={[styles.ctaBtn, { backgroundColor: "#dc2626" }]}
             >
               <MaterialCommunityIcons name="refresh" size={20} color="#fff" />
-              <Text style={styles.ctaBtnText}>Try Again</Text>
+              <Text style={styles.ctaBtnText}>{t.sos?.tryAgain || "Try again"}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={() => navigation.goBack()}
               style={[styles.ctaBtn, { backgroundColor: "rgba(255,255,255,0.1)" }]}
             >
-              <Text style={[styles.ctaBtnText, { color: "#9ca3af" }]}>Back to Dashboard</Text>
+              <Text style={[styles.ctaBtnText, { color: "#9ca3af" }]}>
+                {t.sos?.backToDashboard || "Back to dashboard"}
+              </Text>
             </TouchableOpacity>
           </View>
 
           <Text style={{ color: "#6b7280", fontSize: 13, marginTop: 24, textAlign: "center" }}>
-            For immediate assistance call 911 or roadside assistance
+            {t.sos?.emergency911Note ||
+              "For immediate assistance call 911 or your local roadside service."}
           </Text>
         </View>
       </SafeAreaView>

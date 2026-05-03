@@ -13,7 +13,7 @@ import {
   Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "react-native-paper";
 import { useI18n } from "../i18n";
 import { useAuth } from "../contexts/AuthContext";
@@ -102,7 +102,7 @@ type Role = (typeof ACCOUNT_TYPES)[number]["key"];
 
 export default function AccountTypeScreen({ navigation }: any) {
   const theme = useTheme();
-  const { language } = useI18n();
+  const { language, t } = useI18n();
   const { socialLogin } = useAuth();
   const isPt = language === "pt";
 
@@ -152,7 +152,10 @@ export default function AccountTypeScreen({ navigation }: any) {
         });
       }
     } catch (error: any) {
-      Alert.alert("Error", error.message || "Social sign-in failed. Please try again.");
+      Alert.alert(
+        t.common?.error || "Error",
+        error.message || t.auth?.socialSignInFailed || "Social sign-in failed. Please try again.",
+      );
     } finally {
       setSocialLoading(false);
       setPendingSocialProvider(null);

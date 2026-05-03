@@ -15,6 +15,7 @@ import { useI18n } from '../i18n';
 import carWashService from '../services/carWash.service';
 import { CarWashListItem } from '../types/carWash';
 import { colors, spacing, borderRadius, fontSize, fontWeight, shadows } from '../constants/theme';
+import { log } from "../utils/logger";
 
 export default function CarWashFavoritesScreen({ navigation }: any) {
   const { t } = useI18n();
@@ -33,7 +34,7 @@ export default function CarWashFavoritesScreen({ navigation }: any) {
       const data = await carWashService.getFavorites();
       setFavorites(data);
     } catch (error) {
-      console.error('Error loading favorites:', error);
+      log.error('Error loading favorites:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -45,7 +46,7 @@ export default function CarWashFavoritesScreen({ navigation }: any) {
       await carWashService.toggleFavorite(carWashId);
       setFavorites((prev) => prev.filter((f) => f.id !== carWashId));
     } catch (error) {
-      console.error('Error removing favorite:', error);
+      log.error('Error removing favorite:', error);
     }
   };
 

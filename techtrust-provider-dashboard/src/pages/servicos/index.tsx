@@ -22,6 +22,7 @@ import {
   MapPin,
 } from 'lucide-react'
 import Link from 'next/link'
+import { logApiError } from "../../utils/logger";
 
 interface WorkOrder {
   id: string
@@ -104,7 +105,7 @@ export default function ServicosPage() {
       }))
       setWorkOrders(orders)
     } catch (error) {
-      console.error('Erro ao carregar serviços:', error)
+      logApiError('Erro ao carregar serviços:', error)
     } finally {
       setLoading(false)
     }

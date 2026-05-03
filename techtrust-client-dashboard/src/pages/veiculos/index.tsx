@@ -16,6 +16,7 @@ import {
   ArrowUpCircle,
 } from 'lucide-react';
 
+import { logApiError } from "../../utils/logger";
 interface Vehicle {
   id: string;
   make: string;
@@ -76,7 +77,7 @@ export default function VeiculosPage() {
         setVehicles([]);
       }
     } catch (error) {
-      console.error('Erro ao carregar veículos:', error);
+      logApiError('Erro ao carregar veículos:', error);
     } finally {
       setLoading(false);
     }

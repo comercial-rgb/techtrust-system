@@ -26,6 +26,7 @@ import * as ImagePicker from "expo-image-picker";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { decodeVIN, isValidVINFormat } from "../services/nhtsa.service";
 import api from "../services/api";
+import { log } from "../utils/logger";
 
 const { width } = Dimensions.get("window");
 const PHOTO_SIZE = (width - 48 - 16) / 3; // 3 photos per row with padding
@@ -159,7 +160,7 @@ export default function AddVehicleScreen({ navigation }: any) {
       // Vehicle limit should come from the user's subscription plan
       // Default limits: Freemium: 1 vehicle, Basic: 5 vehicles, Premium: 10 vehicles
     } catch (error) {
-      console.error("Error checking vehicle limit:", error);
+      log.error("Error checking vehicle limit:", error);
     }
   };
 
@@ -269,7 +270,7 @@ export default function AddVehicleScreen({ navigation }: any) {
   const handleDecodeVIN = async () => {
     if (!vin || vin.trim().length !== 17) {
       Alert.alert(
-        t.vehicle?.invalidVIN || "VIN Inválido",
+        t.vehicle?.invalidVin || "VIN Inválido",
         t.vehicle?.vinMustBe17 || "VIN deve ter exatamente 17 caracteres",
       );
       return;
@@ -277,7 +278,7 @@ export default function AddVehicleScreen({ navigation }: any) {
 
     if (!isValidVINFormat(vin)) {
       Alert.alert(
-        t.vehicle?.invalidVIN || "VIN Inválido",
+        t.vehicle?.invalidVin || "VIN Inválido",
         t.vehicle?.vinInvalidFormat ||
           "VIN contém caracteres inválidos (não use I, O, Q)",
       );
@@ -316,7 +317,7 @@ export default function AddVehicleScreen({ navigation }: any) {
         );
       }
     } catch (error: any) {
-      console.error("Error decoding VIN:", error);
+      log.error("Error decoding VIN:", error);
       Alert.alert(
         t.common?.error || "Erro",
         error?.message ||
@@ -436,7 +437,7 @@ export default function AddVehicleScreen({ navigation }: any) {
 
       return true;
     } catch (error: any) {
-      console.error("Error requesting permissions:", error);
+      log.error("Error requesting permissions:", error);
       Alert.alert(
         t.common?.error || "Erro",
         error?.message ||
@@ -468,7 +469,7 @@ export default function AddVehicleScreen({ navigation }: any) {
         setPhotos((prev) => [...prev, newPhoto]);
       }
     } catch (error: any) {
-      console.error("Error taking photo:", error);
+      log.error("Error taking photo:", error);
       Alert.alert(
         t.common?.error || "Erro",
         error?.message ||
@@ -501,7 +502,7 @@ export default function AddVehicleScreen({ navigation }: any) {
         setPhotos((prev) => [...prev, ...newPhotos].slice(0, 6)); // Max 6 photos
       }
     } catch (error: any) {
-      console.error("Error picking from gallery:", error);
+      log.error("Error picking from gallery:", error);
       Alert.alert(
         t.common?.error || "Erro",
         error?.message ||
@@ -581,7 +582,7 @@ export default function AddVehicleScreen({ navigation }: any) {
     if (!make || !model || !year) {
       Alert.alert(
         t.common?.error || "Error",
-        t.vehicle?.fillRequiredFields || "Please fill in Make, Model and Year",
+        t.common?.fillRequiredFields || "Please fill in Make, Model and Year",
       );
       return;
     }
@@ -631,7 +632,7 @@ export default function AddVehicleScreen({ navigation }: any) {
         }
       }
     } catch (error: any) {
-      console.error("Erro ao salvar veículo:", error);
+      log.error("Erro ao salvar veículo:", error);
       Alert.alert(
         t.common?.error || "Error",
         error.response?.data?.message ||
@@ -780,7 +781,9 @@ export default function AddVehicleScreen({ navigation }: any) {
           <View style={styles.vinInputContainer}>
             <TextInput
               style={[styles.input, styles.vinInput]}
-              placeholder="e.g., 1HGBH41JXMN109186"
+              placeholder={
+                t.vehicle?.phVinExample || "e.g., 1HGBH41JXMN109186"
+              }
               value={vin}
               onChangeText={setVin}
               autoCapitalize="characters"
@@ -830,7 +833,7 @@ export default function AddVehicleScreen({ navigation }: any) {
               <Text
                 style={{ fontSize: 13, color: "#2B5EA7", fontWeight: "600" }}
               >
-                Scan VIN Barcode
+                {t.vehicle?.scanVinBarcode || "Scan VIN Barcode"}
               </Text>
             </TouchableOpacity>
           )}
@@ -871,7 +874,9 @@ export default function AddVehicleScreen({ navigation }: any) {
               </Text>
               <TextInput
                 style={[styles.input, vinDecoded && styles.inputReadOnly]}
-                placeholder="e.g., Honda, Toyota"
+                placeholder={
+                  t.vehicle?.phMakeExample || "e.g., Honda, Toyota"
+                }
                 value={make}
                 onChangeText={setMake}
                 editable={!vinDecoded}
@@ -912,7 +917,9 @@ export default function AddVehicleScreen({ navigation }: any) {
               </Text>
               <TextInput
                 style={[styles.input, vinDecoded && styles.inputReadOnly]}
-                placeholder="e.g., Civic, Corolla"
+                placeholder={
+                  t.vehicle?.phModelExample || "e.g., Civic, Corolla"
+                }
                 value={model}
                 onChangeText={setModel}
                 editable={!vinDecoded}
@@ -926,7 +933,9 @@ export default function AddVehicleScreen({ navigation }: any) {
               </Text>
               <TextInput
                 style={[styles.input, vinDecoded && styles.inputReadOnly]}
-                placeholder="e.g., 2020"
+                placeholder={
+                  t.vehicle?.phYearExample || "e.g., 2020"
+                }
                 value={year}
                 onChangeText={setYear}
                 keyboardType="numeric"
@@ -942,7 +951,9 @@ export default function AddVehicleScreen({ navigation }: any) {
               </Text>
               <TextInput
                 style={[styles.input, vinDecoded && styles.inputReadOnly]}
-                placeholder="e.g., EX-L, Sport, Limited"
+                placeholder={
+                  t.vehicle?.phTrimExample || "e.g., EX-L, Sport, Limited"
+                }
                 value={trim}
                 onChangeText={setTrim}
                 editable={!vinDecoded}
@@ -988,7 +999,10 @@ export default function AddVehicleScreen({ navigation }: any) {
                   value={driveType}
                   onChangeText={setDriveType}
                   editable={!vinDecoded}
-                  placeholder="e.g., FWD, RWD, AWD, 4WD"
+                  placeholder={
+                    t.vehicle?.phDriveTypeExample ||
+                    "e.g., FWD, RWD, AWD, 4WD"
+                  }
                 />
               </View>
             ) : null}
@@ -1058,7 +1072,9 @@ export default function AddVehicleScreen({ navigation }: any) {
           </Text>
           <TextInput
             style={styles.input}
-            placeholder="e.g., ABC-1234"
+            placeholder={
+              t.vehicle?.phPlateExample || "e.g., ABC-1234"
+            }
             value={plateNumber}
             onChangeText={setPlateNumber}
             autoCapitalize="characters"
@@ -1082,7 +1098,7 @@ export default function AddVehicleScreen({ navigation }: any) {
             <Text style={{ fontSize: 16, color: plateState ? '#111827' : '#9ca3af' }}>
               {plateState
                 ? `${plateState} — ${US_STATES.find(s => s.code === plateState)?.name || ''}`
-                : 'Select state...'}
+                : t.vehicle?.selectStatePlaceholder || "Select state..."}
             </Text>
             <Ionicons name="chevron-down" size={18} color="#6b7280" />
           </TouchableOpacity>
@@ -1172,7 +1188,9 @@ export default function AddVehicleScreen({ navigation }: any) {
           </Text>
           <TextInput
             style={styles.input}
-            placeholder="e.g., 28000"
+            placeholder={
+              t.vehicle?.phMileageExample || "e.g., 28000"
+            }
             value={mileage}
             onChangeText={setMileage}
             keyboardType="numeric"
@@ -1180,7 +1198,9 @@ export default function AddVehicleScreen({ navigation }: any) {
         </View>
 
         {/* Driver Section */}
-        <Text style={styles.sectionTitle}>Driver</Text>
+        <Text style={styles.sectionTitle}>
+          {t.vehicle?.driverSection || "Driver"}
+        </Text>
 
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>
@@ -1188,12 +1208,15 @@ export default function AddVehicleScreen({ navigation }: any) {
           </Text>
           <TextInput
             style={styles.input}
-            placeholder="e.g., John Doe"
+            placeholder={
+              t.vehicle?.phPrimaryDriverExample || "e.g., John Doe"
+            }
             value={primaryDriver}
             onChangeText={setPrimaryDriver}
           />
           <Text style={styles.inputHint}>
-            Manage insurance in Vehicle Details → Insurance
+            {t.vehicle?.insuranceHintInAddVehicle ||
+              "Manage insurance in Vehicle Details → Insurance"}
           </Text>
         </View>
 

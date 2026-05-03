@@ -23,6 +23,7 @@ import {
   Filter,
 } from "lucide-react";
 
+import { logApiError } from "../../utils/logger";
 interface Invoice {
   id: string;
   invoiceNumber: string;
@@ -83,7 +84,7 @@ export default function FaturasPage() {
         })),
       );
     } catch (error) {
-      console.error("Error loading invoices:", error);
+      logApiError("Error loading invoices:", error);
     } finally {
       setLoading(false);
     }

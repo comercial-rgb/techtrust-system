@@ -19,11 +19,13 @@ import {
   Switch,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useAuth } from "../../contexts/AuthContext";
 import { logos } from "../../constants/images";
 import { useI18n } from "../../i18n";
+import type { RecentActivity } from "../../services/dashboard.service";
+import { log } from "../../utils/logger";
 
 const { width } = Dimensions.get("window");
 
@@ -58,19 +60,6 @@ interface Stats {
     pendingPickups: number;
     fillRate: number;
   } | null;
-}
-
-interface RecentActivity {
-  id: string;
-  type:
-    | "new_request"
-    | "quote_accepted"
-    | "service_completed"
-    | "payment_received";
-  title: string;
-  description: string;
-  time: string;
-  amount?: number;
 }
 
 interface PendingRequest {
@@ -136,7 +125,7 @@ export default function ProviderDashboardScreen({ navigation }: any) {
       await api.patch('/sos/availability', { status: next });
       setAvailabilityStatus(next);
     } catch (e) {
-      console.error('Failed to toggle availability', e);
+      log.error('Failed to toggle availability', e);
     } finally {
       setTogglingAvailability(false);
     }
@@ -173,7 +162,7 @@ export default function ProviderDashboardScreen({ navigation }: any) {
         if (av) setAvailabilityStatus(av);
       } catch { /* keep defaults */ }
     } catch (error) {
-      console.error("Error loading dashboard:", error);
+      log.error("Error loading dashboard:", error);
       setStats({
         pendingRequests: 0,
         activeWorkOrders: 0,
@@ -201,6 +190,7 @@ export default function ProviderDashboardScreen({ navigation }: any) {
         return { name: "clipboard-list", color: "#3b82f6", bg: "#dbeafe" };
       case "quote_accepted":
         return { name: "check-circle", color: "#10b981", bg: "#d1fae5" };
+      case "work_completed":
       case "service_completed":
         return { name: "star", color: "#8b5cf6", bg: "#ede9fe" };
       case "payment_received":
@@ -619,28 +609,36 @@ export default function ProviderDashboardScreen({ navigation }: any) {
         {/* D39 — Car Wash Adaptive Metrics */}
         {(businessType === 'CAR_WASH' || businessType === 'BOTH') && stats?.carWashMetrics && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Car Wash Metrics</Text>
+            <Text style={styles.sectionTitle}>
+              {t.provider?.carWashMetricsTitle || "Car Wash Metrics"}
+            </Text>
             <View style={styles.statsRow}>
               <View style={[styles.statCard, { flex: 1 }]}>
                 <View style={[styles.statIcon, { backgroundColor: '#dbeafe' }]}>
                   <MaterialCommunityIcons name="car-wash" size={22} color="#3b82f6" />
                 </View>
                 <Text style={styles.statValue}>{stats.carWashMetrics.washesToday}</Text>
-                <Text style={styles.statLabel}>Washes Today</Text>
+                <Text style={styles.statLabel}>
+                  {t.provider?.washesToday || "Washes Today"}
+                </Text>
               </View>
               <View style={[styles.statCard, { flex: 1 }]}>
                 <View style={[styles.statIcon, { backgroundColor: '#ede9fe' }]}>
                   <MaterialCommunityIcons name="package-variant" size={22} color="#7c3aed" />
                 </View>
                 <Text style={styles.statValue}>{stats.carWashMetrics.activePackages}</Text>
-                <Text style={styles.statLabel}>Active Packages</Text>
+                <Text style={styles.statLabel}>
+                  {t.provider?.activePackagesLabel || "Active Packages"}
+                </Text>
               </View>
               <View style={[styles.statCard, { flex: 1 }]}>
                 <View style={[styles.statIcon, { backgroundColor: '#fef3c7' }]}>
                   <MaterialCommunityIcons name="account-group" size={22} color="#d97706" />
                 </View>
                 <Text style={styles.statValue}>{stats.carWashMetrics.memberships}</Text>
-                <Text style={styles.statLabel}>Memberships</Text>
+                <Text style={styles.statLabel}>
+                  {t.provider?.membershipsLabel || "Memberships"}
+                </Text>
               </View>
             </View>
           </View>
@@ -649,28 +647,36 @@ export default function ProviderDashboardScreen({ navigation }: any) {
         {/* D40 — Parts Store Adaptive Metrics */}
         {stats?.partsStoreMetrics && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Parts Store Metrics</Text>
+            <Text style={styles.sectionTitle}>
+              {t.provider?.partsStoreMetricsTitle || "Parts Store Metrics"}
+            </Text>
             <View style={styles.statsRow}>
               <View style={[styles.statCard, { flex: 1 }]}>
                 <View style={[styles.statIcon, { backgroundColor: '#dbeafe' }]}>
                   <MaterialCommunityIcons name="package-variant-closed" size={22} color="#3b82f6" />
                 </View>
                 <Text style={styles.statValue}>{stats.partsStoreMetrics.productsListed}</Text>
-                <Text style={styles.statLabel}>Products Listed</Text>
+                <Text style={styles.statLabel}>
+                  {t.provider?.productsListed || "Products Listed"}
+                </Text>
               </View>
               <View style={[styles.statCard, { flex: 1 }]}>
                 <View style={[styles.statIcon, { backgroundColor: '#fef3c7' }]}>
                   <MaterialCommunityIcons name="truck-delivery" size={22} color="#d97706" />
                 </View>
                 <Text style={styles.statValue}>{stats.partsStoreMetrics.pendingPickups}</Text>
-                <Text style={styles.statLabel}>Pending Pickups</Text>
+                <Text style={styles.statLabel}>
+                  {t.provider?.pendingPickups || "Pending Pickups"}
+                </Text>
               </View>
               <View style={[styles.statCard, { flex: 1 }]}>
                 <View style={[styles.statIcon, { backgroundColor: '#d1fae5' }]}>
                   <MaterialCommunityIcons name="trending-up" size={22} color="#10b981" />
                 </View>
                 <Text style={styles.statValue}>{stats.partsStoreMetrics.fillRate}%</Text>
-                <Text style={styles.statLabel}>Fill Rate</Text>
+                <Text style={styles.statLabel}>
+                  {t.provider?.fillRate || "Fill Rate"}
+                </Text>
               </View>
             </View>
           </View>
@@ -828,7 +834,7 @@ export default function ProviderDashboardScreen({ navigation }: any) {
                 <View style={styles.activityRight}>
                   {activity.amount && (
                     <Text style={styles.activityAmount}>
-                      +${Number(activity.amount).toFixed(2)}
+                      +{formatCurrency(Number(activity.amount))}
                     </Text>
                   )}
                   <Text style={styles.activityTime}>{activity.time}</Text>
@@ -865,7 +871,9 @@ export default function ProviderDashboardScreen({ navigation }: any) {
 
         {/* Roadside SOS Panel */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Roadside SOS</Text>
+          <Text style={styles.sectionTitle}>
+            {t.sos?.titleRoadsideSos || "Roadside SOS"}
+          </Text>
           <View style={{
             backgroundColor: '#fff',
             borderRadius: 16,
@@ -893,12 +901,18 @@ export default function ProviderDashboardScreen({ navigation }: any) {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 15, fontWeight: '700', color: '#111827' }}>
-                  {availabilityStatus === 'ONLINE' ? 'Online — receiving SOS alerts' : 'Offline — not receiving SOS'}
+                  {availabilityStatus === 'ONLINE'
+                    ? t.provider?.sosStatusOnlineTitle ||
+                      "Online — receiving SOS alerts"
+                    : t.provider?.sosStatusOfflineTitle ||
+                      "Offline — not receiving SOS"}
                 </Text>
                 <Text style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>
                   {availabilityStatus === 'ONLINE'
-                    ? 'Customers nearby can send you roadside requests'
-                    : 'Go online to start receiving roadside emergency calls'}
+                    ? t.provider?.sosStatusOnlineSubtitle ||
+                      "Customers nearby can send you roadside requests"
+                    : t.provider?.sosStatusOfflineSubtitle ||
+                      "Go online to start receiving roadside emergency calls"}
                 </Text>
               </View>
             </View>
@@ -909,7 +923,9 @@ export default function ProviderDashboardScreen({ navigation }: any) {
                 onPress={() => navigation.navigate('SOSInbox')}
               >
                 <MaterialCommunityIcons name="radar" size={18} color="#2B5EA7" />
-                <Text style={{ fontSize: 14, fontWeight: '600', color: '#2B5EA7' }}>SOS Inbox</Text>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#2B5EA7' }}>
+                  {t.provider?.sosInbox || "SOS Inbox"}
+                </Text>
               </TouchableOpacity>
               <View style={{ width: 1, backgroundColor: '#f3f4f6' }} />
               <TouchableOpacity
@@ -917,7 +933,9 @@ export default function ProviderDashboardScreen({ navigation }: any) {
                 onPress={() => navigation.navigate('SOSRateCard')}
               >
                 <MaterialCommunityIcons name="tag-multiple" size={18} color="#6b7280" />
-                <Text style={{ fontSize: 14, fontWeight: '600', color: '#6b7280' }}>Rate Card</Text>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#6b7280' }}>
+                  {t.provider?.sosRateCard || "Rate Card"}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -941,9 +959,13 @@ export default function ProviderDashboardScreen({ navigation }: any) {
               <MaterialCommunityIcons name="email-newsletter" size={24} color="#7c3aed" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 15, fontWeight: '600', color: '#1f2937' }}>Weekly Performance Report</Text>
+              <Text style={{ fontSize: 15, fontWeight: '600', color: '#1f2937' }}>
+                {t.provider?.weeklyPerformanceReport ||
+                  "Weekly Performance Report"}
+              </Text>
               <Text style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>
-                Receive earnings, ratings & activity summary every Monday
+                {t.provider?.weeklyPerformanceReportSubtitle ||
+                  "Receive earnings, ratings & activity summary every Monday"}
               </Text>
             </View>
             <Switch
@@ -954,12 +976,22 @@ export default function ProviderDashboardScreen({ navigation }: any) {
                   const api = (await import('../../services/api')).default;
                   await api.patch('/providers/weekly-reports', { enabled: val });
                   Alert.alert(
-                    val ? 'Reports Enabled' : 'Reports Disabled',
-                    val ? 'You will receive weekly performance reports by email.' : 'Weekly reports have been disabled.',
+                    val
+                      ? t.provider?.weeklyReportsEnabledTitle || "Reports Enabled"
+                      : t.provider?.weeklyReportsDisabledTitle || "Reports Disabled",
+                    val
+                      ? t.provider?.weeklyReportsEnabledMessage ||
+                        "You will receive weekly performance reports by email."
+                      : t.provider?.weeklyReportsDisabledMessage ||
+                        "Weekly reports have been disabled.",
                   );
                 } catch {
                   setWeeklyReportsEnabled(!val);
-                  Alert.alert('Error', 'Could not update preference. Please try again.');
+                  Alert.alert(
+                    t.common?.error || 'Error',
+                    t.provider?.updateDashboardPreferenceFailed ||
+                      'Could not update preference. Please try again.',
+                  );
                 }
               }}
               trackColor={{ false: '#e5e7eb', true: '#c4b5fd' }}

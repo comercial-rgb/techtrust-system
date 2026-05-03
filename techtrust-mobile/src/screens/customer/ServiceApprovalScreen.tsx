@@ -15,7 +15,7 @@
  * - Fotos before/during/after
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -49,9 +49,64 @@ interface ServiceApprovalScreenProps {
   };
 }
 
-const ServiceApprovalScreen: React.FC<ServiceApprovalScreenProps> = ({ navigation, route }) => {
+function ServiceApprovalScreen({ navigation, route }: ServiceApprovalScreenProps) {
   const { workOrderId } = route.params;
-  const { t } = useI18n();
+  const { t, language, formatDate, formatTime, formatCurrency } = useI18n();
+  const localeLong = useMemo(
+    () => (language === 'pt' ? 'pt-BR' : language === 'es' ? 'es-ES' : 'en-US'),
+    [language],
+  );
+
+  const sa = t.serviceApproval;
+
+  const workOrderStatusLabel = (status: string) => {
+    const key = status.toUpperCase();
+    const labels: Record<string, string | undefined> = {
+      COMPLETED: sa?.woStatusCompleted,
+      AWAITING_APPROVAL: sa?.woStatusAwaitingApproval,
+      CANCELLED: sa?.woStatusCancelled,
+      IN_PROGRESS: sa?.woStatusInProgress,
+      SCHEDULED: sa?.woStatusScheduled,
+      AWAITING_PAYMENT: sa?.woStatusAwaitingPayment,
+      PENDING_PAYMENT: sa?.woStatusAwaitingPayment,
+      PENDING: sa?.woStatusPending,
+    };
+    return labels[key] ?? status.replace(/_/g, ' ');
+  };
+
+  const supplementStatusLabel = (status: string) => {
+    const u = status.toUpperCase();
+    if (u === 'HOLD_PLACED') return sa?.suppStatusHoldPlaced ?? status.replace(/_/g, ' ');
+    if (u === 'REJECTED') return sa?.suppStatusRejected ?? status.replace(/_/g, ' ');
+    return sa?.suppStatusPending ?? status.replace(/_/g, ' ');
+  };
+
+  const photoPhaseWord = (type: string) => {
+    switch (type.toLowerCase()) {
+      case 'before':
+        return sa?.photoPhaseBefore ?? 'Before';
+      case 'during':
+        return sa?.photoPhaseDuring ?? 'During';
+      case 'after':
+        return sa?.photoPhaseAfter ?? 'After';
+      default:
+        return type.charAt(0).toUpperCase() + type.slice(1);
+    }
+  };
+
+  const modalPhotosHeading = (phaseKey: string) =>
+    (sa?.modalPhotosTitle ?? '{{phase}} photos').replace(
+      /\{\{\s*phase\s*\}\}/gi,
+      photoPhaseWord(phaseKey),
+    );
+
+  const formatProcessingTimeLabel = (time?: string | null) => {
+    if (time == null || String(time).trim() === '') return sa?.processingInstant ?? 'Instant';
+    const s = String(time).trim().toLowerCase();
+    if (s === 'instant') return sa?.processingInstant ?? 'Instant';
+    if (s.includes('1-2') || s.includes('1–2')) return sa?.processingOneTwoDays ?? '1–2 days';
+    return String(time);
+  };
 
   // States
   const [loading, setLoading] = useState(true);
@@ -96,7 +151,10 @@ const ServiceApprovalScreen: React.FC<ServiceApprovalScreenProps> = ({ navigatio
         }
       }
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to load service details');
+      Alert.alert(
+        t.common?.error || 'Error',
+        error.response?.data?.message || t.serviceApproval?.loadFailed || 'Failed to load service details',
+      );
     } finally {
       setLoading(false);
     }
@@ -112,25 +170,40 @@ const ServiceApprovalScreen: React.FC<ServiceApprovalScreenProps> = ({ navigatio
 
   const handleApproveService = async () => {
     if (!termsAccepted) {
-      Alert.alert('Terms Required', 'You must accept the Terms of Service to proceed.');
+      Alert.alert(
+        t.serviceApproval?.termsRequiredTitle || 'Terms Required',
+        t.serviceApproval?.termsRequiredBody || 'You must accept the Terms of Service to proceed.',
+      );
       return;
     }
     if (!fraudDisclaimerAccepted) {
-      Alert.alert('Acknowledgment Required', 'You must acknowledge the fraud disclaimer to proceed.');
+      Alert.alert(
+        t.serviceApproval?.fraudAckTitle || 'Acknowledgment Required',
+        t.serviceApproval?.fraudAckBody || 'You must acknowledge the fraud disclaimer to proceed.',
+      );
       return;
     }
     if (!signatureName.trim()) {
-      Alert.alert('Signature Required', 'Please enter your full name as a digital signature.');
+      Alert.alert(
+        t.serviceApproval?.signatureRequiredTitle || 'Signature Required',
+        t.serviceApproval?.signatureRequiredBody || 'Please enter your full name as a digital signature.',
+      );
       return;
     }
 
+    const amountStr = formatCurrency(details?.financials.totalAuthorized ?? 0);
+    const confirmBody = (t.serviceApproval?.confirmPaymentBody || '')
+      .replace(/\{\{\s*amount\s*\}\}/g, amountStr);
+
     Alert.alert(
-      'Confirm Payment',
-      `You are authorizing the charge of $${details?.financials.totalAuthorized.toFixed(2) || '0.00'} to your card. This action cannot be undone.\n\nBy proceeding, you confirm that:\n• The service has been completed satisfactorily\n• You accept the Terms of Service\n• You acknowledge this is a legitimate transaction`,
+      t.serviceApproval?.confirmPaymentTitle || 'Confirm Payment',
+      confirmBody ||
+        (sa?.confirmPaymentBodyDefault || '')
+          .replace(/\{\{\s*amount\s*\}\}/g, amountStr),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t.common?.cancel || 'Cancel', style: 'cancel' },
         {
-          text: 'Confirm & Pay',
+          text: t.serviceApproval?.confirmPay || 'Confirm & Pay',
           style: 'default',
           onPress: async () => {
             try {
@@ -155,16 +228,28 @@ const ServiceApprovalScreen: React.FC<ServiceApprovalScreenProps> = ({ navigatio
                   }
                 }
 
+                const totalStr = formatCurrency(result.data.totalCharged);
+                const receiptStr =
+                  result.data.receipt?.receiptNumber ||
+                  t.serviceApproval?.receiptGenerating ||
+                  'Generating...';
+                const successBody = (t.serviceApproval?.paymentSuccessBody || '')
+                  .replace(/\{\{\s*total\s*\}\}/g, totalStr)
+                  .replace(/\{\{\s*receipt\s*\}\}/g, receiptStr);
+
                 Alert.alert(
-                  'Payment Successful! ✓',
-                  `Total charged: $${result.data.totalCharged.toFixed(2)}\nReceipt: ${result.data.receipt?.receiptNumber || 'Generating...'}`,
+                  t.serviceApproval?.paymentSuccessTitle || 'Payment Successful! ✓',
+                  successBody ||
+                    (sa?.paymentSuccessBodyDefault || '')
+                      .replace(/\{\{\s*total\s*\}\}/g, totalStr)
+                      .replace(/\{\{\s*receipt\s*\}\}/g, receiptStr),
                   [
                     {
-                      text: 'View Receipt',
+                      text: t.serviceApproval?.viewReceipt || 'View Receipt',
                       onPress: () => setShowReceipt(true),
                     },
                     {
-                      text: 'Done',
+                      text: t.common?.done || 'Done',
                       onPress: () => navigation.goBack(),
                     },
                   ]
@@ -174,7 +259,12 @@ const ServiceApprovalScreen: React.FC<ServiceApprovalScreenProps> = ({ navigatio
                 loadDetails();
               }
             } catch (error: any) {
-              Alert.alert('Payment Error', error.response?.data?.message || 'Failed to process payment');
+              Alert.alert(
+                t.serviceApproval?.paymentErrorTitle || 'Payment Error',
+                error.response?.data?.message ||
+                  t.serviceApproval?.paymentErrorDefault ||
+                  'Failed to process payment',
+              );
             } finally {
               setSubmitting(false);
             }
@@ -205,7 +295,7 @@ const ServiceApprovalScreen: React.FC<ServiceApprovalScreenProps> = ({ navigatio
   if (!details) {
     return (
       <SafeAreaView style={styles.container}>
-        <Text style={styles.errorText}>Unable to load service details</Text>
+        <Text style={styles.errorText}>{sa?.unableToLoadDetails || sa?.loadFailed || 'Unable to load service details'}</Text>
       </SafeAreaView>
     );
   }
@@ -221,7 +311,7 @@ const ServiceApprovalScreen: React.FC<ServiceApprovalScreenProps> = ({ navigatio
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Service Approval</Text>
+        <Text style={styles.headerTitle}>{sa?.screenTitle || 'Service Approval'}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -232,11 +322,10 @@ const ServiceApprovalScreen: React.FC<ServiceApprovalScreenProps> = ({ navigatio
         <View style={styles.warningBanner}>
           <Ionicons name="warning" size={24} color="#DC2626" />
           <View style={styles.warningTextContainer}>
-            <Text style={styles.warningTitle}>Important Notice</Text>
+            <Text style={styles.warningTitle}>{sa?.warningTitle || 'Important Notice'}</Text>
             <Text style={styles.warningText}>
-              By approving this service and authorizing payment, you acknowledge that this is a legitimate transaction. 
-              Filing a false fraud claim with your bank or credit card company regarding this charge is a violation 
-              of federal law and may result in civil and criminal penalties, including fines and prosecution.
+              {sa?.warningBody ||
+                'By approving this service and authorizing payment, you acknowledge that this is a legitimate transaction. Filing a false fraud claim with your bank or credit card company regarding this charge is a violation of federal law and may result in civil and criminal penalties, including fines and prosecution.'}
             </Text>
           </View>
         </View>
@@ -252,39 +341,51 @@ const ServiceApprovalScreen: React.FC<ServiceApprovalScreenProps> = ({ navigatio
               color={isCompleted ? '#16A34A' : '#F59E0B'}
             />
             <Text style={[styles.statusText, { color: isCompleted ? '#16A34A' : '#F59E0B' }]}>
-              {details.workOrder.status.replace(/_/g, ' ')}
+              {workOrderStatusLabel(details.workOrder.status)}
             </Text>
           </View>
-          <Text style={styles.orderNumber}>Order #{details.workOrder.orderNumber}</Text>
+          <Text style={styles.orderNumber}>
+            {(sa?.orderNumber || 'Order #{{number}}').replace(
+              /\{\{\s*number\s*\}\}/g,
+              String(details.workOrder.orderNumber),
+            )}
+          </Text>
         </View>
 
         {/* ============================================ */}
         {/* SERVICE DETAILS */}
         {/* ============================================ */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Service Details</Text>
+          <Text style={styles.sectionTitle}>{sa?.sectionServiceDetails || 'Service Details'}</Text>
           <View style={styles.card}>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Service</Text>
+              <Text style={styles.detailLabel}>{sa?.labelService || 'Service'}</Text>
               <Text style={styles.detailValue}>{details.service.title}</Text>
             </View>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Vehicle</Text>
+              <Text style={styles.detailLabel}>{sa?.labelVehicle || 'Vehicle'}</Text>
               <Text style={styles.detailValue}>
                 {details.vehicle.year} {details.vehicle.make} {details.vehicle.model}
               </Text>
             </View>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Provider</Text>
+              <Text style={styles.detailLabel}>{sa?.labelProvider || 'Provider'}</Text>
               <Text style={styles.detailValue}>
                 {details.quote.provider?.providerProfile?.businessName || details.quote.provider?.fullName}
               </Text>
             </View>
             {details.quote.warranty.months && (
               <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Warranty</Text>
+                <Text style={styles.detailLabel}>{sa?.labelWarranty || 'Warranty'}</Text>
                 <Text style={styles.detailValue}>
-                  {details.quote.warranty.months} months / {details.quote.warranty.mileage || 'N/A'} miles
+                  {(sa?.warrantyMonthsMiles || '{{months}} months / {{mileage}} miles')
+                    .replace(/\{\{\s*months\s*\}\}/g, String(details.quote.warranty.months))
+                    .replace(
+                      /\{\{\s*mileage\s*\}\}/g,
+                      details.quote.warranty.mileage != null
+                        ? String(details.quote.warranty.mileage)
+                        : (sa?.warrantyMilesNA ?? 'N/A'),
+                    )}
                 </Text>
               </View>
             )}
@@ -295,7 +396,7 @@ const ServiceApprovalScreen: React.FC<ServiceApprovalScreenProps> = ({ navigatio
         {/* SERVICE PHOTOS */}
         {/* ============================================ */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Service Photos</Text>
+          <Text style={styles.sectionTitle}>{sa?.sectionPhotos || 'Service Photos'}</Text>
           <View style={styles.photosRow}>
             {(['before', 'during', 'after'] as const).map((type) => {
               const photos = details.workOrder.photos[type] || [];
@@ -312,9 +413,11 @@ const ServiceApprovalScreen: React.FC<ServiceApprovalScreenProps> = ({ navigatio
                     color={photos.length > 0 ? '#2563eb' : '#9CA3AF'}
                   />
                   <Text style={[styles.photoCategoryLabel, photos.length > 0 && { color: '#2563eb' }]}>
-                    {type.charAt(0).toUpperCase() + type.slice(1)}
+                    {photoPhaseWord(type)}
                   </Text>
-                  <Text style={styles.photoCount}>{photos.length} photos</Text>
+                  <Text style={styles.photoCount}>
+                    {(sa?.photoCount || '{{count}} photos').replace(/\{\{\s*count\s*\}\}/g, String(photos.length))}
+                  </Text>
                 </TouchableOpacity>
               );
             })}
@@ -325,50 +428,52 @@ const ServiceApprovalScreen: React.FC<ServiceApprovalScreenProps> = ({ navigatio
         {/* PAYMENT BREAKDOWN */}
         {/* ============================================ */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Payment Breakdown</Text>
+          <Text style={styles.sectionTitle}>{sa?.sectionPaymentBreakdown || 'Payment Breakdown'}</Text>
           <View style={styles.card}>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Service Amount</Text>
-              <Text style={styles.detailValue}>${details.financials.originalAmount.toFixed(2)}</Text>
+              <Text style={styles.detailLabel}>{sa?.labelServiceAmount || 'Service Amount'}</Text>
+              <Text style={styles.detailValue}>{formatCurrency(details.financials.originalAmount)}</Text>
             </View>
             {details.financials.additionalAmount > 0 && (
               <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Additional Services</Text>
-                <Text style={styles.detailValue}>${details.financials.additionalAmount.toFixed(2)}</Text>
+                <Text style={styles.detailLabel}>{sa?.labelAdditionalServices || 'Additional Services'}</Text>
+                <Text style={styles.detailValue}>{formatCurrency(details.financials.additionalAmount)}</Text>
               </View>
             )}
             {details.quote.travelFee && Number(details.quote.travelFee) > 0 && (
               <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Travel / Displacement Fee</Text>
-                <Text style={styles.detailValue}>${Number(details.quote.travelFee).toFixed(2)}</Text>
+                <Text style={styles.detailLabel}>{sa?.labelTravelFee || 'Travel / Displacement Fee'}</Text>
+                <Text style={styles.detailValue}>{formatCurrency(Number(details.quote.travelFee))}</Text>
               </View>
             )}
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Platform Fee (10%)</Text>
+              <Text style={styles.detailLabel}>{sa?.labelPlatformFee10 || 'Platform Fee (10%)'}</Text>
               <Text style={styles.detailValue}>
-                ${(details.financials.finalAmount * 0.1).toFixed(2)}
+                {formatCurrency(details.financials.finalAmount * 0.1)}
               </Text>
             </View>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Processing Fee</Text>
+              <Text style={styles.detailLabel}>{sa?.labelProcessingFee || 'Processing Fee'}</Text>
               <Text style={styles.detailValue}>
-                ${((details.financials.finalAmount * 1.1 * 0.029) + 0.30).toFixed(2)}
+                {formatCurrency(details.financials.finalAmount * 1.1 * 0.029 + 0.3)}
               </Text>
             </View>
 
             <View style={styles.divider} />
 
             <View style={styles.detailRow}>
-              <Text style={[styles.detailLabel, styles.totalLabel]}>Total on Hold</Text>
+              <Text style={[styles.detailLabel, styles.totalLabel]}>{sa?.labelTotalOnHold || 'Total on Hold'}</Text>
               <Text style={[styles.detailValue, styles.totalValue]}>
-                ${details.financials.totalAuthorized.toFixed(2)}
+                {formatCurrency(details.financials.totalAuthorized)}
               </Text>
             </View>
 
             {details.financials.holdActive && (
               <View style={styles.holdBadge}>
                 <Ionicons name="lock-closed" size={14} color="#F59E0B" />
-                <Text style={styles.holdText}>Funds are on hold — will be charged upon approval</Text>
+                <Text style={styles.holdText}>
+                  {sa?.holdFundsMessage || 'Funds are on hold — will be charged upon approval'}
+                </Text>
               </View>
             )}
           </View>
@@ -379,15 +484,15 @@ const ServiceApprovalScreen: React.FC<ServiceApprovalScreenProps> = ({ navigatio
         {/* ============================================ */}
         {details.supplements.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Additional Work</Text>
+            <Text style={styles.sectionTitle}>{sa?.sectionAdditionalWork || 'Additional Work'}</Text>
             {details.supplements.map((s: any) => (
               <View key={s.id} style={styles.supplementCard}>
                 <View style={styles.supplementHeader}>
                   <Text style={styles.supplementDesc}>{s.description}</Text>
-                  <Text style={styles.supplementAmount}>+${s.additionalAmount.toFixed(2)}</Text>
+                  <Text style={styles.supplementAmount}>+{formatCurrency(s.additionalAmount)}</Text>
                 </View>
                 <View style={[styles.supplementBadge, { backgroundColor: s.status === 'HOLD_PLACED' ? '#DEF7EC' : s.status === 'REJECTED' ? '#FEE2E2' : '#FEF3C7' }]}>
-                  <Text style={styles.supplementStatus}>{s.status.replace(/_/g, ' ')}</Text>
+                  <Text style={styles.supplementStatus}>{supplementStatusLabel(s.status)}</Text>
                 </View>
               </View>
             ))}
@@ -399,24 +504,24 @@ const ServiceApprovalScreen: React.FC<ServiceApprovalScreenProps> = ({ navigatio
         {/* ============================================ */}
         {processorComparison && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Processing Fee Comparison</Text>
+            <Text style={styles.sectionTitle}>{sa?.sectionProcessorComparison || 'Processing Fee Comparison'}</Text>
             <View style={styles.comparisonContainer}>
               {/* Stripe */}
               <View style={[styles.processorCard, processorComparison.recommendation.processor === 'STRIPE' && styles.processorRecommended]}>
                 {processorComparison.recommendation.processor === 'STRIPE' && (
                   <View style={styles.recommendedBadge}>
-                    <Text style={styles.recommendedText}>Recommended</Text>
+                    <Text style={styles.recommendedText}>{sa?.recommended || 'Recommended'}</Text>
                   </View>
                 )}
                 <Text style={styles.processorName}>Stripe</Text>
                 <Text style={styles.processorFee}>
-                  Fee: ${processorComparison.processors?.stripe?.processingFee?.toFixed(2) || '0.00'}
+                  {sa?.labelFee || 'Fee'}: {formatCurrency(Number(processorComparison.processors?.stripe?.processingFee) || 0)}
                 </Text>
                 <Text style={styles.processorTotal}>
-                  Total: ${processorComparison.processors?.stripe?.totalAmount?.toFixed(2) || '0.00'}
+                  {sa?.labelTotal || 'Total'}: {formatCurrency(Number(processorComparison.processors?.stripe?.totalAmount) || 0)}
                 </Text>
                 <Text style={styles.processorTime}>
-                  {processorComparison.processors?.stripe?.processingTime || 'Instant'}
+                  {formatProcessingTimeLabel(processorComparison.processors?.stripe?.processingTime)}
                 </Text>
               </View>
 
@@ -424,24 +529,24 @@ const ServiceApprovalScreen: React.FC<ServiceApprovalScreenProps> = ({ navigatio
               <View style={[styles.processorCard, processorComparison.recommendation.processor === 'CHASE' && styles.processorRecommended]}>
                 {processorComparison.recommendation.processor === 'CHASE' && (
                   <View style={styles.recommendedBadge}>
-                    <Text style={styles.recommendedText}>Recommended</Text>
+                    <Text style={styles.recommendedText}>{sa?.recommended || 'Recommended'}</Text>
                   </View>
                 )}
                 <Text style={styles.processorName}>Chase</Text>
                 <Text style={styles.processorFee}>
-                  Fee: ${processorComparison.processors?.chase?.processingFee?.toFixed(2) || '0.00'}
+                  {sa?.labelFee || 'Fee'}: {formatCurrency(Number(processorComparison.processors?.chase?.processingFee) || 0)}
                 </Text>
                 <Text style={styles.processorTotal}>
-                  Total: ${processorComparison.processors?.chase?.totalAmount?.toFixed(2) || '0.00'}
+                  {sa?.labelTotal || 'Total'}: {formatCurrency(Number(processorComparison.processors?.chase?.totalAmount) || 0)}
                 </Text>
                 <Text style={styles.processorTime}>
-                  {processorComparison.processors?.chase?.processingTime || '1-2 days'}
+                  {formatProcessingTimeLabel(processorComparison.processors?.chase?.processingTime)}
                 </Text>
                 {processorComparison.processors?.chase?.note && (
                   <Text style={styles.processorNote}>{processorComparison.processors.chase.note}</Text>
                 )}
                 {!processorComparison.processors?.chase?.available && (
-                  <Text style={styles.processorUnavailable}>Coming Soon</Text>
+                  <Text style={styles.processorUnavailable}>{sa?.comingSoon || 'Coming Soon'}</Text>
                 )}
               </View>
             </View>
@@ -459,7 +564,7 @@ const ServiceApprovalScreen: React.FC<ServiceApprovalScreenProps> = ({ navigatio
         {canApprove && (
           <>
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Terms & Agreements</Text>
+              <Text style={styles.sectionTitle}>{sa?.sectionTermsAgreements || 'Terms & Agreements'}</Text>
 
               {/* Terms of Service */}
               <TouchableOpacity
@@ -470,10 +575,10 @@ const ServiceApprovalScreen: React.FC<ServiceApprovalScreenProps> = ({ navigatio
                   {termsAccepted && <Ionicons name="checkmark" size={16} color="#fff" />}
                 </View>
                 <View style={styles.checkboxTextContainer}>
-                  <Text style={styles.checkboxLabel}>I accept the Terms of Service</Text>
+                  <Text style={styles.checkboxLabel}>{sa?.termsCheckboxLabel || 'I accept the Terms of Service'}</Text>
                   <Text style={styles.checkboxDescription}>
-                    I confirm that the service has been completed to my satisfaction 
-                    and I authorize the payment as shown above.
+                    {sa?.termsCheckboxDescription ||
+                      'I confirm that the service has been completed to my satisfaction and I authorize the payment as shown above.'}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -487,17 +592,16 @@ const ServiceApprovalScreen: React.FC<ServiceApprovalScreenProps> = ({ navigatio
                   {fraudDisclaimerAccepted && <Ionicons name="checkmark" size={16} color="#fff" />}
                 </View>
                 <View style={styles.checkboxTextContainer}>
-                  <Text style={styles.checkboxLabel}>Fraud Disclaimer Acknowledgment</Text>
+                  <Text style={styles.checkboxLabel}>{sa?.fraudCheckboxLabel || 'Fraud Disclaimer Acknowledgment'}</Text>
                   <Text style={styles.checkboxDescription}>
-                    I acknowledge that this is a legitimate transaction for automotive services I have received. 
-                    I understand that filing a false fraud claim, chargeback, or dispute with my bank or credit card company 
-                    regarding this charge constitutes fraud and may result in:
+                    {sa?.fraudCheckboxDescription ||
+                      'I acknowledge that this is a legitimate transaction for automotive services I have received. I understand that filing a false fraud claim, chargeback, or dispute with my bank or credit card company regarding this charge constitutes fraud and may result in:'}
                   </Text>
                   <View style={styles.bulletList}>
-                    <Text style={styles.bulletItem}>• Civil liability for damages and legal fees</Text>
-                    <Text style={styles.bulletItem}>• Criminal prosecution under applicable federal and state laws</Text>
-                    <Text style={styles.bulletItem}>• Permanent suspension from the TechTrust platform</Text>
-                    <Text style={styles.bulletItem}>• Reporting to consumer fraud databases</Text>
+                    <Text style={styles.bulletItem}>• {sa?.fraudBullet1 || 'Civil liability for damages and legal fees'}</Text>
+                    <Text style={styles.bulletItem}>• {sa?.fraudBullet2 || 'Criminal prosecution under applicable federal and state laws'}</Text>
+                    <Text style={styles.bulletItem}>• {sa?.fraudBullet3 || 'Permanent suspension from the TechTrust platform'}</Text>
+                    <Text style={styles.bulletItem}>• {sa?.fraudBullet4 || 'Reporting to consumer fraud databases'}</Text>
                   </View>
                 </View>
               </TouchableOpacity>
@@ -505,21 +609,24 @@ const ServiceApprovalScreen: React.FC<ServiceApprovalScreenProps> = ({ navigatio
 
             {/* Digital Signature */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Digital Signature</Text>
+              <Text style={styles.sectionTitle}>{sa?.sectionDigitalSignature || 'Digital Signature'}</Text>
               <Text style={styles.signatureInstructions}>
-                Type your full legal name below as your digital signature to authorize this payment.
+                {sa?.signatureInstructions ||
+                  'Type your full legal name below as your digital signature to authorize this payment.'}
               </Text>
               <TextInput
                 style={styles.signatureInput}
-                placeholder="Full legal name"
+                placeholder={sa?.signaturePlaceholder || 'Full legal name'}
                 value={signatureName}
                 onChangeText={setSignatureName}
                 autoCapitalize="words"
               />
               {signatureName.trim().length > 0 && (
                 <Text style={styles.signaturePreview}>
-                  Signed as: <Text style={styles.signatureBold}>{signatureName}</Text> on{' '}
-                  {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                  {sa?.signatureSignedAsLabel || 'Signed as:'}{' '}
+                  <Text style={styles.signatureBold}>{signatureName}</Text>{' '}
+                  {sa?.signatureSignedOnLabel || 'on'}{' '}
+                  {new Date().toLocaleDateString(localeLong, { year: 'numeric', month: 'long', day: 'numeric' })}
                 </Text>
               )}
             </View>
@@ -539,7 +646,10 @@ const ServiceApprovalScreen: React.FC<ServiceApprovalScreenProps> = ({ navigatio
                 <>
                   <Ionicons name="shield-checkmark" size={22} color="#fff" />
                   <Text style={styles.approveButtonText}>
-                    Approve & Pay ${details.financials.totalAuthorized.toFixed(2)}
+                    {(sa?.approvePayButton || 'Approve & Pay {{amount}}').replace(
+                      /\{\{\s*amount\s*\}\}/g,
+                      formatCurrency(details.financials.totalAuthorized),
+                    )}
                   </Text>
                 </>
               )}
@@ -551,9 +661,10 @@ const ServiceApprovalScreen: React.FC<ServiceApprovalScreenProps> = ({ navigatio
         {isCompleted && (
           <View style={styles.completedSection}>
             <Ionicons name="checkmark-circle" size={48} color="#16A34A" />
-            <Text style={styles.completedTitle}>Service Completed & Paid</Text>
+            <Text style={styles.completedTitle}>{sa?.completedTitle || 'Service Completed & Paid'}</Text>
             <Text style={styles.completedText}>
-              Total Charged: ${details.financials.totalCaptured.toFixed(2)}
+              {sa?.completedTotalCharged || 'Total charged:'}{' '}
+              {formatCurrency(details.financials.totalCaptured)}
             </Text>
             {details.payments.find((p: any) => p.status === 'CAPTURED') && (
               <TouchableOpacity
@@ -566,13 +677,16 @@ const ServiceApprovalScreen: React.FC<ServiceApprovalScreenProps> = ({ navigatio
                       setReceipt(result.data);
                       setShowReceipt(true);
                     } catch (err) {
-                      Alert.alert('Error', 'Receipt not yet available');
+                      Alert.alert(
+                        t.common?.error || 'Error',
+                        t.serviceApproval?.receiptNotReady || 'Receipt not yet available',
+                      );
                     }
                   }
                 }}
               >
                 <Ionicons name="receipt" size={18} color="#2563eb" />
-                <Text style={styles.receiptButtonText}>View Receipt</Text>
+                <Text style={styles.receiptButtonText}>{sa?.viewReceipt || 'View Receipt'}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -587,7 +701,7 @@ const ServiceApprovalScreen: React.FC<ServiceApprovalScreenProps> = ({ navigatio
       <Modal visible={photoModalVisible} animationType="slide" onRequestClose={() => setPhotoModalVisible(false)}>
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{selectedPhotoType} Photos</Text>
+            <Text style={styles.modalTitle}>{modalPhotosHeading(selectedPhotoType)}</Text>
             <TouchableOpacity onPress={() => setPhotoModalVisible(false)}>
               <Ionicons name="close" size={24} color="#333" />
             </TouchableOpacity>
@@ -600,7 +714,7 @@ const ServiceApprovalScreen: React.FC<ServiceApprovalScreenProps> = ({ navigatio
                 <Image source={{ uri: item.url || item }} style={styles.photoImage} resizeMode="contain" />
                 {item.uploadedAt && (
                   <Text style={styles.photoTimestamp}>
-                    {new Date(item.uploadedAt).toLocaleString()}
+                    {`${formatDate(item.uploadedAt)} ${formatTime(item.uploadedAt)}`}
                   </Text>
                 )}
               </View>
@@ -615,7 +729,7 @@ const ServiceApprovalScreen: React.FC<ServiceApprovalScreenProps> = ({ navigatio
       <Modal visible={showReceipt} animationType="slide" onRequestClose={() => setShowReceipt(false)}>
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Payment Receipt</Text>
+            <Text style={styles.modalTitle}>{sa?.receiptModalTitle || 'Payment Receipt'}</Text>
             <TouchableOpacity onPress={() => setShowReceipt(false)}>
               <Ionicons name="close" size={24} color="#333" />
             </TouchableOpacity>
@@ -623,61 +737,71 @@ const ServiceApprovalScreen: React.FC<ServiceApprovalScreenProps> = ({ navigatio
           {receipt ? (
             <ScrollView style={styles.receiptContent}>
               <View style={styles.receiptHeader}>
-                <Text style={styles.receiptLogo}>TechTrust AutoSolutions</Text>
-                <Text style={styles.receiptNumber}>Receipt #{receipt.receipt.receiptNumber}</Text>
+                <Text style={styles.receiptLogo}>{sa?.receiptBrand || 'TechTrust AutoSolutions'}</Text>
+                <Text style={styles.receiptNumber}>
+                  {(sa?.receiptNumber || 'Receipt #{{number}}').replace(
+                    /\{\{\s*number\s*\}\}/g,
+                    String(receipt.receipt.receiptNumber),
+                  )}
+                </Text>
                 <Text style={styles.receiptDate}>
-                  {new Date(receipt.receipt.createdAt).toLocaleDateString('en-US', {
+                  {new Date(receipt.receipt.createdAt).toLocaleDateString(localeLong, {
                     year: 'numeric', month: 'long', day: 'numeric',
                   })}
                 </Text>
               </View>
 
               <View style={styles.receiptSection}>
-                <Text style={styles.receiptSectionTitle}>Customer</Text>
+                <Text style={styles.receiptSectionTitle}>{sa?.receiptSectionCustomer || 'Customer'}</Text>
                 <Text style={styles.receiptDetail}>{receipt.receipt.customerName}</Text>
               </View>
 
               <View style={styles.receiptSection}>
-                <Text style={styles.receiptSectionTitle}>Provider</Text>
+                <Text style={styles.receiptSectionTitle}>{sa?.receiptSectionProvider || 'Provider'}</Text>
                 <Text style={styles.receiptDetail}>{receipt.receipt.providerName}</Text>
               </View>
 
               <View style={styles.receiptSection}>
-                <Text style={styles.receiptSectionTitle}>Payment Details</Text>
+                <Text style={styles.receiptSectionTitle}>{sa?.receiptSectionPaymentDetails || 'Payment Details'}</Text>
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Service</Text>
-                  <Text style={styles.detailValue}>${Number(receipt.receipt.subtotal).toFixed(2)}</Text>
+                  <Text style={styles.detailLabel}>{sa?.receiptLabelServiceLine || 'Service'}</Text>
+                  <Text style={styles.detailValue}>{formatCurrency(Number(receipt.receipt.subtotal))}</Text>
                 </View>
                 {Number(receipt.receipt.supplementsTotal) > 0 && (
                   <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Supplements</Text>
-                    <Text style={styles.detailValue}>${Number(receipt.receipt.supplementsTotal).toFixed(2)}</Text>
+                    <Text style={styles.detailLabel}>{sa?.receiptLabelSupplements || 'Supplements'}</Text>
+                    <Text style={styles.detailValue}>{formatCurrency(Number(receipt.receipt.supplementsTotal))}</Text>
                   </View>
                 )}
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Platform Fee</Text>
-                  <Text style={styles.detailValue}>${Number(receipt.receipt.platformFee).toFixed(2)}</Text>
+                  <Text style={styles.detailLabel}>{sa?.receiptLabelPlatformFee || 'Platform Fee'}</Text>
+                  <Text style={styles.detailValue}>{formatCurrency(Number(receipt.receipt.platformFee))}</Text>
                 </View>
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Processing ({receipt.receipt.paymentProcessor})</Text>
-                  <Text style={styles.detailValue}>${Number(receipt.receipt.processingFee).toFixed(2)}</Text>
+                  <Text style={styles.detailLabel}>
+                    {(sa?.receiptLabelProcessing || 'Processing ({{processor}})').replace(
+                      /\{\{\s*processor\s*\}\}/g,
+                      String(receipt.receipt.paymentProcessor),
+                    )}
+                  </Text>
+                  <Text style={styles.detailValue}>{formatCurrency(Number(receipt.receipt.processingFee))}</Text>
                 </View>
                 <View style={styles.divider} />
                 <View style={styles.detailRow}>
-                  <Text style={[styles.detailLabel, styles.totalLabel]}>Total</Text>
-                  <Text style={[styles.detailValue, styles.totalValue]}>${Number(receipt.receipt.totalAmount).toFixed(2)}</Text>
+                  <Text style={[styles.detailLabel, styles.totalLabel]}>{sa?.receiptLabelTotal || 'Total'}</Text>
+                  <Text style={[styles.detailValue, styles.totalValue]}>{formatCurrency(Number(receipt.receipt.totalAmount))}</Text>
                 </View>
               </View>
 
               <View style={styles.receiptSection}>
-                <Text style={styles.receiptSectionTitle}>Payment Method</Text>
+                <Text style={styles.receiptSectionTitle}>{sa?.receiptSectionPaymentMethod || 'Payment Method'}</Text>
                 <Text style={styles.receiptDetail}>{receipt.receipt.paymentMethodInfo}</Text>
               </View>
 
               <View style={styles.receiptFooter}>
                 <Text style={styles.receiptFooterText}>
-                  This receipt confirms that payment has been processed successfully.
-                  Keep this for your records.
+                  {sa?.receiptFooter ||
+                    'This receipt confirms that payment has been processed successfully. Keep this for your records.'}
                 </Text>
               </View>
             </ScrollView>
@@ -688,7 +812,7 @@ const ServiceApprovalScreen: React.FC<ServiceApprovalScreenProps> = ({ navigatio
       </Modal>
     </SafeAreaView>
   );
-};
+}
 
 // ============================================
 // STYLES

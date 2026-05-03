@@ -12,6 +12,12 @@ import { asyncHandler } from "../utils/async-handler";
 import { prisma } from "../config/database";
 import { AppError } from "../middleware/error-handler";
 import * as stripeService from "../services/stripe.service";
+import {
+  PIX_RULES,
+  validatePixKey,
+  normalizePixKey,
+  type PixKeyType,
+} from "../config/businessRules";
 
 const router = Router();
 
@@ -39,6 +45,8 @@ router.get(
         cardExpYear: true,
         holderName: true,
         pixKey: true,
+        pixKeyType: true,
+        userCountry: true,
         isDefault: true,
         createdAt: true,
       },
@@ -53,7 +61,13 @@ router.get(
 
 /**
  * POST /api/v1/payment-methods
- * Adicionar novo método de pagamento
+ * Adicionar novo método de pagamento (cartão manual ou PIX).
+ *
+ * Para PIX, o usuário deve ter userCountry = "BR" no corpo da requisição.
+ * Body PIX: { type: "pix", pixKey, pixKeyType, userCountry: "BR" }
+ * Body Cartão: { type: "credit"|"debit", cardBrand, cardLast4, cardExpMonth, cardExpYear, holderName }
+ *
+ * Nota: para cartões Stripe, usar POST /payment-methods/stripe (PCI compliant).
  */
 router.post(
   "/",
@@ -67,28 +81,98 @@ router.post(
       cardExpYear,
       holderName,
       pixKey,
+      pixKeyType,
+      userCountry,
     } = req.body;
 
-    // Validação básica
+    // Validar tipo
     if (!type || !["credit", "debit", "pix"].includes(type)) {
       throw new AppError("Invalid payment method type", 400, "INVALID_TYPE");
     }
 
     if (type === "pix") {
+      // Verificar se PIX está habilitado
+      if (!PIX_RULES.ENABLED) {
+        throw new AppError("PIX payments are not available", 503, "PIX_DISABLED");
+      }
+
+      // PIX só para usuários brasileiros
+      const country = (userCountry ?? "US").toUpperCase();
+      if (country !== PIX_RULES.ELIGIBLE_USER_COUNTRY) {
+        throw new AppError(
+          "PIX is only available for Brazilian users (userCountry: BR)",
+          403,
+          "PIX_NOT_ELIGIBLE",
+        );
+      }
+
       if (!pixKey) {
         throw new AppError("PIX key is required", 400, "PIX_KEY_REQUIRED");
       }
-    } else {
-      if (!cardLast4 || !cardBrand) {
+
+      if (!pixKeyType || !PIX_RULES.ACCEPTED_KEY_TYPES.includes(pixKeyType as PixKeyType)) {
         throw new AppError(
-          "Card details are required",
+          `pixKeyType must be one of: ${PIX_RULES.ACCEPTED_KEY_TYPES.join(", ")}`,
           400,
-          "CARD_DETAILS_REQUIRED",
+          "PIX_KEY_TYPE_INVALID",
         );
       }
+
+      // Validar formato da chave PIX
+      if (!validatePixKey(pixKey, pixKeyType as PixKeyType)) {
+        throw new AppError(
+          `Invalid PIX key format for type "${pixKeyType}"`,
+          400,
+          "PIX_KEY_FORMAT_INVALID",
+        );
+      }
+
+      const normalizedKey = normalizePixKey(pixKey, pixKeyType as PixKeyType);
+
+      // Verificar duplicata para o mesmo usuário
+      const duplicate = await prisma.paymentMethod.findFirst({
+        where: { userId, type: "pix", pixKey: normalizedKey, isActive: true },
+      });
+      if (duplicate) {
+        throw new AppError("This PIX key is already registered", 409, "PIX_KEY_DUPLICATE");
+      }
+
+      const existingCount = await prisma.paymentMethod.count({
+        where: { userId, isActive: true },
+      });
+
+      const method = await prisma.paymentMethod.create({
+        data: {
+          userId,
+          type: "pix",
+          pixKey: normalizedKey,
+          pixKeyType,
+          userCountry: country,
+          isDefault: existingCount === 0,
+        },
+        select: {
+          id: true,
+          type: true,
+          pixKey: true,
+          pixKeyType: true,
+          userCountry: true,
+          isDefault: true,
+          createdAt: true,
+        },
+      });
+
+      return res.status(201).json({ success: true, data: method });
     }
 
-    // Verificar se é o primeiro método (será default)
+    // ── Cartão (crédito / débito) ──
+    if (!cardLast4 || !cardBrand) {
+      throw new AppError(
+        "Card details are required. For Stripe cards use POST /payment-methods/stripe",
+        400,
+        "CARD_DETAILS_REQUIRED",
+      );
+    }
+
     const existingCount = await prisma.paymentMethod.count({
       where: { userId, isActive: true },
     });
@@ -97,14 +181,11 @@ router.post(
       data: {
         userId,
         type,
-        cardBrand: type !== "pix" ? cardBrand : null,
-        cardLast4: type !== "pix" ? cardLast4 : null,
-        cardExpMonth:
-          type !== "pix" && cardExpMonth ? parseInt(cardExpMonth) : null,
-        cardExpYear:
-          type !== "pix" && cardExpYear ? parseInt(cardExpYear) : null,
-        holderName: holderName || null,
-        pixKey: type === "pix" ? pixKey : null,
+        cardBrand,
+        cardLast4,
+        cardExpMonth: cardExpMonth ? parseInt(cardExpMonth) : null,
+        cardExpYear: cardExpYear ? parseInt(cardExpYear) : null,
+        holderName: holderName ?? null,
         isDefault: existingCount === 0,
       },
       select: {
@@ -115,16 +196,12 @@ router.post(
         cardExpMonth: true,
         cardExpYear: true,
         holderName: true,
-        pixKey: true,
         isDefault: true,
         createdAt: true,
       },
     });
 
-    return res.status(201).json({
-      success: true,
-      data: method,
-    });
+    return res.status(201).json({ success: true, data: method });
   }),
 );
 

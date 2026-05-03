@@ -15,6 +15,7 @@ import {
   QrCode,
 } from 'lucide-react';
 
+import { logApiError } from "../../utils/logger";
 interface PaymentMethod {
   id: string;
   type: string;
@@ -90,7 +91,7 @@ export default function PagamentosPage() {
         })));
       }
     } catch (err) {
-      console.error('Error loading payment methods:', err);
+      logApiError('Error loading payment methods:', err);
     } finally {
       setLoading(false);
     }
@@ -250,7 +251,7 @@ export default function PagamentosPage() {
         setTimeout(() => setSuccess(''), 3000);
       }
     } catch (err) {
-      console.error('Error setting default:', err);
+      logApiError('Error setting default:', err);
     }
   }
 
@@ -264,7 +265,7 @@ export default function PagamentosPage() {
         setTimeout(() => setSuccess(''), 3000);
       }
     } catch (err) {
-      console.error('Error deleting:', err);
+      logApiError('Error deleting:', err);
     }
   }
 

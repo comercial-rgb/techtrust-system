@@ -33,6 +33,7 @@ import {
   useToast,
   LoadingOverlay,
 } from "../components";
+import { log } from "../utils/logger";
 
 export default function ProfileScreen({ navigation }: any) {
   const theme = useTheme();
@@ -75,7 +76,7 @@ export default function ProfileScreen({ navigation }: any) {
 
       setSubscription(sub);
     } catch (err) {
-      console.error("Erro ao carregar perfil:", err);
+      log.error("Erro ao carregar perfil:", err);
       error(t.common?.errorLoadingProfile || "Error loading profile");
     } finally {
       setLoading(false);
@@ -97,7 +98,7 @@ export default function ProfileScreen({ navigation }: any) {
             try {
               await logout();
             } catch (err) {
-              console.error("Erro ao fazer logout:", err);
+              log.error("Erro ao fazer logout:", err);
               error(t.common?.errorLogout || "Error logging out");
             } finally {
               setLoggingOut(false);

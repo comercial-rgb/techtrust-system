@@ -3,7 +3,7 @@
  * Shows appointment info, status actions, and resulting estimates
  */
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -19,9 +19,14 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useI18n } from "../../i18n";
 import { useAuth } from "../../contexts/AuthContext";
 import * as fdacsService from "../../services/fdacs.service";
+import { log } from "../../utils/logger";
 
 export default function AppointmentDetailsScreen({ navigation, route }: any) {
-  const { t } = useI18n();
+  const { t, language, formatCurrency } = useI18n();
+  const appointmentDateLocale = useMemo(
+    () => (language === "pt" ? "pt-BR" : language === "es" ? "es-ES" : "en-US"),
+    [language],
+  );
   const { user } = useAuth();
   const { appointmentId } = route.params;
   const [loading, setLoading] = useState(true);
@@ -42,7 +47,7 @@ export default function AppointmentDetailsScreen({ navigation, route }: any) {
       const res = await fdacsService.getAppointment(appointmentId);
       setAppointment(res.data?.appointment);
     } catch (error) {
-      console.error("Error loading appointment:", error);
+      log.error("Error loading appointment:", error);
       Alert.alert(t.common.error, t.fdacs.couldNotLoad);
     } finally {
       setLoading(false);
@@ -201,11 +206,13 @@ export default function AppointmentDetailsScreen({ navigation, route }: any) {
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={24} color="#111827" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Appointment</Text>
+          <Text style={styles.headerTitle}>
+            {t.fdacs.appointment || "Appointment"}
+          </Text>
           <View style={{ width: 24 }} />
         </View>
         <Text style={{ textAlign: "center", marginTop: 40, color: "#6b7280" }}>
-          Appointment not found.
+          {t.fdacs.appointmentNotFound || "Appointment not found."}
         </Text>
       </SafeAreaView>
     );
@@ -240,7 +247,7 @@ export default function AppointmentDetailsScreen({ navigation, route }: any) {
           <View style={styles.row}>
             <Ionicons name="calendar-outline" size={18} color="#6b7280" />
             <Text style={styles.rowText}>
-              {date.toLocaleDateString("en-US", {
+              {date.toLocaleDateString(appointmentDateLocale, {
                 weekday: "long",
                 month: "long",
                 day: "numeric",
@@ -319,7 +326,7 @@ export default function AppointmentDetailsScreen({ navigation, route }: any) {
               <View style={styles.feeRow}>
                 <Text style={styles.feeLabel}>{t.fdacs.diagnosticFee}</Text>
                 <Text style={styles.feeValue}>
-                  ${Number(appointment.diagnosticFee).toFixed(2)}
+                  {formatCurrency(Number(appointment.diagnosticFee))}
                 </Text>
               </View>
             )}
@@ -327,7 +334,7 @@ export default function AppointmentDetailsScreen({ navigation, route }: any) {
               <View style={styles.feeRow}>
                 <Text style={styles.feeLabel}>{t.fdacs.travelFee}</Text>
                 <Text style={styles.feeValue}>
-                  ${Number(appointment.travelFee).toFixed(2)}
+                  {formatCurrency(Number(appointment.travelFee))}
                 </Text>
               </View>
             )}
@@ -373,7 +380,7 @@ export default function AppointmentDetailsScreen({ navigation, route }: any) {
                     {q.estimateNumber || q.quoteNumber}
                   </Text>
                   <Text style={styles.estimateAmount}>
-                    ${Number(q.totalAmount).toFixed(2)}
+                    {formatCurrency(Number(q.totalAmount))}
                   </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color="#9ca3af" />

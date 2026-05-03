@@ -24,6 +24,7 @@ import {
   Save,
 } from "lucide-react";
 import Link from "next/link";
+import { logApiError } from "../../utils/logger";
 
 export default function FaturaDetalhePage() {
   const { isAuthenticated, loading: authLoading } = useAuth();
@@ -57,7 +58,7 @@ export default function FaturaDetalhePage() {
       setWarrantyStatement(inv.warrantyStatement || "");
       setOdometerReading(inv.odometerReading?.toString() || "");
     } catch (error) {
-      console.error("Error loading invoice:", error);
+      logApiError("Error loading invoice:", error);
     } finally {
       setLoading(false);
     }
@@ -75,7 +76,7 @@ export default function FaturaDetalhePage() {
       });
       await loadInvoice();
     } catch (error) {
-      console.error("Error saving:", error);
+      logApiError("Error saving:", error);
     } finally {
       setSaving(false);
     }
@@ -91,7 +92,7 @@ export default function FaturaDetalhePage() {
       });
       await loadInvoice();
     } catch (error) {
-      console.error("Error completing:", error);
+      logApiError("Error completing:", error);
     } finally {
       setCompleting(false);
     }

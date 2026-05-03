@@ -37,7 +37,7 @@ interface FAQItem {
 }
 
 export default function HelpCenterScreen({ navigation }: any) {
-  const { t } = useI18n();
+  const { t, formatTime } = useI18n();
   const route = useRoute<any>();
   const fromDashboard = route.params?.fromDashboard;
   
@@ -130,7 +130,7 @@ export default function HelpCenterScreen({ navigation }: any) {
           {isAgent && <Text style={chatStyles.agentLabel}>Support Agent</Text>}
           <Text style={[chatStyles.msgText, isUser && chatStyles.msgTextUser]}>{item.text}</Text>
           <Text style={[chatStyles.msgTime, isUser && chatStyles.msgTimeUser]}>
-            {item.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {formatTime(item.timestamp)}
           </Text>
         </View>
       </View>

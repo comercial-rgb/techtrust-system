@@ -3,7 +3,7 @@
  * Usado na LandingScreen e CustomerDashboard
  */
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -15,6 +15,8 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { log } from "../utils/logger";
+import { useI18n } from "../i18n";
 
 const { width } = Dimensions.get("window");
 
@@ -26,8 +28,8 @@ export interface SpecialOffer {
   imageUrl?: string;
   image?: string; // Legacy support
   code?: string;
-  originalPrice?: string;
-  discountedPrice?: string;
+  originalPrice?: string | number;
+  discountedPrice?: string | number;
   regularPrice?: number;
   specialPrice?: number;
   validUntil?: string;
@@ -48,6 +50,11 @@ export default function SpecialOffersSection({
   compact = false,
   loading = false,
 }: SpecialOffersSectionProps) {
+  const { language, formatCurrency } = useI18n();
+  const offerDateLocale = useMemo(
+    () => (language === "pt" ? "pt-BR" : language === "es" ? "es-ES" : "en-US"),
+    [language],
+  );
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
 
   const handleImageError = (offerId: string) => {
@@ -114,7 +121,7 @@ export default function SpecialOffersSection({
         return val;
       const num = Number(val);
       if (isNaN(num) || num === 0) return null;
-      return `$${num.toFixed(2)}`;
+      return formatCurrency(num);
     };
 
     const regularPrice = formatPrice(rawOriginal);
@@ -132,7 +139,7 @@ export default function SpecialOffersSection({
         // ISO DateTime from API
         const d = new Date(dateStr);
         if (!isNaN(d.getTime())) {
-          validUntil = d.toLocaleDateString("en-US", {
+          validUntil = d.toLocaleDateString(offerDateLocale, {
             month: "short",
             day: "numeric",
             year: "numeric",
@@ -142,7 +149,7 @@ export default function SpecialOffersSection({
         // Date-only string
         const d = new Date(dateStr + "T00:00:00");
         if (!isNaN(d.getTime())) {
-          validUntil = d.toLocaleDateString("en-US", {
+          validUntil = d.toLocaleDateString(offerDateLocale, {
             month: "short",
             day: "numeric",
             year: "numeric",
@@ -169,7 +176,7 @@ export default function SpecialOffersSection({
             }}
             style={[styles.offerImage, compact && styles.offerImageCompact]}
             onError={(e) => {
-              console.log("Image load error:", imageUrl, e.nativeEvent.error);
+              log.debug("Image load error:", imageUrl, e.nativeEvent.error);
               handleImageError(item.id);
             }}
             resizeMode="cover"

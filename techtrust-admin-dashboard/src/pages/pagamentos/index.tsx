@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import AdminLayout from '../../components/AdminLayout';
 import { adminApi } from '../../services/api';
 import { Search, CreditCard, CheckCircle, Clock, XCircle, RefreshCw, Eye, User, Building2 } from 'lucide-react';
+import { logApiError } from "../../utils/logger";
 
 interface Payment {
   id: string;
@@ -34,7 +35,7 @@ export default function PagamentosPage() {
       const list = response.data?.data?.payments || response.data?.data || response.data?.payments || [];
       setPayments(Array.isArray(list) ? list : []);
     } catch (error) {
-      console.error('Erro ao carregar pagamentos:', error);
+      logApiError('Erro ao carregar pagamentos:', error);
       setPayments([]);
     } finally {
       setLoading(false);

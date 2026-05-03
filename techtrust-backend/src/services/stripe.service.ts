@@ -170,9 +170,14 @@ export async function createPaymentIntent(
 }
 
 /**
- * Confirmar PaymentIntent (server-side) — verifica status
+ * Verifica o status atual de um PaymentIntent sem alterá-lo.
+ * Usado pelo fluxo de confirmação do app para saber se o hold foi colocado.
+ *
+ * Nota: a confirmação do PI acontece no lado do cliente via Stripe SDK.
+ * Este endpoint apenas verifica se o status após confirmação do cliente
+ * é `requires_capture` (hold ativo) ou `succeeded` (capturado direto).
  */
-export async function confirmPaymentIntent(paymentIntentId: string): Promise<{
+export async function retrievePaymentIntentStatus(paymentIntentId: string): Promise<{
   status: string;
   chargeId?: string;
 }> {
@@ -194,6 +199,12 @@ export async function confirmPaymentIntent(paymentIntentId: string): Promise<{
         : intent.latest_charge?.id,
   };
 }
+
+/**
+ * @deprecated Use retrievePaymentIntentStatus — mantido para compatibilidade
+ * com chamadas existentes em payment.controller.ts enquanto o refactor é feito.
+ */
+export const confirmPaymentIntent = retrievePaymentIntentStatus;
 
 export async function retrieveSubscription(subscriptionId: string): Promise<{
   id: string;
@@ -684,7 +695,8 @@ export async function createCheckoutSession(params: {
     success_url: params.successUrl,
     cancel_url: params.cancelUrl,
     payment_method_collection: 'always',
-    payment_method_types: ['card', 'us_bank_account'],
+    // card covers Apple Pay & Google Pay automatically in Checkout Sessions
+    payment_method_types: ['card', 'us_bank_account', 'link'],
     payment_method_options: {
       us_bank_account: {
         financial_connections: { permissions: ['payment_method'] },
@@ -750,7 +762,7 @@ export async function createVehicleAddOnCheckoutSession(params: {
     line_items: [{ price: params.priceId, quantity: 1 }],
     success_url: params.successUrl,
     cancel_url: params.cancelUrl,
-    payment_method_types: ["card", "us_bank_account"],
+    payment_method_types: ["card", "us_bank_account", "link"],
     payment_method_options: {
       us_bank_account: {
         financial_connections: { permissions: ["payment_method"] },

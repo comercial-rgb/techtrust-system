@@ -46,6 +46,7 @@ import {
   Package,
 } from "lucide-react";
 
+import { logApiError } from "../../utils/logger";
 interface WorkDay { open: string; close: string; closed: boolean }
 
 interface ProviderProfile {
@@ -223,7 +224,7 @@ export default function ConfiguracoesPage() {
         notifications: { newRequests: true, quoteAccepted: true, payments: true, reviews: true, marketing: false },
       });
     } catch (error) {
-      console.error("Error loading profile:", error);
+      logApiError("Error loading profile:", error);
     } finally {
       setLoading(false);
     }
@@ -268,7 +269,7 @@ export default function ConfiguracoesPage() {
       setSuccessMessage("Profile saved successfully!");
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (error) {
-      console.error("Save error:", error);
+      logApiError("Save error:", error);
       setErrorMessage("Could not save. Please try again.");
       setTimeout(() => setErrorMessage(""), 4000);
     } finally {

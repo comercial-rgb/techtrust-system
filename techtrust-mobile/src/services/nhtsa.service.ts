@@ -4,6 +4,7 @@
  */
 
 import api from "./api";
+import { log } from "../utils/logger";
 
 export interface VehicleData {
   make: string;
@@ -136,7 +137,7 @@ export async function decodeVIN(vin: string): Promise<DecodeVINResponse> {
       error: "Erro ao decodificar VIN",
     };
   } catch (error: any) {
-    console.error("Erro ao decodificar VIN:", error);
+    log.error("Erro ao decodificar VIN:", error);
 
     const errorMessage =
       error.response?.data?.message || "Erro ao decodificar VIN";
@@ -170,7 +171,7 @@ export async function getVehicleRecalls(vehicleId: string): Promise<RecallsRespo
       count: response.data.count || 0,
     };
   } catch (error: any) {
-    console.error("Error fetching recalls:", error);
+    log.error("Error fetching recalls:", error);
     return {
       success: false,
       error: error.response?.data?.message || "Failed to fetch recalls",

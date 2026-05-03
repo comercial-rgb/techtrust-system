@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useI18n } from '../../i18n';
 import { useFocusEffect } from '@react-navigation/native';
 import api from '../../services/api';
@@ -101,7 +101,11 @@ export default function ProviderWorkingHoursScreen({ navigation }: any) {
       Alert.alert(t.common?.success || 'Success', t.provider?.hoursUpdated || 'Hours updated successfully!');
       navigation.goBack();
     } catch {
-      Alert.alert('Error', 'Could not save hours. Please try again.');
+      Alert.alert(
+        t.common?.error || 'Error',
+        t.provider?.saveWorkingHoursScreenFailed ||
+          'Could not save hours. Please try again.',
+      );
     } finally {
       setSaving(false);
     }

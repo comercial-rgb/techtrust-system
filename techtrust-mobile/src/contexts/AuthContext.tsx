@@ -12,6 +12,7 @@ import React, {
 } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import api from "../services/api";
+import { log } from "../utils/logger";
 
 // ============================================
 // TYPES
@@ -21,6 +22,7 @@ interface User {
   email: string;
   fullName: string;
   phone?: string;
+  createdAt?: string;
   role: "CUSTOMER" | "PROVIDER" | "MARKETPLACE";
   avatarUrl?: string;
   providerProfile?: {
@@ -144,7 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Se não tem usuário ou token, limpar dados antigos e retornar
       if (!storedUser || !token) {
-        console.log("🔍 Sem dados de autenticação salvos");
+        log.debug("🔍 Sem dados de autenticação salvos");
         await clearAuthData();
         return;
       }
@@ -206,7 +208,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await clearAuthData();
       }
     } catch (error) {
-      console.error("Erro ao verificar auth:", error);
+      log.error("Erro ao verificar auth:", error);
       await clearAuthData();
     } finally {
       setLoading(false);
@@ -225,7 +227,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       setHasCompletedOnboarding(true);
     } catch (error) {
-      console.error("Erro ao limpar dados:", error);
+      log.error("Erro ao limpar dados:", error);
     }
   };
 
@@ -495,9 +497,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       ]);
       setUser(null);
       setHasCompletedOnboarding(true);
-      console.log("✅ Logout realizado com sucesso");
+      log.debug("✅ Logout realizado com sucesso");
     } catch (error) {
-      console.error("Erro ao fazer logout:", error);
+      log.error("Erro ao fazer logout:", error);
     }
   };
 

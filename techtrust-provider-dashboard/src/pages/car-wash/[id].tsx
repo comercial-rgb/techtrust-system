@@ -27,6 +27,7 @@ import {
   Globe,
 } from 'lucide-react'
 import Link from 'next/link'
+import { logApiError } from "../../utils/logger";
 
 const WASH_TYPES = [
   { value: 'AUTOMATIC_TUNNEL', label: 'Automatic Tunnel' },
@@ -151,7 +152,7 @@ export default function CarWashDetailPage() {
       setAmenityCatalog(amenRes.data.data || [])
       setPaymentCatalog(payRes.data.data || [])
     } catch (error) {
-      console.error('Error loading catalogs:', error)
+      logApiError('Error loading catalogs:', error)
     }
   }
 
@@ -227,7 +228,7 @@ export default function CarWashDetailPage() {
         if (metricsRes?.data?.data) setDashMetrics(metricsRes.data.data)
       } catch {}
     } catch (error) {
-      console.error('Error loading car wash:', error)
+      logApiError('Error loading car wash:', error)
     } finally {
       setLoading(false)
     }
@@ -292,7 +293,7 @@ export default function CarWashDetailPage() {
 
       router.push('/car-wash')
     } catch (error: any) {
-      console.error('Error saving car wash:', error)
+      logApiError('Error saving car wash:', error)
       alert(error?.response?.data?.message || 'Failed to save. Please try again.')
     } finally {
       setSaving(false)

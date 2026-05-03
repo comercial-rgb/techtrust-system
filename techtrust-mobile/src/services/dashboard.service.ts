@@ -4,6 +4,7 @@
  */
 
 import api from "./api";
+import { log } from "../utils/logger";
 
 // ============================================
 // TIPOS
@@ -131,7 +132,7 @@ export async function getCustomerDashboardStats(): Promise<DashboardStats> {
       }
     );
   } catch (error) {
-    console.error("Erro ao buscar stats do dashboard:", error);
+    log.error("Erro ao buscar stats do dashboard:", error);
     // Retornar dados vazios em caso de erro
     return {
       activeServices: 0,
@@ -150,7 +151,7 @@ export async function getVehicles(): Promise<Vehicle[]> {
     const response = await api.get("/vehicles");
     return response.data.data || [];
   } catch (error) {
-    console.error("Erro ao buscar veículos:", error);
+    log.error("Erro ao buscar veículos:", error);
     return [];
   }
 }
@@ -196,7 +197,7 @@ export async function getServiceRequests(): Promise<ServiceRequest[]> {
         : { make: "N/A", model: "N/A", year: 0 },
     }));
   } catch (error) {
-    console.error("Erro ao buscar solicitações:", error);
+    log.error("Erro ao buscar solicitações:", error);
     return [];
   }
 }
@@ -227,7 +228,7 @@ export async function getProviderDashboardStats(): Promise<ProviderStats> {
       }
     );
   } catch (error) {
-    console.error("Erro ao buscar stats do fornecedor:", error);
+    log.error("Erro ao buscar stats do fornecedor:", error);
     return {
       pendingRequests: 0,
       activeWorkOrders: 0,
@@ -252,7 +253,7 @@ export async function getProviderRecentActivity(): Promise<RecentActivity[]> {
     const response = await api.get("/providers/recent-activity");
     return response.data.data || [];
   } catch (error) {
-    console.error("Erro ao buscar atividade recente:", error);
+    log.error("Erro ao buscar atividade recente:", error);
     return [];
   }
 }
@@ -265,7 +266,7 @@ export async function getProviderPendingRequests(): Promise<PendingRequest[]> {
     const response = await api.get("/providers/pending-requests");
     return response.data.data || [];
   } catch (error) {
-    console.error("Erro ao buscar solicitações pendentes:", error);
+    log.error("Erro ao buscar solicitações pendentes:", error);
     return [];
   }
 }
@@ -279,7 +280,7 @@ export async function getProviderQuotes(status?: string): Promise<any[]> {
     const response = await api.get("/quotes", { params });
     return response.data.data || [];
   } catch (error) {
-    console.error("Erro ao buscar orçamentos:", error);
+    log.error("Erro ao buscar orçamentos:", error);
     return [];
   }
 }
@@ -293,7 +294,7 @@ export async function getProviderWorkOrders(status?: string): Promise<any[]> {
     const response = await api.get("/work-orders", { params });
     return response.data.data || [];
   } catch (error) {
-    console.error("Erro ao buscar ordens de serviço:", error);
+    log.error("Erro ao buscar ordens de serviço:", error);
     return [];
   }
 }
@@ -306,7 +307,7 @@ export async function getProviderReviews(): Promise<any[]> {
     const response = await api.get("/providers/reviews");
     return response.data.data || [];
   } catch (error) {
-    console.error("Erro ao buscar avaliações:", error);
+    log.error("Erro ao buscar avaliações:", error);
     return [];
   }
 }
@@ -350,7 +351,7 @@ export async function getWorkOrders(): Promise<WorkOrder[]> {
     const raw = response.data.data || response.data || {};
     return raw.orders || (Array.isArray(raw) ? raw : []);
   } catch (error) {
-    console.error("Erro ao buscar ordens de serviço:", error);
+    log.error("Erro ao buscar ordens de serviço:", error);
     return [];
   }
 }
@@ -365,7 +366,7 @@ export async function getWorkOrderDetails(
     const response = await api.get(`/work-orders/${workOrderId}`);
     return response.data.data || null;
   } catch (error) {
-    console.error("Erro ao buscar detalhes da OS:", error);
+    log.error("Erro ao buscar detalhes da OS:", error);
     return null;
   }
 }
@@ -405,7 +406,7 @@ export async function getPaymentMethods(): Promise<PaymentMethod[]> {
 
     return [];
   } catch (error) {
-    console.error("Erro ao buscar métodos de pagamento da API:", error);
+    log.error("Erro ao buscar métodos de pagamento da API:", error);
 
     // Fall back to AsyncStorage on API error
     try {
@@ -428,7 +429,7 @@ export async function getPaymentMethods(): Promise<PaymentMethod[]> {
         }));
       }
     } catch (localError) {
-      console.error(
+      log.error(
         "Erro ao buscar métodos de pagamento do AsyncStorage:",
         localError,
       );
@@ -446,7 +447,7 @@ export async function getQuoteDetails(quoteId: string): Promise<any | null> {
     const response = await api.get(`/quotes/${quoteId}`);
     return response.data.data || null;
   } catch (error) {
-    console.error("Erro ao buscar detalhes do orçamento:", error);
+    log.error("Erro ao buscar detalhes do orçamento:", error);
     return null;
   }
 }
@@ -504,7 +505,7 @@ export async function getCustomerReports(period: string): Promise<{
       }
     );
   } catch (error) {
-    console.error("Erro ao buscar relatórios:", error);
+    log.error("Erro ao buscar relatórios:", error);
     return {
       stats: {
         totalSpent: 0,

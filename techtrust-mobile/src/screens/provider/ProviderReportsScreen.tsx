@@ -14,9 +14,10 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useI18n } from '../../i18n';
 import api from '../../services/api';
+import { log } from "../../utils/logger";
 
 const { width } = Dimensions.get('window');
 
@@ -34,7 +35,7 @@ interface ServiceStats {
 }
 
 export default function ProviderReportsScreen({ navigation }: any) {
-  const { t } = useI18n();
+  const { t, formatCurrency } = useI18n();
   const [period, setPeriod] = useState<'week' | 'month' | 'year'>('month');
   const [loading, setLoading] = useState(true);
   const [earnings, setEarnings] = useState<EarningsData[]>([]);
@@ -66,7 +67,7 @@ export default function ProviderReportsScreen({ navigation }: any) {
         setAcceptanceRate(data.acceptanceRate || 0);
       }
     } catch (error) {
-      console.error('Error loading reports:', error);
+      log.error('Error loading reports:', error);
       // Set empty state - no mock data
       setEarnings([]);
       setServiceStats([]);
@@ -126,7 +127,9 @@ export default function ProviderReportsScreen({ navigation }: any) {
         {/* Revenue Summary */}
         <View style={styles.summaryCard}>
           <Text style={styles.summaryLabel}>{t.provider?.totalRevenue || 'Total Revenue'}</Text>
-          <Text style={styles.summaryValue}>${totalRevenue.toLocaleString()}</Text>
+          <Text style={styles.summaryValue}>
+            {formatCurrency(totalRevenue)}
+          </Text>
         </View>
 
         {/* Stats Grid */}
@@ -142,7 +145,9 @@ export default function ProviderReportsScreen({ navigation }: any) {
             <View style={[styles.statIcon, { backgroundColor: '#dcfce7' }]}>
               <MaterialCommunityIcons name="currency-usd" size={22} color="#16a34a" />
             </View>
-            <Text style={styles.statValue}>${avgTicket.toFixed(0)}</Text>
+            <Text style={styles.statValue}>
+              {formatCurrency(avgTicket)}
+            </Text>
             <Text style={styles.statLabel}>{t.provider?.avgTicket || 'Avg Ticket'}</Text>
           </View>
           <View style={styles.statCard}>
@@ -184,9 +189,9 @@ export default function ProviderReportsScreen({ navigation }: any) {
           {/* Metric Selector */}
           <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
             {[
-              { key: 'revenue', label: 'Revenue', icon: 'currency-usd' },
-              { key: 'services', label: '# Services', icon: 'wrench' },
-              { key: 'rating', label: 'Avg Rating', icon: 'star' },
+              { key: 'revenue', label: t.provider?.chartMetricRevenue || 'Revenue', icon: 'currency-usd' },
+              { key: 'services', label: t.provider?.chartMetricServices || 'Services', icon: 'wrench' },
+              { key: 'rating', label: t.provider?.chartMetricAvgRating || 'Avg Rating', icon: 'star' },
             ].map(m => (
               <TouchableOpacity
                 key={m.key}
@@ -206,7 +211,11 @@ export default function ProviderReportsScreen({ navigation }: any) {
               earnings.map((item, index) => (
                 <View key={item.month} style={styles.chartBar}>
                   <Text style={styles.chartValue}>
-                    {chartMetric === 'revenue' ? `$${(item.amount / 1000).toFixed(1)}k` : chartMetric === 'services' ? Math.round(item.amount / (avgTicket || 200)).toString() : avgRating.toFixed(1)}
+                    {chartMetric === 'revenue'
+                      ? formatCurrency(item.amount)
+                      : chartMetric === 'services'
+                        ? Math.round(item.amount / (avgTicket || 200)).toString()
+                        : avgRating.toFixed(1)}
                   </Text>
                   <View 
                     style={[
@@ -234,7 +243,7 @@ export default function ProviderReportsScreen({ navigation }: any) {
                     return (
                       <View key={item.month} style={{ flex: 1, alignItems: 'center' }}>
                         <Text style={{ fontSize: 10, color: '#6b7280', marginBottom: 4 }}>
-                          {chartMetric === 'revenue' ? `$${(item.amount / 1000).toFixed(1)}k` : ''}
+                          {chartMetric === 'revenue' ? formatCurrency(item.amount) : ''}
                         </Text>
                         <View style={{ height: barH }}>
                           <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#2B5EA7', marginTop: barH - 10, borderWidth: 2, borderColor: '#fff', shadowColor: '#2B5EA7', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.4, shadowRadius: 4, elevation: 3 }} />
@@ -259,7 +268,9 @@ export default function ProviderReportsScreen({ navigation }: any) {
                   <View style={[styles.colorDot, { backgroundColor: service.color }]} />
                   <Text style={styles.breakdownName}>{service.name}</Text>
                 </View>
-                <Text style={styles.breakdownValue}>${service.revenue.toLocaleString()}</Text>
+                <Text style={styles.breakdownValue}>
+                  {formatCurrency(service.revenue)}
+                </Text>
               </View>
               <View style={styles.progressBar}>
                 <View 
@@ -279,15 +290,17 @@ export default function ProviderReportsScreen({ navigation }: any) {
           <Text style={styles.feeTitle}>{t.provider?.financialSummary || 'Financial Summary'}</Text>
           <View style={styles.feeRow}>
             <Text style={styles.feeLabel}>{t.provider?.grossRevenue || 'Gross Revenue'}</Text>
-            <Text style={styles.feeValue}>${totalRevenue.toLocaleString()}</Text>
+            <Text style={styles.feeValue}>{formatCurrency(totalRevenue)}</Text>
           </View>
           <View style={styles.feeRow}>
             <Text style={styles.feeLabel}>{t.provider?.platformFee || 'Platform Fee'} (10%)</Text>
-            <Text style={[styles.feeValue, { color: '#ef4444' }]}>-${platformFee.toLocaleString()}</Text>
+            <Text style={[styles.feeValue, { color: '#ef4444' }]}>
+              -{formatCurrency(platformFee)}
+            </Text>
           </View>
           <View style={[styles.feeRow, styles.feeRowTotal]}>
             <Text style={styles.feeTotalLabel}>{t.provider?.netRevenue || 'Net Revenue'}</Text>
-            <Text style={styles.feeTotalValue}>${netRevenue.toLocaleString()}</Text>
+            <Text style={styles.feeTotalValue}>{formatCurrency(netRevenue)}</Text>
           </View>
         </View>
 

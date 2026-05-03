@@ -16,6 +16,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { log } from "../utils/logger";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const BANNER_HEIGHT = 180;
@@ -68,7 +69,7 @@ export default function BannerCarousel({
         await Linking.openURL(banner.linkUrl);
       }
     } catch (error) {
-      console.error("Error opening banner link:", error);
+      log.error("Error opening banner link:", error);
     }
   };
 
@@ -97,7 +98,7 @@ export default function BannerCarousel({
       imageUrl = `${baseUrl}${imageUrl.startsWith("/") ? imageUrl : "/" + imageUrl}`;
     }
 
-    console.log("BannerCarousel rendering banner:", item.id, "URL:", imageUrl);
+    log.debug("BannerCarousel rendering banner:", item.id, "URL:", imageUrl);
 
     return (
       <TouchableOpacity
@@ -113,10 +114,10 @@ export default function BannerCarousel({
             style={styles.bannerImage}
             resizeMode="cover"
             onError={() => {
-              console.log("BannerCarousel image error for:", imageUrl);
+              log.debug("BannerCarousel image error for:", imageUrl);
               handleImageError(item.id);
             }}
-            onLoad={() => console.log("BannerCarousel image loaded:", imageUrl)}
+            onLoad={() => log.debug("BannerCarousel image loaded:", imageUrl)}
           />
         ) : (
           <View style={[styles.bannerImage, styles.errorPlaceholder]}>

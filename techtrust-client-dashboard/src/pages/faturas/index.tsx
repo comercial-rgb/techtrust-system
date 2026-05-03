@@ -19,6 +19,7 @@ import {
   Shield,
 } from "lucide-react";
 
+import { logApiError } from "../../utils/logger";
 export default function InvoicesPage() {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const { translate: t } = useI18n();
@@ -43,7 +44,7 @@ export default function InvoicesPage() {
       const data = res.data?.data || {};
       setInvoices(data.invoices || []);
     } catch (error) {
-      console.error("Error loading invoices:", error);
+      logApiError("Error loading invoices:", error);
     } finally {
       setLoading(false);
     }

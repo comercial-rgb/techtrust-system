@@ -22,6 +22,7 @@ import {
   AlertCircle,
 } from 'lucide-react'
 import Link from 'next/link'
+import { logApiError } from "../../utils/logger";
 
 interface CarWash {
   id: string
@@ -102,7 +103,7 @@ export default function CarWashPage() {
         setMetrics(metricsRes.data.data)
       }
     } catch (error) {
-      console.error('Error loading car wash data:', error)
+      logApiError('Error loading car wash data:', error)
     } finally {
       setLoading(false)
     }

@@ -4,6 +4,7 @@
  */
 
 import Cookies from 'js-cookie';
+import { logApiError } from '../utils/logger';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://techtrust-api.onrender.com/api/v1';
 
@@ -52,7 +53,7 @@ class AdminApiService {
       // Backend wraps all responses in { success, data } — unwrap automatically
       return { data: (data as any)?.data ?? data };
     } catch (error: any) {
-      console.error('API Error:', error);
+      logApiError('API Error:', error);
       return { error: error.message || 'Erro de conexão com o servidor' };
     }
   }

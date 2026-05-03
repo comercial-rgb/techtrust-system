@@ -1320,7 +1320,16 @@ model Payment {
   paymentMethodId String?
   cardLast4       String?
   cardBrand       String?
-  cardType        String? // credit, debit
+  cardType        String? // credit, debit, pix
+
+  // PIX — pagamento em BRL convertido para USD (brasileiros viajando nos EUA)
+  pixAmountBrl   Decimal?  @db.Decimal(10, 2)  // Valor original em BRL
+  pixExchangeRate Decimal? @db.Decimal(10, 6)  // Taxa BRL/USD usada na conversão
+  pixPaymentId   String?                        // ID do pagamento no gateway PIX (Asaas)
+  pixQrCode      String?                        // QR code base64 ou URL
+  pixCopyPaste   String?                        // Código copia-e-cola PIX
+  pixExpiresAt   DateTime?                      // Expiração do QR code (30 min)
+  pixPaidAt      DateTime?                      // Confirmação de recebimento
 
   // Datas
   authorizedAt            DateTime?
@@ -1562,8 +1571,12 @@ model PaymentMethod {
   cardExpYear  Int?
   holderName   String?
 
-  // PIX
-  pixKey String?
+  // PIX — disponível somente para usuários brasileiros (userCountry = "BR")
+  pixKey     String? // CPF, CNPJ, e-mail, telefone (+55...) ou chave aleatória (UUID)
+  pixKeyType String? // "cpf" | "cnpj" | "email" | "phone" | "random"
+
+  // País do usuário (para restringir PIX a BR)
+  userCountry String @default("US") // ISO 3166-1 alpha-2
 
   // Billing
   billingName String?
@@ -3289,6 +3302,37 @@ model ApiCreditLog {
   @@index([provider])
   @@index([createdAt])
   @@map("api_credit_logs")
+}
+
+// ============================================
+// DISCOUNT CODES — Promo/coupon codes applied at quote approval
+// ============================================
+model DiscountCode {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  code        String  @unique // e.g. "SUMMER20"
+  description String?
+
+  // Type: PERCENTAGE (value = %, e.g. 10 = 10% off) | FIXED (value = $, e.g. 5 = $5 off)
+  type  String  // "PERCENTAGE" | "FIXED"
+  value Decimal @db.Decimal(10, 2)
+
+  // Constraints
+  minOrderAmount  Decimal? @db.Decimal(10, 2) // minimum quoteTotal to apply
+  maxUses         Int?                         // null = unlimited
+  usedCount       Int      @default(0)
+  expiresAt       DateTime?
+
+  // Restrict to specific client plans (empty array = all plans)
+  applicablePlans String[] @default([])
+
+  isActive Boolean @default(true)
+
+  @@index([code])
+  @@index([isActive])
+  @@map("discount_codes")
 }
 
 // ============================================

@@ -20,10 +20,12 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useI18n } from "../i18n";
+import { interpolate } from "../i18n/interpolate";
 import { useNotifications } from "../contexts/NotificationsContext";
 import api from "../services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { io, Socket } from "socket.io-client";
+import { log } from "../utils/logger";
 
 interface Message {
   id: string;
@@ -44,7 +46,7 @@ interface ChatParticipant {
 }
 
 export default function ChatScreen({ navigation, route }: any) {
-  const { t } = useI18n();
+  const { t, formatTime: formatTimeI18n, formatDate } = useI18n();
   const { markMessagesAsRead: markMessagesAsReadGlobal } = useNotifications();
   const {
     chatId,
@@ -121,7 +123,7 @@ export default function ChatScreen({ navigation, route }: any) {
       });
       socketRef.current = socket;
     } catch (e) {
-      console.error("Socket init error:", e);
+      log.error("Socket init error:", e);
     }
     loadMessages();
   }
@@ -238,20 +240,15 @@ export default function ChatScreen({ navigation, route }: any) {
         setMessages([]);
       }
     } catch (error) {
-      console.error("Error loading messages:", error);
+      log.error("Error loading messages:", error);
       setMessages([]);
     } finally {
       setLoading(false);
     }
   }
 
-  function formatTime(timestamp: string) {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    });
+  function formatMessageTime(timestamp: string) {
+    return formatTimeI18n(timestamp);
   }
 
   function formatDateHeader(timestamp: string) {
@@ -265,11 +262,7 @@ export default function ChatScreen({ navigation, route }: any) {
     } else if (date.toDateString() === yesterday.toDateString()) {
       return t.common?.yesterday || "Yesterday";
     }
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
+    return formatDate(timestamp);
   }
 
   async function handleSend() {
@@ -280,7 +273,7 @@ export default function ChatScreen({ navigation, route }: any) {
       id: Date.now().toString(),
       text,
       senderId: currentUserId,
-      senderName: "You",
+      senderName: t.chat?.selfSenderLabel || "You",
       timestamp: new Date().toISOString(),
       isOwn: true,
       status: "sent",
@@ -305,7 +298,7 @@ export default function ChatScreen({ navigation, route }: any) {
         ),
       );
     } catch (error) {
-      console.error("Error sending message:", error);
+      log.error("Error sending message:", error);
     }
   }
 
@@ -364,7 +357,7 @@ export default function ChatScreen({ navigation, route }: any) {
                   item.isOwn ? styles.ownMessageTime : styles.otherMessageTime,
                 ]}
               >
-                {formatTime(item.timestamp)}
+                {formatMessageTime(item.timestamp)}
               </Text>
               {item.isOwn && (
                 <Ionicons
@@ -475,8 +468,18 @@ export default function ChatScreen({ navigation, route }: any) {
           >
             <Ionicons name="document-text-outline" size={18} color="#2B5EA7" />
             <Text style={styles.requestBannerText}>
-              {t.chat?.relatedToRequest || "Related to: Service Request"} #
-              {requestId}
+              {`${interpolate(
+                (t.chat as { relatedToRequestLine?: string })?.relatedToRequestLine ||
+                  "Related to: {{service}}",
+                {
+                  service:
+                    (t as { requestDetails?: { serviceRequest?: string } })
+                      .requestDetails?.serviceRequest ||
+                    (t as { provider?: { serviceRequest?: string } }).provider
+                      ?.serviceRequest ||
+                    "Service Request",
+                },
+              )} #${requestId}`}
             </Text>
             <Ionicons name="chevron-forward" size={18} color="#2B5EA7" />
           </TouchableOpacity>

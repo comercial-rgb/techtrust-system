@@ -35,6 +35,7 @@ import {
   calculateCancellationFee,
   compareProcessorFees,
   calculateFullFeeBreakdown,
+  applyDiscount,
 } from "../config/businessRules";
 import { buildProviderDisclosure } from "../utils/provider-disclosures";
 
@@ -51,7 +52,9 @@ export const approveQuoteWithPaymentHold = async (
   res: Response,
 ) => {
   const customerId = req.user!.id;
-  const { quoteId, paymentMethodId, paymentProcessor = "STRIPE" } = req.body;
+  const { quoteId, paymentMethodId, paymentProcessor = "STRIPE", discountCode } = req.body;
+  // paymentMethodId is optional — if absent the client will confirm via Apple/Google Pay (wallet mode)
+  const walletMode = !paymentMethodId;
 
   // 1. Buscar e validar orçamento
   const quote = await prisma.quote.findUnique({
@@ -109,25 +112,28 @@ export const approveQuoteWithPaymentHold = async (
     throw new AppError("Orçamento expirou", 400, "QUOTE_EXPIRED");
   }
 
-  // 2. Verificar método de pagamento válido
-  const paymentMethod = await prisma.paymentMethod.findFirst({
-    where: { id: paymentMethodId, userId: customerId, isActive: true },
-  });
+  // 2. Verificar método de pagamento válido (skip for wallet mode — Apple/Google Pay)
+  let paymentMethod: Awaited<ReturnType<typeof prisma.paymentMethod.findFirst>> | null = null;
+  if (!walletMode) {
+    paymentMethod = await prisma.paymentMethod.findFirst({
+      where: { id: paymentMethodId, userId: customerId, isActive: true },
+    });
 
-  if (!paymentMethod) {
-    throw new AppError(
-      "Método de pagamento necessário. Adicione um cartão de crédito ou débito válido.",
-      400,
-      "PAYMENT_METHOD_REQUIRED",
-    );
-  }
+    if (!paymentMethod) {
+      throw new AppError(
+        "Método de pagamento necessário. Adicione um cartão de crédito ou débito válido.",
+        400,
+        "PAYMENT_METHOD_REQUIRED",
+      );
+    }
 
-  if (!paymentMethod.stripePaymentMethodId && paymentProcessor === "STRIPE") {
-    throw new AppError(
-      "Método de pagamento não vinculado ao processador. Adicione novamente.",
-      400,
-      "PAYMENT_METHOD_INVALID",
-    );
+    if (!paymentMethod.stripePaymentMethodId && paymentProcessor === "STRIPE") {
+      throw new AppError(
+        "Método de pagamento não vinculado ao processador. Adicione novamente.",
+        400,
+        "PAYMENT_METHOD_INVALID",
+      );
+    }
   }
 
   // 3. Buscar dados do cliente
@@ -154,7 +160,64 @@ export const approveQuoteWithPaymentHold = async (
   // Provider level para comissão tiered (8-15%)
   const providerLevel = (quote.provider.providerProfile?.providerLevel || 'ENTRY') as any;
 
-  const cardType = (paymentMethod.type as "credit" | "debit") || "credit";
+  const cardType = (paymentMethod?.type as "credit" | "debit") || "credit";
+
+  // ===== DISCOUNT CODE (optional) =====
+  let discountApplied: { code: string; type: string; value: number; discountAmount: number } | null = null;
+  let effectiveQuoteTotal = serviceAmount;
+
+  if (discountCode) {
+    const dcRows = await prisma.$queryRawUnsafe<Array<{
+      id: string; type: string; value: string; minOrderAmount: string | null;
+      maxUses: number | null; usedCount: number; expiresAt: Date | null;
+      applicablePlans: string[]; isActive: boolean;
+    }>>(
+      `SELECT id, type, value::text, "minOrderAmount"::text, "maxUses", "usedCount",
+       "expiresAt", "applicablePlans", "isActive"
+       FROM discount_codes WHERE code = $1 AND "isActive" = true LIMIT 1`,
+      String(discountCode).toUpperCase(),
+    );
+
+    if (!dcRows.length) {
+      throw new AppError("Código de desconto inválido ou inativo.", 400, "DISCOUNT_CODE_INVALID");
+    }
+    const dc = dcRows[0];
+    if (dc.expiresAt && new Date() > dc.expiresAt) {
+      throw new AppError("Código de desconto expirado.", 400, "DISCOUNT_CODE_EXPIRED");
+    }
+    if (dc.maxUses !== null && dc.usedCount >= dc.maxUses) {
+      throw new AppError("Código de desconto esgotado.", 400, "DISCOUNT_CODE_EXHAUSTED");
+    }
+    const minOrder = dc.minOrderAmount ? parseFloat(dc.minOrderAmount) : null;
+    if (minOrder !== null && serviceAmount < minOrder) {
+      throw new AppError(
+        `Pedido mínimo de $${minOrder.toFixed(2)} necessário para este cupom.`,
+        400,
+        "DISCOUNT_CODE_MIN_ORDER",
+      );
+    }
+    if (dc.applicablePlans.length > 0 && !dc.applicablePlans.includes(clientPlan)) {
+      throw new AppError(
+        `Cupom não válido para o plano ${clientPlan}.`,
+        400,
+        "DISCOUNT_CODE_PLAN_MISMATCH",
+      );
+    }
+
+    const { discountedTotal, discountAmount } = applyDiscount(
+      serviceAmount,
+      dc.type as 'PERCENTAGE' | 'FIXED',
+      parseFloat(dc.value),
+    );
+    effectiveQuoteTotal = discountedTotal;
+    discountApplied = { code: String(discountCode).toUpperCase(), type: dc.type, value: parseFloat(dc.value), discountAmount };
+
+    // Increment usage counter (non-blocking — failure doesn't stop payment)
+    prisma.$executeRawUnsafe(
+      `UPDATE discount_codes SET "usedCount" = "usedCount" + 1, "updatedAt" = NOW() WHERE id = $1`,
+      dc.id,
+    ).catch((err: any) => logger.error(`Failed to increment discount usedCount: ${err.message}`));
+  }
 
   // ===== SALES TAX CALCULATION (Marketplace Facilitator) =====
   // TechTrust collects sales tax on taxable items (parts + shop supplies in FL)
@@ -209,7 +272,7 @@ export const approveQuoteWithPaymentHold = async (
     tireFee: Number(quote.tireFee || 0),
     batteryFee: Number(quote.batteryFee || 0),
     taxAmount: Number(quote.taxAmount || 0),
-    quoteTotal: serviceAmount,
+    quoteTotal: effectiveQuoteTotal, // discounted total (or original if no discount)
     clientPlan,
     providerLevel,
     isSOS: false,
@@ -238,15 +301,17 @@ export const approveQuoteWithPaymentHold = async (
       : null;
 
     // 6. Criar HOLD (pré-autorização) no cartão
+    // Wallet mode (Apple/Google Pay): create PI without confirm — client SDK confirms on-device
+    // Saved card mode: confirm immediately off-session
     const holdResult = await stripeService.createPaymentIntent({
       amount: fees.stripeChargeAmountCents,
       customerId: stripeCustomerId,
-      paymentMethodId: paymentMethod.stripePaymentMethodId || undefined,
+      paymentMethodId: walletMode ? undefined : (paymentMethod!.stripePaymentMethodId || undefined),
       providerStripeAccountId: providerStripeAccountId,
       platformFeeAmount: fees.stripeApplicationFeeCents,
       captureMethod: "manual", // PRÉ-AUTORIZAÇÃO
-      confirm: true,
-      offSession: true,
+      confirm: walletMode ? false : true,
+      offSession: walletMode ? false : true,
       salesTaxAmountCents: fees.stripeSalesTaxAmountCents,
       metadata: {
         quoteId: quote.id,
@@ -254,21 +319,24 @@ export const approveQuoteWithPaymentHold = async (
         customerId,
         providerId: quote.providerId,
         type: "SERVICE",
+        walletMode: walletMode ? "true" : "false",
       },
       description: `TechTrust - ${quote.serviceRequest.title}`,
     });
 
-    // 7. Verificar que o hold foi confirmado de fato
-    const confirmResult = await stripeService.confirmPaymentIntent(
-      holdResult.paymentIntentId,
-    );
+    // 7. For saved-card mode: verify hold was confirmed immediately.
+    //    For wallet mode: client will confirm on-device; webhook handles AUTHORIZED status.
+    let confirmResult: { status: string; chargeId?: string | null } = { status: holdResult.status };
+    if (!walletMode) {
+      confirmResult = await stripeService.confirmPaymentIntent(holdResult.paymentIntentId);
 
-    if (confirmResult.status !== "requires_capture") {
-      throw new AppError(
-        "Payment hold was not authorized. Please update the payment method or try another card.",
-        402,
-        "PAYMENT_HOLD_NOT_AUTHORIZED",
-      );
+      if (confirmResult.status !== "requires_capture") {
+        throw new AppError(
+          "Payment hold was not authorized. Please update the payment method or try another card.",
+          402,
+          "PAYMENT_HOLD_NOT_AUTHORIZED",
+        );
+      }
     }
 
     // 8. Transaction: aceitar quote + criar/reusar work order + criar payment
@@ -334,7 +402,7 @@ export const approveQuoteWithPaymentHold = async (
         });
       }
 
-      // Criar payment com status AUTHORIZED
+      // Criar payment com status AUTHORIZED (saved card) ou PENDING (wallet mode — aguarda confirmação on-device)
       const payment = await tx.payment.create({
         data: {
           paymentNumber,
@@ -343,8 +411,8 @@ export const approveQuoteWithPaymentHold = async (
           providerId: quote.providerId,
           paymentProcessor: paymentProcessor as any,
           stripePaymentIntentId: holdResult.paymentIntentId,
-          stripeChargeId: confirmResult.chargeId || null,
-          subtotal: serviceAmount,
+          stripeChargeId: walletMode ? null : (confirmResult.chargeId || null),
+          subtotal: effectiveQuoteTotal, // post-discount subtotal
           platformFee: fees.totalPlatformCommission,
           processingFee: fees.processorFee,
           totalAmount: fees.totalClientPays,
@@ -360,12 +428,13 @@ export const approveQuoteWithPaymentHold = async (
           salesTaxCounty: fees.salesTaxCounty || null,
           salesTaxState: "FL",
           stripeTaxCalculationId: salesTaxResult.stripeTaxCalculationId || null,
-          status: "AUTHORIZED",
-          authorizedAt: new Date(),
-          paymentMethodId: paymentMethodId,
-          cardLast4: paymentMethod.cardLast4,
-          cardBrand: paymentMethod.cardBrand,
-          cardType: paymentMethod.type,
+          // Wallet mode: PENDING until client confirms on-device; saved card: AUTHORIZED immediately
+          status: walletMode ? "PENDING" : "AUTHORIZED",
+          authorizedAt: walletMode ? null : new Date(),
+          paymentMethodId: walletMode ? null : paymentMethodId,
+          cardLast4: paymentMethod?.cardLast4 || null,
+          cardBrand: paymentMethod?.cardBrand || null,
+          cardType: paymentMethod?.type || null,
           paymentType: "SERVICE",
         },
       });
@@ -415,17 +484,22 @@ export const approveQuoteWithPaymentHold = async (
 
     return res.json({
       success: true,
-      message: "Orçamento aprovado! Pagamento autorizado (hold no cartão).",
+      message: walletMode
+        ? "Orçamento aprovado! Confirme o pagamento com Apple Pay ou Google Pay para ativar o hold."
+        : "Orçamento aprovado! Pagamento autorizado (hold no cartão).",
       data: {
         workOrder: {
           id: result.workOrder.id,
           orderNumber,
           status: SERVICE_FLOW.STATUSES.PAYMENT_HOLD,
         },
+        // Wallet mode: return clientSecret so client SDK can show Apple/Google Pay sheet
+        ...(walletMode && { clientSecret: holdResult.clientSecret }),
+        walletMode,
         payment: {
           id: result.payment.id,
           paymentNumber,
-          status: "AUTHORIZED",
+          status: walletMode ? "PENDING" : "AUTHORIZED",
           breakdown: {
             // Quote components
             laborAmount: fees.laborAmount,
@@ -437,7 +511,15 @@ export const approveQuoteWithPaymentHold = async (
             tireFee: fees.tireFee,
             batteryFee: fees.batteryFee,
             taxAmount: fees.taxAmount,
-            quoteTotal: fees.quoteTotal,
+            quoteSubtotal: serviceAmount, // original quote total before discount
+            quoteTotal: fees.quoteTotal,  // post-discount (= effectiveQuoteTotal)
+            // Discount (if applied)
+            ...(discountApplied && {
+              discountCode: discountApplied.code,
+              discountType: discountApplied.type,
+              discountValue: discountApplied.value,
+              discountAmount: discountApplied.discountAmount,
+            }),
             // Sales tax (Marketplace Facilitator)
             salesTaxAmount: fees.salesTaxAmount,
             salesTaxRate: fees.salesTaxRate,
@@ -2357,6 +2439,57 @@ export const getReceipt = async (req: Request, res: Response) => {
     data: {
       receipt,
       html: receiptService.formatReceiptHtml(receipt),
+    },
+  });
+};
+
+/**
+ * GET /api/v1/service-flow/cancellation-fee-estimate/:quoteId
+ * Returns what-if cancellation fee for a quote — no side effects.
+ * Client can show this before confirming cancellation.
+ */
+export const getCancellationFeeEstimate = async (req: Request, res: Response) => {
+  const userId = req.user!.id;
+  const { quoteId } = req.params;
+
+  const quote = await prisma.quote.findFirst({
+    where: { id: quoteId },
+    include: { serviceRequest: { select: { userId: true, scheduledFor: true } } },
+  });
+
+  if (!quote) throw new AppError("Quote não encontrada", 404, "NOT_FOUND");
+  if (quote.serviceRequest.userId !== userId) throw new AppError("Sem permissão", 403, "FORBIDDEN");
+
+  const workOrder = await prisma.workOrder.findFirst({
+    where: { quoteId },
+    select: { status: true },
+  });
+
+  const serviceStarted = workOrder?.status === "IN_PROGRESS" || workOrder?.status === "COMPLETED";
+
+  const { feePercent, feeAmount } = calculateCancellationFee(
+    Number(quote.totalAmount),
+    serviceStarted,
+    quote.acceptedAt || null,
+    quote.serviceRequest.scheduledFor,
+  );
+
+  const impossible = feePercent === -1;
+
+  return res.json({
+    success: true,
+    data: {
+      quoteId,
+      quoteTotal: Number(quote.totalAmount),
+      serviceStarted,
+      cancellationPossible: !impossible,
+      feePercent: impossible ? null : feePercent,
+      feeAmount: impossible ? null : feeAmount,
+      message: impossible
+        ? "Service has started. Cancellation requires admin review."
+        : feeAmount === 0
+        ? "No cancellation fee — quote not yet accepted."
+        : `A cancellation fee of $${feeAmount.toFixed(2)} (${feePercent}%) will be charged.`,
     },
   });
 };

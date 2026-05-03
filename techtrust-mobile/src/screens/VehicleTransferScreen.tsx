@@ -3,7 +3,7 @@
  * Allows transfer of vehicle with maintenance history
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -40,7 +40,11 @@ interface VehicleInfo {
 }
 
 export default function VehicleTransferScreen({ navigation, route }: any) {
-  const { t } = useI18n();
+  const { t, language, formatCurrency } = useI18n();
+  const transferDateLocale = useMemo(
+    () => (language === "pt" ? "pt-BR" : language === "es" ? "es-ES" : "en-US"),
+    [language],
+  );
   const { vehicleId, vehicleInfo, maintenanceHistory, totalSpent } = route.params || {};
   
   const [newOwnerEmail, setNewOwnerEmail] = useState('');
@@ -54,11 +58,11 @@ export default function VehicleTransferScreen({ navigation, route }: any) {
     (r: MaintenanceRecord) => r.status === 'completed'
   );
 
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
+  const formatTransferRecordDate = (date: string) => {
+    return new Date(date).toLocaleDateString(transferDateLocale, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     });
   };
 
@@ -83,16 +87,29 @@ export default function VehicleTransferScreen({ navigation, route }: any) {
         ? (Platform.OS === 'ios' ? 'Face ID' : 'Face Recognition')
         : (Platform.OS === 'ios' ? 'Touch ID' : 'Fingerprint');
       
+      const promptMessage = (t.vehicle?.biometricTransferPrompt ||
+        'Confirm vehicle transfer with {{biometric}}').replace(
+        '{{biometric}}',
+        biometricLabel,
+      );
       const authResult = await LocalAuthentication.authenticateAsync({
-        promptMessage: `Confirm vehicle transfer with ${biometricLabel}`,
-        cancelLabel: 'Cancel',
+        promptMessage,
+        cancelLabel: t.common?.cancel || 'Cancel',
         disableDeviceFallback: false,
-        fallbackLabel: 'Use Passcode',
+        fallbackLabel: t.vehicle?.usePasscode || 'Use passcode',
       });
 
       if (!authResult.success) {
         if (authResult.error !== 'user_cancel') {
-          Alert.alert('Authentication Required', `${biometricLabel} authentication is required to transfer a vehicle.`);
+          const authBody = (t.vehicle?.biometricAuthRequiredMessage ||
+            '{{biometric}} authentication is required to transfer a vehicle.').replace(
+            '{{biometric}}',
+            biometricLabel,
+          );
+          Alert.alert(
+            t.vehicle?.biometricAuthRequiredTitle || 'Authentication required',
+            authBody,
+          );
         }
         return;
       }
@@ -243,7 +260,9 @@ export default function VehicleTransferScreen({ navigation, route }: any) {
                   <Text style={styles.historyStatLabel}>{t.vehicle?.records || 'Records'}</Text>
                 </View>
                 <View style={styles.historyStatItem}>
-                  <Text style={styles.historyStatValue}>${totalSpent?.toFixed(2) || '0.00'}</Text>
+                  <Text style={styles.historyStatValue}>
+                    {formatCurrency(Number(totalSpent) || 0)}
+                  </Text>
                   <Text style={styles.historyStatLabel}>{t.vehicle?.totalSpent || 'Total Spent'}</Text>
                 </View>
               </View>
@@ -254,9 +273,11 @@ export default function VehicleTransferScreen({ navigation, route }: any) {
                   <View style={styles.historyItemDot} />
                   <View style={styles.historyItemContent}>
                     <Text style={styles.historyItemType}>{record.type}</Text>
-                    <Text style={styles.historyItemDate}>{formatDate(record.date)}</Text>
+                    <Text style={styles.historyItemDate}>{formatTransferRecordDate(record.date)}</Text>
                   </View>
-                  <Text style={styles.historyItemCost}>${record.cost.toFixed(2)}</Text>
+                  <Text style={styles.historyItemCost}>
+                    {formatCurrency(record.cost)}
+                  </Text>
                 </View>
               ))}
               {completedRecords.length > 3 && (

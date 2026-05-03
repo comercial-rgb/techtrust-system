@@ -2,7 +2,7 @@
  * TechnicianManagementScreen - Manage technicians & EPA 609 certs
  */
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -28,23 +28,38 @@ import {
   Technician,
 } from "../../services/compliance.service";
 import api from "../../services/api";
-
-const ROLES = [
-  { value: "LEAD_TECHNICIAN", label: "Lead Technician" },
-  { value: "TECHNICIAN", label: "Technician" },
-  { value: "APPRENTICE", label: "Apprentice" },
-  { value: "HELPER", label: "Helper" },
-  { value: "OTHER_ROLE", label: "Other" },
-];
-
-const EPA_CERT_TYPES = [
-  { value: "TYPE_I", label: "Type I - Small Appliances" },
-  { value: "TYPE_II", label: "Type II - High-Pressure" },
-  { value: "TYPE_III", label: "Type III - Low-Pressure" },
-  { value: "UNIVERSAL", label: "Universal" },
-];
+import { log } from "../../utils/logger";
+import { useI18n } from "../../i18n";
+import { interpolate } from "../../i18n/interpolate";
 
 export default function TechnicianManagementScreen({ navigation }: any) {
+  const { t, formatDate } = useI18n();
+  const tc = (t as any).providerCompliance || {};
+  const tm = (t as any).technicianManagement || {};
+
+  const roleOptions = useMemo(
+    () => [
+      {
+        value: "LEAD_TECHNICIAN",
+        label: tm.roleLeadTechnician || "Lead Technician",
+      },
+      { value: "TECHNICIAN", label: tm.roleTechnician || "Technician" },
+      { value: "APPRENTICE", label: tm.roleApprentice || "Apprentice" },
+      { value: "HELPER", label: tm.roleHelper || "Helper" },
+      { value: "OTHER_ROLE", label: tm.roleOther || "Other" },
+    ],
+    [tm],
+  );
+
+  const epaCertTypes = useMemo(
+    () => [
+      { value: "TYPE_I", label: tm.epaTypeI || "Type I - Small Appliances" },
+      { value: "TYPE_II", label: tm.epaTypeII || "Type II - High-Pressure" },
+      { value: "TYPE_III", label: tm.epaTypeIII || "Type III - Low-Pressure" },
+      { value: "UNIVERSAL", label: tm.epaUniversal || "Universal" },
+    ],
+    [tm],
+  );
   const [technicians, setTechnicians] = useState<Technician[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -71,7 +86,7 @@ export default function TechnicianManagementScreen({ navigation }: any) {
         setTechnicians(res.data.technicians || []);
       }
     } catch (error) {
-      console.error("Error fetching technicians:", error);
+      log.error("Error fetching technicians:", error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -145,7 +160,10 @@ export default function TechnicianManagementScreen({ navigation }: any) {
         setEpa609CertUploads((prev) => [...prev, uploadRes.data.url]);
       }
     } catch (error) {
-      Alert.alert("Error", "Failed to upload");
+      Alert.alert(
+        t.common?.error || "Error",
+        t.provider?.technicianPhotoUploadFailed || "Failed to upload",
+      );
     } finally {
       setUploading(false);
     }
@@ -153,7 +171,10 @@ export default function TechnicianManagementScreen({ navigation }: any) {
 
   const handleSave = async () => {
     if (!fullName.trim()) {
-      Alert.alert("Error", "Technician name is required");
+      Alert.alert(
+        t.common?.error || "Error",
+        t.provider?.technicianNameRequired || "Technician name is required",
+      );
       return;
     }
 
@@ -182,32 +203,47 @@ export default function TechnicianManagementScreen({ navigation }: any) {
       resetForm();
       await fetchData();
       Alert.alert(
-        "Success",
-        editingTech ? "Technician updated" : "Technician added",
+        t.common?.success || "Success",
+        editingTech
+          ? t.provider?.technicianUpdated || "Technician updated"
+          : t.provider?.technicianAdded || "Technician added",
       );
     } catch (error: any) {
-      Alert.alert("Error", error?.response?.data?.message || "Failed to save");
+      Alert.alert(
+        t.common?.error || "Error",
+        error?.response?.data?.message || t.provider?.technicianSaveFailed || "Failed to save",
+      );
     } finally {
       setSaving(false);
     }
   };
 
   const handleDeactivate = (tech: Technician) => {
-    Alert.alert("Deactivate Technician", `Remove ${tech.fullName}?`, [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Deactivate",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await deactivateTechnician(tech.id);
-            await fetchData();
-          } catch (error) {
-            Alert.alert("Error", "Failed to deactivate");
-          }
+    Alert.alert(
+      t.provider?.technicianDeactivateTitle || "Deactivate Technician",
+      (t.provider?.technicianDeactivateMessage || "Remove {{name}}?").replace(
+        /\{\{\s*name\s*\}\}/g,
+        tech.fullName,
+      ),
+      [
+        { text: t.common?.cancel || "Cancel", style: "cancel" },
+        {
+          text: t.provider?.technicianDeactivateButton || "Deactivate",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deactivateTechnician(tech.id);
+              await fetchData();
+            } catch (error) {
+              Alert.alert(
+                t.common?.error || "Error",
+                t.provider?.technicianDeactivateFailed || "Failed to deactivate",
+              );
+            }
+          },
         },
-      },
-    ]);
+      ],
+    );
   };
 
   if (loading && !refreshing) {
@@ -220,7 +256,9 @@ export default function TechnicianManagementScreen({ navigation }: any) {
           >
             <Ionicons name="arrow-back" size={24} color="#1f2937" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Technicians</Text>
+          <Text style={styles.headerTitle}>
+            {tm.title || "Technicians"}
+          </Text>
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.centered}>
@@ -230,8 +268,8 @@ export default function TechnicianManagementScreen({ navigation }: any) {
     );
   }
 
-  const activeTechs = technicians.filter((t) => t.isActive);
-  const inactiveTechs = technicians.filter((t) => !t.isActive);
+  const activeTechs = technicians.filter((tech) => tech.isActive);
+  const inactiveTechs = technicians.filter((tech) => !tech.isActive);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -242,7 +280,7 @@ export default function TechnicianManagementScreen({ navigation }: any) {
         >
           <Ionicons name="arrow-back" size={24} color="#1f2937" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Technicians</Text>
+        <Text style={styles.headerTitle}>{tm.title || "Technicians"}</Text>
         <TouchableOpacity onPress={openAddModal} style={styles.addBtn}>
           <Ionicons name="add" size={24} color="#2B5EA7" />
         </TouchableOpacity>
@@ -264,33 +302,46 @@ export default function TechnicianManagementScreen({ navigation }: any) {
         <View style={styles.infoCard}>
           <View style={styles.infoHeader}>
             <Ionicons name="information-circle" size={18} color="#1d4ed8" />
-            <Text style={styles.infoTitle}>Why register technicians?</Text>
+            <Text style={styles.infoTitle}>
+              {tm.infoWhyTitle || "Why register technicians?"}
+            </Text>
           </View>
           <Text style={styles.infoText}>
-            Florida law requires each technician who handles regulated refrigerants (A/C service)
-            to hold an active EPA 609 certificate — and your shop must be able to
-            produce it on inspection. Operating without a certified tech can result in
-            FDACS fines and service restrictions.
+            {tm.infoWhyBody1 ||
+              "Florida law requires each technician who handles regulated refrigerants (A/C service) to hold an active EPA 609 certificate — and your shop must be able to produce it on inspection. Operating without a certified tech can result in FDACS fines and service restrictions."}
           </Text>
           <Text style={[styles.infoText, { marginTop: 6 }]}>
-            Workers' compensation becomes mandatory once you employ 4 or more people
-            (including part-time). Registering technicians here lets TechTrust track
-            your team size, trigger the right compliance requirements, and display
-            trust badges to customers.
+            {tm.infoWhyBody2 ||
+              "Workers' compensation becomes mandatory once you employ 4 or more people (including part-time). Registering technicians here lets TechTrust track your team size, trigger the right compliance requirements, and display trust badges to customers."}
           </Text>
         </View>
 
         {activeTechs.length === 0 ? (
           <View style={styles.emptyCard}>
             <Ionicons name="people-outline" size={40} color="#9ca3af" />
-            <Text style={styles.emptyText}>No technicians added yet</Text>
+            <Text style={styles.emptyText}>
+              {tm.emptyText || "No technicians added yet"}
+            </Text>
             <TouchableOpacity style={styles.primaryBtn} onPress={openAddModal}>
-              <Text style={styles.primaryBtnText}>Add Technician</Text>
+              <Text style={styles.primaryBtnText}>
+                {tm.addTechnician || "Add Technician"}
+              </Text>
             </TouchableOpacity>
           </View>
         ) : (
           activeTechs.map((tech) => {
-            const statusInfo = getComplianceStatusLabel(tech.epa609Status);
+            const statusBase = getComplianceStatusLabel(tech.epa609Status);
+            const statusLabelMap: Record<string, string | undefined> = {
+              VERIFIED: tc.itemStatusVerified,
+              PROVIDED_UNVERIFIED: tc.itemStatusUnderReview,
+              COMPLIANCE_PENDING: tc.itemStatusPending,
+              NOT_APPLICABLE: tc.itemStatusNA,
+              EXPIRED: tc.itemStatusExpired,
+            };
+            const statusInfo = {
+              ...statusBase,
+              label: statusLabelMap[tech.epa609Status] || statusBase.label,
+            };
             return (
               <TouchableOpacity
                 key={tech.id}
@@ -304,7 +355,7 @@ export default function TechnicianManagementScreen({ navigation }: any) {
                   <View style={styles.cardInfo}>
                     <Text style={styles.cardName}>{tech.fullName}</Text>
                     <Text style={styles.cardRole}>
-                      {ROLES.find((r) => r.value === tech.role)?.label ||
+                      {roleOptions.find((r) => r.value === tech.role)?.label ||
                         tech.role}
                     </Text>
                   </View>
@@ -315,7 +366,9 @@ export default function TechnicianManagementScreen({ navigation }: any) {
 
                 {/* EPA 609 Info */}
                 <View style={styles.certSection}>
-                  <Text style={styles.certLabel}>EPA 609 Status</Text>
+                  <Text style={styles.certLabel}>
+                    {tm.labelEpa609Status || "EPA 609 Status"}
+                  </Text>
                   <View
                     style={[
                       styles.statusBadge,
@@ -332,20 +385,25 @@ export default function TechnicianManagementScreen({ navigation }: any) {
 
                 {tech.epa609CertNumber && (
                   <Text style={styles.certDetail}>
-                    Cert #: {tech.epa609CertNumber}
+                    {interpolate(tm.certNumberLine || "Cert #: {{number}}", {
+                      number: tech.epa609CertNumber,
+                    })}
                   </Text>
                 )}
                 {tech.epa609CertType && (
                   <Text style={styles.certDetail}>
-                    Type:{" "}
-                    {EPA_CERT_TYPES.find((t) => t.value === tech.epa609CertType)
-                      ?.label || tech.epa609CertType}
+                    {interpolate(tm.typeLine || "Type: {{type}}", {
+                      type:
+                        epaCertTypes.find((ct) => ct.value === tech.epa609CertType)
+                          ?.label || tech.epa609CertType,
+                    })}
                   </Text>
                 )}
                 {tech.epa609CertExpiry && (
                   <Text style={styles.certDetail}>
-                    Expires:{" "}
-                    {new Date(tech.epa609CertExpiry).toLocaleDateString()}
+                    {interpolate(tm.expiresLine || "Expires: {{date}}", {
+                      date: formatDate(tech.epa609CertExpiry),
+                    })}
                   </Text>
                 )}
               </TouchableOpacity>
@@ -356,7 +414,10 @@ export default function TechnicianManagementScreen({ navigation }: any) {
         {inactiveTechs.length > 0 && (
           <View style={{ marginTop: 20 }}>
             <Text style={styles.sectionLabel}>
-              Inactive ({inactiveTechs.length})
+              {interpolate(
+                tm.sectionInactiveCount || "Inactive ({{count}})",
+                { count: inactiveTechs.length },
+              )}
             </Text>
             {inactiveTechs.map((tech) => (
               <View key={tech.id} style={[styles.card, { opacity: 0.5 }]}>
@@ -368,7 +429,9 @@ export default function TechnicianManagementScreen({ navigation }: any) {
                     <Text style={[styles.cardName, { color: "#9ca3af" }]}>
                       {tech.fullName}
                     </Text>
-                    <Text style={styles.cardRole}>Inactive</Text>
+                    <Text style={styles.cardRole}>
+                      {tm.inactive || "Inactive"}
+                    </Text>
                   </View>
                 </View>
               </View>
@@ -393,36 +456,44 @@ export default function TechnicianManagementScreen({ navigation }: any) {
                 resetForm();
               }}
             >
-              <Text style={styles.cancelBtn}>Cancel</Text>
+              <Text style={styles.cancelBtn}>
+                {tm.cancel || "Cancel"}
+              </Text>
             </TouchableOpacity>
             <Text style={styles.modalTitle}>
-              {editingTech ? "Edit Technician" : "Add Technician"}
+              {editingTech
+                ? tm.modalEditTitle || "Edit Technician"
+                : tm.modalAddTitle || "Add Technician"}
             </Text>
             <TouchableOpacity onPress={handleSave} disabled={saving}>
               {saving ? (
                 <ActivityIndicator size="small" color="#2B5EA7" />
               ) : (
-                <Text style={styles.saveBtn}>Save</Text>
+                <Text style={styles.saveBtn}>{tm.save || "Save"}</Text>
               )}
             </TouchableOpacity>
           </View>
 
           <ScrollView style={styles.modalContent}>
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Full Name *</Text>
+              <Text style={styles.fieldLabel}>
+                {tm.fieldFullName || "Full Name *"}
+              </Text>
               <TextInput
                 style={styles.input}
                 value={fullName}
                 onChangeText={setFullName}
-                placeholder="John Doe"
+                placeholder={tm.placeholderFullName || "John Doe"}
                 placeholderTextColor="#9ca3af"
               />
             </View>
 
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Role</Text>
+              <Text style={styles.fieldLabel}>
+                {tm.fieldRole || "Role"}
+              </Text>
               <View style={styles.roleGrid}>
-                {ROLES.map((r) => (
+                {roleOptions.map((r) => (
                   <TouchableOpacity
                     key={r.value}
                     style={[
@@ -444,10 +515,14 @@ export default function TechnicianManagementScreen({ navigation }: any) {
               </View>
             </View>
 
-            <Text style={styles.sectionLabel}>Employment Information (Florida)</Text>
+            <Text style={styles.sectionLabel}>
+              {tm.sectionEmployment || "Employment Information (Florida)"}
+            </Text>
 
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Date of Hire</Text>
+              <Text style={styles.fieldLabel}>
+                {tm.fieldDateOfHire || "Date of Hire"}
+              </Text>
               <TextInput
                 style={styles.input}
                 value={dateOfHire}
@@ -465,7 +540,7 @@ export default function TechnicianManagementScreen({ navigation }: any) {
                       digits.slice(4);
                   setDateOfHire(formatted);
                 }}
-                placeholder="MM/DD/YYYY"
+                placeholder={tm.datePlaceholder || "MM/DD/YYYY"}
                 placeholderTextColor="#9ca3af"
                 keyboardType="numeric"
                 maxLength={10}
@@ -473,47 +548,57 @@ export default function TechnicianManagementScreen({ navigation }: any) {
             </View>
 
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Driver's License Number</Text>
+              <Text style={styles.fieldLabel}>
+                {tm.fieldDriversLicense || "Driver's License Number"}
+              </Text>
               <TextInput
                 style={styles.input}
                 value={driversLicenseNumber}
                 onChangeText={setDriversLicenseNumber}
-                placeholder="e.g., A123-456-78-900"
+                placeholder={tm.placeholderDl || "e.g., A123-456-78-900"}
                 placeholderTextColor="#9ca3af"
                 autoCapitalize="characters"
               />
             </View>
 
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>License Issuing State</Text>
+              <Text style={styles.fieldLabel}>
+                {tm.fieldLicenseState || "License Issuing State"}
+              </Text>
               <TextInput
                 style={styles.input}
                 value={driversLicenseState}
                 onChangeText={(v) => setDriversLicenseState(v.toUpperCase().slice(0, 2))}
-                placeholder="FL"
+                placeholder={tm.placeholderState || "FL"}
                 placeholderTextColor="#9ca3af"
                 autoCapitalize="characters"
                 maxLength={2}
               />
             </View>
 
-            <Text style={styles.sectionLabel}>EPA 609 Certification</Text>
+            <Text style={styles.sectionLabel}>
+              {tm.sectionEpa609 || "EPA 609 Certification"}
+            </Text>
 
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Certificate Number</Text>
+              <Text style={styles.fieldLabel}>
+                {tm.fieldCertNumber || "Certificate Number"}
+              </Text>
               <TextInput
                 style={styles.input}
                 value={epa609CertNumber}
                 onChangeText={setEpa609CertNumber}
-                placeholder="e.g., EPA-609-12345"
+                placeholder={tm.placeholderEpa || "e.g., EPA-609-12345"}
                 placeholderTextColor="#9ca3af"
               />
             </View>
 
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Certification Type</Text>
+              <Text style={styles.fieldLabel}>
+                {tm.fieldCertType || "Certification Type"}
+              </Text>
               <View style={styles.roleGrid}>
-                {EPA_CERT_TYPES.map((ct) => (
+                {epaCertTypes.map((ct) => (
                   <TouchableOpacity
                     key={ct.value}
                     style={[
@@ -537,7 +622,9 @@ export default function TechnicianManagementScreen({ navigation }: any) {
             </View>
 
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Expiration Date</Text>
+              <Text style={styles.fieldLabel}>
+                {tm.fieldCertExpiry || "Expiration Date"}
+              </Text>
               <TextInput
                 style={styles.input}
                 value={epa609CertExpiry}
@@ -555,7 +642,7 @@ export default function TechnicianManagementScreen({ navigation }: any) {
                       digits.slice(4);
                   setEpa609CertExpiry(formatted);
                 }}
-                placeholder="MM/DD/YYYY"
+                placeholder={tm.datePlaceholder || "MM/DD/YYYY"}
                 placeholderTextColor="#9ca3af"
                 keyboardType="numeric"
                 maxLength={10}
@@ -563,11 +650,17 @@ export default function TechnicianManagementScreen({ navigation }: any) {
             </View>
 
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Certificate Upload</Text>
+              <Text style={styles.fieldLabel}>
+                {tm.fieldCertUpload || "Certificate Upload"}
+              </Text>
               {epa609CertUploads.map((url, i) => (
                 <View key={i} style={styles.docRow}>
                   <Ionicons name="document-attach" size={18} color="#2B5EA7" />
-                  <Text style={styles.docText}>Certificate {i + 1}</Text>
+                  <Text style={styles.docText}>
+                    {interpolate(tm.certFileLabel || "Certificate {{index}}", {
+                      index: i + 1,
+                    })}
+                  </Text>
                   <TouchableOpacity
                     onPress={() =>
                       setEpa609CertUploads((prev) =>
@@ -589,7 +682,9 @@ export default function TechnicianManagementScreen({ navigation }: any) {
                 ) : (
                   <>
                     <Ionicons name="cloud-upload" size={18} color="#2B5EA7" />
-                    <Text style={styles.uploadText}>Upload Certificate</Text>
+                    <Text style={styles.uploadText}>
+                      {tm.uploadCertificate || "Upload Certificate"}
+                    </Text>
                   </>
                 )}
               </TouchableOpacity>

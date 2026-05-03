@@ -3,7 +3,7 @@
  * Modern design with visual cards
  */
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { FadeInView, ScalePress } from "../components/Animated";
 import { VehicleSkeleton } from "../components/Skeleton";
 import { useI18n } from "../i18n";
+import { log } from "../utils/logger";
 
 interface Vehicle {
   id: string;
@@ -34,7 +35,11 @@ interface Vehicle {
 }
 
 export default function CustomerVehiclesScreen({ navigation }: any) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
+  const vehicleLocale = useMemo(
+    () => (language === "pt" ? "pt-BR" : language === "es" ? "es-ES" : "en-US"),
+    [language],
+  );
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -67,7 +72,7 @@ export default function CustomerVehiclesScreen({ navigation }: any) {
         })),
       );
     } catch (error) {
-      console.error("Error loading vehicles:", error);
+      log.error("Error loading vehicles:", error);
     } finally {
       setLoading(false);
     }
@@ -107,11 +112,14 @@ export default function CustomerVehiclesScreen({ navigation }: any) {
   }
 
   function formatMileage(miles: number) {
-    return miles.toLocaleString('en-US') + " mi";
+    const mileUnit =
+      ((t as { carWash?: { mile?: string } }).carWash?.mile as string | undefined) ||
+      "mi";
+    return `${miles.toLocaleString(vehicleLocale)} ${mileUnit}`;
   }
 
-  function formatDate(date: string) {
-    return new Date(date).toLocaleDateString("en-US", {
+  function formatVehicleDate(date: string) {
+    return new Date(date).toLocaleDateString(vehicleLocale, {
       day: "2-digit",
       month: "short",
       year: "numeric",
@@ -210,7 +218,7 @@ export default function CustomerVehiclesScreen({ navigation }: any) {
               <Text style={styles.statValue}>
                 {vehicles
                   .reduce((acc, v) => acc + (v.currentMileage || 0), 0)
-                  .toLocaleString('en-US')}
+                  .toLocaleString(vehicleLocale)}
               </Text>
               <Text style={styles.statLabel}>{t.vehicle?.totalMiles || "Total Miles"}</Text>
             </View>
@@ -224,16 +232,23 @@ export default function CustomerVehiclesScreen({ navigation }: any) {
               <View style={styles.emptyIcon}>
                 <Ionicons name="car-outline" size={64} color="#d1d5db" />
               </View>
-              <Text style={styles.emptyTitle}>No vehicles registered</Text>
+              <Text style={styles.emptyTitle}>
+                {t.profile?.noVehicles ||
+                  (t as any).vehicleDetails?.noVehicles ||
+                  "No vehicles registered"}
+              </Text>
               <Text style={styles.emptySubtitle}>
-                Add your first vehicle to request services
+                {(t as any).vehicleDetails?.addFirstVehicle ||
+                  "Add your first vehicle to request services"}
               </Text>
               <TouchableOpacity
                 style={styles.emptyButton}
                 onPress={() => navigation.navigate("AddVehicle")}
               >
                 <Ionicons name="add" size={20} color="#fff" />
-                <Text style={styles.emptyButtonText}>Add Vehicle</Text>
+                <Text style={styles.emptyButtonText}>
+                  {t.vehicle?.addVehicle || "Add Vehicle"}
+                </Text>
               </TouchableOpacity>
             </View>
           </FadeInView>
@@ -328,7 +343,7 @@ export default function CustomerVehiclesScreen({ navigation }: any) {
                       />
                       <Text style={styles.serviceLabel}>Last service:</Text>
                       <Text style={styles.serviceValue}>
-                        {formatDate(vehicle.lastService)}
+                        {formatVehicleDate(vehicle.lastService)}
                       </Text>
                     </View>
 
@@ -363,7 +378,7 @@ export default function CustomerVehiclesScreen({ navigation }: any) {
                               styles.serviceDue,
                           ]}
                         >
-                          {formatDate(vehicle.nextServiceDue)}
+                          {formatVehicleDate(vehicle.nextServiceDue)}
                         </Text>
                       </View>
                     )}

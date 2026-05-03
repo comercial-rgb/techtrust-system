@@ -8,6 +8,7 @@ import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import { Platform } from "react-native";
 import api from "./api";
+import { log } from "../utils/logger";
 
 // Configure foreground notification behaviour
 Notifications.setNotificationHandler({
@@ -49,7 +50,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
   }
 
   if (finalStatus !== "granted") {
-    console.log("[Push] Permission not granted");
+    log.debug("[Push] Permission not granted");
     return null;
   }
 
@@ -58,13 +59,13 @@ export async function registerForPushNotifications(): Promise<string | null> {
       projectId: "8aadadd9-dd3c-4b9a-8f3e-2a4278e4043a",
     });
     const token = tokenData.data;
-    console.log("[Push] Expo push token:", token);
+    log.debug("[Push] Expo push token:", token);
 
     // Save token to backend (re-uses existing fcmToken column)
     await api.post("/users/me/fcm-token", { fcmToken: token });
     return token;
   } catch (e) {
-    console.warn("[Push] Failed to get/save push token:", e);
+    log.warn("[Push] Failed to get/save push token:", e);
     return null;
   }
 }

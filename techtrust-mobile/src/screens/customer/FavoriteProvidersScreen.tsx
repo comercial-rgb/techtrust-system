@@ -17,6 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useI18n } from '../../i18n';
+import { log } from "../../utils/logger";
 
 type FavoriteCategory = 'all' | 'repair' | 'carwash' | 'parts';
 
@@ -63,7 +64,7 @@ export default function FavoriteProvidersScreen({ navigation }: any) {
       // Endpoint: api.get('/users/favorite-providers')
       setProviders([]);
     } catch (error) {
-      console.error('Error loading favorite providers:', error);
+      log.error('Error loading favorite providers:', error);
       setProviders([]);
     } finally {
       setLoading(false);

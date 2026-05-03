@@ -365,15 +365,41 @@ export const getPaymentHistory = async (req: Request, res: Response) => {
 
   res.json({
     success: true,
-    data: payments.map((p) => ({
-      ...p,
-      subtotal: Number(p.subtotal),
-      platformFee: Number(p.platformFee),
-      processingFee: Number(p.processingFee),
-      totalAmount: Number(p.totalAmount),
-      providerAmount: Number(p.providerAmount),
-      refundAmount: p.refundAmount ? Number(p.refundAmount) : null,
-    })),
+    data: payments.map((p) => {
+      const subtotal        = Number(p.subtotal        || 0);
+      const salesTaxAmount  = Number((p as any).salesTaxAmount  || 0);
+      const appServiceFee   = Number((p as any).appServiceFee   || 0);
+      const processingFee   = Number(p.processingFee   || 0);
+      const serviceCommission = Number((p as any).serviceCommission || 0);
+      const partsFee        = Number((p as any).partsFee        || 0);
+      const platformFee     = Number(p.platformFee     || 0);
+      const totalAmount     = Number(p.totalAmount     || 0);
+      const providerAmount  = Number(p.providerAmount  || 0);
+      return {
+        ...p,
+        subtotal,
+        platformFee,
+        processingFee,
+        totalAmount,
+        providerAmount,
+        refundAmount: p.refundAmount ? Number(p.refundAmount) : null,
+        // Detailed fee breakdown for client-facing receipt display
+        breakdown: {
+          serviceSubtotal:    subtotal,
+          salesTax:           salesTaxAmount,
+          salesTaxRate:       Number((p as any).salesTaxRate || 0),
+          salesTaxCounty:     (p as any).salesTaxCounty || null,
+          appServiceFee,
+          processingFee,
+          totalClientPays:    totalAmount,
+          // Provider-side (informational)
+          serviceCommission,
+          partsFee,
+          platformFee,
+          providerWillReceive: providerAmount,
+        },
+      };
+    }),
     pagination: {
       page: Number(page),
       limit: Number(limit),
@@ -506,10 +532,11 @@ export const capturePayment = async (req: Request, res: Response) => {
     throw new AppError('Authorized payment not found', 404, 'NOT_FOUND');
   }
 
-  // Apenas o provider ou admin pode capturar
+  // Apenas o provider responsável ou admin pode capturar
+  // Cliente NÃO pode capturar — evita cobrança prematura antes da conclusão do serviço
   const userRole = req.user!.role;
-  if (userRole !== 'ADMIN' && payment.providerId !== userId) {
-    throw new AppError('Only the provider or admin can capture this payment', 403, 'FORBIDDEN');
+  if (userRole !== 'ADMIN' && (userRole !== 'PROVIDER' || payment.providerId !== userId)) {
+    throw new AppError('Only the assigned provider or admin can capture this payment', 403, 'FORBIDDEN');
   }
 
   try {

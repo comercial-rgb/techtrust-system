@@ -4,7 +4,7 @@
  * add-ons, amenities, hours, payment methods, location, reviews
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, StyleSheet, ScrollView, TouchableOpacity, Image,
   Linking, Platform, Share, FlatList, ActivityIndicator, StatusBar, Dimensions,
@@ -16,18 +16,25 @@ import { useI18n } from '../i18n';
 import carWashService from '../services/carWash.service';
 import { CarWashProfile } from '../types/carWash';
 import { colors, spacing, borderRadius, fontSize, fontWeight, shadows } from '../constants/theme';
+import { log } from "../utils/logger";
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
-const CAR_WASH_TYPE_LABELS: Record<string, string> = {
-  AUTOMATIC_TUNNEL: 'Automatic Tunnel',
-  EXPRESS_EXTERIOR: 'Express Exterior',
-  SELF_SERVICE_BAY: 'Self-Service Bay',
-  FULL_SERVICE: 'Full Service',
-  HAND_WASH: 'Hand Wash',
-};
+function carWashTypeLabel(
+  type: string,
+  cw: Record<string, string | undefined> | undefined,
+): string {
+  if (!cw) return type;
+  const key: Record<string, string> = {
+    AUTOMATIC_TUNNEL: 'automaticTunnel',
+    EXPRESS_EXTERIOR: 'expressExterior',
+    SELF_SERVICE_BAY: 'selfServiceBay',
+    FULL_SERVICE: 'fullService',
+    HAND_WASH: 'handWash',
+  };
+  const k = key[type];
+  return (k && cw[k]) || type;
+}
 
 const AMENITY_ICONS: Record<string, string> = {
   free_vacuum: 'vacuum',
@@ -42,10 +49,20 @@ const AMENITY_ICONS: Record<string, string> = {
 };
 
 export default function CarWashProfileScreen({ route, navigation }: any) {
-  const { t } = useI18n();
+  const { t, formatDate, formatCurrency, language } = useI18n();
+  const cwT = (t as any).carWash as Record<string, string | undefined> | undefined;
   const { carWashId } = route.params;
   const [profile, setProfile] = useState<CarWashProfile | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const weekdayLong = useMemo(
+    () =>
+      new Intl.DateTimeFormat(
+        language === 'pt' ? 'pt-BR' : language === 'es' ? 'es-ES' : 'en-US',
+        { weekday: 'long' },
+      ),
+    [language],
+  );
   const [isFavorited, setIsFavorited] = useState(false);
   const [photoIndex, setPhotoIndex] = useState(0);
 
@@ -59,7 +76,7 @@ export default function CarWashProfileScreen({ route, navigation }: any) {
       setProfile(data);
       setIsFavorited(data.isFavorited);
     } catch (error) {
-      console.error('Error loading car wash profile:', error);
+      log.error('Error loading car wash profile:', error);
     } finally {
       setLoading(false);
     }
@@ -70,7 +87,7 @@ export default function CarWashProfileScreen({ route, navigation }: any) {
       const result = await carWashService.toggleFavorite(carWashId);
       setIsFavorited(result.isFavorited);
     } catch (error) {
-      console.error('Error toggling favorite:', error);
+      log.error('Error toggling favorite:', error);
     }
   };
 
@@ -206,14 +223,18 @@ export default function CarWashProfileScreen({ route, navigation }: any) {
           <View style={styles.typesRow}>
             {(profile.carWashTypes as string[]).map((type, i) => (
               <View key={i} style={styles.typeChip}>
-                <Text style={styles.typeChipText}>{CAR_WASH_TYPE_LABELS[type] || type}</Text>
+                <Text style={styles.typeChipText}>{carWashTypeLabel(type, cwT)}</Text>
               </View>
             ))}
           </View>
           <View style={styles.ratingRow}>
             <Ionicons name="star" size={16} color="#f59e0b" />
             <Text style={styles.ratingText}>{Number(profile.averageRating).toFixed(1)}</Text>
-            <Text style={styles.reviewCount}>({profile.totalReviews} reviews)</Text>
+            <Text style={styles.reviewCount}>
+              {`(${(
+                cwT?.reviewsTotal || "{{count}} reviews"
+              ).replace("{{count}}", String(profile.totalReviews))})`}
+            </Text>
             <View style={styles.statusRow}>
               <View style={[styles.statusDot, {
                 backgroundColor: profile.isOpenNow ? colors.success : colors.error
@@ -221,15 +242,21 @@ export default function CarWashProfileScreen({ route, navigation }: any) {
               <Text style={[styles.statusText, {
                 color: profile.isOpenNow ? colors.success : colors.error
               }]}>
-                {profile.isOpenNow ? 'Open Now' : 'Closed'}
-                {profile.closesAt ? ` · Closes at ${formatTime(profile.closesAt)}` : ''}
+                {profile.isOpenNow
+                  ? cwT?.openStatus || "Open Now"
+                  : cwT?.closedStatus || "Closed"}
+                {profile.closesAt
+                  ? ` · ${cwT?.closesAt || "Closes at"} ${formatTime(profile.closesAt)}`
+                  : ""}
               </Text>
             </View>
           </View>
           {profile.isEcoFriendly && (
             <View style={styles.ecoRow}>
               <Ionicons name="leaf" size={14} color="#16a34a" />
-              <Text style={styles.ecoText}>Eco-Friendly · Water Recycling</Text>
+              <Text style={styles.ecoText}>
+                {cwT?.ecoFriendly || "Eco-Friendly · Water Recycling"}
+              </Text>
             </View>
           )}
         </View>
@@ -240,28 +267,32 @@ export default function CarWashProfileScreen({ route, navigation }: any) {
             <View style={[styles.actionIcon, { backgroundColor: '#e0f2fe' }]}>
               <Ionicons name="navigate" size={20} color="#0284c7" />
             </View>
-            <Text style={styles.actionLabel}>Directions</Text>
+            <Text style={styles.actionLabel}>
+              {cwT?.getDirections || "Directions"}
+            </Text>
           </TouchableOpacity>
           {profile.phoneNumber && (
             <TouchableOpacity style={styles.actionBtn} onPress={handleCall}>
               <View style={[styles.actionIcon, { backgroundColor: '#dcfce7' }]}>
                 <Ionicons name="call" size={20} color="#16a34a" />
               </View>
-              <Text style={styles.actionLabel}>Call</Text>
+              <Text style={styles.actionLabel}>{cwT?.call || "Call"}</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity style={styles.actionBtn} onPress={handleShare}>
             <View style={[styles.actionIcon, { backgroundColor: '#fef3c7' }]}>
               <Ionicons name="share-social" size={20} color="#d97706" />
             </View>
-            <Text style={styles.actionLabel}>Share</Text>
+            <Text style={styles.actionLabel}>{cwT?.share || "Share"}</Text>
           </TouchableOpacity>
           {profile.websiteUrl && (
             <TouchableOpacity style={styles.actionBtn} onPress={handleWebsite}>
               <View style={[styles.actionIcon, { backgroundColor: '#ede9fe' }]}>
                 <Ionicons name="globe" size={20} color="#7c3aed" />
               </View>
-              <Text style={styles.actionLabel}>Website</Text>
+              <Text style={styles.actionLabel}>
+                {cwT?.website || "Website"}
+              </Text>
             </TouchableOpacity>
           )}
         </View>
@@ -271,7 +302,8 @@ export default function CarWashProfileScreen({ route, navigation }: any) {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
               <MaterialCommunityIcons name="water" size={18} color={colors.primary} />
-              {'  '}Wash Packages
+              {"  "}
+              {cwT?.washPackages || "Wash Packages"}
             </Text>
             {profile.packages.map((pkg) => (
               <View
@@ -281,16 +313,24 @@ export default function CarWashProfileScreen({ route, navigation }: any) {
                 {pkg.isMostPopular && (
                   <View style={styles.popularBadge}>
                     <Ionicons name="star" size={10} color="#fff" />
-                    <Text style={styles.popularBadgeText}>Popular Choice</Text>
+                    <Text style={styles.popularBadgeText}>
+                      {cwT?.mostPopular || "Popular Choice"}
+                    </Text>
                   </View>
                 )}
                 <View style={styles.packageHeader}>
                   <Text style={styles.packageName}>{pkg.name}</Text>
                   <View style={styles.packagePricing}>
-                    <Text style={styles.packagePrice}>${Number(pkg.priceBase).toFixed(0)}</Text>
+                    <Text style={styles.packagePrice}>
+                      {formatCurrency(Number(pkg.priceBase))}
+                    </Text>
                     {pkg.priceSUV && (
                       <Text style={styles.suvPrice}>
-                        +${(Number(pkg.priceSUV) - Number(pkg.priceBase)).toFixed(0)} SUV/Truck
+                        +
+                        {formatCurrency(
+                          Number(pkg.priceSUV) - Number(pkg.priceBase),
+                        )}{" "}
+                        {cwT?.suvUpchargeLabel || "SUV/Truck"}
                       </Text>
                     )}
                   </View>
@@ -313,23 +353,30 @@ export default function CarWashProfileScreen({ route, navigation }: any) {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
               <Ionicons name="infinite" size={18} color="#8b5cf6" />
-              {'  '}Unlimited Plans
+              {"  "}
+              {cwT?.unlimitedPlans || "Unlimited Plans"}
             </Text>
             {profile.membershipPlans.map((plan) => (
               <View key={plan.id} style={styles.membershipCard}>
                 <View style={styles.membershipHeader}>
                   <Text style={styles.membershipName}>{plan.name}</Text>
                   <Text style={styles.membershipPrice}>
-                    ${Number(plan.monthlyPrice).toFixed(2)}/mo
+                    {formatCurrency(Number(plan.monthlyPrice))}
+                    {cwT?.perMonth || "/mo"}
                   </Text>
                 </View>
                 <Text style={styles.membershipLevel}>
-                  Includes: {plan.packageLevel} level wash
+                  {(cwT?.includesLevelWash || "Includes: {{level}} level wash").replace(
+                    "{{level}}",
+                    String(plan.packageLevel ?? ""),
+                  )}
                 </Text>
                 {plan.multiLocation && (
                   <View style={styles.multiLocRow}>
                     <Ionicons name="location" size={12} color="#8b5cf6" />
-                    <Text style={styles.multiLocText}>Valid at all locations</Text>
+                    <Text style={styles.multiLocText}>
+                      {cwT?.validAllLocations || "Valid at all locations"}
+                    </Text>
                   </View>
                 )}
                 {plan.description && (
@@ -338,7 +385,8 @@ export default function CarWashProfileScreen({ route, navigation }: any) {
               </View>
             ))}
             <Text style={styles.membershipNote}>
-              * Membership sign-up available at the car wash location or their website
+              {cwT?.membershipNote ||
+                "* Membership sign-up available at the car wash location or their website"}
             </Text>
           </View>
         )}
@@ -348,7 +396,8 @@ export default function CarWashProfileScreen({ route, navigation }: any) {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
               <Ionicons name="add-circle" size={18} color={colors.primary} />
-              {'  '}Add-On Services
+              {"  "}
+              {cwT?.addOnServices || "Add-On Services"}
             </Text>
             {profile.addOnServices.map((addon) => (
               <View key={addon.id} style={styles.addOnRow}>
@@ -358,7 +407,9 @@ export default function CarWashProfileScreen({ route, navigation }: any) {
                     <Text style={styles.addOnDesc}>{addon.description}</Text>
                   )}
                 </View>
-                <Text style={styles.addOnPrice}>${Number(addon.price).toFixed(0)}</Text>
+                <Text style={styles.addOnPrice}>
+                  {formatCurrency(Number(addon.price))}
+                </Text>
               </View>
             ))}
           </View>
@@ -369,7 +420,8 @@ export default function CarWashProfileScreen({ route, navigation }: any) {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
               <Ionicons name="gift" size={18} color="#10b981" />
-              {'  '}Free Amenities
+              {"  "}
+              {cwT?.freeAmenities || "Free Amenities"}
             </Text>
             <View style={styles.amenitiesGrid}>
               {profile.amenities.map((am) => (
@@ -392,7 +444,8 @@ export default function CarWashProfileScreen({ route, navigation }: any) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
             <Ionicons name="time" size={18} color={colors.primary} />
-            {'  '}Hours of Operation
+            {"  "}
+            {cwT?.hoursOfOperation || "Hours of Operation"}
           </Text>
           {profile.operatingHours.map((hours) => (
             <View
@@ -400,13 +453,13 @@ export default function CarWashProfileScreen({ route, navigation }: any) {
               style={[styles.hoursRow, hours.dayOfWeek === today && styles.hoursRowToday]}
             >
               <Text style={[styles.dayName, hours.dayOfWeek === today && styles.dayNameToday]}>
-                {DAY_NAMES[hours.dayOfWeek]}
+                {weekdayLong.format(new Date(2023, 0, 1 + hours.dayOfWeek))}
               </Text>
               <Text style={[styles.dayHours, hours.dayOfWeek === today && styles.dayHoursToday]}>
                 {hours.isClosed
-                  ? 'Closed'
+                  ? cwT?.closedDay || "Closed"
                   : hours.is24Hours
-                    ? '24 Hours'
+                    ? cwT?.open24Hours || "24 hours"
                     : `${formatTime(hours.openTime || '')} — ${formatTime(hours.closeTime || '')}`
                 }
               </Text>
@@ -419,7 +472,8 @@ export default function CarWashProfileScreen({ route, navigation }: any) {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
               <Ionicons name="card" size={18} color={colors.primary} />
-              {'  '}Payment Methods
+              {"  "}
+              {cwT?.paymentMethods || "Payment Methods"}
             </Text>
             <View style={styles.paymentGrid}>
               {profile.paymentMethods.map((pm) => (
@@ -435,7 +489,8 @@ export default function CarWashProfileScreen({ route, navigation }: any) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
             <Ionicons name="location" size={18} color={colors.primary} />
-            {'  '}Location
+            {"  "}
+            {cwT?.location || "Location"}
           </Text>
           <Text style={styles.addressText}>
             {profile.address}
@@ -451,30 +506,41 @@ export default function CarWashProfileScreen({ route, navigation }: any) {
             </Text>
           )}
           <View style={styles.facilityDetails}>
-            {profile.numberOfTunnels > 0 && (
+                {profile.numberOfTunnels > 0 && (
               <Text style={styles.facilityText}>
-                {profile.numberOfTunnels} tunnel{profile.numberOfTunnels > 1 ? 's' : ''}
+                {(profile.numberOfTunnels > 1
+                  ? cwT?.facilityTunnels || "{{count}} tunnels"
+                  : cwT?.facilityTunnel || "{{count}} tunnel"
+                ).replace("{{count}}", String(profile.numberOfTunnels))}
               </Text>
             )}
             {profile.numberOfBays > 0 && (
               <Text style={styles.facilityText}>
-                {profile.numberOfBays} bay{profile.numberOfBays > 1 ? 's' : ''}
+                {(profile.numberOfBays > 1
+                  ? cwT?.facilityBays || "{{count}} bays"
+                  : cwT?.facilityBay || "{{count}} bay"
+                ).replace("{{count}}", String(profile.numberOfBays))}
               </Text>
             )}
             {profile.maxVehicleHeight && (
               <Text style={styles.facilityText}>
-                Max height: {Number(profile.maxVehicleHeight)}ft
+                {(cwT?.maxHeightFeet || "Max height: {{feet}} ft").replace(
+                  "{{feet}}",
+                  String(Number(profile.maxVehicleHeight)),
+                )}
               </Text>
             )}
             {!profile.acceptsLargeVehicles && (
               <Text style={[styles.facilityText, { color: colors.error }]}>
-                No trucks/large vehicles
+                {cwT?.noTrucks || "No trucks/large vehicles"}
               </Text>
             )}
           </View>
           <TouchableOpacity style={styles.directionsBtn} onPress={handleGetDirections}>
             <Ionicons name="navigate" size={18} color={colors.white} />
-            <Text style={styles.directionsBtnText}>Get Directions</Text>
+            <Text style={styles.directionsBtnText}>
+              {cwT?.getDirections || "Get Directions"}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -483,12 +549,16 @@ export default function CarWashProfileScreen({ route, navigation }: any) {
           <View style={styles.sectionHeaderRow}>
             <Text style={styles.sectionTitle}>
               <Ionicons name="star" size={18} color="#f59e0b" />
-              {'  '}Reviews
+              {"  "}
+              {(t as { reviews?: { reviews?: string } }).reviews?.reviews ||
+                "Reviews"}
             </Text>
             <TouchableOpacity
               onPress={() => navigation.navigate('CarWashReview', { carWashId, businessName: profile.businessName })}
             >
-              <Text style={styles.writeReviewLink}>Write Review</Text>
+              <Text style={styles.writeReviewLink}>
+                {cwT?.writeReview || "Write Review"}
+              </Text>
             </TouchableOpacity>
           </View>
 
@@ -508,7 +578,12 @@ export default function CarWashProfileScreen({ route, navigation }: any) {
                   />
                 ))}
               </View>
-              <Text style={styles.totalReviewsText}>{profile.totalReviews} reviews</Text>
+              <Text style={styles.totalReviewsText}>
+                {(cwT?.reviewsTotal || "{{count}} reviews").replace(
+                  "{{count}}",
+                  String(profile.totalReviews),
+                )}
+              </Text>
             </View>
             <View style={styles.ratingBars}>
               {[5, 4, 3, 2, 1].map(star => {
@@ -544,7 +619,7 @@ export default function CarWashProfileScreen({ route, navigation }: any) {
                   <View>
                     <Text style={styles.reviewUserName}>{review.user.fullName}</Text>
                     <Text style={styles.reviewDate}>
-                      {new Date(review.createdAt).toLocaleDateString()}
+                      {formatDate(review.createdAt)}
                     </Text>
                   </View>
                 </View>
@@ -564,7 +639,9 @@ export default function CarWashProfileScreen({ route, navigation }: any) {
               )}
               {review.response && (
                 <View style={styles.reviewResponse}>
-                  <Text style={styles.responseLabel}>Owner Response:</Text>
+                  <Text style={styles.responseLabel}>
+                    {cwT?.ownerResponseLabel || "Owner response:"}
+                  </Text>
                   <Text style={styles.responseText}>{review.response}</Text>
                 </View>
               )}
@@ -576,7 +653,12 @@ export default function CarWashProfileScreen({ route, navigation }: any) {
               style={styles.seeAllReviewsBtn}
               onPress={() => navigation.navigate('CarWashAllReviews', { carWashId })}
             >
-              <Text style={styles.seeAllReviewsText}>See All {profile.totalReviews} Reviews</Text>
+              <Text style={styles.seeAllReviewsText}>
+                {(cwT?.seeAllReviewsCount || "See all {{count}} reviews").replace(
+                  "{{count}}",
+                  String(profile.totalReviews),
+                )}
+              </Text>
             </TouchableOpacity>
           )}
         </View>
@@ -586,9 +668,13 @@ export default function CarWashProfileScreen({ route, navigation }: any) {
           <View style={styles.detailingContent}>
             <MaterialCommunityIcons name="auto-fix" size={28} color={colors.primary} />
             <View style={{ flex: 1, marginLeft: spacing.md }}>
-              <Text style={styles.detailingTitle}>Looking for Professional Detailing?</Text>
+              <Text style={styles.detailingTitle}>
+                {cwT?.lookingForDetailing ||
+                  "Looking for Professional Detailing?"}
+              </Text>
               <Text style={styles.detailingDesc}>
-                Paint correction, ceramic coating, interior deep clean, and more — request through our Services section.
+                {cwT?.detailingDesc ||
+                  "Paint correction, ceramic coating, interior deep clean, and more — request through our Services section."}
               </Text>
             </View>
           </View>
@@ -598,7 +684,9 @@ export default function CarWashProfileScreen({ route, navigation }: any) {
               navigation.navigate('ServiceChoice');
             }}
           >
-            <Text style={styles.detailingBtnText}>Request Detailing Service</Text>
+            <Text style={styles.detailingBtnText}>
+              {cwT?.requestDetailing || "Request Detailing Service"}
+            </Text>
             <Ionicons name="arrow-forward" size={16} color={colors.primary} />
           </TouchableOpacity>
         </View>

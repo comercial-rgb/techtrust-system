@@ -286,7 +286,7 @@ app.use(`/api/${API_VERSION}/car-wash`, carWashRoutes); // Car Wash discovery & 
 app.use(`/api/${API_VERSION}/parts-store`, partsStoreRoutes); // Auto Parts Store discovery & management
 app.use(`/api/${API_VERSION}/oe-parts`, oePartsRoutes); // OE Parts lookup via 17vin API
 app.use(`/api/${API_VERSION}/quickbooks`, quickbooksRoutes);
-app.use(`/api/${API_VERSION}/sos`, sosRoutes); // Roadside SOS dispatch // QuickBooks Online integration (sales tax + DR-15)
+app.use(`/api/${API_VERSION}/sos`, sosRoutes); // Roadside SOS dispatch
 
 // ============================================
 // ERROR HANDLER (deve ser o último middleware)

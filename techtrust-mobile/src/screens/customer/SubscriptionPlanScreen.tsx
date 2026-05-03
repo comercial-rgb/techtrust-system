@@ -15,9 +15,11 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useI18n } from "../../i18n";
+import { interpolate } from "../../i18n/interpolate";
 import { useRoute } from "@react-navigation/native";
 import * as WebBrowser from "expo-web-browser";
 import * as paymentService from "../../services/payment.service";
+import { log } from "../../utils/logger";
 
 interface Plan {
   id: string;
@@ -29,7 +31,7 @@ interface Plan {
 }
 
 export default function SubscriptionPlanScreen({ navigation }: any) {
-  const { t } = useI18n();
+  const { t, formatDate, formatCurrency } = useI18n();
   const route = useRoute<any>();
   const fromDashboard = route.params?.fromDashboard;
   const [billingInterval, setBillingInterval] = useState<"month" | "year">(
@@ -49,14 +51,12 @@ export default function SubscriptionPlanScreen({ navigation }: any) {
 
   const loadData = async () => {
     try {
-      console.log("🔄 Loading subscription plans from API...");
+      log.debug("Loading subscription plans from API");
       // Load subscription and plans in parallel
       const [subscriptionData, plansResponse] = await Promise.all([
         paymentService.getMySubscription(),
         paymentService.getSubscriptionPlans(),
       ]);
-
-      console.log("✅ API Response:", plansResponse);
 
       if (subscriptionData) {
         setCurrentSubscription(subscriptionData);
@@ -65,18 +65,10 @@ export default function SubscriptionPlanScreen({ navigation }: any) {
 
       // Process plans from backend
       const backendPlans = plansResponse || [];
-      console.log("📦 Backend plans count:", backendPlans.length);
+      log.debug("Backend plans count:", backendPlans.length);
       if (backendPlans.length > 0) {
         // Store backend data for interval switching
         setBackendPlansData(backendPlans);
-        console.log(
-          "💾 Stored backend plans:",
-          backendPlans.map((p: any) => ({
-            name: p.name,
-            monthly: p.monthlyPrice,
-            yearly: p.yearlyPrice,
-          })),
-        );
 
         const formattedPlans: Plan[] = backendPlans.map((p: any) => ({
           id: p.planKey || p.id,
@@ -96,7 +88,7 @@ export default function SubscriptionPlanScreen({ navigation }: any) {
         setPlans(getDefaultPlans());
       }
     } catch (error) {
-      console.error("Error loading data:", error);
+      log.error("Error loading subscription plans", error);
       setBackendPlansData([]);
       setPlans(getDefaultPlans());
     } finally {
@@ -126,71 +118,80 @@ export default function SubscriptionPlanScreen({ navigation }: any) {
     }
   }, [billingInterval]);
 
-  const getDefaultPlans = (): Plan[] => [
-    {
-      id: "free",
-      name: "Free",
-      price: 0,
-      interval: billingInterval,
-      features: [
-        "2 vehicles (+$6.99/extra)",
-        "4 service requests/month",
-        "VIN decode & NHTSA recalls",
-        "FDACS compliance",
-        "PDF receipts",
-      ],
-    },
-    {
-      id: "starter",
-      name: "Starter",
-      price: billingInterval === "month" ? 9.99 : 99.99,
-      interval: billingInterval,
-      features: [
-        "3 vehicles (+$5.99/extra)",
-        "10 service requests/month",
-        "Multi-language support",
-        "Mileage tracker",
-        "Scheduled maintenance",
-        "Quote sharing",
-        "1 oil change/year included",
-        "10% SOS savings",
-      ],
-    },
-    {
-      id: "pro",
-      name: "Pro",
-      price: billingInterval === "month" ? 19.99 : 199.99,
-      interval: billingInterval,
-      popular: true,
-      features: [
-        "5 vehicles (+$3.99/extra)",
-        "Unlimited service requests",
-        "OEM parts lookup",
-        "Digital wallet",
-        "Expense reports",
-        "OBD2 basic diagnostics",
-        "2 oil changes + 1 brake inspection/year",
-        "20% SOS savings + priority",
-        "Priority support 24/7",
-      ],
-    },
-    {
-      id: "enterprise",
-      name: "Enterprise",
-      price: billingInterval === "month" ? 49.99 : 499.99,
-      interval: billingInterval,
-      features: [
-        "14 vehicles (custom pricing)",
-        "Unlimited service requests",
-        "Vehicle dashboard & analytics",
-        "Advanced OBD2 diagnostics",
-        "4 oil changes + unlimited inspections/year",
-        "2 SOS/month included + 30% savings",
-        "All Pro features included",
-        "Dedicated account manager",
-      ],
-    },
-  ];
+  const getDefaultPlans = (): Plan[] => {
+    const c = (t.customer || {}) as Record<string, string | undefined>;
+    const m = (key: string, fallback: string) => c[key] || fallback;
+    const vx = (n: string, amount: number) =>
+      interpolate(
+        m("subDefVehiclesExtra", "{{n}} vehicles (+{{extra}}/extra)"),
+        { n, extra: formatCurrency(amount) },
+      );
+    return [
+      {
+        id: "free",
+        name: m("subDefPlanFree", "Free"),
+        price: 0,
+        interval: billingInterval,
+        features: [
+          vx("2", 6.99),
+          m("subDefFourRequestsMonth", "4 service requests/month"),
+          m("subDefVinRecalls", "VIN decode & NHTSA recalls"),
+          m("subDefFdacs", "FDACS compliance"),
+          m("subDefPdfReceipts", "PDF receipts"),
+        ],
+      },
+      {
+        id: "starter",
+        name: m("subDefPlanStarter", "Starter"),
+        price: billingInterval === "month" ? 9.99 : 99.99,
+        interval: billingInterval,
+        features: [
+          vx("3", 5.99),
+          m("subDefTenRequestsMonth", "10 service requests/month"),
+          m("subDefMultiLanguage", "Multi-language support"),
+          m("subDefMileageTracker", "Mileage tracker"),
+          m("subDefScheduledMaint", "Scheduled maintenance"),
+          m("subDefQuoteSharing", "Quote sharing"),
+          m("subDefOilYearIncluded", "1 oil change/year included"),
+          m("subDefSosTenPct", "10% SOS savings"),
+        ],
+      },
+      {
+        id: "pro",
+        name: m("subDefPlanPro", "Pro"),
+        price: billingInterval === "month" ? 19.99 : 199.99,
+        interval: billingInterval,
+        popular: true,
+        features: [
+          vx("5", 3.99),
+          m("subDefUnlimitedRequests", "Unlimited service requests"),
+          m("subDefOemPartsLookup", "OEM parts lookup"),
+          m("subDefDigitalWallet", "Digital wallet"),
+          m("subDefExpenseReports", "Expense reports"),
+          m("subDefObd2Basic", "OBD2 basic diagnostics"),
+          m("subDefOilBrakeYear", "2 oil changes + 1 brake inspection/year"),
+          m("subDefSosTwentyPriority", "20% SOS savings + priority"),
+          m("subDefPriority247", "Priority support 24/7"),
+        ],
+      },
+      {
+        id: "enterprise",
+        name: m("subDefPlanEnterprise", "Enterprise"),
+        price: billingInterval === "month" ? 49.99 : 499.99,
+        interval: billingInterval,
+        features: [
+          m("subDefFourteenVehiclesCustom", "14 vehicles (custom pricing)"),
+          m("subDefUnlimitedRequests", "Unlimited service requests"),
+          m("subDefVehicleDashboard", "Vehicle dashboard & analytics"),
+          m("subDefObd2Advanced", "Advanced OBD2 diagnostics"),
+          m("subDefOilInspectionsYear", "4 oil changes + unlimited inspections/year"),
+          m("subDefSosTwoMonth", "2 SOS/month included + 30% savings"),
+          m("subDefAllProIncluded", "All Pro features included"),
+          m("subDefDedicatedManager", "Dedicated account manager"),
+        ],
+      },
+    ];
+  };
 
   const handleBack = () => {
     if (fromDashboard) {
@@ -258,6 +259,7 @@ export default function SubscriptionPlanScreen({ navigation }: any) {
         t.common?.error || "Error",
         error.response?.data?.message ||
           error.message ||
+          t.customer?.couldNotUpdateSubscription ||
           "Could not update subscription.",
       );
     } finally {
@@ -267,8 +269,8 @@ export default function SubscriptionPlanScreen({ navigation }: any) {
 
   const handleEndTrial = () => {
     Alert.alert(
-      "Activate Plan",
-      "End your trial and activate paid billing now?",
+      t.customer?.activatePlanTitle || "Activate Plan",
+      t.customer?.activatePlanMessage || "End your trial and activate paid billing now?",
       [
         { text: t.common?.cancel || "Cancel", style: "cancel" },
         {
@@ -278,12 +280,16 @@ export default function SubscriptionPlanScreen({ navigation }: any) {
             try {
               await paymentService.endSubscriptionTrial();
               await loadData();
-              Alert.alert(t.common?.success || "Success", "Paid plan activated.");
+              Alert.alert(
+                t.common?.success || "Success",
+                t.customer?.paidPlanActivated || "Paid plan activated.",
+              );
             } catch (error: any) {
               Alert.alert(
                 t.common?.error || "Error",
                 error.response?.data?.message ||
                   error.message ||
+                  t.customer?.couldNotActivatePlan ||
                   "Could not activate plan.",
               );
             } finally {
@@ -363,8 +369,8 @@ export default function SubscriptionPlanScreen({ navigation }: any) {
               </Text>
               <Text style={styles.currentPlanPrice}>
                 {currentSubscription && Number(currentSubscription.price) > 0
-                  ? `$${Number(currentSubscription.price).toFixed(2)}`
-                  : "$0.00"}
+                  ? formatCurrency(Number(currentSubscription.price))
+                  : formatCurrency(0)}
                 <Text style={styles.currentPlanInterval}>/month</Text>
               </Text>
             </View>
@@ -373,7 +379,7 @@ export default function SubscriptionPlanScreen({ navigation }: any) {
                 <Ionicons name="calendar" size={16} color="#93c5fd" />
                 <Text style={styles.detailText}>
                   {currentSubscription?.currentPeriodEnd
-                    ? `${t.customer?.renews || "Renews"}: ${new Date(currentSubscription.currentPeriodEnd).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
+                    ? `${t.customer?.renews || "Renews"}: ${formatDate(currentSubscription.currentPeriodEnd)}`
                     : (t.customer as any)?.noActiveSubscription ||
                       "No active subscription"}
                 </Text>
@@ -392,7 +398,7 @@ export default function SubscriptionPlanScreen({ navigation }: any) {
                   <Text style={styles.trialText}>
                     Trial limits are active
                     {currentSubscription.trialEndsAt
-                      ? ` until ${new Date(currentSubscription.trialEndsAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+                      ? ` ${t.customer?.trialUntil || "until"} ${formatDate(currentSubscription.trialEndsAt)}`
                       : ""}
                     . Activate now to unlock the full plan.
                   </Text>
@@ -492,7 +498,7 @@ export default function SubscriptionPlanScreen({ navigation }: any) {
                   >
                     {plan.price === 0
                       ? t.common?.free || "Free"
-                      : `$${plan.price}`}
+                      : formatCurrency(plan.price)}
                   </Text>
                   {plan.price > 0 && (
                     <Text

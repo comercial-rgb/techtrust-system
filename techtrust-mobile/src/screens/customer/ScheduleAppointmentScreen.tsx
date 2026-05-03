@@ -60,7 +60,7 @@ interface ProviderResult {
 
 export default function ScheduleAppointmentScreen({ route, navigation }: any) {
   const { serviceRequestId, providerId, vehicleId } = route.params || {};
-  const { t } = useI18n();
+  const { t, formatDate, formatTime, formatCurrency } = useI18n();
   const sa: any = t.scheduleAppointment || {};
 
   // Step tracker: 1 = vehicle, 2 = service type, 3 = provider, 4 = date/time, 5 = confirm
@@ -661,7 +661,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
                 >
                   <Ionicons name="calendar-outline" size={18} color="#2B5EA7" />
                   <Text style={styles.dateBtnText}>
-                    {date.toLocaleDateString()}
+                    {formatDate(date)}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -670,10 +670,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
                 >
                   <Ionicons name="time-outline" size={18} color="#2B5EA7" />
                   <Text style={styles.dateBtnText}>
-                    {date.toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                    {formatTime(date)}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -723,7 +720,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
                   </>
                 ) : (
                   <>
-                    <Text style={styles.feeAmount}>${appFee.toFixed(2)}</Text>
+                    <Text style={styles.feeAmount}>{formatCurrency(appFee)}</Text>
                     <View style={styles.feeDisclaimer}>
                       <Ionicons
                         name="information-circle"
@@ -830,11 +827,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
                       {sa.stepDateTime || "Date & Time"}
                     </Text>
                     <Text style={styles.summaryValue}>
-                      {date.toLocaleDateString()} ·{" "}
-                      {date.toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                      {formatDate(date)} · {formatTime(date)}
                     </Text>
                   </View>
                 </View>
@@ -855,7 +848,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
                     >
                       {isSubscriber
                         ? sa.free || "FREE"
-                        : `$${appFee.toFixed(2)}`}
+                        : formatCurrency(appFee)}
                     </Text>
                     {isSubscriber && (
                       <Text

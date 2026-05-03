@@ -26,6 +26,7 @@ import {
 } from 'lucide-react'
 import { useI18n } from '../i18n'
 import LangSelector from '../components/LangSelector'
+import { logApiError } from "../utils/logger";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1'
 
@@ -47,7 +48,7 @@ const DIAL_COUNTRIES = [
 
 const flagSrc = (countryCode: string) => `https://flagcdn.com/w40/${countryCode.toLowerCase()}.png`
 
-type Step = 'plan' | 'info' | 'otp' | 'success'
+type Step = 'plan' | 'info' | 'otp' | 'social_complete' | 'success'
 
 interface PlanOption {
   id: string
@@ -77,23 +78,59 @@ export default function CadastroPage() {
   const [loading, setLoading] = useState(false)
   const [socialLoading, setSocialLoading] = useState(false)
   const [error, setError] = useState('')
-  const [googlePrefilled, setGooglePrefilled] = useState(false)
+
+  // ─── Social login state ───
+  const [socialSignupData, setSocialSignupData] = useState<{
+    userId: string; email: string; fullName: string; provider: string
+  } | null>(null)
+  const [socialPhone, setSocialPhone] = useState('')
+  const [socialPassword, setSocialPassword] = useState('')
+  const [socialShowPassword, setSocialShowPassword] = useState(false)
+  const [socialDialCountry, setSocialDialCountry] = useState(DIAL_COUNTRIES[0])
+  const [showSocialDialDropdown, setShowSocialDialDropdown] = useState(false)
+
+  // ─── Handle social auth response from backend ───
+  async function handleSocialAuthResponse(res: Response) {
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.message || 'Social login failed')
+
+    const { status } = data.data
+
+    if (status === 'AUTHENTICATED') {
+      // User exists (or was just linked) — set tokens and redirect
+      Cookies.set('tt_client_token', data.data.token, { expires: 7 })
+      Cookies.set('tt_client_user', JSON.stringify(data.data.user), { expires: 7 })
+      router.push('/')
+      return
+    }
+
+    if (status === 'NEEDS_PASSWORD') {
+      // New user created — collect phone + password to complete
+      setSocialSignupData({
+        userId: data.data.userId,
+        email: data.data.email,
+        fullName: data.data.fullName || '',
+        provider: data.data.provider,
+      })
+      setStep('social_complete')
+    }
+  }
 
   const handleGoogleRegister = useGoogleLogin({
     flow: 'implicit',
     onSuccess: async (tokenResponse) => {
+      if (!selectedPlan) { setError(tr('signup.selectPlan') || 'Please select a plan'); return }
       setSocialLoading(true)
+      setError('')
       try {
-        const resp = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-          headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+        const res = await fetch(`${API_BASE_URL}/auth/social`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider: 'GOOGLE', token: tokenResponse.access_token, role: 'CLIENT' }),
         })
-        const info = await resp.json()
-        if (info.name) setFullName(info.name)
-        if (info.email) setEmail(info.email)
-        setGooglePrefilled(true)
-        setStep('info')
-      } catch {
-        setError('Could not retrieve Google account info. Please try manually.')
+        await handleSocialAuthResponse(res)
+      } catch (err: any) {
+        setError(err.message || 'Google sign-in failed')
       } finally {
         setSocialLoading(false)
       }
@@ -103,14 +140,8 @@ export default function CadastroPage() {
 
   const handleAppleRegister = async () => {
     const clientId = process.env.NEXT_PUBLIC_APPLE_CLIENT_ID
-    if (!clientId) {
-      setError('Apple Sign-In is not configured')
-      return
-    }
-    if (!selectedPlan) {
-      setError(tr('signup.selectPlan') || 'Please select a plan')
-      return
-    }
+    if (!clientId) { setError('Apple Sign-In is not configured'); return }
+    if (!selectedPlan) { setError(tr('signup.selectPlan') || 'Please select a plan'); return }
     setSocialLoading(true)
     setError('')
     try {
@@ -123,27 +154,27 @@ export default function CadastroPage() {
           document.head.appendChild(script)
         })
       }
-
       ;(window as any).AppleID.auth.init({
         clientId,
         scope: 'name email',
         redirectURI: window.location.origin + window.location.pathname,
         usePopup: true,
       })
-
-      const data = await (window as any).AppleID.auth.signIn()
-      const idToken = data.authorization.id_token
-      const payload = JSON.parse(atob(idToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')))
-
-      const firstName = data.user?.name?.firstName || ''
-      const lastName = data.user?.name?.lastName || ''
-      const derivedName = `${firstName} ${lastName}`.trim()
-      const derivedEmail = payload.email || ''
-
-      if (derivedName) setFullName(derivedName)
-      if (derivedEmail) setEmail(derivedEmail)
-      setGooglePrefilled(true)
-      setStep('info')
+      const appleData = await (window as any).AppleID.auth.signIn()
+      const idToken = appleData.authorization.id_token
+      const appleUserId = appleData.authorization.code
+      const res = await fetch(`${API_BASE_URL}/auth/social`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          provider: 'APPLE',
+          token: idToken,
+          appleUserId,
+          fullName: [appleData.user?.name?.firstName, appleData.user?.name?.lastName].filter(Boolean).join(' ') || undefined,
+          role: 'CLIENT',
+        }),
+      })
+      await handleSocialAuthResponse(res)
     } catch (err: any) {
       if (err?.error === 'popup_closed_by_user') {
         setError('Apple sign-in was cancelled')
@@ -152,6 +183,71 @@ export default function CadastroPage() {
       }
     } finally {
       setSocialLoading(false)
+    }
+  }
+
+  // ─── Complete social signup (set password + phone) ───
+  async function handleCompleteSocialSignup() {
+    if (!socialSignupData) return
+    if (socialPassword && socialPassword.length < 8) {
+      setError('Password must be at least 8 characters')
+      return
+    }
+    setLoading(true)
+    setError('')
+    try {
+      const digits = socialPhone.replace(/\D/g, '')
+      const normalizedPhone = digits ? `${socialDialCountry.dial}${digits}` : undefined
+
+      const res = await fetch(`${API_BASE_URL}/auth/social/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: socialSignupData.userId,
+          password: socialPassword || undefined,
+          phone: normalizedPhone,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.message || 'Could not complete signup')
+
+      const { status } = data.data
+
+      if (status === 'AUTHENTICATED') {
+        Cookies.set('tt_client_token', data.data.token, { expires: 7 })
+        Cookies.set('tt_client_user', JSON.stringify(data.data.user), { expires: 7 })
+        // Redirect to plan checkout if paid plan was selected
+        if (selectedPlan && selectedPlan !== 'free') {
+          const checkoutRes = await fetch(`${API_BASE_URL}/subscriptions/checkout-session`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${data.data.token}` },
+            body: JSON.stringify({
+              planKey: selectedPlan,
+              billingPeriod: 'monthly',
+              successUrl: `${window.location.origin}/planos?stripe=success`,
+              cancelUrl: `${window.location.origin}/planos?stripe=cancelled`,
+            }),
+          })
+          const checkoutData = await checkoutRes.json()
+          if (checkoutData.data?.checkoutUrl) {
+            window.location.href = checkoutData.data.checkoutUrl
+            return
+          }
+        }
+        setStep('success')
+        return
+      }
+
+      if (status === 'NEEDS_PHONE_VERIFICATION') {
+        // Phone OTP required — reuse OTP step
+        setUserId(socialSignupData.userId)
+        setActiveOtpMethod('sms')
+        setStep('otp')
+      }
+    } catch (err: any) {
+      setError(err.message || 'Error completing signup')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -176,6 +272,7 @@ export default function CadastroPage() {
   // Step 2: OTP
   const [userId, setUserId] = useState('')
   const [otpCode, setOtpCode] = useState('')
+  const [activeOtpMethod, setActiveOtpMethod] = useState<'sms' | 'email'>('sms')
   const [resending, setResending] = useState(false)
   const [resendCooldown, setResendCooldown] = useState(0)
 
@@ -288,6 +385,8 @@ export default function CadastroPage() {
       }
 
       setUserId(data.data.userId)
+      const resolvedMethod: 'sms' | 'email' = data.data.otpMethod === 'email' ? 'email' : 'sms'
+      setActiveOtpMethod(resolvedMethod)
       setStep('otp')
       // If OTP was not sent, auto-trigger resend
       if (data.data.otpSent === false) {
@@ -295,7 +394,7 @@ export default function CadastroPage() {
           await fetch(`${API_BASE_URL}/auth/resend-otp`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: data.data.userId, method: 'sms' }),
+            body: JSON.stringify({ userId: data.data.userId, method: resolvedMethod }),
           })
         } catch {}
       }
@@ -322,7 +421,7 @@ export default function CadastroPage() {
         body: JSON.stringify({
           userId,
           otpCode: otpCode.trim(),
-          method: 'sms',
+          method: activeOtpMethod,
         }),
       })
 
@@ -387,7 +486,7 @@ export default function CadastroPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId,
-          method: 'sms',
+          method: activeOtpMethod,
         }),
       })
 
@@ -402,7 +501,7 @@ export default function CadastroPage() {
         })
       }, 1000)
     } catch (err) {
-      console.error('Resend error:', err)
+      logApiError('Resend error:', err)
     } finally {
       setResending(false)
     }
@@ -635,18 +734,6 @@ export default function CadastroPage() {
               <h2 className="text-2xl font-bold text-gray-900 mb-2">{tr('signup.personalInfo')}</h2>
               <p className="text-gray-600 mb-4">{tr('signup.personalInfoDesc')}</p>
 
-              {googlePrefilled && (
-                <div className="flex items-center gap-3 p-3 mb-4 bg-green-50 border border-green-200 rounded-xl text-sm text-green-800">
-                  <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
-                    <path fill="#34A853" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                    <path fill="#4285F4" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
-                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                  </svg>
-                  <span>Name and email pre-filled from Google. Just add your phone and set a password.</span>
-                </div>
-              )}
-
               <div className="space-y-4">
                 {/* Account Type */}
                 <div>
@@ -722,10 +809,9 @@ export default function CadastroPage() {
                     <input
                       type="email"
                       value={email}
-                      onChange={(e) => { if (!googlePrefilled) { setEmail(e.target.value); setError('') } }}
+                      onChange={(e) => { setEmail(e.target.value); setError('') }}
                       placeholder="your@email.com"
-                      readOnly={googlePrefilled}
-                      className={`w-full pl-12 pr-4 py-3 rounded-lg border border-gray-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all ${googlePrefilled ? 'bg-gray-50 text-gray-600' : ''}`}
+                      className="w-full pl-12 pr-4 py-3 rounded-lg border border-gray-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all"
                     />
                   </div>
                 </div>
@@ -839,6 +925,100 @@ export default function CadastroPage() {
                   {tr('auth.signIn')}
                 </Link>
               </p>
+            </div>
+          )}
+
+          {/* ─── Social Complete: set phone + password after social login ─── */}
+          {step === 'social_complete' && socialSignupData && (
+            <div>
+              <div className="flex items-center gap-3 p-4 mb-6 bg-blue-50 border border-blue-200 rounded-xl">
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <User className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-blue-900">{socialSignupData.fullName || socialSignupData.email}</p>
+                  <p className="text-xs text-blue-600">Signed in with {socialSignupData.provider}</p>
+                </div>
+              </div>
+
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Complete your account</h2>
+              <p className="text-gray-600 mb-6">Add your phone and set a password to finish setting up your account.</p>
+
+              {error && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">{error}</div>
+              )}
+
+              <div className="space-y-4">
+                {/* Phone */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{tr('signup.phone')} <span className="text-gray-400 font-normal">(optional)</span></label>
+                  <div className="flex gap-2">
+                    <div className="relative">
+                      <button type="button" onClick={() => setShowSocialDialDropdown(!showSocialDialDropdown)}
+                        className="flex items-center gap-1.5 px-3 py-3 rounded-lg border border-gray-300 hover:border-gray-400 bg-white text-sm font-medium text-gray-700 whitespace-nowrap">
+                        <img src={`https://flagcdn.com/w40/${socialDialCountry.code.toLowerCase()}.png`} alt={socialDialCountry.code} className="h-4 w-6 rounded-[2px] object-cover" />
+                        <span className="text-gray-600">{socialDialCountry.dial}</span>
+                        <span className="text-gray-400 text-xs">▾</span>
+                      </button>
+                      {showSocialDialDropdown && (
+                        <div className="absolute left-0 top-full mt-1 z-50 bg-white border border-gray-200 rounded-xl shadow-lg w-56 max-h-64 overflow-y-auto">
+                          {DIAL_COUNTRIES.map(c => (
+                            <button key={c.code} type="button" onClick={() => { setSocialDialCountry(c); setShowSocialDialDropdown(false) }}
+                              className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50 ${socialDialCountry.code === c.code ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'}`}>
+                              <img src={`https://flagcdn.com/w40/${c.code.toLowerCase()}.png`} alt={c.code} className="h-4 w-6 rounded-[2px] object-cover" />
+                              <span className="flex-1 text-left">{c.name}</span>
+                              <span className="text-gray-400">{c.dial}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="relative flex-1">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                      <input type="tel" value={socialPhone} onChange={e => { setSocialPhone(e.target.value); setError('') }}
+                        placeholder="(555) 123-4567"
+                        className="w-full pl-9 pr-4 py-3 rounded-lg border border-gray-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Password */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{tr('auth.password')} <span className="text-gray-400 font-normal">(optional)</span></label>
+                  <div className="relative">
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                    <input type={socialShowPassword ? 'text' : 'password'} value={socialPassword}
+                      onChange={e => { setSocialPassword(e.target.value); setError('') }}
+                      placeholder="••••••••"
+                      className="w-full pl-12 pr-12 py-3 rounded-lg border border-gray-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all" />
+                    <button type="button" onClick={() => setSocialShowPassword(!socialShowPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                      {socialShowPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">Allows you to also sign in with email + password</p>
+                </div>
+
+                <button onClick={handleCompleteSocialSignup} disabled={loading}
+                  className="btn btn-primary w-full py-3 text-base disabled:opacity-50 disabled:cursor-not-allowed">
+                  {loading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      {tr('signup.creating')}
+                    </span>
+                  ) : (
+                    <span className="flex items-center justify-center gap-2">
+                      Complete Setup
+                      <ArrowRight className="w-5 h-5" />
+                    </span>
+                  )}
+                </button>
+
+                <button onClick={() => handleCompleteSocialSignup()} disabled={loading}
+                  className="w-full text-sm text-gray-500 hover:text-gray-700 py-2">
+                  Skip for now (add details later in settings)
+                </button>
+              </div>
             </div>
           )}
 

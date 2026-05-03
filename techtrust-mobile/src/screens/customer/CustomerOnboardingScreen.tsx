@@ -26,6 +26,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../../contexts/AuthContext";
+import { useI18n } from "../../i18n";
 import api from "../../services/api";
 import { US_STATES, CITIES_BY_STATE } from "../../constants/us-states";
 
@@ -100,6 +101,7 @@ const TIME_OPTIONS = [
 
 export default function CustomerOnboardingScreen({ navigation }: any) {
   const { user, completeOnboarding } = useAuth();
+  const { t } = useI18n();
   const [currentStep, setCurrentStep] = useState(0);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -209,7 +211,10 @@ export default function CustomerOnboardingScreen({ navigation }: any) {
   // ── Save location ──────────────────────────────────────────────────────────
   const saveLocation = async () => {
     if (!selectedState || !selectedCity) {
-      Alert.alert("Missing Info", "Please select your state and city.");
+      Alert.alert(
+        t.onboarding?.alertMissingStateCityTitle || "Missing Info",
+        t.onboarding?.alertMissingStateCityBody || "Please select your state and city.",
+      );
       return;
     }
     try {
@@ -219,7 +224,10 @@ export default function CustomerOnboardingScreen({ navigation }: any) {
       setLocationDone(true);
       goNext();
     } catch {
-      Alert.alert("Error", "Could not save your location. Please try again.");
+      Alert.alert(
+        t.common?.error || "Error",
+        t.onboarding?.alertSaveLocationFailed || "Could not save your location. Please try again.",
+      );
     } finally {
       setLocationSaving(false);
     }
@@ -228,7 +236,10 @@ export default function CustomerOnboardingScreen({ navigation }: any) {
   // ── Save address ───────────────────────────────────────────────────────────
   const saveAddress = async () => {
     if (!street.trim()) {
-      Alert.alert("Missing Info", "Please enter your street address.");
+      Alert.alert(
+        t.onboarding?.alertMissingStreetTitle || "Missing Info",
+        t.onboarding?.alertMissingStreetBody || "Please enter your street address.",
+      );
       return;
     }
     const addressesJson = [
@@ -254,7 +265,10 @@ export default function CustomerOnboardingScreen({ navigation }: any) {
       setAddressDone(true);
       goNext();
     } catch {
-      Alert.alert("Error", "Could not save your address. Please try again.");
+      Alert.alert(
+        t.common?.error || "Error",
+        t.onboarding?.alertSaveAddressFailed || "Could not save your address. Please try again.",
+      );
     } finally {
       setAddressSaving(false);
     }

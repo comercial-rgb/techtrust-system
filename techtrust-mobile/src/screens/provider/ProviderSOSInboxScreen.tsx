@@ -19,20 +19,35 @@ import {
   Animated,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import api from "../../services/api";
+import { log } from "../../utils/logger";
+import { useI18n } from "../../i18n";
+import { interpolate } from "../../i18n/interpolate";
 
-// ─── SOS type display map ─────────────────────────────────────────────────────
+// ─── SOS type visuals (labels from t.sos / i18n) ─────────────────────────────
 
-const SOS_META: Record<string, { label: string; icon: any; color: string; bg: string }> = {
-  JUMP_START:      { label: "Jump Start",          icon: "battery-charging", color: "#f59e0b", bg: "#fef3c7" },
-  FLAT_TIRE:       { label: "Flat Tire",            icon: "car-tire-alert",   color: "#3b82f6", bg: "#dbeafe" },
-  FUEL_DELIVERY:   { label: "Fuel Delivery",        icon: "gas-station",      color: "#10b981", bg: "#d1fae5" },
-  LOCKOUT:         { label: "Vehicle Lockout",      icon: "key-variant",      color: "#8b5cf6", bg: "#ede9fe" },
-  TOWING:          { label: "Towing",               icon: "tow-truck",        color: "#dc2626", bg: "#fee2e2" },
-  BATTERY_REPLACE: { label: "Battery Replacement",  icon: "car-battery",      color: "#ec4899", bg: "#fce7f3" },
+const SOS_STYLES: Record<string, { icon: any; color: string; bg: string }> = {
+  JUMP_START: { icon: "battery-charging", color: "#f59e0b", bg: "#fef3c7" },
+  FLAT_TIRE: { icon: "car-tire-alert", color: "#3b82f6", bg: "#dbeafe" },
+  FUEL_DELIVERY: { icon: "gas-station", color: "#10b981", bg: "#d1fae5" },
+  LOCKOUT: { icon: "key-variant", color: "#8b5cf6", bg: "#ede9fe" },
+  TOWING: { icon: "tow-truck", color: "#dc2626", bg: "#fee2e2" },
+  BATTERY_REPLACE: { icon: "car-battery", color: "#ec4899", bg: "#fce7f3" },
 };
+
+function getSosTypeLabel(key: string, ts: Record<string, string | undefined>) {
+  const map: Record<string, string | undefined> = {
+    JUMP_START: ts.typeJumpStart,
+    FLAT_TIRE: ts.typeFlatTire,
+    FUEL_DELIVERY: ts.typeFuelDelivery,
+    LOCKOUT: ts.typeLockout,
+    BATTERY_REPLACE: ts.typeBatteryReplace,
+    TOWING: ts.typeTowing,
+  };
+  return map[key] || key;
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -53,6 +68,10 @@ interface SOSRequest {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function ProviderSOSInboxScreen({ navigation }: any) {
+  const { t, formatCurrency } = useI18n();
+  const fiatSymbol = (t as any).formats?.currencySymbol ?? "$";
+  const ti = (t as any).providerSosInbox || {};
+  const ts = (t.sos || {}) as Record<string, string | undefined>;
   const [requests, setRequests] = useState<SOSRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -109,7 +128,7 @@ export default function ProviderSOSInboxScreen({ navigation }: any) {
         setIsOnline(false);
       }
     } catch (e) {
-      console.error("SOS inbox init error", e);
+      log.error("SOS inbox init error", e);
     } finally {
       setLoading(false);
     }
@@ -153,7 +172,10 @@ export default function ProviderSOSInboxScreen({ navigation }: any) {
       await fetchRequests();
       startPolling();
     } catch {
-      Alert.alert("Error", "Could not go online. Try again.");
+      Alert.alert(
+        t.common?.error || "Error",
+        t.provider?.sosGoOnlineFailed || "Could not go online. Try again.",
+      );
     }
   };
 
@@ -164,7 +186,10 @@ export default function ProviderSOSInboxScreen({ navigation }: any) {
       setRequests([]);
       stopPolling();
     } catch {
-      Alert.alert("Error", "Could not update availability.");
+      Alert.alert(
+        t.common?.error || "Error",
+        t.provider?.sosAvailabilityUpdateFailed || "Could not update availability.",
+      );
     }
   };
 
@@ -185,7 +210,10 @@ export default function ProviderSOSInboxScreen({ navigation }: any) {
     if (!acceptModal) return;
     const price = Number(offeredPrice);
     if (!price || price <= 0) {
-      Alert.alert("Price required", "Enter a valid price before accepting.");
+      Alert.alert(
+        t.provider?.sosPriceRequiredTitle || "Price required",
+        t.provider?.sosPriceRequiredBody || "Enter a valid price before accepting.",
+      );
       return;
     }
     setAccepting(true);
@@ -194,13 +222,17 @@ export default function ProviderSOSInboxScreen({ navigation }: any) {
       setAcceptModal(null);
       setOfferedPrice("");
       Alert.alert(
-        "Request Accepted!",
-        "The customer has 30 seconds to confirm. You'll be notified if they accept.",
-        [{ text: "OK", onPress: () => fetchRequests() }]
+        t.provider?.sosRequestAcceptedTitle || "Request Accepted!",
+        t.provider?.sosRequestAcceptedBody ||
+          "The customer has 30 seconds to confirm. You'll be notified if they accept.",
+        [{ text: t.common?.ok || "OK", onPress: () => fetchRequests() }],
       );
     } catch (e: any) {
-      const msg = e?.response?.data?.message || "Could not accept request. It may have been taken.";
-      Alert.alert("Accept Failed", msg);
+      const msg =
+        e?.response?.data?.message ||
+        t.provider?.sosAcceptDefaultError ||
+        "Could not accept request. It may have been taken.";
+      Alert.alert(t.provider?.sosAcceptFailedTitle || "Accept Failed", msg);
       setAcceptModal(null);
       fetchRequests();
     } finally {
@@ -209,16 +241,24 @@ export default function ProviderSOSInboxScreen({ navigation }: any) {
   };
 
   const formatDistance = (km: number) => {
-    if (km < 1) return `${Math.round(km * 1000)} m`;
-    return `${km.toFixed(1)} km`;
+    if (km < 1) {
+      return (ti.distanceMeters || "{{m}} m").replace(
+        "{{m}}",
+        String(Math.round(km * 1000)),
+      );
+    }
+    return (ti.distanceKm || "{{km}} km").replace("{{km}}", km.toFixed(1));
   };
 
   const formatAge = (createdAt: string) => {
     const diffMs = Date.now() - new Date(createdAt).getTime();
     const mins = Math.floor(diffMs / 60000);
-    if (mins < 1) return "Just now";
-    if (mins === 1) return "1 min ago";
-    return `${mins} min ago`;
+    if (mins < 1) return ti.ageJustNow || "Just now";
+    if (mins === 1) return ti.ageOneMin || "1 min ago";
+    return (ti.ageMinsAgo || "{{count}} min ago").replace(
+      "{{count}}",
+      String(mins),
+    );
   };
 
   // ─── Loading ───────────────────────────────────────────────────────────────
@@ -226,7 +266,7 @@ export default function ProviderSOSInboxScreen({ navigation }: any) {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <Header navigation={navigation} />
+        <Header navigation={navigation} title={ti.screenTitle || "SOS Inbox"} />
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
           <ActivityIndicator size="large" color="#2B5EA7" />
         </View>
@@ -238,7 +278,7 @@ export default function ProviderSOSInboxScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Header navigation={navigation} />
+      <Header navigation={navigation} title={ti.screenTitle || "SOS Inbox"} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -254,12 +294,16 @@ export default function ProviderSOSInboxScreen({ navigation }: any) {
             <Animated.View style={[styles.statusDot, isOnline && { transform: [{ scale: pulseAnim }] }]} />
             <View>
               <Text style={styles.statusTitle}>
-                {isOnline ? "You are Online" : "You are Offline"}
+                {isOnline
+                  ? ti.youAreOnline || "You are Online"
+                  : ti.youAreOffline || "You are Offline"}
               </Text>
               <Text style={styles.statusSub}>
                 {isOnline
-                  ? "Showing nearby SOS requests. Tap to go offline."
-                  : "Tap to go online and receive SOS requests."}
+                  ? ti.statusSubOnline ||
+                    "Showing nearby SOS requests. Tap to go offline."
+                  : ti.statusSubOffline ||
+                    "Tap to go online and receive SOS requests."}
               </Text>
             </View>
           </View>
@@ -276,7 +320,9 @@ export default function ProviderSOSInboxScreen({ navigation }: any) {
           onPress={() => navigation.navigate("SOSRateCard")}
         >
           <MaterialCommunityIcons name="tag-multiple" size={16} color="#2B5EA7" />
-          <Text style={styles.rateCardLinkText}>Configure your SOS prices</Text>
+          <Text style={styles.rateCardLinkText}>
+            {ti.configurePricesLink || "Configure your SOS prices"}
+          </Text>
           <MaterialCommunityIcons name="chevron-right" size={16} color="#2B5EA7" />
         </TouchableOpacity>
 
@@ -288,7 +334,12 @@ export default function ProviderSOSInboxScreen({ navigation }: any) {
             ) : (
               <>
                 <Text style={styles.sectionLabel}>
-                  {requests.length} nearby request{requests.length !== 1 ? "s" : ""}
+                  {requests.length === 1
+                    ? ti.nearbyRequestsOne || "1 nearby request"
+                    : (ti.nearbyRequestsMany || "{{count}} nearby requests").replace(
+                        "{{count}}",
+                        String(requests.length),
+                      )}
                 </Text>
                 {requests.map((req) => (
                   <RequestCard
@@ -314,24 +365,28 @@ export default function ProviderSOSInboxScreen({ navigation }: any) {
             {acceptModal && (
               <>
                 <View style={styles.modalHandle} />
-                <Text style={styles.modalTitle}>Accept SOS Request</Text>
+                <Text style={styles.modalTitle}>
+                  {ti.modalTitle || "Accept SOS Request"}
+                </Text>
 
                 {/* Summary */}
                 <View style={styles.modalSummary}>
-                  <View style={[styles.modalTypeIcon, { backgroundColor: SOS_META[acceptModal.sosType]?.bg }]}>
+                  <View style={[styles.modalTypeIcon, { backgroundColor: SOS_STYLES[acceptModal.sosType]?.bg }]}>
                     <MaterialCommunityIcons
-                      name={SOS_META[acceptModal.sosType]?.icon ?? "alert"}
+                      name={SOS_STYLES[acceptModal.sosType]?.icon ?? "alert"}
                       size={24}
-                      color={SOS_META[acceptModal.sosType]?.color ?? "#374151"}
+                      color={SOS_STYLES[acceptModal.sosType]?.color ?? "#374151"}
                     />
                   </View>
                   <View>
                     <Text style={styles.modalTypeName}>
-                      {SOS_META[acceptModal.sosType]?.label ?? acceptModal.sosType}
+                      {getSosTypeLabel(acceptModal.sosType, ts)}
                     </Text>
                     <Text style={styles.modalVehicle}>{acceptModal.vehicleDescription}</Text>
                     <Text style={styles.modalDistance}>
-                      {formatDistance(acceptModal.distanceKm)} away · ~{acceptModal.estimatedEtaMinutes} min ETA
+                      {(ti.modalAwayEta || "{{distance}} away · ~{{minutes}} min ETA")
+                        .replace("{{distance}}", formatDistance(acceptModal.distanceKm))
+                        .replace("{{minutes}}", String(acceptModal.estimatedEtaMinutes))}
                     </Text>
                   </View>
                 </View>
@@ -341,17 +396,25 @@ export default function ProviderSOSInboxScreen({ navigation }: any) {
                   <View style={styles.towingNote}>
                     <MaterialCommunityIcons name="information-outline" size={14} color="#6b7280" />
                     <Text style={styles.towingNoteText}>
-                      Your per-mile rate of ${acceptModal.suggestedPerMileRate}/mi will be added to this base fee at completion.
+                      {(ti.towingPerMileNote ||
+                        "Your per-mile rate of {{rate}}/mi will be added to this base fee at completion.").replace(
+                        "{{rate}}",
+                        acceptModal.suggestedPerMileRate != null
+                          ? formatCurrency(acceptModal.suggestedPerMileRate)
+                          : "",
+                      )}
                     </Text>
                   </View>
                 )}
 
                 {/* Price input */}
                 <Text style={styles.priceLabel}>
-                  {acceptModal.pricingType === "towing" ? "Base Fee ($)" : "Your Price ($)"}
+                  {acceptModal.pricingType === "towing"
+                    ? ti.priceLabelTowing || "Base Fee ($)"
+                    : ti.priceLabelFlat || "Your Price ($)"}
                 </Text>
                 <View style={styles.priceRow}>
-                  <Text style={styles.priceCurrency}>$</Text>
+                  <Text style={styles.priceCurrency}>{fiatSymbol}</Text>
                   <TextInput
                     style={styles.priceInputLarge}
                     value={offeredPrice}
@@ -365,7 +428,8 @@ export default function ProviderSOSInboxScreen({ navigation }: any) {
 
                 {acceptModal.suggestedPrice == null && acceptModal.suggestedBaseFee == null && (
                   <Text style={styles.noPriceNote}>
-                    No rate configured for this type — enter your price to continue.
+                    {ti.noRateConfiguredNote ||
+                      "No rate configured for this type — enter your price to continue."}
                   </Text>
                 )}
 
@@ -373,7 +437,8 @@ export default function ProviderSOSInboxScreen({ navigation }: any) {
                 <View style={styles.timerNote}>
                   <MaterialCommunityIcons name="clock-outline" size={14} color="#f59e0b" />
                   <Text style={styles.timerNoteText}>
-                    Customer has 30 seconds to confirm after you accept.
+                    {ti.timerNoteCustomer ||
+                      "Customer has 30 seconds to confirm after you accept."}
                   </Text>
                 </View>
 
@@ -384,7 +449,9 @@ export default function ProviderSOSInboxScreen({ navigation }: any) {
                     onPress={() => { setAcceptModal(null); setOfferedPrice(""); }}
                     disabled={accepting}
                   >
-                    <Text style={styles.cancelModalText}>Cancel</Text>
+                    <Text style={styles.cancelModalText}>
+                      {ti.cancel || t.common?.cancel || "Cancel"}
+                    </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.acceptBtn, accepting && { opacity: 0.6 }]}
@@ -394,7 +461,12 @@ export default function ProviderSOSInboxScreen({ navigation }: any) {
                     {accepting ? (
                       <ActivityIndicator size="small" color="#fff" />
                     ) : (
-                      <Text style={styles.acceptBtnText}>Accept for ${Number(offeredPrice || 0).toFixed(2)}</Text>
+                      <Text style={styles.acceptBtnText}>
+                        {(ti.acceptForAmount || "Accept for {{amount}}").replace(
+                          "{{amount}}",
+                          formatCurrency(Number(offeredPrice || 0)),
+                        )}
+                      </Text>
                     )}
                   </TouchableOpacity>
                 </View>
@@ -409,13 +481,19 @@ export default function ProviderSOSInboxScreen({ navigation }: any) {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function Header({ navigation }: { navigation: any }) {
+function Header({
+  navigation,
+  title,
+}: {
+  navigation: any;
+  title: string;
+}) {
   return (
     <View style={styles.header}>
       <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
         <MaterialCommunityIcons name="arrow-left" size={24} color="#111827" />
       </TouchableOpacity>
-      <Text style={styles.headerTitle}>SOS Inbox</Text>
+      <Text style={styles.headerTitle}>{title}</Text>
       <View style={{ width: 40 }} />
     </View>
   );
@@ -432,17 +510,25 @@ function RequestCard({
   formatDistance: (km: number) => string;
   formatAge: (at: string) => string;
 }) {
-  const meta = SOS_META[req.sosType] ?? { label: req.sosType, icon: "alert", color: "#374151", bg: "#f3f4f6" };
+  const { t, formatCurrency } = useI18n();
+  const ti = (t as any).providerSosInbox || {};
+  const ts = (t.sos || {}) as Record<string, string | undefined>;
+  const style = SOS_STYLES[req.sosType] ?? {
+    icon: "alert",
+    color: "#374151",
+    bg: "#f3f4f6",
+  };
+  const typeLabel = getSosTypeLabel(req.sosType, ts);
 
   return (
     <View style={styles.card}>
       {/* Type + badge */}
       <View style={styles.cardTop}>
-        <View style={[styles.typeIcon, { backgroundColor: meta.bg }]}>
-          <MaterialCommunityIcons name={meta.icon} size={22} color={meta.color} />
+        <View style={[styles.typeIcon, { backgroundColor: style.bg }]}>
+          <MaterialCommunityIcons name={style.icon} size={22} color={style.color} />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={styles.cardTypeName}>{meta.label}</Text>
+          <Text style={styles.cardTypeName}>{typeLabel}</Text>
           <Text style={styles.cardVehicle} numberOfLines={1}>{req.vehicleDescription}</Text>
         </View>
         <View style={styles.ageBadge}>
@@ -459,28 +545,47 @@ function RequestCard({
         <View style={styles.metricDivider} />
         <View style={styles.metric}>
           <MaterialCommunityIcons name="clock-outline" size={15} color="#6b7280" />
-          <Text style={styles.metricValue}>~{req.estimatedEtaMinutes} min ETA</Text>
+          <Text style={styles.metricValue}>
+            {(ti.metricEta || "~{{minutes}} min ETA").replace(
+              "{{minutes}}",
+              String(req.estimatedEtaMinutes),
+            )}
+          </Text>
         </View>
         <View style={styles.metricDivider} />
         <View style={styles.metric}>
           <MaterialCommunityIcons name="currency-usd" size={15} color="#6b7280" />
           <Text style={styles.metricValue}>
             {req.pricingType === "flat" && req.suggestedPrice != null
-              ? `$${req.suggestedPrice.toFixed(2)}`
+              ? formatCurrency(req.suggestedPrice)
               : req.pricingType === "towing" && req.suggestedBaseFee != null
-              ? `$${req.suggestedBaseFee} + /mi`
-              : "Set price"}
+              ? interpolate(
+                  ti.towingBasePlusPerUnit || "{{amount}} + /{{unit}}",
+                  {
+                    amount: formatCurrency(Number(req.suggestedBaseFee)),
+                    unit:
+                      ((t as { carWash?: { mile?: string } }).carWash?.mile as
+                        | string
+                        | undefined) || "mi",
+                  },
+                )
+              : ti.priceSetPrice || "Set price"}
           </Text>
         </View>
       </View>
 
       {/* Accept button */}
-      <TouchableOpacity style={[styles.acceptCardBtn, { borderColor: meta.color }]} onPress={onAccept}>
-        <MaterialCommunityIcons name="check-circle" size={18} color={meta.color} />
-        <Text style={[styles.acceptCardBtnText, { color: meta.color }]}>
+      <TouchableOpacity style={[styles.acceptCardBtn, { borderColor: style.color }]} onPress={onAccept}>
+        <MaterialCommunityIcons name="check-circle" size={18} color={style.color} />
+        <Text style={[styles.acceptCardBtnText, { color: style.color }]}>
           {req.suggestedPrice != null || req.suggestedBaseFee != null
-            ? `Accept at $${(req.suggestedPrice ?? req.suggestedBaseFee ?? 0).toFixed(2)}`
-            : "Accept & Set Price"}
+            ? (ti.acceptAt || "Accept at {{amount}}").replace(
+                "{{amount}}",
+                formatCurrency(
+                  Number(req.suggestedPrice ?? req.suggestedBaseFee ?? 0),
+                ),
+              )
+            : ti.acceptAndSetPrice || "Accept & Set Price"}
         </Text>
       </TouchableOpacity>
     </View>
@@ -488,27 +593,39 @@ function RequestCard({
 }
 
 function EmptyState() {
+  const { t } = useI18n();
+  const ti = (t as any).providerSosInbox || {};
   return (
     <View style={styles.emptyState}>
       <MaterialCommunityIcons name="radar" size={56} color="#d1d5db" />
-      <Text style={styles.emptyTitle}>No nearby SOS requests</Text>
+      <Text style={styles.emptyTitle}>
+        {ti.emptyTitle || "No nearby SOS requests"}
+      </Text>
       <Text style={styles.emptySubtitle}>
-        Pull down to refresh, or wait — new requests appear automatically every 8 seconds.
+        {ti.emptySubtitle ||
+          "Pull down to refresh, or wait — new requests appear automatically every 8 seconds."}
       </Text>
     </View>
   );
 }
 
 function OfflineState({ onGoOnline }: { onGoOnline: () => void }) {
+  const { t } = useI18n();
+  const ti = (t as any).providerSosInbox || {};
   return (
     <View style={styles.offlineState}>
       <MaterialCommunityIcons name="wifi-off" size={56} color="#d1d5db" />
-      <Text style={styles.emptyTitle}>You are offline</Text>
+      <Text style={styles.emptyTitle}>
+        {ti.offlineTitle || "You are offline"}
+      </Text>
       <Text style={styles.emptySubtitle}>
-        Go online to see and accept nearby SOS requests from customers.
+        {ti.offlineSubtitle ||
+          "Go online to see and accept nearby SOS requests from customers."}
       </Text>
       <TouchableOpacity style={styles.goOnlineBtn} onPress={onGoOnline}>
-        <Text style={styles.goOnlineBtnText}>Go Online Now</Text>
+        <Text style={styles.goOnlineBtnText}>
+          {ti.goOnlineNow || "Go Online Now"}
+        </Text>
       </TouchableOpacity>
     </View>
   );

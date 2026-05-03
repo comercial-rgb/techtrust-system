@@ -45,6 +45,7 @@ import {
   CITIES_BY_STATE,
   STATE_CODES,
 } from "../constants/us-states";
+import { log } from "../utils/logger";
 const STATES = STATE_CODES;
 const CITIES: Record<string, string[]> = CITIES_BY_STATE;
 
@@ -64,10 +65,10 @@ interface ServiceRequest {
   id: string;
   requestNumber: string;
   title: string;
-  status: "SEARCHING" | "QUOTES_RECEIVED" | "IN_PROGRESS" | "COMPLETED";
+  status: string;
   quotesCount: number;
   createdAt: string;
-  vehicle: {
+  vehicle?: {
     make: string;
     model: string;
     year: number;
@@ -80,6 +81,9 @@ interface Vehicle {
   model: string;
   year: number;
   plateNumber: string;
+  trim?: string;
+  fuelType?: string;
+  mileage?: number;
 }
 
 // Helper: time-based greeting
@@ -88,16 +92,6 @@ function getTimeGreeting(t: any): string {
   if (hour < 12) return t.customerDashboard?.goodMorning || 'Good morning';
   if (hour < 17) return t.customerDashboard?.goodAfternoon || 'Good afternoon';
   return t.customerDashboard?.goodEvening || 'Good evening';
-}
-
-// Helper: format number with US locale (comma for thousands)
-function formatNumber(n: number): string {
-  return n.toLocaleString('en-US');
-}
-
-// Helper: format currency with US locale
-function formatCurrency(n: number): string {
-  return n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
 // Helper: contextual tips based on user state
@@ -131,7 +125,9 @@ function getContextualTips(t: any, stats: any, requests: any[]): { text: string;
 
 export default function CustomerDashboardScreen({ navigation }: any) {
   const { user } = useAuth();
-  const { t } = useI18n();
+  const { t, formatDate, formatCurrency, language } = useI18n();
+  const numberLocale =
+    language === "pt" ? "pt-BR" : language === "es" ? "es-ES" : "en-US";
   const { colors: themeColors, isDark } = useTheme();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -247,9 +243,9 @@ export default function CustomerDashboardScreen({ navigation }: any) {
           plateNumber: v.plateNumber,
         })),
       );
-      setRequests(requestsData);
+      setRequests(requestsData as ServiceRequest[]);
     } catch (error) {
-      console.error("Error loading dashboard:", error);
+      log.error("Error loading dashboard:", error);
     } finally {
       setLoading(false);
     }
@@ -367,7 +363,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                 >
                   <Ionicons name="wallet-outline" size={18} color="#10b981" />
                   <Text style={styles.balanceText}>
-                    ${walletBalance.toFixed(2)}
+                    {formatCurrency(walletBalance)}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -842,7 +838,10 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                   </Text>
                   {(vehicle as any).mileage > 0 && (
                     <Text style={styles.vehicleMileage}>
-                      {formatNumber((vehicle as any).mileage)} mi
+                      {Number((vehicle as any).mileage).toLocaleString(
+                        numberLocale,
+                      )}{" "}
+                      mi
                     </Text>
                   )}
                 </View>
@@ -948,8 +947,9 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                               {request.title}
                             </Text>
                             <Text style={styles.requestVehicle}>
-                              {request.vehicle.year} {request.vehicle.make}{" "}
-                              {request.vehicle.model}
+                              {request.vehicle
+                                ? `${request.vehicle.year} ${request.vehicle.make} ${request.vehicle.model}`
+                                : ""}
                             </Text>
                           </View>
                           <View
@@ -1057,24 +1057,39 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                     ? String(imgUrl)
                     : `https://techtrust-api.onrender.com${imgUrl}`
                   : null;
+                const freeLbl = t.common?.free || "Free";
+                const discLbl = (selectedOffer as any).discountLabel as
+                  | string
+                  | undefined;
+                const discRaw = selectedOffer.discount;
+                const discNum =
+                  discRaw != null && discRaw !== ""
+                    ? Number(discRaw)
+                    : NaN;
                 const discountDisp =
-                  (selectedOffer as any).discountLabel ||
-                  (selectedOffer.discount
-                    ? `${selectedOffer.discount}% OFF`
-                    : "PROMO");
+                  discLbl ||
+                  (!Number.isNaN(discNum)
+                    ? (t.customerDashboard?.offerPercentOff || "{{percent}}% OFF").replace(
+                        "{{percent}}",
+                        String(discNum),
+                      )
+                    : discRaw != null && String(discRaw).trim() !== ""
+                      ? String(discRaw)
+                      : t.customerDashboard?.offerPromoBadge || "PROMO");
                 const fmtP = (v: any): string => {
-                  if (!v) return "";
-                  if (
-                    typeof v === "string" &&
-                    (v.startsWith("$") || v === "FREE")
-                  )
+                  if (v == null || v === "") return "";
+                  if (typeof v === "string") {
+                    const tr = v.trim();
+                    if (/^free$/i.test(tr)) return freeLbl;
+                    const cleaned = tr.replace(/^\s*[$£€]\s*/, "").replace(/,/g, "");
+                    const parsed = Number(cleaned);
+                    if (!Number.isNaN(parsed))
+                      return parsed === 0 ? freeLbl : formatCurrency(parsed);
                     return v;
+                  }
                   const n = Number(v);
-                  return isNaN(n)
-                    ? String(v)
-                    : n === 0
-                      ? "FREE"
-                      : `$${n.toFixed(2)}`;
+                  if (Number.isNaN(n)) return String(v);
+                  return n === 0 ? freeLbl : formatCurrency(n);
                 };
                 const origPrice = fmtP((selectedOffer as any).originalPrice);
                 const discPrice = fmtP((selectedOffer as any).discountedPrice);
@@ -1085,13 +1100,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                   const raw = String((selectedOffer as any).validUntil);
                   if (raw.includes("T")) {
                     const d = new Date(raw);
-                    validUntilD = !isNaN(d.getTime())
-                      ? d.toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })
-                      : raw;
+                    validUntilD = !isNaN(d.getTime()) ? formatDate(d) : raw;
                   } else validUntilD = raw;
                 }
                 return (

@@ -24,6 +24,8 @@ import {
   Store,
 } from 'lucide-react';
 
+import { logApiError } from "../../utils/logger";
+
 interface UserData {
   id: string;
   fullName: string;
@@ -73,7 +75,7 @@ export default function UsuariosPage() {
       const usersList = response.data?.users || response.data?.data || response.data || [];
       setUsers(Array.isArray(usersList) ? usersList : []);
     } catch (error) {
-      console.error('Erro ao carregar usuários:', error);
+      logApiError('Erro ao carregar usuários:', error);
       setUsers([]);
     } finally {
       setLoading(false);
@@ -144,7 +146,7 @@ export default function UsuariosPage() {
         u.id === user.id ? { ...u, status: newStatus } : u
       ));
     } catch (error) {
-      console.error('Erro ao alterar status:', error);
+      logApiError('Erro ao alterar status:', error);
     }
   }
 
@@ -154,7 +156,7 @@ export default function UsuariosPage() {
       await adminApi.deleteUser(userToDelete.id);
       setUsers(users.filter(u => u.id !== userToDelete.id));
     } catch (error) {
-      console.error('Erro ao deletar usuário:', error);
+      logApiError('Erro ao deletar usuário:', error);
       alert('Erro ao deletar usuário');
     }
     setShowDeleteModal(false);

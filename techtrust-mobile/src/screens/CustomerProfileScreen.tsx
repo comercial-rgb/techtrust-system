@@ -24,13 +24,35 @@ import { FadeInView, ScalePress } from "../components/Animated";
 import { useI18n, languages, Language } from "../i18n";
 import api from "../services/api";
 import { getVehicles } from "../services/dashboard.service";
+import { log } from "../utils/logger";
 
 const SPOKEN_LANGUAGES_KEY = "@techtrust_spoken_languages";
+
+function subscriptionPlanDisplayName(
+  plan: string | undefined,
+  profile: Record<string, string | undefined> | undefined,
+): string {
+  if (!profile) return plan || "";
+  const p = (plan || "FREE").toUpperCase();
+  const labelByCode: Record<string, string | undefined> = {
+    FREE: profile.planFree,
+    STARTER: profile.planStarter,
+    PRO: profile.planPro,
+    ENTERPRISE: profile.planEnterprise,
+  };
+  const label =
+    labelByCode[p] ||
+    (plan ? `${plan.charAt(0)}${plan.slice(1).toLowerCase()}` : "");
+  return (profile.subscriptionPlanNamed || "{{name}} Plan").replace(
+    "{{name}}",
+    label || "",
+  );
+}
 
 export default function CustomerProfileScreen({ navigation }: any) {
   const { user, logout } = useAuth();
   const { mode: themeMode, setMode: setThemeMode, isDark, colors: themeColors } = useTheme();
-  const { language, setLanguage, t } = useI18n();
+  const { language, setLanguage, t, formatCurrency } = useI18n();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
@@ -77,10 +99,10 @@ export default function CustomerProfileScreen({ navigation }: any) {
           }
         }
       } catch (apiError) {
-        console.log("Could not sync spoken languages from backend");
+        log.debug("Could not sync spoken languages from backend");
       }
     } catch (error) {
-      console.error("Error loading spoken languages:", error);
+      log.error("Error loading spoken languages:", error);
     }
   };
 
@@ -94,7 +116,7 @@ export default function CustomerProfileScreen({ navigation }: any) {
         const vehiclesList = await getVehicles();
         vehiclesCount = vehiclesList.length;
       } catch (e) {
-        console.error("Error loading vehicles:", e);
+        log.error("Error loading vehicles:", e);
       }
 
       // Load services
@@ -117,7 +139,7 @@ export default function CustomerProfileScreen({ navigation }: any) {
           0,
         );
       } catch (e) {
-        console.error("Error loading services:", e);
+        log.error("Error loading services:", e);
       }
 
       // Load subscription
@@ -128,7 +150,7 @@ export default function CustomerProfileScreen({ navigation }: any) {
           setSubscription(meData.subscription);
         }
       } catch (e) {
-        console.error("Error loading user data:", e);
+        log.error("Error loading user data:", e);
       }
 
       setStats({
@@ -140,7 +162,7 @@ export default function CustomerProfileScreen({ navigation }: any) {
           : new Date().getFullYear().toString(),
       });
     } catch (error) {
-      console.error("ERROR in loadUserStats:", error);
+      log.error("ERROR in loadUserStats:", error);
     } finally {
       setLoadingStats(false);
     }
@@ -177,12 +199,12 @@ export default function CustomerProfileScreen({ navigation }: any) {
       AsyncStorage.setItem(
         storageKey,
         JSON.stringify(newLangs),
-      ).catch((err) => console.error("Error saving spoken languages:", err));
+      ).catch((err) => log.error("Error saving spoken languages:", err));
       // Sync to backend for cross-device persistence
       api
         .patch("/users/me", { preferencesJson: { spokenLanguages: newLangs } })
         .catch((err) =>
-          console.log("Could not sync spoken languages to backend:", err),
+          log.debug("Could not sync spoken languages to backend:", err),
         );
       return newLangs;
     });
@@ -198,10 +220,18 @@ export default function CustomerProfileScreen({ navigation }: any) {
   };
 
   const handleLogout = () => {
-    Alert.alert("Log Out", "Are you sure you want to log out?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Log Out", style: "destructive", onPress: logout },
-    ]);
+    Alert.alert(
+      t.profile?.logoutAlertTitle || "Log out",
+      t.profile?.logoutAlertMessage || "Are you sure you want to log out?",
+      [
+        { text: t.common?.cancel || "Cancel", style: "cancel" },
+        {
+          text: t.profile?.logoutAction || "Log out",
+          style: "destructive",
+          onPress: logout,
+        },
+      ],
+    );
   };
 
   const menuItems = [
@@ -217,8 +247,8 @@ export default function CustomerProfileScreen({ navigation }: any) {
       id: "vehicles",
       title: t.profile?.myVehicles || "My Vehicles",
       subtitle:
-        (stats?.vehiclesCount || 0) > 0
-          ? `${stats.vehiclesCount} ${stats.vehiclesCount === 1 ? t.profile?.vehicleRegistered || "vehicle registered" : t.profile?.vehiclesRegistered || "vehicles registered"}`
+        (stats?.vehiclesCount ?? 0) > 0
+          ? `${stats?.vehiclesCount ?? 0} ${(stats?.vehiclesCount ?? 0) === 1 ? t.profile?.vehicleRegistered || "vehicle registered" : t.profile?.vehiclesRegistered || "vehicles registered"}`
           : t.profile?.noVehicles || "No vehicles registered",
       icon: "car",
       color: "#f59e0b",
@@ -280,7 +310,8 @@ export default function CustomerProfileScreen({ navigation }: any) {
             <View style={styles.memberBadge}>
               <Ionicons name="shield-checkmark" size={14} color="#2B5EA7" />
               <Text style={styles.memberBadgeText}>
-                Member since {stats?.memberSince || new Date().getFullYear()}
+                {t.profile?.memberSince || "Member since"}{" "}
+                {stats?.memberSince || new Date().getFullYear()}
               </Text>
             </View>
           </View>
@@ -291,17 +322,25 @@ export default function CustomerProfileScreen({ navigation }: any) {
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>{stats?.totalServices || 0}</Text>
-              <Text style={styles.statLabel}>Services</Text>
+              <Text style={styles.statLabel}>
+                {t.common?.services || "Services"}
+              </Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>${stats?.totalSpent || 0}</Text>
-              <Text style={styles.statLabel}>Spent</Text>
+              <Text style={styles.statValue}>
+                {formatCurrency(Number(stats?.totalSpent) || 0)}
+              </Text>
+              <Text style={styles.statLabel}>
+                {t.workOrder?.spent || "Spent"}
+              </Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <Text style={styles.statValue}>{stats?.vehiclesCount || 0}</Text>
-              <Text style={styles.statLabel}>Vehicles</Text>
+              <Text style={styles.statLabel}>
+                {t.common?.vehicles || "Vehicles"}
+              </Text>
             </View>
           </View>
         </FadeInView>
@@ -317,9 +356,12 @@ export default function CustomerProfileScreen({ navigation }: any) {
                   <Ionicons name="notifications" size={20} color="#3b82f6" />
                 </View>
                 <View style={styles.toggleText}>
-                  <Text style={styles.toggleTitle}>Push Notifications</Text>
+                  <Text style={styles.toggleTitle}>
+                    {t.settings?.pushNotifications || "Push Notifications"}
+                  </Text>
                   <Text style={styles.toggleSubtitle}>
-                    Quote and service alerts
+                    {t.settings?.pushNotificationsSubtitle ||
+                      "Quote and service alerts"}
                   </Text>
                 </View>
               </View>
@@ -339,9 +381,12 @@ export default function CustomerProfileScreen({ navigation }: any) {
                   <Ionicons name="mail" size={20} color="#f59e0b" />
                 </View>
                 <View style={styles.toggleText}>
-                  <Text style={styles.toggleTitle}>Email Notifications</Text>
+                  <Text style={styles.toggleTitle}>
+                    {t.settings?.emailNotifications || "Email Notifications"}
+                  </Text>
                   <Text style={styles.toggleSubtitle}>
-                    Summaries and offers
+                    {t.settings?.emailNotificationsSubtitle ||
+                      "Summaries and offers"}
                   </Text>
                 </View>
               </View>
@@ -428,13 +473,16 @@ export default function CustomerProfileScreen({ navigation }: any) {
                   <View style={styles.subscriptionInfo}>
                     <Text style={styles.subscriptionName}>
                       {subscription
-                        ? `${subscription.plan?.charAt(0)}${subscription.plan?.slice(1).toLowerCase()} Plan`
+                        ? subscriptionPlanDisplayName(
+                            subscription.plan,
+                            t.profile as Record<string, string | undefined>,
+                          )
                         : t.profile?.freePlan || "Free Plan"}
                     </Text>
                     <Text style={styles.subscriptionPrice}>
                       {subscription && Number(subscription.price) > 0
-                        ? `$${Number(subscription.price).toFixed(2)}/month`
-                        : "$0.00/month"}
+                        ? `${formatCurrency(Number(subscription.price))}${t.profile?.subscriptionPerMonthSuffix || "/mo"}`
+                        : `${formatCurrency(0)}${t.profile?.subscriptionPerMonthSuffix || "/mo"}`}
                     </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color="#93c5fd" />
@@ -488,7 +536,7 @@ export default function CustomerProfileScreen({ navigation }: any) {
                         />
                         <Text style={styles.subscriptionFeatureText}>
                           {subscription?.maxVehicles
-                            ? `${subscription.maxVehicles} ${subscription.maxVehicles === 1 ? "vehicle" : "vehicles"}`
+                            ? `${subscription.maxVehicles} ${subscription.maxVehicles === 1 ? (t.profile?.subscriptionVehicleSingular || "vehicle") : (t.profile?.subscriptionVehiclePlural || "vehicles")}`
                             : t.profile?.basicFeatures || "Basic features"}
                         </Text>
                       </View>

@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { useRouter } from 'next/router'
 import Cookies from 'js-cookie'
 import api from '@/services/api'
+import { logApiError } from "../utils/logger";
 
 interface User {
   id: string
@@ -79,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch {}
       }
     } catch (error) {
-      console.error('Erro ao verificar auth:', error)
+      logApiError('Erro ao verificar auth:', error)
       Cookies.remove('token')
       Cookies.remove('refreshToken')
     } finally {

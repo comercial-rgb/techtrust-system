@@ -55,4 +55,7 @@ router.get('/approved-quote/:workOrderId', asyncHandler(serviceFlowController.ge
 // 9. Consultar recibo
 router.get('/receipt/:paymentId', asyncHandler(serviceFlowController.getReceipt));
 
+// 10. Estimar taxa de cancelamento antes de confirmar (sem efeito colateral)
+router.get('/cancellation-fee-estimate/:quoteId', asyncHandler(serviceFlowController.getCancellationFeeEstimate));
+
 export default router;

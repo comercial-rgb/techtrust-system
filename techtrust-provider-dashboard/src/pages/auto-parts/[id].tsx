@@ -30,6 +30,7 @@ import {
   Globe,
 } from 'lucide-react'
 import Link from 'next/link'
+import { logApiError } from "../../utils/logger";
 
 const PARTS_CATEGORIES = [
   { value: 'engine', label: 'Engine Parts' },
@@ -219,7 +220,7 @@ export default function AutoPartsDetailPage() {
       if (productsRes?.data?.data) setProducts(productsRes.data.data)
       if (metricsRes?.data?.data) setMetrics(metricsRes.data.data)
     } catch (error) {
-      console.error('Error loading store:', error)
+      logApiError('Error loading store:', error)
     } finally {
       setLoading(false)
     }
@@ -258,7 +259,7 @@ export default function AutoPartsDetailPage() {
       }
       router.push('/auto-parts')
     } catch (error: any) {
-      console.error('Error saving store:', error)
+      logApiError('Error saving store:', error)
       alert(error?.response?.data?.message || 'Failed to save. Please try again.')
     } finally {
       setSaving(false)
@@ -293,7 +294,7 @@ export default function AutoPartsDetailPage() {
       setProductForm({ name: '', brand: '', partNumber: '', oemNumber: '', categoryId: 'engine', price: '', salePrice: '', quantity: '1', condition: 'NEW', description: '', compatibility: '', warrantyInfo: '' })
       loadStore()
     } catch (error: any) {
-      console.error('Error saving product:', error)
+      logApiError('Error saving product:', error)
       alert(error?.response?.data?.message || 'Failed to save product.')
     }
   }
@@ -304,7 +305,7 @@ export default function AutoPartsDetailPage() {
       await api.delete(`/parts-store/provider/${id}/products/${productId}`)
       setProducts(prev => prev.filter(p => p.id !== productId))
     } catch (error) {
-      console.error('Error deleting product:', error)
+      logApiError('Error deleting product:', error)
     }
   }
 

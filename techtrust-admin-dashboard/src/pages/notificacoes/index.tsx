@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import AdminLayout from '../../components/AdminLayout';
 import { adminApi } from '../../services/api';
 import { Bell, Send, Plus, Users, Building2, Megaphone, CheckCircle, Clock } from 'lucide-react';
+import { logApiError } from "../../utils/logger";
 
 interface Notification {
   id: string;
@@ -32,7 +33,7 @@ export default function NotificacoesPage() {
       const list = response.data?.data?.notifications || response.data?.data || [];
       setNotifications(Array.isArray(list) ? list : []);
     } catch (error) {
-      console.error('Erro ao carregar notificações:', error);
+      logApiError('Erro ao carregar notificações:', error);
       setNotifications([]);
     } finally {
       setLoading(false);
@@ -47,7 +48,7 @@ export default function NotificacoesPage() {
       setNewNotification({ title: '', message: '', targetRole: 'ALL' });
       loadData();
     } catch (error) {
-      console.error('Erro ao enviar notificação:', error);
+      logApiError('Erro ao enviar notificação:', error);
       alert('Erro ao enviar notificação');
     }
   }

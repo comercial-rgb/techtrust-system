@@ -20,6 +20,7 @@ import {
   Toast,
   useToast,
 } from "../components";
+import { log } from "../utils/logger";
 
 export default function DashboardScreen({ navigation }: any) {
   const theme = useTheme();
@@ -44,7 +45,7 @@ export default function DashboardScreen({ navigation }: any) {
       });
       setRequests(response.data.data.requests || []);
     } catch (err) {
-      console.error("Erro ao carregar solicitações:", err);
+      log.error("Erro ao carregar solicitações:", err);
       error(t.common?.errorLoadingRequests || "Error loading requests");
     } finally {
       setLoading(false);

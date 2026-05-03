@@ -29,6 +29,9 @@ import {
   InsuranceRequirement,
 } from "../../services/compliance.service";
 import api from "../../services/api";
+import { log } from "../../utils/logger";
+import { useI18n } from "../../i18n";
+import { interpolate } from "../../i18n/interpolate";
 
 const ALL_INSURANCE_TYPES = [
   "GENERAL_LIABILITY",
@@ -40,60 +43,9 @@ const ALL_INSURANCE_TYPES = [
   "UMBRELLA_EXCESS",
 ];
 
-const INSURANCE_EXPLANATIONS: Record<string, { description: string; threshold?: string; minLimit?: string; badge: string }> = {
-  GENERAL_LIABILITY: {
-    description:
-      "Covers bodily injury and property damage caused to third parties during business operations. Required by Florida law for all registered automotive repair businesses.",
-    threshold: "Required for all providers regardless of business size.",
-    minLimit: "Minimum $1,000,000 per occurrence / $2,000,000 aggregate (FL standard).",
-    badge: "GL Insured",
-  },
-  GARAGE_LIABILITY: {
-    description:
-      "Extends General Liability to cover auto-related operations on your premises — including customer vehicles being driven, serviced, or parked. More comprehensive than standard GL for auto shops.",
-    threshold: "Required if you operate a repair shop with customer vehicles on-site.",
-    minLimit: "Recommended $1,000,000 per occurrence.",
-    badge: "Garage Insured",
-  },
-  GARAGE_KEEPERS: {
-    description:
-      "Protects customer vehicles left in your care, custody, or control — covering theft, fire, vandalism, or damage while the vehicle is at your shop or lot.",
-    threshold: "Required for all shops that hold customer vehicles overnight or for service.",
-    minLimit: "Recommended $100,000 minimum; higher limits for multi-vehicle shops.",
-    badge: "GK Insured",
-  },
-  COMMERCIAL_AUTO: {
-    description:
-      "Covers vehicles owned or operated by your business — including tow trucks, service vans, and company vehicles. Personal auto policies do NOT cover commercial use.",
-    threshold: "Required if your business owns or operates any vehicle.",
-    minLimit: "$1,000,000 combined single limit (CSL) for towing operators.",
-    badge: "Commercial Auto",
-  },
-  ON_HOOK: {
-    description:
-      "Also called 'towing insurance,' covers vehicles being towed on your hook. Applies the moment a vehicle is attached to your tow truck until it is released at the destination.",
-    threshold: "Required for all towing and roadside assist providers on TechTrust.",
-    minLimit: "Recommended $100,000 per occurrence.",
-    badge: "Towing Insured",
-  },
-  WORKERS_COMP: {
-    description:
-      "Covers medical expenses and lost wages for employees injured on the job. In Florida, workers' compensation is mandatory once you employ 4 or more employees (including part-time). Construction and farm labor have different thresholds.",
-    threshold:
-      "Florida Statute §440.02: Required for employers with 4 or more employees. Self-employed owners may opt out with a certificate of exemption.",
-    minLimit: "Statutory limits — set by Florida law, no minimum dollar choice.",
-    badge: "Workers Comp",
-  },
-  UMBRELLA_EXCESS: {
-    description:
-      "Provides additional liability coverage above the limits of your underlying GL, Garage Liability, or Commercial Auto policies. Protects against catastrophic claims.",
-    threshold: "Not legally required; strongly recommended for larger operations.",
-    minLimit: "Typically $1,000,000–$5,000,000 per occurrence.",
-    badge: "Umbrella",
-  },
-};
-
 export default function InsuranceManagementScreen({ navigation }: any) {
+  const { t } = useI18n();
+  const tim = (t as any).insuranceManagement || {};
   const [policies, setPolicies] = useState<InsurancePolicy[]>([]);
   const [requirements, setRequirements] = useState<InsuranceRequirement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -154,7 +106,7 @@ export default function InsuranceManagementScreen({ navigation }: any) {
         setForms(formState);
       }
     } catch (error) {
-      console.error("Error fetching insurance:", error);
+      log.error("Error fetching insurance:", error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -172,6 +124,25 @@ export default function InsuranceManagementScreen({ navigation }: any) {
       ...prev,
       [type]: { ...prev[type], [field]: value },
     }));
+  };
+
+  const typeLabel = (ty: string) =>
+    (tim.typeLabels && tim.typeLabels[ty]) || INSURANCE_TYPE_LABELS[ty] || ty;
+
+  const explainFor = (ty: string) =>
+    tim.typeExplain?.[ty] as
+      | { description?: string; threshold?: string; minLimit?: string; badge?: string }
+      | undefined;
+
+  const localizeInsStatus = (status: string) => {
+    const base = getInsuranceStatusLabel(status);
+    const m: Record<string, string | undefined> = {
+      INS_VERIFIED: tim.insStatusVerified,
+      INS_PROVIDED_UNVERIFIED: tim.insStatusUnderReview,
+      INS_NOT_PROVIDED: tim.insStatusNotProvided,
+      INS_EXPIRED: tim.insStatusExpired,
+    };
+    return { ...base, label: m[status] || base.label };
   };
 
   const handleUpload = async (type: string) => {
@@ -202,7 +173,10 @@ export default function InsuranceManagementScreen({ navigation }: any) {
         ]);
       }
     } catch (error) {
-      Alert.alert("Error", "Failed to upload");
+      Alert.alert(
+        t.common?.error || "Error",
+        tim.uploadFailed || t.insuranceManagement?.uploadFailed || "Failed to upload",
+      );
     } finally {
       setUploading(null);
     }
@@ -218,8 +192,9 @@ export default function InsuranceManagementScreen({ navigation }: any) {
       (!form.carrierName || !form.policyNumber || !form.expirationDate)
     ) {
       Alert.alert(
-        "Missing Info",
-        "Add carrier, policy number, expiration date, or upload a COI.",
+        t.insuranceManagement?.missingInfoTitle || "Missing Info",
+        t.insuranceManagement?.missingInfoBody ||
+          "Add carrier, policy number, expiration date, or upload a COI.",
       );
       return;
     }
@@ -236,9 +211,19 @@ export default function InsuranceManagementScreen({ navigation }: any) {
         coiUploads: form.coiUploads.length > 0 ? form.coiUploads : undefined,
       });
       await fetchData();
-      Alert.alert("Success", `${INSURANCE_TYPE_LABELS[type]} updated`);
+      const label = typeLabel(type);
+      const successMsg = interpolate(
+        tim.policyUpdated ||
+          t.insuranceManagement?.policyUpdated ||
+          "{{label}} updated",
+        { label },
+      );
+      Alert.alert(t.common?.success || "Success", successMsg);
     } catch (error: any) {
-      Alert.alert("Error", error?.response?.data?.message || "Failed to save");
+      Alert.alert(
+        t.common?.error || "Error",
+        error?.response?.data?.message || t.insuranceManagement?.saveFailed || "Failed to save",
+      );
     } finally {
       setSaving(null);
     }
@@ -254,7 +239,9 @@ export default function InsuranceManagementScreen({ navigation }: any) {
           >
             <Ionicons name="arrow-back" size={24} color="#1f2937" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Insurance Coverage</Text>
+          <Text style={styles.headerTitle}>
+            {tim.screenTitle || t.insuranceManagement?.screenTitle || "Insurance Coverage"}
+          </Text>
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.centered}>
@@ -273,7 +260,9 @@ export default function InsuranceManagementScreen({ navigation }: any) {
         >
           <Ionicons name="arrow-back" size={24} color="#1f2937" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Insurance Coverage</Text>
+        <Text style={styles.headerTitle}>
+          {tim.screenTitle || t.insuranceManagement?.screenTitle || "Insurance Coverage"}
+        </Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -290,8 +279,9 @@ export default function InsuranceManagementScreen({ navigation }: any) {
         }
       >
         <Text style={styles.infoText}>
-          Insurance requirements are tailored to your services. Required coverage
-          becomes visible to customers when missing, provided, or verified.
+          {tim.introInfo ||
+            t.insuranceManagement?.introInfo ||
+            "Insurance requirements are tailored to your services. Required coverage becomes visible to customers when missing, provided, or verified."}
         </Text>
 
         {Array.from(new Set([...requirements.map((item) => item.type), ...ALL_INSURANCE_TYPES])).map((type) => {
@@ -300,8 +290,9 @@ export default function InsuranceManagementScreen({ navigation }: any) {
           const form = forms[type];
           const isExpanded = expandedType === type;
           const statusInfo = existing
-            ? getInsuranceStatusLabel(existing.status)
+            ? localizeInsStatus(existing.status)
             : null;
+          const expl = explainFor(type);
 
           return (
             <View key={type} style={styles.card}>
@@ -318,7 +309,7 @@ export default function InsuranceManagementScreen({ navigation }: any) {
                 />
                 <View style={styles.cardTitleWrap}>
                   <Text style={styles.cardTitle}>
-                    {INSURANCE_TYPE_LABELS[type]}
+                    {typeLabel(type)}
                   </Text>
                   {requirement && (
                     <View
@@ -337,7 +328,9 @@ export default function InsuranceManagementScreen({ navigation }: any) {
                             : styles.recommendedBadgeText,
                         ]}
                       >
-                        {requirement.level === "REQUIRED" ? "Required" : "Recommended"}
+                        {requirement.level === "REQUIRED"
+                          ? tim.required || "Required"
+                          : tim.recommended || "Recommended"}
                       </Text>
                     </View>
                   )}
@@ -366,24 +359,24 @@ export default function InsuranceManagementScreen({ navigation }: any) {
               {isExpanded && form && (
                 <View style={styles.cardBody}>
                   {/* Per-type explanation */}
-                  {INSURANCE_EXPLANATIONS[type] && (
+                  {expl && (
                     <View style={styles.explanationCard}>
                       <Text style={styles.explanationText}>
-                        {INSURANCE_EXPLANATIONS[type].description}
+                        {expl.description}
                       </Text>
-                      {INSURANCE_EXPLANATIONS[type].threshold && (
+                      {expl.threshold && (
                         <View style={styles.thresholdRow}>
                           <Ionicons name="information-circle" size={14} color="#92400e" />
                           <Text style={styles.thresholdText}>
-                            {INSURANCE_EXPLANATIONS[type].threshold}
+                            {expl.threshold}
                           </Text>
                         </View>
                       )}
-                      {INSURANCE_EXPLANATIONS[type].minLimit && (
+                      {expl.minLimit && (
                         <View style={styles.thresholdRow}>
                           <Ionicons name="shield-checkmark" size={14} color="#166534" />
                           <Text style={[styles.thresholdText, { color: '#166534' }]}>
-                            {INSURANCE_EXPLANATIONS[type].minLimit}
+                            {expl.minLimit}
                           </Text>
                         </View>
                       )}
@@ -397,7 +390,8 @@ export default function InsuranceManagementScreen({ navigation }: any) {
                       </Text>
                       {!!requirement.customerVisibleBadge && (
                         <Text style={styles.customerBadgeText}>
-                          Customer badge: {requirement.customerVisibleBadge}
+                          {tim.customerBadgePrefix || "Customer badge:"}{" "}
+                          {requirement.customerVisibleBadge}
                         </Text>
                       )}
                     </View>
@@ -405,7 +399,9 @@ export default function InsuranceManagementScreen({ navigation }: any) {
 
                   {/* Coverage Toggle */}
                   <View style={styles.switchRow}>
-                    <Text style={styles.switchLabel}>I have this coverage</Text>
+                    <Text style={styles.switchLabel}>
+                      {tim.iHaveCoverage || "I have this coverage"}
+                    </Text>
                     <Switch
                       value={form.hasCoverage}
                       onValueChange={(v) => updateForm(type, "hasCoverage", v)}
@@ -418,7 +414,7 @@ export default function InsuranceManagementScreen({ navigation }: any) {
                     <>
                       <View style={styles.field}>
                         <Text style={styles.fieldLabel}>
-                          Carrier / Insurer Name *
+                          {tim.carrierLabel || "Carrier / Insurer Name *"}
                         </Text>
                         <TextInput
                           style={styles.input}
@@ -426,26 +422,30 @@ export default function InsuranceManagementScreen({ navigation }: any) {
                           onChangeText={(v) =>
                             updateForm(type, "carrierName", v)
                           }
-                          placeholder="e.g., State Farm"
+                          placeholder={tim.carrierPlaceholder || "e.g., State Farm"}
                           placeholderTextColor="#9ca3af"
                         />
                       </View>
 
                       <View style={styles.field}>
-                        <Text style={styles.fieldLabel}>Policy Number *</Text>
+                        <Text style={styles.fieldLabel}>
+                          {tim.policyNumberLabel || "Policy Number *"}
+                        </Text>
                         <TextInput
                           style={styles.input}
                           value={form.policyNumber}
                           onChangeText={(v) =>
                             updateForm(type, "policyNumber", v)
                           }
-                          placeholder="e.g., POL-12345"
+                          placeholder={tim.policyNumberPlaceholder || "e.g., POL-12345"}
                           placeholderTextColor="#9ca3af"
                         />
                       </View>
 
                       <View style={styles.field}>
-                        <Text style={styles.fieldLabel}>Expiration Date</Text>
+                        <Text style={styles.fieldLabel}>
+                          {tim.expirationDateLabel || "Expiration Date"}
+                        </Text>
                         <TextInput
                           style={styles.input}
                           value={form.expirationDate}
@@ -464,7 +464,7 @@ export default function InsuranceManagementScreen({ navigation }: any) {
                                 digits.slice(4);
                             updateForm(type, "expirationDate", formatted);
                           }}
-                          placeholder="MM/DD/YYYY"
+                          placeholder={tim.expirationPlaceholder || "MM/DD/YYYY"}
                           placeholderTextColor="#9ca3af"
                           keyboardType="numeric"
                           maxLength={10}
@@ -473,7 +473,7 @@ export default function InsuranceManagementScreen({ navigation }: any) {
 
                       <View style={styles.field}>
                         <Text style={styles.fieldLabel}>
-                          Coverage Limit
+                          {tim.coverageLimitLabel || "Coverage Limit"}
                         </Text>
                         <TextInput
                           style={styles.input}
@@ -481,14 +481,14 @@ export default function InsuranceManagementScreen({ navigation }: any) {
                           onChangeText={(v) =>
                             updateForm(type, "coverageLimit", v)
                           }
-                          placeholder="$1,000,000 / $2,000,000 agg"
+                          placeholder={tim.coverageLimitPlaceholder || "$1,000,000 / $2,000,000 agg"}
                           placeholderTextColor="#9ca3af"
                         />
                       </View>
 
                       <View style={styles.field}>
                         <Text style={styles.fieldLabel}>
-                          Certificate of Insurance (COI)
+                          {tim.coiLabel || "Certificate of Insurance (COI)"}
                         </Text>
                         {form.coiUploads.map((url, i) => (
                           <View key={i} style={styles.docRow}>
@@ -498,7 +498,10 @@ export default function InsuranceManagementScreen({ navigation }: any) {
                               color="#2B5EA7"
                             />
                             <Text style={styles.docText}>
-                              COI Document {i + 1}
+                              {interpolate(
+                                tim.coiDocument || "COI Document {{n}}",
+                                { n: i + 1 },
+                              )}
                             </Text>
                             <TouchableOpacity
                               onPress={() => {
@@ -530,7 +533,9 @@ export default function InsuranceManagementScreen({ navigation }: any) {
                                 size={18}
                                 color="#2B5EA7"
                               />
-                              <Text style={styles.uploadText}>Upload COI</Text>
+                              <Text style={styles.uploadText}>
+                                {tim.uploadCoi || "Upload COI"}
+                              </Text>
                             </>
                           )}
                         </TouchableOpacity>
@@ -546,7 +551,9 @@ export default function InsuranceManagementScreen({ navigation }: any) {
                     {saving === type ? (
                       <ActivityIndicator color="#fff" size="small" />
                     ) : (
-                      <Text style={styles.saveBtnText}>Save</Text>
+                      <Text style={styles.saveBtnText}>
+                        {tim.save || "Save"}
+                      </Text>
                     )}
                   </TouchableOpacity>
                 </View>
@@ -559,27 +566,34 @@ export default function InsuranceManagementScreen({ navigation }: any) {
         <View style={styles.adBanner}>
           <View style={styles.adBannerHeader}>
             <Ionicons name="shield-checkmark" size={18} color="#1d4ed8" />
-            <Text style={styles.adBannerTitle}>Need coverage? Get a quote.</Text>
+            <Text style={styles.adBannerTitle}>
+              {tim.adBannerTitle || "Need coverage? Get a quote."}
+            </Text>
           </View>
           <Text style={styles.adBannerText}>
-            TechTrust partners with licensed Florida insurance agents who specialize
-            in automotive business coverage. Get quotes for GL, Garage Keepers,
-            Workers Comp, and commercial auto in minutes.
+            {tim.adBannerBody ||
+              "TechTrust partners with licensed Florida insurance agents who specialize in automotive business coverage. Get quotes for GL, Garage Keepers, Workers Comp, and commercial auto in minutes."}
           </Text>
           <View style={styles.adPartnerRow}>
             <View style={styles.adPartnerChip}>
-              <Text style={styles.adPartnerName}>Progressive Commercial</Text>
+              <Text style={styles.adPartnerName}>
+                {tim.adPartner1 || "Progressive Commercial"}
+              </Text>
             </View>
             <View style={styles.adPartnerChip}>
-              <Text style={styles.adPartnerName}>Nationwide Business</Text>
+              <Text style={styles.adPartnerName}>
+                {tim.adPartner2 || "Nationwide Business"}
+              </Text>
             </View>
             <View style={styles.adPartnerChip}>
-              <Text style={styles.adPartnerName}>State Farm Business</Text>
+              <Text style={styles.adPartnerName}>
+                {tim.adPartner3 || "State Farm Business"}
+              </Text>
             </View>
           </View>
           <Text style={styles.adDisclaimer}>
-            TechTrust is not an insurance agent or broker. Provider names shown are for
-            reference only. Always verify coverage directly with your carrier.
+            {tim.adDisclaimer ||
+              "TechTrust is not an insurance agent or broker. Provider names shown are for reference only. Always verify coverage directly with your carrier."}
           </Text>
         </View>
 

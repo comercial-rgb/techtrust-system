@@ -20,12 +20,13 @@ import {
   Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
 import { useI18n, languages, Language } from "../i18n";
 import { logos } from "../constants/images";
 import { BiometricPromptCard } from "../components";
+import { log } from "../utils/logger";
 import {
   signInWithGoogle,
   signInWithApple,
@@ -235,7 +236,7 @@ export default function LoginScreen({ navigation }: any) {
         setShowBiometricPrompt(true);
       }
     } catch (error: any) {
-      console.log("🔴 Login error:", error.code, error.message);
+      log.debug("Login failed", error?.code, error?.message);
 
       // Verificar se é erro de telefone não verificado
       if (error.code === "PHONE_NOT_VERIFIED") {
@@ -457,7 +458,6 @@ export default function LoginScreen({ navigation }: any) {
                 autoCapitalize="none"
                 value={email}
                 onChangeText={setEmail}
-                color="#000"
               />
             </View>
 
@@ -475,7 +475,6 @@ export default function LoginScreen({ navigation }: any) {
                 secureTextEntry={!showPassword}
                 value={password}
                 onChangeText={setPassword}
-                color="#000"
               />
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                 <MaterialCommunityIcons

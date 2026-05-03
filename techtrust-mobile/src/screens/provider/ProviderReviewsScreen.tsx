@@ -18,7 +18,7 @@ import {
   Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useI18n } from "../../i18n";
 import api from "../../services/api";
 
@@ -35,7 +35,7 @@ interface Review {
 }
 
 export default function ProviderReviewsScreen({ navigation }: any) {
-  const { t, formatDate } = useI18n();
+  const { t, formatDate, language } = useI18n();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -56,7 +56,7 @@ export default function ProviderReviewsScreen({ navigation }: any) {
 
   useEffect(() => {
     loadReviews();
-  }, []);
+  }, [language]);
 
   const loadReviews = async () => {
     setLoading(true);
@@ -66,26 +66,32 @@ export default function ProviderReviewsScreen({ navigation }: any) {
       const reviewsList = data.reviews || data || [];
       setReviews(
         Array.isArray(reviewsList)
-          ? reviewsList.map((r: any) => ({
-              id: r.id,
-              customerName:
-                r.customerName || r.customer?.fullName || "Customer",
-              customerInitials: (r.customerName || r.customer?.fullName || "C")
-                .split(" ")
-                .map((n: string) => n[0])
-                .join("")
-                .substring(0, 2)
-                .toUpperCase(),
-              rating: r.rating,
-              comment: r.comment || "",
-              serviceType: r.serviceType || r.workOrder?.serviceType || "",
-              vehicle:
-                r.vehicle || r.workOrder?.vehicle
-                  ? `${r.workOrder?.vehicle?.make || ""} ${r.workOrder?.vehicle?.model || ""} ${r.workOrder?.vehicle?.year || ""}`.trim()
-                  : "",
-              date: r.createdAt || r.date,
-              reply: r.reply || undefined,
-            }))
+          ? reviewsList.map((r: any) => {
+              const displayName =
+                r.customerName ||
+                r.customer?.fullName ||
+                t.common?.customer ||
+                "Customer";
+              return {
+                id: r.id,
+                customerName: displayName,
+                customerInitials: displayName
+                  .split(" ")
+                  .map((n: string) => n[0])
+                  .join("")
+                  .substring(0, 2)
+                  .toUpperCase(),
+                rating: r.rating,
+                comment: r.comment || "",
+                serviceType: r.serviceType || r.workOrder?.serviceType || "",
+                vehicle:
+                  r.vehicle || r.workOrder?.vehicle
+                    ? `${r.workOrder?.vehicle?.make || ""} ${r.workOrder?.vehicle?.model || ""} ${r.workOrder?.vehicle?.year || ""}`.trim()
+                    : "",
+                date: r.createdAt || r.date,
+                reply: r.reply || undefined,
+              };
+            })
           : [],
       );
 

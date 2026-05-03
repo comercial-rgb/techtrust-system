@@ -17,6 +17,8 @@ import {
   Loader2,
 } from 'lucide-react';
 
+import { logApiError } from "../../utils/logger";
+
 interface StateProfile {
   id: string;
   stateCode: string;
@@ -102,7 +104,7 @@ export default function CompliancePage() {
       setStates((statesRes.data as any)?.states || []);
       setRequirements((reqsRes.data as any)?.requirements || []);
     } catch (err) {
-      console.error('Error fetching compliance data:', err);
+      logApiError('Error fetching compliance data:', err);
     } finally {
       setLoading(false);
     }
@@ -113,7 +115,7 @@ export default function CompliancePage() {
       const res = await api.get(`/multi-state/jurisdiction-policies/${stateCode}`);
       setPolicies((res.data as any)?.policies || []);
     } catch (err) {
-      console.error('Error fetching policies:', err);
+      logApiError('Error fetching policies:', err);
     }
   };
 
@@ -135,7 +137,7 @@ export default function CompliancePage() {
         setSelectedState({ ...selectedState!, isActive: !state.isActive });
       }
     } catch (err) {
-      console.error('Error toggling state:', err);
+      logApiError('Error toggling state:', err);
     } finally {
       setSaving(false);
     }
@@ -159,7 +161,7 @@ export default function CompliancePage() {
       });
       await fetchData();
     } catch (err) {
-      console.error('Error adding state:', err);
+      logApiError('Error adding state:', err);
     } finally {
       setSaving(false);
     }

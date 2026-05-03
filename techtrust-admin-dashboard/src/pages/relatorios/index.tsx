@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import AdminLayout from '../../components/AdminLayout';
 import { adminApi } from '../../services/api';
 import { BarChart3, TrendingUp, Calendar, Download, DollarSign, Users, Wrench, FileText } from 'lucide-react';
+import { logApiError } from "../../utils/logger";
 
 export default function RelatoriosPage() {
   const { isAuthenticated, loading: authLoading } = useAuth();
@@ -27,7 +28,7 @@ export default function RelatoriosPage() {
         avgRating: data.avgRating || data.reviews?.average || 0,
       });
     } catch (error) {
-      console.error('Erro ao carregar relatórios:', error);
+      logApiError('Erro ao carregar relatórios:', error);
     } finally {
       setLoading(false);
     }

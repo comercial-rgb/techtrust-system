@@ -17,67 +17,74 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import api from "../../services/api";
+import { log } from "../../utils/logger";
+import { useI18n } from "../../i18n";
 
 // ─── SOS service types ────────────────────────────────────────────────────────
 
 const SOS_TYPES = [
   {
     key: "JUMP_START",
-    label: "Jump Start",
     icon: "battery-charging" as const,
     color: "#f59e0b",
     bg: "#fef3c7",
-    desc: "Battery jump start (cables or portable pack)",
     pricingType: "flat" as const,
   },
   {
     key: "FLAT_TIRE",
-    label: "Flat Tire Change",
     icon: "car-tire-alert" as const,
     color: "#3b82f6",
     bg: "#dbeafe",
-    desc: "Swap flat with customer's spare tire",
     pricingType: "flat" as const,
   },
   {
     key: "FUEL_DELIVERY",
-    label: "Fuel Delivery",
     icon: "gas-station" as const,
     color: "#10b981",
     bg: "#d1fae5",
-    desc: "Deliver enough fuel to reach nearest station",
     pricingType: "flat" as const,
   },
   {
     key: "LOCKOUT",
-    label: "Vehicle Lockout",
     icon: "key-variant" as const,
     color: "#8b5cf6",
     bg: "#ede9fe",
-    desc: "Unlock vehicle using professional tools",
     pricingType: "flat" as const,
   },
   {
     key: "BATTERY_REPLACE",
-    label: "Battery Replacement",
     icon: "car-battery" as const,
     color: "#ec4899",
     bg: "#fce7f3",
-    desc: "On-site battery replacement (parts + labor)",
     pricingType: "flat" as const,
   },
   {
     key: "TOWING",
-    label: "Towing",
     icon: "tow-truck" as const,
     color: "#dc2626",
     bg: "#fee2e2",
-    desc: "Tow vehicle to shop or destination",
     pricingType: "towing" as const,
   },
-];
+] as const;
+
+function getRateCardRowCopy(
+  key: string,
+  tr: Record<string, string | undefined>,
+): { label: string; desc: string } {
+  const map: Record<string, { l: string; d: string }> = {
+    JUMP_START: { l: "rateJumpStartLabel", d: "rateJumpStartDesc" },
+    FLAT_TIRE: { l: "rateFlatTireLabel", d: "rateFlatTireDesc" },
+    FUEL_DELIVERY: { l: "rateFuelLabel", d: "rateFuelDesc" },
+    LOCKOUT: { l: "rateLockoutLabel", d: "rateLockoutDesc" },
+    BATTERY_REPLACE: { l: "rateBatteryLabel", d: "rateBatteryDesc" },
+    TOWING: { l: "rateTowingLabel", d: "rateTowingDesc" },
+  };
+  const m = map[key];
+  if (!m) return { label: key, desc: "" };
+  return { label: tr[m.l] || key, desc: tr[m.d] || "" };
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -109,6 +116,8 @@ function initRateCard(): RateCardState {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function ProviderSOSRateCardScreen({ navigation }: any) {
+  const { t, formatCurrency } = useI18n();
+  const tr = (t as any).providerSosRates || ({} as Record<string, string | undefined>);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [rateCard, setRateCard] = useState<RateCardState>(initRateCard());
@@ -145,7 +154,7 @@ export default function ProviderSOSRateCardScreen({ navigation }: any) {
       }
       if (data?.availabilityStatus) setAvailabilityStatus(data.availabilityStatus);
     } catch (e) {
-      console.error("Failed to load rate card", e);
+      log.error("Failed to load rate card", e);
     } finally {
       setLoading(false);
     }
@@ -153,17 +162,28 @@ export default function ProviderSOSRateCardScreen({ navigation }: any) {
 
   const handleSave = async () => {
     // Validate: active types must have a price
-    for (const t of SOS_TYPES) {
-      const entry = rateCard[t.key] as any;
+    for (const row of SOS_TYPES) {
+      const entry = rateCard[row.key] as any;
       if (!entry.active) continue;
-      if (t.pricingType === "towing") {
+      const rowLabel = getRateCardRowCopy(row.key, tr).label;
+      if (row.pricingType === "towing") {
         if (!entry.baseFee || Number(entry.baseFee) <= 0) {
-          Alert.alert("Missing price", `Set a base fee for Towing before activating it.`);
+          Alert.alert(
+            tr.missingPriceTitle || t.providerSosRates?.missingPriceTitle || "Missing price",
+            tr.missingPriceTowing ||
+              t.providerSosRates?.missingPriceTowing ||
+              "Set a base fee for Towing before activating it.",
+          );
           return;
         }
       } else {
         if (!entry.price || Number(entry.price) <= 0) {
-          Alert.alert("Missing price", `Set a price for ${t.label} before activating it.`);
+          const msg =
+            (tr.missingPriceFor || t.providerSosRates?.missingPriceFor || "")
+              .replace(/\{\{label\}\}/g, rowLabel)
+              .replace(/\{\{\s*label\s*\}\}/g, rowLabel) ||
+            `Set a price for ${rowLabel} before activating it.`;
+          Alert.alert(tr.missingPriceTitle || t.providerSosRates?.missingPriceTitle || "Missing price", msg);
           return;
         }
       }
@@ -172,25 +192,31 @@ export default function ProviderSOSRateCardScreen({ navigation }: any) {
     setSaving(true);
     try {
       const payload: Record<string, any> = {};
-      for (const t of SOS_TYPES) {
-        const entry = rateCard[t.key] as any;
-        if (t.pricingType === "towing") {
-          payload[t.key] = {
+      for (const row of SOS_TYPES) {
+        const entry = rateCard[row.key] as any;
+        if (row.pricingType === "towing") {
+          payload[row.key] = {
             baseFee: entry.baseFee ? Number(entry.baseFee) : null,
             perMileRate: entry.perMileRate ? Number(entry.perMileRate) : null,
             active: entry.active,
           };
         } else {
-          payload[t.key] = {
+          payload[row.key] = {
             price: entry.price ? Number(entry.price) : null,
             active: entry.active,
           };
         }
       }
       await api.patch("/sos/rate-card", { rateCard: payload });
-      Alert.alert("Saved", "Your SOS rate card has been updated.");
+      Alert.alert(
+        tr.savedTitle || t.providerSosRates?.savedTitle || "Saved",
+        tr.savedBody || t.providerSosRates?.savedBody || "Your SOS rate card has been updated.",
+      );
     } catch (e) {
-      Alert.alert("Error", "Could not save rate card. Please try again.");
+      Alert.alert(
+        t.common?.error || "Error",
+        tr.saveFailed || t.providerSosRates?.saveFailed || "Could not save rate card. Please try again.",
+      );
     } finally {
       setSaving(false);
     }
@@ -204,7 +230,12 @@ export default function ProviderSOSRateCardScreen({ navigation }: any) {
       await api.patch("/sos/availability", { status: next });
       setAvailabilityStatus(next);
     } catch {
-      Alert.alert("Error", "Could not update availability. Try again.");
+      Alert.alert(
+        t.common?.error || "Error",
+        tr.availabilityFailed ||
+          t.providerSosRates?.availabilityFailed ||
+          "Could not update availability. Try again.",
+      );
     } finally {
       setTogglingAvailability(false);
     }
@@ -224,7 +255,9 @@ export default function ProviderSOSRateCardScreen({ navigation }: any) {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <MaterialCommunityIcons name="arrow-left" size={24} color="#111827" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>SOS Rate Card</Text>
+          <Text style={styles.headerTitle}>
+            {tr.screenTitle || t.providerSosRates?.screenTitle || "SOS Rate Card"}
+          </Text>
           <View style={{ width: 40 }} />
         </View>
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -240,13 +273,19 @@ export default function ProviderSOSRateCardScreen({ navigation }: any) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <MaterialCommunityIcons name="arrow-left" size={24} color="#111827" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>SOS Rate Card</Text>
+        <Text style={styles.headerTitle}>
+          {tr.screenTitle || t.providerSosRates?.screenTitle || "SOS Rate Card"}
+        </Text>
         <TouchableOpacity
           onPress={handleSave}
           disabled={saving}
           style={[styles.saveBtn, saving && { opacity: 0.6 }]}
         >
-          <Text style={styles.saveBtnText}>{saving ? "Saving..." : "Save"}</Text>
+          <Text style={styles.saveBtnText}>
+            {saving
+              ? tr.saving || t.providerSosRates?.saving || "Saving..."
+              : tr.save || t.providerSosRates?.save || "Save"}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -264,12 +303,18 @@ export default function ProviderSOSRateCardScreen({ navigation }: any) {
           <View style={styles.availabilityDot} />
           <View style={{ flex: 1 }}>
             <Text style={styles.availabilityTitle}>
-              {availabilityStatus === "ONLINE" ? "You are Online" : "You are Offline"}
+              {availabilityStatus === "ONLINE"
+                ? tr.availOnlineTitle || t.providerSosRates?.availOnlineTitle || "You are Online"
+                : tr.availOfflineTitle || t.providerSosRates?.availOfflineTitle || "You are Offline"}
             </Text>
             <Text style={styles.availabilitySubtitle}>
               {availabilityStatus === "ONLINE"
-                ? "Customers can see you and SOS requests are broadcast to you."
-                : "Tap to go online and start receiving SOS requests."}
+                ? tr.availOnlineSub ||
+                  t.providerSosRates?.availOnlineSub ||
+                  "Customers can see you and SOS requests are broadcast to you."
+                : tr.availOfflineSub ||
+                  t.providerSosRates?.availOfflineSub ||
+                  "Tap to go online and start receiving SOS requests."}
             </Text>
           </View>
           <MaterialCommunityIcons
@@ -283,74 +328,90 @@ export default function ProviderSOSRateCardScreen({ navigation }: any) {
         <View style={styles.infoBox}>
           <MaterialCommunityIcons name="information-outline" size={18} color="#2B5EA7" />
           <Text style={styles.infoText}>
-            Set fixed prices for each SOS service type. If you activate a type without a price,
-            you'll be asked to enter one when accepting. Leave types off if you don't offer them.
+            {tr.infoBody ||
+              t.providerSosRates?.infoBody ||
+              "Set fixed prices for each SOS service type. If you activate a type without a price, you'll be asked to enter one when accepting. Leave types off if you don't offer them."}
           </Text>
         </View>
 
         {/* Rate card entries */}
         <View style={{ paddingHorizontal: 16, gap: 12, paddingBottom: 32 }}>
-          {SOS_TYPES.map((t) => {
-            const entry = rateCard[t.key] as any;
+          {SOS_TYPES.map((row) => {
+            const entry = rateCard[row.key] as any;
+            const copy = getRateCardRowCopy(row.key, tr);
             return (
-              <View key={t.key} style={[styles.card, entry.active && styles.cardActive]}>
+              <View key={row.key} style={[styles.card, entry.active && styles.cardActive]}>
                 <View style={styles.cardHeader}>
-                  <View style={[styles.iconWrap, { backgroundColor: t.bg }]}>
-                    <MaterialCommunityIcons name={t.icon} size={22} color={t.color} />
+                  <View style={[styles.iconWrap, { backgroundColor: row.bg }]}>
+                    <MaterialCommunityIcons name={row.icon} size={22} color={row.color} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.cardTitle}>{t.label}</Text>
-                    <Text style={styles.cardDesc}>{t.desc}</Text>
+                    <Text style={styles.cardTitle}>{copy.label}</Text>
+                    <Text style={styles.cardDesc}>{copy.desc}</Text>
                   </View>
                   <Switch
                     value={entry.active}
-                    onValueChange={(v) => updateEntry(t.key, "active", v)}
-                    trackColor={{ false: "#d1d5db", true: t.color + "88" }}
-                    thumbColor={entry.active ? t.color : "#9ca3af"}
+                    onValueChange={(v) => updateEntry(row.key, "active", v)}
+                    trackColor={{ false: "#d1d5db", true: row.color + "88" }}
+                    thumbColor={entry.active ? row.color : "#9ca3af"}
                   />
                 </View>
 
                 {entry.active && (
                   <View style={styles.priceFields}>
-                    {t.pricingType === "towing" ? (
+                    {row.pricingType === "towing" ? (
                       <>
                         <View style={styles.fieldRow}>
-                          <Text style={styles.fieldLabel}>Base Fee ($)</Text>
+                          <Text style={styles.fieldLabel}>
+                            {tr.fieldBaseFee || t.providerSosRates?.fieldBaseFee || "Base fee"}
+                          </Text>
                           <TextInput
                             style={styles.priceInput}
                             value={entry.baseFee}
-                            onChangeText={(v) => updateEntry(t.key, "baseFee", v)}
+                            onChangeText={(v) => updateEntry(row.key, "baseFee", v)}
                             keyboardType="decimal-pad"
-                            placeholder="e.g. 100"
+                            placeholder={tr.phBase || t.providerSosRates?.phBase || "e.g. 100"}
                             placeholderTextColor="#9ca3af"
                           />
                         </View>
                         <View style={styles.fieldRow}>
-                          <Text style={styles.fieldLabel}>Per Mile ($)</Text>
+                          <Text style={styles.fieldLabel}>
+                            {tr.fieldPerMile || t.providerSosRates?.fieldPerMile || "Per mile"}
+                          </Text>
                           <TextInput
                             style={styles.priceInput}
                             value={entry.perMileRate}
-                            onChangeText={(v) => updateEntry(t.key, "perMileRate", v)}
+                            onChangeText={(v) => updateEntry(row.key, "perMileRate", v)}
                             keyboardType="decimal-pad"
-                            placeholder="e.g. 4.50"
+                            placeholder={tr.phPerMile || t.providerSosRates?.phPerMile || "e.g. 4.50"}
                             placeholderTextColor="#9ca3af"
                           />
                         </View>
                         {entry.baseFee && entry.perMileRate && (
                           <Text style={styles.exampleText}>
-                            Example: 5 miles = ${(Number(entry.baseFee) + 5 * Number(entry.perMileRate)).toFixed(2)}
+                            {(tr.exampleMiles || t.providerSosRates?.exampleMiles || "Example: {{miles}} mi = {{amount}}")
+                              .replace("{{miles}}", "5")
+                              .replace(
+                                "{{amount}}",
+                                formatCurrency(
+                                  Number(entry.baseFee) +
+                                    5 * Number(entry.perMileRate),
+                                ),
+                              )}
                           </Text>
                         )}
                       </>
                     ) : (
                       <View style={styles.fieldRow}>
-                        <Text style={styles.fieldLabel}>Fixed Price ($)</Text>
+                        <Text style={styles.fieldLabel}>
+                          {tr.fieldFixedPrice || t.providerSosRates?.fieldFixedPrice || "Fixed price"}
+                        </Text>
                         <TextInput
                           style={styles.priceInput}
                           value={entry.price}
-                          onChangeText={(v) => updateEntry(t.key, "price", v)}
+                          onChangeText={(v) => updateEntry(row.key, "price", v)}
                           keyboardType="decimal-pad"
-                          placeholder="e.g. 75"
+                          placeholder={tr.phFixed || t.providerSosRates?.phFixed || "e.g. 75"}
                           placeholderTextColor="#9ca3af"
                         />
                       </View>
@@ -360,7 +421,9 @@ export default function ProviderSOSRateCardScreen({ navigation }: any) {
 
                 {!entry.active && (
                   <Text style={styles.inactiveNote}>
-                    Toggle on to offer this service and set your price.
+                    {tr.inactiveNote ||
+                      t.providerSosRates?.inactiveNote ||
+                      "Toggle on to offer this service and set your price."}
                   </Text>
                 )}
               </View>

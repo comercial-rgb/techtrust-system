@@ -18,11 +18,12 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useI18n } from "../../i18n";
 import { useAuth } from "../../contexts/AuthContext";
 import * as fdacsService from "../../services/fdacs.service";
+import { log } from "../../utils/logger";
 
 export default function RepairInvoiceDetailsScreen({ route, navigation }: any) {
   const { invoiceId } = route.params;
   const { user } = useAuth();
-  const { t } = useI18n();
+  const { t, formatCurrency } = useI18n();
   const isProvider = user?.role === "PROVIDER";
 
   const [loading, setLoading] = useState(true);
@@ -43,7 +44,7 @@ export default function RepairInvoiceDetailsScreen({ route, navigation }: any) {
       const res = await fdacsService.getInvoice(invoiceId);
       setInvoice(res.data?.invoice || null);
     } catch (error) {
-      console.error("Error loading invoice:", error);
+      log.error("Error loading invoice:", error);
     } finally {
       setLoading(false);
     }
@@ -231,7 +232,7 @@ export default function RepairInvoiceDetailsScreen({ route, navigation }: any) {
                   )}
                 </View>
                 <Text style={styles.lineItemAmount}>
-                  ${Number(item.amount).toFixed(2)}
+                  {formatCurrency(Number(item.amount))}
                 </Text>
               </View>
             ))
@@ -245,7 +246,7 @@ export default function RepairInvoiceDetailsScreen({ route, navigation }: any) {
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>{t.fdacs.originalEstimate}</Text>
             <Text style={styles.totalValue}>
-              ${Number(invoice.originalTotal).toFixed(2)}
+              {formatCurrency(Number(invoice.originalTotal))}
             </Text>
           </View>
           {hasSupplement && (
@@ -254,14 +255,14 @@ export default function RepairInvoiceDetailsScreen({ route, navigation }: any) {
                 {t.fdacs.supplements}
               </Text>
               <Text style={[styles.totalValue, { color: "#f59e0b" }]}>
-                +${Number(invoice.supplementsTotal).toFixed(2)}
+                +{formatCurrency(Number(invoice.supplementsTotal))}
               </Text>
             </View>
           )}
           <View style={[styles.totalRow, styles.totalFinal]}>
             <Text style={styles.totalFinalLabel}>{t.fdacs.finalTotal}</Text>
             <Text style={styles.totalFinalValue}>
-              ${Number(invoice.finalTotal).toFixed(2)}
+              {formatCurrency(Number(invoice.finalTotal))}
             </Text>
           </View>
         </View>

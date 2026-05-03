@@ -26,7 +26,10 @@ export default function CarWashReviewScreen({ route, navigation }: any) {
 
   const handleSubmit = async () => {
     if (rating === 0) {
-      Alert.alert('Rating Required', 'Please select a star rating before submitting.');
+      Alert.alert(
+        t.carWash?.ratingRequiredTitle || 'Rating required',
+        t.carWash?.ratingRequired || 'Please select a star rating before submitting.',
+      );
       return;
     }
 
@@ -35,14 +38,16 @@ export default function CarWashReviewScreen({ route, navigation }: any) {
       await carWashService.createReview(carWashId, rating, comment.trim() || undefined);
 
       Alert.alert(
-        'Review Submitted',
-        'Thank you for your review!',
-        [{ text: 'OK', onPress: () => navigation.goBack() }],
+        t.carWash?.reviewSubmitted || 'Review submitted',
+        t.carWash?.thankYouReview || 'Thank you for your review!',
+        [{ text: t.common?.ok || 'OK', onPress: () => navigation.goBack() }],
       );
     } catch (error: any) {
       const message =
-        error?.response?.data?.message || 'Failed to submit review. Please try again.';
-      Alert.alert('Error', message);
+        error?.response?.data?.message ||
+        t.carWash?.reviewSubmitFailed ||
+        'Failed to submit review. Please try again.';
+      Alert.alert(t.common?.error || 'Error', message);
     } finally {
       setLoading(false);
     }

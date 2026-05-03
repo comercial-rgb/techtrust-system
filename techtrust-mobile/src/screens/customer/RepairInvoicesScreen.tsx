@@ -16,9 +16,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useI18n } from "../../i18n";
 import * as fdacsService from "../../services/fdacs.service";
+import { log } from "../../utils/logger";
 
 export default function RepairInvoicesScreen({ navigation }: any) {
-  const { t } = useI18n();
+  const { t, formatDate, formatCurrency } = useI18n();
   const [loading, setLoading] = useState(true);
   const [invoices, setInvoices] = useState<fdacsService.RepairInvoice[]>([]);
 
@@ -34,7 +35,7 @@ export default function RepairInvoicesScreen({ navigation }: any) {
       const res = await fdacsService.getMyInvoices();
       setInvoices(res.data?.invoices || []);
     } catch (error) {
-      console.error("Error loading invoices:", error);
+      log.error("Error loading invoices:", error);
     } finally {
       setLoading(false);
     }
@@ -108,14 +109,14 @@ export default function RepairInvoicesScreen({ navigation }: any) {
           <View>
             <Text style={styles.amountLabel}>{t.fdacs.original}</Text>
             <Text style={styles.amountValue}>
-              ${Number(item.originalTotal).toFixed(2)}
+              {formatCurrency(Number(item.originalTotal))}
             </Text>
           </View>
           {hasSupplement && (
             <View>
               <Text style={styles.amountLabel}>{t.fdacs.supplements}</Text>
               <Text style={[styles.amountValue, { color: "#f59e0b" }]}>
-                +${Number(item.supplementsTotal).toFixed(2)}
+                +{formatCurrency(Number(item.supplementsTotal))}
               </Text>
             </View>
           )}
@@ -127,7 +128,7 @@ export default function RepairInvoicesScreen({ navigation }: any) {
                 { color: "#10b981", fontWeight: "700" },
               ]}
             >
-              ${Number(item.finalTotal).toFixed(2)}
+              {formatCurrency(Number(item.finalTotal))}
             </Text>
           </View>
         </View>
@@ -137,7 +138,7 @@ export default function RepairInvoicesScreen({ navigation }: any) {
             {item.providerBusinessName || item.providerName}
           </Text>
           <Text style={styles.dateText}>
-            {new Date(item.createdAt).toLocaleDateString()}
+            {formatDate(item.createdAt)}
           </Text>
         </View>
       </TouchableOpacity>

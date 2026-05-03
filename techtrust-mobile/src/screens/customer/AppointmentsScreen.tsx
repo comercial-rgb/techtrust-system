@@ -18,6 +18,7 @@ import { useI18n } from "../../i18n";
 import * as fdacsService from "../../services/fdacs.service";
 import api from "../../services/api";
 import { useAuth } from "../../contexts/AuthContext";
+import { log } from "../../utils/logger";
 
 interface WorkOrderItem {
   id: string;
@@ -42,7 +43,7 @@ interface WorkOrderItem {
 }
 
 export default function AppointmentsScreen({ navigation }: any) {
-  const { t } = useI18n();
+  const { t, formatDate, formatCurrency } = useI18n();
   const { user } = useAuth();
   const isProvider = user?.role === "PROVIDER";
   const [loading, setLoading] = useState(true);
@@ -72,7 +73,7 @@ export default function AppointmentsScreen({ navigation }: any) {
         setWorkOrders(orders);
       }
     } catch (error) {
-      console.error("Error loading appointments:", error);
+      log.error("Error loading appointments:", error);
     } finally {
       setLoading(false);
     }
@@ -176,8 +177,10 @@ export default function AppointmentsScreen({ navigation }: any) {
         <View style={styles.infoRow}>
           <Ionicons name="calendar-outline" size={16} color="#6b7280" />
           <Text style={styles.infoText}>
-            {date.toLocaleDateString()}
-            {item.scheduledTime ? ` at ${item.scheduledTime}` : ""}
+            {formatDate(date)}
+            {item.scheduledTime
+              ? `${t.fdacs?.timePrefix || " at "}${item.scheduledTime}`
+              : ""}
           </Text>
         </View>
 
@@ -203,7 +206,7 @@ export default function AppointmentsScreen({ navigation }: any) {
           <View style={styles.feeRow}>
             <Text style={styles.feeLabel}>{t.fdacs.diagnosticFeeLabel}</Text>
             <Text style={styles.feeValue}>
-              ${Number(item.diagnosticFee).toFixed(2)}
+              {formatCurrency(Number(item.diagnosticFee))}
               {item.feeWaivedOnService && (
                 <Text style={styles.waived}> {t.fdacs.waivedIfCompleted}</Text>
               )}
@@ -301,8 +304,10 @@ export default function AppointmentsScreen({ navigation }: any) {
                   <View style={styles.infoRow}>
                     <Ionicons name="calendar-outline" size={16} color="#6b7280" />
                     <Text style={styles.infoText}>
-                      {new Date(wo.serviceRequest.preferredDate).toLocaleDateString()}
-                      {wo.serviceRequest.preferredTime ? ` at ${wo.serviceRequest.preferredTime}` : ""}
+                      {formatDate(wo.serviceRequest.preferredDate)}
+                      {wo.serviceRequest.preferredTime
+                        ? `${t.fdacs?.timePrefix || " at "}${wo.serviceRequest.preferredTime}`
+                        : ""}
                     </Text>
                   </View>
                 )}
@@ -340,8 +345,10 @@ export default function AppointmentsScreen({ navigation }: any) {
                         <View style={styles.infoRow}>
                           <Ionicons name="calendar-outline" size={16} color="#6b7280" />
                           <Text style={styles.infoText}>
-                            {date.toLocaleDateString()}
-                            {appt.scheduledTime ? ` at ${appt.scheduledTime}` : ""}
+                            {formatDate(date)}
+                            {appt.scheduledTime
+                              ? `${t.fdacs?.timePrefix || " at "}${appt.scheduledTime}`
+                              : ""}
                           </Text>
                         </View>
                       </TouchableOpacity>

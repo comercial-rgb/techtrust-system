@@ -20,7 +20,9 @@ import AddVehicleScreen from "../screens/AddVehicleScreen";
 import VehicleDetailsScreen from "../screens/VehicleDetailsScreen";
 import VehicleTransferScreen from "../screens/VehicleTransferScreen";
 import InsuranceScreen from "../screens/InsuranceScreen";
-import CreateRequestScreen from "../screens/CreateRequestScreen";import ServiceChoiceScreen from '../screens/ServiceChoiceScreen';import RequestDetailsScreen from "../screens/RequestDetailsScreen";
+import CreateRequestScreen from "../screens/CreateRequestScreen";
+import ServiceChoiceScreen from "../screens/ServiceChoiceScreen";
+import RequestDetailsScreen from "../screens/RequestDetailsScreen";
 import WorkOrderDetailsScreen from "../screens/WorkOrderDetailsScreen";
 import PaymentScreen from "../screens/PaymentScreen";
 import RatingScreen from "../screens/RatingScreen";
@@ -180,7 +182,10 @@ function WorkOrdersStack() {
         component={WorkOrderDetailsScreen}
       />
       <Stack.Screen name="Payment" component={PaymentScreen} />
-      <Stack.Screen name="ServiceApproval" component={ServiceApprovalScreen} />
+      <Stack.Screen
+        name="ServiceApproval"
+        component={ServiceApprovalScreen as React.ComponentType<any>}
+      />
       <Stack.Screen name="Rating" component={RatingScreen} />
       <Stack.Screen name="RepairInvoices" component={RepairInvoicesScreen} />
       <Stack.Screen

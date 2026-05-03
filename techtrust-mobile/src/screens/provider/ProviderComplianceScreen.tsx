@@ -3,7 +3,7 @@
  * Dynamic multi-state compliance: shows requirements based on jurisdiction
  */
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -31,54 +31,27 @@ import {
   InsuranceRequirement,
   Technician,
 } from "../../services/compliance.service";
+import { log } from "../../utils/logger";
+import { useI18n, translate, type Language } from "../../i18n";
+import { interpolate } from "../../i18n/interpolate";
 
-const REASON_CODE_LABELS: Record<string, string> = {
-  EPA_609_MISSING: 'EPA 609 certification required for A/C work',
-  GENERAL_LIABILITY_NOT_PROVIDED: 'General liability insurance not declared',
-  GENERAL_LIABILITY_EXPIRED: 'General liability insurance is expired',
-  COMMERCIAL_AUTO_INSURANCE_MISSING: 'Commercial auto insurance required',
-  ON_HOOK_INSURANCE_MISSING: 'On-hook/towing insurance required',
-  STATE_REGISTRATION_EXPIRED: 'State shop registration is expired',
-  FDACS_MISSING: 'FDACS Motor Vehicle Repair license required',
-  BTR_CITY_MISSING: 'City Business Tax Receipt required',
-  BTR_COUNTY_MISSING: 'County Business Tax Receipt required',
-};
-
-const SERVICE_TYPE_LABELS: Record<string, string> = {
-  AC_SERVICE: 'A/C Service',
-  OIL_CHANGE: 'Oil Change',
-  BRAKE_SERVICE: 'Brake Service',
-  TIRE_SERVICE: 'Tire Service',
-  BATTERY_SERVICE: 'Battery Service',
-  ENGINE_REPAIR: 'Engine Repair',
-  TRANSMISSION: 'Transmission',
-  ELECTRICAL: 'Electrical',
-  ALIGNMENT: 'Alignment',
-  EXHAUST: 'Exhaust',
-  SUSPENSION: 'Suspension',
-  BODY_WORK: 'Body Work',
-  PAINT: 'Paint',
-  DETAILING: 'Detailing',
-  TOWING: 'Towing',
-  ROADSIDE_ASSIST: 'Roadside Assist',
-  INSPECTION: 'Inspection',
-  DIAGNOSTICS: 'Diagnostics',
-  GENERAL_REPAIR: 'General Repair',
-};
-
-const BUSINESS_TYPE_LABELS: Record<string, string> = {
-  AUTO_REPAIR:    'Auto Repair Shop',
-  BODY_SHOP:      'Body Shop',
-  MOBILE_MECHANIC:'Mobile Mechanic',
-  TOWING:         'Towing Company',
-  DETAILING:      'Auto Detailing',
-  TIRE_SHOP:      'Tire Shop',
-  OIL_CHANGE:     'Quick Lube / Oil Change',
-  AUTO_ELECTRIC:  'Auto Electric',
-  MULTI_SERVICE:  'Multi-Service Shop',
-};
+function providerComplianceString(
+  subKey: string,
+  language: Language,
+): string | undefined {
+  const path = `providerCompliance.${subKey}`;
+  let v = translate(path, language);
+  if (v !== path) return v;
+  v = translate(path, "en");
+  if (v !== path) return v;
+  return undefined;
+}
 
 export default function ProviderComplianceScreen({ navigation }: any) {
+  const { t, language, formatDate } = useI18n();
+  const tc = (t as any).providerCompliance || ({} as Record<string, string | undefined>);
+  const tim = (t as any).insuranceManagement || {};
+  const tm = (t as any).technicianManagement || {};
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [complianceItems, setComplianceItems] = useState<ComplianceItem[]>([]);
@@ -110,7 +83,7 @@ export default function ProviderComplianceScreen({ navigation }: any) {
         setBusinessType(res.data.businessType || null);
       }
     } catch (error: any) {
-      console.error("Error fetching compliance:", error);
+      log.error("Error fetching compliance:", error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -123,35 +96,53 @@ export default function ProviderComplianceScreen({ navigation }: any) {
     }, [fetchData]),
   );
 
-  // FL requirements vary by business type. Only ComplianceType enum values:
-  // FDACS_MOTOR_VEHICLE_REPAIR | LOCAL_BTR_CITY | LOCAL_BTR_COUNTY | EPA_609_TECHNICIAN | STATE_SHOP_REGISTRATION
-  const getFloridaRequirements = (bType: string | null) => {
-    const type = (bType || 'AUTO_REPAIR').toUpperCase();
+  const FLORIDA_REQUIREMENTS = useMemo(() => {
+    const type = (businessType || "AUTO_REPAIR").toUpperCase();
     const btr = [
-      { type: 'LOCAL_BTR_COUNTY', name: 'Business Tax Receipt – County (BTR)', required: true,  icon: 'document-text' },
-      { type: 'LOCAL_BTR_CITY',   name: 'Business Tax Receipt – City (BTR)',   required: true,  icon: 'document-text' },
+      {
+        type: "LOCAL_BTR_COUNTY",
+        name: tc.flBtrCounty || "Business Tax Receipt – County (BTR)",
+        required: true,
+        icon: "document-text",
+      },
+      {
+        type: "LOCAL_BTR_CITY",
+        name: tc.flBtrCity || "Business Tax Receipt – City (BTR)",
+        required: true,
+        icon: "document-text",
+      },
     ];
-    if (type === 'DETAILING') {
-      // Auto detailing is NOT covered by FL Motor Vehicle Repair Act — only BTR needed
+    if (type === "DETAILING") {
       return [...btr];
     }
-    if (type === 'TOWING') {
-      // Towing in FL is regulated by FDACS under Wrecker Operations (F.S. 323), not the MV Repair Act
+    if (type === "TOWING") {
       return [
-        { type: 'STATE_SHOP_REGISTRATION', name: 'FL Wrecker / Towing Permit (FDACS)', required: true, icon: 'shield' },
+        {
+          type: "STATE_SHOP_REGISTRATION",
+          name: tc.flWreckerPermit || "FL Wrecker / Towing Permit (FDACS)",
+          required: true,
+          icon: "shield",
+        },
         ...btr,
       ];
     }
-    // AUTO_REPAIR, BODY_SHOP, TIRE_SHOP, OIL_CHANGE, MOBILE_MECHANIC, AUTO_ELECTRIC, MULTI_SERVICE
-    const epa609Required = ['AUTO_REPAIR', 'MULTI_SERVICE', 'AUTO_ELECTRIC'].includes(type);
+    const epa609Required = ["AUTO_REPAIR", "MULTI_SERVICE", "AUTO_ELECTRIC"].includes(type);
     return [
-      { type: 'FDACS_MOTOR_VEHICLE_REPAIR', name: 'FDACS Motor Vehicle Repair License', required: true,  icon: 'shield' },
+      {
+        type: "FDACS_MOTOR_VEHICLE_REPAIR",
+        name: tc.flFdacsRepair || "FDACS Motor Vehicle Repair License",
+        required: true,
+        icon: "shield",
+      },
       ...btr,
-      { type: 'EPA_609_TECHNICIAN', name: 'EPA Section 609 Certification (A/C work)', required: epa609Required, icon: 'leaf' },
+      {
+        type: "EPA_609_TECHNICIAN",
+        name: tc.flEpa609 || "EPA Section 609 Certification (A/C work)",
+        required: epa609Required,
+        icon: "leaf",
+      },
     ];
-  };
-
-  const FLORIDA_REQUIREMENTS = getFloridaRequirements(businessType);
+  }, [businessType, tc]);
 
   const isFloridaProvider = jurisdiction?.stateCode === 'FL' || jurisdiction?.stateName?.toLowerCase().includes('florida');
 
@@ -166,8 +157,9 @@ export default function ProviderComplianceScreen({ navigation }: any) {
       // Only alert if we still have nothing after attempting creation
       if (complianceItems.length === 0) {
         Alert.alert(
-          "Setup Required",
-          "Could not auto-generate items. Make sure your address is saved in Edit Profile, then try again.",
+          tc.setupRequiredTitle || "Setup Required",
+          tc.setupRequiredBody ||
+            "Could not auto-generate items. Make sure your address is saved in Edit Profile, then try again.",
         );
       }
     } finally {
@@ -192,16 +184,28 @@ export default function ProviderComplianceScreen({ navigation }: any) {
       }
     } catch {
       setLoading(false);
-      Alert.alert("Error", "Could not create compliance item. Please try again.");
+      Alert.alert(
+        t.common?.error || "Error",
+        t.provider?.createComplianceItemFailed ||
+          "Could not create compliance item. Please try again.",
+      );
     }
   };
 
   const getStatusBadge = (status: string) => {
     const info = getComplianceStatusLabel(status);
+    const labelMap: Record<string, string | undefined> = {
+      VERIFIED: tc.itemStatusVerified,
+      PROVIDED_UNVERIFIED: tc.itemStatusUnderReview,
+      COMPLIANCE_PENDING: tc.itemStatusPending,
+      NOT_APPLICABLE: tc.itemStatusNA,
+      EXPIRED: tc.itemStatusExpired,
+    };
+    const label = labelMap[status] || info.label;
     return (
       <View style={[styles.badge, { backgroundColor: info.color + "20" }]}>
         <Text style={[styles.badgeText, { color: info.color }]}>
-          {info.label}
+          {label}
         </Text>
       </View>
     );
@@ -209,27 +213,56 @@ export default function ProviderComplianceScreen({ navigation }: any) {
 
   const getInsuranceBadge = (status: string) => {
     const info = getInsuranceStatusLabel(status);
+    const labelMap: Record<string, string | undefined> = {
+      INS_VERIFIED: tc.insStatusVerified,
+      INS_PROVIDED_UNVERIFIED: tc.insStatusUnderReview,
+      INS_NOT_PROVIDED: tc.insStatusNotProvided,
+      INS_EXPIRED: tc.insStatusExpired,
+    };
+    const label = labelMap[status] || info.label;
     return (
       <View style={[styles.badge, { backgroundColor: info.color + "20" }]}>
         <Text style={[styles.badgeText, { color: info.color }]}>
-          {info.label}
+          {label}
         </Text>
       </View>
     );
   };
 
+  const localizedComplianceTitle = (item: ComplianceItem) => {
+    const raw = getComplianceDisplayName(item, requiredItems);
+    const loc = (tc as any)[`complianceType_${item.type}`] as string | undefined;
+    if (loc && raw === COMPLIANCE_TYPE_LABELS[item.type]) return loc;
+    return loc || raw;
+  };
+
+  const businessTypeLabel =
+    (businessType &&
+      (((tc as any)[`biz_${businessType}`] as string | undefined) ||
+        providerComplianceString(`biz_${businessType}`, language))) ||
+    businessType ||
+    undefined;
+
   const getOverallBadge = () => {
     const map: Record<string, { label: string; color: string; icon: string }> =
       {
         VERIFIED: {
-          label: "Verified",
+          label: tc.overallVerified || "Verified",
           color: "#16a34a",
           icon: "shield-checkmark",
         },
-        PENDING: { label: "Pending", color: "#d97706", icon: "time" },
-        RESTRICTED: { label: "Restricted", color: "#dc2626", icon: "warning" },
+        PENDING: {
+          label: tc.overallPending || "Pending",
+          color: "#d97706",
+          icon: "time",
+        },
+        RESTRICTED: {
+          label: tc.overallRestricted || "Restricted",
+          color: "#dc2626",
+          icon: "warning",
+        },
         NOT_ELIGIBLE: {
-          label: "Not Eligible",
+          label: tc.overallNotEligible || "Not Eligible",
           color: "#6b7280",
           icon: "close-circle",
         },
@@ -260,7 +293,9 @@ export default function ProviderComplianceScreen({ navigation }: any) {
           >
             <Ionicons name="arrow-back" size={24} color="#1f2937" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Compliance & Licensing</Text>
+          <Text style={styles.headerTitle}>
+            {tc.screenTitle || "Compliance & Licensing"}
+          </Text>
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.centered}>
@@ -279,7 +314,9 @@ export default function ProviderComplianceScreen({ navigation }: any) {
         >
           <Ionicons name="arrow-back" size={24} color="#1f2937" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Compliance & Licensing</Text>
+        <Text style={styles.headerTitle}>
+          {tc.screenTitle || "Compliance & Licensing"}
+        </Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -297,19 +334,24 @@ export default function ProviderComplianceScreen({ navigation }: any) {
       >
         {/* Overall Status */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Overall Status</Text>
+          <Text style={styles.sectionTitle}>
+            {tc.overallStatusTitle || "Overall Status"}
+          </Text>
           {getOverallBadge()}
           {jurisdiction && (
             <Text style={{ fontSize: 12, color: '#6b7280', marginTop: 4, textAlign: 'center' }}>
-              {jurisdiction.stateName}{jurisdiction.countyName ? ` · ${jurisdiction.countyName} County` : ''}
-              {jurisdiction.isActiveState ? '' : ' (State not yet active)'}
+              {jurisdiction.stateName}{jurisdiction.countyName ? ` · ${jurisdiction.countyName}${tc.countySuffix || " County"}` : ''}
+              {jurisdiction.isActiveState ? '' : (tc.stateNotActive || " (State not yet active)")}
             </Text>
           )}
           {businessType && (
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 8, gap: 6 }}>
               <Ionicons name="business-outline" size={14} color="#6b7280" />
               <Text style={{ fontSize: 12, color: '#6b7280' }}>
-                {BUSINESS_TYPE_LABELS[businessType] || businessType} · Requirements shown below
+                {interpolate(
+                  tc.businessHint || "{{type}} · Requirements shown below",
+                  { type: businessTypeLabel || businessType || "" },
+                )}
               </Text>
             </View>
           )}
@@ -318,26 +360,30 @@ export default function ProviderComplianceScreen({ navigation }: any) {
         <View style={styles.taxNoticeCard}>
           <View style={styles.guideHeader}>
             <Ionicons name="receipt-outline" size={18} color="#1d4ed8" />
-            <Text style={styles.taxNoticeTitle}>Marketplace tax collection</Text>
+            <Text style={styles.taxNoticeTitle}>
+              {tc.taxNoticeTitle || "Marketplace tax collection"}
+            </Text>
           </View>
           <Text style={styles.taxNoticeText}>
-            TechTrust collects applicable Florida marketplace sales tax on taxable parts and supplies,
-            stores the tax records, and prepares reporting through QuickBooks. Do not add sales tax on
-            top of your quote price; enter parts, labor, fees, and supplies separately so tax is calculated
-            at checkout.
+            {tc.taxNoticeBody ||
+              "TechTrust collects applicable Florida marketplace sales tax on taxable parts and supplies, stores the tax records, and prepares reporting through QuickBooks. Do not add sales tax on top of your quote price; enter parts, labor, fees, and supplies separately so tax is calculated at checkout."}
           </Text>
         </View>
 
         {/* Compliance Items */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Compliance Items</Text>
+            <Text style={styles.sectionTitle}>
+              {tc.sectionComplianceItems || "Compliance Items"}
+            </Text>
             <TouchableOpacity
               style={styles.manageBtn}
               onPress={handleManageCompliance}
             >
               <Text style={styles.manageBtnText}>
-                {complianceItems.length === 0 ? "Set Up" : "Manage"}
+                {complianceItems.length === 0
+                  ? tc.setUp || "Set Up"
+                  : tc.manage || "Manage"}
               </Text>
               <Ionicons name="chevron-forward" size={16} color="#2B5EA7" />
             </TouchableOpacity>
@@ -350,11 +396,20 @@ export default function ProviderComplianceScreen({ navigation }: any) {
                   <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4, gap: 8 }}>
                     <Ionicons name="flag" size={18} color="#2B5EA7" />
                     <Text style={{ fontSize: 15, fontWeight: '700', color: '#2B5EA7' }}>
-                    Florida Requirements{businessType ? ` · ${BUSINESS_TYPE_LABELS[businessType] || businessType}` : ''}
+                    {tc.floridaRequirementsTitle || "Florida Requirements"}
+                    {businessType
+                      ? (tc.floridaRequirementsTitleSuffix || " · {{type}}").replace(
+                          "{{type}}",
+                          businessTypeLabel || businessType,
+                        )
+                      : ""}
                   </Text>
                   </View>
                   <Text style={{ fontSize: 12, color: '#6b7280', marginBottom: 12 }}>
-                    Tap each item to upload your documents. {!businessType && 'Set your shop type in Settings → Edit Profile for tailored requirements.'}
+                    {tc.floridaTapHint || "Tap each item to upload your documents."}
+                    {!businessType
+                      ? ` ${tc.floridaSetShopHint || "Set your shop type in Settings → Edit Profile for tailored requirements."}`
+                      : ""}
                   </Text>
                   {FLORIDA_REQUIREMENTS.map((req) => (
                     <TouchableOpacity
@@ -368,7 +423,9 @@ export default function ProviderComplianceScreen({ navigation }: any) {
                       </Text>
                       {req.required ? (
                         <View style={{ backgroundColor: '#fef2f2', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
-                          <Text style={{ fontSize: 10, color: '#dc2626', fontWeight: '600' }}>Required</Text>
+                          <Text style={{ fontSize: 10, color: '#dc2626', fontWeight: '600' }}>
+                            {tc.required || "Required"}
+                          </Text>
                         </View>
                       ) : (
                         <Ionicons name="add-circle-outline" size={16} color="#9ca3af" />
@@ -379,11 +436,15 @@ export default function ProviderComplianceScreen({ navigation }: any) {
               )}
               <View style={styles.emptyCard}>
                 <Ionicons name="document-text-outline" size={32} color="#9ca3af" />
-                <Text style={styles.emptyText}>No compliance items yet</Text>
+                <Text style={styles.emptyText}>
+                  {tc.emptyNoItems || "No compliance items yet"}
+                </Text>
                 <Text style={styles.emptySubtext}>
                   {isFloridaProvider
-                    ? "Tap a requirement above to upload documents, or use Set Up to generate all items at once"
-                    : "Tap Set Up to generate required items for your location"}
+                    ? tc.emptySubFl ||
+                      "Tap a requirement above to upload documents, or use Set Up to generate all items at once"
+                    : tc.emptySubGeneral ||
+                      "Tap Set Up to generate required items for your location"}
                 </Text>
               </View>
             </View>
@@ -407,24 +468,29 @@ export default function ProviderComplianceScreen({ navigation }: any) {
                     color="#2B5EA7"
                   />
                   <Text style={styles.cardTitle}>
-                    {getComplianceDisplayName(item, requiredItems)}
+                    {localizedComplianceTitle(item)}
                   </Text>
                   {getStatusBadge(item.status)}
                 </View>
                 {(item.registrationNumber || item.licenseNumber) && (
                   <Text style={styles.cardDetail}>
-                    Reg #: {item.registrationNumber || item.licenseNumber}
+                    {tc.regNumber || "Reg #:"}{" "}
+                    {item.registrationNumber || item.licenseNumber}
                   </Text>
                 )}
                 {item.expirationDate && (
                   <Text style={styles.cardDetail}>
-                    Expires:{" "}
-                    {new Date(item.expirationDate).toLocaleDateString()}
+                    {tc.expires || "Expires:"}{" "}
+                    {formatDate(item.expirationDate)}
                   </Text>
                 )}
                 <View style={styles.cardFooter}>
                   <Text style={styles.cardFooterText}>
-                    {item.documentUploads?.length || 0} document(s) uploaded
+                    {interpolate(
+                      tc.documentsUploaded ||
+                        "{{count}} document(s) uploaded",
+                      { count: item.documentUploads?.length || 0 },
+                    )}
                   </Text>
                   <Ionicons name="chevron-forward" size={16} color="#9ca3af" />
                 </View>
@@ -436,12 +502,14 @@ export default function ProviderComplianceScreen({ navigation }: any) {
         {/* Insurance Policies */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Insurance Coverage</Text>
+            <Text style={styles.sectionTitle}>
+              {tc.sectionInsurance || "Insurance Coverage"}
+            </Text>
             <TouchableOpacity
               style={styles.manageBtn}
               onPress={() => navigation.navigate("InsuranceManagement")}
             >
-              <Text style={styles.manageBtnText}>Manage</Text>
+              <Text style={styles.manageBtnText}>{tc.manage || "Manage"}</Text>
               <Ionicons name="chevron-forward" size={16} color="#2B5EA7" />
             </TouchableOpacity>
           </View>
@@ -450,7 +518,9 @@ export default function ProviderComplianceScreen({ navigation }: any) {
             <View style={styles.insuranceGuideCard}>
               <View style={styles.guideHeader}>
                 <Ionicons name="shield-checkmark" size={18} color="#92400e" />
-                <Text style={styles.guideTitle}>Required for your services</Text>
+                <Text style={styles.guideTitle}>
+                  {tc.guideRequiredServices || "Required for your services"}
+                </Text>
               </View>
               {insuranceRequirements.slice(0, 4).map((item) => (
                 <View key={item.type} style={styles.guideRow}>
@@ -470,7 +540,9 @@ export default function ProviderComplianceScreen({ navigation }: any) {
                         item.level === "REQUIRED" ? styles.guidePillTextRequired : styles.guidePillTextRecommended,
                       ]}
                     >
-                      {item.level === "REQUIRED" ? "Required" : "Recommended"}
+                      {item.level === "REQUIRED"
+                        ? tc.required || "Required"
+                        : tim.recommended || "Recommended"}
                     </Text>
                   </View>
                 </View>
@@ -479,7 +551,9 @@ export default function ProviderComplianceScreen({ navigation }: any) {
                 style={styles.guideAction}
                 onPress={() => navigation.navigate("InsuranceManagement")}
               >
-                <Text style={styles.guideActionText}>Manage insurance guide</Text>
+                <Text style={styles.guideActionText}>
+                  {tc.guideManageInsurance || "Manage insurance guide"}
+                </Text>
                 <Ionicons name="chevron-forward" size={15} color="#92400e" />
               </TouchableOpacity>
             </View>
@@ -489,13 +563,15 @@ export default function ProviderComplianceScreen({ navigation }: any) {
             <View style={styles.emptyCard}>
               <Ionicons name="shield-outline" size={32} color="#9ca3af" />
               <Text style={styles.emptyText}>
-                No insurance policies declared
+                {tc.noPoliciesDeclared || "No insurance policies declared"}
               </Text>
               <TouchableOpacity
                 style={styles.addButton}
                 onPress={() => navigation.navigate("InsuranceManagement")}
               >
-                <Text style={styles.addButtonText}>Declare Insurance</Text>
+                <Text style={styles.addButtonText}>
+                  {tc.declareInsurance || "Declare Insurance"}
+                </Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -508,18 +584,20 @@ export default function ProviderComplianceScreen({ navigation }: any) {
                     color={policy.hasCoverage ? "#16a34a" : "#9ca3af"}
                   />
                   <Text style={styles.cardTitle}>
-                    {INSURANCE_TYPE_LABELS[policy.type] || policy.type}
+                    {(tim.typeLabels && tim.typeLabels[policy.type]) ||
+                      INSURANCE_TYPE_LABELS[policy.type] ||
+                      policy.type}
                   </Text>
                   {getInsuranceBadge(policy.status)}
                 </View>
                 {policy.hasCoverage && policy.carrierName && (
                   <Text style={styles.cardDetail}>
-                    Carrier: {policy.carrierName}
+                    {tc.carrier || "Carrier:"} {policy.carrierName}
                   </Text>
                 )}
                 {!policy.hasCoverage && (
                   <Text style={[styles.cardDetail, { color: "#d97706" }]}>
-                    No coverage declared
+                    {tc.noCoverageDeclared || "No coverage declared"}
                   </Text>
                 )}
               </View>
@@ -531,7 +609,10 @@ export default function ProviderComplianceScreen({ navigation }: any) {
               onPress={() => navigation.navigate("InsuranceManagement")}
             >
               <Text style={styles.viewAllText}>
-                View all {insurancePolicies.length} policies
+                {interpolate(
+                  tc.viewAllPolicies || "View all {{count}} policies",
+                  { count: insurancePolicies.length },
+                )}
               </Text>
             </TouchableOpacity>
           )}
@@ -540,12 +621,14 @@ export default function ProviderComplianceScreen({ navigation }: any) {
         {/* Technicians */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Technicians</Text>
+            <Text style={styles.sectionTitle}>
+              {tc.sectionTechnicians || "Technicians"}
+            </Text>
             <TouchableOpacity
               style={styles.manageBtn}
               onPress={() => navigation.navigate("TechnicianManagement")}
             >
-              <Text style={styles.manageBtnText}>Manage</Text>
+              <Text style={styles.manageBtnText}>{tc.manage || "Manage"}</Text>
               <Ionicons name="chevron-forward" size={16} color="#2B5EA7" />
             </TouchableOpacity>
           </View>
@@ -553,17 +636,21 @@ export default function ProviderComplianceScreen({ navigation }: any) {
           {technicians.length === 0 ? (
             <View style={styles.emptyCard}>
               <Ionicons name="people-outline" size={32} color="#9ca3af" />
-              <Text style={styles.emptyText}>No technicians registered</Text>
+              <Text style={styles.emptyText}>
+                {tc.noTechnicians || "No technicians registered"}
+              </Text>
               <TouchableOpacity
                 style={styles.addButton}
                 onPress={() => navigation.navigate("TechnicianManagement")}
               >
-                <Text style={styles.addButtonText}>Add Technician</Text>
+                <Text style={styles.addButtonText}>
+                  {tc.addTechnician || "Add Technician"}
+                </Text>
               </TouchableOpacity>
             </View>
           ) : (
             technicians
-              .filter((t) => t.isActive)
+              .filter((tech) => tech.isActive)
               .slice(0, 3)
               .map((tech) => (
                 <View key={tech.id} style={styles.card}>
@@ -572,10 +659,20 @@ export default function ProviderComplianceScreen({ navigation }: any) {
                     <Text style={styles.cardTitle}>{tech.fullName}</Text>
                     {getStatusBadge(tech.epa609Status)}
                   </View>
-                  <Text style={styles.cardDetail}>{tech.role}</Text>
+                  <Text style={styles.cardDetail}>
+                    {(
+                      {
+                        LEAD_TECHNICIAN: tm.roleLeadTechnician,
+                        TECHNICIAN: tm.roleTechnician,
+                        APPRENTICE: tm.roleApprentice,
+                        HELPER: tm.roleHelper,
+                        OTHER_ROLE: tm.roleOther,
+                      } as Record<string, string | undefined>
+                    )[tech.role] || tech.role.replace(/_/g, " ")}
+                  </Text>
                   {tech.epa609CertNumber && (
                     <Text style={styles.cardDetail}>
-                      EPA 609: {tech.epa609CertNumber}
+                      {tc.epaPrefix || "EPA 609:"} {tech.epa609CertNumber}
                     </Text>
                   )}
                 </View>
@@ -586,7 +683,9 @@ export default function ProviderComplianceScreen({ navigation }: any) {
         {/* Service Gating */}
         {Object.keys(serviceGating).length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Service Eligibility</Text>
+            <Text style={styles.sectionTitle}>
+              {tc.sectionServiceEligibility || "Service Eligibility"}
+            </Text>
             {Object.entries(serviceGating).map(([service, gate]) => (
               <View
                 key={service}
@@ -602,14 +701,20 @@ export default function ProviderComplianceScreen({ navigation }: any) {
                 />
                 <View style={styles.gateInfo}>
                   <Text style={styles.gateService}>
-                    {SERVICE_TYPE_LABELS[service] || service.replace(/_/g, " ")}
+                    {(tc as any)[`service_${service}`] ||
+                      providerComplianceString(`service_${service}`, language) ||
+                      service.replace(/_/g, " ")}
                   </Text>
                   {!gate.allowed && gate.reason && (() => {
                     const GL_SOFT_CODES = new Set(['GENERAL_LIABILITY_NOT_PROVIDED', 'GENERAL_LIABILITY_EXPIRED']);
                     const hardReasons = gate.reason.split(', ').filter(c => !GL_SOFT_CODES.has(c));
                     return hardReasons.length > 0 ? (
                       <Text style={styles.gateReason}>
-                        {hardReasons.map(c => REASON_CODE_LABELS[c] || c.replace(/_/g, ' ').toLowerCase()).join(' · ')}
+                        {hardReasons.map(c =>
+                          (tc as any)[`reason_${c}`] ||
+                          providerComplianceString(`reason_${c}`, language) ||
+                          c.replace(/_/g, ' ').toLowerCase(),
+                        ).join(' · ')}
                       </Text>
                     ) : null;
                   })()}

@@ -16,9 +16,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useI18n } from '../../i18n';
 import api from '../../services/api';
+import { log } from "../../utils/logger";
 
 // ─── Service definitions aligned with ServiceOffered enum ───
 // Updated per Mobile App Service & Diagnostic Tree — Feb 2026
@@ -67,27 +68,26 @@ const SERVICE_DEFINITIONS: ServiceDef[] = [
 // ─── Vehicle type definitions aligned with VehicleTypeServed enum ───
 interface VehicleTypeDef {
   key: string;
-  label: string;
   icon: string;
 }
 
 const VEHICLE_TYPES: VehicleTypeDef[] = [
-  { key: 'CAR', label: 'Car / Sedan', icon: 'car-side' },
-  { key: 'SUV', label: 'SUV / Crossover', icon: 'car-estate' },
-  { key: 'TRUCK', label: 'Pickup Truck', icon: 'truck' },
-  { key: 'VAN', label: 'Van / Minivan', icon: 'van-utility' },
-  { key: 'HEAVY_TRUCK', label: 'Heavy Truck / Semi', icon: 'truck-trailer' },
-  { key: 'BUS', label: 'Bus / RV', icon: 'bus' },
+  { key: 'CAR', icon: 'car-side' },
+  { key: 'SUV', icon: 'car-estate' },
+  { key: 'TRUCK', icon: 'truck' },
+  { key: 'VAN', icon: 'van-utility' },
+  { key: 'HEAVY_TRUCK', icon: 'truck-trailer' },
+  { key: 'BUS', icon: 'bus' },
 ];
 
 const CATEGORIES = [
-  { key: 'maintenance', label: 'Maintenance' },
-  { key: 'repairs', label: 'Repairs' },
-  { key: 'fluids', label: 'Fluid Services' },
-  { key: 'packages', label: 'Preventive Packages' },
-  { key: 'inspection', label: 'Inspection & Diagnostics' },
-  { key: 'detailing', label: 'Detailing' },
-  { key: 'sos', label: 'Roadside / SOS' },
+  { key: 'maintenance' },
+  { key: 'repairs' },
+  { key: 'fluids' },
+  { key: 'packages' },
+  { key: 'inspection' },
+  { key: 'detailing' },
+  { key: 'sos' },
 ] as const;
 
 export default function ProviderServicesScreen({ navigation }: any) {
@@ -122,7 +122,7 @@ export default function ProviderServicesScreen({ navigation }: any) {
         setSellsParts(profile.sellsParts || false);
       }
     } catch (error) {
-      console.error('Error loading profile:', error);
+      log.error('Error loading profile:', error);
     } finally {
       setLoading(false);
     }
@@ -191,7 +191,7 @@ export default function ProviderServicesScreen({ navigation }: any) {
       );
       navigation.goBack();
     } catch (error: any) {
-      console.error('Error saving profile:', error);
+      log.error('Error saving profile:', error);
       Alert.alert(
         t.common?.error || 'Error',
         error?.response?.data?.message || 'Failed to save. Please try again.',
@@ -205,22 +205,31 @@ export default function ProviderServicesScreen({ navigation }: any) {
   const getServiceName = (nameKey: string) => {
     const names: Record<string, string> = {
       oilChange: t.serviceTypes?.oilChange || 'Oil Change',
+      airFilter: t.serviceTypes?.airFilter || 'Air Filter',
+      fuelSystem: t.serviceTypes?.fuelSystem || 'Fuel System',
       brakes: t.serviceTypes?.brakes || 'Brakes',
+      coolingSystem: t.serviceTypes?.coolingSystem || 'Cooling System',
       tires: t.serviceTypes?.tires || 'Tires',
-      suspension: t.serviceTypes?.suspension || 'Suspension',
-      maintenanceLight: t.serviceTypes?.maintenanceLight || 'Maintenance / Warning Light',
+      beltsHoses: t.serviceTypes?.beltsHoses || 'Belts & Hoses',
+      airConditioning: t.serviceTypes?.airConditioning || 'Air Conditioning',
+      steeringSuspension: t.serviceTypes?.steeringSuspension || 'Steering & Suspension',
+      electricalSystem: t.serviceTypes?.electricalSystem || 'Electrical System',
+      exhaust: t.serviceTypes?.exhaust || 'Exhaust',
+      drivetrain: t.serviceTypes?.drivetrain || 'Drivetrain',
       engine: t.serviceTypes?.engine || 'Engine',
       transmission: t.serviceTypes?.transmission || 'Transmission',
-      electricalSystem: t.serviceTypes?.electricalSystem || 'Electrical System',
-      airConditioning: t.serviceTypes?.airConditioning || 'Air Conditioning',
-      generalRepair: t.serviceTypes?.generalRepair || 'General Repair',
       battery: t.serviceTypes?.battery || 'Battery',
+      generalRepair: t.serviceTypes?.generalRepair || 'General Repair',
+      fluidServices: t.serviceTypes?.fluidServices || 'Fluid Services',
+      preventiveMaintenance: t.serviceTypes?.preventiveMaintenance || 'Preventive Maintenance',
       vehicleInspection: t.serviceTypes?.vehicleInspection || 'Vehicle Inspection',
       diagnostics: t.serviceTypes?.diagnostics || 'Diagnostics',
       detailing: t.serviceTypes?.detailing || 'Detailing / Car Wash',
       roadsideAssistance: t.serviceTypes?.roadsideAssistance || 'Roadside Assistance',
       towing: t.serviceTypes?.towing || 'Towing',
       autoLocksmith: t.serviceTypes?.autoLocksmith || 'Auto Locksmith / Lockout',
+      suspension: t.serviceTypes?.suspension || 'Suspension',
+      maintenanceLight: t.serviceTypes?.maintenanceLight || 'Maintenance / Warning Light',
     };
     return names[nameKey] || nameKey;
   };
@@ -229,6 +238,8 @@ export default function ProviderServicesScreen({ navigation }: any) {
     const labels: Record<string, string> = {
       maintenance: t.serviceTypes?.categoryMaintenance || 'Maintenance',
       repairs: t.serviceTypes?.categoryRepairs || 'Repairs',
+      fluids: t.serviceTypes?.categoryFluids || 'Fluid Services',
+      packages: t.serviceTypes?.categoryPackages || 'Preventive Packages',
       inspection: t.serviceTypes?.categoryInspection || 'Inspection & Diagnostics',
       detailing: t.serviceTypes?.categoryDetailing || 'Detailing',
       sos: t.serviceTypes?.categorySOS || 'Roadside / SOS',
@@ -243,6 +254,18 @@ export default function ProviderServicesScreen({ navigation }: any) {
       autoLocksmith: t.serviceTypes?.autoLocksmithDesc || 'Vehicle lockout & key service',
     };
     return descriptions[key];
+  };
+
+  const getVehicleTypeLabel = (key: string) => {
+    const labels: Record<string, string> = {
+      CAR: t.provider?.vehicleTypeCar || 'Car / Sedan',
+      SUV: t.provider?.vehicleTypeSuv || 'SUV / Crossover',
+      TRUCK: t.provider?.vehicleTypeTruck || 'Pickup Truck',
+      VAN: t.provider?.vehicleTypeVan || 'Van / Minivan',
+      HEAVY_TRUCK: t.provider?.vehicleTypeHeavyTruck || 'Heavy Truck / Semi',
+      BUS: t.provider?.vehicleTypeBus || 'Bus / RV',
+    };
+    return labels[key] || key;
   };
 
   if (loading) {
@@ -379,7 +402,7 @@ export default function ProviderServicesScreen({ navigation }: any) {
                   color={isActive ? '#2B5EA7' : '#9ca3af'}
                 />
                 <Text style={[styles.vehicleLabel, isActive && styles.vehicleLabelActive]}>
-                  {vt.label}
+                  {getVehicleTypeLabel(vt.key)}
                 </Text>
                 {isActive && (
                   <View style={styles.vehicleCheck}>

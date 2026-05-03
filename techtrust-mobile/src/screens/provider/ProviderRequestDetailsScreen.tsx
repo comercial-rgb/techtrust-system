@@ -4,7 +4,7 @@
  * ATUALIZADO: Telefone oculto até aceite, mais info do veículo, campos individuais, agendamento
  */
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -21,14 +21,32 @@ import {
   Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useI18n } from "../../i18n";
+import { interpolate } from "../../i18n/interpolate";
 import { useNotifications } from "../../contexts/NotificationsContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import api from "../../services/api";
 import { getOePartsByVin } from "../../services/oe-parts.service";
 import { getServiceTypeInfo as getServiceTypeInfoFromTree } from "../../constants/serviceTree";
+import { log } from "../../utils/logger";
+
+/** Phrases stored by older app builds (add any legacy localized strings here). */
+const LEGACY_SKIP_REQUESTED_ITEM_PHRASES: string[] = [
+  // PT — stored when customer app was in Portuguese
+  "Não tenho certeza / Deixar o prestador decidir",
+  "Não tenho certeza / Precisa de inspeção",
+  "Não tenho certeza — diagnóstico completo necessário",
+  "Não tenho certeza",
+  "Outro / Não tenho certeza",
+  // ES — stored when customer app was in Spanish
+  "No estoy seguro / Que decida el taller",
+  "No estoy seguro / Requiere inspección",
+  "No estoy seguro — diagnóstico completo necesario",
+  "No estoy seguro",
+  "Otro / No estoy seguro",
+];
 
 const QUOTE_TEMPLATES_KEY = "@TechTrust:quoteTemplates";
 
@@ -50,6 +68,9 @@ interface QuoteLineItem {
   type: "part" | "service";
   description: string;
   brand?: string;
+  partCode?: string;
+  partCondition?: string;
+  isNoCharge?: boolean;
   quantity: number;
   unitPrice: number;
   unitPriceText?: string; // Raw text for decimal input
@@ -63,6 +84,8 @@ interface ServiceRequest {
   serviceType: string;
   isUrgent: boolean;
   expiresIn: string;
+  /** True when the quote deadline has passed (use for styling, not `expiresIn` text). */
+  isQuoteDeadlineExpired: boolean;
   status: "pending" | "quoted" | "accepted" | "rejected";
   serviceLocation: {
     type: "shop" | "mobile" | "roadside";
@@ -102,7 +125,8 @@ export default function ProviderRequestDetailsScreen({
   navigation,
 }: any) {
   const { requestId } = route.params;
-  const { t } = useI18n();
+  const { t, language, formatDate, formatCurrency } = useI18n();
+  const mileUnit = ((t as any).carWash?.mile as string | undefined) || "mi";
   const { markRequestAsViewed } = useNotifications();
   const [loading, setLoading] = useState(true);
   const [request, setRequest] = useState<ServiceRequest | null>(null);
@@ -159,6 +183,75 @@ export default function ProviderRequestDetailsScreen({
   const [selectedTime, setSelectedTime] = useState("");
   const [showDatePicker, setShowDatePicker] = useState(false);
 
+  // Provider tier & commission
+  const [providerLevel, setProviderLevel] = useState<string>("ENTRY");
+  useEffect(() => {
+    api.get("/provider/profile").then((res: any) => {
+      const level = res.data?.data?.providerLevel || res.data?.providerLevel;
+      if (level) setProviderLevel(level);
+    }).catch(() => {/* silent — default to ENTRY */});
+  }, []);
+
+  // Returns { laborRate, partsRate, partsMax, nextLevel, nextLaborRate, completionsNeeded }
+  const getTierInfo = (level: string) => {
+    const tiers: Record<string, { laborRate: number; partsRate: number; partsMax: number; nextLevel: string | null; nextLaborRate: number | null; completionsNeeded: number | null }> = {
+      ENTRY:         { laborRate: 0.15, partsRate: 0.11, partsMax: 10,  nextLevel: "INTERMEDIATE",  nextLaborRate: 12, completionsNeeded: 20 },
+      INTERMEDIATE:  { laborRate: 0.12, partsRate: 0.10, partsMax: 12,  nextLevel: "ADVANCED",      nextLaborRate: 10, completionsNeeded: 30 },
+      ADVANCED:      { laborRate: 0.10, partsRate: 0.09, partsMax: 13,  nextLevel: "PREMIUM_TIER",  nextLaborRate: 8,  completionsNeeded: 50 },
+      PREMIUM_TIER:  { laborRate: 0.08, partsRate: 0.08, partsMax: 15,  nextLevel: null,            nextLaborRate: null, completionsNeeded: null },
+    };
+    return tiers[level] ?? tiers.ENTRY;
+  };
+
+  const calcProviderNet = (partsTotal: number, laborTotal: number, displacement: number, level: string) => {
+    const tier = getTierInfo(level);
+    const laborCommission = laborTotal * tier.laborRate;
+    const partsCommission = Math.min(partsTotal * tier.partsRate, tier.partsMax);
+    const totalCommission = laborCommission + partsCommission;
+    const grandTotal = partsTotal + laborTotal + displacement;
+    return {
+      grandTotal,
+      laborCommission,
+      partsCommission,
+      totalCommission,
+      youReceive: Math.max(0, grandTotal - totalCommission),
+      laborRate: tier.laborRate,
+      partsRate: tier.partsRate,
+      partsMax: tier.partsMax,
+    };
+  };
+
+  const tp = t.provider as Record<string, string | undefined> | undefined;
+
+  const tierLevelDisplay = useCallback(
+    (level: string) => {
+      const map: Record<string, string | undefined> = {
+        ENTRY: tp?.tierEntry,
+        INTERMEDIATE: tp?.tierIntermediate,
+        ADVANCED: tp?.tierAdvanced,
+        PREMIUM_TIER: tp?.tierPremium,
+      };
+      return map[level] || level;
+    },
+    [tp],
+  );
+
+  const whyTechTrustBenefits = useMemo(
+    () => [
+      tp?.quoteWhyTechTrustBenefit1 ||
+        "Payment guaranteed — funds held before service starts",
+      tp?.quoteWhyTechTrustBenefit2 ||
+        "Dispute resolution by our team if issues arise",
+      tp?.quoteWhyTechTrustBenefit3 ||
+        "FDACS-compliant digital invoices included",
+      tp?.quoteWhyTechTrustBenefit4 ||
+        "Your commission decreases as you grow",
+      tp?.quoteWhyTechTrustBenefit5 ||
+        "Access to thousands of customers in your area",
+    ],
+    [tp],
+  );
+
   // Mobile Service / Displacement cost state
   const [isMobileService, setIsMobileService] = useState(false);
   const [providerServiceRadius, setProviderServiceRadius] = useState(10); // miles - from provider settings
@@ -206,7 +299,10 @@ export default function ProviderRequestDetailsScreen({
   // OE Parts lookup
   const handleLookupOeParts = async () => {
     if (!request?.vehicle?.vin) {
-      Alert.alert("VIN Required", "This vehicle doesn't have a VIN registered.");
+      Alert.alert(
+        t.provider?.vinRequiredTitle || "VIN Required",
+        t.provider?.vinRequiredBody || "This vehicle doesn't have a VIN registered.",
+      );
       return;
     }
     setOePartsLoading(true);
@@ -217,9 +313,16 @@ export default function ProviderRequestDetailsScreen({
       setOePartNumbers(result.parts.partNumbers);
     } catch (error: any) {
       const status = error.response?.status;
-      const msg = error.response?.data?.message || error.message || "Failed to fetch OE parts";
+      const msg =
+        error.response?.data?.message ||
+        error.message ||
+        t.provider?.oePartsFetchFailed ||
+        "Failed to fetch OE parts";
       if (status === 503) {
-        setOePartsError("OE parts lookup is currently unavailable. Please try again later.");
+        setOePartsError(
+          t.provider?.oePartsLookupUnavailable ||
+            "OE parts lookup is currently unavailable. Please try again later.",
+        );
       } else if (status === 400) {
         setOePartsError(msg);
       } else {
@@ -237,6 +340,22 @@ export default function ProviderRequestDetailsScreen({
   // Parse requested items from service request description for coverage check
   const getRequestedItems = (): string[] => {
     if (!request?.description) return [];
+    const cr = t.createRequest as Record<string, string | undefined> | undefined;
+    const skipNotSureLabels = new Set(
+      [
+        ...LEGACY_SKIP_REQUESTED_ITEM_PHRASES,
+        "Not Sure / Let provider decide",
+        "Not Sure / Need Inspection",
+        "Not Sure — Full Diagnostic Needed",
+        "Not Sure",
+        "Other / Not Sure",
+        cr?.notSure,
+        cr?.notSureBrakes,
+        cr?.diagNotSure,
+        cr?.notSureShort,
+        cr?.otherOrNotSure,
+      ].filter((s): s is string => Boolean(s && s.length > 0)),
+    );
     const rawDesc = request.description;
     const parts = rawDesc.split('\n---\n');
     const detailsPart = parts[0] || "";
@@ -247,7 +366,7 @@ export default function ProviderRequestDetailsScreen({
       const val = segment.substring(colonIdx + 1).trim();
       val.split(',').forEach((v: string) => {
         const trimmed = v.trim();
-        if (trimmed && trimmed !== 'Not Sure / Let provider decide') items.push(trimmed);
+        if (trimmed && !skipNotSureLabels.has(trimmed)) items.push(trimmed);
       });
     });
     return items;
@@ -278,7 +397,10 @@ export default function ProviderRequestDetailsScreen({
     const updated = [...quoteTemplates, template];
     setQuoteTemplates(updated);
     await AsyncStorage.setItem(QUOTE_TEMPLATES_KEY, JSON.stringify(updated));
-    Alert.alert("Template Saved", `"${name}" saved for future quotes.`);
+    const tplBody = (
+      t.provider?.quoteTemplateSavedBody || '"{{name}}" saved for future quotes.'
+    ).replace("{{name}}", name);
+    Alert.alert(t.provider?.quoteTemplateSavedTitle || "Template Saved", tplBody);
     setShowSaveTemplateInput(false);
     setSaveTemplateName("");
   };
@@ -304,12 +426,20 @@ export default function ProviderRequestDetailsScreen({
   // D7: Handle decline with reason
   const handleDeclineWithReason = async () => {
     if (!declineReason) {
-      Alert.alert("Select a Reason", "Please select a reason for declining.");
+      Alert.alert(
+        t.provider?.declineSelectReasonTitle || "Select a Reason",
+        t.provider?.declineSelectReasonBody || "Please select a reason for declining.",
+      );
       return;
     }
     setDeclining(true);
     try {
-      const reason = declineReason === "other" ? declineOtherText || "Other" : declineReason;
+      const reason =
+        declineReason === "other"
+          ? declineOtherText ||
+            t.createRequest?.serviceOther ||
+            "Other"
+          : declineReason;
       await api.post(`/service-requests/${requestId}/decline`, { reason });
       setShowDeclineModal(false);
       navigation.goBack();
@@ -321,18 +451,7 @@ export default function ProviderRequestDetailsScreen({
     }
   };
 
-  // Reset state and reload when requestId changes or screen gains focus
-  useFocusEffect(
-    useCallback(() => {
-      // Reset state when navigating to this screen
-      setRequest(null);
-      setLoading(true);
-      setQuoteSubmitted(false);
-      loadRequest();
-    }, [requestId]),
-  );
-
-  const loadRequest = async () => {
+  const loadRequest = useCallback(async () => {
     setLoading(true);
     try {
       // Load request and provider profile in parallel
@@ -362,29 +481,46 @@ export default function ProviderRequestDetailsScreen({
 
       // Calculate time remaining until expiration (use expiresAt, not quoteDeadline)
       let expiresIn = "";
+      let isQuoteDeadlineExpired = false;
       const expirationField = sr.expiresAt || sr.quoteDeadline;
       if (expirationField) {
         const diff = new Date(expirationField).getTime() - Date.now();
         if (diff > 0) {
           const hours = Math.floor(diff / (1000 * 60 * 60));
           const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-          expiresIn = hours > 0 ? `${hours}h ${mins}min` : `${mins}min`;
+          expiresIn = hours > 0
+            ? interpolate(
+                t.common?.expiresInHoursMins || "{{hours}}h {{mins}}min",
+                { hours, mins },
+              )
+            : interpolate(t.common?.expiresInMinsOnly || "{{mins}}min", {
+                mins,
+              });
         } else {
-          expiresIn = "Expired";
+          isQuoteDeadlineExpired = true;
+          expiresIn = t.quote?.expired || t.provider?.expired || "Expired";
         }
       }
 
       const vehicle = sr.vehicle || {};
       const user = sr.user || {};
+      const mileShort =
+        ((t as { carWash?: { mile?: string } }).carWash?.mile as string | undefined) ||
+        "mi";
 
       setRequest({
         id: sr.id,
         requestNumber: sr.requestNumber || `SR-${sr.id.substring(0, 6)}`,
-        title: sr.title || sr.serviceType || "Service Request",
+        title:
+          sr.title ||
+          sr.serviceType ||
+          t.provider?.serviceRequest ||
+          "Service Request",
         description: sr.description || "",
         serviceType: sr.serviceType || "REPAIR",
         isUrgent: sr.urgencyLevel === "URGENT" || sr.isUrgent || false,
         expiresIn,
+        isQuoteDeadlineExpired,
         status: sr.status === "QUOTES_RECEIVED" ? "quoted" : "pending",
         serviceLocation: {
           type:
@@ -403,11 +539,17 @@ export default function ProviderRequestDetailsScreen({
               : undefined,
         },
         customer: {
-          name: user.fullName || "Customer",
+          name: user.fullName || t.common?.customer || "Customer",
           phone: user.phone || "",
           location: sr.serviceAddress || user.city || "",
           distance: sr.distanceKm
-            ? `${(Number(sr.distanceKm) * 0.621371).toFixed(1)} mi`
+            ? interpolate(
+                t.common?.distanceWithShortUnit || "{{distance}} {{unit}}",
+                {
+                  distance: (Number(sr.distanceKm) * 0.621371).toFixed(1),
+                  unit: mileShort,
+                },
+              )
             : "",
           rating: user.averageRating ? Number(user.averageRating) : 0,
           totalRequests: user._count?.serviceRequests || 0,
@@ -437,11 +579,21 @@ export default function ProviderRequestDetailsScreen({
         setIsMobileService(true);
       }
     } catch (error) {
-      console.error("Error loading request:", error);
+      log.error("Error loading request:", error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [requestId, t]);
+
+  // Reset state and reload when requestId / translations change or screen gains focus
+  useFocusEffect(
+    useCallback(() => {
+      setRequest(null);
+      setLoading(true);
+      setQuoteSubmitted(false);
+      loadRequest();
+    }, [loadRequest]),
+  );
 
   // Line items management
   const addLineItem = (type: "part" | "service") => {
@@ -593,8 +745,8 @@ export default function ProviderRequestDetailsScreen({
   const getServiceTypeInfo = (type: string) => getServiceTypeInfoFromTree(type);
 
   const durationOptions = [
-    { value: "30min", label: "30 min" },
-    { value: "45min", label: "45 min" },
+    { value: "30min", label: t.common?.duration30Min || "30 min" },
+    { value: "45min", label: t.common?.duration45Min || "45 min" },
     { value: "1h", label: `1 ${t.common?.hour || "hour"}` },
     { value: "1.5h", label: `1.5 ${t.common?.hours || "hours"}` },
     { value: "2h", label: `2 ${t.common?.hours || "hours"}` },
@@ -605,53 +757,61 @@ export default function ProviderRequestDetailsScreen({
     { value: "3d", label: `3+ ${t.common?.days || "days"}` },
   ];
 
-  // Generate next 7 available dates dynamically
-  const generateAvailableDates = () => {
-    const dates = [];
+  const datePickerLocale = useMemo(
+    () => (language === "pt" ? "pt-BR" : language === "es" ? "es-ES" : "en-US"),
+    [language],
+  );
+  const prefers12hTime = language === "en";
+
+  // Generate next 7 available dates dynamically (weekday + month/day per app language)
+  const availableDates = useMemo(() => {
+    const dates: { value: string; label: string }[] = [];
     const today = new Date();
     for (let i = 1; i <= 7; i++) {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
-      const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
-      const monthDay = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const dayName = date.toLocaleDateString(datePickerLocale, {
+        weekday: "short",
+      });
+      const monthDay = date.toLocaleDateString(datePickerLocale, {
+        month: "short",
+        day: "numeric",
+      });
       dates.push({
-        value: date.toISOString().split('T')[0],
+        value: date.toISOString().split("T")[0],
         label: `${dayName}, ${monthDay}`,
       });
     }
     return dates;
-  };
-  const availableDates = generateAvailableDates();
+  }, [datePickerLocale]);
 
-  // D16 — Dynamic time slots based on working hours
-  const generateTimeSlots = (startHour = 8, endHour = 17, intervalMinutes = 60) => {
-    const slots = [];
+  // D16 — Dynamic time slots (12h en / 24h pt & es)
+  const availableTimes = useMemo(() => {
+    const startHour = 8;
+    const endHour = 17;
+    const intervalMinutes = 60;
+    const use24h = language === "pt" || language === "es";
+    const periodPM = t.common?.periodPM || "PM";
+    const periodAM = t.common?.periodAM || "AM";
+    const slots: { value: string; label: string }[] = [];
     for (let hour = startHour; hour <= endHour; hour++) {
       for (let min = 0; min < 60; min += intervalMinutes) {
         if (hour === endHour && min > 0) break;
-        const h24 = `${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
-        const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
-        const period = hour >= 12 ? 'PM' : 'AM';
-        const displayMin = min > 0 ? `:${String(min).padStart(2, '0')}` : ':00';
-        slots.push({
-          value: h24,
-          label: `${displayHour}${displayMin} ${period}`,
-        });
+        const h24 = `${String(hour).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
+        let label: string;
+        if (use24h) {
+          label = h24;
+        } else {
+          const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+          const period = hour >= 12 ? periodPM : periodAM;
+          const displayMin = min > 0 ? `:${String(min).padStart(2, "0")}` : ":00";
+          label = `${displayHour}${displayMin} ${period}`;
+        }
+        slots.push({ value: h24, label });
       }
     }
     return slots;
-  };
-  
-  // Working hours could come from provider settings; default 8 AM - 5 PM, 1hr intervals
-  const availableTimes = generateTimeSlots(8, 17, 60);
-
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString("en-US", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-  };
+  }, [language, t.common?.periodAM, t.common?.periodPM]);
 
   if (loading) {
     return (
@@ -728,10 +888,10 @@ export default function ProviderRequestDetailsScreen({
               </View>
               <Text style={styles.requestNumber}>#{request.requestNumber?.includes('-') ? `SR-${request.requestNumber.split('-').pop()}` : request.requestNumber}</Text>
             </View>
-            <View style={[styles.timeBox, request.expiresIn === "Expired" && { backgroundColor: '#fef2f2', borderColor: '#fca5a5' }]}>
-              <Text style={[styles.timeValue, request.expiresIn === "Expired" && { color: '#ef4444' }]}>{request.expiresIn}</Text>
+            <View style={[styles.timeBox, request.isQuoteDeadlineExpired && { backgroundColor: '#fef2f2', borderColor: '#fca5a5' }]}>
+              <Text style={[styles.timeValue, request.isQuoteDeadlineExpired && { color: '#ef4444' }]}>{request.expiresIn}</Text>
               <Text style={styles.timeLabel}>
-                {request.expiresIn === "Expired"
+                {request.isQuoteDeadlineExpired
                   ? (t.common?.closed || "Closed")
                   : (t.common?.remaining || "remaining")}
               </Text>
@@ -761,7 +921,7 @@ export default function ProviderRequestDetailsScreen({
             return (
               <View style={{ marginTop: 12, backgroundColor: '#f8fafc', borderRadius: 12, padding: 14 }}>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>
-                  Service Details
+                  {t.workOrder?.serviceDetails || "Service Details"}
                 </Text>
                 {uniqueItems.map((item: string, i: number) => {
                   const colonIdx = item.indexOf(':');
@@ -830,16 +990,21 @@ export default function ProviderRequestDetailsScreen({
                   if (raw.includes('T')) {
                     const d = new Date(raw);
                     if (!isNaN(d.getTime()) && d.getFullYear() !== 1970) {
-                      return ` ${t.common?.at || "at"} ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
+                      return ` ${t.common?.at || "at"} ${d.toLocaleTimeString(datePickerLocale, { hour: "numeric", minute: "2-digit", hour12: prefers12hTime })}`;
                     }
                     if (!isNaN(d.getTime())) {
-                      return ` ${t.common?.at || "at"} ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'UTC' })}`;
+                      return ` ${t.common?.at || "at"} ${d.toLocaleTimeString(datePickerLocale, { hour: "numeric", minute: "2-digit", hour12: prefers12hTime, timeZone: "UTC" })}`;
                     }
                   }
                   // Already formatted like "14:30" — convert to 12h
                   if (raw.includes(':') && raw.length <= 5) {
                     const [h, m] = raw.split(':').map(Number);
-                    const ampm = h >= 12 ? 'PM' : 'AM';
+                    if (!prefers12hTime) {
+                      return ` ${t.common?.at || "at"} ${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+                    }
+                    const ampm = h >= 12
+                      ? (t.common?.periodPM || "PM")
+                      : (t.common?.periodAM || "AM");
                     const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
                     return ` ${t.common?.at || "at"} ${h12}:${String(m).padStart(2, '0')} ${ampm}`;
                   }
@@ -966,7 +1131,9 @@ export default function ProviderRequestDetailsScreen({
                     color="#fff"
                   />
                   <Text style={styles.openMapsText}>
-                    {Platform.OS === "ios" ? "Apple Maps" : "Google Maps"}
+                    {Platform.OS === "ios"
+                      ? t.quote?.appleMaps || "Apple Maps"
+                      : t.quote?.googleMaps || "Google Maps"}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -980,14 +1147,17 @@ export default function ProviderRequestDetailsScreen({
                     const url = `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
                     Linking.openURL(url).catch(() => {
                       Alert.alert(
-                        "Waze",
-                        "Waze is not installed. Please install it from the App Store.",
+                        t.provider?.wazeNotInstalledTitle || "Waze",
+                        t.provider?.wazeNotInstalledBody ||
+                          "Waze is not installed. Please install it from the App Store.",
                       );
                     });
                   }}
                 >
                   <MaterialCommunityIcons name="waze" size={18} color="#fff" />
-                  <Text style={styles.openMapsText}>Waze</Text>
+                  <Text style={styles.openMapsText}>
+                    {t.quote?.wazeApp || "Waze"}
+                  </Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -1132,7 +1302,7 @@ export default function ProviderRequestDetailsScreen({
                 {t.vehicle?.mileage || "Mileage"}
               </Text>
               <Text style={[styles.vehicleGridValue, !(request.vehicle.mileage > 0) && { color: '#9ca3af', fontStyle: 'italic' }]}>
-                {request.vehicle.mileage > 0 ? `${request.vehicle.mileage.toLocaleString('en-US')} mi` : (t.common?.notProvided || "Not provided")}
+                {request.vehicle.mileage > 0 ? `${request.vehicle.mileage.toLocaleString(datePickerLocale)} ${mileUnit}` : (t.common?.notProvided || "Not provided")}
               </Text>
             </View>
             <View style={styles.vehicleGridItem}>
@@ -1200,7 +1370,8 @@ export default function ProviderRequestDetailsScreen({
                 </Text>
                 <Text style={styles.lastServiceText}>
                   {formatDate(request.vehicle.lastServiceDate)} •{" "}
-                  {request.vehicle.lastServiceMileage?.toLocaleString()} mi
+                  {request.vehicle.lastServiceMileage?.toLocaleString()}{" "}
+                  {mileUnit}
                 </Text>
               </View>
             </View>
@@ -1362,7 +1533,7 @@ export default function ProviderRequestDetailsScreen({
       {/* Bottom Buttons */}
       {!quoteSubmitted && (
         <View style={styles.bottomContainer}>
-          {request.expiresIn === "Expired" ? (
+          {request.isQuoteDeadlineExpired ? (
             <View style={[styles.quoteButton, { backgroundColor: '#9ca3af' }]}>
               <MaterialCommunityIcons name="clock-alert" size={22} color="#fff" />
               <Text style={styles.quoteButtonText}>
@@ -1442,13 +1613,16 @@ export default function ProviderRequestDetailsScreen({
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontSize: 11, fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                        📋 Customer Request Details
+                        {t.quote?.customerRequestDetailsHeader ||
+                          "📋 Customer Request Details"}
                       </Text>
                       <Text style={styles.customerRequestServiceTitle}>
                         {request.title}
                       </Text>
                       <Text style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>
-                        {requestDetailsExpanded ? "Tap to collapse" : "Tap for details"}
+                        {requestDetailsExpanded
+                          ? t.quote?.tapToCollapse || "Tap to collapse"
+                          : t.quote?.tapForDetails || "Tap for details"}
                       </Text>
                     </View>
                     <MaterialCommunityIcons
@@ -1526,7 +1700,9 @@ export default function ProviderRequestDetailsScreen({
                       {/* Vehicle extended details */}
                       {request.vehicle && (
                         <View style={{ marginTop: 8, backgroundColor: '#f8fafc', borderRadius: 8, padding: 10 }}>
-                          <Text style={{ fontSize: 11, fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', marginBottom: 6 }}>Vehicle</Text>
+                          <Text style={{ fontSize: 11, fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', marginBottom: 6 }}>
+                            {t.quote?.labelVehicle || "Vehicle"}
+                          </Text>
                           <Text style={{ fontSize: 14, fontWeight: '700', color: '#111827' }}>
                             {request.vehicle.year} {request.vehicle.make} {request.vehicle.model}
                           </Text>
@@ -1543,7 +1719,8 @@ export default function ProviderRequestDetailsScreen({
                           </View>
                           {request.vehicle.mileage > 0 && (
                             <Text style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>
-                              📏 {Number(request.vehicle.mileage).toLocaleString()} mi
+                              📏 {Number(request.vehicle.mileage).toLocaleString()}{" "}
+                              {mileUnit}
                             </Text>
                           )}
                         </View>
@@ -1552,10 +1729,14 @@ export default function ProviderRequestDetailsScreen({
                       {/* Customer info */}
                       {request.customer && (
                         <View style={{ marginTop: 6, flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 5 }}>
-                          <Text style={{ fontSize: 13, color: '#6b7280' }}>Customer</Text>
+                          <Text style={{ fontSize: 13, color: '#6b7280' }}>
+                            {t.quote?.labelCustomerShort || "Customer"}
+                          </Text>
                           <Text style={{ fontSize: 13, color: '#111827', fontWeight: '600' }}>
                             {request.customer.name}
-                            {request.customer.totalRequests <= 1 ? ' ★ New' : ` · ${request.customer.totalRequests} requests`}
+                            {request.customer.totalRequests <= 1
+                              ? ` ★ ${t.quote?.newCustomerShort || "New"}`
+                              : ` · ${request.customer.totalRequests} ${t.quote?.requestsWord || "requests"}`}
                           </Text>
                         </View>
                       )}
@@ -1563,29 +1744,44 @@ export default function ProviderRequestDetailsScreen({
                       {/* Preferred schedule */}
                       {request.preferredDate && (
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 5 }}>
-                          <Text style={{ fontSize: 13, color: '#6b7280' }}>Preferred</Text>
+                          <Text style={{ fontSize: 13, color: '#6b7280' }}>
+                            {t.quote?.labelPreferred || "Preferred"}
+                          </Text>
                           <Text style={{ fontSize: 13, color: '#111827', fontWeight: '600' }}>
                             {formatDate(request.preferredDate)}
                             {request.preferredTime ? (() => {
                               const raw = request.preferredTime;
-                              if (raw.includes('T')) {
+                              if (raw.includes("T")) {
                                 const d = new Date(raw);
-                                if (!isNaN(d.getTime())) return ` at ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'UTC' })}`;
+                                if (!isNaN(d.getTime()) && d.getFullYear() !== 1970) {
+                                  return ` ${t.quote?.atTime || "at"} ${d.toLocaleTimeString(datePickerLocale, { hour: "numeric", minute: "2-digit", hour12: prefers12hTime })}`;
+                                }
+                                if (!isNaN(d.getTime())) {
+                                  return ` ${t.quote?.atTime || "at"} ${d.toLocaleTimeString(datePickerLocale, { hour: "numeric", minute: "2-digit", hour12: prefers12hTime, timeZone: "UTC" })}`;
+                                }
                               }
-                              if (raw.includes(':') && raw.length <= 5) {
-                                const [h, m] = raw.split(':').map(Number);
-                                return ` at ${h === 0 ? 12 : h > 12 ? h - 12 : h}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
+                              if (raw.includes(":") && raw.length <= 5) {
+                                const [h, m] = raw.split(":").map(Number);
+                                if (!prefers12hTime) {
+                                  return ` ${t.quote?.atTime || "at"} ${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+                                }
+                                const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+                                return ` ${t.quote?.atTime || "at"} ${h12}:${String(m).padStart(2, "0")} ${h >= 12 ? (t.common?.periodPM || "PM") : (t.common?.periodAM || "AM")}`;
                               }
-                              return '';
-                            })() : ''}
+                              return "";
+                            })() : ""}
                           </Text>
                         </View>
                       )}
 
                       {/* Notes */}
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 5 }}>
-                        <Text style={{ fontSize: 13, color: '#6b7280' }}>Notes</Text>
-                        <Text style={{ fontSize: 13, color: '#9ca3af' }}>(none)</Text>
+                        <Text style={{ fontSize: 13, color: '#6b7280' }}>
+                          {t.quote?.labelNotesShort || "Notes"}
+                        </Text>
+                        <Text style={{ fontSize: 13, color: '#9ca3af' }}>
+                          {t.quote?.noNotes || "(none)"}
+                        </Text>
                       </View>
                     </View>
                   )}
@@ -1614,12 +1810,16 @@ export default function ProviderRequestDetailsScreen({
                     />
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontSize: 13, fontWeight: '700', color: isLaborOnly ? '#92400e' : '#1e40af', marginBottom: 2 }}>
-                        {isLaborOnly ? 'Quote Labor Only' : 'Quote Parts + Labor'}
+                        {isLaborOnly
+                          ? t.quote?.quoteLaborOnlyTitle || "Quote Labor Only"
+                          : t.quote?.quotePartsAndLaborTitle || "Quote Parts + Labor"}
                       </Text>
                       <Text style={{ fontSize: 12, color: isLaborOnly ? '#b45309' : '#3b82f6', lineHeight: 17 }}>
                         {isLaborOnly
-                          ? 'Customer already has the parts. Add only the installation / labor cost.'
-                          : 'Customer needs everything. Add parts cost and labor cost separately.'}
+                          ? t.quote?.quoteLaborOnlyDesc ||
+                            "Customer already has the parts. Add only the installation / labor cost."
+                          : t.quote?.quotePartsAndLaborDesc ||
+                            "Customer needs everything. Add parts cost and labor cost separately."}
                       </Text>
                     </View>
                   </View>
@@ -1743,9 +1943,11 @@ export default function ProviderRequestDetailsScreen({
                       />
                     </View>
                     <View style={styles.lineItemSubtotal}>
-                      <Text style={styles.lineItemLabel}>Subtotal</Text>
+                      <Text style={styles.lineItemLabel}>
+                        {t.quote?.lineSubtotal || "Subtotal"}
+                      </Text>
                       <Text style={styles.lineItemSubtotalValue}>
-                        ${(item.quantity * item.unitPrice).toFixed(2)}
+                        {formatCurrency(item.quantity * item.unitPrice)}
                       </Text>
                     </View>
                   </View>
@@ -1939,7 +2141,7 @@ export default function ProviderRequestDetailsScreen({
                             {t.quote?.customerDistance || "Customer Distance"}
                           </Text>
                           <Text style={styles.displacementValue}>
-                            {getCustomerDistanceMiles().toFixed(1)} mi
+                            {getCustomerDistanceMiles().toFixed(1)} {mileUnit}
                           </Text>
                         </View>
                       </View>
@@ -1954,7 +2156,7 @@ export default function ProviderRequestDetailsScreen({
                             {t.quote?.freeRadius || "Free Radius"}
                           </Text>
                           <Text style={styles.displacementValue}>
-                            {providerFreeMiles} mi
+                            {providerFreeMiles} {mileUnit}
                           </Text>
                         </View>
                       </View>
@@ -1969,7 +2171,7 @@ export default function ProviderRequestDetailsScreen({
                               {t.quote?.costPerMile || "Cost per extra mile"}
                             </Text>
                             <Text style={styles.displacementCostValue}>
-                              ${providerCostPerMile.toFixed(2)}/mi
+                              {formatCurrency(providerCostPerMile)}/{mileUnit}
                             </Text>
                           </View>
                           <View style={styles.displacementCostRow}>
@@ -1981,7 +2183,7 @@ export default function ProviderRequestDetailsScreen({
                               {(
                                 getCustomerDistanceMiles() - providerFreeMiles
                               ).toFixed(1)}{" "}
-                              mi
+                              {mileUnit}
                             </Text>
                           </View>
                           <View
@@ -1994,7 +2196,7 @@ export default function ProviderRequestDetailsScreen({
                               {t.quote?.displacementCost || "Displacement Cost"}
                             </Text>
                             <Text style={styles.displacementTotalValue}>
-                              ${calculateDisplacementCost().toFixed(2)}
+                              {formatCurrency(calculateDisplacementCost())}
                             </Text>
                           </View>
                         </>
@@ -2102,18 +2304,23 @@ export default function ProviderRequestDetailsScreen({
                     <View style={{ flex: 1 }}>
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
                         <Text style={{ fontSize: 13, color: '#6b7280' }}>{t.quote?.parts || "Parts"}</Text>
-                        <Text style={{ fontSize: 13, color: '#374151' }}>${partsTotal.toFixed(2)}</Text>
+                        <Text style={{ fontSize: 13, color: '#374151' }}>{formatCurrency(partsTotal)}</Text>
                       </View>
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
                         <Text style={{ fontSize: 13, color: '#6b7280' }}>{t.quote?.labor || "Labor"}</Text>
-                        <Text style={{ fontSize: 13, color: '#374151' }}>${laborTotal.toFixed(2)}</Text>
+                        <Text style={{ fontSize: 13, color: '#374151' }}>{formatCurrency(laborTotal)}</Text>
                       </View>
                       <View style={{ borderTopWidth: 1, borderTopColor: '#e5e7eb', paddingTop: 6, flexDirection: 'row', justifyContent: 'space-between' }}>
                         <Text style={styles.totalLabel}>{t.quote?.subtotal || "Subtotal"}</Text>
-                        <Text style={styles.totalValue}>${calculateSubtotal().toFixed(2)}</Text>
+                        <Text style={styles.totalValue}>{formatCurrency(calculateSubtotal())}</Text>
                       </View>
                       <Text style={styles.totalItems}>
-                        {lineItems.filter((i) => i.description && i.unitPrice > 0).length} item(s)
+                        {(t.quote?.itemCountTemplate || "{{count}} item(s)").replace(
+                          "{{count}}",
+                          String(
+                            lineItems.filter((i) => i.description && i.unitPrice > 0).length,
+                          ),
+                        )}
                       </Text>
                     </View>
                   </View>
@@ -2129,7 +2336,7 @@ export default function ProviderRequestDetailsScreen({
                     </Text>
                   </View>
                   <Text style={styles.displacementTotalValueSmall}>
-                    + ${calculateDisplacementCost().toFixed(2)}
+                    + {formatCurrency(calculateDisplacementCost())}
                   </Text>
                 </View>
               )}
@@ -2137,14 +2344,15 @@ export default function ProviderRequestDetailsScreen({
               <View style={styles.displacementTotalContainer}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.displacementTotalLabelSmall}>
-                    Marketplace sales tax
+                    {t.quote?.marketplaceSalesTax || "Marketplace sales tax"}
                   </Text>
                   <Text style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>
-                    TechTrust calculates and collects applicable tax at customer checkout.
+                    {t.quote?.marketplaceSalesTaxHint ||
+                      "TechTrust calculates and collects applicable tax at customer checkout."}
                   </Text>
                 </View>
                 <Text style={styles.displacementTotalValueSmall}>
-                  Not included
+                  {t.quote?.notIncluded || "Not included"}
                 </Text>
               </View>
 
@@ -2161,32 +2369,110 @@ export default function ProviderRequestDetailsScreen({
                   ) : null}
                 </View>
                 <Text style={styles.grandTotalValue}>
-                  ${calculateTotal().toFixed(2)}
+                  {formatCurrency(calculateTotal())}
                 </Text>
               </View>
 
-              {/* D2: Fee Breakdown */}
+              {/* D2: Fee Breakdown — tiered commission */}
               {(() => {
-                const grandTotal = calculateTotal();
-                const platformFee = grandTotal * 0.10;
-                const youReceive = grandTotal - platformFee;
+                const partItems = lineItems.filter((i) => i.type === 'part' && i.description && i.unitPrice > 0);
+                const serviceItems = lineItems.filter((i) => i.type === 'service' && i.description && i.unitPrice > 0);
+                const partsTotal = partItems.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
+                const laborTotal = serviceItems.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
+                const displacement = isMobileService ? calculateDisplacementCost() : 0;
+                const net = calcProviderNet(partsTotal, laborTotal, displacement, providerLevel);
+                const tier = getTierInfo(providerLevel);
                 return (
-                  <View style={styles.feeBreakdownContainer}>
-                    <View style={styles.feeBreakdownHeader}>
-                      <MaterialCommunityIcons name="cash-check" size={18} color="#1e40af" />
-                      <Text style={styles.feeBreakdownTitle}>Fee Breakdown</Text>
+                  <View>
+                    {/* Financial summary */}
+                    <View style={styles.feeBreakdownContainer}>
+                      <View style={styles.feeBreakdownHeader}>
+                        <MaterialCommunityIcons name="cash-check" size={18} color="#1e40af" />
+                        <Text style={styles.feeBreakdownTitle}>
+                          {t.quote?.feeBreakdownTitle || "Your Earnings Estimate"}
+                        </Text>
+                        <View style={{ marginLeft: 'auto' as any, backgroundColor: '#dbeafe', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 }}>
+                          <Text style={{ fontSize: 11, fontWeight: '700', color: '#1d4ed8' }}>
+                            {(tp?.tierBadgeSuffix || "{{label}} tier").replace(
+                              "{{label}}",
+                              tierLevelDisplay(providerLevel),
+                            )}
+                          </Text>
+                        </View>
+                      </View>
+                      <View style={styles.feeBreakdownRow}>
+                        <Text style={styles.feeBreakdownLabel}>{t.quote?.parts || "Parts"}</Text>
+                        <Text style={styles.feeBreakdownValue}>{formatCurrency(partsTotal)}</Text>
+                      </View>
+                      <View style={styles.feeBreakdownRow}>
+                        <Text style={styles.feeBreakdownLabel}>{t.quote?.labor || "Labor"}</Text>
+                        <Text style={styles.feeBreakdownValue}>{formatCurrency(laborTotal)}</Text>
+                      </View>
+                      {displacement > 0 && (
+                        <View style={styles.feeBreakdownRow}>
+                          <Text style={styles.feeBreakdownLabel}>{t.quote?.displacementCost || "Travel"}</Text>
+                          <Text style={styles.feeBreakdownValue}>{formatCurrency(displacement)}</Text>
+                        </View>
+                      )}
+                      <View style={[styles.feeBreakdownRow, { borderTopWidth: 1, borderTopColor: '#e5e7eb', marginTop: 6, paddingTop: 8 }]}>
+                        <Text style={[styles.feeBreakdownLabel, { color: '#ef4444' }]}>
+                          {(tp?.quoteLaborCommission || "Labor commission ({{percent}}%)").replace(
+                            "{{percent}}",
+                            String(Math.round(tier.laborRate * 100)),
+                          )}
+                        </Text>
+                        <Text style={[styles.feeBreakdownValue, { color: '#ef4444' }]}>-{formatCurrency(net.laborCommission)}</Text>
+                      </View>
+                      {partsTotal > 0 && (
+                        <View style={styles.feeBreakdownRow}>
+                          <Text style={[styles.feeBreakdownLabel, { color: '#ef4444' }]}>
+                            {(tp?.quotePartsCommission ||
+                              "Parts commission ({{percent}}%, max {{max}})")
+                              .replace("{{percent}}", String(Math.round(tier.partsRate * 100)))
+                              .replace("{{max}}", formatCurrency(Number(tier.partsMax) || 0))}
+                          </Text>
+                          <Text style={[styles.feeBreakdownValue, { color: '#ef4444' }]}>-{formatCurrency(net.partsCommission)}</Text>
+                        </View>
+                      )}
+                      <View style={[styles.feeBreakdownRow, styles.feeBreakdownTotal]}>
+                        <Text style={styles.feeBreakdownReceiveLabel}>
+                          {t.provider?.netAmount || "You receive"}
+                        </Text>
+                        <Text style={styles.feeBreakdownReceiveValue}>{formatCurrency(net.youReceive)}</Text>
+                      </View>
                     </View>
-                    <View style={styles.feeBreakdownRow}>
-                      <Text style={styles.feeBreakdownLabel}>Your quote</Text>
-                      <Text style={styles.feeBreakdownValue}>${grandTotal.toFixed(2)}</Text>
-                    </View>
-                    <View style={styles.feeBreakdownRow}>
-                      <Text style={[styles.feeBreakdownLabel, { color: '#ef4444' }]}>Platform fee (10%)</Text>
-                      <Text style={[styles.feeBreakdownValue, { color: '#ef4444' }]}>-${platformFee.toFixed(2)}</Text>
-                    </View>
-                    <View style={[styles.feeBreakdownRow, styles.feeBreakdownTotal]}>
-                      <Text style={styles.feeBreakdownReceiveLabel}>You receive</Text>
-                      <Text style={styles.feeBreakdownReceiveValue}>${youReceive.toFixed(2)}</Text>
+
+                    {/* Tier progression */}
+                    {tier.nextLevel && (
+                      <View style={{ backgroundColor: '#f0fdf4', borderRadius: 12, padding: 12, marginTop: 10, borderWidth: 1, borderColor: '#bbf7d0' }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                          <MaterialCommunityIcons name="trending-up" size={16} color="#16a34a" />
+                          <Text style={{ fontSize: 12, fontWeight: '700', color: '#15803d' }}>
+                            {(tp?.quoteTierLaborDrop ||
+                              "Your commission drops to {{rate}}% after {{count}} completed services!")
+                              .replace("{{rate}}", String(tier.nextLaborRate ?? ""))
+                              .replace("{{count}}", String(tier.completionsNeeded ?? ""))}
+                          </Text>
+                        </View>
+                        <Text style={{ fontSize: 11, color: '#166534' }}>
+                          {tp?.quoteTierPremiumBlurb ||
+                            "Keep growing on TechTrust — PREMIUM providers pay only 8% and keep more of every job."}
+                        </Text>
+                      </View>
+                    )}
+
+                    {/* Why TechTrust */}
+                    <View style={{ backgroundColor: '#eff6ff', borderRadius: 12, padding: 12, marginTop: 10, borderWidth: 1, borderColor: '#bfdbfe' }}>
+                      <Text style={{ fontSize: 12, fontWeight: '700', color: '#1e40af', marginBottom: 8 }}>
+                        🛡️{" "}
+                        {tp?.quoteWhyTechTrustTitle || "Why work with TechTrust?"}
+                      </Text>
+                      {whyTechTrustBenefits.map((benefit, i) => (
+                        <View key={i} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6, marginBottom: 4 }}>
+                          <MaterialCommunityIcons name="check-circle" size={14} color="#2563eb" style={{ marginTop: 1 }} />
+                          <Text style={{ fontSize: 11, color: '#1e3a8a', flex: 1 }}>{benefit}</Text>
+                        </View>
+                      ))}
                     </View>
                   </View>
                 );
@@ -2200,7 +2486,9 @@ export default function ProviderRequestDetailsScreen({
                     onPress={() => setShowTemplatesModal(true)}
                   >
                     <MaterialCommunityIcons name="lightning-bolt" size={16} color="#2B5EA7" />
-                    <Text style={{ fontSize: 13, fontWeight: '600', color: '#2B5EA7' }}>Use Template</Text>
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: '#2B5EA7' }}>
+                      {t.quote?.useTemplate || "Use Template"}
+                    </Text>
                   </TouchableOpacity>
                 )}
                 <TouchableOpacity
@@ -2210,7 +2498,10 @@ export default function ProviderRequestDetailsScreen({
                       if (saveTemplateName.trim()) {
                         saveQuoteTemplate(saveTemplateName.trim());
                       } else {
-                        Alert.alert("Name Required", "Enter a name for the template.");
+                        Alert.alert(
+                          t.provider?.quoteTemplateNameTitle || "Name Required",
+                          t.provider?.quoteTemplateNameBody || "Enter a name for the template.",
+                        );
                       }
                     } else {
                       setShowSaveTemplateInput(true);
@@ -2218,14 +2509,19 @@ export default function ProviderRequestDetailsScreen({
                   }}
                 >
                   <MaterialCommunityIcons name="content-save" size={16} color="#6b7280" />
-                  <Text style={{ fontSize: 13, fontWeight: '500', color: '#6b7280' }}>Save Template</Text>
+                  <Text style={{ fontSize: 13, fontWeight: '500', color: '#6b7280' }}>
+                    {t.quote?.saveTemplate || "Save Template"}
+                  </Text>
                 </TouchableOpacity>
               </View>
               {showSaveTemplateInput && (
                 <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
                   <TextInput
                     style={{ flex: 1, backgroundColor: '#f9fafb', borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14 }}
-                    placeholder="Template name, e.g. Standard Oil Change"
+                    placeholder={
+                      t.quote?.templateNamePlaceholder ||
+                      "Template name, e.g. Standard Oil Change"
+                    }
                     value={saveTemplateName}
                     onChangeText={setSaveTemplateName}
                     autoFocus
@@ -2234,7 +2530,11 @@ export default function ProviderRequestDetailsScreen({
                     style={{ backgroundColor: '#2B5EA7', borderRadius: 8, paddingHorizontal: 14, justifyContent: 'center' }}
                     onPress={() => {
                       if (saveTemplateName.trim()) saveQuoteTemplate(saveTemplateName.trim());
-                      else Alert.alert("Name Required", "Enter a name for the template.");
+                      else
+                        Alert.alert(
+                          t.provider?.quoteTemplateNameTitle || "Name Required",
+                          t.provider?.quoteTemplateNameBody || "Enter a name for the template.",
+                        );
                     }}
                   >
                     <MaterialCommunityIcons name="check" size={20} color="#fff" />
@@ -2275,7 +2575,7 @@ export default function ProviderRequestDetailsScreen({
               >
                 <MaterialCommunityIcons name="clipboard-check" size={20} color="#fff" />
                 <Text style={styles.submitButtonText}>
-                  Review & Submit
+                  {t.quote?.reviewAndSubmit || "Review & Submit"}
                 </Text>
               </TouchableOpacity>
             </ScrollView>
@@ -2293,7 +2593,9 @@ export default function ProviderRequestDetailsScreen({
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { maxHeight: '95%' }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Review Quote</Text>
+              <Text style={styles.modalTitle}>
+                {t.quote?.reviewQuoteTitle || "Review Quote"}
+              </Text>
               <TouchableOpacity onPress={() => setShowReviewModal(false)}>
                 <MaterialCommunityIcons name="close" size={24} color="#6b7280" />
               </TouchableOpacity>
@@ -2319,54 +2621,96 @@ export default function ProviderRequestDetailsScreen({
               )}
 
               {/* Items Summary */}
-              <Text style={styles.sectionTitle}>Items</Text>
+              <Text style={styles.sectionTitle}>
+                {t.quote?.itemsSection || "Items"}
+              </Text>
               {lineItems.filter(i => i.description && i.unitPrice > 0).map((item) => (
                 <View key={item.id} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' }}>
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontSize: 14, fontWeight: '500', color: '#1f2937' }}>{item.description}</Text>
                     <Text style={{ fontSize: 12, color: '#6b7280' }}>
-                      {item.type === 'part' ? 'Part' : 'Service'}{item.brand ? ` • ${item.brand}` : ''} • Qty: {item.quantity}
+                      {item.type === "part"
+                        ? t.quote?.part || "Part"
+                        : t.quote?.service || "Service"}
+                      {item.brand ? ` • ${item.brand}` : ""} •{" "}
+                      {t.quote?.lineMetaQty || "Qty"}: {item.quantity}
                     </Text>
                   </View>
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#10b981' }}>${(item.quantity * item.unitPrice).toFixed(2)}</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#10b981' }}>
+                    {formatCurrency(item.quantity * item.unitPrice)}
+                  </Text>
                 </View>
               ))}
 
               {/* Schedule */}
-              <Text style={[styles.sectionTitle, { marginTop: 16 }]}>Schedule & Duration</Text>
+              <Text style={[styles.sectionTitle, { marginTop: 16 }]}>
+                {t.quote?.scheduleAndDuration || "Schedule & Duration"}
+              </Text>
               <View style={{ flexDirection: 'row', gap: 16, marginBottom: 8 }}>
                 <View style={{ flex: 1, backgroundColor: '#f8fafc', padding: 12, borderRadius: 10 }}>
-                  <Text style={{ fontSize: 11, color: '#6b7280' }}>Date</Text>
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#111827' }}>{selectedDate ? availableDates.find(d => d.value === selectedDate)?.label || selectedDate : '—'}</Text>
+                  <Text style={{ fontSize: 11, color: '#6b7280' }}>
+                    {t.quote?.date || "Date"}
+                  </Text>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#111827' }}>
+                    {selectedDate
+                      ? availableDates.find((d) => d.value === selectedDate)?.label ||
+                        selectedDate
+                      : t.quote?.emDash || "—"}
+                  </Text>
                 </View>
                 <View style={{ flex: 1, backgroundColor: '#f8fafc', padding: 12, borderRadius: 10 }}>
-                  <Text style={{ fontSize: 11, color: '#6b7280' }}>Time</Text>
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#111827' }}>{selectedTime ? availableTimes.find(t => t.value === selectedTime)?.label || selectedTime : '—'}</Text>
+                  <Text style={{ fontSize: 11, color: '#6b7280' }}>
+                    {t.quote?.time || "Time"}
+                  </Text>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#111827' }}>
+                    {selectedTime
+                      ? availableTimes.find((slot) => slot.value === selectedTime)
+                          ?.label || selectedTime
+                      : t.quote?.emDash || "—"}
+                  </Text>
                 </View>
               </View>
               <View style={{ backgroundColor: '#f8fafc', padding: 12, borderRadius: 10, marginBottom: 8 }}>
-                <Text style={{ fontSize: 11, color: '#6b7280' }}>Estimated Duration</Text>
-                <Text style={{ fontSize: 14, fontWeight: '600', color: '#111827' }}>{estimatedDuration || '—'}</Text>
+                <Text style={{ fontSize: 11, color: '#6b7280' }}>
+                  {t.quote?.estimatedDurationShort || "Estimated Duration"}
+                </Text>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#111827' }}>
+                  {estimatedDuration || t.quote?.emDash || "—"}
+                </Text>
               </View>
 
               {/* Warranty */}
               {(partsWarrantyMonths || serviceWarrantyDays || warrantyMileage) && (
                 <>
-                  <Text style={[styles.sectionTitle, { marginTop: 8 }]}>Warranty</Text>
+                  <Text style={[styles.sectionTitle, { marginTop: 8 }]}>
+                    {t.quote?.warranty || "Warranty"}
+                  </Text>
                   <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
                     {partsWarrantyMonths && (
                       <View style={{ backgroundColor: '#fef3c7', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 }}>
-                        <Text style={{ fontSize: 12, color: '#92400e', fontWeight: '500' }}>Parts: {partsWarrantyMonths} mo</Text>
+                        <Text style={{ fontSize: 12, color: '#92400e', fontWeight: '500' }}>
+                          {(t.quote?.warrantyPartsMo || "Parts: {{months}} mo").replace(
+                            "{{months}}",
+                            String(partsWarrantyMonths),
+                          )}
+                        </Text>
                       </View>
                     )}
                     {serviceWarrantyDays && (
                       <View style={{ backgroundColor: '#fef3c7', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 }}>
-                        <Text style={{ fontSize: 12, color: '#92400e', fontWeight: '500' }}>Service: {serviceWarrantyDays} days</Text>
+                        <Text style={{ fontSize: 12, color: '#92400e', fontWeight: '500' }}>
+                          {(t.quote?.warrantyServiceDays || "Service: {{days}} days").replace(
+                            "{{days}}",
+                            String(serviceWarrantyDays),
+                          )}
+                        </Text>
                       </View>
                     )}
                     {warrantyMileage && (
                       <View style={{ backgroundColor: '#fef3c7', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 }}>
-                        <Text style={{ fontSize: 12, color: '#92400e', fontWeight: '500' }}>{warrantyMileage} miles</Text>
+                        <Text style={{ fontSize: 12, color: '#92400e', fontWeight: '500' }}>
+                          {warrantyMileage} {t.quote?.miles || "miles"}
+                        </Text>
                       </View>
                     )}
                   </View>
@@ -2376,12 +2720,14 @@ export default function ProviderRequestDetailsScreen({
               {/* Notes */}
               {notes ? (
                 <>
-                  <Text style={[styles.sectionTitle, { marginTop: 8 }]}>Notes</Text>
+                  <Text style={[styles.sectionTitle, { marginTop: 8 }]}>
+                    {t.quote?.notes || "Notes"}
+                  </Text>
                   <Text style={{ fontSize: 13, color: '#6b7280', lineHeight: 18 }}>{notes}</Text>
                 </>
               ) : null}
 
-              {/* Fee Breakdown in Review */}
+              {/* Fee Breakdown in Review — tiered commission */}
               {(() => {
                 const validItems = lineItems.filter(i => i.description && i.unitPrice > 0);
                 const partItems = validItems.filter(i => i.type === 'part');
@@ -2389,40 +2735,104 @@ export default function ProviderRequestDetailsScreen({
                 const partsTotal = partItems.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
                 const laborTotal = serviceItems.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
                 const displacement = calculateDisplacementCost();
-                const grandTotal = calculateTotal();
-                const platformFee = grandTotal * 0.10;
-                const youReceive = grandTotal - platformFee;
+                const net = calcProviderNet(partsTotal, laborTotal, displacement, providerLevel);
+                const tier = getTierInfo(providerLevel);
                 return (
                   <View style={{ marginTop: 16 }}>
+                    {/* Customer pays summary */}
                     <View style={styles.grandTotalContainer}>
-                      <View>
-                        <Text style={styles.grandTotalLabel}>Customer Pays</Text>
-                      </View>
-                      <Text style={styles.grandTotalValue}>${grandTotal.toFixed(2)}</Text>
+                      <Text style={styles.grandTotalLabel}>{t.quote?.customerPays || "Customer Pays"}</Text>
+                      <Text style={styles.grandTotalValue}>{formatCurrency(net.grandTotal)}</Text>
                     </View>
-                    <View style={styles.feeBreakdownContainer}>
-                      <View style={styles.feeBreakdownRow}>
-                        <Text style={styles.feeBreakdownLabel}>Parts</Text>
-                        <Text style={styles.feeBreakdownValue}>${partsTotal.toFixed(2)}</Text>
+
+                    {/* Provider net breakdown */}
+                    <View style={[styles.feeBreakdownContainer, { borderColor: '#bbf7d0', borderWidth: 1.5 }]}>
+                      <View style={[styles.feeBreakdownHeader, { marginBottom: 8 }]}>
+                        <MaterialCommunityIcons name="wallet-outline" size={16} color="#15803d" />
+                        <Text style={[styles.feeBreakdownTitle, { color: '#15803d' }]}>
+                          {tp?.quoteEarningsBreakdownTitle || "Your earnings breakdown"}
+                        </Text>
+                        <View style={{ marginLeft: 'auto' as any, backgroundColor: '#dcfce7', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8 }}>
+                          <Text style={{ fontSize: 10, fontWeight: '700', color: '#15803d' }}>
+                            {(tp?.tierBadgeSuffix || "{{label}} tier").replace(
+                              "{{label}}",
+                              tierLevelDisplay(providerLevel),
+                            )}
+                          </Text>
+                        </View>
                       </View>
                       <View style={styles.feeBreakdownRow}>
-                        <Text style={styles.feeBreakdownLabel}>Labor</Text>
-                        <Text style={styles.feeBreakdownValue}>${laborTotal.toFixed(2)}</Text>
+                        <Text style={styles.feeBreakdownLabel}>{t.quote?.parts || "Parts subtotal"}</Text>
+                        <Text style={styles.feeBreakdownValue}>{formatCurrency(partsTotal)}</Text>
+                      </View>
+                      <View style={styles.feeBreakdownRow}>
+                        <Text style={styles.feeBreakdownLabel}>{t.quote?.labor || "Labor subtotal"}</Text>
+                        <Text style={styles.feeBreakdownValue}>{formatCurrency(laborTotal)}</Text>
                       </View>
                       {displacement > 0 && (
                         <View style={styles.feeBreakdownRow}>
-                          <Text style={styles.feeBreakdownLabel}>Displacement</Text>
-                          <Text style={styles.feeBreakdownValue}>${displacement.toFixed(2)}</Text>
+                          <Text style={styles.feeBreakdownLabel}>{t.quote?.displacementCost || "Travel fee"}</Text>
+                          <Text style={styles.feeBreakdownValue}>{formatCurrency(displacement)}</Text>
                         </View>
                       )}
                       <View style={[styles.feeBreakdownRow, { borderTopWidth: 1, borderTopColor: '#e5e7eb', paddingTop: 8, marginTop: 4 }]}>
-                        <Text style={[styles.feeBreakdownLabel, { color: '#ef4444' }]}>Platform fee (10%)</Text>
-                        <Text style={[styles.feeBreakdownValue, { color: '#ef4444' }]}>-${platformFee.toFixed(2)}</Text>
+                        <Text style={[styles.feeBreakdownLabel, { color: '#ef4444' }]}>
+                          {(tp?.quoteLaborCommission || "Labor commission ({{percent}}%)").replace(
+                            "{{percent}}",
+                            String(Math.round(tier.laborRate * 100)),
+                          )}
+                        </Text>
+                        <Text style={[styles.feeBreakdownValue, { color: '#ef4444' }]}>-{formatCurrency(net.laborCommission)}</Text>
                       </View>
-                      <View style={[styles.feeBreakdownRow, styles.feeBreakdownTotal]}>
-                        <Text style={styles.feeBreakdownReceiveLabel}>You receive</Text>
-                        <Text style={styles.feeBreakdownReceiveValue}>${youReceive.toFixed(2)}</Text>
+                      {partsTotal > 0 && (
+                        <View style={styles.feeBreakdownRow}>
+                          <Text style={[styles.feeBreakdownLabel, { color: '#ef4444' }]}>
+                            {(tp?.quotePartsCommission ||
+                              "Parts commission ({{percent}}%, max {{max}})")
+                              .replace("{{percent}}", String(Math.round(tier.partsRate * 100)))
+                              .replace("{{max}}", formatCurrency(Number(tier.partsMax) || 0))}
+                          </Text>
+                          <Text style={[styles.feeBreakdownValue, { color: '#ef4444' }]}>-{formatCurrency(net.partsCommission)}</Text>
+                        </View>
+                      )}
+                      {/* Net payout — highlighted */}
+                      <View style={{ backgroundColor: '#f0fdf4', borderRadius: 10, padding: 12, marginTop: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <View>
+                          <Text style={{ fontSize: 13, fontWeight: '700', color: '#15803d' }}>
+                            {t.provider?.netAmount || "You will receive"}
+                          </Text>
+                          <Text style={{ fontSize: 11, color: '#166534', marginTop: 2 }}>
+                            {tp?.quoteAfterCommissionPaidNote ||
+                              "After commission — paid upon service completion"}
+                          </Text>
+                        </View>
+                        <Text style={{ fontSize: 22, fontWeight: '800', color: '#15803d' }}>{formatCurrency(net.youReceive)}</Text>
                       </View>
+                    </View>
+
+                    {/* Tier progression */}
+                    {tier.nextLevel && (
+                      <View style={{ backgroundColor: '#fefce8', borderRadius: 10, padding: 10, marginTop: 10, borderWidth: 1, borderColor: '#fde68a' }}>
+                        <Text style={{ fontSize: 11, fontWeight: '600', color: '#92400e' }}>
+                          ⚡{" "}
+                          {(tp?.quoteTierUnlockLabor ||
+                            "Complete {{count}} services to unlock {{rate}}% labor commission")
+                            .replace("{{count}}", String(tier.completionsNeeded ?? ""))
+                            .replace("{{rate}}", String(tier.nextLaborRate ?? ""))}
+                        </Text>
+                      </View>
+                    )}
+
+                    {/* Security guarantee */}
+                    <View style={{ flexDirection: 'row', gap: 6, alignItems: 'flex-start', marginTop: 12, backgroundColor: '#f8fafc', borderRadius: 10, padding: 10 }}>
+                      <MaterialCommunityIcons name="shield-check" size={16} color="#2563eb" style={{ marginTop: 1 }} />
+                      <Text style={{ fontSize: 11, color: '#374151', flex: 1, lineHeight: 16 }}>
+                        <Text style={{ fontWeight: '600' }}>
+                          {tp?.quotePaymentGuaranteedBold || "Payment guaranteed."}
+                        </Text>{" "}
+                        {tp?.quotePaymentGuaranteedBody ||
+                          "The client's card is charged before service begins. You're protected even if the client is unresponsive after completion."}
+                      </Text>
                     </View>
                   </View>
                 );
@@ -2441,7 +2851,11 @@ export default function ProviderRequestDetailsScreen({
                 return (
                   <View style={{ marginTop: 16, backgroundColor: allCovered ? '#f0fdf4' : '#fffbeb', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: allCovered ? '#bbf7d0' : '#fde68a' }}>
                     <Text style={{ fontSize: 13, fontWeight: '700', color: allCovered ? '#166534' : '#92400e', marginBottom: 10 }}>
-                      {allCovered ? '✅ All customer requested items covered' : '⚠️ Customer Requested Items'}
+                      {allCovered
+                        ? t.quote?.coverageAllTitle ||
+                          "✅ All customer requested items covered"
+                        : t.quote?.coverageWarningTitle ||
+                          "⚠️ Customer Requested Items"}
                     </Text>
                     {coverage.map((c, i) => (
                       <View key={i} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 4 }}>
@@ -2457,7 +2871,8 @@ export default function ProviderRequestDetailsScreen({
                     ))}
                     {!allCovered && (
                       <Text style={{ fontSize: 12, color: '#92400e', marginTop: 8, fontStyle: 'italic' }}>
-                        Some items may not be covered. You can still submit, or go back to add missing items.
+                        {t.quote?.coveragePartialHint ||
+                          "Some items may not be covered. You can still submit, or go back to add missing items."}
                       </Text>
                     )}
                   </View>
@@ -2478,7 +2893,9 @@ export default function ProviderRequestDetailsScreen({
                 ) : (
                   <>
                     <MaterialCommunityIcons name="send" size={20} color="#fff" />
-                    <Text style={styles.submitButtonText}>Confirm & Send Quote</Text>
+                    <Text style={styles.submitButtonText}>
+                      {t.quote?.confirmSendQuote || "Confirm & Send Quote"}
+                    </Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -2487,7 +2904,9 @@ export default function ProviderRequestDetailsScreen({
                 style={{ alignItems: 'center', paddingVertical: 12 }}
                 onPress={() => setShowReviewModal(false)}
               >
-                <Text style={{ fontSize: 14, color: '#6b7280' }}>Go Back and Edit</Text>
+                <Text style={{ fontSize: 14, color: '#6b7280' }}>
+                  {t.quote?.goBackAndEdit || "Go Back and Edit"}
+                </Text>
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -2504,20 +2923,43 @@ export default function ProviderRequestDetailsScreen({
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { maxHeight: '70%' }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Decline Request</Text>
+              <Text style={styles.modalTitle}>
+                {t.quote?.declineRequestTitle || "Decline Request"}
+              </Text>
               <TouchableOpacity onPress={() => setShowDeclineModal(false)}>
                 <MaterialCommunityIcons name="close" size={24} color="#6b7280" />
               </TouchableOpacity>
             </View>
             <Text style={{ fontSize: 14, color: '#6b7280', marginBottom: 16 }}>
-              Please select a reason for declining. This helps us route the request to another provider faster.
+              {t.quote?.declineIntro ||
+                "Please select a reason for declining. This helps us route the request to another provider faster."}
             </Text>
             {[
-              { id: "not_specialty", label: "Not my specialty", icon: "wrench-off" as const },
-              { id: "too_busy", label: "Too busy right now", icon: "clock-fast" as const },
-              { id: "too_far", label: "Customer too far", icon: "map-marker-distance" as const },
-              { id: "parts_unavailable", label: "Parts unavailable", icon: "package-variant-remove" as const },
-              { id: "other", label: "Other reason", icon: "dots-horizontal" as const },
+              {
+                id: "not_specialty",
+                label: t.quote?.declineNotSpecialty || "Not my specialty",
+                icon: "wrench-off" as const,
+              },
+              {
+                id: "too_busy",
+                label: t.quote?.declineTooBusy || "Too busy right now",
+                icon: "clock-fast" as const,
+              },
+              {
+                id: "too_far",
+                label: t.quote?.declineTooFar || "Customer too far",
+                icon: "map-marker-distance" as const,
+              },
+              {
+                id: "parts_unavailable",
+                label: t.quote?.declinePartsUnavailable || "Parts unavailable",
+                icon: "package-variant-remove" as const,
+              },
+              {
+                id: "other",
+                label: t.quote?.declineOther || "Other reason",
+                icon: "dots-horizontal" as const,
+              },
             ].map((reason) => (
               <TouchableOpacity
                 key={reason.id}
@@ -2545,7 +2987,9 @@ export default function ProviderRequestDetailsScreen({
             {declineReason === "other" && (
               <TextInput
                 style={{ backgroundColor: '#f9fafb', borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, padding: 12, fontSize: 14, marginBottom: 8 }}
-                placeholder="Please specify..."
+                placeholder={
+                  t.quote?.declineOtherPlaceholder || "Please specify..."
+                }
                 value={declineOtherText}
                 onChangeText={setDeclineOtherText}
                 multiline
@@ -2561,7 +3005,9 @@ export default function ProviderRequestDetailsScreen({
               ) : (
                 <>
                   <MaterialCommunityIcons name="close-circle" size={20} color="#fff" />
-                  <Text style={styles.submitButtonText}>Decline Request</Text>
+                  <Text style={styles.submitButtonText}>
+                    {t.quote?.declineRequestTitle || "Decline Request"}
+                  </Text>
                 </>
               )}
             </TouchableOpacity>
@@ -2579,20 +3025,26 @@ export default function ProviderRequestDetailsScreen({
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { maxHeight: '70%' }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Quote Templates</Text>
+              <Text style={styles.modalTitle}>
+                {t.quote?.quoteTemplatesTitle || "Quote Templates"}
+              </Text>
               <TouchableOpacity onPress={() => setShowTemplatesModal(false)}>
                 <MaterialCommunityIcons name="close" size={24} color="#6b7280" />
               </TouchableOpacity>
             </View>
             <Text style={{ fontSize: 13, color: '#6b7280', marginBottom: 16 }}>
-              Select a template to pre-fill your quote. You can adjust values after applying.
+              {t.quote?.quoteTemplatesIntro ||
+                "Select a template to pre-fill your quote. You can adjust values after applying."}
             </Text>
             {quoteTemplates.length === 0 ? (
               <View style={{ alignItems: 'center', paddingVertical: 24 }}>
                 <MaterialCommunityIcons name="file-document-outline" size={40} color="#d1d5db" />
-                <Text style={{ fontSize: 14, color: '#9ca3af', marginTop: 8 }}>No saved templates yet</Text>
+                <Text style={{ fontSize: 14, color: '#9ca3af', marginTop: 8 }}>
+                  {t.quote?.noSavedTemplates || "No saved templates yet"}
+                </Text>
                 <Text style={{ fontSize: 12, color: '#d1d5db', marginTop: 4, textAlign: 'center' }}>
-                  Fill out a quote and tap "Save Template" to create one
+                  {t.quote?.saveTemplateEmptyHint ||
+                    'Fill out a quote and tap "Save Template" to create one'}
                 </Text>
               </View>
             ) : (
@@ -2604,16 +3056,34 @@ export default function ProviderRequestDetailsScreen({
                       <TouchableOpacity style={{ flex: 1 }} onPress={() => applyTemplate(template)}>
                         <Text style={{ fontSize: 15, fontWeight: '600', color: '#1f2937' }}>{template.name}</Text>
                         <Text style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>
-                          {template.lineItems.length} item(s) • ${total.toFixed(2)} • {template.estimatedDuration || '—'}
+                          {(t.quote?.templateRowMeta ||
+                            "{{count}} item(s) • {{total}} • {{duration}}")
+                            .replace("{{count}}", String(template.lineItems.length))
+                            .replace("{{total}}", formatCurrency(total))
+                            .replace(
+                              "{{duration}}",
+                              template.estimatedDuration || t.quote?.emDash || "—",
+                            )}
                         </Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={{ padding: 8 }}
                         onPress={() => {
-                          Alert.alert("Delete Template", `Delete "${template.name}"?`, [
-                            { text: "Cancel", style: "cancel" },
-                            { text: "Delete", style: "destructive", onPress: () => deleteQuoteTemplate(template.id) },
-                          ]);
+                          Alert.alert(
+                            t.provider?.deleteQuoteTemplateTitle || "Delete Template",
+                            (t.provider?.deleteQuoteTemplateBody || 'Delete "{{name}}"?').replace(
+                              /\{\{\s*name\s*\}\}/g,
+                              template.name,
+                            ),
+                            [
+                              { text: t.common?.cancel || "Cancel", style: "cancel" },
+                              {
+                                text: t.common?.delete || "Delete",
+                                style: "destructive",
+                                onPress: () => deleteQuoteTemplate(template.id),
+                              },
+                            ],
+                          );
                         }}
                       >
                         <MaterialCommunityIcons name="delete-outline" size={20} color="#ef4444" />
