@@ -5,6 +5,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "qa:mobile": "npm run typecheck && jest",
+    "e2e:maestro": "maestro test maestro/critical-login-from-landing.yaml",
+    "e2e:maestro:ios": "maestro test maestro/critical-login-from-landing.ios.yaml",
     "test": "jest",
     "start": "expo start",
     "android": "expo start --android",

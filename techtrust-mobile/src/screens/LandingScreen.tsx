@@ -770,7 +770,11 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
+    <SafeAreaView
+      style={styles.container}
+      edges={["top"]}
+      testID="landing-screen"
+    >
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
       {loading && (
@@ -839,6 +843,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
               {/* Menu Button */}
               <TouchableOpacity
                 style={styles.menuButton}
+                testID="landing-menu-button"
                 onPress={() => setShowMenu(true)}
               >
                 <Ionicons
@@ -1817,6 +1822,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
               <View style={styles.menuFooter}>
                 <TouchableOpacity
                   style={styles.menuLoginButton}
+                  testID="landing-menu-login-button"
                   onPress={() => {
                     setShowMenu(false);
                     handleLogin();

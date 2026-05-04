@@ -1,0 +1,25 @@
+# Same flow as critical-login-from-landing.yaml — iOS bundle id from app.json.
+appId: com.techtrustautosolutions.mobile
+---
+- launchApp
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "landing-menu-button"
+    timeout: 120000
+- tapOn:
+    id: "landing-menu-button"
+- extendedWaitUntil:
+    visible:
+      id: "landing-menu-login-button"
+    timeout: 20000
+- tapOn:
+    id: "landing-menu-login-button"
+- extendedWaitUntil:
+    visible:
+      id: "login-screen"
+    timeout: 20000
+- assertVisible:
+    id: "login-email-input"
+- assertVisible:
+    id: "login-password-input"

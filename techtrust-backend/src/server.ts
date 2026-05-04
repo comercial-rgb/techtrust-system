@@ -6,6 +6,8 @@
  * Ponto de entrada da aplicação backend
  */
 
+import "./instrument";
+import * as Sentry from "@sentry/node";
 import express, { Application } from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -18,6 +20,7 @@ import { Server as SocketServer } from "socket.io";
 // Configurações
 import { logger } from "./config/logger";
 import { buildHealthPayload } from "./utils/health-payload";
+import { isSentryEnabled } from "./instrument";
 // import { rateLimiter } from './middleware/rate-limiter'; // DESABILITADO PARA TESTES
 import { errorHandler } from "./middleware/error-handler";
 
@@ -274,6 +277,13 @@ app.use(`/api/${API_VERSION}/quickbooks`, quickbooksRoutes);
 app.use(`/api/${API_VERSION}/sos`, sosRoutes); // Roadside SOS dispatch
 
 // ============================================
+// SENTRY (errors) — after routes, before app error handler
+// ============================================
+if (isSentryEnabled()) {
+  Sentry.setupExpressErrorHandler(app);
+}
+
+// ============================================
 // ERROR HANDLER (deve ser o último middleware)
 // ============================================
 app.use(errorHandler);
@@ -362,11 +372,19 @@ httpServer.listen(PORT, async () => {
 });
 
 // Tratamento de erros não capturados
-process.on("unhandledRejection", (reason: Error) => {
+process.on("unhandledRejection", (reason: unknown) => {
   logger.error("Unhandled Rejection:", reason);
+  if (isSentryEnabled()) {
+    Sentry.captureException(
+      reason instanceof Error ? reason : new Error(String(reason)),
+    );
+  }
 });
 
 process.on("uncaughtException", (error: Error) => {
   logger.error("Uncaught Exception:", error);
+  if (isSentryEnabled()) {
+    Sentry.captureException(error);
+  }
   process.exit(1);
 });

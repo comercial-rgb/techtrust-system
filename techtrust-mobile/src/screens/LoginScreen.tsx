@@ -312,7 +312,7 @@ export default function LoginScreen({
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} testID="login-screen">
       {/* Header with Back Button and Language Selector */}
       <View style={styles.headerRow}>
         <TouchableOpacity
@@ -458,6 +458,7 @@ export default function LoginScreen({
               />
               <TextInput
                 style={styles.input}
+                testID="login-email-input"
                 placeholder={t.auth.email}
                 placeholderTextColor="#9ca3af"
                 keyboardType="email-address"
@@ -476,6 +477,7 @@ export default function LoginScreen({
               />
               <TextInput
                 style={styles.input}
+                testID="login-password-input"
                 placeholder={t.auth.password}
                 placeholderTextColor="#9ca3af"
                 secureTextEntry={!showPassword}
