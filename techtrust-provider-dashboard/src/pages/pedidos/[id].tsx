@@ -1212,7 +1212,7 @@ export default function PedidoDetalhesPage() {
                 <div className="flex items-start gap-2 bg-green-50 border border-green-200 rounded-xl p-3 mb-5 text-xs text-green-800">
                   <Shield className="w-4 h-4 text-green-600 mt-0.5 shrink-0" />
                   <span>
-                    <strong>Payment is guaranteed.</strong> The client's card will be charged before the service begins. You're protected even if the client becomes unresponsive after completion.
+                    <strong>Payment is guaranteed.</strong> The client&apos;s card will be charged before the service begins. You&apos;re protected even if the client becomes unresponsive after completion.
                   </span>
                 </div>
 

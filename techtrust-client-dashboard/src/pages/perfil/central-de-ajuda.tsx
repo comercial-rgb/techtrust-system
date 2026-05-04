@@ -189,7 +189,9 @@ export default function CentralDeAjudaPage() {
           {filteredFAQs.length === 0 ? (
             <div className="py-12 text-center">
               <HelpCircle className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500">No results found for "{searchQuery}"</p>
+              <p className="text-gray-500">
+                No results found for &quot;{searchQuery}&quot;
+              </p>
               <button onClick={() => { setSearchQuery(''); setSelectedCategory('all'); }} className="text-primary-600 text-sm font-semibold mt-2 hover:underline">Clear filters</button>
             </div>
           ) : (

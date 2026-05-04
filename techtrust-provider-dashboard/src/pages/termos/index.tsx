@@ -91,7 +91,7 @@ const CONTENT: Record<TabType, React.ReactNode> = {
       </Section>
 
       <Section title="4. Data Compliance">
-        <p>We comply with applicable data protection laws, including the California Consumer Privacy Act (CCPA/CPRA) and Florida's Information Protection Act. You may request access, correction, or deletion of your data at any time through <a href="mailto:privacy@techtrust.com" className="text-primary-600 hover:underline">privacy@techtrust.com</a>.</p>
+        <p>We comply with applicable data protection laws, including the California Consumer Privacy Act (CCPA/CPRA) and Florida&apos;s Information Protection Act. You may request access, correction, or deletion of your data at any time through <a href="mailto:privacy@techtrust.com" className="text-primary-600 hover:underline">privacy@techtrust.com</a>.</p>
       </Section>
 
       <Section title="5. Data Breach Notification">

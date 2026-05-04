@@ -175,7 +175,7 @@ export default function EsqueciSenhaPage() {
                   {tr("auth.forgotPassword")}
                 </h2>
                 <p className="text-gray-600">
-                  Enter your email and we'll send a 6-digit code to reset your
+                  Enter your email and we&apos;ll send a 6-digit code to reset your
                   password.
                 </p>
               </div>

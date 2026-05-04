@@ -205,7 +205,7 @@ export default function ServiceAreaPage() {
             <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
               <div>
                 <p className="font-medium text-gray-900">Mobile / On-Site Service</p>
-                <p className="text-sm text-gray-500">You travel to the customer's location</p>
+                <p className="text-sm text-gray-500">You travel to the customer&apos;s location</p>
               </div>
               <button
                 onClick={() => setMobileService(!mobileService)}

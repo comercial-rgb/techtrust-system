@@ -703,7 +703,7 @@ export default function CadastroPage() {
                 <div className="flex items-center gap-2 mb-3">
                   <CreditCard className="w-4 h-4 text-gray-400" />
                   <p className="text-sm font-semibold text-gray-700">Payout Method</p>
-                  <span className="text-xs text-gray-400">(how you'll receive payments)</span>
+                  <span className="text-xs text-gray-400">(how you&apos;ll receive payments)</span>
                 </div>
 
                 <div className="grid grid-cols-3 gap-2 mb-3">

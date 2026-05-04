@@ -292,7 +292,7 @@ export default function ReviewsPage() {
                   <Star key={s} className={`w-3.5 h-3.5 ${s <= replyModal.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-200'}`} />
                 ))}
               </div>
-              <p className="text-sm text-gray-700 italic">"{replyModal.comment}"</p>
+              <p className="text-sm text-gray-700 italic">&quot;{replyModal.comment}&quot;</p>
               <p className="text-xs text-gray-400 mt-1">— {replyModal.customerName}</p>
             </div>
             <textarea

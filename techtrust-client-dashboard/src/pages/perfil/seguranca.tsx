@@ -234,7 +234,7 @@ export default function SegurancaPage() {
                     }`}
                   />
                   {confirmPwd && newPwd !== confirmPwd && (
-                    <p className="text-xs text-red-500 mt-1">Passwords don't match</p>
+                    <p className="text-xs text-red-500 mt-1">Passwords don&apos;t match</p>
                   )}
                 </div>
               </div>
@@ -367,7 +367,7 @@ export default function SegurancaPage() {
                 <div className="bg-red-50 rounded-xl p-4">
                   <div className="flex items-start gap-3 mb-3">
                     <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-red-700">This will sign out <strong>{otherSessions.length} other device(s)</strong>. They'll need to log in again.</p>
+                    <p className="text-sm text-red-700">This will sign out <strong>{otherSessions.length} other device(s)</strong>. They&apos;ll need to log in again.</p>
                   </div>
                   <div className="flex gap-2">
                     <button onClick={() => setRevokeAllConfirm(false)} className="flex-1 py-2 rounded-lg border border-gray-200 text-gray-700 text-sm font-medium bg-white hover:bg-gray-50 transition-colors">Cancel</button>
