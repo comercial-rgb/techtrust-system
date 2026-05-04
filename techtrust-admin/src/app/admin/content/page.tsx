@@ -5,9 +5,14 @@
  * Banners, Ofertas, Artigos, Avisos
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { logApiError } from '../../../utils/logger';
+
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1').replace(
+  /\/$/,
+  '',
+);
 import { 
   MdAnnouncement, MdLocalOffer, MdArticle, MdNotifications,
   MdAdd, MdEdit, MdDelete, MdVisibility, MdVisibilityOff,
@@ -101,11 +106,6 @@ export default function ContentManagementPage() {
   const [editingItem, setEditingItem] = useState<any>(null);
   const [modalType, setModalType] = useState<ContentTab>('banners');
 
-  useEffect(() => {
-    loadStats();
-    loadContent(activeTab);
-  }, [activeTab]);
-
   const getAuthHeaders = () => {
     const token = localStorage.getItem('adminToken');
     return {
@@ -114,9 +114,9 @@ export default function ContentManagementPage() {
     };
   };
 
-  const loadStats = async () => {
+  const loadStats = useCallback(async () => {
     try {
-      const res = await fetch('https://techtrust-api.onrender.com/api/v1/admin/content/stats', {
+      const res = await fetch(`${API_BASE}/admin/content/stats`, {
         headers: getAuthHeaders()
       });
       if (res.ok) {
@@ -126,13 +126,13 @@ export default function ContentManagementPage() {
     } catch (error) {
       logApiError('Erro ao carregar estatísticas:', error);
     }
-  };
+  }, []);
 
-  const loadContent = async (tab: ContentTab) => {
+  const loadContent = useCallback(async (tab: ContentTab) => {
     setLoading(true);
     try {
       const endpoint = tab === 'offers' ? 'offers' : tab;
-      const res = await fetch(`https://techtrust-api.onrender.com/api/v1/admin/content/${endpoint}`, {
+      const res = await fetch(`${API_BASE}/admin/content/${endpoint}`, {
         headers: getAuthHeaders()
       });
       if (res.ok) {
@@ -149,7 +149,12 @@ export default function ContentManagementPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    void loadStats();
+    void loadContent(activeTab);
+  }, [activeTab, loadStats, loadContent]);
 
   const handleCreate = () => {
     setEditingItem(null);
@@ -168,7 +173,7 @@ export default function ContentManagementPage() {
     
     try {
       const endpoint = activeTab === 'offers' ? 'offers' : activeTab;
-      const res = await fetch(`https://techtrust-api.onrender.com/api/v1/admin/content/${endpoint}/${id}`, {
+      const res = await fetch(`${API_BASE}/admin/content/${endpoint}/${id}`, {
         method: 'DELETE',
         headers: getAuthHeaders()
       });
@@ -186,7 +191,7 @@ export default function ContentManagementPage() {
       const endpoint = type === 'offers' ? 'offers' : type;
       const field = type === 'articles' ? 'isPublished' : 'isActive';
       
-      const res = await fetch(`https://techtrust-api.onrender.com/api/v1/admin/content/${endpoint}/${id}`, {
+      const res = await fetch(`${API_BASE}/admin/content/${endpoint}/${id}`, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify({ [field]: !currentStatus })
@@ -204,9 +209,9 @@ export default function ContentManagementPage() {
     try {
       const endpoint = modalType === 'offers' ? 'offers' : modalType;
       const method = editingItem ? 'PUT' : 'POST';
-      const url = editingItem 
-        ? `https://techtrust-api.onrender.com/api/v1/admin/content/${endpoint}/${editingItem.id}`
-        : `https://techtrust-api.onrender.com/api/v1/admin/content/${endpoint}`;
+      const url = editingItem
+        ? `${API_BASE}/admin/content/${endpoint}/${editingItem.id}`
+        : `${API_BASE}/admin/content/${endpoint}`;
       
       const res = await fetch(url, {
         method,
@@ -342,7 +347,7 @@ export default function ContentManagementPage() {
                 {banners.length === 0 ? (
                   <div className="text-center py-12 text-gray-500">
                     <MdAnnouncement className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p>No banners yet. Click "Add New" to create one.</p>
+                    <p>No banners yet. Click &quot;Add New&quot; to create one.</p>
                   </div>
                 ) : (
                   banners.map(banner => (
@@ -394,7 +399,7 @@ export default function ContentManagementPage() {
                 {offers.length === 0 ? (
                   <div className="text-center py-12 text-gray-500">
                     <MdLocalOffer className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p>No offers yet. Click "Add New" to create one.</p>
+                    <p>No offers yet. Click &quot;Add New&quot; to create one.</p>
                   </div>
                 ) : (
                   offers.map(offer => (
@@ -462,7 +467,7 @@ export default function ContentManagementPage() {
                 {articles.length === 0 ? (
                   <div className="text-center py-12 text-gray-500">
                     <MdArticle className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p>No articles yet. Click "Add New" to create one.</p>
+                    <p>No articles yet. Click &quot;Add New&quot; to create one.</p>
                   </div>
                 ) : (
                   articles.map(article => (
@@ -522,7 +527,7 @@ export default function ContentManagementPage() {
                 {notices.length === 0 ? (
                   <div className="text-center py-12 text-gray-500">
                     <MdNotifications className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p>No notices yet. Click "Add New" to create one.</p>
+                    <p>No notices yet. Click &quot;Add New&quot; to create one.</p>
                   </div>
                 ) : (
                   notices.map(notice => (
