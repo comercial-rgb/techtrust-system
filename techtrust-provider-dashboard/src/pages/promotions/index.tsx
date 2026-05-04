@@ -3,12 +3,13 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
+import NextImage from 'next/image'
 import DashboardLayout from '@/components/DashboardLayout'
 import { useAuth } from '@/contexts/AuthContext'
 import { useI18n } from '@/i18n'
 import api from '@/services/api'
 import {
-  Megaphone, Plus, Image, Calendar, Eye, MousePointer, Trash2, Edit2,
+  Megaphone, Plus, Image as ImageIcon, Calendar, Eye, MousePointer, Trash2, Edit2,
   Loader2, Droplets, Package, BarChart3, AlertCircle, CheckCircle, Clock
 } from 'lucide-react'
 
@@ -349,10 +350,10 @@ export default function PromotionsPage() {
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3">
                     {promo.imageUrl ? (
-                      <img src={promo.imageUrl} alt="" className="w-16 h-16 rounded-lg object-cover" />
+                      <NextImage src={promo.imageUrl} alt={promo.title} width={64} height={64} className="w-16 h-16 rounded-lg object-cover" />
                     ) : (
                       <div className="w-16 h-16 rounded-lg bg-purple-100 flex items-center justify-center">
-                        <Image className="w-6 h-6 text-purple-500" />
+                        <ImageIcon className="w-6 h-6 text-purple-500" aria-hidden />
                       </div>
                     )}
                     <div>

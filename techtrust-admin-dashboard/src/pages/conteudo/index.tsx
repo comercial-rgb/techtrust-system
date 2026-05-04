@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/router";
 import { useAuth } from "../../contexts/AuthContext";
 import AdminLayout from "../../components/AdminLayout";
@@ -586,12 +587,14 @@ export default function ConteudoPage() {
           banners.map((banner) => (
             <div key={banner.id} className="card p-4">
               <div className="flex items-center gap-4">
-                <div className="w-20 h-14 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                <div className="relative w-20 h-14 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
                   {banner.imageUrl ? (
-                    <img
+                    <Image
                       src={banner.imageUrl}
                       alt={banner.title}
-                      className="w-full h-full object-cover"
+                      fill
+                      className="object-cover"
+                      sizes="80px"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
@@ -730,12 +733,14 @@ export default function ConteudoPage() {
           articles.map((article) => (
             <div key={article.id} className="card p-4">
               <div className="flex items-center gap-4">
-                <div className="w-20 h-14 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                <div className="relative w-20 h-14 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
                   {article.imageUrl ? (
-                    <img
+                    <Image
                       src={article.imageUrl}
                       alt={article.title}
-                      className="w-full h-full object-cover"
+                      fill
+                      className="object-cover"
+                      sizes="80px"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">

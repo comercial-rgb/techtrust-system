@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
 import DashboardLayout from '../components/DashboardLayout';
@@ -294,10 +295,13 @@ export default function DashboardPage() {
               className={`absolute inset-0 transition-opacity duration-700 ${idx === activeBanner ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
             >
               {/* Background image */}
-              <img
+              <Image
                 src={banner.imageUrl}
                 alt={banner.title}
-                className="w-full h-full object-cover"
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, 896px"
+                priority={idx === 0}
               />
               {/* Overlay */}
               <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent" />
@@ -381,7 +385,7 @@ export default function DashboardPage() {
                   <div className="absolute -bottom-4 -left-4 w-20 h-20 rounded-full bg-white/10" />
                   {/* Image overlay if available */}
                   {offer.imageUrl && (
-                    <img src={offer.imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover opacity-20" />
+                    <Image src={offer.imageUrl} alt="" fill className="object-cover opacity-20" sizes="(max-width: 640px) 100vw, 360px" />
                   )}
                   <IconComp className="w-8 h-8 mb-3 relative z-10" />
                   <p className="font-bold text-lg mb-1 relative z-10 leading-tight">{offer.title}</p>

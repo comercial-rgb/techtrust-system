@@ -1,4 +1,16 @@
 /** @type {import('next').NextConfig} */
+function apiRemotePatterns() {
+  const base = process.env.NEXT_PUBLIC_API_URL
+  if (!base) return []
+  try {
+    const { protocol, hostname } = new URL(base)
+    const p = protocol === 'https:' ? 'https' : 'http'
+    return [{ protocol: p, hostname, pathname: '/**' }]
+  } catch {
+    return []
+  }
+}
+
 const nextConfig = {
   reactStrictMode: true,
   images: {
@@ -12,9 +24,16 @@ const nextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'app.techtrustautosolutions.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
         hostname: 'techtrustautosolutions.com',
         pathname: '/**',
       },
+      { protocol: 'https', hostname: 'flagcdn.com', pathname: '/**' },
+      ...apiRemotePatterns(),
     ],
   },
   // Custom headers for SEO and security

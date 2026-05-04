@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "../contexts/AuthContext";
 import { useGoogleLogin } from "@react-oauth/google";
@@ -300,7 +301,7 @@ export default function LoginPage() {
           {/* Logo */}
           <div className="flex items-center justify-between gap-3 mb-6">
             <div className="flex items-center gap-3">
-              <img src="/favicon.png" alt="TechTrust" className="w-12 h-12 rounded-xl" />
+              <Image src="/favicon.png" alt="TechTrust" width={48} height={48} className="w-12 h-12 rounded-xl" />
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">
                   {tr("brand.name")}
@@ -736,7 +737,7 @@ export default function LoginPage() {
       {/* Right Side - Features & Plans */}
       <div className="hidden lg:flex flex-1 bg-gradient-to-br from-primary-600 to-primary-800 p-12 items-center justify-center overflow-y-auto">
         <div className="max-w-md text-white">
-          <img src="/logo-white.png" alt="TechTrust" className="w-16 h-16 mb-6 drop-shadow-lg" />
+          <Image src="/logo-white.png" alt="TechTrust" width={64} height={64} className="w-16 h-16 mb-6 drop-shadow-lg" />
           <h2 className="text-3xl font-bold mb-6">{tr("client.heroTitle")}</h2>
           <p className="text-primary-100 mb-8 text-lg">
             {tr("client.heroDescription")}

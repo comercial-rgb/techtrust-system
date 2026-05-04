@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
+import Image from 'next/image'
 import Link from 'next/link'
 import {
   Droplets,
@@ -211,7 +212,7 @@ export default function RegisterCarWashPage() {
         <div className="bg-white border-b border-gray-200 px-6 py-4">
           <div className="max-w-4xl mx-auto flex items-center justify-between">
             <Link href="/" className="flex items-center gap-3">
-              <img src="/favicon.png" alt="TechTrust" className="w-10 h-10 rounded-xl" />
+              <Image src="/favicon.png" alt="TechTrust" width={40} height={40} className="w-10 h-10 rounded-xl" />
               <div>
                 <span className="font-bold text-gray-900">TechTrust</span>
                 <span className="text-sm text-cyan-600 ml-2">Car Wash</span>
@@ -328,7 +329,7 @@ export default function RegisterCarWashPage() {
                         onClick={() => setShowDialDropdown(!showDialDropdown)}
                         className="flex items-center gap-1.5 px-3 py-3 rounded-xl border border-gray-200 hover:border-gray-300 bg-white text-sm font-medium text-gray-700 whitespace-nowrap"
                       >
-                        <img src={flagSrc(selectedDialCountry.code)} alt={selectedDialCountry.code} className="h-4 w-6 rounded-[2px] object-cover" />
+                        <Image src={flagSrc(selectedDialCountry.code)} alt={selectedDialCountry.code} width={24} height={16} className="h-4 w-6 rounded-[2px] object-cover" />
                         <span className="text-gray-600">{selectedDialCountry.dial}</span>
                         <ChevronDown className="w-3 h-3 text-gray-400" />
                       </button>
@@ -338,7 +339,7 @@ export default function RegisterCarWashPage() {
                             <button key={c.code} type="button"
                               onClick={() => { setSelectedDialCountry(c); setShowDialDropdown(false) }}
                               className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50 ${selectedDialCountry.code === c.code ? 'bg-cyan-50 text-cyan-700 font-medium' : 'text-gray-700'}`}>
-                              <img src={flagSrc(c.code)} alt={c.code} className="h-4 w-6 rounded-[2px] object-cover" />
+                              <Image src={flagSrc(c.code)} alt={c.code} width={24} height={16} className="h-4 w-6 rounded-[2px] object-cover" />
                               <span className="flex-1 text-left">{c.name}</span>
                               <span className="text-gray-400">{c.dial}</span>
                             </button>

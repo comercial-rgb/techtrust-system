@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/router'
 import { useAuth } from '@/contexts/AuthContext'
 import { useGoogleLogin } from '@react-oauth/google'
@@ -207,7 +208,7 @@ export default function LoginPage() {
           {/* Logo */}
           <div className="flex items-center justify-between gap-3 mb-8">
             <div className="flex items-center gap-3">
-              <img src="/favicon.png" alt="TechTrust" className="w-12 h-12 rounded-2xl shadow-lg shadow-primary-500/30" />
+              <Image src="/favicon.png" alt="TechTrust" width={48} height={48} className="w-12 h-12 rounded-2xl shadow-lg shadow-primary-500/30" />
               <div>
                 <h1 className="text-xl font-bold text-gray-900">{tr('brand.name')}</h1>
                 <p className="text-sm text-gray-500">{tr('provider.subtitle')}</p>
@@ -523,7 +524,7 @@ export default function LoginPage() {
       }`}>
         <div className="max-w-md text-white">
           <div className="mb-8">
-            <img src="/logo-white.png" alt="TechTrust" className="w-16 h-16 mb-6 drop-shadow-lg" />
+            <Image src="/logo-white.png" alt="TechTrust" width={64} height={64} className="w-16 h-16 mb-6 drop-shadow-lg" />
             {loginMode === 'provider' ? (
               <>
                 <h2 className="text-3xl font-bold mb-4">

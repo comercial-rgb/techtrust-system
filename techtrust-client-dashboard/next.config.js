@@ -1,4 +1,16 @@
 /** @type {import('next').NextConfig} */
+function apiRemotePatterns() {
+  const base = process.env.NEXT_PUBLIC_API_URL
+  if (!base) return []
+  try {
+    const { protocol, hostname } = new URL(base)
+    const p = protocol === 'https:' ? 'https' : 'http'
+    return [{ protocol: p, hostname, pathname: '/**' }]
+  } catch {
+    return []
+  }
+}
+
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
@@ -16,6 +28,8 @@ const nextConfig = {
         hostname: 'techtrustautosolutions.com',
         pathname: '/**',
       },
+      { protocol: 'https', hostname: 'flagcdn.com', pathname: '/**' },
+      ...apiRemotePatterns(),
     ],
   },
   async headers() {

@@ -1,5 +1,6 @@
 import { ReactNode, useState } from 'react';
 import { useRouter } from 'next/router';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
@@ -77,7 +78,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
       >
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-100">
           <div className="flex items-center gap-2">
-            <img src="/favicon.png" alt="TechTrust" className="w-8 h-8 rounded-lg" />
+            <Image src="/favicon.png" alt="TechTrust" width={32} height={32} className="w-8 h-8 rounded-lg" />
             <span className="font-bold text-gray-900">TechTrust</span>
             <span className="text-xs bg-admin-100 text-admin-700 px-2 py-0.5 rounded-full font-medium">
               {tr('brand.adminPortal')}

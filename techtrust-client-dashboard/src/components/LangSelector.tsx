@@ -1,5 +1,6 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
+import Image from 'next/image'
 import { ChevronDown } from 'lucide-react'
 import { languages, Language } from '../i18n'
 
@@ -29,7 +30,7 @@ export default function LangSelector({ language, setLanguage }: Props) {
         onClick={() => setOpen(o => !o)}
         className="flex items-center gap-1.5 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm bg-white hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-200"
       >
-        <img src={flagSrc(current.flagCode)} alt={current.flag} className="h-3.5 w-5 rounded-[2px] object-cover" />
+        <Image src={flagSrc(current.flagCode)} alt={current.flag} width={20} height={14} className="h-3.5 w-5 rounded-[2px] object-cover" />
         <span className="text-gray-700 font-medium">{current.label}</span>
         <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
       </button>
@@ -44,7 +45,7 @@ export default function LangSelector({ language, setLanguage }: Props) {
                 l.code === language ? 'bg-primary-50 text-primary-700 font-semibold' : 'text-gray-700'
               }`}
             >
-              <img src={flagSrc(l.flagCode)} alt={l.flag} className="h-3.5 w-5 rounded-[2px] object-cover" />
+              <Image src={flagSrc(l.flagCode)} alt={l.flag} width={20} height={14} className="h-3.5 w-5 rounded-[2px] object-cover" />
               <span>{l.label}</span>
             </button>
           ))}

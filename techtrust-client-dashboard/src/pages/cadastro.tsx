@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
+import Image from 'next/image'
 import Link from 'next/link'
 import Cookies from 'js-cookie'
 import { useGoogleLogin } from '@react-oauth/google'
@@ -829,7 +830,7 @@ export default function CadastroPage() {
                         onClick={() => setShowDialDropdown(!showDialDropdown)}
                         className="flex items-center gap-1.5 px-3 py-3 rounded-lg border border-gray-300 hover:border-gray-400 bg-white text-sm font-medium text-gray-700 whitespace-nowrap"
                       >
-                        <img src={flagSrc(selectedDialCountry.code)} alt={selectedDialCountry.code} className="h-4 w-6 rounded-[2px] object-cover" />
+                        <Image src={flagSrc(selectedDialCountry.code)} alt={selectedDialCountry.code} width={24} height={16} className="h-4 w-6 rounded-[2px] object-cover" />
                         <span className="text-gray-600">{selectedDialCountry.dial}</span>
                         <span className="text-gray-400 text-xs">▾</span>
                       </button>
@@ -842,7 +843,7 @@ export default function CadastroPage() {
                               onClick={() => { setSelectedDialCountry(c); setShowDialDropdown(false) }}
                               className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50 ${selectedDialCountry.code === c.code ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'}`}
                             >
-                              <img src={flagSrc(c.code)} alt={c.code} className="h-4 w-6 rounded-[2px] object-cover" />
+                              <Image src={flagSrc(c.code)} alt={c.code} width={24} height={16} className="h-4 w-6 rounded-[2px] object-cover" />
                               <span className="flex-1 text-left">{c.name}</span>
                               <span className="text-gray-400">{c.dial}</span>
                             </button>
@@ -958,7 +959,7 @@ export default function CadastroPage() {
                     <div className="relative">
                       <button type="button" onClick={() => setShowSocialDialDropdown(!showSocialDialDropdown)}
                         className="flex items-center gap-1.5 px-3 py-3 rounded-lg border border-gray-300 hover:border-gray-400 bg-white text-sm font-medium text-gray-700 whitespace-nowrap">
-                        <img src={`https://flagcdn.com/w40/${socialDialCountry.code.toLowerCase()}.png`} alt={socialDialCountry.code} className="h-4 w-6 rounded-[2px] object-cover" />
+                        <Image src={`https://flagcdn.com/w40/${socialDialCountry.code.toLowerCase()}.png`} alt={socialDialCountry.code} width={24} height={16} className="h-4 w-6 rounded-[2px] object-cover" />
                         <span className="text-gray-600">{socialDialCountry.dial}</span>
                         <span className="text-gray-400 text-xs">▾</span>
                       </button>
@@ -967,7 +968,7 @@ export default function CadastroPage() {
                           {DIAL_COUNTRIES.map(c => (
                             <button key={c.code} type="button" onClick={() => { setSocialDialCountry(c); setShowSocialDialDropdown(false) }}
                               className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50 ${socialDialCountry.code === c.code ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'}`}>
-                              <img src={`https://flagcdn.com/w40/${c.code.toLowerCase()}.png`} alt={c.code} className="h-4 w-6 rounded-[2px] object-cover" />
+                              <Image src={`https://flagcdn.com/w40/${c.code.toLowerCase()}.png`} alt={c.code} width={24} height={16} className="h-4 w-6 rounded-[2px] object-cover" />
                               <span className="flex-1 text-left">{c.name}</span>
                               <span className="text-gray-400">{c.dial}</span>
                             </button>

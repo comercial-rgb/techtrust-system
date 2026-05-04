@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
 import { Shield, Eye, EyeOff, AlertCircle, Globe2 } from 'lucide-react';
@@ -53,7 +54,7 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           <div className="text-center mb-6 flex flex-col items-center gap-3">
-            <img src="/logo-vertical.png" alt="TechTrust" className="h-20 w-auto mx-auto" />
+            <Image src="/logo-vertical.png" alt="TechTrust" width={200} height={80} className="h-20 w-auto mx-auto" />
             <div>
               <h1 className="text-2xl font-bold text-gray-900">{tr('brand.adminPortal')}</h1>
               <p className="text-gray-500 mt-1">{tr('brand.subtitleAdmin')}</p>
@@ -146,7 +147,7 @@ export default function LoginPage() {
       {/* Right side - Decorative */}
       <div className="hidden lg:flex flex-1 bg-gradient-to-br from-admin-600 to-admin-800 items-center justify-center p-12">
         <div className="max-w-lg text-center text-white">
-          <img src="/logo-white.png" alt="TechTrust" className="w-16 h-16 mx-auto mb-6 drop-shadow-lg" />
+          <Image src="/logo-white.png" alt="TechTrust" width={64} height={64} className="w-16 h-16 mx-auto mb-6 drop-shadow-lg" />
           <h2 className="text-3xl font-bold mb-4">{tr('admin.heroTitle')}</h2>
           <p className="text-admin-200 text-lg">
             {tr('admin.heroDescription')}

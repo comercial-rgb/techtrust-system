@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import Image from 'next/image';
 import { Upload, X, Image as ImageIcon } from 'lucide-react';
 import { adminApi as api } from '../services/api';
 import { logApiError } from "../utils/logger";
@@ -131,11 +132,14 @@ export default function ImageUpload({ value, onChange, label = 'Imagem', require
       />
 
       {preview ? (
-        <div className="relative w-full">
-          <img
+        <div className="relative w-full h-48 rounded-lg border-2 border-gray-200 overflow-hidden">
+          <Image
             src={preview.startsWith('http') ? preview : `${process.env.NEXT_PUBLIC_API_URL}${preview}`}
             alt="Preview"
-            className="w-full h-48 object-cover rounded-lg border-2 border-gray-200"
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, 480px"
+            unoptimized
           />
           <button
             type="button"

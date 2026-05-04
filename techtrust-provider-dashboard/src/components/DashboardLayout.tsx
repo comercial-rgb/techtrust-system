@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, ReactNode } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useAuth } from "@/contexts/AuthContext";
@@ -103,7 +104,7 @@ export default function DashboardLayout({
         {/* Logo */}
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-100">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <img src="/favicon.png" alt="TechTrust" className="w-8 h-8 rounded-lg" />
+            <Image src="/favicon.png" alt="TechTrust" width={32} height={32} className="w-8 h-8 rounded-lg" />
             <span className="text-lg font-bold text-gray-900">
               {tr("brand.name")}
             </span>
