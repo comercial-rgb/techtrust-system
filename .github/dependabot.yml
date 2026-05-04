@@ -1,0 +1,42 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/techtrust-backend"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 8
+
+  - package-ecosystem: npm
+    directory: "/techtrust-mobile"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 8
+
+  - package-ecosystem: npm
+    directory: "/techtrust-client-dashboard"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: npm
+    directory: "/techtrust-provider-dashboard"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: npm
+    directory: "/techtrust-admin-dashboard"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: npm
+    directory: "/techtrust-admin"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly

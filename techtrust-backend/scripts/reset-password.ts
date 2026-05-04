@@ -2,12 +2,12 @@ import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 
 import { logger } from "../src/config/logger";
-const PRODUCTION_DB_URL = 'postgresql://postgres.jfwnkgqvlyamigfzgkys:Techtrust2026abc@aws-1-us-east-1.pooler.supabase.com:5432/postgres';
+import { getRequiredDatabaseUrl } from "./require-database-url";
 
 const prisma = new PrismaClient({
   datasources: {
     db: {
-      url: PRODUCTION_DB_URL
+      url: getRequiredDatabaseUrl()
     }
   }
 });
@@ -23,7 +23,7 @@ async function main() {
   }
 
   logger.info(`🔄 Resetando senha para: ${email}`);
-  logger.info(`🔑 Nova senha: ${newPassword}`);
+  logger.info(`🔑 Nova senha: (definida)`);
 
   try {
     const user = await prisma.user.findUnique({
@@ -49,7 +49,6 @@ async function main() {
     logger.info('✅ Senha atualizada com sucesso!');
     logger.info(`\n📱 Use estas credenciais no app:`);
     logger.info(`   Email: ${email}`);
-    logger.info(`   Senha: ${newPassword}`);
 
   } catch (error) {
     logger.error('❌ Erro:', error);

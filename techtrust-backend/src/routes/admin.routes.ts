@@ -386,7 +386,23 @@ router.post(
     const { id } = req.params;
     const { newPassword } = req.body;
 
-    const passwordHash = await hashPassword(newPassword || "TechTrust@123");
+    const passwordPlain =
+      typeof newPassword === "string" && newPassword.trim().length > 0
+        ? newPassword.trim()
+        : process.env.NODE_ENV === "production"
+          ? ""
+          : (process.env.ADMIN_DEV_RESET_PASSWORD as string | undefined) ||
+            "TechTrust@123";
+
+    if (!passwordPlain) {
+      res.status(400).json({
+        message:
+          "newPassword é obrigatório em produção. Defina ADMIN_DEV_RESET_PASSWORD no ambiente de desenvolvimento se precisar de fallback local.",
+      });
+      return;
+    }
+
+    const passwordHash = await hashPassword(passwordPlain);
 
     await prisma.user.update({
       where: { id },

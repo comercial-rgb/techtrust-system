@@ -1,19 +1,25 @@
 import { PrismaClient } from '@prisma/client';
 
 import { logger } from "../src/config/logger";
-const PRODUCTION_DB_URL = 'postgresql://postgres.jfwnkgqvlyamigfzgkys:Techtrust2026abc@aws-1-us-east-1.pooler.supabase.com:5432/postgres';
+import { getRequiredDatabaseUrl } from "./require-database-url";
+
+if (process.env.CONFIRM_PRODUCTION_DB_WIPE !== "yes") {
+  logger.error(
+    "Refusing to run destructive wipe: set CONFIRM_PRODUCTION_DB_WIPE=yes and DATABASE_URL to the database you intend to clear.",
+  );
+  process.exit(1);
+}
 
 const prisma = new PrismaClient({
   datasources: {
     db: {
-      url: PRODUCTION_DB_URL
+      url: getRequiredDatabaseUrl()
     }
   }
 });
 
 async function main() {
-  logger.info('🔄 Limpando banco de dados de PRODUÇÃO...');
-  logger.info('📡 Database: Supabase (aws-0-us-east-1)\n');
+  logger.info('🔄 Limpando banco de dados (CONFIRM_PRODUCTION_DB_WIPE=yes)...\n');
 
   try {
     // 1. Primeiro, verifica quantos usuários existem

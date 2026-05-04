@@ -2,22 +2,27 @@ import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 
 import { logger } from "../src/config/logger";
-const PRODUCTION_DB_URL = 'postgresql://postgres.jfwnkgqvlyamigfzgkys:Techtrust2026abc@aws-1-us-east-1.pooler.supabase.com:5432/postgres';
+import { getRequiredDatabaseUrl } from "./require-database-url";
 
 const prisma = new PrismaClient({
   datasources: {
     db: {
-      url: PRODUCTION_DB_URL
+      url: getRequiredDatabaseUrl()
     }
   }
 });
 
 async function main() {
-  const email = process.argv[2] || 'teste4@gmail.com';
-  const password = process.argv[3] || 'Winner1995';
+  const email = process.argv[2];
+  const password = process.argv[3];
+
+  if (!email || !password) {
+    logger.info('Uso: npx ts-node scripts/test-login.ts <email> <senha>');
+    process.exit(1);
+  }
 
   logger.info(`🔍 Testando login para: ${email}`);
-  logger.info(`🔑 Senha fornecida: ${password}`);
+  logger.info(`🔑 Senha fornecida: (oculto)`);
 
   try {
     const user = await prisma.user.findUnique({

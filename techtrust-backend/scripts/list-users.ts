@@ -1,12 +1,12 @@
 import { PrismaClient } from '@prisma/client';
 
 import { logger } from "../src/config/logger";
-const PRODUCTION_DB_URL = 'postgresql://postgres.jfwnkgqvlyamigfzgkys:Techtrust2026abc@aws-1-us-east-1.pooler.supabase.com:5432/postgres';
+import { getRequiredDatabaseUrl } from "./require-database-url";
 
 const prisma = new PrismaClient({
   datasources: {
     db: {
-      url: PRODUCTION_DB_URL
+      url: getRequiredDatabaseUrl()
     }
   }
 });
