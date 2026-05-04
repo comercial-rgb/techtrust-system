@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { logApiError } from '../../../utils/logger';
 import { 
   MdAnnouncement, MdLocalOffer, MdArticle, MdNotifications,
@@ -346,9 +347,15 @@ export default function ContentManagementPage() {
                 ) : (
                   banners.map(banner => (
                     <div key={banner.id} className="flex items-center p-4 hover:bg-gray-50">
-                      <div className="w-24 h-16 bg-gray-200 rounded-lg overflow-hidden mr-4">
+                      <div className="relative w-24 h-16 bg-gray-200 rounded-lg overflow-hidden mr-4">
                         {banner.imageUrl && (
-                          <img src={banner.imageUrl} alt="" className="w-full h-full object-cover" />
+                          <Image
+                            src={banner.imageUrl}
+                            alt={banner.title}
+                            fill
+                            className="object-cover"
+                            sizes="96px"
+                          />
                         )}
                       </div>
                       <div className="flex-1">
@@ -392,9 +399,15 @@ export default function ContentManagementPage() {
                 ) : (
                   offers.map(offer => (
                     <div key={offer.id} className="flex items-center p-4 hover:bg-gray-50">
-                      <div className="w-20 h-20 bg-gray-200 rounded-lg overflow-hidden mr-4 flex-shrink-0">
+                      <div className="relative w-20 h-20 bg-gray-200 rounded-lg overflow-hidden mr-4 flex-shrink-0">
                         {offer.imageUrl ? (
-                          <img src={offer.imageUrl} alt="" className="w-full h-full object-cover" />
+                          <Image
+                            src={offer.imageUrl}
+                            alt={offer.title}
+                            fill
+                            className="object-cover"
+                            sizes="80px"
+                          />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
                             <MdLocalOffer className="w-8 h-8 text-gray-400" />
@@ -454,9 +467,15 @@ export default function ContentManagementPage() {
                 ) : (
                   articles.map(article => (
                     <div key={article.id} className="flex items-center p-4 hover:bg-gray-50">
-                      <div className="w-24 h-16 bg-gray-200 rounded-lg overflow-hidden mr-4">
+                      <div className="relative w-24 h-16 bg-gray-200 rounded-lg overflow-hidden mr-4">
                         {article.imageUrl ? (
-                          <img src={article.imageUrl} alt="" className="w-full h-full object-cover" />
+                          <Image
+                            src={article.imageUrl}
+                            alt={article.title}
+                            fill
+                            className="object-cover"
+                            sizes="96px"
+                          />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
                             <MdArticle className="w-8 h-8 text-gray-400" />
