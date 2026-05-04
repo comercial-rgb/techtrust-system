@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
 import DashboardLayout from '../../components/DashboardLayout';
@@ -123,13 +123,7 @@ export default function SolicitacaoDetalhesPage() {
     }
   }, [authLoading, isAuthenticated, router]);
 
-  useEffect(() => {
-    if (isAuthenticated && id) {
-      loadRequest();
-    }
-  }, [isAuthenticated, id]);
-
-  async function loadRequest() {
+  const loadRequest = useCallback(async () => {
     try {
       const response = await api.getServiceRequestById(id as string);
       if (response.error) {
@@ -142,7 +136,13 @@ export default function SolicitacaoDetalhesPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [id]);
+
+  useEffect(() => {
+    if (isAuthenticated && id) {
+      void loadRequest();
+    }
+  }, [isAuthenticated, id, loadRequest]);
 
   async function handleAcceptQuote(quoteId: string) {
     setAcceptingQuote(quoteId);

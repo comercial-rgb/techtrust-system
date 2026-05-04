@@ -4,7 +4,7 @@
  * Real-time updates via polling
  */
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminLayout from '../../components/AdminLayout';
@@ -102,23 +102,7 @@ export default function SuportePage() {
     if (!authLoading && !isAuthenticated) router.push('/login');
   }, [authLoading, isAuthenticated, router]);
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      loadData();
-      // Poll every 10 seconds for new tickets/messages
-      const interval = setInterval(loadData, 10000);
-      return () => clearInterval(interval);
-    }
-  }, [isAuthenticated, statusFilter]);
-
-  // Scroll to bottom when messages change
-  useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [selectedTicket?.messages]);
-
-  async function loadData() {
+  const loadData = useCallback(async () => {
     try {
       const statusQuery = statusFilter ? `?status=${statusFilter}` : '';
       const [ticketsRes, statsRes] = await Promise.all([
@@ -137,7 +121,24 @@ export default function SuportePage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [statusFilter]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      void loadData();
+      const interval = setInterval(() => {
+        void loadData();
+      }, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [isAuthenticated, loadData]);
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [selectedTicket?.messages]);
 
   async function openTicket(ticket: SupportTicket) {
     try {

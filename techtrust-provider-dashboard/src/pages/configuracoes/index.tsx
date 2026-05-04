@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
 import { useAuth } from "@/contexts/AuthContext";
 import { useI18n } from "@/i18n";
@@ -161,11 +161,7 @@ export default function ConfiguracoesPage() {
     if (!authLoading && !isAuthenticated) router.push("/login");
   }, [authLoading, isAuthenticated, router]);
 
-  useEffect(() => {
-    if (isAuthenticated) loadProfile();
-  }, [isAuthenticated]);
-
-  async function loadProfile() {
+  const loadProfile = useCallback(async () => {
     setLoading(true);
     try {
       const response = await api.get("/providers/profile");
@@ -236,7 +232,11 @@ export default function ConfiguracoesPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [user]);
+
+  useEffect(() => {
+    if (isAuthenticated) void loadProfile();
+  }, [isAuthenticated, loadProfile]);
 
   async function handleSave() {
     setSaving(true);

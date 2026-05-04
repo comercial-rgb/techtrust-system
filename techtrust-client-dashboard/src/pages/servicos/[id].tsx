@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
 import DashboardLayout from '../../components/DashboardLayout';
@@ -95,13 +95,7 @@ export default function ServicoDetalhesPage() {
     }
   }, [authLoading, isAuthenticated, router]);
 
-  useEffect(() => {
-    if (isAuthenticated && id) {
-      loadWorkOrder();
-    }
-  }, [isAuthenticated, id]);
-
-  async function loadWorkOrder() {
+  const loadWorkOrder = useCallback(async () => {
     try {
       const response = await api.getWorkOrderById(id as string);
       if (response.error) {
@@ -114,7 +108,13 @@ export default function ServicoDetalhesPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [id]);
+
+  useEffect(() => {
+    if (isAuthenticated && id) {
+      void loadWorkOrder();
+    }
+  }, [isAuthenticated, id, loadWorkOrder]);
 
   async function handleSubmitReview() {
     if (!workOrder) return;

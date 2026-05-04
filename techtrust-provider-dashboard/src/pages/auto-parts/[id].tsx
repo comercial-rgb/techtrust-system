@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '@/contexts/AuthContext'
 import { useI18n } from '@/i18n'
@@ -172,13 +172,7 @@ export default function AutoPartsDetailPage() {
     if (queryTab === 'analytics') setActiveTab('analytics')
   }, [queryTab])
 
-  useEffect(() => {
-    if (isAuthenticated && !isNew && id) {
-      loadStore()
-    }
-  }, [isAuthenticated, id])
-
-  async function loadStore() {
+  const loadStore = useCallback(async () => {
     try {
       const [storeRes, productsRes, metricsRes] = await Promise.all([
         api.get(`/parts-store/${id}`),
@@ -224,7 +218,13 @@ export default function AutoPartsDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id])
+
+  useEffect(() => {
+    if (isAuthenticated && !isNew && id) {
+      void loadStore()
+    }
+  }, [isAuthenticated, id, isNew, loadStore])
 
   async function handleSave() {
     setSaving(true)

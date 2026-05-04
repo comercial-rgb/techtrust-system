@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '@/contexts/AuthContext'
 import { useI18n } from '@/i18n'
@@ -90,18 +90,12 @@ export default function ServicoDetalhesPage() {
     }
   }, [authLoading, isAuthenticated, router])
 
-  useEffect(() => {
-    if (isAuthenticated && id) {
-      loadWorkOrder()
-    }
-  }, [isAuthenticated, id])
-
-  async function loadWorkOrder() {
+  const loadWorkOrder = useCallback(async () => {
     setLoading(true)
     try {
       const response = await api.get(`/work-orders/${id}`)
       const workOrderData = response.data.data
-      
+
       setWorkOrder(workOrderData)
       setFinalAmount(workOrderData.finalAmount?.toString() || '0')
     } catch (error) {
@@ -109,7 +103,13 @@ export default function ServicoDetalhesPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id])
+
+  useEffect(() => {
+    if (isAuthenticated && id) {
+      void loadWorkOrder()
+    }
+  }, [isAuthenticated, id, loadWorkOrder])
 
   async function handleStartService() {
     if (!workOrder) return

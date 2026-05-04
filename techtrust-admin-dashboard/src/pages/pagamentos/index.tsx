@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminLayout from '../../components/AdminLayout';
@@ -27,9 +27,8 @@ export default function PagamentosPage() {
   const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => { if (!authLoading && !isAuthenticated) router.push('/login'); }, [authLoading, isAuthenticated, router]);
-  useEffect(() => { if (isAuthenticated) loadData(); }, [isAuthenticated]);
 
-  async function loadData() {
+  const loadData = useCallback(async () => {
     try {
       const response = await adminApi.getPayments({ status: statusFilter !== 'all' ? statusFilter : undefined });
       const list = response.data?.data?.payments || response.data?.data || response.data?.payments || [];
@@ -40,7 +39,9 @@ export default function PagamentosPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [statusFilter]);
+
+  useEffect(() => { if (isAuthenticated) void loadData(); }, [isAuthenticated, loadData]);
 
   const getStatusBadge = (status: string) => {
     const config: Record<string, { color: string; label: string; icon: any }> = {

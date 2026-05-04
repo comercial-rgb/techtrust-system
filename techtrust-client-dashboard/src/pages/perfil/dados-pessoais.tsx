@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
 import DashboardLayout from '../../components/DashboardLayout';
@@ -32,11 +32,7 @@ export default function DadosPessoaisPage() {
     if (!authLoading && !isAuthenticated) router.push('/login');
   }, [authLoading, isAuthenticated, router]);
 
-  useEffect(() => {
-    if (isAuthenticated) loadProfile();
-  }, [isAuthenticated]);
-
-  async function loadProfile() {
+  const loadProfile = useCallback(async () => {
     try {
       const res = await api.getProfile();
       const raw = unwrapApiData<Record<string, unknown>>(res.data) as Record<string, unknown>;
@@ -57,7 +53,11 @@ export default function DadosPessoaisPage() {
         ssn: '', birthDate: '', gender: '',
       });
     }
-  }
+  }, [user]);
+
+  useEffect(() => {
+    if (isAuthenticated) void loadProfile();
+  }, [isAuthenticated, loadProfile]);
 
   function formatSSN(value: string) {
     const digits = value.replace(/\D/g, '').slice(0, 9);

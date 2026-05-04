@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
 import { useAuth } from "@/contexts/AuthContext";
 import { useI18n } from "@/i18n";
@@ -114,12 +114,6 @@ export default function PedidoDetalhesPage() {
   }, [authLoading, isAuthenticated, router]);
 
   useEffect(() => {
-    if (isAuthenticated && id) {
-      loadRequest();
-    }
-  }, [isAuthenticated, id]);
-
-  useEffect(() => {
     if (isAuthenticated) {
       api.get("/provider/profile").then((res: any) => {
         const level = res.data?.data?.providerLevel || res.data?.providerLevel;
@@ -128,7 +122,7 @@ export default function PedidoDetalhesPage() {
     }
   }, [isAuthenticated]);
 
-  async function loadRequest() {
+  const loadRequest = useCallback(async () => {
     setLoading(true);
     try {
       const response = await api.get(`/service-requests/${id}`);
@@ -171,7 +165,13 @@ export default function PedidoDetalhesPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [id]);
+
+  useEffect(() => {
+    if (isAuthenticated && id) {
+      void loadRequest();
+    }
+  }, [isAuthenticated, id, loadRequest]);
 
   async function handleSubmitQuote(e?: React.FormEvent) {
     e?.preventDefault();

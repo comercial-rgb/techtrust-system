@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
 import DashboardLayout from '../../components/DashboardLayout';
@@ -61,6 +61,54 @@ export default function PagamentosPage() {
     }
   }, [isAuthenticated]);
 
+  const loadStripeCardElement = useCallback(async (cancelled: boolean) => {
+    const publishableKey = await getStripePublishableKey();
+    if (!publishableKey) {
+      setError('Stripe is not configured. Please contact support.');
+      return;
+    }
+
+    try {
+      if (!window.Stripe) {
+        await new Promise<void>((resolve, reject) => {
+          const existingScript = document.querySelector<HTMLScriptElement>('script[src="https://js.stripe.com/v3/"]');
+          if (existingScript) {
+            existingScript.addEventListener('load', () => resolve(), { once: true });
+            existingScript.addEventListener('error', () => reject(new Error('Failed to load Stripe.js')), { once: true });
+            return;
+          }
+
+          const script = document.createElement('script');
+          script.src = 'https://js.stripe.com/v3/';
+          script.async = true;
+          script.onload = () => resolve();
+          script.onerror = () => reject(new Error('Failed to load Stripe.js'));
+          document.head.appendChild(script);
+        });
+      }
+
+      if (cancelled || cardElementRef.current) return;
+
+      const StripeCtor = window.Stripe;
+      if (!StripeCtor) throw new Error("Stripe.js failed to load");
+      stripeRef.current = StripeCtor(publishableKey);
+      const elements = stripeRef.current.elements();
+      const cardElement = elements.create('card', {
+        style: {
+          base: {
+            fontSize: '16px',
+            color: '#111827',
+            '::placeholder': { color: '#9ca3af' },
+          },
+        },
+      });
+      cardElement.mount('#stripe-card-element');
+      cardElementRef.current = cardElement;
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load payment processor.');
+    }
+  }, []);
+
   useEffect(() => {
     if (!showAddModal || newType === 'pix') {
       destroyCardElement();
@@ -68,12 +116,12 @@ export default function PagamentosPage() {
     }
 
     let cancelled = false;
-    loadStripeCardElement(cancelled);
+    void loadStripeCardElement(cancelled);
 
     return () => {
       cancelled = true;
     };
-  }, [showAddModal, newType]);
+  }, [showAddModal, newType, loadStripeCardElement]);
 
   async function loadMethods() {
     try {
@@ -183,54 +231,6 @@ export default function PagamentosPage() {
       setError(err instanceof Error ? err.message : 'Error adding payment method');
     } finally {
       setSubmitting(false);
-    }
-  }
-
-  async function loadStripeCardElement(cancelled: boolean) {
-    const publishableKey = await getStripePublishableKey();
-    if (!publishableKey) {
-      setError('Stripe is not configured. Please contact support.');
-      return;
-    }
-
-    try {
-      if (!window.Stripe) {
-        await new Promise<void>((resolve, reject) => {
-          const existingScript = document.querySelector<HTMLScriptElement>('script[src="https://js.stripe.com/v3/"]');
-          if (existingScript) {
-            existingScript.addEventListener('load', () => resolve(), { once: true });
-            existingScript.addEventListener('error', () => reject(new Error('Failed to load Stripe.js')), { once: true });
-            return;
-          }
-
-          const script = document.createElement('script');
-          script.src = 'https://js.stripe.com/v3/';
-          script.async = true;
-          script.onload = () => resolve();
-          script.onerror = () => reject(new Error('Failed to load Stripe.js'));
-          document.head.appendChild(script);
-        });
-      }
-
-      if (cancelled || cardElementRef.current) return;
-
-      const StripeCtor = window.Stripe;
-      if (!StripeCtor) throw new Error("Stripe.js failed to load");
-      stripeRef.current = StripeCtor(publishableKey);
-      const elements = stripeRef.current.elements();
-      const cardElement = elements.create('card', {
-        style: {
-          base: {
-            fontSize: '16px',
-            color: '#111827',
-            '::placeholder': { color: '#9ca3af' },
-          },
-        },
-      });
-      cardElement.mount('#stripe-card-element');
-      cardElementRef.current = cardElement;
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load payment processor.');
     }
   }
 

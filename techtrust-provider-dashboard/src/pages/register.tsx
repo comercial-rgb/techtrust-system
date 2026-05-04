@@ -281,6 +281,7 @@ export default function RegisterPage() {
       .catch(() => {})
       .finally(() => { if (!cancelled) setZipLookupLoading(false) })
     return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on ZIP only; city/state are fill guards, not effect triggers
   }, [businessZipCode])
 
   // ─── Site URL for OG ───

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminLayout from '../../components/AdminLayout';
@@ -14,9 +14,8 @@ export default function RelatoriosPage() {
   const [reportData, setReportData] = useState<any>({ totalRevenue: 0, newUsers: 0, servicesCompleted: 0, avgRating: 0 });
 
   useEffect(() => { if (!authLoading && !isAuthenticated) router.push('/login'); }, [authLoading, isAuthenticated, router]);
-  useEffect(() => { if (isAuthenticated) loadData(); }, [isAuthenticated, period]);
 
-  async function loadData() {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const response = await adminApi.get<any>(`/admin/reports?type=overview&period=${period}`);
@@ -32,7 +31,9 @@ export default function RelatoriosPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [period]);
+
+  useEffect(() => { if (isAuthenticated) void loadData(); }, [isAuthenticated, loadData]);
 
   const reports = [
     { id: 'revenue', title: 'Relatório de Receitas', description: 'Análise completa de receitas, pagamentos e comissões', icon: DollarSign, color: 'bg-green-100 text-green-600' },

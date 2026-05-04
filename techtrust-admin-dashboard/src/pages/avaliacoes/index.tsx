@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminLayout from '../../components/AdminLayout';
@@ -26,9 +26,8 @@ export default function AvaliacoesPage() {
   const [ratingFilter, setRatingFilter] = useState('all');
 
   useEffect(() => { if (!authLoading && !isAuthenticated) router.push('/login'); }, [authLoading, isAuthenticated, router]);
-  useEffect(() => { if (isAuthenticated) loadData(); }, [isAuthenticated]);
 
-  async function loadData() {
+  const loadData = useCallback(async () => {
     try {
       const response = await adminApi.getReviews({ rating: ratingFilter !== 'all' ? Number(ratingFilter) : undefined });
       const list = response.data?.data?.reviews || response.data?.data || response.data?.reviews || [];
@@ -39,7 +38,9 @@ export default function AvaliacoesPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [ratingFilter]);
+
+  useEffect(() => { if (isAuthenticated) void loadData(); }, [isAuthenticated, loadData]);
 
   const avgRating = reviews.length > 0 ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0;
 

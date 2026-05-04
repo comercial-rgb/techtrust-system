@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '@/contexts/AuthContext'
 import { useI18n } from '@/i18n'
@@ -132,16 +132,7 @@ export default function CarWashDetailPage() {
     }
   }, [authLoading, isAuthenticated, router])
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      loadCatalogs()
-      if (!isNew && id) {
-        loadCarWash()
-      }
-    }
-  }, [isAuthenticated, id])
-
-  async function loadCatalogs() {
+  const loadCatalogs = useCallback(async () => {
     try {
       const [svcRes, amenRes, payRes] = await Promise.all([
         api.get('/car-wash/catalog/services'),
@@ -154,9 +145,9 @@ export default function CarWashDetailPage() {
     } catch (error) {
       logApiError('Error loading catalogs:', error)
     }
-  }
+  }, [])
 
-  async function loadCarWash() {
+  const loadCarWash = useCallback(async () => {
     try {
       const response = await api.get(`/car-wash/profile/${id}`)
       const data = response.data.data
@@ -232,7 +223,16 @@ export default function CarWashDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id])
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      void loadCatalogs()
+      if (!isNew && id) {
+        void loadCarWash()
+      }
+    }
+  }, [isAuthenticated, id, isNew, loadCatalogs, loadCarWash])
 
   async function handleSave() {
     setSaving(true)

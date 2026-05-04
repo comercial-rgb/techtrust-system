@@ -50,6 +50,7 @@ jobs:
           cache-dependency-path: techtrust-client-dashboard/package-lock.json
       - run: npm ci
       - run: npx tsc --noEmit
+      - run: CI=true npm run lint
 
   provider-dashboard:
     runs-on: ubuntu-latest
@@ -65,6 +66,7 @@ jobs:
           cache-dependency-path: techtrust-provider-dashboard/package-lock.json
       - run: npm ci
       - run: npx tsc --noEmit
+      - run: CI=true npm run lint
 
   admin-dashboard:
     runs-on: ubuntu-latest
@@ -80,3 +82,4 @@ jobs:
           cache-dependency-path: techtrust-admin-dashboard/package-lock.json
       - run: npm ci
       - run: npx tsc --noEmit
+      - run: CI=true npm run lint

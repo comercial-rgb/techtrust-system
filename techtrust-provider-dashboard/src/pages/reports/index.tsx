@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '@/contexts/AuthContext'
 import DashboardLayout from '@/components/DashboardLayout'
@@ -45,11 +45,7 @@ export default function ReportsPage() {
     if (!authLoading && !isAuthenticated) router.push('/login')
   }, [authLoading, isAuthenticated, router])
 
-  useEffect(() => {
-    if (isAuthenticated) loadReports()
-  }, [isAuthenticated, period])
-
-  async function loadReports() {
+  const loadReports = useCallback(async () => {
     setLoading(true)
     try {
       const res = await api.get('/providers/reports', { params: { period } })
@@ -68,7 +64,11 @@ export default function ReportsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [period])
+
+  useEffect(() => {
+    if (isAuthenticated) void loadReports()
+  }, [isAuthenticated, loadReports])
 
   const avgTicket = totalServices > 0 ? totalRevenue / totalServices : 0
   const platformFee = totalRevenue * 0.1

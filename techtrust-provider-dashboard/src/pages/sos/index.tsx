@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '@/contexts/AuthContext'
 import DashboardLayout from '@/components/DashboardLayout'
@@ -63,12 +63,24 @@ export default function SOSPage() {
     if (!authLoading && !isAuthenticated) router.push('/login')
   }, [authLoading, isAuthenticated, router])
 
-  useEffect(() => {
-    if (isAuthenticated) initialize()
-    return () => { if (pollRef.current) clearInterval(pollRef.current) }
-  }, [isAuthenticated])
+  const fetchRequests = useCallback(async () => {
+    try {
+      const res = await api.get('/sos/nearby', { params: { radiusKm: 30 } })
+      const data = res.data
+      setRequests(Array.isArray(data) ? data : (data?.requests ?? data?.data ?? []))
+    } catch {
+      setRequests([])
+    }
+  }, [])
 
-  async function initialize() {
+  const startPolling = useCallback(() => {
+    if (pollRef.current) clearInterval(pollRef.current)
+    pollRef.current = setInterval(() => {
+      void fetchRequests()
+    }, 30000)
+  }, [fetchRequests])
+
+  const initialize = useCallback(async () => {
     setLoading(true)
     try {
       const res = await api.get('/sos/rate-card')
@@ -83,22 +95,12 @@ export default function SOSPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [fetchRequests, startPolling])
 
-  async function fetchRequests() {
-    try {
-      const res = await api.get('/sos/nearby', { params: { radiusKm: 30 } })
-      const data = res.data
-      setRequests(Array.isArray(data) ? data : (data?.requests ?? data?.data ?? []))
-    } catch {
-      setRequests([])
-    }
-  }
-
-  function startPolling() {
-    if (pollRef.current) clearInterval(pollRef.current)
-    pollRef.current = setInterval(fetchRequests, 30000)
-  }
+  useEffect(() => {
+    if (isAuthenticated) void initialize()
+    return () => { if (pollRef.current) clearInterval(pollRef.current) }
+  }, [isAuthenticated, initialize])
 
   async function toggleOnline() {
     setTogglingOnline(true)

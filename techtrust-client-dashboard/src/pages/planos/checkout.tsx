@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { useAuth } from '../../contexts/AuthContext';
@@ -15,17 +15,105 @@ export default function CheckoutPage() {
   const [status, setStatus] = useState<'loading' | 'ready' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('');
 
+  const getStripePublishableKey = useCallback(async () => {
+    if (process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
+      return process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+    }
+
+    const response = await api.getStripeConfig();
+    const config = unwrapApiData<Record<string, unknown>>(response.data);
+    const pk = config?.publishableKey;
+    return typeof pk === "string" ? pk : undefined;
+  }, []);
+
+  const initStripe = useCallback(
+    async (publishableKey: string, clientSecret: string) => {
+      try {
+        const StripeCtor = window.Stripe;
+        if (!StripeCtor) throw new Error('Stripe.js failed to load');
+        const stripe = StripeCtor(publishableKey);
+
+        setStatus('ready');
+
+        const elements = stripe.elements({ clientSecret });
+        const paymentElement = elements.create('payment');
+
+        const container = document.getElementById('payment-element');
+        if (container) {
+          paymentElement.mount(container);
+        }
+
+        const form = document.getElementById('payment-form');
+        if (form) {
+          form.addEventListener('submit', async (e: Event) => {
+            e.preventDefault();
+            setStatus('loading');
+
+            const returnUrl = `${window.location.origin}/planos/checkout?status=success&plan=${plan}`;
+            const confirmation =
+              type === 'setup' || clientSecret.startsWith('seti_')
+                ? await stripe.confirmSetup({
+                    elements,
+                    confirmParams: { return_url: returnUrl },
+                  })
+                : await stripe.confirmPayment({
+                    elements,
+                    confirmParams: { return_url: returnUrl },
+                  });
+
+            const { error } = confirmation;
+
+            if (error) {
+              setStatus('error');
+              setMessage(error.message || 'Payment failed.');
+            }
+          });
+        }
+      } catch (err: unknown) {
+        setStatus('error');
+        setMessage(err instanceof Error ? err.message : 'Failed to initialize payment.');
+      }
+    },
+    [plan, type],
+  );
+
+  const loadStripeAndConfirm = useCallback(
+    async (publishableKey: string, clientSecret: string) => {
+      try {
+        if (!window.Stripe) {
+          const script = document.createElement('script');
+          script.src = 'https://js.stripe.com/v3/';
+          script.async = true;
+          script.onload = () => {
+            void initStripe(publishableKey, clientSecret);
+          };
+          script.onerror = () => {
+            setStatus('error');
+            setMessage('Failed to load payment processor.');
+          };
+          document.head.appendChild(script);
+        } else {
+          void initStripe(publishableKey, clientSecret);
+        }
+      } catch (err) {
+        setStatus('error');
+        setMessage('An error occurred loading the payment page.');
+      }
+    },
+    [initStripe],
+  );
+
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       router.push('/login');
       return;
     }
-  }, [authLoading, isAuthenticated]);
+  }, [authLoading, isAuthenticated, router]);
 
   useEffect(() => {
     if (!secret) return;
 
-    async function startCheckout() {
+    void (async () => {
       const publishableKey = await getStripePublishableKey();
       if (!publishableKey) {
         setStatus('error');
@@ -35,93 +123,9 @@ export default function CheckoutPage() {
 
       const clientSecret = Array.isArray(secret) ? secret[0] : secret;
       if (!clientSecret || typeof clientSecret !== "string") return;
-      loadStripeAndConfirm(publishableKey, clientSecret);
-    }
-
-    startCheckout();
-  }, [secret]);
-
-  async function getStripePublishableKey() {
-    if (process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
-      return process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
-    }
-
-    const response = await api.getStripeConfig();
-    const config = unwrapApiData<Record<string, unknown>>(response.data);
-    const pk = config?.publishableKey;
-    return typeof pk === "string" ? pk : undefined;
-  }
-
-  async function loadStripeAndConfirm(publishableKey: string, clientSecret: string) {
-    try {
-      if (!window.Stripe) {
-        const script = document.createElement('script');
-        script.src = 'https://js.stripe.com/v3/';
-        script.async = true;
-        script.onload = () => initStripe(publishableKey, clientSecret);
-        script.onerror = () => {
-          setStatus('error');
-          setMessage('Failed to load payment processor.');
-        };
-        document.head.appendChild(script);
-      } else {
-        initStripe(publishableKey, clientSecret);
-      }
-    } catch (err) {
-      setStatus('error');
-      setMessage('An error occurred loading the payment page.');
-    }
-  }
-
-  async function initStripe(publishableKey: string, clientSecret: string) {
-    try {
-      const StripeCtor = window.Stripe;
-      if (!StripeCtor) throw new Error('Stripe.js failed to load');
-      const stripe = StripeCtor(publishableKey);
-
-      setStatus('ready');
-
-      // Create payment element
-      const elements = stripe.elements({ clientSecret });
-      const paymentElement = elements.create('payment');
-
-      const container = document.getElementById('payment-element');
-      if (container) {
-        paymentElement.mount(container);
-      }
-
-      // Handle form submit
-      const form = document.getElementById('payment-form');
-      if (form) {
-        form.addEventListener('submit', async (e: Event) => {
-          e.preventDefault();
-          setStatus('loading');
-
-          const returnUrl = `${window.location.origin}/planos/checkout?status=success&plan=${plan}`;
-          const confirmation =
-            type === 'setup' || clientSecret.startsWith('seti_')
-              ? await stripe.confirmSetup({
-                  elements,
-                  confirmParams: { return_url: returnUrl },
-                })
-              : await stripe.confirmPayment({
-                  elements,
-                  confirmParams: { return_url: returnUrl },
-                });
-
-          const { error } = confirmation;
-
-          if (error) {
-            setStatus('error');
-            setMessage(error.message || 'Payment failed.');
-          }
-        });
-      }
-    } catch (err: unknown) {
-      setStatus('error');
-      setMessage(err instanceof Error ? err.message : 'Failed to initialize payment.');
-    }
-  }
+      await loadStripeAndConfirm(publishableKey, clientSecret);
+    })();
+  }, [secret, getStripePublishableKey, loadStripeAndConfirm]);
 
   // Handle return from Stripe redirect
   useEffect(() => {

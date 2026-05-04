@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
 import { useAuth } from "../../contexts/AuthContext";
 import { useI18n } from "../../i18n";
@@ -36,11 +36,7 @@ export default function InvoiceDetailPage() {
     if (!authLoading && !isAuthenticated) router.push("/login");
   }, [authLoading, isAuthenticated, router]);
 
-  useEffect(() => {
-    if (isAuthenticated && id) loadInvoice();
-  }, [isAuthenticated, id]);
-
-  async function loadInvoice() {
+  const loadInvoice = useCallback(async () => {
     setLoading(true);
     try {
       const res = await api.getRepairInvoice(id as string);
@@ -54,7 +50,11 @@ export default function InvoiceDetailPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [id]);
+
+  useEffect(() => {
+    if (isAuthenticated && id) void loadInvoice();
+  }, [isAuthenticated, id, loadInvoice]);
 
   async function handleAccept() {
     setActionLoading(true);

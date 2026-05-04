@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
 import { useI18n } from '../../i18n';
@@ -363,11 +363,7 @@ export default function NovaSolicitacaoPage() {
     if (!authLoading && !isAuthenticated) router.push('/login');
   }, [authLoading, isAuthenticated, router]);
 
-  useEffect(() => {
-    if (isAuthenticated) loadVehicles();
-  }, [isAuthenticated]);
-
-  async function loadVehicles() {
+  const loadVehicles = useCallback(async () => {
     try {
       const vehicleIdFromQuery = router.query.vehicleId as string | undefined;
       const [vehicleRes, profileRes] = await Promise.all([
@@ -405,7 +401,11 @@ export default function NovaSolicitacaoPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [router]);
+
+  useEffect(() => {
+    if (isAuthenticated) void loadVehicles();
+  }, [isAuthenticated, loadVehicles]);
 
   function handleServiceSelect(value: string) {
     const sub = SERVICE_SUB_OPTIONS[value];

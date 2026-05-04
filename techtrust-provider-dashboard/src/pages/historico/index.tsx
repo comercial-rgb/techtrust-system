@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '@/contexts/AuthContext'
 import DashboardLayout from '@/components/DashboardLayout'
@@ -75,19 +75,7 @@ export default function HistoricoPage() {
     if (!authLoading && !isAuthenticated) router.push('/login')
   }, [authLoading, isAuthenticated, router])
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      loadData()
-    }
-  }, [isAuthenticated])
-
-  async function loadData() {
-    setLoading(true)
-    await Promise.allSettled([loadPayments(), loadBalance()])
-    setLoading(false)
-  }
-
-  async function loadPayments() {
+  const loadPayments = useCallback(async () => {
     try {
       const res = await api.get('/payments/history', { params: { limit: 50 } })
       const payload = res.data
@@ -109,9 +97,9 @@ export default function HistoricoPage() {
     } catch {
       setPayments([])
     }
-  }
+  }, [])
 
-  async function loadBalance() {
+  const loadBalance = useCallback(async () => {
     try {
       const res = await api.get('/connect/balance')
       const payload = res.data
@@ -120,7 +108,17 @@ export default function HistoricoPage() {
     } catch {
       // no stripe connect yet
     }
-  }
+  }, [])
+
+  const loadData = useCallback(async () => {
+    setLoading(true)
+    await Promise.allSettled([loadPayments(), loadBalance()])
+    setLoading(false)
+  }, [loadPayments, loadBalance])
+
+  useEffect(() => {
+    if (isAuthenticated) void loadData()
+  }, [isAuthenticated, loadData])
 
   const filtered = payments.filter(p => filter === 'all' || p.status === filter)
 

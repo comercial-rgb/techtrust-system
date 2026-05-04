@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { useAuth } from '../../contexts/AuthContext';
@@ -61,15 +61,7 @@ export default function PlanosPage() {
   const [subscribing, setSubscribing] = useState<string | null>(null);
   const [endingTrial, setEndingTrial] = useState(false);
 
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push('/login');
-      return;
-    }
-    if (isAuthenticated) loadData();
-  }, [authLoading, isAuthenticated]);
-
-  async function loadData() {
+  const loadData = useCallback(async () => {
     try {
       const [plansRes, subRes] = await Promise.all([
         api.getSubscriptionPlans(),
@@ -88,7 +80,15 @@ export default function PlanosPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.push('/login');
+      return;
+    }
+    if (isAuthenticated) void loadData();
+  }, [authLoading, isAuthenticated, router, loadData]);
 
   async function handleSelectPlan(planKey: string) {
     if (subscribing) return;
