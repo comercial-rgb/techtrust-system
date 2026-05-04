@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import type { ComponentProps } from "react";
 import {
   View,
   Text,
@@ -15,9 +16,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+
+type MciName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 import { useI18n } from '../../i18n';
 import api from '../../services/api';
 import { log } from "../../utils/logger";
+import type { ProviderAppNavigation } from "../../navigation/types";
 
 const { width } = Dimensions.get('window');
 
@@ -34,7 +38,7 @@ interface ServiceStats {
   color: string;
 }
 
-export default function ProviderReportsScreen({ navigation }: any) {
+export default function ProviderReportsScreen({ navigation }: { navigation: ProviderAppNavigation }) {
   const { t, formatCurrency } = useI18n();
   const [period, setPeriod] = useState<'week' | 'month' | 'year'>('month');
   const [loading, setLoading] = useState(true);
@@ -112,7 +116,7 @@ export default function ProviderReportsScreen({ navigation }: any) {
                 styles.periodOption,
                 period === p.key && styles.periodOptionActive,
               ]}
-              onPress={() => setPeriod(p.key as any)}
+              onPress={() => setPeriod(p.key as "week" | "month" | "year")}
             >
               <Text style={[
                 styles.periodText,
@@ -196,9 +200,15 @@ export default function ProviderReportsScreen({ navigation }: any) {
               <TouchableOpacity
                 key={m.key}
                 style={[styles.metricChip, chartMetric === m.key && styles.metricChipActive]}
-                onPress={() => setChartMetric(m.key as any)}
+                onPress={() =>
+                  setChartMetric(m.key as "revenue" | "services" | "rating")
+                }
               >
-                <MaterialCommunityIcons name={m.icon as any} size={14} color={chartMetric === m.key ? '#fff' : '#6b7280'} />
+                <MaterialCommunityIcons
+                  name={m.icon as MciName}
+                  size={14}
+                  color={chartMetric === m.key ? "#fff" : "#6b7280"}
+                />
                 <Text style={[styles.metricChipText, chartMetric === m.key && { color: '#fff' }]}>{m.label}</Text>
               </TouchableOpacity>
             ))}

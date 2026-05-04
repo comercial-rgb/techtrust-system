@@ -23,7 +23,7 @@ function getStripe(): Stripe {
       throw new Error("STRIPE_SECRET_KEY não configurada");
     }
     stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: "2024-12-18.acacia" as any,
+      apiVersion: "2023-10-16",
       typescript: true,
     });
   }
@@ -909,7 +909,9 @@ export async function createSubscription(params: {
 
   const invoice = subscription.latest_invoice as Stripe.Invoice;
   const paymentIntent = invoice?.payment_intent as Stripe.PaymentIntent;
-  const setupIntent = (subscription as any).pending_setup_intent as Stripe.SetupIntent | null;
+  const pendingSetup = subscription.pending_setup_intent;
+  const setupIntent =
+    pendingSetup && typeof pendingSetup !== "string" ? pendingSetup : null;
   const clientSecret = paymentIntent?.client_secret || setupIntent?.client_secret || undefined;
 
   logger.info(

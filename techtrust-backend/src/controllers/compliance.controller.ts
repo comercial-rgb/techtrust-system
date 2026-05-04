@@ -13,11 +13,12 @@ import { logger } from "../config/logger";
 
 
 async function resolveProviderProfileId(req: Request): Promise<string | null> {
-  const user = (req as any).user;
+  const user = req.user;
+  if (!user?.id) return null;
   if (req.params.providerProfileId) return req.params.providerProfileId;
 
   const profile = await prisma.providerProfile.findUnique({
-    where: { userId: user.userId || user.id },
+    where: { userId: user.id },
     select: { id: true },
   });
   return profile?.id || null;
@@ -65,7 +66,10 @@ export const upsertComplianceItem = async (
 ): Promise<any> => {
   try {
     const providerProfileId = await resolveProviderProfileId(req);
-    const user = (req as any).user;
+    const user = req.user;
+    if (!user?.id) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
     const {
       type,
       licenseNumber,
@@ -97,7 +101,7 @@ export const upsertComplianceItem = async (
         .json({ success: false, message: "Provider profile not found" });
     }
 
-    if (profile.userId !== (user.userId || user.id) && user.role !== "ADMIN") {
+    if (profile.userId !== user.id && user.role !== "ADMIN") {
       return res
         .status(403)
         .json({ success: false, message: "Not authorized" });

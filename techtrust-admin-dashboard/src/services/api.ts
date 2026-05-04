@@ -5,6 +5,7 @@
 
 import Cookies from 'js-cookie';
 import { logApiError } from '../utils/logger';
+import { unwrapApiData } from '../utils/unwrapApiData';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://techtrust-api.onrender.com/api/v1';
 
@@ -51,10 +52,11 @@ class AdminApiService {
       }
 
       // Backend wraps all responses in { success, data } — unwrap automatically
-      return { data: (data as any)?.data ?? data };
-    } catch (error: any) {
+      return { data: unwrapApiData<T>(data) };
+    } catch (error: unknown) {
       logApiError('API Error:', error);
-      return { error: error.message || 'Erro de conexão com o servidor' };
+      const msg = error instanceof Error ? error.message : 'Erro de conexão com o servidor';
+      return { error: msg };
     }
   }
 

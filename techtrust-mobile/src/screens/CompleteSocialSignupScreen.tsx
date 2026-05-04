@@ -20,8 +20,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
 import { useI18n } from "../i18n";
+import { interpolate } from "../i18n/interpolate";
+import type { AuthStackScreenProps } from "../navigation/types";
 
-export default function CompleteSocialSignupScreen({ navigation, route }: any) {
+export default function CompleteSocialSignupScreen({
+  navigation,
+  route,
+}: AuthStackScreenProps<"CompleteSocialSignup">) {
   const { completeSocialSignup } = useAuth();
   const { t } = useI18n();
 
@@ -144,8 +149,11 @@ export default function CompleteSocialSignupScreen({ navigation, route }: any) {
             {provider?.toUpperCase() === "APPLE"
               ? t.auth?.completeSetupDescApple ||
                 "Signed in with Apple. You can optionally add a phone number below."
-              : t.auth?.completeSetupDesc ||
-                `Signed in with ${provider || "social account"}. Set a password to secure your account.`}
+              : interpolate(
+                  t.auth?.completeSocialSignedInWithProvider ||
+                    "Signed in with {{provider}}. Set a password to secure your account.",
+                  { provider: provider || "social" },
+                )}
           </Text>
 
           {/* User info */}
@@ -176,7 +184,10 @@ export default function CompleteSocialSignupScreen({ navigation, route }: any) {
                 />
                 <TextInput
                   style={styles.input}
-                  placeholder="+1 (555) 123-4567"
+                  placeholder={
+                    t.auth?.completeSocialPhonePlaceholder ||
+                    "+1 (555) 123-4567"
+                  }
                   value={phone}
                   onChangeText={setPhone}
                   keyboardType="phone-pad"
@@ -203,7 +214,9 @@ export default function CompleteSocialSignupScreen({ navigation, route }: any) {
               />
               <TextInput
                 style={styles.input}
-                placeholder="••••••••"
+                placeholder={
+                  t.auth?.passwordPlaceholderDots || "••••••••"
+                }
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
@@ -242,7 +255,9 @@ export default function CompleteSocialSignupScreen({ navigation, route }: any) {
               />
               <TextInput
                 style={styles.input}
-                placeholder="••••••••"
+                placeholder={
+                  t.auth?.passwordPlaceholderDots || "••••••••"
+                }
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 secureTextEntry={!showPassword}

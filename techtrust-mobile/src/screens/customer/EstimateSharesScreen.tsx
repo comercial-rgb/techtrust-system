@@ -18,8 +18,9 @@ import { useI18n } from "../../i18n";
 import { useAuth } from "../../contexts/AuthContext";
 import * as fdacsService from "../../services/fdacs.service";
 import { log } from "../../utils/logger";
+import type { CustomerAppNavigation } from "../../navigation/types";
 
-export default function EstimateSharesScreen({ navigation }: any) {
+export default function EstimateSharesScreen({ navigation }: { navigation: CustomerAppNavigation }) {
   const { user } = useAuth();
   const { t, formatDate, formatCurrency } = useI18n();
   const isProvider = user?.role === "PROVIDER";

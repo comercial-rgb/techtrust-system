@@ -17,9 +17,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { useI18n } from "../../i18n";
 import { interpolate } from "../../i18n/interpolate";
 import { useRoute } from "@react-navigation/native";
+import type { RouteProp } from "@react-navigation/native";
 import * as WebBrowser from "expo-web-browser";
 import * as paymentService from "../../services/payment.service";
 import { log } from "../../utils/logger";
+import type {
+  CustomerAppNavigation,
+  CustomerAppParamList,
+} from "../../navigation/types";
 
 interface Plan {
   id: string;
@@ -30,9 +35,9 @@ interface Plan {
   popular?: boolean;
 }
 
-export default function SubscriptionPlanScreen({ navigation }: any) {
+export default function SubscriptionPlanScreen({ navigation }: { navigation: CustomerAppNavigation }) {
   const { t, formatDate, formatCurrency } = useI18n();
-  const route = useRoute<any>();
+  const route = useRoute<RouteProp<CustomerAppParamList, "SubscriptionPlan">>();
   const fromDashboard = route.params?.fromDashboard;
   const [billingInterval, setBillingInterval] = useState<"month" | "year">(
     "month",
@@ -380,7 +385,7 @@ export default function SubscriptionPlanScreen({ navigation }: any) {
                 <Text style={styles.detailText}>
                   {currentSubscription?.currentPeriodEnd
                     ? `${t.customer?.renews || "Renews"}: ${formatDate(currentSubscription.currentPeriodEnd)}`
-                    : (t.customer as any)?.noActiveSubscription ||
+                    : t.customer?.noActiveSubscription ||
                       "No active subscription"}
                 </Text>
               </View>
@@ -389,7 +394,7 @@ export default function SubscriptionPlanScreen({ navigation }: any) {
                   <Ionicons name="car" size={16} color="#93c5fd" />
                   <Text style={styles.detailText}>
                     {currentSubscription.maxVehicles}{" "}
-                    {(t.customer as any)?.vehiclesAllowed || "vehicles allowed"}
+                    {t.customer?.vehiclesAllowedPhrase || "vehicles allowed"}
                   </Text>
                 </View>
               )}

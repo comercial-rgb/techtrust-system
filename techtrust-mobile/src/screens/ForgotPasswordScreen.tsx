@@ -19,9 +19,12 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useI18n } from "../i18n";
+import { interpolate } from "../i18n/interpolate";
 import api from "../services/api";
+import { useAuthStackNavigation } from "../navigation/navHooks";
 
-export default function ForgotPasswordScreen({ navigation }: any) {
+export default function ForgotPasswordScreen() {
+  const navigation = useAuthStackNavigation();
   const { t } = useI18n();
   const [step, setStep] = useState<"email" | "code" | "password">("email");
   const [email, setEmail] = useState("");
@@ -108,7 +111,12 @@ export default function ForgotPasswordScreen({ navigation }: any) {
         t.common?.success || "Success",
         t.auth?.passwordResetSuccess ||
           "Password reset successfully! Please log in with your new password.",
-        [{ text: "OK", onPress: () => navigation.navigate("Login") }],
+        [
+          {
+            text: t.common?.ok || "OK",
+            onPress: () => navigation.navigate("Login"),
+          },
+        ],
       );
     } catch (error: any) {
       Alert.alert(
@@ -227,7 +235,10 @@ export default function ForgotPasswordScreen({ navigation }: any) {
                   />
                   <TextInput
                     style={styles.input}
-                    placeholder="email@example.com"
+                    placeholder={
+                      t.auth?.forgotPasswordEmailPlaceholder ||
+                      "email@example.com"
+                    }
                     value={email}
                     onChangeText={setEmail}
                     keyboardType="email-address"
@@ -261,8 +272,11 @@ export default function ForgotPasswordScreen({ navigation }: any) {
                 {t.auth?.enterCode || "Enter Code"}
               </Text>
               <Text style={styles.description}>
-                {t.auth?.enterCodeDesc ||
-                  `Enter the 6-digit code sent to ${email}`}
+                {interpolate(
+                  t.auth?.forgotPasswordEnterCodeDesc ||
+                    "Enter the 6-digit code sent to {{email}}",
+                  { email },
+                )}
               </Text>
 
               <View style={styles.inputContainer}>
@@ -278,7 +292,9 @@ export default function ForgotPasswordScreen({ navigation }: any) {
                   />
                   <TextInput
                     style={[styles.input, styles.codeInput]}
-                    placeholder="000000"
+                    placeholder={
+                      t.auth?.forgotPasswordCodePlaceholder || "000000"
+                    }
                     value={code}
                     onChangeText={(text) =>
                       setCode(text.replace(/\D/g, "").slice(0, 6))
@@ -338,7 +354,9 @@ export default function ForgotPasswordScreen({ navigation }: any) {
                   />
                   <TextInput
                     style={styles.input}
-                    placeholder="••••••••"
+                    placeholder={
+                      t.auth?.passwordPlaceholderDots || "••••••••"
+                    }
                     value={newPassword}
                     onChangeText={setNewPassword}
                     secureTextEntry={!showPassword}
@@ -375,7 +393,9 @@ export default function ForgotPasswordScreen({ navigation }: any) {
                   />
                   <TextInput
                     style={styles.input}
-                    placeholder="••••••••"
+                    placeholder={
+                      t.auth?.passwordPlaceholderDots || "••••••••"
+                    }
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
                     secureTextEntry={!showPassword}

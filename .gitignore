@@ -48,6 +48,9 @@ coverage/
 # Uploads
 uploads/
 
+# TypeScript incremental (local build artifacts)
+*.tsbuildinfo
+
 # Temp
 tmp/
 temp/

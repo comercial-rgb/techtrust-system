@@ -2,6 +2,10 @@
  * English translations
  */
 
+import supportChat from "./fragments/supportChat.en";
+import helpCenterFaq from "./fragments/helpCenterFaq.en";
+import termsPoliciesDocuments from "./fragments/termsPoliciesDocuments.en";
+
 export default {
   // Common
   common: {
@@ -22,6 +26,7 @@ export default {
     loading: "Loading...",
     processing: "Processing...",
     error: "Error",
+    unknownError: "Unknown error",
     success: "Success",
     warning: "Warning",
     info: "Information",
@@ -59,6 +64,11 @@ export default {
     noResults: "No results found",
     tryAgain: "Something went wrong. Please try again.",
     errorDetailsTitle: "Error Details",
+    providerDashboardCrashTitle: "Something went wrong",
+    providerDashboardCrashSubtitle:
+      "The provider dashboard encountered an error. Please try again.",
+    copyErrorDetailsButton: "📋 Copy Error Details",
+    tryAgainButton: "Try Again",
     routingNumberMustBe9: "Routing number must be 9 digits",
     errorLoadingRequests: "Error loading requests",
     retry: "Try Again",
@@ -163,6 +173,7 @@ export default {
     primary: "Primary",
     tip: "Tip",
     qty: "Qty",
+    decimalPlaceholder: "0.00",
     months: "months",
     total: "Total",
     pending: "Pending",
@@ -210,6 +221,52 @@ export default {
     noPartsOnly: "no parts sales",
     provider: "Provider",
     authenticateToContinue: "Authenticate to continue",
+    timeAm: "AM",
+    timePm: "PM",
+    open24hShort: "24h",
+  },
+
+  dialCountryNames: {
+    US: "United States",
+    BR: "Brazil",
+    PT: "Portugal",
+    ES: "Spain",
+    MX: "Mexico",
+    AR: "Argentina",
+    CO: "Colombia",
+    CL: "Chile",
+    PE: "Peru",
+    VE: "Venezuela",
+    UY: "Uruguay",
+    EC: "Ecuador",
+    BO: "Bolivia",
+    PY: "Paraguay",
+    GB: "United Kingdom",
+    FR: "France",
+    DE: "Germany",
+    IT: "Italy",
+    CA: "Canada",
+    AU: "Australia",
+  },
+
+  /** Keys match API / persisted `businessHours` day names (English). */
+  weekdayShort: {
+    Monday: "Mon",
+    Tuesday: "Tue",
+    Wednesday: "Wed",
+    Thursday: "Thu",
+    Friday: "Fri",
+    Saturday: "Sat",
+    Sunday: "Sun",
+  },
+  weekdayFull: {
+    Monday: "Monday",
+    Tuesday: "Tuesday",
+    Wednesday: "Wednesday",
+    Thursday: "Thursday",
+    Friday: "Friday",
+    Saturday: "Saturday",
+    Sunday: "Sunday",
   },
 
   // Landing Page
@@ -252,6 +309,35 @@ export default {
       selectCity: "Select City",
       selectService: "Select Service Type",
       results: "Providers found",
+      allProvidersSummary: "All providers",
+    },
+    serviceEnum: {
+      OIL_CHANGE: "Oil Change",
+      AIR_FILTER: "Air Filter Service",
+      FUEL_SYSTEM: "Fuel System",
+      BRAKES: "Brakes",
+      COOLING_SYSTEM: "Cooling System",
+      TIRES: "Tires & Wheels",
+      BELTS_HOSES: "Belts & Hoses",
+      AC_SERVICE: "A/C & Heating",
+      STEERING: "Steering & Suspension",
+      SUSPENSION: "Suspension",
+      MAINTENANCE_LIGHT: "Light maintenance",
+      ELECTRICAL_BASIC: "Electrical System",
+      EXHAUST: "Exhaust System",
+      DRIVETRAIN: "Drivetrain",
+      ENGINE: "Engine",
+      TRANSMISSION: "Transmission",
+      BATTERY: "Battery",
+      GENERAL_REPAIR: "General Repair",
+      FLUID_SERVICES: "Fluid Services",
+      PREVENTIVE_PACKAGES: "Preventive Maintenance",
+      INSPECTION: "Inspection",
+      DIAGNOSTICS: "Diagnostics",
+      DETAILING: "Detailing",
+      TOWING: "Towing",
+      ROADSIDE_ASSIST: "Roadside Assist",
+      LOCKOUT: "Lockout",
     },
     benefits: {
       title: "Why TechTrust?",
@@ -378,6 +464,28 @@ export default {
     switchToSms: "📱 Switch to SMS verification",
     codeSentToEmail: "Code sent to your email!",
     codeSentToPhone: "Code sent to your phone!",
+    enterCodeSentToEmail: "Enter the code sent to your email",
+    enterCodeSentTo: "Enter the code sent to",
+    smsFallbackNotice:
+      "SMS was unavailable. Code sent via email instead.",
+    verifying: "Verifying...",
+    resendInSeconds: "Resend in {{seconds}}s",
+    otpMissingSignupData: "Missing signup data. Please sign up again.",
+    otpDigitsOnly: "The code must contain only digits (6 numbers).",
+    otpCheckoutUrlMissing:
+      "Checkout link was not returned. Open checkout again from the plan screen.",
+    otpPaidPlanOpeningCheckout:
+      "Account verified. Opening checkout to start your trial.",
+    otpResendFailed: "Could not resend the code. Please try again.",
+    otpSendVerificationFailed:
+      "Could not send the verification code. Please try again.",
+    forgotPasswordEnterCodeDesc: "Enter the 6-digit code sent to {{email}}",
+    forgotPasswordEmailPlaceholder: "email@example.com",
+    forgotPasswordCodePlaceholder: "000000",
+    passwordPlaceholderDots: "••••••••",
+    completeSocialPhonePlaceholder: "+1 (555) 123-4567",
+    completeSocialSignedInWithProvider:
+      "Signed in with {{provider}}. Set a password to secure your account.",
     passwordMinLength: "Password must be at least 8 characters",
     passwordMismatch: "Passwords do not match",
     passwordRequirements:
@@ -386,7 +494,7 @@ export default {
     completeSetupDesc:
       "Add a phone number and password to finish signing up.",
     completeSetupDescApple:
-      "Add a phone number and password to finish signing up with Apple.",
+      "Signed in with Apple. Add a phone number below; a password is optional but helps secure your account.",
     phone: "Phone",
     phoneHint: "Format: +1XXXXXXXXXX",
     passwordHint: "Min. 8 characters, 1 letter, 1 number",
@@ -401,6 +509,13 @@ export default {
     newPassword: "New password",
     newPasswordDesc: "Choose a new password for your account.",
     appleNotAvailable: "Apple Sign-In is not available on this device.",
+    socialWrongRoleProviderTitle: "Wrong account type",
+    socialWrongRoleProviderBody:
+      "This Google/Apple account is linked to a customer account. To access the provider dashboard, please register a provider account or sign in with your provider email and password.",
+    socialLoginInfoProvider:
+      "If your Google/Apple account is already linked to a provider account, you'll sign in directly. Otherwise, use email & password above.",
+    socialLoginInfoCustomer:
+      "If you already have an account with this email, it will be linked automatically.",
     passwordWeak: "Weak",
     passwordMedium: "Medium",
     passwordStrong: "Strong",
@@ -440,6 +555,170 @@ export default {
     otpSmsAddPhone: "Add phone number above",
     signupTerms: "By signing up, you agree to our",
     creatingAccount: "Creating your account...",
+    emailExamplePlaceholder: "you@email.com",
+    clientBusinessNamePlaceholder: "Acme Corp LLC",
+    providerBusinessNamePlaceholder: "e.g., Joe's Auto Repair",
+    selectPlaceholder: "Select",
+    selectCityPlaceholder: "Select city",
+    cityExamplePlaceholder: "Miami",
+    zipUsExamplePlaceholder: "33101",
+    marketplaceCarWashNameLabel: "Car Wash Name",
+    marketplaceStoreNameLabel: "Store Name",
+    marketplaceCarWashNamePlaceholder: "e.g., Shine & Go Car Wash",
+    marketplaceStoreNamePlaceholder: "e.g., FastParts Auto Store",
+    marketplaceBusinessAddressLabel: "Business Address",
+    zelleContactLabel: "Zelle email or phone number",
+    zelleContactPlaceholder: "email@example.com or +1 305 555 0000",
+    bankNameLabel: "Bank name",
+    bankNamePlaceholder: "e.g., Chase, Wells Fargo",
+    accountNumberLabel: "Account number",
+    accountNumberPlaceholder: "000000000",
+    routingNumberLabel: "Routing number",
+    routingNumberPlaceholder: "9 digits",
+    accountTypeChecking: "Checking",
+    accountTypeSavings: "Savings",
+    payoutManualNotice:
+      "You'll need to add a payout method later in Settings to receive payments. Without it, earnings will be held until a method is configured.",
+    individualAccount: "Individual",
+    businessAccount: "Business",
+    enterClientBusinessName: "Please enter your business name",
+    accountTypeSectionHint:
+      "Individual for personal use, or Business to manage up to 10 company vehicles.",
+    signupPlanPopular: "POPULAR",
+    signupPlanVehiclesWord: "vehicles",
+    signupPlanUnlimited: "Unlimited",
+    signupPlanRequestsPerMo: "{{count}} requests/mo",
+    signupSevenDayTrial: "7-day free trial",
+    signupPricePerMonth: "/mo",
+    providerVerificationIntro:
+      "TechTrust verifies your business identity against Sunbiz, FDACS, and local tax records. Fill in what you have now.",
+    providerLegalBusinessNameLabel: "Legal business name",
+    providerEinLabel: "EIN / FEI",
+    providerSunbizDocumentLabel: "Sunbiz document #",
+    marketplaceFacilitatorBanner:
+      "As a Marketplace Facilitator, TechTrust does not need to verify or individually declare for each provider (shop). You declare on a consolidated basis for the total that passed through the platform.",
+    providerBtrNotApplicableLabel: "I don't have / don't want to declare",
+    providerCityBtrLabel: "City business tax receipt #",
+    providerCountyBtrLabel: "County business tax receipt #",
+    insuranceDisclosureTitle: "Insurance disclosure",
+    insuranceDisclosureAcceptedHint:
+      "Disclosure accepted. Customers will see you operate without TechTrust insurance coverage.",
+    insuranceDisclosureUncheckedHint:
+      "Toggle if you do not carry insurance. Leave off if you have coverage (upload certificate later in Settings → Compliance).",
+    signupNoInsuranceAcceptedBanner:
+      "You have accepted the no-insurance disclosure. Customers will see a notice before booking your services. You can add your insurance certificate anytime in Settings → Compliance to remove this notice.",
+    marketplaceBusinessTypeHint: "Choose your business type to get started",
+    marketplaceTypeCarWashTitle: "Car Wash",
+    marketplaceTypeCarWashSub: "Full-service, auto, or self-serve",
+    marketplaceTypeAutoPartsTitle: "Auto Parts",
+    marketplaceTypeAutoPartsSub: "Retail or wholesale auto parts",
+    marketplacePlanTrialHint: "Start with a 7-day free trial. Cancel anytime.",
+    marketplacePlanBadgeBestValue: "BEST VALUE",
+    marketplacePlanNameBasic: "Basic",
+    marketplacePlanNamePro: "Pro",
+    marketplacePlanNameProPlus: "Pro+",
+    marketplaceBulletsWashBasic:
+      "10 mi service radius\nUp to 5 service photos\n1 wash package listed\nStandard search placement\nCustomer reviews",
+    marketplaceBulletsWashPro:
+      "20 mi service radius\nUp to 15 service photos\n5 wash packages listed\nPriority search placement\nVerified badge\nBooking analytics",
+    marketplaceBulletsWashProPlus:
+      "50 mi service radius\nUnlimited photos\nUnlimited packages\nFeatured at top of results\nDedicated account support\nAdvanced analytics + reports",
+    marketplaceBulletsPartsBasic:
+      "Up to 50 product listings\n8% transaction fee\nStandard search placement\nBasic inventory tools\nCustomer reviews",
+    marketplaceBulletsPartsPro:
+      "Up to 200 product listings\n6% transaction fee\nPriority search placement\nVerified badge\nInventory alerts\nSales analytics",
+    marketplaceBulletsPartsProPlus:
+      "Unlimited product listings\n4% transaction fee\nFeatured at top of results\nDedicated account support\nAdvanced analytics + reports\nBulk import tools",
+    selectStateModalTitle: "Select State",
+    selectCityModalTitle: "Select City",
+    insuranceModalConfirmIntro:
+      "By accepting this disclosure, you confirm that:",
+    insuranceModalBullets:
+      "You do not carry general liability insurance for the services you offer through TechTrust.\nCustomers will be clearly notified before booking that TechTrust does not provide insurance coverage for your work.\nYou accept full responsibility for any damages or liability arising from your services.",
+    insuranceModalFooterNote:
+      "Providers with valid insurance can upload their certificate later in the Settings → Compliance section.",
+    insuranceModalUnderstand: "I Understand",
+    clientPlanSelectHint:
+      "Paid plans include a 7-day trial. Card is collected securely after verification.",
+    clientPlanFreeName: "Free",
+    clientPlanStarterName: "Starter",
+    clientPlanProName: "Pro",
+    clientPlanFreeHighlights:
+      "VIN decode & NHTSA recalls\nPDF receipts\nMobile app access",
+    clientPlanStarterHighlights:
+      "Scheduled maintenance reminders\nMileage tracker\nMulti-language support",
+    clientPlanProHighlights:
+      "OBD2 diagnostics\nExpense reports & wallet\nPriority support 24/7",
+    phonePlaceholderDefault: "Phone number",
+    phonePlaceholderUsCa: "(786) 919-7605",
+    phonePlaceholderBr: "(11) 99999-9999",
+    phonePlaceholderGb: "07911 123456",
+    phonePlaceholderMx: "(55) 1234-5678",
+    otpMethodSmsTitle: "SMS",
+    otpMethodEmailTitle: "Email",
+    signupServiceLabels: {
+      OIL_CHANGE: "Oil Change",
+      AIR_FILTER: "Air Filter Service",
+      FUEL_SYSTEM: "Fuel System",
+      BRAKES: "Brakes",
+      COOLING_SYSTEM: "Cooling System",
+      TIRES: "Tires & Wheels",
+      BELTS_HOSES: "Belts & Hoses",
+      AC_SERVICE: "A/C & Heating",
+      STEERING: "Steering & Suspension",
+      SUSPENSION: "Suspension",
+      MAINTENANCE_LIGHT: "Light maintenance",
+      ELECTRICAL_BASIC: "Electrical System",
+      EXHAUST: "Exhaust System",
+      DRIVETRAIN: "Drivetrain",
+      ENGINE: "Engine",
+      TRANSMISSION: "Transmission",
+      BATTERY: "Battery",
+      GENERAL_REPAIR: "General Repair",
+      FLUID_SERVICES: "Fluid Services",
+      PREVENTIVE_PACKAGES: "Preventive Maintenance",
+      INSPECTION: "Inspection",
+      DIAGNOSTICS: "Diagnostics",
+      DETAILING: "Detailing",
+      TOWING: "Towing",
+      ROADSIDE_ASSIST: "Roadside Assist",
+      LOCKOUT: "Lockout",
+    },
+    signupVehicleTypeLabels: {
+      CAR: "Car / Sedan",
+      SUV: "SUV",
+      TRUCK: "Pickup Truck",
+      VAN: "Van / Minivan",
+      HEAVY_TRUCK: "Heavy Truck",
+      BUS: "Bus / RV",
+    },
+  },
+
+  // Account type picker (email signup entry)
+  accountType: {
+    headerTitle: "Create account",
+    headerSubtitle: "Choose how you'll use the app",
+    clientTitle: "Customer",
+    clientSubtitle: "I need auto services",
+    clientBullets:
+      "Request repairs, maintenance & roadside help\nGet quotes from nearby providers\nTrack service history & vehicle health\nManage payments securely",
+    providerTitle: "Service Provider",
+    providerSubtitle: "I offer auto repair & maintenance",
+    providerBullets:
+      "Receive service requests from nearby customers\nSend quotes & manage work orders\nProcess payments & track earnings\nBuild your reputation with verified reviews",
+    marketplaceTitle: "Marketplace",
+    marketplaceSubtitle: "Car wash or auto parts store",
+    marketplaceBullets:
+      "List your car wash or auto parts store\nReceive online bookings & orders\nManage inventory & promotions\nExpand your customer base digitally",
+    socialDivider: "or sign up with",
+    socialSignupHint:
+      "You'll choose your account type (customer or provider) after authenticating.",
+    modalTitle: "I am a...",
+    modalSubtitle: "Choose how you'll use the app with this social account.",
+    modalCustomerTitle: "Customer",
+    modalCustomerSubtitle: "I need auto services",
+    modalProviderTitle: "Service Provider",
+    modalProviderSubtitle: "I offer auto repair & services",
   },
 
   // Service Request
@@ -512,6 +791,13 @@ export default {
     paymentMethods: "Payment Methods",
     addPaymentMethod: "Add Payment Method",
     enterPixKey: "Please enter your PIX key.",
+    pixKeyLabel: "PIX Key",
+    pixKeyPlaceholder: "Email, phone, CPF or random key",
+    applePayBannerTitle: "Apple Pay",
+    applePayUnavailableHint:
+      "Not available. Add a card to your Apple Wallet to enable Apple Pay at checkout.",
+    walletBadgeReady: "READY",
+    walletBadgeNA: "N/A",
     paymentMethodAdded: "Payment method added successfully.",
     removePaymentMethod: "Remove Payment Method",
     removePaymentMethodConfirm:
@@ -579,6 +865,38 @@ export default {
     techtrustSupport: "TechTrust Support",
     quickReplies: "Quick Replies",
     typeMessage: "Type a message...",
+    helpVirtualGreeting:
+      "Hi! 👋 I'm TechTrust's virtual assistant. How can I help you today?",
+    helpSupportAgentLabel: "Support Agent",
+    helpChatTitle: "Live Chat",
+    helpCategoryAll: "All",
+    helpCategoryAccount: "Account",
+    helpCategoryServices: "Services",
+    helpCategoryPayments: "Payments",
+    helpCategoryVehicles: "Vehicles",
+    helpQuickReplyQuote: "How do I get a quote?",
+    helpQuickReplyPayment: "Payment issue",
+    helpQuickReplyCancel: "Cancel a service",
+    helpQuickReplyAccount: "Account help",
+    helpQuickReplyHuman: "Talk to a human",
+    helpBotQuote:
+      'To request a quote, go to the Home tab and tap "Need a service?". Select your vehicle, describe the service, and submit. Providers will respond within hours!',
+    helpBotPayment:
+      'For payment issues, go to Profile → Payment Methods to manage your cards. If you see an incorrect charge, use "Report Issue" on the service details screen.',
+    helpBotCancel:
+      'You can cancel before accepting a quote at no cost. After accepting: >24h = 10% fee, <24h = 25% fee. Use the "Cancel" button on the service details.',
+    helpBotAccount:
+      "For account changes, go to Profile → Personal Information. You can update email, phone, name, and more. For account deletion, scroll to the bottom of that screen.",
+    helpBotHuman:
+      "I'm connecting you to a support agent. Our team is available Mon–Fri 8am–8pm EST. Average wait time is under 5 minutes. You'll get a notification when an agent joins.",
+    helpBotDefault:
+      "Thanks for your message! I can help with quotes, payments, cancellations, and account questions. Type your question or pick a quick reply below.",
+    helpQuickActionLiveSub: "Chat with support",
+    helpQuickActionReportTitle: "Report Issue",
+    helpQuickActionReportSub: "Report a problem",
+    helpQuickActionFeedbackTitle: "Give Feedback",
+    helpQuickActionFeedbackSub: "Share your thoughts",
+    helpReportIssueSubject: "Report Issue",
     // Rate App
     ratingRequired: "Rating Required",
     selectStarRating: "Please select a star rating before submitting.",
@@ -590,6 +908,9 @@ export default {
     feedbackHelps: "Your feedback helps us improve TechTrust for everyone",
     leaveAppStoreReview: "Would you like to leave a review on the App Store?",
     rateOnAppStore: "Rate on App Store",
+    leavePlayStoreReview:
+      "Would you like to leave a review on the Google Play Store?",
+    rateOnPlayStore: "Rate on Google Play",
     howsYourExperience: "How's your experience?",
     feedbackHelpsImprove: "Your feedback helps us make TechTrust better",
     whatDoYouLike: "What do you like? (Optional)",
@@ -598,6 +919,9 @@ export default {
     submitFeedback: "Submit Feedback",
     // Terms & Policies
     termsAndPolicies: "Terms & Policies",
+    termsPoliciesAppVersion: "TechTrust v1.0.0",
+    termsPoliciesCopyright:
+      "© 2026 TechTrust AutoSolutions LLC. All rights reserved.",
     questionsAboutPolicies: "Questions about our policies?",
     contactUsAt: "Contact us at",
     contactUs: "Contact Us",
@@ -673,6 +997,8 @@ export default {
     subDefDedicatedManager: "Dedicated account manager",
     renews: "Renews",
     trialUntil: "until",
+    noActiveSubscription: "No active subscription",
+    vehiclesAllowedPhrase: "vehicles allowed",
     monthly: "Monthly",
     yearly: "Yearly",
     save17: "Save 17%",
@@ -1260,6 +1586,9 @@ export default {
     gpsUseCurrentLocation: "Use Current Location (GPS)",
     tapDetectExactAddress: "Tap to detect your exact address",
     previouslyUsedAddresses: "PREVIOUSLY USED",
+    emptyVehicleTitle: "No vehicle registered",
+    emptyVehicleMessage:
+      "Add your vehicle first so providers receive the correct VIN, make, model, and service details.",
   },
 
   // Provider
@@ -1598,6 +1927,51 @@ export default {
     oblCommunication: "Maintain clear communication with the customer",
     oblInvoice: "Issue invoice when requested",
     oblRespond: "Respond to requests in a timely manner",
+    oblPhotosMin:
+      "Document service with photos (minimum 3 when customer is absent)",
+    cancellationAfterStart:
+      "When a customer requests cancellation after service has started, you will be asked to validate the request and report work already completed. You may be compensated for documented work performed.",
+    termsSectionContractorTitle: "5. Independent Contractor Status",
+    termsSectionContractorBody:
+      "You are an independent contractor, not an employee of TechTrust AutoSolutions LLC. You are responsible for your own taxes, insurance, business licenses, and compliance with all applicable federal, state, and local laws. TechTrust does not withhold taxes from your earnings.",
+    termsSectionDisputeTitle: "6. Dispute Resolution & Arbitration",
+    termsSectionDisputeBody:
+      "Any disputes arising from this agreement shall be resolved through binding arbitration administered by the American Arbitration Association (AAA) in the State of Florida. YOU WAIVE YOUR RIGHT TO A JURY TRIAL AND TO PARTICIPATE IN CLASS ACTIONS OR CLASS ARBITRATIONS.",
+    termsSectionGovLawTitle: "7. Governing Law",
+    termsSectionGovLawBody:
+      "These terms are governed by the laws of the State of Florida. Any non-arbitrable legal action shall be brought exclusively in courts located in Florida.",
+    providerPolicyDate: "February 2026",
+    privacyComplianceBody:
+      "We comply with applicable data protection laws, including the California Consumer Privacy Act (CCPA/CPRA) and Florida's Information Protection Act. You may request access, correction, or deletion of your data at any time through support at privacy@techtrust.com.",
+    privacyDataBreachTitle: "5. Data Breach Notification",
+    privacyDataBreachBody:
+      "In the event of a data breach affecting your personal information, we will notify you as required by applicable federal and state law, including Florida Statutes § 501.171.",
+    contractTaxTitle: "6. Tax Obligations",
+    contractTaxBody:
+      "As an independent contractor, you are responsible for reporting and paying all applicable federal, state, and local taxes on your earnings. TechTrust will issue a 1099-NEC form for earnings over $600 in a calendar year, as required by IRS regulations. You are responsible for estimated quarterly tax payments.",
+    contractInsuranceTitle: "7. Insurance Requirements",
+    contractInsuranceBody:
+      "You are responsible for maintaining appropriate business insurance, including general liability insurance. TechTrust does not provide insurance coverage for services performed through the platform. Proof of insurance may be requested at any time.",
+    contractGovLawTitle: "8. Governing Law",
+    contractGovLawBody:
+      "This contract is governed by the laws of the State of Florida. TechTrust AutoSolutions LLC is registered in the State of Florida.",
+    feePercentSubtitle: "Of the total service value",
+    feePlatformChargeExplain:
+      "TechTrust charges a flat 10% platform fee on the total value of each completed service. This fee is automatically deducted when the customer approves the completed service and payment is captured. The processing fee (Stripe: 2.9% + $0.30) is paid by the customer, not the provider.",
+    inclPreauthSecurity: "Pre-authorization payment security",
+    inclDisputeMediation: "Dispute mediation support",
+    payoutsProcessingDetail:
+      "Payouts are processed within 3–5 business days after service completion and customer approval. Payment is sent via your selected payout method: Zelle, bank transfer (ACH), or manual arrangement — configure your preference in Settings → Payout. TechTrust will notify you when a payout is sent.",
+    feeExampleHeading: "4. Payment Example",
+    feeExampleServiceQuoted: "Service quoted",
+    feeExamplePlatformFee: "Platform fee (10%)",
+    feeExampleYouReceive: "You receive",
+    feeExampleNote:
+      "Note: The customer pays any applicable processing fee separately; it does not affect your net earnings shown above.",
+    feeTaxReportingTitle: "5. Tax Reporting",
+    feeTaxReportingBody:
+      "TechTrust will issue a 1099-NEC form for annual earnings exceeding $600, as required by the IRS. It is your responsibility to report all income and pay applicable taxes.",
+    termsTab: "Terms",
     serviceQuality: "Service Quality",
     qualityStandards:
       "TechTrust values excellence. Providers who maintain a rating below 3.5 stars for more than 30 consecutive days may have their accounts suspended for review.",
@@ -1722,6 +2096,11 @@ export default {
     accountType: "Account Type",
     accountHolderName: "Account Holder Name",
     accountHolderPlaceholder: "Full name or business name",
+    routingNumberPlaceholderLong: "9-digit routing number",
+    accountNumberPlaceholderDisplay: "Account number",
+    taxIdLabel: "Tax ID (EIN or SSN)",
+    taxIdOptionalHint: "optional — not required for foreign providers",
+    taxIdPlaceholder: "XX-XXXXXXX or XXX-XX-XXXX",
     addAccount: "Add Account",
     addNewAccount: "Add New Account",
     dataSecure: "Your data is secure",
@@ -1853,6 +2232,72 @@ export default {
     serviceAreaHowItWorksTitle: "How Service Area Works",
     serviceAreaHowItWorksBody:
       "• Service Radius: customers within this distance from your base address can find you.\n\n• County Coverage: explicitly declare which FL counties you serve — useful when you're willing to travel beyond your radius to a particular area.\n\nBoth radius and county are used to match you with incoming service requests.",
+    serviceAreaScreenTitle: "Service Area",
+    serviceAreaLoading: "Loading...",
+    serviceAreaBaseAddressTitle: "Base address",
+    serviceAreaNoAddressHint:
+      "No address set — update it in Profile → Edit Profile.",
+    serviceAreaChangeAddressLink: "Open Edit Profile →",
+    serviceAreaRadiusTitle: "Service radius",
+    serviceAreaRadiusDesc:
+      "Customers within this distance from your base address will see you in search results.",
+    serviceAreaMilesWord: "miles",
+    serviceAreaMiChip: "{{miles}} mi",
+    serviceAreaCountyCoverageTitle: "County coverage",
+    serviceAreaCountyCoverageDesc:
+      "Select the Florida counties you're willing to serve. Customers in those counties can find you even if they're outside your radius.",
+    serviceAreaSelectCountiesEmpty: "Select counties",
+    serviceAreaCountiesSelectedOf67: "{{count}} of 67 counties selected",
+    serviceAreaCountyListMore: "+{{count}} more",
+    serviceAreaMapPlaceholderCounties:
+      "{{count}} counties selected",
+    serviceAreaMapNoCountiesYet: "No counties selected yet",
+    serviceTypesTitle: "Service types",
+    serviceAreaOnSiteLabel: "On-site service",
+    serviceAreaOnSiteDesc: "I travel to the customer's location",
+    serviceAreaRoadsideLabel: "Roadside assistance",
+    serviceAreaRoadsideDesc: "Emergency service on highways",
+    serviceAreaTravelFeesTitle: "Travel fees",
+    serviceAreaFreeMilesLabel: "Free miles",
+    serviceAreaFeePerExtraMileLabel: "Fee per extra mile",
+    serviceAreaDistanceChargedLabel: "Distance charged",
+    serviceAreaOneWay: "One way",
+    serviceAreaRoundTrip: "Round trip",
+    serviceAreaFeeNoteOneWay:
+      "First {{freeMiles}} mi free · ${{fee}}/mi after that",
+    serviceAreaFeeNoteRoundTrip:
+      "First {{freeMiles}} mi free (each way) · ${{fee}}/mi extra · distance × 2",
+    serviceAreaSaveChanges: "Save changes",
+    countyPickerDone: "Done",
+    countyPickerTitle: "Florida counties",
+    countyPickerClear: "Clear",
+    countyPickerSearchPlaceholder: "Search county...",
+    countyPickerNoneSelected: "No counties selected",
+    countyPickerCountiesSelected: "{{count}} counties selected",
+    countyPickerSelectAll67: "Select all 67",
+    countyPickerDeselectAll: "Deselect all",
+    countyPickerSelectAllCount: "Select all {{count}}",
+    countyRowWithSuffix: "{{name}} County",
+    shopTypeLabel: "Shop type",
+    selectShopTypeHint: "Select shop type",
+    businessTypeComplianceHint:
+      "Affects which compliance licenses are required for your business.",
+    editProfileEinPlaceholder: "12-3456789",
+    fdacsRegistrationLabelShort: "FDACS registration #",
+    fdacsPlaceholder: "MV-00000",
+    fdacsValidating: "Validating...",
+    fdacsValid: "Valid",
+    fdacsInvalid: "Invalid",
+    fdacsFormatHintInvalid: "Format must be MV-XXXXX (e.g., MV-12345)",
+    fdacsFormatHintOk: "Required for FL motor vehicle repair shops",
+    editProfilePhonePlaceholder: "+1 (000) 000-0000",
+    editProfileEmailPlaceholder: "you@business.com",
+    editProfileWebsitePlaceholder: "www.yourbusiness.com",
+    streetAddressLabel: "Street address",
+    editProfileStreetPlaceholder: "123 Main Street",
+    editProfileCityPlaceholder: "Orlando",
+    editProfileStatePlaceholder: "FL",
+    editProfileZipPlaceholder: "32801",
     webDashboardTitle: "Web Dashboard",
     webDashboardMessage:
       "For full business management, visit provider.techtrustautosolutions.com on your browser.",
@@ -2204,6 +2649,8 @@ export default {
     acceptHoldBreakSeparator: "━━━━━━━━━━━━━━━━",
     milesAwaySuffix: "away",
     noTravelFeeShort: "No travel fee",
+    /** Distance row + travel fee label (customer quote view) */
+    travelFee: "Travel Fee",
     sentSuccessfully: "Quote sent successfully!",
     requestExpired: "This request has expired",
     costPerMile: "Cost per extra mile",
@@ -2490,6 +2937,42 @@ export default {
     driverSection: "Driver",
     insuranceHintInAddVehicle:
       "Manage insurance in Vehicle Details → Insurance",
+    fuelGasoline: "Gasoline",
+    fuelDiesel: "Diesel",
+    fuelHybrid: "Hybrid",
+    fuelPlugInHybrid: "Plug-in Hybrid",
+    fuelElectric: "Electric",
+    fuelE85Flex: "E85 / Flex Fuel",
+    fuelCNG: "Natural Gas (CNG)",
+    fuelHydrogen: "Hydrogen",
+    categoryCar: "Car",
+    categorySUV: "SUV",
+    categoryPickup: "Pickup Truck",
+    categoryVan: "Van / Minivan",
+    categoryLightTruck: "Light Truck",
+    categoryHeavyTruck: "Heavy Truck / Semi",
+    categoryBusRv: "Bus / RV",
+    categoryMotorcycle: "Motorcycle",
+    categoryConvertible: "Convertible",
+    categoryCoupe: "Coupe",
+    categoryWagon: "Wagon",
+    colorWhite: "White",
+    colorBlack: "Black",
+    colorSilver: "Silver",
+    colorGray: "Gray",
+    colorRed: "Red",
+    colorBlue: "Blue",
+    colorDarkBlue: "Dark Blue",
+    colorGreen: "Green",
+    colorYellow: "Yellow",
+    colorOrange: "Orange",
+    colorBrown: "Brown",
+    colorBeige: "Beige",
+    colorGold: "Gold",
+    colorMaroon: "Maroon",
+    colorChampagne: "Champagne",
+    colorPurple: "Purple",
+    colorOther: "Other",
     // Success messages
     vehicleAddedSuccess: "Vehicle added successfully!",
     vehicleUpdatedSuccess: "Vehicle updated successfully!",
@@ -2791,6 +3274,12 @@ export default {
     ticketLoadFailed: "Failed to load ticket",
   },
 
+  supportChat,
+
+  helpCenterFaq,
+
+  termsPoliciesDocuments,
+
   // Notifications
   notifications: {
     notifications: "Notifications",
@@ -2906,6 +3395,8 @@ export default {
 
   vehicles: {
     myVehicles: "My Vehicles",
+    noVehicles: "No vehicles yet",
+    addFirstVehicle: "Add your first vehicle",
     removeVehicle: "Remove Vehicle",
     removeVehicleConfirm:
       "Are you sure you want to remove this vehicle from your account?",
@@ -2954,6 +3445,8 @@ export default {
       cardHoldNote:
         "A temporary hold will be placed on your card. You will only be charged after you review and approve the completed service.",
     },
+    defaultServiceTitle: "Service",
+    defaultProviderName: "Provider",
   },
 
   // Profile
@@ -3007,6 +3500,19 @@ export default {
     paymentMethods: "Payment Methods",
     subscriptionPlan: "Subscription Plan",
     rateApp: "Rate App",
+    rateAppTagEasyToUse: "Easy to use",
+    rateAppTagFastQuotes: "Fast quotes",
+    rateAppTagGreatProviders: "Great providers",
+    rateAppTagGoodPrices: "Good prices",
+    rateAppTagReliable: "Reliable",
+    rateAppTagHelpfulSupport: "Helpful support",
+    rateAppTagNeedsImprovement: "Needs improvement",
+    rateAppTagHadIssues: "Had issues",
+    rateAppRatingPoor: "😞 Poor",
+    rateAppRatingFair: "😐 Fair",
+    rateAppRatingGood: "🙂 Good",
+    rateAppRatingGreat: "😊 Great",
+    rateAppRatingAmazing: "🤩 Amazing!",
     termsAndPolicies: "Terms & Policies",
     helpCenter: "Help Center",
     contactUs: "Contact Us",
@@ -3523,6 +4029,17 @@ export default {
     biz_OIL_CHANGE: "Quick Lube / Oil Change",
     biz_AUTO_ELECTRIC: "Auto Electric",
     biz_MULTI_SERVICE: "Multi-Service Shop",
+    bizNote_AUTO_REPAIR:
+      "General mechanical repair — FDACS license required",
+    bizNote_BODY_SHOP: "Collision/body work — FDACS license required",
+    bizNote_TIRE_SHOP: "Tire sales & service — FDACS license required",
+    bizNote_OIL_CHANGE: "Quick lube / oil change — FDACS license required",
+    bizNote_AUTO_ELECTRIC: "Electrical/diagnostics — FDACS license required",
+    bizNote_MOBILE_MECHANIC: "On-site repairs — FDACS license required",
+    bizNote_TOWING: "Towing / recovery — FL wrecker permit (FDACS)",
+    bizNote_DETAILING: "Detailing only — BTR license; no FDACS required",
+    bizNote_MULTI_SERVICE:
+      "Multiple service types — FDACS license required",
     complianceType_FDACS_MOTOR_VEHICLE_REPAIR: "FDACS Motor Vehicle Repair",
     complianceType_STATE_SHOP_REGISTRATION: "State Repair Shop Registration",
     complianceType_LOCAL_BTR_CITY: "City Business Tax Receipt",
@@ -4356,6 +4873,13 @@ export default {
     ownerResponseLabel: "Owner response:",
     reviewsTotal: "{{count}} reviews",
     seeAllReviewsCount: "See all {{count}} reviews",
+    findCarWash: "Find Car Wash",
+    applyFilters: "Apply Filters",
+    searching: "Searching nearby...",
+    noResults: "No car washes found",
+    tryExpandRadius:
+      "Try expanding your search radius or adjusting filters",
+    searchRadius: "Search Radius",
   },
 
   // Parts Store
@@ -4419,7 +4943,13 @@ export default {
     friday: "Friday",
     saturday: "Saturday",
     sunday: "Sunday",
-    findCarWash: "Find Car Wash",
+    searchProducts: "Search products...",
+    tryDifferentSearch: "Try a different search or category.",
+    shopFor: "Shopping for:",
+    featured: "New Arrivals",
+    allStores: "All Stores",
+    seeAll: "See All",
+    noStores: "No stores found",
   },
 
   // Customer Onboarding
@@ -4465,6 +4995,52 @@ export default {
     alertMissingStreetTitle: "Missing Info",
     alertMissingStreetBody: "Please enter your street address.",
     alertSaveAddressFailed: "Could not save your address. Please try again.",
+    customerWelcomeSubtitle:
+      "Let's take 2 minutes to personalise your experience so we can show you the right shops, car washes, and auto parts near your home.",
+    customerWelcomeBullets:
+      "See shops & car washes near YOU\nTrack service history for your vehicles\nGet instant quotes from verified shops\nSecure payments — money released only on approval",
+    customerWelcomeSkipNote:
+      "You can skip any step and complete it later from your Profile settings.",
+    customerLocationTitle: "Your Location",
+    customerLocationSubtitle:
+      "We use your city and state to show you nearby shops, car washes, and auto parts stores. Without this, results will be generic and far away.",
+    customerSkipImpactPrefix: "If you skip this:",
+    customerLocationSkipBody:
+      "You'll see a generic list of providers and won't be matched with local shops.",
+    customerHomeAddressTitle: "Home Address",
+    customerHomeAddressSubtitle:
+      "Your home address helps us send technicians to your door and match you with shops that cover your neighbourhood.",
+    customerAddressSkipBody:
+      "You'll need to enter your address every time you create a service request at home.",
+    customerSearchAddressLabel: "Search Address",
+    customerAddressSearchPlaceholder: "Type your address to search...",
+    customerStreetLabel: "Street Address",
+    customerStreetPlaceholder: "e.g. 123 Oak Street, Apt 4B",
+    customerZipLabelOptional: "ZIP Code (optional)",
+    customerZipUsPlaceholder: "e.g. 33101",
+    customerEnterCityPlaceholder: "Enter your city",
+    customerSelectStatePlaceholder: "Select your state",
+    customerSelectCityPlaceholder: "Select your city",
+    customerSelectStateShort: "Select state",
+    customerSaveLocationCta: "Save My Location",
+    customerSaveAddressCta: "Save Home Address",
+    customerVehicleFlowSubtitle:
+      "Adding your vehicle lets shops send you accurate quotes for the right parts and labour. You can also track your complete service history.",
+    customerVehicleSkipBody:
+      "You'll need to describe your car manually every time you request a service, and quotes may be less accurate.",
+    customerVehicleBullets:
+      "Scan VIN barcode for automatic fill\nFull service history per vehicle\nAdd multiple vehicles (family & fleet)\nMaintenance reminders by mileage",
+    customerAddVehicleCtaNow: "Add My Vehicle Now",
+    customerDoneFlowSubtitle:
+      "TechTrust is personalised for you. You can always update your info from Profile → Settings.",
+    customerDoneCardTitle: "What you can do now:",
+    customerDoneBullets:
+      "Request a service from verified shops near you\nFind car washes and book memberships\nBrowse auto parts stores\nLeave reviews and save favourite shops",
+    customerSkipAll: "Skip all",
+    customerGoToDashboard: "Go to Dashboard",
+    customerSkipThisStep: "Skip this step",
+    customerSkipForNow: "Skip for now",
+    customerLetsGo: "Let's go",
   },
 
   // Request Details Screen

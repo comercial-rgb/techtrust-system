@@ -23,7 +23,7 @@ export default function ProviderComplianceBadge({
   onPress,
 }: Props) {
   const { t } = useI18n();
-  const tc = (t as any).providerCompliance || {};
+  const tc = t.providerCompliance || {};
   const badge = getProviderComplianceBadge(status);
   const labelMap: Record<string, string | undefined> = {
     VERIFIED: tc.badgeVerified,
@@ -47,7 +47,7 @@ export default function ProviderComplianceBadge({
         size === "large" && styles.containerLarge,
       ]}
     >
-      <Ionicons name={badge.icon as any} size={iconSize} color={badge.color} />
+      <Ionicons name={badge.icon} size={iconSize} color={badge.color} />
       {showLabel && (
         <Text style={[styles.label, { color: badge.color, fontSize }]}>
           {label}

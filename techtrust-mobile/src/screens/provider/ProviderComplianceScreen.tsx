@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useCallback, useMemo } from "react";
+import type { ComponentProps } from "react";
 import {
   View,
   Text,
@@ -27,6 +28,7 @@ import {
   autoCreateComplianceItems,
   upsertComplianceItem,
   ComplianceItem,
+  ComplianceSummary,
   InsurancePolicy,
   InsuranceRequirement,
   Technician,
@@ -34,6 +36,9 @@ import {
 import { log } from "../../utils/logger";
 import { useI18n, translate, type Language } from "../../i18n";
 import { interpolate } from "../../i18n/interpolate";
+import type { ProviderAppNavigation } from "../../navigation/types";
+
+type IoniconName = ComponentProps<typeof Ionicons>["name"];
 
 function providerComplianceString(
   subKey: string,
@@ -47,11 +52,16 @@ function providerComplianceString(
   return undefined;
 }
 
-export default function ProviderComplianceScreen({ navigation }: any) {
+export default function ProviderComplianceScreen({ navigation }: { navigation: ProviderAppNavigation }) {
   const { t, language, formatDate } = useI18n();
-  const tc = (t as any).providerCompliance || ({} as Record<string, string | undefined>);
-  const tim = (t as any).insuranceManagement || {};
-  const tm = (t as any).technicianManagement || {};
+  const tc = t.providerCompliance;
+  const tim = t.insuranceManagement;
+  const tm = t.technicianManagement;
+  const tcStrings = tc as Record<string, string | undefined>;
+  const insuranceTypeLabelMap = (tim.typeLabels ?? {}) as Record<
+    string,
+    string | undefined
+  >;
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [complianceItems, setComplianceItems] = useState<ComplianceItem[]>([]);
@@ -64,8 +74,12 @@ export default function ProviderComplianceScreen({ navigation }: any) {
     Record<string, { allowed: boolean; reason?: string }>
   >({});
   const [overallStatus, setOverallStatus] = useState("PENDING");
-  const [jurisdiction, setJurisdiction] = useState<any>(null);
-  const [requiredItems, setRequiredItems] = useState<any[]>([]);
+  const [jurisdiction, setJurisdiction] = useState<
+    ComplianceSummary["jurisdiction"] | null
+  >(null);
+  const [requiredItems, setRequiredItems] = useState<
+    NonNullable<ComplianceSummary["requiredItems"]>
+  >([]);
   const [businessType, setBusinessType] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
@@ -97,8 +111,14 @@ export default function ProviderComplianceScreen({ navigation }: any) {
   );
 
   const FLORIDA_REQUIREMENTS = useMemo(() => {
+    type FlReq = {
+      type: string;
+      name: string;
+      required: boolean;
+      icon: IoniconName;
+    };
     const type = (businessType || "AUTO_REPAIR").toUpperCase();
-    const btr = [
+    const btr: FlReq[] = [
       {
         type: "LOCAL_BTR_COUNTY",
         name: tc.flBtrCounty || "Business Tax Receipt – County (BTR)",
@@ -231,21 +251,23 @@ export default function ProviderComplianceScreen({ navigation }: any) {
 
   const localizedComplianceTitle = (item: ComplianceItem) => {
     const raw = getComplianceDisplayName(item, requiredItems);
-    const loc = (tc as any)[`complianceType_${item.type}`] as string | undefined;
+    const loc = tcStrings[`complianceType_${item.type}`];
     if (loc && raw === COMPLIANCE_TYPE_LABELS[item.type]) return loc;
     return loc || raw;
   };
 
   const businessTypeLabel =
     (businessType &&
-      (((tc as any)[`biz_${businessType}`] as string | undefined) ||
+      (tcStrings[`biz_${businessType}`] ||
         providerComplianceString(`biz_${businessType}`, language))) ||
     businessType ||
     undefined;
 
   const getOverallBadge = () => {
-    const map: Record<string, { label: string; color: string; icon: string }> =
-      {
+    const map: Record<
+      string,
+      { label: string; color: string; icon: IoniconName }
+    > = {
         VERIFIED: {
           label: tc.overallVerified || "Verified",
           color: "#16a34a",
@@ -275,7 +297,7 @@ export default function ProviderComplianceScreen({ navigation }: any) {
           { backgroundColor: info.color + "15", borderColor: info.color },
         ]}
       >
-        <Ionicons name={info.icon as any} size={24} color={info.color} />
+        <Ionicons name={info.icon} size={24} color={info.color} />
         <Text style={[styles.overallBadgeText, { color: info.color }]}>
           {info.label}
         </Text>
@@ -417,7 +439,11 @@ export default function ProviderComplianceScreen({ navigation }: any) {
                       style={styles.flReqItem}
                       onPress={() => handleAddFlItem(req.type)}
                     >
-                      <Ionicons name={req.icon as any} size={16} color={req.required ? '#dc2626' : '#6b7280'} />
+                      <Ionicons
+                        name={req.icon}
+                        size={16}
+                        color={req.required ? "#dc2626" : "#6b7280"}
+                      />
                       <Text style={[styles.flReqText, !req.required && { color: '#9ca3af' }]}>
                         {req.name}
                       </Text>
@@ -584,7 +610,7 @@ export default function ProviderComplianceScreen({ navigation }: any) {
                     color={policy.hasCoverage ? "#16a34a" : "#9ca3af"}
                   />
                   <Text style={styles.cardTitle}>
-                    {(tim.typeLabels && tim.typeLabels[policy.type]) ||
+                    {insuranceTypeLabelMap[policy.type] ||
                       INSURANCE_TYPE_LABELS[policy.type] ||
                       policy.type}
                   </Text>
@@ -701,7 +727,7 @@ export default function ProviderComplianceScreen({ navigation }: any) {
                 />
                 <View style={styles.gateInfo}>
                   <Text style={styles.gateService}>
-                    {(tc as any)[`service_${service}`] ||
+                    {tcStrings[`service_${service}`] ||
                       providerComplianceString(`service_${service}`, language) ||
                       service.replace(/_/g, " ")}
                   </Text>
@@ -710,11 +736,14 @@ export default function ProviderComplianceScreen({ navigation }: any) {
                     const hardReasons = gate.reason.split(', ').filter(c => !GL_SOFT_CODES.has(c));
                     return hardReasons.length > 0 ? (
                       <Text style={styles.gateReason}>
-                        {hardReasons.map(c =>
-                          (tc as any)[`reason_${c}`] ||
-                          providerComplianceString(`reason_${c}`, language) ||
-                          c.replace(/_/g, ' ').toLowerCase(),
-                        ).join(' · ')}
+                        {hardReasons
+                          .map(
+                            (c) =>
+                              tcStrings[`reason_${c}`] ||
+                              providerComplianceString(`reason_${c}`, language) ||
+                              c.replace(/_/g, " ").toLowerCase(),
+                          )
+                          .join(" · ")}
                       </Text>
                     ) : null;
                   })()}

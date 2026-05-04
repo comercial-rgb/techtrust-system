@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from "react";
+import type { ComponentProps } from "react";
 import {
   View,
   Text,
@@ -26,8 +27,11 @@ import { logos } from "../../constants/images";
 import { useI18n } from "../../i18n";
 import type { RecentActivity } from "../../services/dashboard.service";
 import { log } from "../../utils/logger";
+import type { ProviderDashboardStackNavigation } from "../../navigation/types";
 
 const { width } = Dimensions.get("window");
+
+type MciName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
 // Tipos
 interface Stats {
@@ -90,7 +94,11 @@ const isNewProvider = (stats: Stats | null): boolean => {
   return stats.completedThisMonth === 0 && stats.rating === 0 && stats.totalReviews === 0;
 };
 
-export default function ProviderDashboardScreen({ navigation }: any) {
+export default function ProviderDashboardScreen({
+  navigation,
+}: {
+  navigation: ProviderDashboardStackNavigation<"ProviderDashboardMain">;
+}) {
   const { user, refreshUser } = useAuth();
   const { t, formatCurrency } = useI18n();
   const [refreshing, setRefreshing] = useState(false);
@@ -184,7 +192,9 @@ export default function ProviderDashboardScreen({ navigation }: any) {
     setRefreshing(false);
   };
 
-  const getActivityIcon = (type: string) => {
+  const getActivityIcon = (
+    type: string,
+  ): { name: MciName; color: string; bg: string } => {
     switch (type) {
       case "new_request":
         return { name: "clipboard-list", color: "#3b82f6", bg: "#dbeafe" };
@@ -212,28 +222,31 @@ export default function ProviderDashboardScreen({ navigation }: any) {
       label: t.provider?.setupProfile || 'Complete your business profile',
       icon: 'account-edit' as const,
       done: !!(user?.providerProfile?.businessName && user?.providerProfile?.city),
-      action: () => navigation.navigate('EditProfile'),
+      action: () => navigation.navigate("EditProfile"),
     },
     {
       id: 'services',
       label: t.provider?.addServices || 'Add your services',
       icon: 'toolbox' as const,
-      done: Array.isArray(user?.providerProfile?.servicesOffered) && (user.providerProfile.servicesOffered as any[]).length > 0,
-      action: () => navigation.navigate('Services'),
+      done: (() => {
+        const offered = user?.providerProfile?.servicesOffered;
+        return Array.isArray(offered) && offered.length > 0;
+      })(),
+      action: () => navigation.navigate("Services"),
     },
     {
       id: 'hours',
       label: t.provider?.setHours || 'Set your working hours',
       icon: 'clock-outline' as const,
       done: !!(user?.providerProfile?.businessHours),
-      action: () => navigation.navigate('WorkingHours'),
+      action: () => navigation.navigate("WorkingHours"),
     },
     {
       id: 'area',
       label: t.provider?.defineArea || 'Define your service area',
       icon: 'map-marker-radius' as const,
       done: !!(user?.providerProfile?.serviceRadiusKm),
-      action: () => navigation.navigate('ServiceArea'),
+      action: () => navigation.navigate("ServiceArea"),
     },
   ];
 
@@ -249,28 +262,31 @@ export default function ProviderDashboardScreen({ navigation }: any) {
           bg: '#dbeafe',
           color: '#2563eb',
           label: 'Inventory',
-          action: () => navigation.navigate('ProviderBusiness'),
+          action: () => navigation.navigate("ProviderBusiness"),
         },
         {
           icon: 'truck-delivery',
           bg: '#d1fae5',
           color: '#059669',
           label: 'Pending Pickups',
-          action: () => navigation.navigate('ProviderWorkOrders'),
+          action: () =>
+            navigation.navigate("ProviderWorkOrders", {
+              screen: "ProviderWorkOrdersList",
+            }),
         },
         {
           icon: 'chart-line',
           bg: '#ede9fe',
           color: '#7c3aed',
           label: t.provider?.analytics || 'Analytics',
-          action: () => navigation.navigate('ProviderBusiness'),
+          action: () => navigation.navigate("ProviderBusiness"),
         },
         {
           icon: 'star-outline',
           bg: '#fef3c7',
           color: '#f59e0b',
           label: t.provider?.reviewsTitle || 'Reviews',
-          action: () => navigation.navigate('ProviderReviews'),
+          action: () => navigation.navigate("ProviderReviews"),
         },
       ];
     }
@@ -282,28 +298,31 @@ export default function ProviderDashboardScreen({ navigation }: any) {
           bg: '#dbeafe',
           color: '#3b82f6',
           label: t.provider?.carWashQueue || 'Wash Queue',
-          action: () => navigation.navigate('ProviderWorkOrders'),
+          action: () =>
+            navigation.navigate("ProviderWorkOrders", {
+              screen: "ProviderWorkOrdersList",
+            }),
         },
         {
           icon: 'card-account-details',
           bg: '#d1fae5',
           color: '#059669',
           label: 'Memberships',
-          action: () => navigation.navigate('ProviderBusiness'),
+          action: () => navigation.navigate("ProviderBusiness"),
         },
         {
           icon: 'chart-line',
           bg: '#ede9fe',
           color: '#7c3aed',
           label: t.provider?.analytics || 'Analytics',
-          action: () => navigation.navigate('ProviderBusiness'),
+          action: () => navigation.navigate("ProviderBusiness"),
         },
         {
           icon: 'star-outline',
           bg: '#fef3c7',
           color: '#f59e0b',
           label: t.provider?.reviewsTitle || 'Reviews',
-          action: () => navigation.navigate('ProviderReviews'),
+          action: () => navigation.navigate("ProviderReviews"),
         },
       ];
     }
@@ -315,28 +334,31 @@ export default function ProviderDashboardScreen({ navigation }: any) {
         bg: '#dbeafe',
         color: '#2563eb',
         label: t.fdacs?.appointments || 'Appointments',
-        action: () => navigation.navigate('Appointments'),
+        action: () => navigation.navigate("Appointments"),
       },
       {
         icon: 'file-document-check',
         bg: '#fef3c7',
         color: '#d97706',
         label: t.fdacs?.repairInvoices || 'Invoices',
-        action: () => navigation.navigate('ProviderWorkOrders', { screen: 'RepairInvoices' }),
+        action: () =>
+          navigation.navigate("ProviderWorkOrders", {
+            screen: "RepairInvoices",
+          }),
       },
       {
         icon: 'chart-line',
         bg: '#ede9fe',
         color: '#7c3aed',
         label: t.provider?.analytics || 'Analytics',
-        action: () => navigation.navigate('ProviderBusiness'),
+        action: () => navigation.navigate("ProviderBusiness"),
       },
       {
         icon: 'star-outline',
         bg: '#fef3c7',
         color: '#f59e0b',
         label: t.provider?.reviewsTitle || 'Reviews',
-        action: () => navigation.navigate('ProviderReviews'),
+        action: () => navigation.navigate("ProviderReviews"),
       },
     ];
 
@@ -346,7 +368,10 @@ export default function ProviderDashboardScreen({ navigation }: any) {
         bg: '#dbeafe',
         color: '#3b82f6',
         label: t.provider?.carWashQueue || 'Wash Queue',
-        action: () => navigation.navigate('ProviderWorkOrders'),
+        action: () =>
+            navigation.navigate("ProviderWorkOrders", {
+              screen: "ProviderWorkOrdersList",
+            }),
       });
     }
 
@@ -530,7 +555,11 @@ export default function ProviderDashboardScreen({ navigation }: any) {
               borderColor: '#fde68a',
               gap: 10,
             }}
-            onPress={() => navigation.navigate('ProviderQuotes')}
+            onPress={() =>
+              navigation.navigate("ProviderRequests", {
+                screen: "ProviderQuotesList",
+              })
+            }
           >
             <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: '#fde68a', justifyContent: 'center', alignItems: 'center' }}>
               <MaterialCommunityIcons name="clock-alert-outline" size={20} color="#d97706" />
@@ -550,7 +579,14 @@ export default function ProviderDashboardScreen({ navigation }: any) {
         {/* Stats Cards — D38 with trend indicators */}
         <View style={styles.statsContainer}>
           <View style={styles.statsRow}>
-            <TouchableOpacity style={styles.statCard} onPress={() => navigation.navigate("ProviderRequests")}>
+            <TouchableOpacity
+              style={styles.statCard}
+              onPress={() =>
+                navigation.navigate("ProviderRequests", {
+                  screen: "ProviderRequestsList",
+                })
+              }
+            >
               <View style={[styles.statIcon, { backgroundColor: "#dbeafe" }]}>
                 <MaterialCommunityIcons name="clipboard-text-outline" size={24} color="#3b82f6" />
               </View>
@@ -564,7 +600,14 @@ export default function ProviderDashboardScreen({ navigation }: any) {
                 )}
               </View>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.statCard} onPress={() => navigation.navigate("ProviderWorkOrders")}>
+            <TouchableOpacity
+              style={styles.statCard}
+              onPress={() =>
+                navigation.navigate("ProviderWorkOrders", {
+                  screen: "ProviderWorkOrdersList",
+                })
+              }
+            >
               <View style={[styles.statIcon, { backgroundColor: "#fef3c7" }]}>
                 <MaterialCommunityIcons name="progress-wrench" size={24} color="#f59e0b" />
               </View>
@@ -689,7 +732,11 @@ export default function ProviderDashboardScreen({ navigation }: any) {
               {t.provider?.pendingRequests || "Pending Requests"}
             </Text>
             <TouchableOpacity
-              onPress={() => navigation.navigate("ProviderRequests")}
+              onPress={() =>
+                navigation.navigate("ProviderRequests", {
+                  screen: "ProviderRequestsList",
+                })
+              }
             >
               <Text style={styles.seeAll}>
                 {t.provider?.seeAll || "See all"}
@@ -820,7 +867,7 @@ export default function ProviderDashboardScreen({ navigation }: any) {
                   ]}
                 >
                   <MaterialCommunityIcons
-                    name={iconInfo.name as any}
+                    name={iconInfo.name}
                     size={20}
                     color={iconInfo.color}
                   />
@@ -858,7 +905,7 @@ export default function ProviderDashboardScreen({ navigation }: any) {
               >
                 <View style={[styles.actionIcon, { backgroundColor: qa.bg }]}>
                   <MaterialCommunityIcons
-                    name={qa.icon as any}
+                    name={qa.icon as MciName}
                     size={24}
                     color={qa.color}
                   />
@@ -920,7 +967,7 @@ export default function ProviderDashboardScreen({ navigation }: any) {
             <View style={{ flexDirection: 'row', borderTopWidth: 1, borderTopColor: '#f3f4f6' }}>
               <TouchableOpacity
                 style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 14 }}
-                onPress={() => navigation.navigate('SOSInbox')}
+                onPress={() => navigation.navigate("SOSInbox")}
               >
                 <MaterialCommunityIcons name="radar" size={18} color="#2B5EA7" />
                 <Text style={{ fontSize: 14, fontWeight: '600', color: '#2B5EA7' }}>
@@ -930,7 +977,7 @@ export default function ProviderDashboardScreen({ navigation }: any) {
               <View style={{ width: 1, backgroundColor: '#f3f4f6' }} />
               <TouchableOpacity
                 style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 14 }}
-                onPress={() => navigation.navigate('SOSRateCard')}
+                onPress={() => navigation.navigate("SOSRateCard")}
               >
                 <MaterialCommunityIcons name="tag-multiple" size={18} color="#6b7280" />
                 <Text style={{ fontSize: 14, fontWeight: '600', color: '#6b7280' }}>

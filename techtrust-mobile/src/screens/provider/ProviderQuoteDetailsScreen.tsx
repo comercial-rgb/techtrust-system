@@ -3,7 +3,7 @@
  * Shows full details of a submitted quote
  */
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, type ComponentProps } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,9 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useI18n } from '../../i18n';
 import { interpolate } from '../../i18n/interpolate';
 import { log } from "../../utils/logger";
+import type { ProviderQuoteDetailsScreenProps } from "../../navigation/types";
+
+type MciName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
 interface QuoteLineItem {
   id: string;
@@ -66,8 +69,14 @@ interface QuoteDetails {
   rejectionReason?: string;
 }
 
-export default function ProviderQuoteDetailsScreen({ route, navigation }: any) {
-  const { quoteId } = route.params;
+export default function ProviderQuoteDetailsScreen({
+  route,
+  navigation,
+}: ProviderQuoteDetailsScreenProps) {
+  const quoteId =
+    typeof route.params?.quoteId === "string"
+      ? route.params.quoteId
+      : String(route.params?.quoteId ?? "");
   const { t, language, formatCurrency } = useI18n();
   const quoteDateLocale = useMemo(
     () => (language === "pt" ? "pt-BR" : language === "es" ? "es-ES" : "en-US"),
@@ -100,8 +109,13 @@ export default function ProviderQuoteDetailsScreen({ route, navigation }: any) {
     loadQuoteDetails();
   }, [loadQuoteDetails]);
 
-  const getStatusInfo = (status: string) => {
-    const statuses: Record<string, { icon: string; color: string; bg: string; label: string }> = {
+  const getStatusInfo = (
+    status: string,
+  ): { icon: MciName; color: string; bg: string; label: string } => {
+    const statuses: Record<
+      string,
+      { icon: MciName; color: string; bg: string; label: string }
+    > = {
       PENDING: { icon: 'clock-outline', color: '#f59e0b', bg: '#fef3c7', label: t.provider?.awaitingResponse || 'Awaiting Response' },
       ACCEPTED: { icon: 'check-circle', color: '#10b981', bg: '#d1fae5', label: t.provider?.accepted || 'Accepted' },
       REJECTED: { icon: 'close-circle', color: '#ef4444', bg: '#fef2f2', label: t.provider?.rejected || 'Rejected' },
@@ -216,7 +230,7 @@ export default function ProviderQuoteDetailsScreen({ route, navigation }: any) {
         {/* Status Card */}
         <View style={[styles.statusCard, { borderColor: statusInfo.color }]}>
           <View style={[styles.statusIconContainer, { backgroundColor: statusInfo.bg }]}>
-            <MaterialCommunityIcons name={statusInfo.icon as any} size={28} color={statusInfo.color} />
+            <MaterialCommunityIcons name={statusInfo.icon} size={28} color={statusInfo.color} />
           </View>
           <View style={styles.statusInfo}>
             <Text style={[styles.statusLabel, { color: statusInfo.color }]}>{statusInfo.label}</Text>

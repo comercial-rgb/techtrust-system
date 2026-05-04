@@ -18,6 +18,7 @@ import carWashService from '../services/carWash.service';
 import { CarWashListItem, CarWashSearchFilters } from '../types/carWash';
 import { colors, spacing, borderRadius, fontSize, fontWeight, shadows } from '../constants/theme';
 import { log } from "../utils/logger";
+import type { CustomerCarWashMapScreenNavigation } from "../navigation/types";
 
 // Error boundary to catch native MapView crashes
 class MapErrorBoundary extends Component<
@@ -55,9 +56,13 @@ const CAR_WASH_TYPE_COLORS: Record<string, string> = {
 
 const RADIUS_OPTIONS = [5, 10, 15, 25];
 
-export default function CarWashMapScreen({ navigation }: any) {
+export default function CarWashMapScreen({
+  navigation,
+}: {
+  navigation: CustomerCarWashMapScreenNavigation;
+}) {
   const { t, formatCurrency } = useI18n();
-  const cwT = (t as any).carWash;
+  const cwT = t.carWash;
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [carWashes, setCarWashes] = useState<CarWashListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -319,7 +324,7 @@ export default function CarWashMapScreen({ navigation }: any) {
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
-          {(t as any).carWash?.findCarWash || 'Find Car Wash'}
+          {cwT?.findCarWash || "Find Car Wash"}
         </Text>
         <TouchableOpacity
           onPress={() => navigation.navigate('CarWashFavorites')}
@@ -335,7 +340,9 @@ export default function CarWashMapScreen({ navigation }: any) {
           <Ionicons name="search" size={18} color={colors.textSecondary} />
           <TextInput
             style={styles.searchInput}
-            placeholder={(t as any).carWash?.searchPlaceholder || 'Address, ZIP code, or name...'}
+            placeholder={
+              cwT?.searchPlaceholder || "Address, ZIP code, or name..."
+            }
             placeholderTextColor={colors.textLight}
             value={searchText}
             onChangeText={handleSearch}
@@ -360,7 +367,7 @@ export default function CarWashMapScreen({ navigation }: any) {
         <View style={styles.filterPanel}>
           {/* Wash Type */}
           <Text style={styles.filterLabel}>
-            {(t as any).carWash?.washType || 'Wash Type'}
+            {cwT?.washType || "Wash Type"}
           </Text>
           <View style={styles.chipRow}>
             {Object.entries(CAR_WASH_TYPE_LABELS).map(([key, label]) => (
@@ -379,7 +386,7 @@ export default function CarWashMapScreen({ navigation }: any) {
 
           {/* Radius */}
           <Text style={styles.filterLabel}>
-            {(t as any).carWash?.searchRadius || 'Search Radius'}
+            {cwT?.searchRadius || "Search Radius"}
           </Text>
           <View style={styles.chipRow}>
             {RADIUS_OPTIONS.map(r => (
@@ -453,7 +460,7 @@ export default function CarWashMapScreen({ navigation }: any) {
           {/* Apply Button */}
           <TouchableOpacity style={styles.applyBtn} onPress={applyFilters}>
             <Text style={styles.applyBtnText}>
-              {(t as any).carWash?.applyFilters || 'Apply Filters'}
+              {cwT?.applyFilters || "Apply Filters"}
             </Text>
           </TouchableOpacity>
         </View>
@@ -664,17 +671,18 @@ export default function CarWashMapScreen({ navigation }: any) {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.loadingText}>
-            {(t as any).carWash?.searching || 'Searching nearby...'}
+            {cwT?.searching || "Searching nearby..."}
           </Text>
         </View>
       ) : carWashes.length === 0 ? (
         <View style={styles.emptyContainer}>
           <MaterialCommunityIcons name="car-wash" size={64} color={colors.gray300} />
           <Text style={styles.emptyTitle}>
-            {(t as any).carWash?.noResults || 'No car washes found'}
+            {cwT?.noResults || "No car washes found"}
           </Text>
           <Text style={styles.emptySubtext}>
-            {(t as any).carWash?.tryExpandRadius || 'Try expanding your search radius or adjusting filters'}
+            {cwT?.tryExpandRadius ||
+              "Try expanding your search radius or adjusting filters"}
           </Text>
         </View>
       ) : (

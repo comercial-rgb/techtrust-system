@@ -2,7 +2,7 @@
  * RateAppScreen - Avaliar o Aplicativo
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,30 +12,99 @@ import {
   TextInput,
   Alert,
   Linking,
+  Platform,
 } from 'react-native';
-
-const APP_STORE_URL = 'itms-apps://itunes.apple.com/app/id0000000000';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 import { useI18n } from '../../i18n';
+import type { RateAppNavigation } from '../../navigation/types';
 
-export default function RateAppScreen({ navigation }: any) {
-  const { t } = useI18n();
+type StoreExtra = {
+  storeIosItmsUrl?: string;
+  storeIosWebUrl?: string;
+  storeAndroidUrl?: string;
+};
+
+function readStoreExtra(): StoreExtra {
+  const raw = Constants.expoConfig?.extra as Record<string, unknown> | undefined;
+  if (!raw) return {};
+  return {
+    storeIosItmsUrl:
+      typeof raw.storeIosItmsUrl === 'string' ? raw.storeIosItmsUrl : undefined,
+    storeIosWebUrl:
+      typeof raw.storeIosWebUrl === 'string' ? raw.storeIosWebUrl : undefined,
+    storeAndroidUrl:
+      typeof raw.storeAndroidUrl === 'string' ? raw.storeAndroidUrl : undefined,
+  };
+}
+
+/** Precedence: EXPO_PUBLIC_* → app.json `expo.extra` → placeholders (replace App Store id for production). */
+function resolveIosItmsUrl(): string {
+  const extra = readStoreExtra();
+  return (
+    process.env.EXPO_PUBLIC_IOS_APP_STORE_URL ||
+    extra.storeIosItmsUrl ||
+    'itms-apps://itunes.apple.com/app/id0000000000'
+  );
+}
+
+function resolveIosWebUrl(): string {
+  const extra = readStoreExtra();
+  return (
+    process.env.EXPO_PUBLIC_IOS_APP_STORE_WEB_URL ||
+    extra.storeIosWebUrl ||
+    'https://apps.apple.com/app/id0000000000'
+  );
+}
+
+function resolveAndroidPlayUrl(): string {
+  const extra = readStoreExtra();
+  return (
+    process.env.EXPO_PUBLIC_ANDROID_PLAY_STORE_URL ||
+    extra.storeAndroidUrl ||
+    'https://play.google.com/store/apps/details?id=com.techtrustauto.mobile'
+  );
+}
+
+export default function RateAppScreen({
+  navigation,
+}: {
+  navigation: RateAppNavigation;
+}) {
+  const { t, language } = useI18n();
   const [rating, setRating] = useState(0);
   const [feedback, setFeedback] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [submitted, setSubmitted] = useState(false);
 
-  const feedbackTags = [
-    'Easy to use',
-    'Fast quotes',
-    'Great providers',
-    'Good prices',
-    'Reliable',
-    'Helpful support',
-    'Needs improvement',
-    'Had issues',
-  ];
+  const c = t.customer as Record<string, string | undefined> | undefined;
+
+  const feedbackTags = useMemo(() => {
+    return [
+      c?.rateAppTagEasyToUse || 'Easy to use',
+      c?.rateAppTagFastQuotes || 'Fast quotes',
+      c?.rateAppTagGreatProviders || 'Great providers',
+      c?.rateAppTagGoodPrices || 'Good prices',
+      c?.rateAppTagReliable || 'Reliable',
+      c?.rateAppTagHelpfulSupport || 'Helpful support',
+      c?.rateAppTagNeedsImprovement || 'Needs improvement',
+      c?.rateAppTagHadIssues || 'Had issues',
+    ];
+  }, [language, t.customer]);
+
+  const ratingLabels = useMemo(
+    () =>
+      [
+        '',
+        c?.rateAppRatingPoor || '😞 Poor',
+        c?.rateAppRatingFair || '😐 Fair',
+        c?.rateAppRatingGood || '🙂 Good',
+        c?.rateAppRatingGreat || '😊 Great',
+        c?.rateAppRatingAmazing || '🤩 Amazing!',
+      ] as const,
+    [language, t.customer],
+  );
 
   const handleTagPress = (tag: string) => {
     setSelectedTags(prev => 
@@ -56,11 +125,16 @@ export default function RateAppScreen({ navigation }: any) {
   };
 
   const handleOpenStore = async () => {
-    const supported = await Linking.canOpenURL(APP_STORE_URL);
+    if (Platform.OS === 'android') {
+      await Linking.openURL(resolveAndroidPlayUrl());
+      return;
+    }
+    const itms = resolveIosItmsUrl();
+    const supported = await Linking.canOpenURL(itms);
     if (supported) {
-      await Linking.openURL(APP_STORE_URL);
+      await Linking.openURL(itms);
     } else {
-      await Linking.openURL('https://apps.apple.com/app/id0000000000');
+      await Linking.openURL(resolveIosWebUrl());
     }
   };
 
@@ -87,11 +161,23 @@ export default function RateAppScreen({ navigation }: any) {
           {rating >= 4 && (
             <View style={styles.storePrompt}>
               <Text style={styles.storePromptText}>
-                {t.customer?.leaveAppStoreReview || 'Would you like to leave a review on the App Store?'}
+                {Platform.OS === 'android'
+                  ? t.customer?.leavePlayStoreReview ||
+                    'Would you like to leave a review on the Google Play Store?'
+                  : t.customer?.leaveAppStoreReview ||
+                    'Would you like to leave a review on the App Store?'}
               </Text>
               <TouchableOpacity style={styles.storeButton} onPress={handleOpenStore}>
-                <Ionicons name="logo-apple" size={20} color="#fff" />
-                <Text style={styles.storeButtonText}>{t.customer?.rateOnAppStore || 'Rate on App Store'}</Text>
+                <Ionicons
+                  name={Platform.OS === 'android' ? 'logo-google-playstore' : 'logo-apple'}
+                  size={20}
+                  color="#fff"
+                />
+                <Text style={styles.storeButtonText}>
+                  {Platform.OS === 'android'
+                    ? t.customer?.rateOnPlayStore || 'Rate on Google Play'
+                    : t.customer?.rateOnAppStore || 'Rate on App Store'}
+                </Text>
               </TouchableOpacity>
             </View>
           )}
@@ -149,11 +235,7 @@ export default function RateAppScreen({ navigation }: any) {
 
           {rating > 0 && (
             <Text style={styles.ratingLabel}>
-              {rating === 1 && '😞 Poor'}
-              {rating === 2 && '😐 Fair'}
-              {rating === 3 && '🙂 Good'}
-              {rating === 4 && '😊 Great'}
-              {rating === 5 && '🤩 Amazing!'}
+              {ratingLabels[rating as 1 | 2 | 3 | 4 | 5]}
             </Text>
           )}
         </View>

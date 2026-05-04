@@ -6,6 +6,7 @@ import DashboardLayout from '../../components/DashboardLayout';
 import { api } from '../../services/api';
 import { Check, Star, Zap, Shield, Crown, Loader2 } from 'lucide-react';
 import { logApiError } from "../../utils/logger";
+import { unwrapArrayData } from "../../utils/unwrapApiData";
 
 interface Plan {
   id: string;
@@ -75,8 +76,8 @@ export default function PlanosPage() {
         api.getMySubscription(),
       ]);
       if (plansRes.data) {
-        const planData = Array.isArray(plansRes.data) ? plansRes.data : (plansRes.data as any)?.data;
-        if (planData) setPlans(planData);
+        const planData = unwrapArrayData(plansRes.data);
+        if (planData.length) setPlans(planData as Plan[]);
       }
       if (subRes.data) {
         const subData = subRes.data.data || subRes.data;

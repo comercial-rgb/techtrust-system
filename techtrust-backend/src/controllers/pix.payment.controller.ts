@@ -12,10 +12,15 @@
  */
 
 import { Request, Response } from 'express';
+import { ProviderLevel } from '@prisma/client';
 import { prisma } from '../config/database';
 import { AppError } from '../middleware/error-handler';
 import { logger } from '../config/logger';
-import { PIX_RULES, calculateFullFeeBreakdown } from '../config/businessRules';
+import {
+  PIX_RULES,
+  calculateFullFeeBreakdown,
+  type ProviderLevelKey,
+} from '../config/businessRules';
 import * as pixService from '../services/pix.service';
 
 // ─── CREATE PIX CHARGE ───────────────────────────────────────────────────────
@@ -132,7 +137,9 @@ export const createPixPaymentCharge = async (req: Request, res: Response) => {
   const serviceAmount = Number(workOrder.finalAmount);
   const laborAmount = quote ? Number(quote.laborCost) : serviceAmount;
   const partsAmount = quote ? Number(quote.partsCost) : 0;
-  const providerLevel = (workOrder.provider.providerProfile?.providerLevel ?? 'ENTRY') as any;
+  const providerLevel: ProviderLevelKey =
+    (workOrder.provider.providerProfile?.providerLevel ??
+      ProviderLevel.ENTRY) as ProviderLevelKey;
 
   const subscription = await prisma.subscription.findFirst({
     where: { userId: customerId, status: 'ACTIVE' },

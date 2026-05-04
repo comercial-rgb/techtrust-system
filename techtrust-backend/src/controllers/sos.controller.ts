@@ -31,6 +31,20 @@ export const SOS_TYPES = {
 
 export type SOSType = keyof typeof SOS_TYPES;
 
+type SOSFlatRateEntry = { price?: number | null; active?: boolean };
+type SOSTowingRateEntry = {
+  baseFee?: number | null;
+  perMileRate?: number | null;
+  active?: boolean;
+};
+type SOSRateEntry = SOSFlatRateEntry | SOSTowingRateEntry;
+
+function coerceSosRateCard(raw: unknown): Record<string, SOSRateEntry> {
+  if (raw === null || raw === undefined) return {};
+  if (typeof raw !== "object" || Array.isArray(raw)) return {};
+  return raw as Record<string, SOSRateEntry>;
+}
+
 // Max radius (km) to search for nearby SOS providers
 const SOS_BROADCAST_RADIUS_KM = 50;
 
@@ -40,13 +54,15 @@ const SOS_CONFIRM_WINDOW_SECONDS = 120;
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function getRateCardPrice(
-  rateCard: Record<string, any>,
+  rateCard: Record<string, SOSRateEntry | undefined>,
   sosType: string,
 ): number | null {
-  const entry = rateCard?.[sosType];
+  const entry = rateCard[sosType];
   if (!entry || !entry.active) return null;
-  if (sosType === "TOWING") return entry.baseFee ?? null;
-  return entry.price ?? null;
+  if (sosType === "TOWING") {
+    return (entry as SOSTowingRateEntry).baseFee ?? null;
+  }
+  return (entry as SOSFlatRateEntry).price ?? null;
 }
 
 function isBroadcastExpired(createdAt: Date): boolean {
@@ -395,7 +411,7 @@ export const getNearbySOSRequests = async (req: Request, res: Response) => {
     LIMIT 50
   `;
 
-  const rateCard: Record<string, any> = (pProfile.sosRateCard as any) || {};
+  const rateCard = coerceSosRateCard(pProfile.sosRateCard);
 
   // Filter by radius and enrich with distance + suggested price
   const nearby = requests
@@ -423,8 +439,12 @@ export const getNearbySOSRequests = async (req: Request, res: Response) => {
         estimatedEtaMinutes: etaMinutes,
         pricingType: isTowing ? "towing" : "flat",
         suggestedPrice: isTowing ? null : suggestedPrice,
-        suggestedBaseFee: isTowing ? (rateCard.TOWING?.baseFee ?? null) : null,
-        suggestedPerMileRate: isTowing ? (rateCard.TOWING?.perMileRate ?? null) : null,
+        suggestedBaseFee: isTowing
+          ? ((rateCard.TOWING as SOSTowingRateEntry | undefined)?.baseFee ?? null)
+          : null,
+        suggestedPerMileRate: isTowing
+          ? ((rateCard.TOWING as SOSTowingRateEntry | undefined)?.perMileRate ?? null)
+          : null,
         createdAt: r.createdAt,
         customerLat: reqLat,
         customerLng: reqLng,
@@ -543,11 +563,11 @@ export const getSOSRateCard = async (req: Request, res: Response) => {
     LIMIT 1
   `;
 
-  const rateCard = rows[0]?.sosRateCard || {};
+  const rateCard = coerceSosRateCard(rows[0]?.sosRateCard);
   const availabilityStatus = rows[0]?.availabilityStatus || "OFFLINE";
 
   // Merge with defaults so client always sees all types
-  const merged: Record<string, any> = {};
+  const merged: Record<string, SOSFlatRateEntry | SOSTowingRateEntry> = {};
   for (const type of Object.keys(SOS_TYPES)) {
     merged[type] = rateCard[type] ?? (type === "TOWING"
       ? { baseFee: null, perMileRate: null, active: false }
@@ -566,10 +586,11 @@ export const updateSOSRateCard = async (req: Request, res: Response) => {
   }
 
   // Validate entries
-  const sanitized: Record<string, any> = {};
+  const sanitized: Record<string, SOSFlatRateEntry | SOSTowingRateEntry> = {};
   for (const [type, entry] of Object.entries(rateCard)) {
     if (!SOS_TYPES[type as SOSType]) continue;
-    const e = entry as any;
+    if (typeof entry !== "object" || entry === null || Array.isArray(entry)) continue;
+    const e = entry as Record<string, unknown>;
     if (type === "TOWING") {
       sanitized[type] = {
         baseFee: e.baseFee != null ? Number(e.baseFee) : null,

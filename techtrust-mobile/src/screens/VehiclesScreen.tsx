@@ -22,8 +22,9 @@ import {
   Chip,
 } from "react-native-paper";
 import { useFocusEffect } from "@react-navigation/native";
+import type { RouteProp } from "@react-navigation/native";
 import api from "../services/api";
-import { Vehicle } from "../types";
+import type { Vehicle } from "../types";
 import { useI18n } from "../i18n";
 
 // ✨ Importando componentes de UI
@@ -38,8 +39,15 @@ import {
   SuccessAnimation,
 } from "../components";
 import { log } from "../utils/logger";
+import type { CustomerAppNavigation, VehiclesStackParamList } from "../navigation/types";
 
-export default function VehiclesScreen({ navigation, route }: any) {
+export default function VehiclesScreen({
+  navigation,
+  route,
+}: {
+  navigation: CustomerAppNavigation;
+  route: RouteProp<VehiclesStackParamList, "VehiclesList">;
+}) {
   const { t } = useI18n();
   const theme = useTheme();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -60,11 +68,19 @@ export default function VehiclesScreen({ navigation, route }: any) {
   useFocusEffect(
     useCallback(() => {
       if (route.params?.newVehicle) {
+        const n = route.params.newVehicle as Partial<Vehicle>;
         const newVehicle: Vehicle = {
-          ...route.params.newVehicle,
-          id: `local-${Date.now()}`,
+          id: n.id ?? `local-${Date.now()}`,
+          plateNumber: n.plateNumber ?? "",
+          make: n.make ?? "",
+          model: n.model ?? "",
+          year: n.year ?? new Date().getFullYear(),
           isPrimary: vehicles.length === 0,
-          createdAt: new Date().toISOString(),
+          createdAt: n.createdAt ?? new Date().toISOString(),
+          vin: n.vin,
+          color: n.color,
+          currentMileage: n.currentMileage,
+          photos: n.photos,
         };
         setVehicles((prev) => [newVehicle, ...prev]);
         success(
@@ -329,7 +345,9 @@ export default function VehiclesScreen({ navigation, route }: any) {
                     )}
                     <ScalePress
                       onPress={() =>
-                        navigation.navigate("AddVehicle", { vehicle })
+                        navigation.navigate("AddVehicle", {
+                          vehicle: vehicle as unknown as Record<string, unknown>,
+                        })
                       }
                     >
                       <View style={styles.actionButton}>

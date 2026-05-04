@@ -23,7 +23,9 @@
     "clean-production": "ts-node scripts/clean-production-db.ts",
     "clean-production-direct": "ts-node scripts/clean-production-direct.ts",
     "check-otp": "ts-node scripts/check-otp.ts",
-    "webhooks:prune-stale": "ts-node scripts/prune-stripe-webhook-events.ts"
+    "webhooks:prune-stale": "ts-node scripts/prune-stripe-webhook-events.ts",
+    "typecheck": "tsc --noEmit",
+    "smoke": "npm run typecheck && npm test"
   },
   "keywords": [
     "automotive",

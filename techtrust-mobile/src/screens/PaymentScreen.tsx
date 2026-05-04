@@ -3,7 +3,7 @@
  * Integrada com Stripe SDK para cobranças REAIS
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, type ComponentProps } from "react";
 import {
   View,
   Text,
@@ -24,8 +24,11 @@ import {
 } from "@stripe/stripe-react-native";
 import { useI18n } from "../i18n";
 import * as paymentService from "../services/payment.service";
+import type { PaymentScreenProps } from "../navigation/types";
 
-export default function PaymentScreen({ navigation, route }: any) {
+type IoniconName = ComponentProps<typeof Ionicons>["name"];
+
+export default function PaymentScreen({ navigation, route }: PaymentScreenProps) {
   const { t, formatCurrency } = useI18n();
   const tp = t.payment;
   const { confirmPayment: stripeConfirmPayment } = useConfirmPayment();
@@ -33,8 +36,10 @@ export default function PaymentScreen({ navigation, route }: any) {
   const [isApplePayReady, setIsApplePayReady] = useState(false);
   const workOrderId = route.params?.workOrderId;
   const orderNumber = route.params?.orderNumber;
-  const serviceTitle = route.params?.serviceTitle || "Service";
-  const providerName = route.params?.providerName || "Provider";
+  const serviceTitle =
+    route.params?.serviceTitle || tp.defaultServiceTitle || "Service";
+  const providerName =
+    route.params?.providerName || tp.defaultProviderName || "Provider";
   const amount = route.params?.amount || 0;
 
   const [loading, setLoading] = useState(true);
@@ -225,7 +230,13 @@ export default function PaymentScreen({ navigation, route }: any) {
       );
 
       if (applePayError) {
-        if ((applePayError as any).code !== "Canceled") {
+        const code =
+          applePayError &&
+          typeof applePayError === "object" &&
+          "code" in applePayError
+            ? String((applePayError as { code?: string }).code)
+            : "";
+        if (code !== "Canceled") {
           Alert.alert(t.common?.error || "Error", applePayError.message || "Apple Pay failed");
         }
         return;
@@ -246,7 +257,7 @@ export default function PaymentScreen({ navigation, route }: any) {
     }
   }
 
-  function getCardIcon(brand?: string | null): string {
+  function getCardIcon(brand?: string | null): IoniconName {
     switch (brand?.toLowerCase()) {
       case "visa":
         return "card";
@@ -487,7 +498,7 @@ export default function PaymentScreen({ navigation, route }: any) {
                   name={
                     method.type === "pix"
                       ? "qr-code"
-                      : (getCardIcon(method.cardBrand) as any)
+                      : getCardIcon(method.cardBrand)
                   }
                   size={24}
                   color={selectedMethodId === method.id ? "#2B5EA7" : "#6b7280"}

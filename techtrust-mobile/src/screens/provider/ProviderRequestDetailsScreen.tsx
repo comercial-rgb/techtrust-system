@@ -31,6 +31,7 @@ import api from "../../services/api";
 import { getOePartsByVin } from "../../services/oe-parts.service";
 import { getServiceTypeInfo as getServiceTypeInfoFromTree } from "../../constants/serviceTree";
 import { log } from "../../utils/logger";
+import type { ProviderRequestDetailsScreenProps } from "../../navigation/types";
 
 /** Phrases stored by older app builds (add any legacy localized strings here). */
 const LEGACY_SKIP_REQUESTED_ITEM_PHRASES: string[] = [
@@ -123,10 +124,10 @@ interface ServiceRequest {
 export default function ProviderRequestDetailsScreen({
   route,
   navigation,
-}: any) {
+}: ProviderRequestDetailsScreenProps) {
   const { requestId } = route.params;
   const { t, language, formatDate, formatCurrency } = useI18n();
-  const mileUnit = ((t as any).carWash?.mile as string | undefined) || "mi";
+  const mileUnit = t.carWash?.mile || "mi";
   const { markRequestAsViewed } = useNotifications();
   const [loading, setLoading] = useState(true);
   const [request, setRequest] = useState<ServiceRequest | null>(null);
@@ -868,7 +869,7 @@ export default function ProviderRequestDetailsScreen({
           <View style={styles.headerTop}>
             <View style={[styles.typeIcon, { backgroundColor: typeInfo.bg }]}>
               <MaterialCommunityIcons
-                name={typeInfo.icon as any}
+                name={typeInfo.icon}
                 size={24}
                 color={typeInfo.color}
               />
@@ -1605,10 +1606,10 @@ export default function ProviderRequestDetailsScreen({
                     activeOpacity={0.7}
                   >
                     <View style={[styles.serviceTypeIconBox, { backgroundColor: getServiceTypeInfo(request.serviceType).bg }]}>
-                      <MaterialCommunityIcons 
-                        name={getServiceTypeInfo(request.serviceType).icon as any} 
-                        size={22} 
-                        color={getServiceTypeInfo(request.serviceType).color} 
+                      <MaterialCommunityIcons
+                        name={getServiceTypeInfo(request.serviceType).icon}
+                        size={22}
+                        color={getServiceTypeInfo(request.serviceType).color}
                       />
                     </View>
                     <View style={{ flex: 1 }}>
@@ -1926,7 +1927,7 @@ export default function ProviderRequestDetailsScreen({
                       <TextInput
                         style={styles.lineItemSmallInput}
                         keyboardType="decimal-pad"
-                        placeholder="0.00"
+                        placeholder={t.common?.decimalPlaceholder ?? "0.00"}
                         value={item.unitPriceText !== undefined ? item.unitPriceText : (item.unitPrice > 0 ? item.unitPrice.toString() : "")}
                         onChangeText={(text) => {
                           // Allow valid decimal input including trailing dots and zeros
@@ -2388,10 +2389,12 @@ export default function ProviderRequestDetailsScreen({
                     <View style={styles.feeBreakdownContainer}>
                       <View style={styles.feeBreakdownHeader}>
                         <MaterialCommunityIcons name="cash-check" size={18} color="#1e40af" />
-                        <Text style={styles.feeBreakdownTitle}>
-                          {t.quote?.feeBreakdownTitle || "Your Earnings Estimate"}
-                        </Text>
-                        <View style={{ marginLeft: 'auto' as any, backgroundColor: '#dbeafe', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 }}>
+                        <View style={{ flex: 1, minWidth: 0 }}>
+                          <Text style={styles.feeBreakdownTitle}>
+                            {t.quote?.feeBreakdownTitle || "Your Earnings Estimate"}
+                          </Text>
+                        </View>
+                        <View style={{ backgroundColor: '#dbeafe', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 }}>
                           <Text style={{ fontSize: 11, fontWeight: '700', color: '#1d4ed8' }}>
                             {(tp?.tierBadgeSuffix || "{{label}} tier").replace(
                               "{{label}}",
@@ -2606,7 +2609,7 @@ export default function ProviderRequestDetailsScreen({
                 <View style={styles.customerRequestSummary}>
                   <View style={styles.customerRequestHeader}>
                     <View style={[styles.serviceTypeIconBox, { backgroundColor: getServiceTypeInfo(request.serviceType).bg }]}>
-                      <MaterialCommunityIcons name={getServiceTypeInfo(request.serviceType).icon as any} size={22} color={getServiceTypeInfo(request.serviceType).color} />
+                      <MaterialCommunityIcons name={getServiceTypeInfo(request.serviceType).icon} size={22} color={getServiceTypeInfo(request.serviceType).color} />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.customerRequestServiceTitle}>{request.title}</Text>
@@ -2749,10 +2752,12 @@ export default function ProviderRequestDetailsScreen({
                     <View style={[styles.feeBreakdownContainer, { borderColor: '#bbf7d0', borderWidth: 1.5 }]}>
                       <View style={[styles.feeBreakdownHeader, { marginBottom: 8 }]}>
                         <MaterialCommunityIcons name="wallet-outline" size={16} color="#15803d" />
-                        <Text style={[styles.feeBreakdownTitle, { color: '#15803d' }]}>
-                          {tp?.quoteEarningsBreakdownTitle || "Your earnings breakdown"}
-                        </Text>
-                        <View style={{ marginLeft: 'auto' as any, backgroundColor: '#dcfce7', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8 }}>
+                        <View style={{ flex: 1, minWidth: 0 }}>
+                          <Text style={[styles.feeBreakdownTitle, { color: '#15803d' }]}>
+                            {tp?.quoteEarningsBreakdownTitle || "Your earnings breakdown"}
+                          </Text>
+                        </View>
+                        <View style={{ backgroundColor: '#dcfce7', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8 }}>
                           <Text style={{ fontSize: 10, fontWeight: '700', color: '#15803d' }}>
                             {(tp?.tierBadgeSuffix || "{{label}} tier").replace(
                               "{{label}}",

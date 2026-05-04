@@ -4,7 +4,13 @@
  * Contém: Anúncios, Busca de Fornecedores, Ofertas, Benefícios, Artigos, Avisos
  */
 
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useMemo,
+  type ComponentProps,
+} from "react";
 import {
   View,
   Text,
@@ -28,10 +34,25 @@ import { useAuth } from "../contexts/AuthContext";
 import { LinearGradient } from "expo-linear-gradient";
 import { logos } from "../constants/images";
 import { CommonActions } from "@react-navigation/native";
-import { getHomeData, Banner, SpecialOffer } from "../services/content.service";
+import {
+  getHomeData,
+  Banner,
+  SpecialOffer,
+  type HomeNotice,
+} from "../services/content.service";
+import type { LandingScreenNavigation } from "../navigation/types";
+import { mapProviderSearchApiRow } from "../utils/mapProviderSearch";
 
 const { width } = Dimensions.get("window");
 
+type IoniconName = ComponentProps<typeof Ionicons>["name"];
+
+type LandingMenuItem = {
+  icon: IoniconName;
+  label: string;
+  action: () => void;
+  isLogout?: boolean;
+};
 
 // Default offers - loaded from API
 const SPECIAL_OFFERS: SpecialOffer[] = [];
@@ -119,7 +140,7 @@ const STATES = SORTED_STATE_CODES;
 const CITIES: Record<string, string[]> = CITIES_BY_STATE;
 
 interface LandingScreenProps {
-  navigation: any;
+  navigation: LandingScreenNavigation;
 }
 
 export default function LandingScreen({ navigation }: LandingScreenProps) {
@@ -141,7 +162,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
   const [banners, setBanners] = useState<Banner[]>([]);
   const [offers, setOffers] = useState<SpecialOffer[]>([]);
   const [articles, setArticles] = useState<any[]>([]);
-  const [notices, setNotices] = useState<any[]>([]);
+  const [notices, setNotices] = useState<HomeNotice[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -203,8 +224,13 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
 
     if (normalized in mapById) return mapById[normalized];
 
-    // Backend enum keys (SCREAMING_SNAKE_CASE)
-    const mapByEnum: Record<string, string> = {
+    const serviceEnum = t.landing?.serviceEnum as
+      | Record<string, string>
+      | undefined;
+    if (serviceEnum?.[normalized]) return serviceEnum[normalized];
+
+    // Fallback if locale missing a key (dev / partial bundles)
+    const enumFallback: Record<string, string> = {
       OIL_CHANGE: "Oil Change",
       AIR_FILTER: "Air Filter Service",
       FUEL_SYSTEM: "Fuel System",
@@ -214,6 +240,8 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
       BELTS_HOSES: "Belts & Hoses",
       AC_SERVICE: "A/C & Heating",
       STEERING: "Steering & Suspension",
+      SUSPENSION: "Suspension",
+      MAINTENANCE_LIGHT: "Light maintenance",
       ELECTRICAL_BASIC: "Electrical System",
       EXHAUST: "Exhaust System",
       DRIVETRAIN: "Drivetrain",
@@ -230,8 +258,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
       ROADSIDE_ASSIST: "Roadside Assist",
       LOCKOUT: "Lockout",
     };
-
-    if (normalized in mapByEnum) return mapByEnum[normalized];
+    if (normalized in enumFallback) return enumFallback[normalized];
 
     // Back-compat for older values
     const mapByLegacyName: Record<string, string> = {
@@ -261,8 +288,8 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
       const data = await getHomeData();
       setBanners(data.banners || []);
       setOffers(data.offers || []);
-      setArticles((data as any).articles || []);
-      setNotices((data as any).notices || []);
+      setArticles(data.articles || []);
+      setNotices(data.notices || []);
     } catch (error) {
       setBanners([]);
       setOffers([]);
@@ -331,17 +358,9 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
 
       const res = await api.get("/providers/search", { params });
       const raw = res.data?.data?.providers || [];
-      const found: ProviderResult[] = raw.map((p: any) => ({
-        id: p.id,
-        name: p.businessName || p.name || "",
-        city: p.city || "",
-        state: p.state || "",
-        services: Array.isArray(p.servicesOffered) ? p.servicesOffered : (Array.isArray(p.services) ? p.services : []),
-        rating: Number(p.averageRating || p.rating || 0),
-        reviews: Number(p.totalReviews || p.reviews || 0),
-        specialOffers: p.specialOffers || [],
-        languages: p.languages,
-      }));
+      const found: ProviderResult[] = (raw as Record<string, unknown>[]).map(
+        (p) => mapProviderSearchApiRow(p) as ProviderResult,
+      );
 
       setSearchResults(found);
     } catch {
@@ -370,12 +389,24 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
     setShowOfferProvidersModal(true);
   };
 
-  // Search providers for offer - TODO: Integrate with real API when providers search endpoint is available
   const handleSearchOfferProviders = async () => {
     if (!selectedOffer) return;
-    // For now, show empty results until providers API is integrated
-    // In production, call: api.get('/providers/search', { params: { offerId: selectedOffer.id, state: offerProviderState, city: offerProviderCity } })
-    setOfferProviders([]);
+    try {
+      const api = (await import("../services/api")).default;
+      const params: Record<string, string> = {
+        offerId: String(selectedOffer.id),
+      };
+      if (offerProviderState) params.state = offerProviderState;
+      if (offerProviderCity) params.city = offerProviderCity;
+      const res = await api.get("/providers/search", { params });
+      const raw = res.data?.data?.providers || [];
+      const found: ProviderResult[] = (raw as Record<string, unknown>[]).map(
+        (p) => mapProviderSearchApiRow(p) as ProviderResult,
+      );
+      setOfferProviders(found);
+    } catch {
+      setOfferProviders([]);
+    }
     setHasSearchedOfferProviders(true);
   };
 
@@ -411,7 +442,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
     await logout();
   };
 
-  const menuItems = isAuthenticated
+  const menuItems: LandingMenuItem[] = isAuthenticated
     ? [
         {
           icon: "home",
@@ -464,7 +495,9 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
       selectedState && `${t.common?.state || "State"}: ${selectedState}`,
     ]
       .filter(Boolean)
-      .join(" • ") || "All providers";
+      .join(" • ") ||
+      t.landing?.search?.allProvidersSummary ||
+      "All providers";
 
   // Handle navigation for various buttons
   const handleLogin = () => navigation.navigate("Login");
@@ -475,7 +508,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
 
   const renderBanner = ({ item }: { item: Banner }) => {
     // Support both 'imageUrl' (API/interface) and 'image' (legacy) fields
-    const bannerUrl = item.imageUrl || (item as any).image || "";
+    const bannerUrl = item.imageUrl || item.image || "";
     const fullUrl = bannerUrl.startsWith("http")
       ? bannerUrl
       : bannerUrl
@@ -524,11 +557,12 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
     }
 
     // Support both API field (discountLabel) and legacy field (discount)
-    const discountDisplay = (item as any).discountLabel || item.discount || "";
+    const discountDisplay =
+      item.discountLabel || item.discount || "";
 
     // Format prices — API number or legacy "$89.99" / "FREE"
     const freeLbl = t.common?.free || "Free";
-    const formatPrice = (val: any): string => {
+    const formatPrice = (val: unknown): string => {
       if (val == null || val === "") return "";
       if (typeof val === "string") {
         const tr = val.trim();
@@ -692,13 +726,17 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
             style={styles.requestServiceButton}
             onPress={() => handleRequestService(item, offer)}
           >
-            <Text style={styles.requestServiceButtonText}>Request</Text>
+            <Text style={styles.requestServiceButtonText}>
+              {t.common?.request || "Request"}
+            </Text>
             <Ionicons name="arrow-forward" size={14} color="#fff" />
           </TouchableOpacity>
         ) : (
           <View style={styles.providerLocked}>
             <Ionicons name="lock-closed" size={16} color="#9ca3af" />
-            <Text style={styles.lockedText}>Register</Text>
+            <Text style={styles.lockedText}>
+              {t.common?.register || "Register"}
+            </Text>
           </View>
         )}
       </View>
@@ -780,7 +818,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
               <View style={styles.logoTextContainer}>
                 <Text style={styles.logoText}>TechTrust</Text>
                 <Text style={styles.logoTagline}>
-                  Driven by Technology. Trusted by You.
+                  {t.landing?.tagline || "Driven by Technology. Trusted by You."}
                 </Text>
               </View>
             </View>
@@ -842,7 +880,9 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                     size={18}
                     color="#f59e0b"
                   />
-                  <Text style={styles.sectionLabel}>{(t.landing as any)?.featuredDeals || 'Featured Deals'}</Text>
+                  <Text style={styles.sectionLabel}>
+                    {t.landing?.featuredDeals || "Featured Deals"}
+                  </Text>
                 </View>
                 <FlatList
                   ref={bannerRef}
@@ -883,16 +923,42 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Ionicons name="grid" size={18} color="#2B5EA7" />
-                <Text style={styles.sectionLabel}>{(t.landing as any)?.popularServices || 'Popular Services'}</Text>
+                <Text style={styles.sectionLabel}>
+                  {t.landing?.popularServices || "Popular Services"}
+                </Text>
               </View>
               {(() => {
                 const svcs = [
-                  { icon: 'water' as const, label: (t.landing as any)?.serviceOilChange || 'Oil Change', color: '#f59e0b' },
-                  { icon: 'disc' as const, label: (t.landing as any)?.serviceBrakes || 'Brakes', color: '#ef4444' },
-                  { icon: 'pulse' as const, label: (t.landing as any)?.serviceDiagnostics || 'Diagnostics', color: '#8b5cf6' },
-                  { icon: 'snow' as const, label: (t.landing as any)?.serviceAC || 'A/C', color: '#0ea5e9' },
-                  { icon: 'speedometer' as const, label: (t.landing as any)?.serviceTires || 'Tires', color: '#10b981' },
-                  { icon: 'car-sport' as const, label: (t.landing as any)?.serviceCarWash || 'Car Wash', color: '#6366f1' },
+                  {
+                    icon: "water" as const,
+                    label: t.landing?.serviceOilChange || "Oil Change",
+                    color: "#f59e0b",
+                  },
+                  {
+                    icon: "disc" as const,
+                    label: t.landing?.serviceBrakes || "Brakes",
+                    color: "#ef4444",
+                  },
+                  {
+                    icon: "pulse" as const,
+                    label: t.landing?.serviceDiagnostics || "Diagnostics",
+                    color: "#8b5cf6",
+                  },
+                  {
+                    icon: "snow" as const,
+                    label: t.landing?.serviceAC || "A/C",
+                    color: "#0ea5e9",
+                  },
+                  {
+                    icon: "speedometer" as const,
+                    label: t.landing?.serviceTires || "Tires",
+                    color: "#10b981",
+                  },
+                  {
+                    icon: "car-sport" as const,
+                    label: t.landing?.serviceCarWash || "Car Wash",
+                    color: "#6366f1",
+                  },
                 ];
                 const rows = [svcs.slice(0, 3), svcs.slice(3, 6)];
                 return (
@@ -904,7 +970,10 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                             key={idx}
                             style={styles.serviceGridItem}
                             onPress={() => {
-                              if (svc.label === ((t.landing as any)?.serviceCarWash || 'Car Wash')) {
+                              if (
+                                svc.label ===
+                                (t.landing?.serviceCarWash || "Car Wash")
+                              ) {
                                 navigation.navigate('CarWashMap');
                               } else if (isAuthenticated) {
                                 navigation.navigate('ServiceChoice');
@@ -1086,7 +1155,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                         {t.common?.noResults || "No results found"}
                       </Text>
                       <Text style={styles.noResultsSubtext}>
-                        {(t.common as any)?.tryDifferentTerms ||
+                        {t.common?.tryDifferentTerms ||
                           "Try adjusting your filters"}
                       </Text>
                     </View>
@@ -1153,9 +1222,21 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
             {/* Trust Numbers Bar — credibility indicators */}
             <View style={styles.trustBar}>
               {[
-                { value: '', label: (t.landing as any)?.trustVerified || 'Licensed & Insured', icon: 'shield-checkmark' as const },
-                { value: '', label: (t.landing as any)?.trustTransparent || 'Transparent Pricing', icon: 'pricetag' as const },
-                { value: '', label: (t.landing as any)?.trustGuarantee || 'Satisfaction Guarantee', icon: 'ribbon' as const },
+                {
+                  value: "",
+                  label: t.landing?.trustVerified || "Licensed & Insured",
+                  icon: "shield-checkmark" as const,
+                },
+                {
+                  value: "",
+                  label: t.landing?.trustTransparent || "Transparent Pricing",
+                  icon: "pricetag" as const,
+                },
+                {
+                  value: "",
+                  label: t.landing?.trustGuarantee || "Satisfaction Guarantee",
+                  icon: "ribbon" as const,
+                },
               ].map((stat, idx) => (
                 <View key={idx} style={styles.trustItem}>
                   <Ionicons name={stat.icon} size={20} color="#2B5EA7" />
@@ -1208,46 +1289,48 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                 </View>
               </View>
               <View style={styles.benefitsGrid}>
-                {[
-                  {
-                    id: "1",
-                    icon: "shield-checkmark",
-                    titleKey: "verified" as const,
-                    descKey: "verifiedDesc" as const,
-                  },
-                  {
-                    id: "2",
-                    icon: "cash",
-                    titleKey: "pricing" as const,
-                    descKey: "pricingDesc" as const,
-                  },
-                  {
-                    id: "3",
-                    icon: "time",
-                    titleKey: "time" as const,
-                    descKey: "timeDesc" as const,
-                  },
-                  {
-                    id: "4",
-                    icon: "star",
-                    titleKey: "quality" as const,
-                    descKey: "qualityDesc" as const,
-                  },
-                ].map((benefit) => (
+                {(
+                  [
+                    {
+                      id: "1",
+                      icon: "shield-checkmark" as const,
+                      titleKey: "verified" as const,
+                      descKey: "verifiedDesc" as const,
+                    },
+                    {
+                      id: "2",
+                      icon: "cash" as const,
+                      titleKey: "pricing" as const,
+                      descKey: "pricingDesc" as const,
+                    },
+                    {
+                      id: "3",
+                      icon: "time" as const,
+                      titleKey: "time" as const,
+                      descKey: "timeDesc" as const,
+                    },
+                    {
+                      id: "4",
+                      icon: "star" as const,
+                      titleKey: "quality" as const,
+                      descKey: "qualityDesc" as const,
+                    },
+                  ] as const
+                ).map((benefit) => (
                   <View key={benefit.id} style={styles.benefitCard}>
                     <View style={styles.benefitIcon}>
                       <Ionicons
-                        name={benefit.icon as any}
+                        name={benefit.icon}
                         size={28}
                         color="#2B5EA7"
                       />
                     </View>
                     <Text style={styles.benefitTitle}>
-                      {(t.landing?.benefits as any)?.[benefit.titleKey] ||
+                      {t.landing?.benefits?.[benefit.titleKey] ||
                         BENEFITS.find((b) => b.id === benefit.id)?.title}
                     </Text>
                     <Text style={styles.benefitDescription}>
-                      {(t.landing?.benefits as any)?.[benefit.descKey] ||
+                      {t.landing?.benefits?.[benefit.descKey] ||
                         BENEFITS.find((b) => b.id === benefit.id)?.description}
                     </Text>
                   </View>
@@ -1280,10 +1363,11 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                 <MaterialCommunityIcons name="car-wash" size={40} color="#fff" />
                 <View style={{ flex: 1, marginLeft: 16 }}>
                   <Text style={{ fontSize: 18, fontWeight: '700', color: '#fff' }}>
-                    {(t as any).carWash?.findNearby || 'Find a Car Wash'}
+                    {t.carWash?.findNearby || "Find a Car Wash"}
                   </Text>
                   <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', marginTop: 4 }}>
-                    {(t as any).carWash?.nearbyDesc || 'Discover car washes near you — quick, easy & affordable'}
+                    {t.carWash?.nearbyDesc ||
+                      "Discover car washes near you — quick, easy & affordable"}
                   </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={24} color="rgba(255,255,255,0.7)" />
@@ -1329,9 +1413,16 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                     </Text>
                   </View>
                 </View>
-                {notices.map((notice: any) => {
+                {notices.map((notice) => {
                   const isWarning = notice.type === 'warning' || notice.type === 'alert';
                   const accentColor = isWarning ? '#d97706' : '#2B5EA7';
+                  const fallbackIcon: IoniconName = isWarning
+                    ? "warning"
+                    : "information-circle";
+                  const noticeIcon: IoniconName =
+                    notice.icon && typeof notice.icon === "string"
+                      ? (notice.icon as IoniconName)
+                      : fallbackIcon;
                   return (
                     <TouchableOpacity
                       key={notice.id}
@@ -1345,7 +1436,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                     >
                       <View style={[styles.noticeIcon, isWarning && styles.noticeIconWarning]}>
                         <Ionicons
-                          name={(notice.icon || (isWarning ? 'warning' : 'information-circle')) as any}
+                          name={noticeIcon}
                           size={24}
                           color={accentColor}
                         />
@@ -1403,24 +1494,34 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
             <View style={styles.footerLinks}>
               <View style={styles.footerLinksRow}>
                 <TouchableOpacity onPress={() => navigation.navigate("TermsAndPolicies", { initialTab: "about" })}>
-                  <Text style={styles.footerLinkText}>{(t.landing as any)?.footer?.about || 'About'}</Text>
+                  <Text style={styles.footerLinkText}>
+                    {t.landing?.footer?.about || "About"}
+                  </Text>
                 </TouchableOpacity>
                 <Text style={styles.footerDot}>·</Text>
                 <TouchableOpacity onPress={() => navigation.navigate("TermsAndPolicies", { initialTab: "privacy" })}>
-                  <Text style={styles.footerLinkText}>{(t.landing as any)?.footer?.privacy || 'Privacy Policy'}</Text>
+                  <Text style={styles.footerLinkText}>
+                    {t.landing?.footer?.privacy || "Privacy Policy"}
+                  </Text>
                 </TouchableOpacity>
                 <Text style={styles.footerDot}>·</Text>
                 <TouchableOpacity onPress={() => navigation.navigate("TermsAndPolicies")}>
-                  <Text style={styles.footerLinkText}>{(t.landing as any)?.footer?.terms || 'Terms'}</Text>
+                  <Text style={styles.footerLinkText}>
+                    {t.landing?.footer?.terms || "Terms"}
+                  </Text>
                 </TouchableOpacity>
               </View>
               <View style={styles.footerLinksRow}>
                 <TouchableOpacity onPress={() => navigation.navigate("HelpCenter")}>
-                  <Text style={styles.footerLinkText}>{(t.landing as any)?.footer?.faq || 'FAQ'}</Text>
+                  <Text style={styles.footerLinkText}>
+                    {t.landing?.footer?.faq || "FAQ"}
+                  </Text>
                 </TouchableOpacity>
                 <Text style={styles.footerDot}>·</Text>
                 <TouchableOpacity onPress={() => navigation.navigate("ContactUs")}>
-                  <Text style={styles.footerLinkText}>{(t.landing as any)?.footer?.contact || 'Contact'}</Text>
+                  <Text style={styles.footerLinkText}>
+                    {t.landing?.footer?.contact || "Contact"}
+                  </Text>
                 </TouchableOpacity>
               </View>
               <Text style={styles.footerCopyright}>© {new Date().getFullYear()} TechTrust AutoSolutions LLC</Text>
@@ -1458,7 +1559,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                   {t.common?.noResults || "No results found"}
                 </Text>
                 <Text style={styles.noResultsSubtext}>
-                  {(t.common as any)?.tryDifferentTerms ||
+                  {t.common?.tryDifferentTerms ||
                     "Try adjusting your filters"}
                 </Text>
               </View>
@@ -1677,7 +1778,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
             <View style={styles.menuDivider} />
 
             <View style={styles.menuItems}>
-              {menuItems.map((item: any, index) => (
+              {menuItems.map((item, index) => (
                 <TouchableOpacity
                   key={index}
                   style={[
@@ -1690,7 +1791,7 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                   }}
                 >
                   <Ionicons
-                    name={item.icon as any}
+                    name={item.icon}
                     size={22}
                     color={item.isLogout ? "#ef4444" : "#374151"}
                   />
@@ -1799,9 +1900,11 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                     : `${process.env.EXPO_PUBLIC_API_URL || "https://techtrust-api.onrender.com"}${imgStr.startsWith("/") ? imgStr : "/" + imgStr}`
                   : null;
                 const freeLbl = t.common?.free || "Free";
-                const discLbl = (selectedOffer as any).discountLabel as
-                  | string
-                  | undefined;
+                const discLbl =
+                  selectedOffer.discountLabel != null &&
+                  String(selectedOffer.discountLabel).trim() !== ""
+                    ? String(selectedOffer.discountLabel)
+                    : undefined;
                 const rawDisc = selectedOffer.discount as unknown;
                 const discNum =
                   rawDisc != null && rawDisc !== ""
@@ -1810,14 +1913,14 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                 const modalDiscount =
                   discLbl ||
                   (!Number.isNaN(discNum)
-                    ? ((t as any).landing?.offers?.percentOff || "{{percent}}% OFF").replace(
+                    ? (t.landing?.offers?.percentOff || "{{percent}}% OFF").replace(
                         "{{percent}}",
                         String(discNum),
                       )
                     : rawDisc != null && String(rawDisc).trim() !== ""
                       ? String(rawDisc)
-                      : (t as any).landing?.offers?.promoBadge || "PROMO");
-                const fmtPr = (val: any): string => {
+                      : t.landing?.offers?.promoBadge || "PROMO");
+                const fmtPr = (val: unknown): string => {
                   if (val == null || val === "") return "";
                   if (typeof val === "string") {
                     const tr = val.trim();
@@ -2026,8 +2129,10 @@ export default function LandingScreen({ navigation }: LandingScreenProps) {
                   {selectedOffer.title}
                 </Text>
                 <Text style={styles.offerProvidersOfferDiscount}>
-                  {(selectedOffer as any).discountLabel ||
-                    selectedOffer.discount}
+                  {selectedOffer.discountLabel != null &&
+                  String(selectedOffer.discountLabel).trim() !== ""
+                    ? String(selectedOffer.discountLabel)
+                    : selectedOffer.discount}
                 </Text>
               </View>
             )}

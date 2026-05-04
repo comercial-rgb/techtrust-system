@@ -13,12 +13,21 @@ import { useI18n } from '../i18n';
 import carWashService from '../services/carWash.service';
 import { CarWashReview } from '../types/carWash';
 import { colors, spacing, borderRadius, fontSize, fontWeight } from '../constants/theme';
+import type { RouteProp } from "@react-navigation/native";
+import type { CustomerAppNavigation, CustomerAppParamList } from "../navigation/types";
 
 type SortOption = 'recent' | 'highest' | 'lowest';
 
-export default function CarWashAllReviewsScreen({ route, navigation }: any) {
+export default function CarWashAllReviewsScreen({
+  route,
+  navigation,
+}: {
+  route: RouteProp<CustomerAppParamList, "CarWashAllReviews">;
+  navigation: CustomerAppNavigation;
+}) {
   const { t, formatDate } = useI18n();
-  const { carWashId } = route.params;
+  const carWashId =
+    String((route.params as { carWashId?: string } | undefined)?.carWashId ?? "");
 
   const [reviews, setReviews] = useState<CarWashReview[]>([]);
   const [page, setPage] = useState(1);
@@ -194,7 +203,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   backBtn: { width: 40, alignItems: 'flex-start' },
-  headerTitle: { fontSize: fontSize.lg, fontWeight: fontWeight.bold as any, color: colors.text },
+  headerTitle: { fontSize: fontSize.lg, fontWeight: fontWeight.bold, color: colors.text },
   sortRow: {
     flexDirection: 'row',
     paddingHorizontal: spacing.md,
@@ -214,7 +223,7 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   sortChipText: { fontSize: fontSize.sm, color: colors.textSecondary },
-  sortChipTextActive: { color: '#fff', fontWeight: fontWeight.semibold as any },
+  sortChipTextActive: { color: '#fff', fontWeight: fontWeight.semibold },
   listContent: { paddingHorizontal: spacing.md, paddingBottom: spacing.xl },
   reviewCard: {
     backgroundColor: colors.card,
@@ -226,7 +235,7 @@ const styles = StyleSheet.create({
   },
   reviewHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm },
   reviewHeaderText: { marginLeft: spacing.sm, flex: 1 },
-  reviewerName: { fontSize: fontSize.md, fontWeight: fontWeight.semibold as any, color: colors.text },
+  reviewerName: { fontSize: fontSize.md, fontWeight: fontWeight.semibold, color: colors.text },
   ratingDateRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
   starsRow: { flexDirection: 'row', marginRight: spacing.sm },
   reviewDate: { fontSize: fontSize.xs, color: colors.textSecondary },
@@ -239,7 +248,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: 3,
     borderLeftColor: '#22c55e',
   },
-  responseLabel: { fontSize: fontSize.xs, fontWeight: fontWeight.bold as any, color: '#15803d', marginBottom: 4 },
+  responseLabel: { fontSize: fontSize.xs, fontWeight: fontWeight.bold, color: '#15803d', marginBottom: 4 },
   responseText: { fontSize: fontSize.sm, color: colors.text, lineHeight: 20 },
   responseDate: { fontSize: fontSize.xs, color: colors.textSecondary, marginTop: 4 },
   emptyBox: { alignItems: 'center', marginTop: 60 },

@@ -6,11 +6,16 @@
  */
 
 import { Request, Response } from 'express';
+import { ProviderLevel } from '@prisma/client';
 import { prisma } from '../config/database';
 import { AppError } from '../middleware/error-handler';
 import { logger } from '../config/logger';
 import * as stripeService from '../services/stripe.service';
-import { REFUND_RULES, calculateFullFeeBreakdown } from '../config/businessRules';
+import {
+  REFUND_RULES,
+  calculateFullFeeBreakdown,
+  type ProviderLevelKey,
+} from '../config/businessRules';
 
 /**
  * POST /api/v1/payments/create-intent
@@ -104,7 +109,9 @@ export const createPaymentIntent = async (req: Request, res: Response) => {
   const additionalFees = quote ? Number(quote.additionalFees || 0) : 0;
 
   // Provider level para comissão tiered
-  const providerLevel = (workOrder.provider.providerProfile?.providerLevel || 'ENTRY') as any;
+  const providerLevel: ProviderLevelKey =
+    (workOrder.provider.providerProfile?.providerLevel ??
+      ProviderLevel.ENTRY) as ProviderLevelKey;
 
   // Client plan para appServiceFee
   const subscription = await prisma.subscription.findFirst({
@@ -367,11 +374,11 @@ export const getPaymentHistory = async (req: Request, res: Response) => {
     success: true,
     data: payments.map((p) => {
       const subtotal        = Number(p.subtotal        || 0);
-      const salesTaxAmount  = Number((p as any).salesTaxAmount  || 0);
-      const appServiceFee   = Number((p as any).appServiceFee   || 0);
+      const salesTaxAmount  = Number(p.salesTaxAmount  || 0);
+      const appServiceFee   = Number(p.appServiceFee   || 0);
       const processingFee   = Number(p.processingFee   || 0);
-      const serviceCommission = Number((p as any).serviceCommission || 0);
-      const partsFee        = Number((p as any).partsFee        || 0);
+      const serviceCommission = Number(p.serviceCommission || 0);
+      const partsFee        = Number(p.partsFee        || 0);
       const platformFee     = Number(p.platformFee     || 0);
       const totalAmount     = Number(p.totalAmount     || 0);
       const providerAmount  = Number(p.providerAmount  || 0);
@@ -387,8 +394,8 @@ export const getPaymentHistory = async (req: Request, res: Response) => {
         breakdown: {
           serviceSubtotal:    subtotal,
           salesTax:           salesTaxAmount,
-          salesTaxRate:       Number((p as any).salesTaxRate || 0),
-          salesTaxCounty:     (p as any).salesTaxCounty || null,
+          salesTaxRate:       Number(p.salesTaxRate || 0),
+          salesTaxCounty:     p.salesTaxCounty || null,
           appServiceFee,
           processingFee,
           totalClientPays:    totalAmount,

@@ -4,7 +4,13 @@
  * or enter a custom price for unconfigured service types.
  */
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  type ComponentProps,
+} from "react";
 import {
   View,
   Text,
@@ -25,10 +31,17 @@ import api from "../../services/api";
 import { log } from "../../utils/logger";
 import { useI18n } from "../../i18n";
 import { interpolate } from "../../i18n/interpolate";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type {
+  ProviderDashboardStackParamList,
+  ProviderSOSInboxScreenProps,
+} from "../../navigation/types";
+
+type MciName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
 // ─── SOS type visuals (labels from t.sos / i18n) ─────────────────────────────
 
-const SOS_STYLES: Record<string, { icon: any; color: string; bg: string }> = {
+const SOS_STYLES: Record<string, { icon: MciName; color: string; bg: string }> = {
   JUMP_START: { icon: "battery-charging", color: "#f59e0b", bg: "#fef3c7" },
   FLAT_TIRE: { icon: "car-tire-alert", color: "#3b82f6", bg: "#dbeafe" },
   FUEL_DELIVERY: { icon: "gas-station", color: "#10b981", bg: "#d1fae5" },
@@ -67,10 +80,12 @@ interface SOSRequest {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function ProviderSOSInboxScreen({ navigation }: any) {
+export default function ProviderSOSInboxScreen({
+  navigation,
+}: ProviderSOSInboxScreenProps) {
   const { t, formatCurrency } = useI18n();
-  const fiatSymbol = (t as any).formats?.currencySymbol ?? "$";
-  const ti = (t as any).providerSosInbox || {};
+  const fiatSymbol = t.formats?.currencySymbol ?? "$";
+  const ti = t.providerSosInbox || {};
   const ts = (t.sos || {}) as Record<string, string | undefined>;
   const [requests, setRequests] = useState<SOSRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -420,7 +435,7 @@ export default function ProviderSOSInboxScreen({ navigation }: any) {
                     value={offeredPrice}
                     onChangeText={setOfferedPrice}
                     keyboardType="decimal-pad"
-                    placeholder="0.00"
+                    placeholder={t.common?.decimalPlaceholder ?? "0.00"}
                     placeholderTextColor="#9ca3af"
                     autoFocus
                   />
@@ -485,7 +500,10 @@ function Header({
   navigation,
   title,
 }: {
-  navigation: any;
+  navigation: NativeStackNavigationProp<
+    ProviderDashboardStackParamList,
+    "SOSInbox"
+  >;
   title: string;
 }) {
   return (
@@ -511,7 +529,7 @@ function RequestCard({
   formatAge: (at: string) => string;
 }) {
   const { t, formatCurrency } = useI18n();
-  const ti = (t as any).providerSosInbox || {};
+  const ti = t.providerSosInbox || {};
   const ts = (t.sos || {}) as Record<string, string | undefined>;
   const style = SOS_STYLES[req.sosType] ?? {
     icon: "alert",
@@ -563,10 +581,7 @@ function RequestCard({
                   ti.towingBasePlusPerUnit || "{{amount}} + /{{unit}}",
                   {
                     amount: formatCurrency(Number(req.suggestedBaseFee)),
-                    unit:
-                      ((t as { carWash?: { mile?: string } }).carWash?.mile as
-                        | string
-                        | undefined) || "mi",
+                    unit: t.carWash?.mile || "mi",
                   },
                 )
               : ti.priceSetPrice || "Set price"}
@@ -594,7 +609,7 @@ function RequestCard({
 
 function EmptyState() {
   const { t } = useI18n();
-  const ti = (t as any).providerSosInbox || {};
+  const ti = t.providerSosInbox || {};
   return (
     <View style={styles.emptyState}>
       <MaterialCommunityIcons name="radar" size={56} color="#d1d5db" />
@@ -611,7 +626,7 @@ function EmptyState() {
 
 function OfflineState({ onGoOnline }: { onGoOnline: () => void }) {
   const { t } = useI18n();
-  const ti = (t as any).providerSosInbox || {};
+  const ti = t.providerSosInbox || {};
   return (
     <View style={styles.offlineState}>
       <MaterialCommunityIcons name="wifi-off" size={56} color="#d1d5db" />

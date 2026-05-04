@@ -81,10 +81,10 @@ export default function ConfiguracoesPage() {
   }
 
   const tabs = [
-    { id: 'general', label: 'Geral', icon: Settings },
-    { id: 'fees', label: 'Taxas e Valores', icon: DollarSign },
-    { id: 'notifications', label: 'Notificações', icon: Bell },
-    { id: 'security', label: 'Segurança', icon: Shield },
+    { id: 'general' as const, label: 'Geral', icon: Settings },
+    { id: 'fees' as const, label: 'Taxas e Valores', icon: DollarSign },
+    { id: 'notifications' as const, label: 'Notificações', icon: Bell },
+    { id: 'security' as const, label: 'Segurança', icon: Shield },
   ];
 
   if (authLoading || loading) {
@@ -110,7 +110,7 @@ export default function ConfiguracoesPage() {
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
+                  onClick={() => setActiveTab(tab.id)}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all ${
                     activeTab === tab.id
                       ? 'bg-admin-500 text-white'

@@ -32,6 +32,7 @@ import api from "../../services/api";
 import { log } from "../../utils/logger";
 import { useI18n } from "../../i18n";
 import { interpolate } from "../../i18n/interpolate";
+import type { ProviderAppNavigation } from "../../navigation/types";
 
 const ALL_INSURANCE_TYPES = [
   "GENERAL_LIABILITY",
@@ -43,9 +44,13 @@ const ALL_INSURANCE_TYPES = [
   "UMBRELLA_EXCESS",
 ];
 
-export default function InsuranceManagementScreen({ navigation }: any) {
+export default function InsuranceManagementScreen({ navigation }: { navigation: ProviderAppNavigation }) {
   const { t } = useI18n();
-  const tim = (t as any).insuranceManagement || {};
+  const tim = t.insuranceManagement;
+  const insuranceTypeLabels = (tim.typeLabels ?? {}) as Record<
+    string,
+    string | undefined
+  >;
   const [policies, setPolicies] = useState<InsurancePolicy[]>([]);
   const [requirements, setRequirements] = useState<InsuranceRequirement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -127,12 +132,20 @@ export default function InsuranceManagementScreen({ navigation }: any) {
   };
 
   const typeLabel = (ty: string) =>
-    (tim.typeLabels && tim.typeLabels[ty]) || INSURANCE_TYPE_LABELS[ty] || ty;
+    insuranceTypeLabels[ty] || INSURANCE_TYPE_LABELS[ty] || ty;
 
-  const explainFor = (ty: string) =>
-    tim.typeExplain?.[ty] as
-      | { description?: string; threshold?: string; minLimit?: string; badge?: string }
-      | undefined;
+  const typeExplainMap = tim.typeExplain as Record<
+    string,
+    | {
+        description?: string;
+        threshold?: string;
+        minLimit?: string;
+        badge?: string;
+      }
+    | undefined
+  >;
+
+  const explainFor = (ty: string) => typeExplainMap[ty];
 
   const localizeInsStatus = (status: string) => {
     const base = getInsuranceStatusLabel(status);
@@ -160,7 +173,7 @@ export default function InsuranceManagementScreen({ navigation }: any) {
         uri: file.uri,
         type: file.mimeType || "application/octet-stream",
         name: file.name || "coi",
-      } as any);
+      } as unknown as Blob);
 
       const uploadRes = await api.post("/upload", formData, {
         headers: { "Content-Type": "multipart/form-data" },

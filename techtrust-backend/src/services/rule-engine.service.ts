@@ -15,6 +15,7 @@
 import {
   ComplianceType,
   ComplianceStatus,
+  ProviderPublicStatus,
 } from "@prisma/client";
 import { randomUUID } from "crypto";
 import prisma from '../config/database';
@@ -504,7 +505,7 @@ export async function recalculateProviderStatus(
   await prisma.providerProfile.update({
     where: { id: providerProfileId },
     data: {
-      providerPublicStatus: status as any,
+      providerPublicStatus: status as ProviderPublicStatus,
       isVerified: status === "VERIFIED",
       verifiedAt: status === "VERIFIED" ? new Date() : undefined,
     },

@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useI18n } from '../../i18n';
 import { log } from "../../utils/logger";
+import type { CustomerAppNavigation } from "../../navigation/types";
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -49,7 +50,7 @@ interface VehicleSpending {
   servicesCount: number;
 }
 
-export default function CustomerReportsScreen({ navigation }: any) {
+export default function CustomerReportsScreen({ navigation }: { navigation: CustomerAppNavigation }) {
   const { t, formatCurrency } = useI18n();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

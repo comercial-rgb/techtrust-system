@@ -14,10 +14,26 @@ import * as serviceFlowService from '../services/service-flow.service';
 import { getPaymentMethods } from '../services/dashboard.service';
 import api from '../services/api';
 import { log } from "../utils/logger";
+import type { RouteProp } from "@react-navigation/native";
+import type {
+  ProfileStackParamList,
+  WorkOrdersStackParamList,
+  WorkOrderDetailsScreenNavigation,
+} from "../navigation/types";
 
-export default function WorkOrderDetailsScreen({ navigation, route }: any) {
+type WorkOrderDetailsScreenRoute =
+  | RouteProp<WorkOrdersStackParamList, "WorkOrderDetails">
+  | RouteProp<ProfileStackParamList, "ServiceHistoryWorkOrderDetails">;
+
+export default function WorkOrderDetailsScreen({
+  navigation,
+  route,
+}: {
+  navigation: WorkOrderDetailsScreenNavigation;
+  route: WorkOrderDetailsScreenRoute;
+}) {
   const { t, formatDate, formatCurrency } = useI18n();
-  const { workOrderId } = route.params || { workOrderId: '1' };
+  const workOrderId = route.params.workOrderId;
   const [loading, setLoading] = useState(true);
   const [workOrder, setWorkOrder] = useState<any>(null);
   
@@ -437,17 +453,20 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
           </View>
           <View style={styles.providerActions}>
             <TouchableOpacity style={styles.callBtn}><Ionicons name="call" size={18} color="#2B5EA7" /><Text style={styles.callText}>{t.common?.call || 'Call'}</Text></TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.internalChatBtn}
-              onPress={() => navigation.navigate('Messages', { 
-                screen: 'Chat', 
-                params: { 
-                  recipientId: workOrder?.provider?.id || 'provider-1',
-                  recipientName: workOrder?.provider?.businessName,
-                  recipientType: 'provider',
-                  workOrderId: workOrder?.id
-                }
-              })}
+              onPress={() =>
+                navigation.navigate("Profile", {
+                  screen: "Chat",
+                  params: {
+                    participant: {
+                      id: String(workOrder?.provider?.id ?? ""),
+                      name: workOrder?.provider?.businessName ?? "",
+                      role: "provider" as const,
+                    },
+                  },
+                })
+              }
             >
               <Ionicons name="chatbubbles" size={18} color="#2B5EA7" />
               <Text style={styles.internalChatText}>{t.nav?.chat || 'Chat'}</Text>
@@ -571,10 +590,13 @@ export default function WorkOrderDetailsScreen({ navigation, route }: any) {
               </View>
             </View>
             
-            <TouchableOpacity 
-              style={styles.confirmServiceBtn} 
+            <TouchableOpacity
+              style={styles.confirmServiceBtn}
               onPress={() => {
-                navigation.navigate('ServiceApproval', { workOrderId: workOrder.id });
+                navigation.navigate("Services", {
+                  screen: "ServiceApproval",
+                  params: { workOrderId: workOrder.id },
+                });
               }}
             >
               <Ionicons name="checkmark-circle" size={20} color="#fff" />

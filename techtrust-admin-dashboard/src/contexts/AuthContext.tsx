@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { useRouter } from 'next/router';
 import Cookies from 'js-cookie';
 import { adminApi } from '../services/api';
+import { unwrapApiData } from '../utils/unwrapApiData';
 
 interface User {
   id: string;
@@ -52,7 +53,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await adminApi.getProfile();
       // api.ts auto-unwraps — response.data is the user object (or { user, subscription })
-      const profileData = (response.data as any)?.user || response.data;
+      const root = unwrapApiData<Record<string, unknown>>(response.data) as Record<string, unknown>;
+      const profileData = (root.user as User | undefined) ?? (root as unknown as User);
 
       if (profileData && profileData.role === 'ADMIN') {
         setUser(profileData);
@@ -88,17 +90,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // api.ts auto-unwraps { success, data } — response.data is { token, user }
-      const loginData = response.data as any;
+      const loginData = unwrapApiData<{ token?: string; user?: User }>(response.data);
 
       if (loginData?.user?.role !== 'ADMIN') {
         return { success: false, error: 'Acesso restrito a administradores' };
       }
 
+      if (!loginData?.token) {
+        return { success: false, error: 'Resposta inválida do servidor' };
+      }
+
       Cookies.set('tt_admin_token', loginData.token, { expires: 7 });
       setUser(loginData.user);
       return { success: true };
-    } catch (error: any) {
-      return { success: false, error: error.message || 'Erro ao fazer login' };
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Erro ao fazer login';
+      return { success: false, error: msg };
     }
   }
 

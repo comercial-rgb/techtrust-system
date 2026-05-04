@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useI18n } from '../../i18n';
+import type { ProviderAppNavigation } from "../../navigation/types";
 
 type VerificationStatus = 'unverified' | 'pending' | 'verified' | 'failed';
 
@@ -31,8 +32,9 @@ interface BankAccount {
   verificationStatus: VerificationStatus;
 }
 
-export default function ProviderBankDetailsScreen({ navigation }: any) {
+export default function ProviderBankDetailsScreen({ navigation }: { navigation: ProviderAppNavigation }) {
   const { t } = useI18n();
+  const authText = t.auth;
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
 
   const [isAdding, setIsAdding] = useState(false);
@@ -359,22 +361,32 @@ export default function ProviderBankDetailsScreen({ navigation }: any) {
             </ScrollView>
 
             {/* Routing & Account Number */}
-            <Text style={styles.inputLabel}>{'Routing Number'} *</Text>
+            <Text style={styles.inputLabel}>
+              {authText?.routingNumberLabel || "Routing number"} *
+            </Text>
             <TextInput
               style={styles.input}
               value={newAccount.routingNumber}
               onChangeText={val => setNewAccount({ ...newAccount, routingNumber: val })}
-              placeholder="9-digit routing number"
+              placeholder={
+                t.provider?.routingNumberPlaceholderLong ||
+                "9-digit routing number"
+              }
               keyboardType="numeric"
               maxLength={9}
             />
 
-            <Text style={styles.inputLabel}>{'Account Number'} *</Text>
+            <Text style={styles.inputLabel}>
+              {authText?.accountNumberLabel || "Account number"} *
+            </Text>
             <TextInput
               style={styles.input}
               value={newAccount.accountNumber}
               onChangeText={val => setNewAccount({ ...newAccount, accountNumber: val })}
-              placeholder="Account number"
+              placeholder={
+                t.provider?.accountNumberPlaceholderDisplay ||
+                "Account number"
+              }
               keyboardType="numeric"
             />
 
@@ -420,12 +432,20 @@ export default function ProviderBankDetailsScreen({ navigation }: any) {
               placeholder={t.provider?.accountHolderPlaceholder || 'Full name or business name'}
             />
 
-            <Text style={styles.inputLabel}>{'Tax ID (EIN or SSN)'}{' '}<Text style={{ color: '#9ca3af', fontWeight: '400' }}>{'(optional — not required for foreign providers)'}</Text></Text>
+            <Text style={styles.inputLabel}>
+              {t.provider?.taxIdLabel || "Tax ID (EIN or SSN)"}{" "}
+              <Text style={{ color: "#9ca3af", fontWeight: "400" }}>
+                ({t.provider?.taxIdOptionalHint ||
+                  "optional — not required for foreign providers"})
+              </Text>
+            </Text>
             <TextInput
               style={styles.input}
               value={newAccount.taxId}
               onChangeText={val => setNewAccount({ ...newAccount, taxId: val })}
-              placeholder="XX-XXXXXXX or XXX-XX-XXXX"
+              placeholder={
+                t.provider?.taxIdPlaceholder || "XX-XXXXXXX or XXX-XX-XXXX"
+              }
               keyboardType="default"
             />
 
@@ -495,7 +515,7 @@ export default function ProviderBankDetailsScreen({ navigation }: any) {
                     style={styles.verifyInput}
                     value={microDeposit1}
                     onChangeText={setMicroDeposit1}
-                    placeholder="0.00"
+                    placeholder={t.common?.decimalPlaceholder ?? "0.00"}
                     keyboardType="decimal-pad"
                     maxLength={4}
                   />
@@ -509,7 +529,7 @@ export default function ProviderBankDetailsScreen({ navigation }: any) {
                     style={styles.verifyInput}
                     value={microDeposit2}
                     onChangeText={setMicroDeposit2}
-                    placeholder="0.00"
+                    placeholder={t.common?.decimalPlaceholder ?? "0.00"}
                     keyboardType="decimal-pad"
                     maxLength={4}
                   />

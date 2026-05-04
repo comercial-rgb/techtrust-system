@@ -6,8 +6,20 @@ export interface Banner {
   title: string;
   subtitle?: string;
   imageUrl: string;
+  /** Legacy API field alongside `imageUrl` */
+  image?: string;
   linkUrl?: string;
   linkType?: string;
+}
+
+export interface HomeNotice {
+  id: string;
+  type?: string;
+  title: string;
+  message: string;
+  icon?: string;
+  actionLabel?: string;
+  actionUrl?: string;
 }
 
 export interface SpecialOffer {
@@ -15,7 +27,7 @@ export interface SpecialOffer {
   title: string;
   description?: string;
   // API fields
-  discountLabel?: string;
+  discountLabel?: string | number;
   discountValue?: number;
   discountType?: string;
   promoCode?: string;
@@ -62,7 +74,7 @@ export interface HomeData {
   banners: Banner[];
   offers: SpecialOffer[];
   articles: Article[];
-  notices: any[];
+  notices: HomeNotice[];
   featuredProviders: FeaturedProvider[];
 }
 

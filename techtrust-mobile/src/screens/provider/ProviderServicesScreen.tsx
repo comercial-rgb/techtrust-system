@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import type { ComponentProps } from "react";
 import {
   View,
   Text,
@@ -17,9 +18,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+
+type MciName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 import { useI18n } from '../../i18n';
 import api from '../../services/api';
 import { log } from "../../utils/logger";
+import type { ProviderAppNavigation } from "../../navigation/types";
 
 // ─── Service definitions aligned with ServiceOffered enum ───
 // Updated per Mobile App Service & Diagnostic Tree — Feb 2026
@@ -90,7 +94,7 @@ const CATEGORIES = [
   { key: 'sos' },
 ] as const;
 
-export default function ProviderServicesScreen({ navigation }: any) {
+export default function ProviderServicesScreen({ navigation }: { navigation: ProviderAppNavigation }) {
   const { t } = useI18n();
 
   const [loading, setLoading] = useState(true);
@@ -340,7 +344,7 @@ export default function ProviderServicesScreen({ navigation }: any) {
                       { backgroundColor: enabledServices.has(service.key) ? '#dbeafe' : '#f3f4f6' },
                     ]}>
                       <MaterialCommunityIcons
-                        name={service.icon as any}
+                        name={service.icon as MciName}
                         size={22}
                         color={enabledServices.has(service.key) ? '#2B5EA7' : '#9ca3af'}
                       />
@@ -397,7 +401,7 @@ export default function ProviderServicesScreen({ navigation }: any) {
                 activeOpacity={0.7}
               >
                 <MaterialCommunityIcons
-                  name={vt.icon as any}
+                  name={vt.icon as MciName}
                   size={28}
                   color={isActive ? '#2B5EA7' : '#9ca3af'}
                 />

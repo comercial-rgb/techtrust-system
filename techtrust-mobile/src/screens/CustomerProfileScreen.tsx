@@ -3,7 +3,7 @@
  * Modern design with cards and statistics
  */
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, type ComponentProps } from "react";
 import {
   View,
   Text,
@@ -25,8 +25,20 @@ import { useI18n, languages, Language } from "../i18n";
 import api from "../services/api";
 import { getVehicles } from "../services/dashboard.service";
 import { log } from "../utils/logger";
+import type { CustomerProfileStackNavigation } from "../navigation/types";
 
 const SPOKEN_LANGUAGES_KEY = "@techtrust_spoken_languages";
+
+type IoniconName = ComponentProps<typeof Ionicons>["name"];
+
+type ProfileMenuItem = {
+  id: string;
+  title: string;
+  subtitle: string;
+  icon: IoniconName;
+  color: string;
+  onPress: () => void;
+};
 
 function subscriptionPlanDisplayName(
   plan: string | undefined,
@@ -49,7 +61,11 @@ function subscriptionPlanDisplayName(
   );
 }
 
-export default function CustomerProfileScreen({ navigation }: any) {
+export default function CustomerProfileScreen({
+  navigation,
+}: {
+  navigation: CustomerProfileStackNavigation<"ProfileMain">;
+}) {
   const { user, logout } = useAuth();
   const { mode: themeMode, setMode: setThemeMode, isDark, colors: themeColors } = useTheme();
   const { language, setLanguage, t, formatCurrency } = useI18n();
@@ -234,7 +250,7 @@ export default function CustomerProfileScreen({ navigation }: any) {
     );
   };
 
-  const menuItems = [
+  const menuItems: ProfileMenuItem[] = [
     {
       id: "personal",
       title: t.profile?.personalInfo || "Personal Information",
@@ -416,7 +432,7 @@ export default function CustomerProfileScreen({ navigation }: any) {
                     ]}
                   >
                     <Ionicons
-                      name={item.icon as any}
+                      name={item.icon}
                       size={22}
                       color={item.color}
                     />
@@ -662,14 +678,14 @@ export default function CustomerProfileScreen({ navigation }: any) {
               </View>
               <View style={styles.menuContent}>
                 <Text style={[styles.menuItemTitle, { color: themeColors.text }]}>
-                  {(t as any).settings?.darkMode || "Dark Mode"}
+                  {t.settings?.darkMode || "Dark Mode"}
                 </Text>
                 <Text style={styles.menuItemSubtitle}>
                   {themeMode === "system"
-                    ? ((t as any).settings?.systemDefault || "System Default")
+                    ? t.settings?.systemDefault || "System Default"
                     : themeMode === "dark"
-                      ? ((t as any).settings?.dark || "Dark")
-                      : ((t as any).settings?.light || "Light")}
+                      ? t.settings?.dark || "Dark"
+                      : t.settings?.light || "Light"}
                 </Text>
               </View>
               <View style={styles.themeToggleRow}>

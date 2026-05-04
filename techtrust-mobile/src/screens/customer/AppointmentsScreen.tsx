@@ -19,6 +19,10 @@ import * as fdacsService from "../../services/fdacs.service";
 import api from "../../services/api";
 import { useAuth } from "../../contexts/AuthContext";
 import { log } from "../../utils/logger";
+import type {
+  CustomerAppNavigation,
+  NavigateProviderWorkOrderFromCustomer,
+} from "../../navigation/types";
 
 interface WorkOrderItem {
   id: string;
@@ -42,7 +46,24 @@ interface WorkOrderItem {
   createdAt: string;
 }
 
-export default function AppointmentsScreen({ navigation }: any) {
+function openProviderWorkOrderDetails(
+  navigation: CustomerAppNavigation,
+  workOrderId: string,
+) {
+  (navigation as unknown as NavigateProviderWorkOrderFromCustomer).navigate(
+    "ProviderWorkOrders",
+    {
+      screen: "ProviderWorkOrderDetails",
+      params: { workOrderId },
+    },
+  );
+}
+
+export default function AppointmentsScreen({
+  navigation,
+}: {
+  navigation: CustomerAppNavigation;
+}) {
   const { t, formatDate, formatCurrency } = useI18n();
   const { user } = useAuth();
   const isProvider = user?.role === "PROVIDER";
@@ -267,12 +288,7 @@ export default function AppointmentsScreen({ navigation }: any) {
             renderItem={({ item: wo }) => (
               <TouchableOpacity
                 style={styles.card}
-                onPress={() =>
-                  navigation.navigate("ProviderWorkOrders", {
-                    screen: "ProviderWorkOrderDetails",
-                    params: { workOrderId: wo.id },
-                  })
-                }
+                onPress={() => openProviderWorkOrderDetails(navigation, wo.id)}
               >
                 <View style={styles.cardHeader}>
                   <Text style={styles.appointmentNumber}>{wo.orderNumber}</Text>

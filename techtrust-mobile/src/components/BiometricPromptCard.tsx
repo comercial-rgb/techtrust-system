@@ -3,7 +3,7 @@
  * Aparece após o primeiro login bem-sucedido
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, type ComponentProps } from 'react';
 import {
   View,
   Text,
@@ -25,6 +25,8 @@ import {
 } from '../services/authService';
 import { useI18n } from '../i18n';
 import { log } from "../utils/logger";
+
+type MciName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
 interface BiometricPromptCardProps {
   visible: boolean;
@@ -74,17 +76,17 @@ export default function BiometricPromptCard({
     setBiometricInfoState(info);
   };
 
-  const getBiometricIcon = () => {
-    if (!biometricInfo) return 'fingerprint';
+  const getBiometricIcon = (): MciName => {
+    if (!biometricInfo) return "fingerprint";
     switch (biometricInfo.biometricType) {
-      case 'facial':
-        return Platform.OS === 'ios' ? 'face-recognition' : 'face-recognition';
-      case 'fingerprint':
-        return 'fingerprint';
-      case 'iris':
-        return 'eye-outline';
+      case "facial":
+        return "face-recognition";
+      case "fingerprint":
+        return "fingerprint";
+      case "iris":
+        return "eye-outline";
       default:
-        return 'fingerprint';
+        return "fingerprint";
     }
   };
 
@@ -166,7 +168,7 @@ export default function BiometricPromptCard({
                 style={styles.iconGradient}
               >
                 <MaterialCommunityIcons
-                  name={getBiometricIcon() as any}
+                  name={getBiometricIcon()}
                   size={48}
                   color="#fff"
                 />
@@ -186,7 +188,7 @@ export default function BiometricPromptCard({
             {/* Biometric Type Badge */}
             <View style={styles.badge}>
               <MaterialCommunityIcons
-                name={getBiometricIcon() as any}
+                name={getBiometricIcon()}
                 size={16}
                 color="#3b82f6"
               />
@@ -229,7 +231,7 @@ export default function BiometricPromptCard({
                 style={styles.enableButtonGradient}
               >
                 <MaterialCommunityIcons
-                  name={getBiometricIcon() as any}
+                  name={getBiometricIcon()}
                   size={24}
                   color="#fff"
                 />

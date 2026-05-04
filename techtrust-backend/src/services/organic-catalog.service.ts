@@ -28,6 +28,16 @@ import { logger } from "../config/logger";
 // Interfaces
 // ═══════════════════════════════════════════════
 
+/** One element in Quote.partsList JSON */
+interface QuotePartsListRow {
+  name?: string;
+  description?: string;
+  price?: string | number;
+  unitPrice?: string | number;
+  partNumber?: string;
+  brand?: string;
+}
+
 export interface CatalogEntry {
   vehicleFingerprint: string;
   partName: string;
@@ -88,14 +98,16 @@ export async function feedCatalogFromCompletedService(
         .replace(/\s+/g, '_');
 
     // quote.partsList é JSON array de peças
-    const partsList = quote.partsList as any[];
-    if (!partsList || !Array.isArray(partsList) || partsList.length === 0) return;
+    const partsList = Array.isArray(quote.partsList)
+      ? (quote.partsList as QuotePartsListRow[])
+      : [];
+    if (partsList.length === 0) return;
 
     for (const item of partsList) {
       if (!item.name && !item.description) continue;
 
       const partName = (item.name || item.description || '').toLowerCase().trim();
-      const unitPrice = parseFloat(item.price || item.unitPrice || '0');
+      const unitPrice = parseFloat(String(item.price ?? item.unitPrice ?? "0"));
       if (!partName || unitPrice <= 0) continue;
 
       await db.quoteCatalogEntry.upsert({
@@ -304,12 +316,12 @@ export async function recalculateCatalogPrices(): Promise<number> {
 
     const prices: number[] = [];
     for (const q of quotes) {
-      const parts = q.partsList as any[];
-      if (!Array.isArray(parts)) continue;
+      const parts = Array.isArray(q.partsList) ? (q.partsList as QuotePartsListRow[]) : [];
+      if (parts.length === 0) continue;
       for (const p of parts) {
         const name = (p.name || p.description || '').toLowerCase().trim();
         if (name === entry.partName) {
-          const price = parseFloat(p.price || p.unitPrice || '0');
+          const price = parseFloat(String(p.price ?? p.unitPrice ?? "0"));
           if (price > 0) prices.push(price);
         }
       }

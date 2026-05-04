@@ -135,7 +135,7 @@ export default function RegisterPage() {
     setSocialLoading(true)
     setError('')
     try {
-      if (!(window as any).AppleID) {
+      if (!window.AppleID) {
         await new Promise<void>((resolve, reject) => {
           const script = document.createElement('script')
           script.src = 'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js'
@@ -144,14 +144,15 @@ export default function RegisterPage() {
           document.head.appendChild(script)
         })
       }
-      ;(window as any).AppleID.auth.init({
+      window.AppleID!.auth.init({
         clientId,
         scope: 'name email',
         redirectURI: window.location.origin + window.location.pathname,
         usePopup: true,
       })
-      const data = await (window as any).AppleID.auth.signIn()
-      const idToken = data.authorization.id_token
+      const data = await window.AppleID!.auth.signIn()
+      const idToken = data.authorization?.id_token
+      if (!idToken) throw new Error('Apple Sign-In did not return an id_token')
       const payload = JSON.parse(atob(idToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')))
       const appleEmail = payload.email || ''
       const name = data.user
@@ -161,9 +162,10 @@ export default function RegisterPage() {
       if (appleEmail) setEmail(appleEmail)
       setGooglePrefilled(true)
       setStep('info')
-    } catch (err: any) {
-      if (err?.error === 'popup_closed_by_user') return // User cancelled
-      setError(err.message || 'Apple sign-in failed')
+    } catch (err: unknown) {
+      const e = err as { error?: string; message?: string }
+      if (e?.error === 'popup_closed_by_user') return // User cancelled
+      setError(e?.message || 'Apple sign-in failed')
     } finally {
       setSocialLoading(false)
     }

@@ -3,7 +3,7 @@
  * Iniciar, Concluir, Cancelar, Ligar para cliente, Timeline
  */
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, type ComponentProps } from 'react';
 import {
   View,
   Text,
@@ -24,6 +24,12 @@ import { CANCELLATION_RULES, PROVIDER_POINTS_SYSTEM } from '../../config/busines
 import api from '../../services/api';
 import * as serviceFlowService from '../../services/service-flow.service';
 import { log } from "../../utils/logger";
+import type {
+  ProviderAppNavigation,
+  ProviderWorkOrderDetailsScreenRoute,
+} from "../../navigation/types";
+
+type MciName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
 interface QuoteLineItem {
   id: string;
@@ -84,14 +90,27 @@ interface WorkOrder {
   }[];
 }
 
-export default function ProviderWorkOrderDetailsScreen({ route, navigation }: any) {
+export default function ProviderWorkOrderDetailsScreen({
+  route,
+  navigation,
+}: {
+  route: ProviderWorkOrderDetailsScreenRoute;
+  navigation: ProviderAppNavigation;
+}) {
   const { t, language, formatCurrency } = useI18n();
-  const fiatSymbol = (t as any).formats?.currencySymbol ?? "$";
+  const fiatSymbol = t.formats?.currencySymbol ?? "$";
   const dateTimeLocale = useMemo(
     () => (language === "pt" ? "pt-BR" : language === "es" ? "es-ES" : "en-US"),
     [language],
   );
-  const { workOrderId } = route.params;
+  const raw = route.params;
+  const workOrderId =
+    raw &&
+    typeof raw === "object" &&
+    "workOrderId" in raw &&
+    typeof (raw as { workOrderId: unknown }).workOrderId === "string"
+      ? (raw as { workOrderId: string }).workOrderId
+      : "";
   const [loading, setLoading] = useState(true);
   const [workOrder, setWorkOrder] = useState<WorkOrder | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
@@ -117,6 +136,11 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
   );
 
   const loadWorkOrder = async () => {
+    if (!workOrderId) {
+      setWorkOrder(null);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       // Fetch work order details from API
@@ -283,8 +307,13 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
     }
   };
 
-  const getStatusInfo = (status: string) => {
-    const statuses: Record<string, { icon: string; color: string; bg: string; label: string }> = {
+  const getStatusInfo = (
+    status: string,
+  ): { icon: MciName; color: string; bg: string; label: string } => {
+    const statuses: Record<
+      string,
+      { icon: MciName; color: string; bg: string; label: string }
+    > = {
       PENDING_START: { icon: 'clock-outline', color: '#f59e0b', bg: '#fef3c7', label: t.workOrder?.statusPendingStart || 'Pending Start' },
       PAYMENT_HOLD: { icon: 'credit-card-outline', color: '#7c3aed', bg: '#ede9fe', label: t.workOrder?.paymentHold || 'Payment hold' },
       IN_PROGRESS: { icon: 'progress-wrench', color: '#3b82f6', bg: '#dbeafe', label: t.workOrder?.statusInProgress || 'In Progress' },
@@ -330,7 +359,7 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
         <View style={styles.headerCard}>
           <View style={styles.headerTop}>
             <View style={[styles.statusBadge, { backgroundColor: statusInfo.bg }]}>
-              <MaterialCommunityIcons name={statusInfo.icon as any} size={16} color={statusInfo.color} />
+              <MaterialCommunityIcons name={statusInfo.icon} size={16} color={statusInfo.color} />
               <Text style={[styles.statusText, { color: statusInfo.color }]}>{statusInfo.label}</Text>
             </View>
             <Text style={styles.orderNumber}>#{workOrder.orderNumber}</Text>
@@ -448,10 +477,17 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
             </TouchableOpacity>
             <TouchableOpacity 
               style={[styles.contactBtn, styles.messageChatBtn]} 
-              onPress={() => navigation.navigate('Chat', { 
-                participantId: workOrder.customer.name,
-                participantName: workOrder.customer.name 
-              })}
+              onPress={() =>
+                navigation.navigate("Chat", {
+                  participant: {
+                    id: workOrder.customer.email || workOrder.customer.phone,
+                    name: workOrder.customer.name,
+                    phone: workOrder.customer.phone,
+                    email: workOrder.customer.email,
+                    role: "customer",
+                  },
+                })
+              }
             >
               <MaterialCommunityIcons name="chat" size={18} color="#2B5EA7" />
               <Text style={styles.contactBtnText}>{t.workOrder?.chat || 'Chat'}</Text>
@@ -638,7 +674,7 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
               value={finalAmount}
               onChangeText={setFinalAmount}
               keyboardType="decimal-pad"
-              placeholder="0.00"
+              placeholder={t.common?.decimalPlaceholder ?? "0.00"}
             />
             <Text style={styles.inputHint}>{t.workOrder?.changeIfDifferent || 'Change if the final amount differs from the quoted'}</Text>
 
@@ -837,7 +873,7 @@ export default function ProviderWorkOrderDetailsScreen({ route, navigation }: an
                           newItems[index].quantity = text;
                           setAdditionalItems(newItems);
                         }}
-                        placeholder="Qty"
+                        placeholder={t.common?.qty ?? "Qty"}
                         keyboardType="numeric"
                       />
                     </View>

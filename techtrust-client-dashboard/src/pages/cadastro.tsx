@@ -145,7 +145,7 @@ export default function CadastroPage() {
     setSocialLoading(true)
     setError('')
     try {
-      if (!(window as any).AppleID) {
+      if (!window.AppleID) {
         await new Promise<void>((resolve, reject) => {
           const script = document.createElement('script')
           script.src = 'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js'
@@ -154,15 +154,16 @@ export default function CadastroPage() {
           document.head.appendChild(script)
         })
       }
-      ;(window as any).AppleID.auth.init({
+      window.AppleID!.auth.init({
         clientId,
         scope: 'name email',
         redirectURI: window.location.origin + window.location.pathname,
         usePopup: true,
       })
-      const appleData = await (window as any).AppleID.auth.signIn()
-      const idToken = appleData.authorization.id_token
-      const appleUserId = appleData.authorization.code
+      const appleData = await window.AppleID!.auth.signIn()
+      const idToken = appleData.authorization?.id_token
+      const appleUserId = appleData.authorization?.code
+      if (!idToken) throw new Error('Apple Sign-In did not return an id_token')
       const res = await fetch(`${API_BASE_URL}/auth/social`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -175,11 +176,12 @@ export default function CadastroPage() {
         }),
       })
       await handleSocialAuthResponse(res)
-    } catch (err: any) {
-      if (err?.error === 'popup_closed_by_user') {
+    } catch (err: unknown) {
+      const e = err as { error?: string; message?: string }
+      if (e?.error === 'popup_closed_by_user') {
         setError('Apple sign-in was cancelled')
       } else {
-        setError(err.message || 'Apple sign-in failed')
+        setError(e?.message || 'Apple sign-in failed')
       }
     } finally {
       setSocialLoading(false)

@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { log } from "../utils/logger";
 import { useI18n } from "../i18n";
 import type { Language } from "../i18n";
+import type { HomeStackScreenProps } from "../navigation/types";
 
 interface Article {
   id: string;
@@ -37,7 +38,10 @@ const LOCALE_BY_LANG: Record<Language, string> = {
   es: "es-ES",
 };
 
-export default function ArticleDetailScreen({ route, navigation }: any) {
+export default function ArticleDetailScreen({
+  route,
+  navigation,
+}: HomeStackScreenProps<"ArticleDetail">) {
   const article: Article = route.params?.article;
   const [imageError, setImageError] = useState(false);
   const { t, language } = useI18n();

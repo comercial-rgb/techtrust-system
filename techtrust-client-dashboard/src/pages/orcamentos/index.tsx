@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { logApiError } from "../../utils/logger";
+import { unwrapApiData } from "../../utils/unwrapApiData";
 
 export default function EstimatesPage() {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
@@ -43,30 +44,44 @@ export default function EstimatesPage() {
     try {
       // Get all service requests that have quotes
       const srRes = await api.getServiceRequests();
-      const srData = srRes.data as any;
-      const requests =
-        srData?.data?.serviceRequests || srData?.data || srData || [];
+      const srPayload = unwrapApiData<Record<string, unknown> | unknown[]>(srRes.data);
+      const requests: Record<string, unknown>[] = Array.isArray(srPayload)
+        ? (srPayload as Record<string, unknown>[])
+        : srPayload &&
+            typeof srPayload === "object" &&
+            Array.isArray((srPayload as { serviceRequests?: unknown[] }).serviceRequests)
+          ? ((srPayload as { serviceRequests: Record<string, unknown>[] }).serviceRequests)
+          : [];
       setServiceRequests(requests);
 
       // Get quotes from each service request that has them
       const quotesPromises = requests
         .filter(
-          (sr: any) =>
-            sr.quotesCount > 0 ||
+          (sr) =>
+            Number(sr.quotesCount) > 0 ||
             sr.status === "QUOTES_RECEIVED" ||
             sr.status === "QUOTE_ACCEPTED",
         )
-        .map(async (sr: any) => {
+        .map(async (sr) => {
           try {
-            const qRes = await api.getQuotesForRequest(sr.id);
-            const qData = qRes.data as any;
-            const quotes = qData?.data || qData || [];
-            return quotes.map((q: any) => ({
-              ...q,
+            const qRes = await api.getQuotesForRequest(String(sr.id));
+            const qInner = unwrapApiData<unknown[] | Record<string, unknown>>(qRes.data);
+            const quotes: unknown[] = Array.isArray(qInner)
+              ? qInner
+              : qInner &&
+                  typeof qInner === "object" &&
+                  Array.isArray((qInner as { data?: unknown[] }).data)
+                ? ((qInner as { data: unknown[] }).data)
+                : [];
+            const veh = sr.vehicle as
+              | { year?: number; make?: string; model?: string }
+              | undefined;
+            return quotes.map((q) => ({
+              ...(q as Record<string, unknown>),
               serviceRequestTitle: sr.title,
               serviceRequestNumber: sr.requestNumber,
-              vehicleInfo: sr.vehicle
-                ? `${sr.vehicle.year} ${sr.vehicle.make} ${sr.vehicle.model}`
+              vehicleInfo: veh
+                ? `${veh.year} ${veh.make} ${veh.model}`
                 : "",
             }));
           } catch {

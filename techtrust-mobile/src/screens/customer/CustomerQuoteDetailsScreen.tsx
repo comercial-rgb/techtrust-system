@@ -3,7 +3,7 @@
  * View quote with new format including part codes, warranty, and share functionality
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, type ComponentProps } from "react";
 import {
   View,
   Text,
@@ -30,6 +30,10 @@ import PriceBreakdownCard, {
   calculateCustomerTotal,
 } from "../../components/PriceBreakdownCard";
 import { log } from "../../utils/logger";
+import type { CustomerAppScreenProps } from "../../navigation/types";
+import { useAuth } from "../../contexts/AuthContext";
+
+type IoniconName = ComponentProps<typeof Ionicons>["name"];
 
 interface QuoteLineItem {
   id: string;
@@ -86,7 +90,11 @@ interface Quote {
   createdAt: string;
 }
 
-export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
+export default function CustomerQuoteDetailsScreen({
+  navigation,
+  route,
+}: CustomerAppScreenProps<"QuoteDetails">) {
+  const { user } = useAuth();
   const { t, formatCurrency, formatDate } = useI18n();
   const [quote, setQuote] = useState<Quote | null>(null);
   const [loading, setLoading] = useState(true);
@@ -220,7 +228,14 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
     }
   };
 
-  const getStatusInfo = (status: string) => {
+  const getStatusInfo = (
+    status: string,
+  ): {
+    label: string;
+    color: string;
+    bgColor: string;
+    icon: IoniconName;
+  } => {
     const q = t.quote;
     const p = t.provider;
     switch (status) {
@@ -767,7 +782,7 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
     serviceTotal: quote.grandTotal,
     isMobileService: quote.isMobileService,
     distanceKm: quote.distanceKm ?? undefined,
-    clientPlan: "FREE", // TODO: get from user subscription context
+    clientPlan: user?.clientPlan ?? "FREE",
   };
 
   const { customerTotal: finalCustomerTotal } = calculateCustomerTotal(
@@ -793,7 +808,7 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
             ]}
           >
             <Ionicons
-              name={statusInfo.icon as any}
+              name={statusInfo.icon}
               size={12}
               color={statusInfo.color}
             />
@@ -919,10 +934,10 @@ export default function CustomerQuoteDetailsScreen({ navigation, route }: any) {
               <Ionicons name="location" size={14} color="#2B5EA7" />
               <Text style={{ fontSize: 12, color: "#1e40af" }}>
                 {(quote.distanceKm * 0.621371).toFixed(1)}{" "}
-                {(t as any).carWash?.mile || "mi"}{" "}
+                {t.carWash?.mile || "mi"}{" "}
                 {t.quote?.milesAwaySuffix || "away"}
                 {quote.travelFee > 0
-                  ? ` • ${(t as any).customer?.travelFee || "Travel Fee"}: ${formatCurrency(quote.travelFee)}`
+                  ? ` • ${t.quote?.travelFee || "Travel Fee"}: ${formatCurrency(quote.travelFee)}`
                   : ` • ${t.quote?.noTravelFeeShort || "No travel fee"}`}
               </Text>
             </View>

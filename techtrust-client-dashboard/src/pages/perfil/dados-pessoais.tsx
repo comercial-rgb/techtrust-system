@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
 import DashboardLayout from '../../components/DashboardLayout';
 import { api } from '../../services/api';
+import { unwrapApiData } from '../../utils/unwrapApiData';
 import {
   ChevronLeft, User, Mail, Phone, Calendar, Edit2, Check, X,
   CheckCircle, Shield, Camera, AlertCircle, Trash2,
@@ -38,15 +39,15 @@ export default function DadosPessoaisPage() {
   async function loadProfile() {
     try {
       const res = await api.getProfile();
-      const raw = res.data as any;
-      const u = raw?.user || raw;
+      const raw = unwrapApiData<Record<string, unknown>>(res.data) as Record<string, unknown>;
+      const u = (raw.user as Record<string, unknown> | undefined) ?? raw;
       setForm({
-        fullName: u?.fullName || user?.fullName || '',
-        email: u?.email || user?.email || '',
-        phone: u?.phone || user?.phone || '',
-        ssn: u?.cpf || u?.ssn || '',
-        birthDate: u?.dateOfBirth || u?.birthDate || '',
-        gender: u?.gender || '',
+        fullName: String(u?.fullName ?? user?.fullName ?? ''),
+        email: String(u?.email ?? user?.email ?? ''),
+        phone: String(u?.phone ?? user?.phone ?? ''),
+        ssn: String(u?.cpf ?? u?.ssn ?? ''),
+        birthDate: String(u?.dateOfBirth ?? u?.birthDate ?? ''),
+        gender: String(u?.gender ?? ''),
       });
     } catch {
       setForm({

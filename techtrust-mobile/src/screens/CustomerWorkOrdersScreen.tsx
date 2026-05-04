@@ -4,7 +4,13 @@
  * Modern design with visual timeline
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  type ComponentProps,
+} from "react";
 import {
   View,
   Text,
@@ -23,8 +29,10 @@ import { useI18n } from "../i18n";
 import {
   getServiceRequests,
   getWorkOrders,
+  type WorkOrder as ApiWorkOrder,
 } from "../services/dashboard.service";
 import { log } from "../utils/logger";
+import type { CustomerServicesStackNavigation } from "../navigation/types";
 
 // Solicitações abertas (recebendo orçamentos)
 interface ServiceRequest {
@@ -60,7 +68,20 @@ interface WorkOrder {
   };
 }
 
-export default function CustomerWorkOrdersScreen({ navigation }: any) {
+type IoniconName = ComponentProps<typeof Ionicons>["name"];
+
+type WorkOrderListRow = ApiWorkOrder & {
+  description?: string;
+  amount?: number;
+  createdAt?: string;
+  provider?: ApiWorkOrder["provider"] & { rating?: number };
+};
+
+export default function CustomerWorkOrdersScreen({
+  navigation,
+}: {
+  navigation: CustomerServicesStackNavigation<"WorkOrdersList">;
+}) {
   const { t, language, formatCurrency } = useI18n();
   const listDateLocale = useMemo(
     () => (language === "pt" ? "pt-BR" : language === "es" ? "es-ES" : "en-US"),
@@ -104,7 +125,7 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
 
       // Mapear work orders para formato esperado
       setWorkOrders(
-        workOrdersData.map((wo: any) => ({
+        workOrdersData.map((wo: WorkOrderListRow) => ({
           id: wo.id,
           orderNumber: wo.orderNumber || `WO-${wo.id.substring(0, 4)}`,
           status: wo.status as
@@ -114,9 +135,12 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
             | "COMPLETED",
           title: wo.title || wo.description || "Service",
           finalAmount: wo.finalAmount || wo.amount || 0,
-          createdAt: wo.createdAt,
+          createdAt: wo.createdAt || wo.scheduledDate || "",
           completedAt: wo.completedAt,
-          provider: wo.provider || { businessName: "Provider", rating: 0 },
+          provider: {
+            businessName: wo.provider?.businessName ?? "Provider",
+            rating: wo.provider?.rating ?? 0,
+          },
           vehicle: wo.vehicle || { make: "N/A", model: "N/A", year: 0 },
         })),
       );
@@ -135,7 +159,14 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
     setRefreshing(false);
   }
 
-  const getRequestStatusInfo = (status: string) => {
+  const getRequestStatusInfo = (
+    status: string,
+  ): {
+    label: string;
+    color: string;
+    bgColor: string;
+    icon: IoniconName;
+  } => {
     switch (status) {
       case "SEARCHING":
       case "SEARCHING_PROVIDERS":
@@ -192,7 +223,14 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
     }
   };
 
-  const getStatusInfo = (status: string) => {
+  const getStatusInfo = (
+    status: string,
+  ): {
+    label: string;
+    color: string;
+    bgColor: string;
+    icon: IoniconName;
+  } => {
     switch (status) {
       case "PENDING_START":
         return {
@@ -722,7 +760,7 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
                           ]}
                         >
                           <Ionicons
-                            name={statusInfo.icon as any}
+                            name={statusInfo.icon}
                             size={20}
                             color={statusInfo.color}
                           />
@@ -847,7 +885,7 @@ export default function CustomerWorkOrdersScreen({ navigation }: any) {
                         ]}
                       >
                         <Ionicons
-                          name={statusInfo.icon as any}
+                          name={statusInfo.icon}
                           size={20}
                           color={statusInfo.color}
                         />

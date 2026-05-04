@@ -16,8 +16,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useI18n } from '../../i18n';
+import type { ProviderAppNavigation } from "../../navigation/types";
 
-export default function ProviderSecurityScreen({ navigation }: any) {
+export default function ProviderSecurityScreen({ navigation }: { navigation: ProviderAppNavigation }) {
   const { t } = useI18n();
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
   const [biometricEnabled, setBiometricEnabled] = useState(false);

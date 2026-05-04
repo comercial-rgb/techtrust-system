@@ -31,11 +31,12 @@ import api from "../../services/api";
 import { log } from "../../utils/logger";
 import { useI18n } from "../../i18n";
 import { interpolate } from "../../i18n/interpolate";
+import type { ProviderAppNavigation } from "../../navigation/types";
 
-export default function TechnicianManagementScreen({ navigation }: any) {
+export default function TechnicianManagementScreen({ navigation }: { navigation: ProviderAppNavigation }) {
   const { t, formatDate } = useI18n();
-  const tc = (t as any).providerCompliance || {};
-  const tm = (t as any).technicianManagement || {};
+  const tc = t.providerCompliance;
+  const tm = t.technicianManagement;
 
   const roleOptions = useMemo(
     () => [
@@ -121,9 +122,13 @@ export default function TechnicianManagementScreen({ navigation }: any) {
     setEditingTech(tech);
     setFullName(tech.fullName);
     setRole(tech.role);
-    setDateOfHire((tech as any).dateOfHire ? new Date((tech as any).dateOfHire).toISOString().split("T")[0] : "");
-    setDriversLicenseNumber((tech as any).driversLicenseNumber || "");
-    setDriversLicenseState((tech as any).driversLicenseState || "FL");
+    setDateOfHire(
+      tech.dateOfHire
+        ? new Date(tech.dateOfHire).toISOString().split("T")[0]
+        : "",
+    );
+    setDriversLicenseNumber(tech.driversLicenseNumber || "");
+    setDriversLicenseState(tech.driversLicenseState || "FL");
     setEpa609CertNumber(tech.epa609CertNumber || "");
     setEpa609CertType(tech.epa609CertType || "");
     setEpa609CertExpiry(
@@ -150,7 +155,7 @@ export default function TechnicianManagementScreen({ navigation }: any) {
         uri: file.uri,
         type: file.mimeType || "application/octet-stream",
         name: file.name || "cert",
-      } as any);
+      } as unknown as Blob);
 
       const uploadRes = await api.post("/upload", formData, {
         headers: { "Content-Type": "multipart/form-data" },

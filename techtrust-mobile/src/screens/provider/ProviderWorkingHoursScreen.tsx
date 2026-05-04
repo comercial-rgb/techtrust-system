@@ -13,8 +13,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useI18n } from '../../i18n';
+import { formatTime12h } from '../../i18n/formatTime12h';
 import { useFocusEffect } from '@react-navigation/native';
 import api from '../../services/api';
+import type { ProviderAppNavigation } from "../../navigation/types";
 
 interface DaySchedule {
   day: string;
@@ -39,16 +41,16 @@ const TIME_OPTIONS = [
   '13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00','22:00',
 ];
 
-const to12h = (time: string): string => {
-  const [hStr, mStr] = time.split(':');
-  const h = parseInt(hStr, 10);
-  const ampm = h < 12 ? 'AM' : 'PM';
-  const hour = h % 12 || 12;
-  return `${hour}:${mStr} ${ampm}`;
-};
-
-export default function ProviderWorkingHoursScreen({ navigation }: any) {
+export default function ProviderWorkingHoursScreen({ navigation }: { navigation: ProviderAppNavigation }) {
   const { t } = useI18n();
+  const po = t.providerOnboarding;
+  const weekdayFull = t.weekdayFull as Record<string, string> | undefined;
+  const format12 = (time: string) =>
+    formatTime12h(
+      time,
+      t.common?.timeAm ?? 'AM',
+      t.common?.timePm ?? 'PM',
+    );
   const [schedule, setSchedule] = useState<DaySchedule[]>(DEFAULT_SCHEDULE);
   const [is24Hours, setIs24Hours] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -190,7 +192,9 @@ export default function ProviderWorkingHoursScreen({ navigation }: any) {
                   <View style={[styles.dayCheckbox, day.enabled && styles.dayCheckboxActive]}>
                     {day.enabled && <MaterialCommunityIcons name="check" size={16} color="#fff" />}
                   </View>
-                  <Text style={[styles.dayName, !day.enabled && styles.dayNameDisabled]}>{day.day}</Text>
+                  <Text style={[styles.dayName, !day.enabled && styles.dayNameDisabled]}>
+                    {weekdayFull?.[day.day] ?? day.day}
+                  </Text>
                 </TouchableOpacity>
 
                 {day.enabled && !is24Hours && (
@@ -199,21 +203,23 @@ export default function ProviderWorkingHoursScreen({ navigation }: any) {
                       style={styles.timeBox}
                       onPress={() => { setEditingDay(index); setEditingField('openTime'); setShowTimePicker(true); }}
                     >
-                      <Text style={styles.timeText}>{to12h(day.openTime)}</Text>
+                      <Text style={styles.timeText}>{format12(day.openTime)}</Text>
                     </TouchableOpacity>
                     <Text style={styles.timeSeparator}>{t.common?.to || 'to'}</Text>
                     <TouchableOpacity
                       style={styles.timeBox}
                       onPress={() => { setEditingDay(index); setEditingField('closeTime'); setShowTimePicker(true); }}
                     >
-                      <Text style={styles.timeText}>{to12h(day.closeTime)}</Text>
+                      <Text style={styles.timeText}>{format12(day.closeTime)}</Text>
                     </TouchableOpacity>
                   </View>
                 )}
 
                 {day.enabled && is24Hours && (
                   <View style={styles.badge24h}>
-                    <Text style={styles.badge24hText}>24h</Text>
+                    <Text style={styles.badge24hText}>
+                      {t.common?.open24hShort || '24h'}
+                    </Text>
                   </View>
                 )}
 
@@ -242,7 +248,9 @@ export default function ProviderWorkingHoursScreen({ navigation }: any) {
           <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                {editingField === 'openTime' ? 'Opening Time' : 'Closing Time'}
+                {editingField === 'openTime'
+                  ? po?.openingTime || 'Opening Time'
+                  : po?.closingTime || 'Closing Time'}
               </Text>
               <TouchableOpacity onPress={() => setShowTimePicker(false)}>
                 <MaterialCommunityIcons name="close" size={24} color="#374151" />
@@ -264,7 +272,7 @@ export default function ProviderWorkingHoursScreen({ navigation }: any) {
                     }}
                   >
                     <Text style={[styles.modalItemText, isSelected && { color: '#2B5EA7', fontWeight: '700' }]}>
-                      {to12h(opt)}
+                      {format12(opt)}
                     </Text>
                     {isSelected && <MaterialCommunityIcons name="check" size={18} color="#2B5EA7" />}
                   </TouchableOpacity>

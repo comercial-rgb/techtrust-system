@@ -232,7 +232,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (response.error) {
       // Preserve error code and response data for PHONE_NOT_VERIFIED handling
-      const err = new Error(response.error) as any;
+      const err = new Error(response.error) as Error & {
+        code?: string;
+        responseData?: unknown;
+      };
       err.code = response.code;
       err.responseData = response.responseData;
       throw err;

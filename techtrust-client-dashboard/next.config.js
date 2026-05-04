@@ -3,10 +3,19 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   images: {
-    domains: [
-      'localhost',
-      'app.techtrustautosolutions.com',
-      'techtrustautosolutions.com',
+    remotePatterns: [
+      { protocol: 'http', hostname: 'localhost', pathname: '/**' },
+      { protocol: 'https', hostname: 'localhost', pathname: '/**' },
+      {
+        protocol: 'https',
+        hostname: 'app.techtrustautosolutions.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'techtrustautosolutions.com',
+        pathname: '/**',
+      },
     ],
   },
   async headers() {

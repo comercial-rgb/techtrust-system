@@ -21,6 +21,7 @@ import { FadeInView } from '../components/Animated';
 import { useI18n } from '../i18n';
 import api from '../services/api';
 import { log } from "../utils/logger";
+import type { CustomerAppNavigation } from "../navigation/types";
 
 interface ChatPreview {
   conversationId: string;
@@ -45,7 +46,7 @@ interface ChatPreview {
   unreadCount: number;
 }
 
-export default function ChatListScreen({ navigation }: any) {
+export default function ChatListScreen({ navigation }: { navigation: CustomerAppNavigation }) {
   const { t, language, formatTime } = useI18n();
   const chatLocale = useMemo(
     () => (language === "pt" ? "pt-BR" : language === "es" ? "es-ES" : "en-US"),

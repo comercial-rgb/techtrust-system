@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 
 import { logApiError } from "../../utils/logger";
+import { unwrapApiData } from "../../utils/unwrapApiData";
 
 interface StateProfile {
   id: string;
@@ -101,8 +102,10 @@ export default function CompliancePage() {
         api.get('/multi-state/states/all'),
         api.get('/multi-state/compliance-requirements'),
       ]);
-      setStates((statesRes.data as any)?.states || []);
-      setRequirements((reqsRes.data as any)?.requirements || []);
+      const statesPayload = unwrapApiData<{ states?: unknown[] }>(statesRes.data);
+      const reqsPayload = unwrapApiData<{ requirements?: unknown[] }>(reqsRes.data);
+      setStates(Array.isArray(statesPayload.states) ? (statesPayload.states as StateProfile[]) : []);
+      setRequirements(Array.isArray(reqsPayload.requirements) ? (reqsPayload.requirements as ComplianceRequirement[]) : []);
     } catch (err) {
       logApiError('Error fetching compliance data:', err);
     } finally {
@@ -113,7 +116,8 @@ export default function CompliancePage() {
   const fetchPolicies = async (stateCode: string) => {
     try {
       const res = await api.get(`/multi-state/jurisdiction-policies/${stateCode}`);
-      setPolicies((res.data as any)?.policies || []);
+      const pol = unwrapApiData<{ policies?: JurisdictionPolicy[] }>(res.data);
+      setPolicies(Array.isArray(pol.policies) ? pol.policies : []);
     } catch (err) {
       logApiError('Error fetching policies:', err);
     }

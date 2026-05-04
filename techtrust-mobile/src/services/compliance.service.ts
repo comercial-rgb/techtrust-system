@@ -5,7 +5,11 @@
  * API calls for Provider Compliance, Technicians, Insurance & Verification
  */
 
+import type { ComponentProps } from "react";
+import { Ionicons } from "@expo/vector-icons";
 import api from "./api";
+
+type IoniconName = ComponentProps<typeof Ionicons>["name"];
 
 // ============================================
 // TYPES
@@ -37,6 +41,9 @@ export interface Technician {
   providerProfileId: string;
   fullName: string;
   role: string;
+  dateOfHire?: string;
+  driversLicenseNumber?: string;
+  driversLicenseState?: string;
   epa609CertNumber?: string;
   epa609CertType?: string;
   epa609CertExpiry?: string;
@@ -257,41 +264,48 @@ export const acceptRiskDisclaimer = async (data: {
 // PROVIDER PUBLIC STATUS HELPERS
 // ============================================
 
-export const getProviderComplianceBadge = (status: string) => {
+export const getProviderComplianceBadge = (
+  status: string,
+): {
+  label: string;
+  color: string;
+  icon: IoniconName;
+  bgColor: string;
+} => {
   switch (status) {
     case "VERIFIED":
       return {
         label: "Verified",
         color: "#16a34a",
-        icon: "shield-checkmark" as const,
+        icon: "shield-checkmark",
         bgColor: "#f0fdf4",
       };
     case "PENDING":
       return {
         label: "Pending",
         color: "#d97706",
-        icon: "time" as const,
+        icon: "time",
         bgColor: "#fffbeb",
       };
     case "RESTRICTED":
       return {
         label: "Restricted",
         color: "#dc2626",
-        icon: "warning" as const,
+        icon: "warning",
         bgColor: "#fef2f2",
       };
     case "NOT_ELIGIBLE":
       return {
         label: "Not Eligible",
         color: "#6b7280",
-        icon: "close-circle" as const,
+        icon: "close-circle",
         bgColor: "#f9fafb",
       };
     default:
       return {
         label: "Unknown",
         color: "#6b7280",
-        icon: "help-circle" as const,
+        icon: "help-circle",
         bgColor: "#f9fafb",
       };
   }

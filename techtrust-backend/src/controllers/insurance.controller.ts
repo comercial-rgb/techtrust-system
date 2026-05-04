@@ -15,12 +15,13 @@ import { logger } from "../config/logger";
 const prisma = new PrismaClient();
 
 async function resolveProviderProfileId(req: Request): Promise<string | null> {
-  const user = (req as any).user;
+  const user = req.user;
+  if (!user?.id) return null;
   const requestedId = req.params.providerProfileId;
   if (requestedId) return requestedId;
 
   const profile = await prisma.providerProfile.findUnique({
-    where: { userId: user.userId || user.id },
+    where: { userId: user.id },
     select: { id: true },
   });
   return profile?.id || null;
@@ -67,7 +68,10 @@ export const upsertInsurancePolicy = async (
 ): Promise<any> => {
   try {
     const providerProfileId = await resolveProviderProfileId(req);
-    const user = (req as any).user;
+    const user = req.user;
+    if (!user?.id) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
     const {
       type,
       hasCoverage,
@@ -98,7 +102,7 @@ export const upsertInsurancePolicy = async (
       return res
         .status(404)
         .json({ success: false, message: "Provider profile not found" });
-    if (profile.userId !== (user.userId || user.id) && user.role !== "ADMIN") {
+    if (profile.userId !== user.id && user.role !== "ADMIN") {
       return res
         .status(403)
         .json({ success: false, message: "Not authorized" });
@@ -186,7 +190,10 @@ export const batchUpsertInsurance = async (
 ): Promise<any> => {
   try {
     const providerProfileId = await resolveProviderProfileId(req);
-    const user = (req as any).user;
+    const user = req.user;
+    if (!user?.id) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
     const { policies } = req.body;
 
     if (!providerProfileId) {
@@ -200,7 +207,7 @@ export const batchUpsertInsurance = async (
       return res
         .status(404)
         .json({ success: false, message: "Provider profile not found" });
-    if (profile.userId !== (user.userId || user.id) && user.role !== "ADMIN") {
+    if (profile.userId !== user.id && user.role !== "ADMIN") {
       return res
         .status(403)
         .json({ success: false, message: "Not authorized" });

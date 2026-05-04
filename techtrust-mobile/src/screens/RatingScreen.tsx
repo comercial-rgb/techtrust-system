@@ -20,10 +20,23 @@ import { logos } from "../constants/images";
 import { useI18n } from "../i18n";
 import api from "../services/api";
 import { log } from "../utils/logger";
+import type { RouteProp } from "@react-navigation/native";
+import type {
+  CustomerServicesStackNavigation,
+  WorkOrdersStackParamList,
+} from "../navigation/types";
 
 const TIP_PRESETS = [5, 10, 15, 20];
 
-export default function RatingScreen({ navigation, route }: any) {
+type RatingScreenRoute = RouteProp<WorkOrdersStackParamList, "Rating">;
+
+export default function RatingScreen({
+  navigation,
+  route,
+}: {
+  navigation: CustomerServicesStackNavigation<"Rating">;
+  route: RatingScreenRoute;
+}) {
   const { t, formatDate, formatCurrency } = useI18n();
   const fiatSymbol =
     ((t as { formats?: { currencySymbol?: string } }).formats
@@ -138,7 +151,8 @@ export default function RatingScreen({ navigation, route }: any) {
         [
           {
             text: t.common?.ok || "OK",
-            onPress: () => navigation.navigate("Home"),
+            onPress: () =>
+              navigation.navigate("Home", { screen: "DashboardMain" }),
           },
         ],
       );
@@ -300,7 +314,7 @@ export default function RatingScreen({ navigation, route }: any) {
             </Text>
             <TextInput
               style={styles.tipCustomInput}
-              placeholder="0.00"
+              placeholder={t.common?.decimalPlaceholder ?? "0.00"}
               placeholderTextColor="#9ca3af"
               keyboardType="decimal-pad"
               value={customTipAmount}
@@ -362,7 +376,11 @@ export default function RatingScreen({ navigation, route }: any) {
             </Text>
           )}
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate("Home")}>
+        <TouchableOpacity
+          onPress={() =>
+            navigation.navigate("Home", { screen: "DashboardMain" })
+          }
+        >
           <Text style={styles.skipText}>{t.common?.skip || "Skip"}</Text>
         </TouchableOpacity>
       </View>

@@ -25,6 +25,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import api from "../../services/api";
 import { useI18n } from "../../i18n";
+import type { RouteProp } from "@react-navigation/native";
+import type { CustomerAppNavigation, HomeStackParamList } from "../../navigation/types";
 
 const { width } = Dimensions.get("window");
 
@@ -43,7 +45,13 @@ type Step = "SELECT" | "LOCATION" | "BROADCAST" | "OFFER" | "CONFIRMED" | "CANCE
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function CustomerSOSScreen({ navigation, route }: any) {
+export default function CustomerSOSScreen({
+  navigation,
+  route,
+}: {
+  navigation: CustomerAppNavigation;
+  route: RouteProp<HomeStackParamList, "CustomerSOS">;
+}) {
   const { t, formatCurrency } = useI18n();
 
   const getSosTypeText = useCallback(
@@ -98,7 +106,7 @@ export default function CustomerSOSScreen({ navigation, route }: any) {
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   // Get vehicle from route params or default
-  const vehicleId = route?.params?.vehicleId;
+  const vehicleId = route.params?.vehicleId;
 
   // Pulse animation for broadcast screen
   useEffect(() => {

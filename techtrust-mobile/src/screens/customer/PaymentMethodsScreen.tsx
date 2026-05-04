@@ -2,7 +2,7 @@
  * PaymentMethodsScreen - Gerenciamento de Formas de Pagamento
  */
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, type ComponentProps } from "react";
 import {
   View,
   Text,
@@ -28,8 +28,21 @@ import {
 } from "@stripe/stripe-react-native";
 import { useI18n } from "../../i18n";
 import { useRoute, CommonActions } from "@react-navigation/native";
+import type { RouteProp } from "@react-navigation/native";
 import api from "../../services/api";
 import { log } from "../../utils/logger";
+import type {
+  CustomerAppNavigation,
+  CustomerAppParamList,
+} from "../../navigation/types";
+
+type IoniconName = ComponentProps<typeof Ionicons>["name"];
+
+type ConfirmPlatformPaySetup = ReturnType<
+  typeof usePlatformPay
+>["confirmPlatformPaySetupIntent"];
+type PlatformPaySetupParams = Parameters<ConfirmPlatformPaySetup>[1];
+type PlatformPaySetupResult = Awaited<ReturnType<ConfirmPlatformPaySetup>>;
 
 // Storage keys
 const PAYMENT_METHODS_KEY = "@TechTrust:paymentMethods";
@@ -59,14 +72,14 @@ interface WalletTransaction {
   date: string;
 }
 
-export default function PaymentMethodsScreen({ navigation }: any) {
+export default function PaymentMethodsScreen({ navigation }: { navigation: CustomerAppNavigation }) {
   const { t, language, formatCurrency } = useI18n();
-  const fiatSymbol = (t as any).formats?.currencySymbol ?? "$";
+  const fiatSymbol = t.formats?.currencySymbol ?? "$";
   const listLocale = useMemo(
     () => (language === "pt" ? "pt-BR" : language === "es" ? "es-ES" : "en-US"),
     [language],
   );
-  const route = useRoute<any>();
+  const route = useRoute<RouteProp<CustomerAppParamList, "PaymentMethods">>();
   const fromDashboard = route.params?.fromDashboard;
   const fromCreateRequest = route.params?.fromCreateRequest;
   const addCardMode = route.params?.addCardMode;
@@ -350,20 +363,20 @@ export default function PaymentMethodsScreen({ navigation }: any) {
               },
             };
 
-      const result = await confirmPlatformPaySetupIntent(
+      const result = (await confirmPlatformPaySetupIntent(
         clientSecret,
-        walletParams as any,
-      );
+        walletParams as PlatformPaySetupParams,
+      )) as PlatformPaySetupResult;
 
-      if ((result as any).error) {
-        const err = (result as any).error;
+      if (result.error) {
+        const err = result.error;
         if (err?.code !== "Canceled") {
           throw new Error(err?.message || "Wallet setup failed");
         }
         return;
       }
 
-      const setupIntent = (result as any).setupIntent;
+      const setupIntent = result.setupIntent;
       const pmId =
         setupIntent?.paymentMethodId ||
         (setupIntent?.paymentMethod &&
@@ -717,7 +730,7 @@ export default function PaymentMethodsScreen({ navigation }: any) {
     );
   };
 
-  const getCardIcon = (brand?: string) => {
+  const getCardIcon = (brand?: string): IoniconName => {
     switch (brand?.toLowerCase()) {
       case "visa":
         return "card";
@@ -983,9 +996,7 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                       ]}
                     >
                       <Ionicons
-                        name={
-                          getCardIcon(method.brand || method.cardBrand) as any
-                        }
+                        name={getCardIcon(method.brand || method.cardBrand)}
                         size={24}
                         color={getCardColor(method.brand || method.cardBrand)}
                       />
@@ -1136,18 +1147,20 @@ export default function PaymentMethodsScreen({ navigation }: any) {
               {/* Type Selection */}
               <Text style={[styles.inputLabel, { marginTop: 8 }]}>Card Type</Text>
               <View style={styles.typeOptions}>
-                {[
-                  {
-                    type: "credit" as const,
-                    label: "Credit Card",
-                    icon: "card",
-                  },
-                  {
-                    type: "debit" as const,
-                    label: "Debit Card",
-                    icon: "card-outline",
-                  },
-                ].map((option) => (
+                {(
+                  [
+                    {
+                      type: "credit" as const,
+                      label: "Credit Card",
+                      icon: "card" as const,
+                    },
+                    {
+                      type: "debit" as const,
+                      label: "Debit Card",
+                      icon: "card-outline" as const,
+                    },
+                  ] as const
+                ).map((option) => (
                   <TouchableOpacity
                     key={option.type}
                     style={[
@@ -1159,7 +1172,7 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                     }
                   >
                     <Ionicons
-                      name={option.icon as any}
+                      name={option.icon}
                       size={20}
                       color={
                         formData.type === option.type ? "#2B5EA7" : "#6b7280"
@@ -1180,10 +1193,15 @@ export default function PaymentMethodsScreen({ navigation }: any) {
 
               {formData.type === "pix" && (
                 <>
-                  <Text style={[styles.inputLabel, { marginTop: 8 }]}>PIX Key *</Text>
+                  <Text style={[styles.inputLabel, { marginTop: 8 }]}>
+                    {t.customer?.pixKeyLabel || "PIX Key"} *
+                  </Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="Email, phone, CPF or random key"
+                    placeholder={
+                      t.customer?.pixKeyPlaceholder ||
+                      "Email, phone, CPF or random key"
+                    }
                     value={formData.pixKey}
                     onChangeText={(text) =>
                       setFormData({ ...formData, pixKey: text })
@@ -1199,17 +1217,22 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                     <Ionicons name="logo-apple" size={22} color={isApplePayReady ? '#10b981' : '#9ca3af'} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.dwBannerTitle}>Apple Pay</Text>
+                    <Text style={styles.dwBannerTitle}>
+                      {t.customer?.applePayBannerTitle || "Apple Pay"}
+                    </Text>
                     <Text style={styles.dwBannerDesc}>
                       {isApplePayReady
                         ? (t.customer?.applePaySaveHint ||
                           "Save your Apple Pay card to TechTrust to authorize quote holds and service payments.")
-                        : "Not available. Add a card to your Apple Wallet to enable Apple Pay at checkout."}
+                        : (t.customer?.applePayUnavailableHint ||
+                          "Not available. Add a card to your Apple Wallet to enable Apple Pay at checkout.")}
                     </Text>
                   </View>
                   <View style={[styles.dwBannerBadge, { backgroundColor: isApplePayReady ? '#dcfce7' : '#f3f4f6' }]}>
                     <Text style={{ fontSize: 11, fontWeight: '700', color: isApplePayReady ? '#16a34a' : '#9ca3af' }}>
-                      {isApplePayReady ? 'READY' : 'N/A'}
+                      {isApplePayReady
+                        ? (t.customer?.walletBadgeReady || "READY")
+                        : (t.customer?.walletBadgeNA || "N/A")}
                     </Text>
                   </View>
                 </View>
@@ -1298,7 +1321,7 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                 <Text style={styles.currencySymbol}>{fiatSymbol}</Text>
                 <TextInput
                   style={styles.amountInput}
-                  placeholder="0.00"
+                  placeholder={t.common?.decimalPlaceholder ?? "0.00"}
                   value={addBalanceAmount}
                   onChangeText={setAddBalanceAmount}
                   keyboardType="decimal-pad"
@@ -1354,21 +1377,32 @@ export default function PaymentMethodsScreen({ navigation }: any) {
               })()}
 
               <View style={styles.balanceMethodOptions}>
-                {[
-                  {
-                    type: "card" as const,
-                    label: t.customer?.creditDebitCard || "Credit/Debit Card",
-                    icon: "card",
-                    available: true,
-                  },
-                  {
-                    type: "transfer" as const,
-                    label: t.customer?.bankTransfer || "Bank Transfer (ACH)",
-                    icon: "swap-horizontal",
-                    available: false,
-                  },
-                  ...(language === "pt" ? [{ type: "pix" as const, label: "PIX", icon: "qr-code" as const, available: false }] : []),
-                ].map((option) => (
+                {(
+                  [
+                    {
+                      type: "card" as const,
+                      label: t.customer?.creditDebitCard || "Credit/Debit Card",
+                      icon: "card" as const,
+                      available: true,
+                    },
+                    {
+                      type: "transfer" as const,
+                      label: t.customer?.bankTransfer || "Bank Transfer (ACH)",
+                      icon: "swap-horizontal" as const,
+                      available: false,
+                    },
+                    ...(language === "pt"
+                      ? [
+                          {
+                            type: "pix" as const,
+                            label: "PIX",
+                            icon: "qr-code" as const,
+                            available: false,
+                          },
+                        ]
+                      : []),
+                  ] as const
+                ).map((option) => (
                   <TouchableOpacity
                     key={option.type}
                     style={[
@@ -1391,7 +1425,7 @@ export default function PaymentMethodsScreen({ navigation }: any) {
                     }}
                   >
                     <Ionicons
-                      name={option.icon as any}
+                      name={option.icon}
                       size={24}
                       color={
                         addBalanceMethod === option.type ? "#2B5EA7" : "#6b7280"

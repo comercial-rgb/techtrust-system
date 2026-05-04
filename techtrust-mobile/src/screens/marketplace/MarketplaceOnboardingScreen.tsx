@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useRef } from "react";
+import type { ComponentProps } from "react";
 import {
   View,
   Text,
@@ -22,10 +23,14 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
+
+type MciName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../../contexts/AuthContext";
 import { useI18n } from "../../i18n";
+import { formatTime12h } from "../../i18n/formatTime12h";
 import api from "../../services/api";
+import type { MarketplaceOnboardingStackScreenProps } from "../../navigation/types";
 
 // ─── Step IDs ─────────────────────────────────────────────────────────────────
 const STEP_IDS = ["welcome", "hours", "description", "done"] as const;
@@ -80,10 +85,19 @@ const TIME_OPTIONS = [
   "13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00","21:00","22:00",
 ];
 
-export default function MarketplaceOnboardingScreen({ navigation }: any) {
+export default function MarketplaceOnboardingScreen({
+  navigation,
+}: MarketplaceOnboardingStackScreenProps<"MarketplaceOnboarding">) {
   const { user, completeOnboarding } = useAuth();
   const { t } = useI18n();
   const mo = t.marketplaceOnboarding;
+  const weekdayShort = t.weekdayShort as Record<string, string> | undefined;
+  const format12 = (time: string) =>
+    formatTime12h(
+      time,
+      t.common?.timeAm ?? "AM",
+      t.common?.timePm ?? "PM",
+    );
   const [currentStep, setCurrentStep] = useState(0);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -233,7 +247,11 @@ export default function MarketplaceOnboardingScreen({ navigation }: any) {
         ].map((b, i) => (
           <View key={i} style={styles.benefitRow}>
             <View style={[styles.benefitIcon, { backgroundColor: bgColor }]}>
-              <MaterialCommunityIcons name={b.icon as any} size={16} color={color} />
+              <MaterialCommunityIcons
+                name={b.icon as MciName}
+                size={16}
+                color={color}
+              />
             </View>
             <Text style={styles.benefitText}>{b.text}</Text>
           </View>
@@ -277,7 +295,9 @@ export default function MarketplaceOnboardingScreen({ navigation }: any) {
               <View style={[styles.dayCheck, day.enabled && { backgroundColor: color }]}>
                 {day.enabled && <Ionicons name="checkmark" size={12} color="#fff" />}
               </View>
-              <Text style={[styles.dayName, !day.enabled && { color: "#9ca3af" }]}>{day.dayShort}</Text>
+              <Text style={[styles.dayName, !day.enabled && { color: "#9ca3af" }]}>
+                {weekdayShort?.[day.day] ?? day.dayShort}
+              </Text>
             </TouchableOpacity>
 
             {day.enabled ? (
@@ -286,14 +306,14 @@ export default function MarketplaceOnboardingScreen({ navigation }: any) {
                   style={styles.timeBtn}
                   onPress={() => { setEditingDay(index); setEditingField("openTime"); setShowTimePicker(true); }}
                 >
-                  <Text style={styles.timeBtnText}>{day.openTime}</Text>
+                  <Text style={styles.timeBtnText}>{format12(day.openTime)}</Text>
                 </TouchableOpacity>
                 <Text style={styles.timeSep}>–</Text>
                 <TouchableOpacity
                   style={styles.timeBtn}
                   onPress={() => { setEditingDay(index); setEditingField("closeTime"); setShowTimePicker(true); }}
                 >
-                  <Text style={styles.timeBtnText}>{day.closeTime}</Text>
+                  <Text style={styles.timeBtnText}>{format12(day.closeTime)}</Text>
                 </TouchableOpacity>
               </View>
             ) : (
@@ -345,7 +365,11 @@ export default function MarketplaceOnboardingScreen({ navigation }: any) {
                       setShowTimePicker(false);
                     }}
                   >
-                    <Text style={[styles.modalItemText, isSelected && { color, fontWeight: "700" }]}>{timeOpt}</Text>
+                    <Text
+                      style={[styles.modalItemText, isSelected && { color, fontWeight: "700" }]}
+                    >
+                      {format12(timeOpt)}
+                    </Text>
                     {isSelected && <Ionicons name="checkmark" size={18} color={color} />}
                   </TouchableOpacity>
                 );
@@ -487,7 +511,11 @@ export default function MarketplaceOnboardingScreen({ navigation }: any) {
         ].map((item, i) => (
           <View key={i} style={styles.doneRow}>
             <View style={[styles.doneIcon, { backgroundColor: STEP_BG.done }]}>
-              <MaterialCommunityIcons name={item.icon as any} size={16} color={STEP_COLORS.done} />
+              <MaterialCommunityIcons
+                name={item.icon as MciName}
+                size={16}
+                color={STEP_COLORS.done}
+              />
             </View>
             <Text style={styles.doneRowText}>{item.text}</Text>
           </View>

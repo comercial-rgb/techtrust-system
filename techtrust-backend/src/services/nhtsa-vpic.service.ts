@@ -17,6 +17,7 @@
  */
 
 import axios from 'axios';
+import type { Prisma } from "@prisma/client";
 import prisma from "../config/database";
 import { logger } from "../config/logger";
 
@@ -351,14 +352,14 @@ export async function decodeVIN_vPIC(vin: string, modelYear?: number): Promise<V
           vin: cleanVin,
           modelYear: modelYear || null,
           rawData: data.Results,
-          parsed: result as any,
+          parsed: JSON.parse(JSON.stringify(result)) as Prisma.InputJsonValue,
           source: 'NHTSA_VPIC',
           completeness,
           expiresAt,
         },
         update: {
           rawData: data.Results,
-          parsed: result as any,
+          parsed: JSON.parse(JSON.stringify(result)) as Prisma.InputJsonValue,
           completeness,
           expiresAt,
         },

@@ -34,20 +34,18 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useI18n } from '../../i18n';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { WorkOrdersStackParamList } from '../../navigation/types';
 import serviceFlowService, {
   ApprovedQuoteDetails,
   ProcessorComparison,
   ReceiptData,
 } from '../../services/service-flow.service';
 
-interface ServiceApprovalScreenProps {
-  navigation: any;
-  route: {
-    params: {
-      workOrderId: string;
-    };
-  };
-}
+type ServiceApprovalScreenProps = NativeStackScreenProps<
+  WorkOrdersStackParamList,
+  'ServiceApproval'
+>;
 
 function ServiceApprovalScreen({ navigation, route }: ServiceApprovalScreenProps) {
   const { workOrderId } = route.params;

@@ -4,7 +4,7 @@
  * Suporte a Social Login (Google/Apple) e Login Biométrico
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, type ComponentProps } from "react";
 import {
   View,
   Text,
@@ -37,8 +37,13 @@ import {
   attemptBiometricLogin,
   BiometricInfo,
 } from "../services/authService";
+import type { AuthStackScreenProps } from "../navigation/types";
 
-export default function LoginScreen({ navigation }: any) {
+type MciName = ComponentProps<typeof MaterialCommunityIcons>["name"];
+
+export default function LoginScreen({
+  navigation,
+}: AuthStackScreenProps<"Login">) {
   const { login, loginAsProvider, socialLogin } = useAuth();
   const { language, setLanguage, t } = useI18n();
   const [email, setEmail] = useState("");
@@ -113,9 +118,10 @@ export default function LoginScreen({ navigation }: any) {
   const validateSocialRole = (userRole: string | undefined): boolean => {
     if (loginType === "provider" && userRole && userRole !== "PROVIDER") {
       Alert.alert(
-        "Wrong account type",
-        "This Google/Apple account is linked to a customer account. To access the provider dashboard, please register a provider account or sign in with your provider email and password.",
-        [{ text: "OK" }],
+        t.auth?.socialWrongRoleProviderTitle || "Wrong account type",
+        t.auth?.socialWrongRoleProviderBody ||
+          "This Google/Apple account is linked to a customer account. To access the provider dashboard, please register a provider account or sign in with your provider email and password.",
+        [{ text: t.common?.ok || "OK" }],
       );
       return false;
     }
@@ -137,12 +143,12 @@ export default function LoginScreen({ navigation }: any) {
           if (!validateSocialRole(result.userRole)) return;
         }
 
-        if (result.status === "NEEDS_PASSWORD") {
+        if (result.status === "NEEDS_PASSWORD" && result.userId) {
           navigation.navigate("CompleteSocialSignup", {
             userId: result.userId,
             email: result.email,
             fullName: result.fullName,
-            phone: result.phone,
+            phone: result.phone ?? undefined,
             provider: "Google",
           });
         }
@@ -181,12 +187,12 @@ export default function LoginScreen({ navigation }: any) {
           if (!validateSocialRole(result.userRole)) return;
         }
 
-        if (result.status === "NEEDS_PASSWORD") {
+        if (result.status === "NEEDS_PASSWORD" && result.userId) {
           navigation.navigate("CompleteSocialSignup", {
             userId: result.userId,
             email: result.email,
             fullName: result.fullName,
-            phone: result.phone,
+            phone: result.phone ?? undefined,
             provider: "Apple",
           });
         }
@@ -281,11 +287,11 @@ export default function LoginScreen({ navigation }: any) {
     setShowLanguageModal(false);
   };
 
-  const getBiometricIcon = () => {
+  const getBiometricIcon = (): MciName => {
     if (!biometricInfo) return "fingerprint";
     switch (biometricInfo.biometricType) {
       case "facial":
-        return Platform.OS === "ios" ? "face-recognition" : "face-recognition";
+        return "face-recognition";
       case "fingerprint":
         return "fingerprint";
       default:
@@ -528,8 +534,10 @@ export default function LoginScreen({ navigation }: any) {
               <MaterialCommunityIcons name="information-outline" size={15} color="#6b7280" />
               <Text style={styles.socialInfoText}>
                 {loginType === "provider"
-                  ? "If your Google/Apple account is already linked to a provider account, you'll sign in directly. Otherwise, use email & password above."
-                  : "If you already have an account with this email, it will be linked automatically."}
+                  ? t.auth?.socialLoginInfoProvider ||
+                    "If your Google/Apple account is already linked to a provider account, you'll sign in directly. Otherwise, use email & password above."
+                  : t.auth?.socialLoginInfoCustomer ||
+                    "If you already have an account with this email, it will be linked automatically."}
               </Text>
             </View>
 
@@ -581,7 +589,7 @@ export default function LoginScreen({ navigation }: any) {
                   disabled={loading}
                 >
                   <MaterialCommunityIcons
-                    name={getBiometricIcon() as any}
+                    name={getBiometricIcon()}
                     size={24}
                     color="#2B5EA7"
                   />

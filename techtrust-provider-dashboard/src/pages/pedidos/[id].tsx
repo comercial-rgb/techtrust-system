@@ -173,8 +173,8 @@ export default function PedidoDetalhesPage() {
     }
   }
 
-  async function handleSubmitQuote(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSubmitQuote(e?: React.FormEvent) {
+    e?.preventDefault();
 
     if (!partsCost || !laborCost || !laborDescription || !estimatedDuration) {
       alert("Preencha todos os campos obrigatórios");
@@ -1229,7 +1229,7 @@ export default function PedidoDetalhesPage() {
                     disabled={submitting}
                     onClick={() => {
                       setShowConfirmModal(false);
-                      handleSubmitQuote(new Event("submit") as any);
+                      void handleSubmitQuote();
                     }}
                     className="flex-1 btn btn-primary py-3 disabled:opacity-50"
                   >

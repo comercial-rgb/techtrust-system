@@ -14,6 +14,7 @@
  */
 
 import { Request, Response } from "express";
+import { PaymentProcessor, ProviderLevel } from "@prisma/client";
 import { prisma } from "../config/database";
 import { AppError } from "../middleware/error-handler";
 import { logger } from "../config/logger";
@@ -36,8 +37,15 @@ import {
   compareProcessorFees,
   calculateFullFeeBreakdown,
   applyDiscount,
+  type ProviderLevelKey,
 } from "../config/businessRules";
 import { buildProviderDisclosure } from "../utils/provider-disclosures";
+
+type WorkOrderPhotoEntry = {
+  url: string;
+  uploadedAt: string;
+  uploadedBy: string;
+};
 
 // ============================================
 // 1. APROVAÇÃO DE ORÇAMENTO + HOLD NO CARTÃO
@@ -158,7 +166,9 @@ export const approveQuoteWithPaymentHold = async (
   const clientPlan = subscription?.plan || 'FREE';
 
   // Provider level para comissão tiered (8-15%)
-  const providerLevel = (quote.provider.providerProfile?.providerLevel || 'ENTRY') as any;
+  const providerLevel: ProviderLevelKey =
+    (quote.provider.providerProfile?.providerLevel ??
+      ProviderLevel.ENTRY) as ProviderLevelKey;
 
   const cardType = (paymentMethod?.type as "credit" | "debit") || "credit";
 
@@ -409,7 +419,7 @@ export const approveQuoteWithPaymentHold = async (
           workOrderId: workOrder.id,
           customerId,
           providerId: quote.providerId,
-          paymentProcessor: paymentProcessor as any,
+          paymentProcessor: paymentProcessor as PaymentProcessor,
           stripePaymentIntentId: holdResult.paymentIntentId,
           stripeChargeId: walletMode ? null : (confirmResult.chargeId || null),
           subtotal: effectiveQuoteTotal, // post-discount subtotal
@@ -777,8 +787,9 @@ export const respondToSupplement = async (req: Request, res: Response) => {
     select: { plan: true },
   });
   const clientPlan = subscription?.plan || "FREE";
-  const providerLevel = (supplement.workOrder.provider?.providerProfile
-    ?.providerLevel || "ENTRY") as any;
+  const providerLevel: ProviderLevelKey =
+    (supplement.workOrder.provider?.providerProfile?.providerLevel ??
+      ProviderLevel.ENTRY) as ProviderLevelKey;
 
   let pmResolved = paymentMethodId
     ? await prisma.paymentMethod.findFirst({
@@ -1384,7 +1395,11 @@ export const uploadServicePhotos = async (req: Request, res: Response) => {
     | "beforePhotos"
     | "duringPhotos"
     | "afterPhotos";
-  const existingPhotos = (workOrder[photoField] as any[]) || [];
+  const existingPhotos: WorkOrderPhotoEntry[] = Array.isArray(
+    workOrder[photoField],
+  )
+    ? (workOrder[photoField] as WorkOrderPhotoEntry[])
+    : [];
   const updatedPhotos = [
     ...existingPhotos,
     ...photoUrls.map((url: string) => ({
@@ -1789,7 +1804,11 @@ export const completeService = async (req: Request, res: Response) => {
 
   // Se cliente ausente, verificar fotos mínimas
   if (clientPresent === false && SERVICE_FLOW.REQUIRE_PHOTOS_WHEN_ABSENT) {
-    const afterPhotos = (workOrder.afterPhotos as any[]) || [];
+    const afterPhotos: WorkOrderPhotoEntry[] = Array.isArray(
+      workOrder.afterPhotos,
+    )
+      ? (workOrder.afterPhotos as WorkOrderPhotoEntry[])
+      : [];
     if (afterPhotos.length < SERVICE_FLOW.MIN_COMPLETION_PHOTOS) {
       throw new AppError(
         `When client is absent, at least ${SERVICE_FLOW.MIN_COMPLETION_PHOTOS} completion photos are required. Currently: ${afterPhotos.length}`,
@@ -2151,7 +2170,7 @@ export const approveServiceAndProcessPayment = async (
       termsAcceptedAt: now,
       fraudDisclaimerAcceptedAt: now,
       // FDACS Compliance
-      lineItems: lineItems as any[],
+      lineItems,
       odometerReading,
       fdacsNumber,
       warrantyStatement,

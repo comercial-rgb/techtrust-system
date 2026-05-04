@@ -4,7 +4,8 @@
  * 📱 Com seletor de código de país para SMS
  */
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import type { ComponentProps } from "react";
 import {
   View,
   StyleSheet,
@@ -19,10 +20,16 @@ import {
 import { TextInput, Text, useTheme } from "react-native-paper";
 import { useAuth } from "../contexts/AuthContext";
 import { useI18n } from "../i18n";
+import { interpolate } from "../i18n/interpolate";
+import { localeBulletList } from "../i18n/localeBulletList";
 import { Ionicons } from "@expo/vector-icons";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as paymentService from "../services/payment.service";
 import { US_STATES, CITIES_BY_STATE } from "../constants/us-states";
+import type { AuthStackScreenProps } from "../navigation/types";
+
+type IoniconName = ComponentProps<typeof Ionicons>["name"];
+type MciName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
 // ✨ Importando componentes de UI
 import {
@@ -37,28 +44,33 @@ import {
   AnimatedProgressBar,
 } from "../components";
 
-// 🌍 Lista de países com códigos
-const COUNTRIES = [
-  { code: "US", name: "United States", dialCode: "+1", flag: "🇺🇸" },
-  { code: "BR", name: "Brasil", dialCode: "+55", flag: "🇧🇷" },
-  { code: "PT", name: "Portugal", dialCode: "+351", flag: "🇵🇹" },
-  { code: "ES", name: "España", dialCode: "+34", flag: "🇪🇸" },
-  { code: "MX", name: "México", dialCode: "+52", flag: "🇲🇽" },
-  { code: "AR", name: "Argentina", dialCode: "+54", flag: "🇦🇷" },
-  { code: "CO", name: "Colombia", dialCode: "+57", flag: "🇨🇴" },
-  { code: "CL", name: "Chile", dialCode: "+56", flag: "🇨🇱" },
-  { code: "PE", name: "Perú", dialCode: "+51", flag: "🇵🇪" },
-  { code: "VE", name: "Venezuela", dialCode: "+58", flag: "🇻🇪" },
-  { code: "UY", name: "Uruguay", dialCode: "+598", flag: "🇺🇾" },
-  { code: "EC", name: "Ecuador", dialCode: "+593", flag: "🇪🇨" },
-  { code: "BO", name: "Bolivia", dialCode: "+591", flag: "🇧🇴" },
-  { code: "PY", name: "Paraguay", dialCode: "+595", flag: "🇵🇾" },
-  { code: "GB", name: "United Kingdom", dialCode: "+44", flag: "🇬🇧" },
-  { code: "FR", name: "France", dialCode: "+33", flag: "🇫🇷" },
-  { code: "DE", name: "Germany", dialCode: "+49", flag: "🇩🇪" },
-  { code: "IT", name: "Italy", dialCode: "+39", flag: "🇮🇹" },
-  { code: "CA", name: "Canada", dialCode: "+1", flag: "🇨🇦" },
-  { code: "AU", name: "Australia", dialCode: "+61", flag: "🇦🇺" },
+// 🌍 Dial countries — display names from t.common.dialCountryNames
+const SIGNUP_COUNTRY_SPECS: {
+  code: string;
+  dialCode: string;
+  flag: string;
+  fallbackName: string;
+}[] = [
+  { code: "US", dialCode: "+1", flag: "🇺🇸", fallbackName: "United States" },
+  { code: "BR", dialCode: "+55", flag: "🇧🇷", fallbackName: "Brazil" },
+  { code: "PT", dialCode: "+351", flag: "🇵🇹", fallbackName: "Portugal" },
+  { code: "ES", dialCode: "+34", flag: "🇪🇸", fallbackName: "Spain" },
+  { code: "MX", dialCode: "+52", flag: "🇲🇽", fallbackName: "Mexico" },
+  { code: "AR", dialCode: "+54", flag: "🇦🇷", fallbackName: "Argentina" },
+  { code: "CO", dialCode: "+57", flag: "🇨🇴", fallbackName: "Colombia" },
+  { code: "CL", dialCode: "+56", flag: "🇨🇱", fallbackName: "Chile" },
+  { code: "PE", dialCode: "+51", flag: "🇵🇪", fallbackName: "Peru" },
+  { code: "VE", dialCode: "+58", flag: "🇻🇪", fallbackName: "Venezuela" },
+  { code: "UY", dialCode: "+598", flag: "🇺🇾", fallbackName: "Uruguay" },
+  { code: "EC", dialCode: "+593", flag: "🇪🇨", fallbackName: "Ecuador" },
+  { code: "BO", dialCode: "+591", flag: "🇧🇴", fallbackName: "Bolivia" },
+  { code: "PY", dialCode: "+595", flag: "🇵🇾", fallbackName: "Paraguay" },
+  { code: "GB", dialCode: "+44", flag: "🇬🇧", fallbackName: "United Kingdom" },
+  { code: "FR", dialCode: "+33", flag: "🇫🇷", fallbackName: "France" },
+  { code: "DE", dialCode: "+49", flag: "🇩🇪", fallbackName: "Germany" },
+  { code: "IT", dialCode: "+39", flag: "🇮🇹", fallbackName: "Italy" },
+  { code: "CA", dialCode: "+1", flag: "🇨🇦", fallbackName: "Canada" },
+  { code: "AU", dialCode: "+61", flag: "🇦🇺", fallbackName: "Australia" },
 ];
 
 interface ClientPlanOption {
@@ -86,7 +98,11 @@ const DEFAULT_CLIENT_PLANS: ClientPlanOption[] = [
     price: 9.99,
     vehicleLimit: 3,
     serviceRequestsPerMonth: 10,
-    highlights: ["Scheduled maintenance reminders", "Mileage tracker", "Multi-language support"],
+    highlights: [
+      "Scheduled maintenance reminders",
+      "Mileage tracker",
+      "Multi-language support",
+    ],
   },
   {
     id: "pro",
@@ -95,19 +111,123 @@ const DEFAULT_CLIENT_PLANS: ClientPlanOption[] = [
     vehicleLimit: 5,
     serviceRequestsPerMonth: null,
     isFeatured: true,
-    highlights: ["OBD2 diagnostics", "Expense reports & wallet", "Priority support 24/7"],
+    highlights: [
+      "OBD2 diagnostics",
+      "Expense reports & wallet",
+      "Priority support 24/7",
+    ],
   },
 ];
 
-export default function SignupScreen({ navigation, route }: any) {
+function localizeClientPlanFromAuth(
+  plan: ClientPlanOption,
+  ta: Record<string, string | undefined> | undefined,
+): ClientPlanOption {
+  const id = plan.id.toLowerCase();
+  if (id === "free") {
+    return {
+      ...plan,
+      name: ta?.clientPlanFreeName ?? plan.name,
+      highlights: localeBulletList(
+        ta?.clientPlanFreeHighlights,
+        "VIN decode & NHTSA recalls\nPDF receipts\nMobile app access",
+      ),
+    };
+  }
+  if (id === "starter") {
+    return {
+      ...plan,
+      name: ta?.clientPlanStarterName ?? plan.name,
+      highlights: localeBulletList(
+        ta?.clientPlanStarterHighlights,
+        "Scheduled maintenance reminders\nMileage tracker\nMulti-language support",
+      ),
+    };
+  }
+  if (id === "pro") {
+    return {
+      ...plan,
+      name: ta?.clientPlanProName ?? plan.name,
+      highlights: localeBulletList(
+        ta?.clientPlanProHighlights,
+        "OBD2 diagnostics\nExpense reports & wallet\nPriority support 24/7",
+      ),
+    };
+  }
+  return plan;
+}
+
+const SIGNUP_SERVICE_SPECS: { key: string; icon: MciName; fallback: string }[] = [
+  { key: "OIL_CHANGE", icon: "oil", fallback: "Oil Change" },
+  { key: "AIR_FILTER", icon: "air-filter", fallback: "Air Filter Service" },
+  { key: "FUEL_SYSTEM", icon: "gas-station", fallback: "Fuel System" },
+  { key: "BRAKES", icon: "car-brake-alert", fallback: "Brakes" },
+  { key: "COOLING_SYSTEM", icon: "thermometer", fallback: "Cooling System" },
+  { key: "TIRES", icon: "car-tire-alert", fallback: "Tires & Wheels" },
+  { key: "BELTS_HOSES", icon: "pipe", fallback: "Belts & Hoses" },
+  { key: "AC_SERVICE", icon: "air-conditioner", fallback: "A/C & Heating" },
+  { key: "STEERING", icon: "steering", fallback: "Steering & Suspension" },
+  { key: "ELECTRICAL_BASIC", icon: "flash", fallback: "Electrical System" },
+  { key: "EXHAUST", icon: "smoke", fallback: "Exhaust System" },
+  { key: "DRIVETRAIN", icon: "cog-transfer", fallback: "Drivetrain" },
+  { key: "ENGINE", icon: "engine", fallback: "Engine" },
+  { key: "TRANSMISSION", icon: "car-shift-pattern", fallback: "Transmission" },
+  { key: "BATTERY", icon: "car-battery", fallback: "Battery" },
+  { key: "GENERAL_REPAIR", icon: "wrench", fallback: "General Repair" },
+  { key: "FLUID_SERVICES", icon: "water", fallback: "Fluid Services" },
+  {
+    key: "PREVENTIVE_PACKAGES",
+    icon: "car-wrench",
+    fallback: "Preventive Maintenance",
+  },
+  { key: "INSPECTION", icon: "clipboard-check", fallback: "Inspection" },
+  { key: "DIAGNOSTICS", icon: "car-cog", fallback: "Diagnostics" },
+  { key: "DETAILING", icon: "car-wash", fallback: "Detailing" },
+  { key: "TOWING", icon: "tow-truck", fallback: "Towing" },
+  { key: "ROADSIDE_ASSIST", icon: "tow-truck", fallback: "Roadside Assist" },
+  { key: "LOCKOUT", icon: "key-variant", fallback: "Lockout" },
+];
+
+const SIGNUP_VEHICLE_SPECS: { key: string; icon: MciName; fallback: string }[] = [
+  { key: "CAR", icon: "car-side", fallback: "Car / Sedan" },
+  { key: "SUV", icon: "car-estate", fallback: "SUV" },
+  { key: "TRUCK", icon: "car-pickup", fallback: "Pickup Truck" },
+  { key: "VAN", icon: "van-utility", fallback: "Van / Minivan" },
+  { key: "HEAVY_TRUCK", icon: "truck", fallback: "Heavy Truck" },
+  { key: "BUS", icon: "bus", fallback: "Bus / RV" },
+];
+
+export default function SignupScreen({
+  navigation,
+  route,
+}: AuthStackScreenProps<"Signup">) {
   const theme = useTheme();
   const { t, language, formatCurrency } = useI18n();
+  const ab = t.addressBook;
   const { signUp } = useAuth();
+
+  const dialCountryNames = t.dialCountryNames;
+
+  const countries = useMemo(() => {
+    const names = dialCountryNames as Record<string, string> | undefined;
+    return SIGNUP_COUNTRY_SPECS.map((c) => ({
+      code: c.code,
+      dialCode: c.dialCode,
+      flag: c.flag,
+      name: names?.[c.code] ?? c.fallbackName,
+    }));
+  }, [dialCountryNames]);
+
+  const [selectedCountryCode, setSelectedCountryCode] = useState("US");
+  const selectedCountry = useMemo(() => {
+    return (
+      countries.find((c) => c.code === selectedCountryCode) ?? countries[0]
+    );
+  }, [countries, selectedCountryCode]);
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0]); // US by default
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -165,6 +285,24 @@ export default function SignupScreen({ navigation, route }: any) {
 
   // ✨ Toast hook
   const { toast, error, hideToast } = useToast();
+
+  const displayClientPlans = useMemo(
+    () =>
+      clientPlans.map((plan) =>
+        localizeClientPlanFromAuth(
+          plan,
+          t.auth as unknown as Record<string, string | undefined>,
+        ),
+      ),
+    [clientPlans, t],
+  );
+
+  const signupServiceLabels = (
+    t.auth as { signupServiceLabels?: Record<string, string> }
+  ).signupServiceLabels;
+  const signupVehicleTypeLabels = (
+    t.auth as { signupVehicleTypeLabels?: Record<string, string> }
+  ).signupVehicleTypeLabels;
 
   useEffect(() => {
     let mounted = true;
@@ -224,11 +362,17 @@ export default function SignupScreen({ navigation, route }: any) {
 
   function getPhonePlaceholder(countryCode: string): string {
     switch (countryCode) {
-      case "US": case "CA": return "(786) 919-7605";
-      case "BR": return "(11) 99999-9999";
-      case "GB": return "07911 123456";
-      case "MX": return "(55) 1234-5678";
-      default: return "Phone number";
+      case "US":
+      case "CA":
+        return t.auth?.phonePlaceholderUsCa || "(786) 919-7605";
+      case "BR":
+        return t.auth?.phonePlaceholderBr || "(11) 99999-9999";
+      case "GB":
+        return t.auth?.phonePlaceholderGb || "07911 123456";
+      case "MX":
+        return t.auth?.phonePlaceholderMx || "(55) 1234-5678";
+      default:
+        return t.auth?.phonePlaceholderDefault || "Phone number";
     }
   }
 
@@ -345,50 +489,6 @@ export default function SignupScreen({ navigation, route }: any) {
     return { level: 3, text: t.auth?.passwordGood || "Good", color: "#3b82f6" };
   };
 
-  // ─── Provider Service & Vehicle Type definitions for signup ───
-  // Updated per Mobile App Service & Diagnostic Tree — Feb 2026
-  const SIGNUP_SERVICES = [
-    // Maintenance
-    { key: "OIL_CHANGE", label: "Oil Change", icon: "oil" },
-    { key: "AIR_FILTER", label: "Air Filter Service", icon: "air-filter" },
-    { key: "FUEL_SYSTEM", label: "Fuel System", icon: "gas-station" },
-    { key: "BRAKES", label: "Brakes", icon: "car-brake-alert" },
-    { key: "COOLING_SYSTEM", label: "Cooling System", icon: "thermometer" },
-    { key: "TIRES", label: "Tires & Wheels", icon: "car-tire-alert" },
-    { key: "BELTS_HOSES", label: "Belts & Hoses", icon: "pipe" },
-    // Repairs
-    { key: "AC_SERVICE", label: "A/C & Heating", icon: "air-conditioner" },
-    { key: "STEERING", label: "Steering & Suspension", icon: "steering" },
-    { key: "ELECTRICAL_BASIC", label: "Electrical System", icon: "flash" },
-    { key: "EXHAUST", label: "Exhaust System", icon: "smoke" },
-    { key: "DRIVETRAIN", label: "Drivetrain", icon: "cog-transfer" },
-    { key: "ENGINE", label: "Engine", icon: "engine" },
-    { key: "TRANSMISSION", label: "Transmission", icon: "car-shift-pattern" },
-    { key: "BATTERY", label: "Battery", icon: "car-battery" },
-    { key: "GENERAL_REPAIR", label: "General Repair", icon: "wrench" },
-    // Fluid Services & Packages
-    { key: "FLUID_SERVICES", label: "Fluid Services", icon: "water" },
-    { key: "PREVENTIVE_PACKAGES", label: "Preventive Maintenance", icon: "car-wrench" },
-    // Inspection & Diagnostics
-    { key: "INSPECTION", label: "Inspection", icon: "clipboard-check" },
-    { key: "DIAGNOSTICS", label: "Diagnostics", icon: "car-cog" },
-    // Detailing
-    { key: "DETAILING", label: "Detailing", icon: "car-wash" },
-    // SOS / Roadside
-    { key: "TOWING", label: "Towing", icon: "tow-truck" },
-    { key: "ROADSIDE_ASSIST", label: "Roadside Assist", icon: "tow-truck" },
-    { key: "LOCKOUT", label: "Lockout", icon: "key-variant" },
-  ];
-
-  const SIGNUP_VEHICLE_TYPES = [
-    { key: "CAR", label: "Car / Sedan", icon: "car-side" },
-    { key: "SUV", label: "SUV", icon: "car-estate" },
-    { key: "TRUCK", label: "Pickup Truck", icon: "car-pickup" },
-    { key: "VAN", label: "Van / Minivan", icon: "van-utility" },
-    { key: "HEAVY_TRUCK", label: "Heavy Truck", icon: "truck" },
-    { key: "BUS", label: "Bus / RV", icon: "bus" },
-  ];
-
   const toggleProviderService = (key: string) => {
     setProviderServices((prev) => {
       const next = new Set(prev);
@@ -446,7 +546,9 @@ export default function SignupScreen({ navigation, route }: any) {
 
     if (selectedRole === "CLIENT" && clientAccountType === "BUSINESS" && !clientBusinessName.trim()) {
       setHasError(true);
-      error("Please enter your business name");
+      error(
+        t.auth?.enterClientBusinessName || "Please enter your business name",
+      );
       setTimeout(() => setHasError(false), 500);
       return;
     }
@@ -562,10 +664,15 @@ export default function SignupScreen({ navigation, route }: any) {
           : {}),
       });
 
+      const nextOtpMethod =
+        responseOtpMethod ?? effectiveOtpMethod ?? "email";
+      const otpMethodParam: "sms" | "email" =
+        nextOtpMethod === "sms" ? "sms" : "email";
+
       navigation.navigate("OTP", {
         userId,
         phone: normalizedPhone || "",
-        otpMethod: responseOtpMethod || effectiveOtpMethod || "email",
+        otpMethod: otpMethodParam,
         email: responseEmail || email,
         selectedPlan: selectedRole === "CLIENT" ? selectedClientPlan : "free",
       });
@@ -601,16 +708,31 @@ export default function SignupScreen({ navigation, route }: any) {
         {/* ✨ Header animado */}
         <FadeInView delay={0}>
           {(() => {
-            const roleMap = {
-              CLIENT:      { icon: "person",     color: "#2B5EA7", label: t.auth?.customer || "Customer" },
-              PROVIDER:    { icon: "construct",  color: "#0f766e", label: t.auth?.provider || "Service Provider" },
-              MARKETPLACE: { icon: "storefront", color: "#0891b2", label: t.auth?.marketplace || "Marketplace" },
-            } as const;
+            const roleMap: Record<
+              "CLIENT" | "PROVIDER" | "MARKETPLACE",
+              { icon: IoniconName; color: string; label: string }
+            > = {
+              CLIENT: {
+                icon: "person",
+                color: "#2B5EA7",
+                label: t.auth?.customer || "Customer",
+              },
+              PROVIDER: {
+                icon: "construct",
+                color: "#0f766e",
+                label: t.auth?.provider || "Service Provider",
+              },
+              MARKETPLACE: {
+                icon: "storefront",
+                color: "#0891b2",
+                label: t.auth?.marketplace || "Marketplace",
+              },
+            };
             const r = roleMap[selectedRole];
             return (
               <View style={styles.header}>
                 <View style={[styles.iconContainer, { backgroundColor: r.color }]}>
-                  <Ionicons name={r.icon as any} size={30} color="#fff" />
+                  <Ionicons name={r.icon} size={30} color="#fff" />
                 </View>
                 <Text variant="headlineMedium" style={[styles.title, { color: r.color }]}>
                   {t.auth?.createAccount || "Create Account"}
@@ -673,7 +795,9 @@ export default function SignupScreen({ navigation, route }: any) {
                   value={email}
                   onChangeText={setEmail}
                   mode="outlined"
-                  placeholder="seu@email.com"
+                  placeholder={
+                    t.auth?.emailExamplePlaceholder || "you@email.com"
+                  }
                   keyboardType="email-address"
                   autoCapitalize="none"
                   style={styles.input}
@@ -812,9 +936,10 @@ export default function SignupScreen({ navigation, route }: any) {
                     {t.auth?.selectPlan || "Select Your Plan"}
                   </Text>
                   <Text style={signupCapStyles.sectionHint}>
-                    Paid plans include a 7-day trial. Card is collected securely after verification.
+                    {t.auth?.clientPlanSelectHint ||
+                      "Paid plans include a 7-day trial. Card is collected securely after verification."}
                   </Text>
-                  {clientPlans.map((plan) => {
+                  {displayClientPlans.map((plan) => {
                     const active = selectedClientPlan === plan.id;
                     const planColor = plan.isFeatured ? "#2B5EA7" : plan.price > 0 ? "#0891b2" : "#6b7280";
                     return (
@@ -846,12 +971,22 @@ export default function SignupScreen({ navigation, route }: any) {
                               </Text>
                               {plan.isFeatured && (
                                 <View style={{ backgroundColor: planColor, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
-                                  <Text style={{ color: "#fff", fontSize: 9, fontWeight: "700" }}>POPULAR</Text>
+                                  <Text style={{ color: "#fff", fontSize: 9, fontWeight: "700" }}>
+                                    {t.auth?.signupPlanPopular || "POPULAR"}
+                                  </Text>
                                 </View>
                               )}
                             </View>
                             <Text style={{ color: "#6b7280", fontSize: 12, marginTop: 1 }}>
-                              {plan.vehicleLimit} vehicles · {plan.serviceRequestsPerMonth === null ? "Unlimited" : plan.serviceRequestsPerMonth + " requests/mo"}
+                              {plan.vehicleLimit}{" "}
+                              {t.auth?.signupPlanVehiclesWord || "vehicles"} ·{" "}
+                              {plan.serviceRequestsPerMonth === null
+                                ? t.auth?.signupPlanUnlimited || "Unlimited"
+                                : interpolate(
+                                    t.auth?.signupPlanRequestsPerMo ||
+                                      "{{count}} requests/mo",
+                                    { count: plan.serviceRequestsPerMonth },
+                                  )}
                             </Text>
                           </View>
                           <View style={{ alignItems: "flex-end" }}>
@@ -861,7 +996,9 @@ export default function SignupScreen({ navigation, route }: any) {
                                 : formatCurrency(plan.price)}
                             </Text>
                             {plan.price > 0 && (
-                              <Text style={{ fontSize: 10, color: "#9ca3af" }}>/mo</Text>
+                              <Text style={{ fontSize: 10, color: "#9ca3af" }}>
+                                {t.auth?.signupPricePerMonth || "/mo"}
+                              </Text>
                             )}
                           </View>
                         </View>
@@ -877,7 +1014,9 @@ export default function SignupScreen({ navigation, route }: any) {
                             {plan.price > 0 && (
                               <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 }}>
                                 <Ionicons name="gift-outline" size={13} color="#22c55e" />
-                                <Text style={{ fontSize: 12, color: "#16a34a", fontWeight: "600" }}>7-day free trial</Text>
+                                <Text style={{ fontSize: 12, color: "#16a34a", fontWeight: "600" }}>
+                                  {t.auth?.signupSevenDayTrial || "7-day free trial"}
+                                </Text>
                               </View>
                             )}
                           </View>
@@ -897,7 +1036,8 @@ export default function SignupScreen({ navigation, route }: any) {
                     {t.auth?.accountType || "Account Type"}
                   </Text>
                   <Text style={signupCapStyles.sectionHint}>
-                    Individual for personal use, or Business to manage up to 10 company vehicles.
+                    {t.auth?.accountTypeSectionHint ||
+                      "Individual for personal use, or Business to manage up to 10 company vehicles."}
                   </Text>
                   <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
                     {(["INDIVIDUAL", "BUSINESS"] as const).map((type) => {
@@ -925,7 +1065,9 @@ export default function SignupScreen({ navigation, route }: any) {
                             style={{ marginBottom: 4 }}
                           />
                           <Text style={{ fontSize: 13, fontWeight: "600", color: active ? "#2B5EA7" : "#374151" }}>
-                            {type === "INDIVIDUAL" ? "Individual" : "Business"}
+                            {type === "INDIVIDUAL"
+                              ? t.auth?.individualAccount || "Individual"
+                              : t.auth?.businessAccount || "Business"}
                           </Text>
                         </TouchableOpacity>
                       );
@@ -936,8 +1078,11 @@ export default function SignupScreen({ navigation, route }: any) {
                       value={clientBusinessName}
                       onChangeText={setClientBusinessName}
                       mode="outlined"
-                      label="Business Name"
-                      placeholder="Acme Corp LLC"
+                      label={t.auth?.businessName || "Business Name"}
+                      placeholder={
+                        t.auth?.clientBusinessNamePlaceholder ||
+                        "Acme Corp LLC"
+                      }
                       style={[styles.input, { marginTop: 12 }]}
                       outlineStyle={styles.inputOutline}
                       textColor="#000"
@@ -980,7 +1125,10 @@ export default function SignupScreen({ navigation, route }: any) {
                       onChangeText={setBusinessName}
                       mode="outlined"
                       label={t.auth?.businessName || "Business Name"}
-                      placeholder="Ex: John's Auto Repair"
+                      placeholder={
+                        t.auth?.providerBusinessNamePlaceholder ||
+                        "e.g., Joe's Auto Repair"
+                      }
                       style={styles.input}
                       outlineStyle={styles.inputOutline}
                       textColor="#000"
@@ -997,7 +1145,10 @@ export default function SignupScreen({ navigation, route }: any) {
                       onChangeText={handleAddrQueryChange}
                       mode="outlined"
                       label={t.auth?.businessAddress || "Business Address"}
-                      placeholder="Search address..."
+                      placeholder={
+                        ab.addressFormSearchPlaceholder ||
+                        "Start typing an address..."
+                      }
                       style={styles.input}
                       outlineStyle={styles.inputOutline}
                       textColor="#000"
@@ -1050,7 +1201,9 @@ export default function SignupScreen({ navigation, route }: any) {
                         activeOpacity={0.75}
                       >
                         <Text style={businessState ? signupCapStyles.pickerBtnText : signupCapStyles.pickerBtnPlaceholder}>
-                          {businessState || "Select"}
+                          {businessState ||
+                            t.auth?.selectPlaceholder ||
+                            "Select"}
                         </Text>
                         <Ionicons name="chevron-down" size={14} color="#6b7280" />
                       </TouchableOpacity>
@@ -1067,7 +1220,9 @@ export default function SignupScreen({ navigation, route }: any) {
                           activeOpacity={0.75}
                         >
                           <Text style={businessCity ? signupCapStyles.pickerBtnText : signupCapStyles.pickerBtnPlaceholder}>
-                            {businessCity || "Select city"}
+                            {businessCity ||
+                              t.auth?.selectCityPlaceholder ||
+                              "Select city"}
                           </Text>
                           <Ionicons name="chevron-down" size={14} color="#6b7280" />
                         </TouchableOpacity>
@@ -1076,7 +1231,9 @@ export default function SignupScreen({ navigation, route }: any) {
                           value={businessCity}
                           onChangeText={setBusinessCity}
                           mode="outlined"
-                          placeholder="Miami"
+                          placeholder={
+                            t.auth?.cityExamplePlaceholder || "Miami"
+                          }
                           style={[styles.input, { height: 44 }]}
                           outlineStyle={styles.inputOutline}
                           textColor="#000"
@@ -1092,7 +1249,9 @@ export default function SignupScreen({ navigation, route }: any) {
                         value={businessZipCode}
                         onChangeText={setBusinessZipCode}
                         mode="outlined"
-                        placeholder="33101"
+                        placeholder={
+                          t.auth?.zipUsExamplePlaceholder || "33101"
+                        }
                         keyboardType="numeric"
                         maxLength={5}
                         style={styles.input}
@@ -1123,8 +1282,10 @@ export default function SignupScreen({ navigation, route }: any) {
                       </Text>
                     </View>
                     <View style={signupCapStyles.chipGrid}>
-                      {SIGNUP_SERVICES.map((svc) => {
+                      {SIGNUP_SERVICE_SPECS.map((svc) => {
                         const active = providerServices.has(svc.key);
+                        const label =
+                          signupServiceLabels?.[svc.key] ?? svc.fallback;
                         return (
                           <TouchableOpacity
                             key={svc.key}
@@ -1136,7 +1297,7 @@ export default function SignupScreen({ navigation, route }: any) {
                             activeOpacity={0.7}
                           >
                             <MaterialCommunityIcons
-                              name={svc.icon as any}
+                              name={svc.icon}
                               size={16}
                               color={active ? "#fff" : "#6b7280"}
                             />
@@ -1146,7 +1307,7 @@ export default function SignupScreen({ navigation, route }: any) {
                                 active && signupCapStyles.chipTextActive,
                               ]}
                             >
-                              {svc.label}
+                              {label}
                             </Text>
                           </TouchableOpacity>
                         );
@@ -1154,7 +1315,8 @@ export default function SignupScreen({ navigation, route }: any) {
                     </View>
                     {hasError && providerServices.size === 0 && (
                       <Text style={signupCapStyles.errorText}>
-                        Select at least one service
+                        {t.auth?.selectServices ||
+                          "Please select at least one service you offer"}
                       </Text>
                     )}
                   </View>
@@ -1176,8 +1338,10 @@ export default function SignupScreen({ navigation, route }: any) {
                       </Text>
                     </View>
                     <View style={signupCapStyles.chipGrid}>
-                      {SIGNUP_VEHICLE_TYPES.map((vt) => {
+                      {SIGNUP_VEHICLE_SPECS.map((vt) => {
                         const active = providerVehicleTypes.has(vt.key);
+                        const label =
+                          signupVehicleTypeLabels?.[vt.key] ?? vt.fallback;
                         return (
                           <TouchableOpacity
                             key={vt.key}
@@ -1189,7 +1353,7 @@ export default function SignupScreen({ navigation, route }: any) {
                             activeOpacity={0.7}
                           >
                             <MaterialCommunityIcons
-                              name={vt.icon as any}
+                              name={vt.icon}
                               size={16}
                               color={active ? "#fff" : "#6b7280"}
                             />
@@ -1199,7 +1363,7 @@ export default function SignupScreen({ navigation, route }: any) {
                                 active && signupCapStyles.chipTextActive,
                               ]}
                             >
-                              {vt.label}
+                              {label}
                             </Text>
                           </TouchableOpacity>
                         );
@@ -1258,7 +1422,11 @@ export default function SignupScreen({ navigation, route }: any) {
                           <TouchableOpacity
                             key={option.key}
                             style={[signupCapStyles.chip, active && signupCapStyles.chipActive]}
-                            onPress={() => setProviderPayoutMethod(option.key as any)}
+                            onPress={() =>
+                              setProviderPayoutMethod(
+                                option.key as "MANUAL" | "ZELLE" | "BANK_TRANSFER",
+                              )
+                            }
                             activeOpacity={0.7}
                           >
                             <Text style={[signupCapStyles.chipText, active && signupCapStyles.chipTextActive]}>
@@ -1273,7 +1441,8 @@ export default function SignupScreen({ navigation, route }: any) {
                       <View style={[signupCapStyles.serviceInfoBanner, { backgroundColor: "#fffbeb", borderColor: "#fcd34d" }]}>
                         <Ionicons name="time-outline" size={15} color="#d97706" style={{ marginTop: 1 }} />
                         <Text style={[signupCapStyles.serviceInfoText, { color: "#92400e" }]}>
-                          You'll need to add a payout method later in Settings to receive payments. Without it, earnings will be held until a method is configured.
+                          {t.auth?.payoutManualNotice ||
+                            "You'll need to add a payout method later in Settings to receive payments. Without it, earnings will be held until a method is configured."}
                         </Text>
                       </View>
                     )}
@@ -1283,8 +1452,14 @@ export default function SignupScreen({ navigation, route }: any) {
                         value={providerZelleContact}
                         onChangeText={setProviderZelleContact}
                         mode="outlined"
-                        label="Zelle email or phone number"
-                        placeholder="email@example.com or +1 305 555 0000"
+                        label={
+                          t.auth?.zelleContactLabel ||
+                          "Zelle email or phone number"
+                        }
+                        placeholder={
+                          t.auth?.zelleContactPlaceholder ||
+                          "email@example.com or +1 305 555 0000"
+                        }
                         style={[styles.input, { marginTop: 10 }]}
                         outlineStyle={styles.inputOutline}
                         textColor="#000"
@@ -1298,22 +1473,27 @@ export default function SignupScreen({ navigation, route }: any) {
                           value={providerBankTransferLabel}
                           onChangeText={setProviderBankTransferLabel}
                           mode="outlined"
-                          label="Bank name"
-                          placeholder="e.g. Chase, Wells Fargo"
+                          label={t.auth?.bankNameLabel || "Bank name"}
+                          placeholder={
+                            t.auth?.bankNamePlaceholder ||
+                            "e.g., Chase, Wells Fargo"
+                          }
                           style={styles.input}
                           outlineStyle={styles.inputOutline}
                           textColor="#000"
                         />
                         <View style={{ flexDirection: "row", gap: 8 }}>
-                          {(["CHECKING", "SAVINGS"] as const).map((t) => (
+                          {(["CHECKING", "SAVINGS"] as const).map((acct) => (
                             <TouchableOpacity
-                              key={t}
-                              style={[signupCapStyles.chip, { flex: 1, justifyContent: "center" }, providerBankAccountType === t && signupCapStyles.chipActive]}
-                              onPress={() => setProviderBankAccountType(t)}
+                              key={acct}
+                              style={[signupCapStyles.chip, { flex: 1, justifyContent: "center" }, providerBankAccountType === acct && signupCapStyles.chipActive]}
+                              onPress={() => setProviderBankAccountType(acct)}
                               activeOpacity={0.7}
                             >
-                              <Text style={[signupCapStyles.chipText, providerBankAccountType === t && signupCapStyles.chipTextActive]}>
-                                {t === "CHECKING" ? "Checking" : "Savings"}
+                              <Text style={[signupCapStyles.chipText, providerBankAccountType === acct && signupCapStyles.chipTextActive]}>
+                                {acct === "CHECKING"
+                                  ? t.auth?.accountTypeChecking || "Checking"
+                                  : t.auth?.accountTypeSavings || "Savings"}
                               </Text>
                             </TouchableOpacity>
                           ))}
@@ -1322,8 +1502,12 @@ export default function SignupScreen({ navigation, route }: any) {
                           value={providerBankAccountNumber}
                           onChangeText={setProviderBankAccountNumber}
                           mode="outlined"
-                          label="Account number"
-                          placeholder="000000000"
+                          label={
+                            t.auth?.accountNumberLabel || "Account number"
+                          }
+                          placeholder={
+                            t.auth?.accountNumberPlaceholder || "000000000"
+                          }
                           keyboardType="numeric"
                           secureTextEntry={true}
                           style={styles.input}
@@ -1334,8 +1518,12 @@ export default function SignupScreen({ navigation, route }: any) {
                           value={providerBankRoutingNumber}
                           onChangeText={setProviderBankRoutingNumber}
                           mode="outlined"
-                          label="Routing number"
-                          placeholder="9 digits"
+                          label={
+                            t.auth?.routingNumberLabel || "Routing number"
+                          }
+                          placeholder={
+                            t.auth?.routingNumberPlaceholder || "9 digits"
+                          }
                           keyboardType="numeric"
                           maxLength={9}
                           style={styles.input}
@@ -1346,13 +1534,17 @@ export default function SignupScreen({ navigation, route }: any) {
                     )}
 
                     <Text style={[signupCapStyles.partsHint, { marginTop: 4 }]}>
-                      TechTrust verifies your business identity against Sunbiz, FDACS, and local tax records. Fill in what you have now.
+                      {t.auth?.providerVerificationIntro ||
+                        "TechTrust verifies your business identity against Sunbiz, FDACS, and local tax records. Fill in what you have now."}
                     </Text>
                     <TextInput
                       value={providerLegalName}
                       onChangeText={setProviderLegalName}
                       mode="outlined"
-                      label="Legal business name"
+                      label={
+                        t.auth?.providerLegalBusinessNameLabel ||
+                        "Legal business name"
+                      }
                       style={styles.input}
                       outlineStyle={styles.inputOutline}
                       textColor="#000"
@@ -1361,7 +1553,7 @@ export default function SignupScreen({ navigation, route }: any) {
                       value={providerEin}
                       onChangeText={setProviderEin}
                       mode="outlined"
-                      label="EIN / FEI"
+                      label={t.auth?.providerEinLabel || "EIN / FEI"}
                       style={styles.input}
                       outlineStyle={styles.inputOutline}
                       textColor="#000"
@@ -1370,7 +1562,10 @@ export default function SignupScreen({ navigation, route }: any) {
                       value={providerSunbizDocumentNumber}
                       onChangeText={setProviderSunbizDocumentNumber}
                       mode="outlined"
-                      label="Sunbiz document #"
+                      label={
+                        t.auth?.providerSunbizDocumentLabel ||
+                        "Sunbiz document #"
+                      }
                       style={styles.input}
                       outlineStyle={styles.inputOutline}
                       textColor="#000"
@@ -1380,11 +1575,8 @@ export default function SignupScreen({ navigation, route }: any) {
                     <View style={{ backgroundColor: "#eff6ff", borderRadius: 8, borderWidth: 1, borderColor: "#bfdbfe", padding: 10, marginBottom: 6, flexDirection: "row", gap: 8 }}>
                       <MaterialCommunityIcons name="shield-check" size={16} color="#1d4ed8" style={{ marginTop: 1 }} />
                       <Text style={{ flex: 1, fontSize: 12, color: "#1e40af", lineHeight: 17 }}>
-                        {language === "pt"
-                          ? "Como Marketplace Facilitator, a TechTrust não precisa verificar nem declarar individualmente por cada provider (oficina). Você declara de forma consolidada pelo total que passou pela plataforma."
-                          : language === "es"
-                          ? "Como Facilitador del Marketplace, TechTrust no necesita verificar ni declarar individualmente por cada proveedor (taller). Usted declara de forma consolidada por el total que pasó por la plataforma."
-                          : "As a Marketplace Facilitator, TechTrust does not need to verify or individually declare for each provider (shop). You declare on a consolidated basis for the total that passed through the platform."}
+                        {t.auth?.marketplaceFacilitatorBanner ||
+                          "As a Marketplace Facilitator, TechTrust does not need to verify or individually declare for each provider (shop). You declare on a consolidated basis for the total that passed through the platform."}
                       </Text>
                     </View>
 
@@ -1403,11 +1595,8 @@ export default function SignupScreen({ navigation, route }: any) {
                         {providerBtrNotApplicable && <MaterialCommunityIcons name="check" size={13} color="#fff" />}
                       </View>
                       <Text style={{ fontSize: 13, color: "#374151" }}>
-                        {language === "pt"
-                          ? "Não possuo / não desejo declarar"
-                          : language === "es"
-                          ? "No tengo / no deseo declarar"
-                          : "I don't have / don't want to declare"}
+                        {t.auth?.providerBtrNotApplicableLabel ||
+                          "I don't have / don't want to declare"}
                       </Text>
                     </TouchableOpacity>
 
@@ -1417,7 +1606,10 @@ export default function SignupScreen({ navigation, route }: any) {
                           value={providerCityBtr}
                           onChangeText={setProviderCityBtr}
                           mode="outlined"
-                          label="City business tax receipt #"
+                          label={
+                            t.auth?.providerCityBtrLabel ||
+                            "City business tax receipt #"
+                          }
                           style={styles.input}
                           outlineStyle={styles.inputOutline}
                           textColor="#000"
@@ -1426,7 +1618,10 @@ export default function SignupScreen({ navigation, route }: any) {
                           value={providerCountyBtr}
                           onChangeText={setProviderCountyBtr}
                           mode="outlined"
-                          label="County business tax receipt #"
+                          label={
+                            t.auth?.providerCountyBtrLabel ||
+                            "County business tax receipt #"
+                          }
                           style={styles.input}
                           outlineStyle={styles.inputOutline}
                           textColor="#000"
@@ -1441,12 +1636,16 @@ export default function SignupScreen({ navigation, route }: any) {
                     <View style={{ flexDirection: "row", alignItems: "center", width: "100%", gap: 12 }}>
                       <View style={{ flex: 1 }}>
                         <Text style={signupCapStyles.partsLabel}>
-                          🛡 Insurance disclosure
+                          🛡{" "}
+                          {t.auth?.insuranceDisclosureTitle ||
+                            "Insurance disclosure"}
                         </Text>
                         <Text style={signupCapStyles.partsHint}>
                           {providerInsuranceDisclosureAccepted
-                            ? "Disclosure accepted. Customers will see you operate without TechTrust insurance coverage."
-                            : "Toggle if you do not carry insurance. Leave off if you have coverage (upload certificate later in Settings → Compliance)."}
+                            ? t.auth?.insuranceDisclosureAcceptedHint ||
+                              "Disclosure accepted. Customers will see you operate without TechTrust insurance coverage."
+                            : t.auth?.insuranceDisclosureUncheckedHint ||
+                              "Toggle if you do not carry insurance. Leave off if you have coverage (upload certificate later in Settings → Compliance)."}
                         </Text>
                       </View>
                       <Switch
@@ -1466,7 +1665,8 @@ export default function SignupScreen({ navigation, route }: any) {
                       <View style={[signupCapStyles.serviceInfoBanner, { backgroundColor: "#fffbeb", borderColor: "#fcd34d" }]}>
                         <Ionicons name="shield-outline" size={15} color="#d97706" style={{ marginTop: 1 }} />
                         <Text style={[signupCapStyles.serviceInfoText, { color: "#92400e" }]}>
-                          You have accepted the no-insurance disclosure. Customers will see a notice before booking your services. You can add your insurance certificate anytime in Settings → Compliance to remove this notice.
+                          {t.auth?.signupNoInsuranceAcceptedBanner ||
+                            "You have accepted the no-insurance disclosure. Customers will see a notice before booking your services. You can add your insurance certificate anytime in Settings → Compliance to remove this notice."}
                         </Text>
                       </View>
                     )}
@@ -1484,13 +1684,27 @@ export default function SignupScreen({ navigation, route }: any) {
                     <Text style={mkStyles.sectionTitle}>
                       🏪 {t.auth?.marketplaceInfo || "Marketplace Registration"}
                     </Text>
-                    <Text style={mkStyles.sectionHint}>Choose your business type to get started</Text>
+                    <Text style={mkStyles.sectionHint}>
+                      {t.auth?.marketplaceBusinessTypeHint ||
+                        "Choose your business type to get started"}
+                    </Text>
                     <View style={{ flexDirection: "row", gap: 10, marginTop: 8 }}>
                       {([
-                        { key: "CAR_WASH" as const, icon: "water-outline" as const, activeIcon: "water" as const, color: "#0891b2", bg: "#ecfeff", border: "#a5f3fc", title: "Car Wash", sub: "Full-service, auto, or self-serve" },
-                        { key: "AUTO_PARTS" as const, icon: "cube-outline" as const, activeIcon: "cube" as const, color: "#ea580c", bg: "#fff7ed", border: "#fed7aa", title: "Auto Parts", sub: "Retail or wholesale auto parts" },
-                      ]).map(opt => {
+                        { key: "CAR_WASH" as const, icon: "water-outline" as const, activeIcon: "water" as const, color: "#0891b2", bg: "#ecfeff", border: "#a5f3fc" },
+                        { key: "AUTO_PARTS" as const, icon: "cube-outline" as const, activeIcon: "cube" as const, color: "#ea580c", bg: "#fff7ed", border: "#fed7aa" },
+                      ]).map((opt) => {
                         const active = marketplaceType === opt.key;
+                        const title =
+                          opt.key === "CAR_WASH"
+                            ? t.auth?.marketplaceTypeCarWashTitle || "Car Wash"
+                            : t.auth?.marketplaceTypeAutoPartsTitle ||
+                              "Auto Parts";
+                        const sub =
+                          opt.key === "CAR_WASH"
+                            ? t.auth?.marketplaceTypeCarWashSub ||
+                              "Full-service, auto, or self-serve"
+                            : t.auth?.marketplaceTypeAutoPartsSub ||
+                              "Retail or wholesale auto parts";
                         return (
                           <TouchableOpacity
                             key={opt.key}
@@ -1501,8 +1715,8 @@ export default function SignupScreen({ navigation, route }: any) {
                             <View style={[mkStyles.typeIconCircle, { backgroundColor: active ? opt.color : "#f3f4f6" }]}>
                               <Ionicons name={active ? opt.activeIcon : opt.icon} size={22} color={active ? "#fff" : "#9ca3af"} />
                             </View>
-                            <Text style={[mkStyles.typeTitle, { color: active ? opt.color : "#374151" }]}>{opt.title}</Text>
-                            <Text style={mkStyles.typeSub}>{opt.sub}</Text>
+                            <Text style={[mkStyles.typeTitle, { color: active ? opt.color : "#374151" }]}>{title}</Text>
+                            <Text style={mkStyles.typeSub}>{sub}</Text>
                             {active && (
                               <View style={[mkStyles.typeCheck, { backgroundColor: opt.color }]}>
                                 <Ionicons name="checkmark" size={10} color="#fff" />
@@ -1522,8 +1736,19 @@ export default function SignupScreen({ navigation, route }: any) {
                       value={businessName}
                       onChangeText={setBusinessName}
                       mode="outlined"
-                      label={marketplaceType === "CAR_WASH" ? "Car Wash Name" : "Store Name"}
-                      placeholder={marketplaceType === "CAR_WASH" ? "e.g. Shine & Go Car Wash" : "e.g. FastParts Auto Store"}
+                      label={
+                        marketplaceType === "CAR_WASH"
+                          ? t.auth?.marketplaceCarWashNameLabel ||
+                            "Car Wash Name"
+                          : t.auth?.marketplaceStoreNameLabel || "Store Name"
+                      }
+                      placeholder={
+                        marketplaceType === "CAR_WASH"
+                          ? t.auth?.marketplaceCarWashNamePlaceholder ||
+                            "e.g., Shine & Go Car Wash"
+                          : t.auth?.marketplaceStoreNamePlaceholder ||
+                            "e.g., FastParts Auto Store"
+                      }
                       style={styles.input}
                       outlineStyle={styles.inputOutline}
                       textColor="#000"
@@ -1539,8 +1764,11 @@ export default function SignupScreen({ navigation, route }: any) {
                       value={addrQuery}
                       onChangeText={handleAddrQueryChange}
                       mode="outlined"
-                      label="Business Address"
-                      placeholder="Search address..."
+                      label={t.auth?.marketplaceBusinessAddressLabel || "Business Address"}
+                      placeholder={
+                        ab.addressFormSearchPlaceholder ||
+                        "Start typing an address..."
+                      }
                       style={styles.input}
                       outlineStyle={styles.inputOutline}
                       textColor="#000"
@@ -1584,20 +1812,26 @@ export default function SignupScreen({ navigation, route }: any) {
                 <SlideInView direction="left" delay={325}>
                   <View style={{ flexDirection: "row", gap: 8 }}>
                     <View style={[styles.inputContainer, { flex: 1 }]}>
-                      <Text style={[styles.inputLabel, { marginBottom: 4, fontSize: 12 }]}>State</Text>
+                      <Text style={[styles.inputLabel, { marginBottom: 4, fontSize: 12 }]}>
+                        {t.auth?.state || "State"}
+                      </Text>
                       <TouchableOpacity
                         style={signupCapStyles.pickerBtn}
                         onPress={() => setShowStatePicker(true)}
                         activeOpacity={0.75}
                       >
                         <Text style={businessState ? signupCapStyles.pickerBtnText : signupCapStyles.pickerBtnPlaceholder}>
-                          {businessState || "Select"}
+                          {businessState ||
+                            t.auth?.selectPlaceholder ||
+                            "Select"}
                         </Text>
                         <Ionicons name="chevron-down" size={14} color="#6b7280" />
                       </TouchableOpacity>
                     </View>
                     <View style={[styles.inputContainer, { flex: 2 }]}>
-                      <Text style={[styles.inputLabel, { marginBottom: 4, fontSize: 12 }]}>City</Text>
+                      <Text style={[styles.inputLabel, { marginBottom: 4, fontSize: 12 }]}>
+                        {t.auth?.city || "City"}
+                      </Text>
                       {businessState && CITIES_BY_STATE[businessState] ? (
                         <TouchableOpacity
                           style={signupCapStyles.pickerBtn}
@@ -1605,7 +1839,9 @@ export default function SignupScreen({ navigation, route }: any) {
                           activeOpacity={0.75}
                         >
                           <Text style={businessCity ? signupCapStyles.pickerBtnText : signupCapStyles.pickerBtnPlaceholder}>
-                            {businessCity || "Select city"}
+                            {businessCity ||
+                              t.auth?.selectCityPlaceholder ||
+                              "Select city"}
                           </Text>
                           <Ionicons name="chevron-down" size={14} color="#6b7280" />
                         </TouchableOpacity>
@@ -1614,7 +1850,9 @@ export default function SignupScreen({ navigation, route }: any) {
                           value={businessCity}
                           onChangeText={setBusinessCity}
                           mode="outlined"
-                          placeholder="City"
+                          placeholder={
+                            ab.addressFormCityPlaceholder || "City"
+                          }
                           style={[styles.input, { height: 44 }]}
                           outlineStyle={styles.inputOutline}
                           textColor="#000"
@@ -1622,12 +1860,16 @@ export default function SignupScreen({ navigation, route }: any) {
                       )}
                     </View>
                     <View style={[styles.inputContainer, { flex: 1 }]}>
-                      <Text style={[styles.inputLabel, { marginBottom: 4, fontSize: 12 }]}>ZIP</Text>
+                      <Text style={[styles.inputLabel, { marginBottom: 4, fontSize: 12 }]}>
+                        {t.auth?.zipCode || "ZIP"}
+                      </Text>
                       <TextInput
                         value={businessZipCode}
                         onChangeText={setBusinessZipCode}
                         mode="outlined"
-                        placeholder="33101"
+                        placeholder={
+                          t.auth?.zipUsExamplePlaceholder || "33101"
+                        }
                         keyboardType="numeric"
                         maxLength={5}
                         style={styles.input}
@@ -1642,46 +1884,69 @@ export default function SignupScreen({ navigation, route }: any) {
                 {/* ── Plan Selection ── */}
                 <SlideInView direction="right" delay={335}>
                   <View style={mkStyles.section}>
-                    <Text style={mkStyles.sectionTitle}>📋 Select Your Plan</Text>
-                    <Text style={mkStyles.sectionHint}>Start with a 7-day free trial. Cancel anytime.</Text>
+                    <Text style={mkStyles.sectionTitle}>
+                      📋 {t.auth?.selectPlan || "Select Your Plan"}
+                    </Text>
+                    <Text style={mkStyles.sectionHint}>
+                      {t.auth?.marketplacePlanTrialHint ||
+                        "Start with a 7-day free trial. Cancel anytime."}
+                    </Text>
                     {(() => {
                       const isWash = marketplaceType === "CAR_WASH";
                       const plans = [
                         {
                           key: "basic" as const,
-                          name: "Basic",
+                          name: t.auth?.marketplacePlanNameBasic || "Basic",
                           emoji: "⭐",
                           priceAmount: 29.99,
                           color: "#6b7280",
                           activeColor: "#4b5563",
-                          badge: null,
+                          badgeKind: null as null | "popular" | "best",
                           bullets: isWash
-                            ? ["10 mi service radius", "Up to 5 service photos", "1 wash package listed", "Standard search placement", "Customer reviews"]
-                            : ["Up to 50 product listings", "8% transaction fee", "Standard search placement", "Basic inventory tools", "Customer reviews"],
+                            ? localeBulletList(
+                                t.auth?.marketplaceBulletsWashBasic,
+                                "10 mi service radius\nUp to 5 service photos\n1 wash package listed\nStandard search placement\nCustomer reviews",
+                              )
+                            : localeBulletList(
+                                t.auth?.marketplaceBulletsPartsBasic,
+                                "Up to 50 product listings\n8% transaction fee\nStandard search placement\nBasic inventory tools\nCustomer reviews",
+                              ),
                         },
                         {
                           key: "pro" as const,
-                          name: "Pro",
+                          name: t.auth?.marketplacePlanNamePro || "Pro",
                           emoji: "🚀",
                           priceAmount: 49.99,
                           color: "#7c3aed",
                           activeColor: "#6d28d9",
-                          badge: "POPULAR",
+                          badgeKind: "popular" as const,
                           bullets: isWash
-                            ? ["20 mi service radius", "Up to 15 service photos", "5 wash packages listed", "Priority search placement", "Verified badge", "Booking analytics"]
-                            : ["Up to 200 product listings", "6% transaction fee", "Priority search placement", "Verified badge", "Inventory alerts", "Sales analytics"],
+                            ? localeBulletList(
+                                t.auth?.marketplaceBulletsWashPro,
+                                "20 mi service radius\nUp to 15 service photos\n5 wash packages listed\nPriority search placement\nVerified badge\nBooking analytics",
+                              )
+                            : localeBulletList(
+                                t.auth?.marketplaceBulletsPartsPro,
+                                "Up to 200 product listings\n6% transaction fee\nPriority search placement\nVerified badge\nInventory alerts\nSales analytics",
+                              ),
                         },
                         {
                           key: "pro_plus" as const,
-                          name: "Pro+",
+                          name: t.auth?.marketplacePlanNameProPlus || "Pro+",
                           emoji: "👑",
                           priceAmount: 89.99,
                           color: "#d97706",
                           activeColor: "#b45309",
-                          badge: "BEST VALUE",
+                          badgeKind: "best" as const,
                           bullets: isWash
-                            ? ["50 mi service radius", "Unlimited photos", "Unlimited packages", "Featured at top of results", "Dedicated account support", "Advanced analytics + reports"]
-                            : ["Unlimited product listings", "4% transaction fee", "Featured at top of results", "Dedicated account support", "Advanced analytics + reports", "Bulk import tools"],
+                            ? localeBulletList(
+                                t.auth?.marketplaceBulletsWashProPlus,
+                                "50 mi service radius\nUnlimited photos\nUnlimited packages\nFeatured at top of results\nDedicated account support\nAdvanced analytics + reports",
+                              )
+                            : localeBulletList(
+                                t.auth?.marketplaceBulletsPartsProPlus,
+                                "Unlimited product listings\n4% transaction fee\nFeatured at top of results\nDedicated account support\nAdvanced analytics + reports\nBulk import tools",
+                              ),
                         },
                       ];
                       return plans.map(plan => {
@@ -1700,15 +1965,22 @@ export default function SignupScreen({ navigation, route }: any) {
                               <View style={{ flex: 1 }}>
                                 <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                                   <Text style={[mkStyles.planName, { color: active ? plan.color : "#111827" }]}>{plan.name}</Text>
-                                  {plan.badge && (
+                                  {plan.badgeKind && (
                                     <View style={[mkStyles.planBadge, { backgroundColor: plan.color }]}>
-                                      <Text style={mkStyles.planBadgeText}>{plan.badge}</Text>
+                                      <Text style={mkStyles.planBadgeText}>
+                                        {plan.badgeKind === "popular"
+                                          ? t.auth?.signupPlanPopular || "POPULAR"
+                                          : t.auth?.marketplacePlanBadgeBestValue ||
+                                            "BEST VALUE"}
+                                      </Text>
                                     </View>
                                   )}
                                 </View>
                                 <Text style={[mkStyles.planPrice, { color: active ? plan.color : "#374151" }]}>
                                   {formatCurrency(plan.priceAmount)}
-                                  <Text style={mkStyles.planPriceSuffix}>/mo</Text>
+                                  <Text style={mkStyles.planPriceSuffix}>
+                                    {t.auth?.signupPricePerMonth || "/mo"}
+                                  </Text>
                                 </Text>
                               </View>
                               <View style={[mkStyles.planRadio, { borderColor: active ? plan.color : "#d1d5db" }]}>
@@ -1754,7 +2026,7 @@ export default function SignupScreen({ navigation, route }: any) {
                         otpMethod === "sms" && signupCapStyles.otpMethodTitleActive,
                       ]}
                     >
-                      SMS
+                      {t.auth?.otpMethodSmsTitle || "SMS"}
                     </Text>
                     <Text style={signupCapStyles.otpMethodDesc}>
                       {!phone.trim()
@@ -1777,7 +2049,7 @@ export default function SignupScreen({ navigation, route }: any) {
                         otpMethod === "email" && signupCapStyles.otpMethodTitleActive,
                       ]}
                     >
-                      Email
+                      {t.auth?.otpMethodEmailTitle || "Email"}
                     </Text>
                     <Text style={signupCapStyles.otpMethodDesc}>
                       {t.auth?.otpViaEmail || "Code via email"}
@@ -1861,18 +2133,18 @@ export default function SignupScreen({ navigation, route }: any) {
                 <Ionicons name="shield-outline" size={28} color="#d97706" />
               </View>
               <Text style={{ fontSize: 18, fontWeight: "700", color: "#111827", textAlign: "center" }}>
-                Insurance Disclosure
+                {t.auth?.insuranceDisclosureTitle || "Insurance Disclosure"}
               </Text>
             </View>
             <Text style={{ fontSize: 14, color: "#374151", lineHeight: 22, marginBottom: 8 }}>
-              By accepting this disclosure, you confirm that:
+              {t.auth?.insuranceModalConfirmIntro ||
+                "By accepting this disclosure, you confirm that:"}
             </Text>
             <View style={{ gap: 8, marginBottom: 20 }}>
-              {[
-                "You do not carry general liability insurance for the services you offer through TechTrust.",
-                "Customers will be clearly notified before booking that TechTrust does not provide insurance coverage for your work.",
-                "You accept full responsibility for any damages or liability arising from your services.",
-              ].map((item, i) => (
+              {localeBulletList(
+                t.auth?.insuranceModalBullets,
+                "You do not carry general liability insurance for the services you offer through TechTrust.\nCustomers will be clearly notified before booking that TechTrust does not provide insurance coverage for your work.\nYou accept full responsibility for any damages or liability arising from your services.",
+              ).map((item, i) => (
                 <View key={i} style={{ flexDirection: "row", gap: 10, alignItems: "flex-start" }}>
                   <Ionicons name="alert-circle-outline" size={16} color="#d97706" style={{ marginTop: 3 }} />
                   <Text style={{ flex: 1, fontSize: 13, color: "#4b5563", lineHeight: 20 }}>{item}</Text>
@@ -1880,14 +2152,17 @@ export default function SignupScreen({ navigation, route }: any) {
               ))}
             </View>
             <Text style={{ fontSize: 12, color: "#9ca3af", marginBottom: 20, fontStyle: "italic" }}>
-              Providers with valid insurance can upload their certificate later in the Settings → Compliance section.
+              {t.auth?.insuranceModalFooterNote ||
+                "Providers with valid insurance can upload their certificate later in the Settings → Compliance section."}
             </Text>
             <View style={{ flexDirection: "row", gap: 10 }}>
               <TouchableOpacity
                 style={{ flex: 1, paddingVertical: 13, borderRadius: 12, borderWidth: 1.5, borderColor: "#e5e7eb", alignItems: "center" }}
                 onPress={() => setShowInsuranceModal(false)}
               >
-                <Text style={{ fontWeight: "600", color: "#6b7280" }}>Cancel</Text>
+                <Text style={{ fontWeight: "600", color: "#6b7280" }}>
+                  {t.common?.cancel || "Cancel"}
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={{ flex: 1, paddingVertical: 13, borderRadius: 12, backgroundColor: "#d97706", alignItems: "center" }}
@@ -1896,7 +2171,9 @@ export default function SignupScreen({ navigation, route }: any) {
                   setShowInsuranceModal(false);
                 }}
               >
-                <Text style={{ fontWeight: "700", color: "#fff" }}>I Understand</Text>
+                <Text style={{ fontWeight: "700", color: "#fff" }}>
+                  {t.auth?.insuranceModalUnderstand || "I Understand"}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1913,7 +2190,9 @@ export default function SignupScreen({ navigation, route }: any) {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select State</Text>
+              <Text style={styles.modalTitle}>
+                {t.auth?.selectStateModalTitle || "Select State"}
+              </Text>
               <TouchableOpacity onPress={() => setShowStatePicker(false)}>
                 <Ionicons name="close" size={24} color="#111827" />
               </TouchableOpacity>
@@ -1955,7 +2234,9 @@ export default function SignupScreen({ navigation, route }: any) {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select City</Text>
+              <Text style={styles.modalTitle}>
+                {t.auth?.selectCityModalTitle || "Select City"}
+              </Text>
               <TouchableOpacity onPress={() => setShowCityPicker(false)}>
                 <Ionicons name="close" size={24} color="#111827" />
               </TouchableOpacity>
@@ -2003,7 +2284,7 @@ export default function SignupScreen({ navigation, route }: any) {
               </TouchableOpacity>
             </View>
             <FlatList
-              data={COUNTRIES}
+              data={countries}
               keyExtractor={(item) => item.code}
               renderItem={({ item }) => (
                 <TouchableOpacity
@@ -2013,7 +2294,7 @@ export default function SignupScreen({ navigation, route }: any) {
                       styles.countryItemSelected,
                   ]}
                   onPress={() => {
-                    setSelectedCountry(item);
+                    setSelectedCountryCode(item.code);
                     setShowCountryPicker(false);
                   }}
                 >

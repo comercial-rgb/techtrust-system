@@ -3,7 +3,7 @@
  * Fornecedor vê status dos orçamentos enviados
  */
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, type ComponentProps } from "react";
 import {
   View,
   Text,
@@ -17,6 +17,9 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useI18n } from "../../i18n";
 import { log } from "../../utils/logger";
+import type { ProviderRequestsQuotesStackNavigation } from "../../navigation/types";
+
+type MciName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
 interface Quote {
   id: string;
@@ -42,7 +45,11 @@ interface Quote {
   };
 }
 
-export default function ProviderQuotesScreen({ navigation }: any) {
+export default function ProviderQuotesScreen({
+  navigation,
+}: {
+  navigation: ProviderRequestsQuotesStackNavigation<"ProviderQuotesList">;
+}) {
   const { t, formatCurrency } = useI18n();
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [filteredQuotes, setFilteredQuotes] = useState<Quote[]>([]);
@@ -123,10 +130,12 @@ export default function ProviderQuotesScreen({ navigation }: any) {
     setRefreshing(false);
   };
 
-  const getStatusInfo = (status: string) => {
+  const getStatusInfo = (
+    status: string,
+  ): { icon: MciName; color: string; bg: string; label: string } => {
     const statuses: Record<
       string,
-      { icon: string; color: string; bg: string; label: string }
+      { icon: MciName; color: string; bg: string; label: string }
     > = {
       PENDING: {
         icon: "clock-outline",
@@ -204,7 +213,7 @@ export default function ProviderQuotesScreen({ navigation }: any) {
         <View style={styles.cardHeader}>
           <View style={[styles.statusIcon, { backgroundColor: statusInfo.bg }]}>
             <MaterialCommunityIcons
-              name={statusInfo.icon as any}
+              name={statusInfo.icon}
               size={20}
               color={statusInfo.color}
             />
@@ -340,7 +349,9 @@ export default function ProviderQuotesScreen({ navigation }: any) {
             },
           ]}
           selected={filter}
-          onSelect={(value) => setFilter(value as any)}
+          onSelect={(value) =>
+            setFilter(value as "all" | "PENDING" | "ACCEPTED" | "REJECTED")
+          }
         />
       </View>
 
@@ -407,7 +418,11 @@ export default function ProviderQuotesScreen({ navigation }: any) {
             {filter === 'all' && (
               <TouchableOpacity
                 style={{ marginTop: 16, paddingHorizontal: 20, paddingVertical: 10, backgroundColor: '#2B5EA7', borderRadius: 20 }}
-                onPress={() => navigation.navigate('ProviderRequests')}
+                onPress={() =>
+                  navigation.navigate("ProviderRequests", {
+                    screen: "RequestsAndQuotesMain",
+                  })
+                }
               >
                 <Text style={{ fontSize: 14, color: '#fff', fontWeight: '600' }}>
                   {t.provider?.viewRequests || "View Available Requests"}

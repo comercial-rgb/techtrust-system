@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import type { ComponentProps } from "react";
 import {
   View,
   Text,
@@ -19,6 +20,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+
+type IoniconName = ComponentProps<typeof Ionicons>["name"];
 import { useI18n } from "../i18n";
 import { interpolate } from "../i18n/interpolate";
 import { useNotifications } from "../contexts/NotificationsContext";
@@ -26,6 +29,7 @@ import api from "../services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { io, Socket } from "socket.io-client";
 import { log } from "../utils/logger";
+import type { ChatScreenProps } from "../navigation/types";
 
 interface Message {
   id: string;
@@ -45,7 +49,7 @@ interface ChatParticipant {
   isOnline: boolean;
 }
 
-export default function ChatScreen({ navigation, route }: any) {
+export default function ChatScreen({ navigation, route }: ChatScreenProps) {
   const { t, formatTime: formatTimeI18n, formatDate } = useI18n();
   const { markMessagesAsRead: markMessagesAsReadGlobal } = useNotifications();
   const {
@@ -302,7 +306,7 @@ export default function ChatScreen({ navigation, route }: any) {
     }
   }
 
-  function getStatusIcon(status: string) {
+  function getStatusIcon(status: string): IoniconName {
     switch (status) {
       case "sent":
         return "checkmark";
@@ -361,7 +365,7 @@ export default function ChatScreen({ navigation, route }: any) {
               </Text>
               {item.isOwn && (
                 <Ionicons
-                  name={getStatusIcon(item.status) as any}
+                  name={getStatusIcon(item.status)}
                   size={14}
                   color={item.status === "read" ? "#2B5EA7" : "#bfdbfe"}
                   style={styles.statusIcon}
