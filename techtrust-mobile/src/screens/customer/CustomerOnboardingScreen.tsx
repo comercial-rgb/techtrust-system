@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useRef, useCallback } from "react";
+import type { ComponentProps } from "react";
 import {
   View,
   Text,
@@ -27,8 +28,37 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../../contexts/AuthContext";
 import { useI18n } from "../../i18n";
+import { localeBulletList } from "../../i18n/localeBulletList";
 import api from "../../services/api";
 import { US_STATES, CITIES_BY_STATE } from "../../constants/us-states";
+import type { CustomerOnboardingStackScreenProps } from "../../navigation/types";
+
+type IoniconName = ComponentProps<typeof Ionicons>["name"];
+type MciName = ComponentProps<typeof MaterialCommunityIcons>["name"];
+
+const WELCOME_BULLET_ICONS = [
+  "location",
+  "car",
+  "flash",
+  "shield-checkmark",
+] as const satisfies readonly IoniconName[];
+
+const VEHICLE_BULLET_ICONS = [
+  "scan",
+  "time",
+  "people",
+  "notifications",
+] as const satisfies readonly IoniconName[];
+
+const DONE_BULLET_ICONS: ReadonlyArray<
+  | { lib: "ion"; name: IoniconName }
+  | { lib: "mci"; name: MciName }
+> = [
+  { lib: "ion", name: "construct" },
+  { lib: "mci", name: "car-wash" },
+  { lib: "ion", name: "storefront" },
+  { lib: "ion", name: "star" },
+];
 
 // Address autocomplete via Nominatim (free, no API key needed)
 interface PlaceSuggestion {
@@ -99,9 +129,12 @@ const TIME_OPTIONS = [
   "13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00","21:00","22:00",
 ];
 
-export default function CustomerOnboardingScreen({ navigation }: any) {
+export default function CustomerOnboardingScreen({
+  navigation,
+}: CustomerOnboardingStackScreenProps<"CustomerOnboarding">) {
   const { user, completeOnboarding } = useAuth();
   const { t } = useI18n();
+  const ob = t.onboarding;
   const [currentStep, setCurrentStep] = useState(0);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -244,7 +277,7 @@ export default function CustomerOnboardingScreen({ navigation }: any) {
     }
     const addressesJson = [
       {
-        label: "Home",
+        label: t.nav?.home || "Home",
         address: street.trim(),
         city: addrCity || selectedCity,
         state: addrState || selectedState,
@@ -288,7 +321,7 @@ export default function CustomerOnboardingScreen({ navigation }: any) {
   };
 
   const citiesForState = (state: string): string[] =>
-    (CITIES_BY_STATE as any)[state] || [];
+    CITIES_BY_STATE[state] ?? [];
 
   // ─── Step Renderers ────────────────────────────────────────────────────────
 
@@ -297,32 +330,39 @@ export default function CustomerOnboardingScreen({ navigation }: any) {
       <View style={[styles.iconCircle, { backgroundColor: bgColor }]}>
         <Ionicons name="hand-right" size={60} color={color} />
       </View>
-      <Text style={styles.title}>Welcome to TechTrust!</Text>
+      <Text style={styles.title}>
+        {ob?.welcomeTitle || "Welcome to TechTrust!"}
+      </Text>
       <Text style={styles.subtitle}>
-        Let's take 2 minutes to personalise your experience so we can show you the
-        right shops, car washes, and auto parts near your home.
+        {ob?.customerWelcomeSubtitle ||
+          "Let's take 2 minutes to personalise your experience so we can show you the right shops, car washes, and auto parts near your home."}
       </Text>
 
       <View style={styles.benefitList}>
-        {[
-          { icon: "location", text: "See shops & car washes near YOU" },
-          { icon: "car", text: "Track service history for your vehicles" },
-          { icon: "flash", text: "Get instant quotes from verified shops" },
-          { icon: "shield-checkmark", text: "Secure payments — money released only on approval" },
-        ].map((b, i) => (
-          <View key={i} style={styles.benefitRow}>
-            <View style={[styles.benefitIcon, { backgroundColor: bgColor }]}>
-              <Ionicons name={b.icon as any} size={18} color={color} />
+        {localeBulletList(
+          ob?.customerWelcomeBullets,
+          "See shops & car washes near YOU\nTrack service history for your vehicles\nGet instant quotes from verified shops\nSecure payments — money released only on approval",
+        ).map((text, i) => {
+          return (
+            <View key={i} style={styles.benefitRow}>
+              <View style={[styles.benefitIcon, { backgroundColor: bgColor }]}>
+                <Ionicons
+                  name={WELCOME_BULLET_ICONS[i]}
+                  size={18}
+                  color={color}
+                />
+              </View>
+              <Text style={styles.benefitText}>{text}</Text>
             </View>
-            <Text style={styles.benefitText}>{b.text}</Text>
-          </View>
-        ))}
+          );
+        })}
       </View>
 
       <View style={styles.infoBox}>
         <Ionicons name="information-circle" size={18} color="#3b82f6" />
         <Text style={styles.infoText}>
-          You can skip any step and complete it later from your Profile settings.
+          {ob?.customerWelcomeSkipNote ||
+            "You can skip any step and complete it later from your Profile settings."}
         </Text>
       </View>
     </View>
@@ -336,22 +376,27 @@ export default function CustomerOnboardingScreen({ navigation }: any) {
         <View style={[styles.iconCircle, { backgroundColor: bgColor }]}>
           <Ionicons name="map" size={60} color={color} />
         </View>
-        <Text style={styles.title}>Your Location</Text>
+        <Text style={styles.title}>
+          {ob?.customerLocationTitle || "Your Location"}
+        </Text>
         <Text style={styles.subtitle}>
-          We use your city and state to show you nearby shops, car washes, and
-          auto parts stores. Without this, results will be generic and far away.
+          {ob?.customerLocationSubtitle ||
+            "We use your city and state to show you nearby shops, car washes, and auto parts stores. Without this, results will be generic and far away."}
         </Text>
 
         <View style={styles.impactBox}>
           <MaterialCommunityIcons name="lightbulb-outline" size={16} color="#8b5cf6" />
           <Text style={styles.impactText}>
-            <Text style={{ fontWeight: "700" }}>If you skip this:</Text> You'll see
-            a generic list of providers and won't be matched with local shops.
+            <Text style={{ fontWeight: "700" }}>
+              {ob?.customerSkipImpactPrefix || "If you skip this:"}
+            </Text>{" "}
+            {ob?.customerLocationSkipBody ||
+              "You'll see a generic list of providers and won't be matched with local shops."}
           </Text>
         </View>
 
         <View style={styles.fieldGroup}>
-          <Text style={styles.label}>State</Text>
+          <Text style={styles.label}>{t.auth?.state || "State"}</Text>
           <TouchableOpacity
             style={[styles.pickerBtn, !selectedState && styles.pickerBtnEmpty]}
             onPress={() => setShowStatePicker(true)}
@@ -359,12 +404,12 @@ export default function CustomerOnboardingScreen({ navigation }: any) {
             <Text style={selectedState ? styles.pickerBtnText : styles.pickerBtnPlaceholder}>
               {selectedState
                 ? US_STATES.find((s) => s.code === selectedState)?.name || selectedState
-                : "Select your state"}
+                : ob?.customerSelectStatePlaceholder || "Select your state"}
             </Text>
             <Ionicons name="chevron-down" size={18} color="#9ca3af" />
           </TouchableOpacity>
 
-          <Text style={[styles.label, { marginTop: 14 }]}>City</Text>
+          <Text style={[styles.label, { marginTop: 14 }]}>{t.auth?.city || "City"}</Text>
           {hasCities ? (
             <TouchableOpacity
               style={[styles.pickerBtn, !selectedCity && styles.pickerBtnEmpty]}
@@ -372,14 +417,18 @@ export default function CustomerOnboardingScreen({ navigation }: any) {
               disabled={!selectedState}
             >
               <Text style={selectedCity ? styles.pickerBtnText : styles.pickerBtnPlaceholder}>
-                {selectedCity || "Select your city"}
+                {selectedCity ||
+                  ob?.customerSelectCityPlaceholder ||
+                  "Select your city"}
               </Text>
               <Ionicons name="chevron-down" size={18} color="#9ca3af" />
             </TouchableOpacity>
           ) : (
             <TextInput
               style={styles.input}
-              placeholder="Enter your city"
+              placeholder={
+                ob?.customerEnterCityPlaceholder || "Enter your city"
+              }
               placeholderTextColor="#9ca3af"
               value={selectedCity}
               onChangeText={setSelectedCity}
@@ -398,7 +447,9 @@ export default function CustomerOnboardingScreen({ navigation }: any) {
           ) : (
             <>
               <Ionicons name="checkmark-circle" size={20} color="#fff" />
-              <Text style={styles.saveBtnText}>Save My Location</Text>
+              <Text style={styles.saveBtnText}>
+                {ob?.customerSaveLocationCta || "Save My Location"}
+              </Text>
             </>
           )}
         </TouchableOpacity>
@@ -408,7 +459,9 @@ export default function CustomerOnboardingScreen({ navigation }: any) {
           <View style={styles.modalOverlay}>
             <View style={styles.modalSheet}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Select State</Text>
+                <Text style={styles.modalTitle}>
+                  {t.auth?.selectStateModalTitle || "Select State"}
+                </Text>
                 <TouchableOpacity onPress={() => setShowStatePicker(false)}>
                   <Ionicons name="close" size={24} color="#374151" />
                 </TouchableOpacity>
@@ -441,7 +494,9 @@ export default function CustomerOnboardingScreen({ navigation }: any) {
           <View style={styles.modalOverlay}>
             <View style={styles.modalSheet}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Select City</Text>
+                <Text style={styles.modalTitle}>
+                  {t.auth?.selectCityModalTitle || "Select City"}
+                </Text>
                 <TouchableOpacity onPress={() => setShowCityPicker(false)}>
                   <Ionicons name="close" size={24} color="#374151" />
                 </TouchableOpacity>
@@ -480,29 +535,39 @@ export default function CustomerOnboardingScreen({ navigation }: any) {
           <View style={[styles.iconCircle, { backgroundColor: bgColor }]}>
             <Ionicons name="home" size={60} color={color} />
           </View>
-          <Text style={styles.title}>Home Address</Text>
+          <Text style={styles.title}>
+            {ob?.customerHomeAddressTitle || "Home Address"}
+          </Text>
           <Text style={styles.subtitle}>
-            Your home address helps us send technicians to your door and match you
-            with shops that cover your neighbourhood.
+            {ob?.customerHomeAddressSubtitle ||
+              "Your home address helps us send technicians to your door and match you with shops that cover your neighbourhood."}
           </Text>
 
           <View style={styles.impactBox}>
             <MaterialCommunityIcons name="lightbulb-outline" size={16} color="#f59e0b" />
             <Text style={styles.impactText}>
-              <Text style={{ fontWeight: "700" }}>If you skip this:</Text> You'll need to enter
-              your address every time you create a service request at home.
+              <Text style={{ fontWeight: "700" }}>
+                {ob?.customerSkipImpactPrefix || "If you skip this:"}
+              </Text>{" "}
+              {ob?.customerAddressSkipBody ||
+                "You'll need to enter your address every time you create a service request at home."}
             </Text>
           </View>
 
           <View style={styles.fieldGroup}>
             {/* Address search field */}
-            <Text style={styles.label}>Search Address</Text>
+            <Text style={styles.label}>
+              {ob?.customerSearchAddressLabel || "Search Address"}
+            </Text>
             <View style={{ position: "relative", zIndex: 10 }}>
               <View style={styles.searchRow}>
                 <Ionicons name="search" size={18} color="#9ca3af" style={{ marginRight: 8 }} />
                 <TextInput
                   style={[styles.input, { flex: 1, marginBottom: 0, borderWidth: 0, backgroundColor: "transparent", paddingHorizontal: 0, paddingVertical: 0 }]}
-                  placeholder="Type your address to search..."
+                  placeholder={
+                    ob?.customerAddressSearchPlaceholder ||
+                    "Type your address to search..."
+                  }
                   placeholderTextColor="#9ca3af"
                   value={addrSearchQuery}
                   onChangeText={handleAddrSearchInput}
@@ -526,16 +591,22 @@ export default function CustomerOnboardingScreen({ navigation }: any) {
               )}
             </View>
 
-            <Text style={[styles.label, { marginTop: 16 }]}>Street Address</Text>
+            <Text style={[styles.label, { marginTop: 16 }]}>
+              {ob?.customerStreetLabel || "Street Address"}
+            </Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. 123 Oak Street, Apt 4B"
+              placeholder={
+                ob?.customerStreetPlaceholder || "e.g. 123 Oak Street, Apt 4B"
+              }
               placeholderTextColor="#9ca3af"
               value={street}
               onChangeText={setStreet}
             />
 
-            <Text style={[styles.label, { marginTop: 14 }]}>State</Text>
+            <Text style={[styles.label, { marginTop: 14 }]}>
+              {t.auth?.state || "State"}
+            </Text>
             <TouchableOpacity
               style={[styles.pickerBtn, !(addrState || selectedState) && styles.pickerBtnEmpty]}
               onPress={() => setShowAddrStatePicker(true)}
@@ -543,36 +614,48 @@ export default function CustomerOnboardingScreen({ navigation }: any) {
               <Text style={(addrState || selectedState) ? styles.pickerBtnText : styles.pickerBtnPlaceholder}>
                 {(addrState || selectedState)
                   ? US_STATES.find((s) => s.code === (addrState || selectedState))?.name || (addrState || selectedState)
-                  : "Select state"}
+                  : ob?.customerSelectStateShort || "Select state"}
               </Text>
               <Ionicons name="chevron-down" size={18} color="#9ca3af" />
             </TouchableOpacity>
 
-            <Text style={[styles.label, { marginTop: 14 }]}>City</Text>
+            <Text style={[styles.label, { marginTop: 14 }]}>
+              {t.auth?.city || "City"}
+            </Text>
             {hasAddrCities ? (
               <TouchableOpacity
                 style={[styles.pickerBtn, !addrCity && styles.pickerBtnEmpty]}
                 onPress={() => setShowAddrCityPicker(true)}
               >
                 <Text style={addrCity ? styles.pickerBtnText : styles.pickerBtnPlaceholder}>
-                  {addrCity || "Select city"}
+                  {addrCity ||
+                    t.auth?.selectCityPlaceholder ||
+                    "Select city"}
                 </Text>
                 <Ionicons name="chevron-down" size={18} color="#9ca3af" />
               </TouchableOpacity>
             ) : (
               <TextInput
                 style={styles.input}
-                placeholder="Enter your city"
+                placeholder={
+                  ob?.customerEnterCityPlaceholder || "Enter your city"
+                }
                 placeholderTextColor="#9ca3af"
                 value={addrCity}
                 onChangeText={setAddrCity}
               />
             )}
 
-            <Text style={[styles.label, { marginTop: 14 }]}>ZIP Code (optional)</Text>
+            <Text style={[styles.label, { marginTop: 14 }]}>
+              {ob?.customerZipLabelOptional || "ZIP Code (optional)"}
+            </Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. 33101"
+              placeholder={
+                ob?.customerZipUsPlaceholder ||
+                t.auth?.zipUsExamplePlaceholder ||
+                "e.g. 33101"
+              }
               placeholderTextColor="#9ca3af"
               value={addrZip}
               onChangeText={setAddrZip}
@@ -591,7 +674,9 @@ export default function CustomerOnboardingScreen({ navigation }: any) {
             ) : (
               <>
                 <Ionicons name="checkmark-circle" size={20} color="#fff" />
-                <Text style={styles.saveBtnText}>Save Home Address</Text>
+                <Text style={styles.saveBtnText}>
+                  {ob?.customerSaveAddressCta || "Save Home Address"}
+                </Text>
               </>
             )}
           </TouchableOpacity>
@@ -601,7 +686,9 @@ export default function CustomerOnboardingScreen({ navigation }: any) {
             <View style={styles.modalOverlay}>
               <View style={styles.modalSheet}>
                 <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>Select State</Text>
+                  <Text style={styles.modalTitle}>
+                    {t.auth?.selectStateModalTitle || "Select State"}
+                  </Text>
                   <TouchableOpacity onPress={() => setShowAddrStatePicker(false)}>
                     <Ionicons name="close" size={24} color="#374151" />
                   </TouchableOpacity>
@@ -634,7 +721,9 @@ export default function CustomerOnboardingScreen({ navigation }: any) {
             <View style={styles.modalOverlay}>
               <View style={styles.modalSheet}>
                 <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>Select City</Text>
+                  <Text style={styles.modalTitle}>
+                    {t.auth?.selectCityModalTitle || "Select City"}
+                  </Text>
                   <TouchableOpacity onPress={() => setShowAddrCityPicker(false)}>
                     <Ionicons name="close" size={24} color="#374151" />
                   </TouchableOpacity>
@@ -670,35 +759,43 @@ export default function CustomerOnboardingScreen({ navigation }: any) {
       <View style={[styles.iconCircle, { backgroundColor: bgColor }]}>
         <Ionicons name="car-sport" size={60} color={color} />
       </View>
-      <Text style={styles.title}>Add Your Vehicle</Text>
+      <Text style={styles.title}>
+        {ob?.vehicleTitle || "Add Your Vehicle"}
+      </Text>
       <Text style={styles.subtitle}>
-        Adding your vehicle lets shops send you accurate quotes for the right
-        parts and labour. You can also track your complete service history.
+        {ob?.customerVehicleFlowSubtitle ||
+          "Adding your vehicle lets shops send you accurate quotes for the right parts and labour. You can also track your complete service history."}
       </Text>
 
       <View style={styles.impactBox}>
         <MaterialCommunityIcons name="lightbulb-outline" size={16} color="#0891b2" />
         <Text style={styles.impactText}>
-          <Text style={{ fontWeight: "700" }}>If you skip this:</Text> You'll need to
-          describe your car manually every time you request a service, and quotes
-          may be less accurate.
+          <Text style={{ fontWeight: "700" }}>
+            {ob?.customerSkipImpactPrefix || "If you skip this:"}
+          </Text>{" "}
+          {ob?.customerVehicleSkipBody ||
+            "You'll need to describe your car manually every time you request a service, and quotes may be less accurate."}
         </Text>
       </View>
 
       <View style={styles.benefitList}>
-        {[
-          { icon: "scan", text: "Scan VIN barcode for automatic fill" },
-          { icon: "time", text: "Full service history per vehicle" },
-          { icon: "people", text: "Add multiple vehicles (family & fleet)" },
-          { icon: "notifications", text: "Maintenance reminders by mileage" },
-        ].map((b, i) => (
-          <View key={i} style={styles.benefitRow}>
-            <View style={[styles.benefitIcon, { backgroundColor: STEP_BG.vehicle }]}>
-              <Ionicons name={b.icon as any} size={16} color={STEP_COLORS.vehicle} />
+        {localeBulletList(
+          ob?.customerVehicleBullets,
+          "Scan VIN barcode for automatic fill\nFull service history per vehicle\nAdd multiple vehicles (family & fleet)\nMaintenance reminders by mileage",
+        ).map((text, i) => {
+          return (
+            <View key={i} style={styles.benefitRow}>
+              <View style={[styles.benefitIcon, { backgroundColor: STEP_BG.vehicle }]}>
+                <Ionicons
+                  name={VEHICLE_BULLET_ICONS[i]}
+                  size={16}
+                  color={STEP_COLORS.vehicle}
+                />
+              </View>
+              <Text style={styles.benefitText}>{text}</Text>
             </View>
-            <Text style={styles.benefitText}>{b.text}</Text>
-          </View>
-        ))}
+          );
+        })}
       </View>
 
       <TouchableOpacity
@@ -706,7 +803,9 @@ export default function CustomerOnboardingScreen({ navigation }: any) {
         onPress={handleAddVehicle}
       >
         <Ionicons name="add-circle" size={20} color="#fff" />
-        <Text style={styles.saveBtnText}>Add My Vehicle Now</Text>
+        <Text style={styles.saveBtnText}>
+          {ob?.customerAddVehicleCtaNow || "Add My Vehicle Now"}
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -716,31 +815,44 @@ export default function CustomerOnboardingScreen({ navigation }: any) {
       <View style={[styles.iconCircle, { backgroundColor: bgColor }]}>
         <Ionicons name="checkmark-circle" size={60} color={color} />
       </View>
-      <Text style={styles.title}>You're All Set!</Text>
+      <Text style={styles.title}>
+        {ob?.doneTitle || "You're All Set!"}
+      </Text>
       <Text style={styles.subtitle}>
-        TechTrust is personalised for you. You can always update your info
-        from Profile → Settings.
+        {ob?.customerDoneFlowSubtitle ||
+          "TechTrust is personalised for you. You can always update your info from Profile → Settings."}
       </Text>
 
       <View style={styles.doneCard}>
-        <Text style={styles.doneCardTitle}>What you can do now:</Text>
-        {[
-          { icon: "construct", text: "Request a service from verified shops near you" },
-          { icon: "car-wash", text: "Find car washes and book memberships", family: "material" },
-          { icon: "storefront", text: "Browse auto parts stores" },
-          { icon: "star", text: "Leave reviews and save favourite shops" },
-        ].map((item, i) => (
-          <View key={i} style={styles.doneRow}>
-            <View style={[styles.doneIcon, { backgroundColor: STEP_BG.done }]}>
-              {item.family === "material" ? (
-                <MaterialCommunityIcons name={item.icon as any} size={16} color={STEP_COLORS.done} />
-              ) : (
-                <Ionicons name={item.icon as any} size={16} color={STEP_COLORS.done} />
-              )}
+        <Text style={styles.doneCardTitle}>
+          {ob?.customerDoneCardTitle || "What you can do now:"}
+        </Text>
+        {localeBulletList(
+          ob?.customerDoneBullets,
+          "Request a service from verified shops near you\nFind car washes and book memberships\nBrowse auto parts stores\nLeave reviews and save favourite shops",
+        ).map((text, i) => {
+          const spec = DONE_BULLET_ICONS[i];
+          return (
+            <View key={i} style={styles.doneRow}>
+              <View style={[styles.doneIcon, { backgroundColor: STEP_BG.done }]}>
+                {spec.lib === "mci" ? (
+                  <MaterialCommunityIcons
+                    name={spec.name}
+                    size={16}
+                    color={STEP_COLORS.done}
+                  />
+                ) : (
+                  <Ionicons
+                    name={spec.name}
+                    size={16}
+                    color={STEP_COLORS.done}
+                  />
+                )}
+              </View>
+              <Text style={styles.doneRowText}>{text}</Text>
             </View>
-            <Text style={styles.doneRowText}>{item.text}</Text>
-          </View>
-        ))}
+          );
+        })}
       </View>
     </View>
   );
@@ -766,7 +878,9 @@ export default function CustomerOnboardingScreen({ navigation }: any) {
       {/* Skip button */}
       {!isLast && (
         <TouchableOpacity style={styles.skipTopBtn} onPress={handleSkip}>
-          <Text style={styles.skipTopText}>Skip all</Text>
+          <Text style={styles.skipTopText}>
+            {ob?.customerSkipAll || "Skip all"}
+          </Text>
         </TouchableOpacity>
       )}
 
@@ -800,7 +914,9 @@ export default function CustomerOnboardingScreen({ navigation }: any) {
         {!isFirst && (
           <TouchableOpacity style={styles.backBtn} onPress={goBack}>
             <Ionicons name="arrow-back" size={18} color="#6b7280" />
-            <Text style={styles.backBtnText}>Back</Text>
+            <Text style={styles.backBtnText}>
+              {t.common?.back || "Back"}
+            </Text>
           </TouchableOpacity>
         )}
         <View style={{ flex: 1 }} />
@@ -810,17 +926,23 @@ export default function CustomerOnboardingScreen({ navigation }: any) {
             style={[styles.nextBtn, { backgroundColor: color }]}
             onPress={handleFinish}
           >
-            <Text style={styles.nextBtnText}>Go to Dashboard</Text>
+            <Text style={styles.nextBtnText}>
+              {ob?.customerGoToDashboard || "Go to Dashboard"}
+            </Text>
             <Ionicons name="rocket" size={18} color="#fff" />
           </TouchableOpacity>
         ) : isDataStep ? (
           <TouchableOpacity style={styles.skipStepBtn} onPress={goNext}>
-            <Text style={styles.skipStepText}>Skip this step</Text>
+            <Text style={styles.skipStepText}>
+              {ob?.customerSkipThisStep || "Skip this step"}
+            </Text>
             <Ionicons name="arrow-forward" size={16} color="#9ca3af" />
           </TouchableOpacity>
         ) : stepId === "vehicle" ? (
           <TouchableOpacity style={styles.skipStepBtn} onPress={goNext}>
-            <Text style={styles.skipStepText}>Skip for now</Text>
+            <Text style={styles.skipStepText}>
+              {ob?.customerSkipForNow || "Skip for now"}
+            </Text>
             <Ionicons name="arrow-forward" size={16} color="#9ca3af" />
           </TouchableOpacity>
         ) : (
@@ -828,7 +950,9 @@ export default function CustomerOnboardingScreen({ navigation }: any) {
             style={[styles.nextBtn, { backgroundColor: color }]}
             onPress={goNext}
           >
-            <Text style={styles.nextBtnText}>Let's go</Text>
+            <Text style={styles.nextBtnText}>
+              {ob?.customerLetsGo || "Let's go"}
+            </Text>
             <Ionicons name="arrow-forward" size={18} color="#fff" />
           </TouchableOpacity>
         )}

@@ -14,8 +14,11 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useI18n } from "../i18n";
+import type { HomeStackScreenProps } from "../navigation/types";
 
-export default function ServiceChoiceScreen({ navigation }: any) {
+export default function ServiceChoiceScreen({
+  navigation,
+}: HomeStackScreenProps<"ServiceChoice">) {
   const { t } = useI18n();
 
   return (
@@ -108,15 +111,15 @@ export default function ServiceChoiceScreen({ navigation }: any) {
             <MaterialCommunityIcons name="car-wash" size={32} color="#0ea5e9" />
           </View>
           <Text style={styles.cardTitle}>
-            {(t as any).carWash?.findNearby || "Find a Car Wash"}
+            {t.carWash?.findNearby || "Find a Car Wash"}
           </Text>
           <Text style={styles.cardDescription}>
-            {(t as any).carWash?.serviceChoiceDesc ||
+            {t.carWash?.serviceChoiceDesc ||
               "Need a wash? Find car washes near you with real-time pricing, unlimited membership plans, and customer reviews."}
           </Text>
           <View style={[styles.cardButton, { backgroundColor: "#0ea5e9" }]}>
             <Text style={styles.cardButtonText}>
-              {(t as any).carWash?.findNearby || "Find Car Washes"}
+              {t.carWash?.findNearby || "Find Car Washes"}
             </Text>
             <Ionicons name="arrow-forward" size={16} color="#fff" />
           </View>
@@ -134,15 +137,15 @@ export default function ServiceChoiceScreen({ navigation }: any) {
             <Ionicons name="storefront" size={32} color="#7c3aed" />
           </View>
           <Text style={styles.cardTitle}>
-            {(t as any).partsStore?.title || "Auto Parts Store"}
+            {t.partsStore?.title || "Auto Parts Store"}
           </Text>
           <Text style={styles.cardDescription}>
-            {(t as any).partsStore?.serviceChoiceDesc ||
+            {t.partsStore?.serviceChoiceDesc ||
               "Find auto parts near you. Browse verified stores, compare prices, and reserve parts for pickup."}
           </Text>
           <View style={[styles.cardButton, { backgroundColor: "#7c3aed" }]}>
             <Text style={styles.cardButtonText}>
-              {(t as any).partsStore?.browseStore || "Browse Parts"}
+              {t.partsStore?.browseStore || "Browse Parts"}
             </Text>
             <Ionicons name="arrow-forward" size={16} color="#fff" />
           </View>

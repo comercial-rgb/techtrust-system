@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from "react";
+import type { ComponentProps } from "react";
 import {
   View,
   Text,
@@ -18,9 +19,15 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+
+type IoniconName = ComponentProps<typeof Ionicons>["name"];
 import { useI18n } from "../../i18n";
 import api from "../../services/api";
 import * as fdacsService from "../../services/fdacs.service";
+import type {
+  ScheduleAppointmentScreenNavigation,
+  ScheduleAppointmentScreenRoute,
+} from "../../navigation/types";
 import {
   getMySubscription,
   type SubscriptionInfo,
@@ -58,8 +65,19 @@ interface ProviderResult {
   travelFee?: number;
 }
 
-export default function ScheduleAppointmentScreen({ route, navigation }: any) {
-  const { serviceRequestId, providerId, vehicleId } = route.params || {};
+export default function ScheduleAppointmentScreen({
+  route,
+  navigation,
+}: {
+  route: ScheduleAppointmentScreenRoute;
+  navigation: ScheduleAppointmentScreenNavigation;
+}) {
+  const scheduleParams = (route.params || {}) as {
+    serviceRequestId?: string;
+    providerId?: string;
+    vehicleId?: string;
+  };
+  const { serviceRequestId, providerId, vehicleId } = scheduleParams;
   const { t, formatDate, formatTime, formatCurrency } = useI18n();
   const sa: any = t.scheduleAppointment || {};
 
@@ -495,7 +513,7 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
                     onPress={() => setSelectedServiceType(svc.id)}
                   >
                     <Ionicons
-                      name={svc.icon as any}
+                      name={svc.icon as IoniconName}
                       size={22}
                       color={
                         selectedServiceType === svc.id ? "#2B5EA7" : "#6b7280"
@@ -790,7 +808,10 @@ export default function ScheduleAppointmentScreen({ route, navigation }: any) {
 
                 <View style={styles.summaryRow}>
                   <Ionicons
-                    name={(selectedServiceObj?.icon as any) || "build"}
+                    name={
+                      (selectedServiceObj?.icon as IoniconName | undefined) ||
+                      "build"
+                    }
                     size={20}
                     color="#6b7280"
                   />

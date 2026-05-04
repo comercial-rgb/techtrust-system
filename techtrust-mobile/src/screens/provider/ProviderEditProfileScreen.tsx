@@ -2,7 +2,8 @@
  * ProviderEditProfileScreen - Editar Perfil do Fornecedor
  */
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
+import type { ComponentProps } from "react";
 import {
   View,
   Text,
@@ -14,23 +15,37 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+
+type MciName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 import { useI18n } from "../../i18n";
 import { useAuth } from "../../contexts/AuthContext";
+import type { ProviderAppNavigation } from "../../navigation/types";
 
-const BUSINESS_TYPE_OPTIONS = [
-  { value: 'AUTO_REPAIR',    label: 'Auto Repair Shop',      icon: 'car-wrench',     note: 'General mechanical repair — FDACS license required' },
-  { value: 'BODY_SHOP',      label: 'Body Shop',             icon: 'car-wash',       note: 'Collision/body work — FDACS license required' },
-  { value: 'TIRE_SHOP',      label: 'Tire Shop',             icon: 'tire',           note: 'Tire sales & service — FDACS license required' },
-  { value: 'OIL_CHANGE',     label: 'Quick Lube / Oil Change',icon: 'oil',           note: 'Quick lube / oil change — FDACS license required' },
-  { value: 'AUTO_ELECTRIC',  label: 'Auto Electric',         icon: 'lightning-bolt', note: 'Electrical/diagnostics — FDACS license required' },
-  { value: 'MOBILE_MECHANIC',label: 'Mobile Mechanic',       icon: 'car-arrow-right',note: 'On-site repairs — FDACS license required' },
-  { value: 'TOWING',         label: 'Towing Company',        icon: 'tow-truck',      note: 'Towing / recovery — FL Wrecker permit (FDACS)' },
-  { value: 'DETAILING',      label: 'Auto Detailing',        icon: 'spray',          note: 'Detailing only — BTR license, no FDACS required' },
-  { value: 'MULTI_SERVICE',  label: 'Multi-Service Shop',    icon: 'store',          note: 'Multiple service types — FDACS license required' },
-];
+const BUSINESS_TYPE_META = [
+  { value: "AUTO_REPAIR", icon: "car-wrench" },
+  { value: "BODY_SHOP", icon: "car-wash" },
+  { value: "TIRE_SHOP", icon: "tire" },
+  { value: "OIL_CHANGE", icon: "oil" },
+  { value: "AUTO_ELECTRIC", icon: "lightning-bolt" },
+  { value: "MOBILE_MECHANIC", icon: "car-arrow-right" },
+  { value: "TOWING", icon: "tow-truck" },
+  { value: "DETAILING", icon: "spray" },
+  { value: "MULTI_SERVICE", icon: "store" },
+] as const;
 
-export default function ProviderEditProfileScreen({ navigation }: any) {
+export default function ProviderEditProfileScreen({ navigation }: { navigation: ProviderAppNavigation }) {
   const { t } = useI18n();
+  const pc = t.providerCompliance as Record<string, string | undefined>;
+  const businessTypeOptions = useMemo(
+    () =>
+      BUSINESS_TYPE_META.map((m) => ({
+        value: m.value,
+        icon: m.icon,
+        label: String(pc?.[`biz_${m.value}`] ?? m.value),
+        note: String(pc?.[`bizNote_${m.value}`] ?? ""),
+      })),
+    [t],
+  );
   const { user, refreshUser } = useAuth();
   const [businessName, setBusinessName] = useState(
     user?.providerProfile?.businessName || "",
@@ -203,13 +218,18 @@ export default function ProviderEditProfileScreen({ navigation }: any) {
 
           {/* Business Type Picker */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Shop Type *</Text>
+            <Text style={styles.label}>
+              {t.provider?.shopTypeLabel || "Shop type"} *
+            </Text>
             <TouchableOpacity
               style={[styles.input, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}
               onPress={() => setShowBusinessTypePicker(!showBusinessTypePicker)}
             >
               <Text style={{ fontSize: 15, color: '#111827' }}>
-                {BUSINESS_TYPE_OPTIONS.find(o => o.value === selectedBusinessType)?.label || 'Select shop type'}
+                {businessTypeOptions.find((o) => o.value === selectedBusinessType)
+                  ?.label ||
+                  t.provider?.selectShopTypeHint ||
+                  "Select shop type"}
               </Text>
               <MaterialCommunityIcons name={showBusinessTypePicker ? "chevron-up" : "chevron-down"} size={20} color="#6b7280" />
             </TouchableOpacity>
@@ -222,7 +242,7 @@ export default function ProviderEditProfileScreen({ navigation }: any) {
                 marginTop: 4,
                 overflow: 'hidden',
               }}>
-                {BUSINESS_TYPE_OPTIONS.map((opt) => (
+                {businessTypeOptions.map((opt) => (
                   <TouchableOpacity
                     key={opt.value}
                     style={{
@@ -236,7 +256,15 @@ export default function ProviderEditProfileScreen({ navigation }: any) {
                     }}
                     onPress={() => { setSelectedBusinessType(opt.value); setShowBusinessTypePicker(false); }}
                   >
-                    <MaterialCommunityIcons name={opt.icon as any} size={20} color={selectedBusinessType === opt.value ? '#2B5EA7' : '#6b7280'} />
+                    <MaterialCommunityIcons
+                      name={opt.icon as MciName}
+                      size={20}
+                      color={
+                        selectedBusinessType === opt.value
+                          ? "#2B5EA7"
+                          : "#6b7280"
+                      }
+                    />
                     <View style={{ marginLeft: 12, flex: 1 }}>
                       <Text style={{ fontSize: 14, fontWeight: '600', color: selectedBusinessType === opt.value ? '#2B5EA7' : '#111827' }}>
                         {opt.label}
@@ -251,7 +279,8 @@ export default function ProviderEditProfileScreen({ navigation }: any) {
               </View>
             )}
             <Text style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>
-              Affects which compliance licenses are required for your business
+              {t.provider?.businessTypeComplianceHint ||
+                "Affects which compliance licenses are required for your business"}
             </Text>
           </View>
 
@@ -281,14 +310,18 @@ export default function ProviderEditProfileScreen({ navigation }: any) {
               style={styles.input}
               value={cnpj}
               onChangeText={handleEinChange}
-              placeholder="12-3456789"
+              placeholder={
+                t.provider?.editProfileEinPlaceholder || "12-3456789"
+              }
               keyboardType="numeric"
               maxLength={10}
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>{"FDACS Registration #"}</Text>
+            <Text style={styles.label}>
+              {t.provider?.fdacsRegistrationLabelShort || "FDACS registration #"}
+            </Text>
             {/* D35 — FDACS License Validation with visual feedback */}
             <View style={[styles.input, {
               flexDirection: 'row',
@@ -300,25 +333,33 @@ export default function ProviderEditProfileScreen({ navigation }: any) {
                 style={{ flex: 1, fontSize: 15, color: '#111827', padding: 0 }}
                 value={fdacsNumber}
                 onChangeText={handleFdacsChange}
-                placeholder="MV-00000"
+                placeholder={
+                  t.provider?.fdacsPlaceholder || "MV-00000"
+                }
                 autoCapitalize="characters"
                 maxLength={8}
               />
               {fdacsValidating && (
                 <View style={{ marginLeft: 8 }}>
-                  <Text style={{ fontSize: 12, color: '#6b7280' }}>Validating...</Text>
+                  <Text style={{ fontSize: 12, color: '#6b7280' }}>
+                    {t.provider?.fdacsValidating || "Validating..."}
+                  </Text>
                 </View>
               )}
               {fdacsValid === true && !fdacsValidating && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 8, gap: 4 }}>
                   <MaterialCommunityIcons name="check-circle" size={20} color="#10b981" />
-                  <Text style={{ fontSize: 12, color: '#10b981', fontWeight: '600' }}>Valid</Text>
+                  <Text style={{ fontSize: 12, color: '#10b981', fontWeight: '600' }}>
+                    {t.provider?.fdacsValid || "Valid"}
+                  </Text>
                 </View>
               )}
               {fdacsValid === false && !fdacsValidating && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 8, gap: 4 }}>
                   <MaterialCommunityIcons name="close-circle" size={20} color="#ef4444" />
-                  <Text style={{ fontSize: 12, color: '#ef4444', fontWeight: '600' }}>Invalid</Text>
+                  <Text style={{ fontSize: 12, color: '#ef4444', fontWeight: '600' }}>
+                    {t.provider?.fdacsInvalid || "Invalid"}
+                  </Text>
                 </View>
               )}
             </View>
@@ -326,8 +367,10 @@ export default function ProviderEditProfileScreen({ navigation }: any) {
               color: fdacsValid === false ? '#ef4444' : '#9ca3af',
             }]}>
               {fdacsValid === false
-                ? 'Format must be MV-XXXXX (e.g., MV-12345)'
-                : 'Required for FL motor vehicle repair shops'}
+                ? (t.provider?.fdacsFormatHintInvalid ||
+                    "Format must be MV-XXXXX (e.g., MV-12345)")
+                : (t.provider?.fdacsFormatHintOk ||
+                    "Required for FL motor vehicle repair shops")}
             </Text>
           </View>
         </View>
@@ -345,7 +388,9 @@ export default function ProviderEditProfileScreen({ navigation }: any) {
                 style={styles.inputIcon}
                 value={phone}
                 onChangeText={setPhone}
-                placeholder="+1 (000) 000-0000"
+                placeholder={
+                  t.provider?.editProfilePhonePlaceholder || "+1 (000) 000-0000"
+                }
                 keyboardType="phone-pad"
               />
             </View>
@@ -359,7 +404,9 @@ export default function ProviderEditProfileScreen({ navigation }: any) {
                 style={styles.inputIcon}
                 value={email}
                 onChangeText={setEmail}
-                placeholder="seu@email.com"
+                placeholder={
+                  t.provider?.editProfileEmailPlaceholder || "you@business.com"
+                }
                 keyboardType="email-address"
                 autoCapitalize="none"
               />
@@ -374,7 +421,10 @@ export default function ProviderEditProfileScreen({ navigation }: any) {
                 style={styles.inputIcon}
                 value={website}
                 onChangeText={setWebsite}
-                placeholder="www.yourbusiness.com"
+                placeholder={
+                  t.provider?.editProfileWebsitePlaceholder ||
+                  "www.yourbusiness.com"
+                }
                 autoCapitalize="none"
               />
             </View>
@@ -388,7 +438,7 @@ export default function ProviderEditProfileScreen({ navigation }: any) {
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>
-              {"Street Address"}
+              {t.provider?.streetAddressLabel || "Street address"}
             </Text>
             <View style={styles.inputWithIcon}>
               <MaterialCommunityIcons
@@ -400,40 +450,49 @@ export default function ProviderEditProfileScreen({ navigation }: any) {
                 style={styles.inputIcon}
                 value={street}
                 onChangeText={setStreet}
-                placeholder="123 Main Street"
+                placeholder={
+                  t.provider?.editProfileStreetPlaceholder ||
+                  "123 Main Street"
+                }
               />
             </View>
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>{"City"}</Text>
+            <Text style={styles.label}>{t.common?.city || "City"}</Text>
             <TextInput
               style={styles.input}
               value={city}
               onChangeText={setCity}
-              placeholder="Orlando"
+              placeholder={
+                t.provider?.editProfileCityPlaceholder || "Orlando"
+              }
             />
           </View>
 
           <View style={{ flexDirection: 'row', gap: 12 }}>
             <View style={[styles.inputGroup, { flex: 1 }]}>
-              <Text style={styles.label}>{"State"}</Text>
+              <Text style={styles.label}>{t.auth?.state || "State"}</Text>
               <TextInput
                 style={styles.input}
                 value={stateField}
                 onChangeText={setStateField}
-                placeholder="FL"
+                placeholder={
+                  t.provider?.editProfileStatePlaceholder || "FL"
+                }
                 maxLength={2}
                 autoCapitalize="characters"
               />
             </View>
             <View style={[styles.inputGroup, { flex: 1 }]}>
-              <Text style={styles.label}>{"ZIP Code"}</Text>
+              <Text style={styles.label}>{t.auth?.zipCode || "ZIP"}</Text>
               <TextInput
                 style={styles.input}
                 value={zipCode}
                 onChangeText={setZipCode}
-                placeholder="32801"
+                placeholder={
+                  t.provider?.editProfileZipPlaceholder || "32801"
+                }
                 keyboardType="number-pad"
                 maxLength={10}
               />

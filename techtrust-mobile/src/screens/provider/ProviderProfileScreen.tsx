@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from "react";
+import type { ComponentProps } from "react";
 import {
   View,
   Text,
@@ -17,9 +18,12 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+
+type MciName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 import { useAuth } from "../../contexts/AuthContext";
 import { useI18n, languages, Language } from "../../i18n";
 import api from "../../services/api";
+import type { ProviderProfileStackNavigation } from "../../navigation/types";
 
 interface ProviderStats {
   totalServices: number;
@@ -31,7 +35,11 @@ interface ProviderStats {
   acceptanceRate: number;
 }
 
-export default function ProviderProfileScreen({ navigation }: any) {
+export default function ProviderProfileScreen({
+  navigation,
+}: {
+  navigation: ProviderProfileStackNavigation<"ProviderProfileMain">;
+}) {
   const { user, logout } = useAuth();
   const { language, setLanguage, t, formatCurrency } = useI18n();
   const [stats, setStats] = useState<ProviderStats | null>(null);
@@ -533,7 +541,11 @@ function MenuItem({
       activeOpacity={0.7}
     >
       <View style={menuStyles.iconContainer}>
-        <MaterialCommunityIcons name={icon as any} size={22} color="#6b7280" />
+        <MaterialCommunityIcons
+          name={icon as MciName}
+          size={22}
+          color="#6b7280"
+        />
       </View>
       <View style={menuStyles.content}>
         <Text style={menuStyles.label}>{label}</Text>
@@ -595,7 +607,11 @@ function NotificationItem({
   return (
     <View style={notifStyles.container}>
       <View style={notifStyles.iconContainer}>
-        <MaterialCommunityIcons name={icon as any} size={22} color="#6b7280" />
+        <MaterialCommunityIcons
+          name={icon as MciName}
+          size={22}
+          color="#6b7280"
+        />
       </View>
       <View style={notifStyles.content}>
         <Text style={notifStyles.label}>{label}</Text>

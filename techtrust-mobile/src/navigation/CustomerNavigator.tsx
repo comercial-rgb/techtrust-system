@@ -7,6 +7,14 @@ import { useI18n } from "../i18n";
 import { useNotifications } from "../contexts/NotificationsContext";
 import { CommonActions } from "@react-navigation/native";
 import { colors } from "../constants/theme";
+import type {
+  CarWashStackParamList,
+  CustomerTabParamList,
+  HomeStackParamList,
+  ProfileStackParamList,
+  VehiclesStackParamList,
+  WorkOrdersStackParamList,
+} from "./types";
 
 // Customer Screens
 import LandingScreen from "../screens/LandingScreen";
@@ -79,8 +87,12 @@ import PartsCategoryScreen from "../screens/PartsCategoryScreen";
 import PartsProductDetailScreen from "../screens/PartsProductDetailScreen";
 import PartsStoreProfileScreen from "../screens/PartsStoreProfileScreen";
 
-const Tab = createBottomTabNavigator();
-const Stack = createNativeStackNavigator();
+const Tab = createBottomTabNavigator<CustomerTabParamList>();
+const HomeStackNav = createNativeStackNavigator<HomeStackParamList>();
+const VehiclesStackNav = createNativeStackNavigator<VehiclesStackParamList>();
+const WorkOrdersStackNav = createNativeStackNavigator<WorkOrdersStackParamList>();
+const CarWashStackNav = createNativeStackNavigator<CarWashStackParamList>();
+const ProfileStackNav = createNativeStackNavigator<ProfileStackParamList>();
 
 // Custom Tab Bar Icon with Badge
 function TabBarIcon({
@@ -108,177 +120,179 @@ function TabBarIcon({
 
 function HomeStack() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="LandingMain" component={LandingScreen} />
-      <Stack.Screen name="DashboardMain" component={CustomerDashboardScreen} />
-      <Stack.Screen name="ServiceChoice" component={ServiceChoiceScreen} />
-      <Stack.Screen name="CreateRequest" component={CreateRequestScreen} />
-      <Stack.Screen name="RequestDetails" component={RequestDetailsScreen} />
-      <Stack.Screen
+    <HomeStackNav.Navigator screenOptions={{ headerShown: false }}>
+      <HomeStackNav.Screen name="LandingMain" component={LandingScreen} />
+      <HomeStackNav.Screen name="DashboardMain" component={CustomerDashboardScreen} />
+      <HomeStackNav.Screen name="ServiceChoice" component={ServiceChoiceScreen} />
+      <HomeStackNav.Screen name="CreateRequest" component={CreateRequestScreen} />
+      <HomeStackNav.Screen name="RequestDetails" component={RequestDetailsScreen} />
+      <HomeStackNav.Screen
         name="QuoteDetails"
         component={CustomerQuoteDetailsScreen}
       />
-      <Stack.Screen name="Notifications" component={NotificationsScreen} />
-      <Stack.Screen name="ArticleDetail" component={ArticleDetailScreen} />
-      <Stack.Screen name="Appointments" component={AppointmentsScreen} />
-      <Stack.Screen
+      <HomeStackNav.Screen name="Notifications" component={NotificationsScreen} />
+      <HomeStackNav.Screen name="ArticleDetail" component={ArticleDetailScreen} />
+      <HomeStackNav.Screen name="Appointments" component={AppointmentsScreen} />
+      <HomeStackNav.Screen
         name="AppointmentDetails"
         component={AppointmentDetailsScreen}
       />
-      <Stack.Screen
+      <HomeStackNav.Screen
         name="ScheduleAppointment"
         component={ScheduleAppointmentScreen}
       />
-      <Stack.Screen name="EstimateShares" component={EstimateSharesScreen} />
-      <Stack.Screen
+      <HomeStackNav.Screen name="EstimateShares" component={EstimateSharesScreen} />
+      <HomeStackNav.Screen
         name="CompareEstimates"
         component={CompareEstimatesScreen}
       />
-      <Stack.Screen name="CarWashMap" component={CarWashMapScreen} />
-      <Stack.Screen name="CarWashProfile" component={CarWashProfileScreen} />
-      <Stack.Screen name="CarWashReview" component={CarWashReviewScreen} />
-      <Stack.Screen name="CarWashAllReviews" component={CarWashAllReviewsScreen} />
-      <Stack.Screen name="CarWashFavorites" component={CarWashFavoritesScreen} />
-      <Stack.Screen name="PartsStore" component={PartsStoreScreen} />
-      <Stack.Screen name="PartsCategory" component={PartsCategoryScreen} />
-      <Stack.Screen name="PartsProductDetail" component={PartsProductDetailScreen} />
-      <Stack.Screen name="PartsStoreProfile" component={PartsStoreProfileScreen} />
-      <Stack.Screen name="ChatList" component={ChatListScreen} />
-      <Stack.Screen name="Chat" component={ChatScreen} />
-      <Stack.Screen name="HelpCenter" component={HelpCenterScreen} />
-      <Stack.Screen name="ContactUs" component={ContactUsScreen} />
-      <Stack.Screen name="TermsAndPolicies" component={TermsAndPoliciesScreen} />
-      <Stack.Screen name="CustomerSOS" component={CustomerSOSScreen} />
-    </Stack.Navigator>
+      <HomeStackNav.Screen name="CarWashMap" component={CarWashMapScreen} />
+      <HomeStackNav.Screen name="CarWashProfile" component={CarWashProfileScreen} />
+      <HomeStackNav.Screen name="CarWashReview" component={CarWashReviewScreen} />
+      <HomeStackNav.Screen name="CarWashAllReviews" component={CarWashAllReviewsScreen} />
+      <HomeStackNav.Screen name="CarWashFavorites" component={CarWashFavoritesScreen} />
+      <HomeStackNav.Screen name="PartsStore" component={PartsStoreScreen} />
+      <HomeStackNav.Screen name="PartsCategory" component={PartsCategoryScreen} />
+      <HomeStackNav.Screen name="PartsProductDetail" component={PartsProductDetailScreen} />
+      <HomeStackNav.Screen name="PartsStoreProfile" component={PartsStoreProfileScreen} />
+      <HomeStackNav.Screen name="ChatList" component={ChatListScreen} />
+      <HomeStackNav.Screen name="Chat" component={ChatScreen} />
+      <HomeStackNav.Screen name="HelpCenter" component={HelpCenterScreen} />
+      <HomeStackNav.Screen name="ContactUs" component={ContactUsScreen} />
+      <HomeStackNav.Screen name="SupportChat" component={SupportChatScreen} />
+      <HomeStackNav.Screen name="RateApp" component={RateAppScreen} />
+      <HomeStackNav.Screen name="TermsAndPolicies" component={TermsAndPoliciesScreen} />
+      <HomeStackNav.Screen name="CustomerSOS" component={CustomerSOSScreen} />
+    </HomeStackNav.Navigator>
   );
 }
 
 function VehiclesStack() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="VehiclesList" component={CustomerVehiclesScreen} />
-      <Stack.Screen name="AddVehicle" component={AddVehicleScreen} />
-      <Stack.Screen name="VehicleDetails" component={VehicleDetailsScreen} />
-      <Stack.Screen name="VehicleTransfer" component={VehicleTransferScreen} />
-      <Stack.Screen name="Insurance" component={InsuranceScreen} />
-    </Stack.Navigator>
+    <VehiclesStackNav.Navigator screenOptions={{ headerShown: false }}>
+      <VehiclesStackNav.Screen name="VehiclesList" component={CustomerVehiclesScreen} />
+      <VehiclesStackNav.Screen name="AddVehicle" component={AddVehicleScreen} />
+      <VehiclesStackNav.Screen name="VehicleDetails" component={VehicleDetailsScreen} />
+      <VehiclesStackNav.Screen name="VehicleTransfer" component={VehicleTransferScreen} />
+      <VehiclesStackNav.Screen name="Insurance" component={InsuranceScreen} />
+    </VehiclesStackNav.Navigator>
   );
 }
 
 function WorkOrdersStack() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen
+    <WorkOrdersStackNav.Navigator screenOptions={{ headerShown: false }}>
+      <WorkOrdersStackNav.Screen
         name="WorkOrdersList"
         component={CustomerWorkOrdersScreen}
       />
-      <Stack.Screen name="RequestDetails" component={RequestDetailsScreen} />
-      <Stack.Screen
+      <WorkOrdersStackNav.Screen name="RequestDetails" component={RequestDetailsScreen} />
+      <WorkOrdersStackNav.Screen
         name="QuoteDetails"
         component={CustomerQuoteDetailsScreen}
       />
-      <Stack.Screen
+      <WorkOrdersStackNav.Screen
         name="WorkOrderDetails"
         component={WorkOrderDetailsScreen}
       />
-      <Stack.Screen name="Payment" component={PaymentScreen} />
-      <Stack.Screen
+      <WorkOrdersStackNav.Screen name="Payment" component={PaymentScreen} />
+      <WorkOrdersStackNav.Screen
         name="ServiceApproval"
-        component={ServiceApprovalScreen as React.ComponentType<any>}
+        component={ServiceApprovalScreen}
       />
-      <Stack.Screen name="Rating" component={RatingScreen} />
-      <Stack.Screen name="RepairInvoices" component={RepairInvoicesScreen} />
-      <Stack.Screen
+      <WorkOrdersStackNav.Screen name="Rating" component={RatingScreen} />
+      <WorkOrdersStackNav.Screen name="RepairInvoices" component={RepairInvoicesScreen} />
+      <WorkOrdersStackNav.Screen
         name="RepairInvoiceDetails"
         component={RepairInvoiceDetailsScreen}
       />
-      <Stack.Screen name="Appointments" component={AppointmentsScreen} />
-      <Stack.Screen
+      <WorkOrdersStackNav.Screen name="Appointments" component={AppointmentsScreen} />
+      <WorkOrdersStackNav.Screen
         name="AppointmentDetails"
         component={AppointmentDetailsScreen}
       />
-      <Stack.Screen
+      <WorkOrdersStackNav.Screen
         name="ScheduleAppointment"
         component={ScheduleAppointmentScreen}
       />
-      <Stack.Screen name="EstimateShares" component={EstimateSharesScreen} />
-      <Stack.Screen
+      <WorkOrdersStackNav.Screen name="EstimateShares" component={EstimateSharesScreen} />
+      <WorkOrdersStackNav.Screen
         name="CompareEstimates"
         component={CompareEstimatesScreen}
       />
-      <Stack.Screen name="ChatList" component={ChatListScreen} />
-      <Stack.Screen name="Chat" component={ChatScreen} />
-      <Stack.Screen name="CarWashMap" component={CarWashMapScreen} />
-      <Stack.Screen name="CarWashProfile" component={CarWashProfileScreen} />
-      <Stack.Screen name="CarWashReview" component={CarWashReviewScreen} />
-      <Stack.Screen name="CarWashAllReviews" component={CarWashAllReviewsScreen} />
-      <Stack.Screen name="CarWashFavorites" component={CarWashFavoritesScreen} />
-    </Stack.Navigator>
+      <WorkOrdersStackNav.Screen name="ChatList" component={ChatListScreen} />
+      <WorkOrdersStackNav.Screen name="Chat" component={ChatScreen} />
+      <WorkOrdersStackNav.Screen name="CarWashMap" component={CarWashMapScreen} />
+      <WorkOrdersStackNav.Screen name="CarWashProfile" component={CarWashProfileScreen} />
+      <WorkOrdersStackNav.Screen name="CarWashReview" component={CarWashReviewScreen} />
+      <WorkOrdersStackNav.Screen name="CarWashAllReviews" component={CarWashAllReviewsScreen} />
+      <WorkOrdersStackNav.Screen name="CarWashFavorites" component={CarWashFavoritesScreen} />
+    </WorkOrdersStackNav.Navigator>
   );
 }
 
 function CarWashStack() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="CarWashMapMain" component={AutoServicesScreen} />
-      <Stack.Screen name="CarWashProfile" component={CarWashProfileScreen} />
-      <Stack.Screen name="CarWashReview" component={CarWashReviewScreen} />
-      <Stack.Screen name="CarWashAllReviews" component={CarWashAllReviewsScreen} />
-      <Stack.Screen name="CarWashFavorites" component={CarWashFavoritesScreen} />
-      <Stack.Screen name="PartsStore" component={PartsStoreScreen} />
-      <Stack.Screen name="PartsCategory" component={PartsCategoryScreen} />
-      <Stack.Screen name="PartsProductDetail" component={PartsProductDetailScreen} />
-      <Stack.Screen name="PartsStoreProfile" component={PartsStoreProfileScreen} />
-    </Stack.Navigator>
+    <CarWashStackNav.Navigator screenOptions={{ headerShown: false }}>
+      <CarWashStackNav.Screen name="CarWashMapMain" component={AutoServicesScreen} />
+      <CarWashStackNav.Screen name="CarWashProfile" component={CarWashProfileScreen} />
+      <CarWashStackNav.Screen name="CarWashReview" component={CarWashReviewScreen} />
+      <CarWashStackNav.Screen name="CarWashAllReviews" component={CarWashAllReviewsScreen} />
+      <CarWashStackNav.Screen name="CarWashFavorites" component={CarWashFavoritesScreen} />
+      <CarWashStackNav.Screen name="PartsStore" component={PartsStoreScreen} />
+      <CarWashStackNav.Screen name="PartsCategory" component={PartsCategoryScreen} />
+      <CarWashStackNav.Screen name="PartsProductDetail" component={PartsProductDetailScreen} />
+      <CarWashStackNav.Screen name="PartsStoreProfile" component={PartsStoreProfileScreen} />
+    </CarWashStackNav.Navigator>
   );
 }
 
 function ProfileStack() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="ProfileMain" component={CustomerProfileScreen} />
-      <Stack.Screen name="PersonalInfo" component={PersonalInfoScreen} />
-      <Stack.Screen name="Addresses" component={AddressesScreen} />
-      <Stack.Screen name="PaymentMethods" component={PaymentMethodsScreen} />
-      <Stack.Screen name="ServiceHistory" component={ServiceHistoryScreen} />
-      <Stack.Screen
+    <ProfileStackNav.Navigator screenOptions={{ headerShown: false }}>
+      <ProfileStackNav.Screen name="ProfileMain" component={CustomerProfileScreen} />
+      <ProfileStackNav.Screen name="PersonalInfo" component={PersonalInfoScreen} />
+      <ProfileStackNav.Screen name="Addresses" component={AddressesScreen} />
+      <ProfileStackNav.Screen name="PaymentMethods" component={PaymentMethodsScreen} />
+      <ProfileStackNav.Screen name="ServiceHistory" component={ServiceHistoryScreen} />
+      <ProfileStackNav.Screen
         name="ServiceHistoryWorkOrderDetails"
         component={WorkOrderDetailsScreen}
       />
-      <Stack.Screen
+      <ProfileStackNav.Screen
         name="FavoriteProviders"
         component={FavoriteProvidersScreen}
       />
-      <Stack.Screen name="Reports" component={CustomerReportsScreen} />
-      <Stack.Screen name="HelpCenter" component={HelpCenterScreen} />
-      <Stack.Screen name="ContactUs" component={ContactUsScreen} />
-      <Stack.Screen name="RateApp" component={RateAppScreen} />
-      <Stack.Screen
+      <ProfileStackNav.Screen name="Reports" component={CustomerReportsScreen} />
+      <ProfileStackNav.Screen name="HelpCenter" component={HelpCenterScreen} />
+      <ProfileStackNav.Screen name="ContactUs" component={ContactUsScreen} />
+      <ProfileStackNav.Screen name="RateApp" component={RateAppScreen} />
+      <ProfileStackNav.Screen
         name="TermsAndPolicies"
         component={TermsAndPoliciesScreen}
       />
-      <Stack.Screen
+      <ProfileStackNav.Screen
         name="SubscriptionPlan"
         component={SubscriptionPlanScreen}
       />
-      <Stack.Screen name="SupportChat" component={SupportChatScreen} />
-      <Stack.Screen name="ChatList" component={ChatListScreen} />
-      <Stack.Screen name="Chat" component={ChatScreen} />
-      <Stack.Screen name="MyVehicles" component={CustomerVehiclesScreen} />
-      <Stack.Screen name="AddVehicle" component={AddVehicleScreen} />
-      <Stack.Screen name="VehicleDetails" component={VehicleDetailsScreen} />
-      <Stack.Screen name="VehicleTransfer" component={VehicleTransferScreen} />
-      <Stack.Screen name="Insurance" component={InsuranceScreen} />
-      <Stack.Screen name="CarWashMap" component={CarWashMapScreen} />
-      <Stack.Screen name="CarWashProfile" component={CarWashProfileScreen} />
-      <Stack.Screen name="CarWashReview" component={CarWashReviewScreen} />
-      <Stack.Screen name="CarWashAllReviews" component={CarWashAllReviewsScreen} />
-      <Stack.Screen name="CarWashFavorites" component={CarWashFavoritesScreen} />
-      <Stack.Screen name="PartsStore" component={PartsStoreScreen} />
-      <Stack.Screen name="PartsCategory" component={PartsCategoryScreen} />
-      <Stack.Screen name="PartsProductDetail" component={PartsProductDetailScreen} />
-      <Stack.Screen name="PartsStoreProfile" component={PartsStoreProfileScreen} />
-    </Stack.Navigator>
+      <ProfileStackNav.Screen name="SupportChat" component={SupportChatScreen} />
+      <ProfileStackNav.Screen name="ChatList" component={ChatListScreen} />
+      <ProfileStackNav.Screen name="Chat" component={ChatScreen} />
+      <ProfileStackNav.Screen name="MyVehicles" component={CustomerVehiclesScreen} />
+      <ProfileStackNav.Screen name="AddVehicle" component={AddVehicleScreen} />
+      <ProfileStackNav.Screen name="VehicleDetails" component={VehicleDetailsScreen} />
+      <ProfileStackNav.Screen name="VehicleTransfer" component={VehicleTransferScreen} />
+      <ProfileStackNav.Screen name="Insurance" component={InsuranceScreen} />
+      <ProfileStackNav.Screen name="CarWashMap" component={CarWashMapScreen} />
+      <ProfileStackNav.Screen name="CarWashProfile" component={CarWashProfileScreen} />
+      <ProfileStackNav.Screen name="CarWashReview" component={CarWashReviewScreen} />
+      <ProfileStackNav.Screen name="CarWashAllReviews" component={CarWashAllReviewsScreen} />
+      <ProfileStackNav.Screen name="CarWashFavorites" component={CarWashFavoritesScreen} />
+      <ProfileStackNav.Screen name="PartsStore" component={PartsStoreScreen} />
+      <ProfileStackNav.Screen name="PartsCategory" component={PartsCategoryScreen} />
+      <ProfileStackNav.Screen name="PartsProductDetail" component={PartsProductDetailScreen} />
+      <ProfileStackNav.Screen name="PartsStoreProfile" component={PartsStoreProfileScreen} />
+    </ProfileStackNav.Navigator>
   );
 }
 
@@ -361,7 +375,7 @@ export default function CustomerNavigator() {
         name="CarWash"
         component={CarWashStack}
         options={{
-          tabBarLabel: (t as any).carWash?.tabLabel || "Auto Care",
+          tabBarLabel: t.carWash?.tabLabel || "Auto Care",
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="car-wrench" size={size} color={color} />
           ),

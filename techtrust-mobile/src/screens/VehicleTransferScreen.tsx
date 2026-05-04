@@ -19,6 +19,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useI18n } from '../i18n';
 import * as LocalAuthentication from 'expo-local-authentication';
+import type {
+  VehicleTransferScreenNavigation,
+  VehicleTransferScreenRoute,
+} from "../navigation/types";
 
 interface MaintenanceRecord {
   id: string;
@@ -39,13 +43,26 @@ interface VehicleInfo {
   plateNumber: string;
 }
 
-export default function VehicleTransferScreen({ navigation, route }: any) {
+export default function VehicleTransferScreen({
+  navigation,
+  route,
+}: {
+  navigation: VehicleTransferScreenNavigation;
+  route: VehicleTransferScreenRoute;
+}) {
   const { t, language, formatCurrency } = useI18n();
   const transferDateLocale = useMemo(
     () => (language === "pt" ? "pt-BR" : language === "es" ? "es-ES" : "en-US"),
     [language],
   );
-  const { vehicleId, vehicleInfo, maintenanceHistory, totalSpent } = route.params || {};
+  const transferParams = (route.params || {}) as {
+    vehicleId?: string;
+    vehicleInfo?: VehicleInfo;
+    maintenanceHistory?: MaintenanceRecord[];
+    totalSpent?: number;
+  };
+  const { vehicleId, vehicleInfo, maintenanceHistory, totalSpent } =
+    transferParams;
   
   const [newOwnerEmail, setNewOwnerEmail] = useState('');
   const [newOwnerName, setNewOwnerName] = useState('');

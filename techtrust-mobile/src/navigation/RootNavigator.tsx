@@ -9,6 +9,12 @@ import {
   Platform,
 } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import type {
+  AuthStackParamList,
+  CustomerOnboardingStackParamList,
+  MarketplaceOnboardingStackParamList,
+  ProviderOnboardingStackParamList,
+} from "./types";
 import { useAuth } from "../contexts/AuthContext";
 
 // Landing Screen (Initial entry point)
@@ -22,6 +28,13 @@ import OTPScreen from "../screens/OTPScreen";
 import ForgotPasswordScreen from "../screens/ForgotPasswordScreen";
 import CompleteSocialSignupScreen from "../screens/CompleteSocialSignupScreen";
 
+// Legal & support (same screens as customer stacks — needed on auth stack for logged-out landing footer)
+import TermsAndPoliciesScreen from "../screens/customer/TermsAndPoliciesScreen";
+import HelpCenterScreen from "../screens/customer/HelpCenterScreen";
+import ContactUsScreen from "../screens/customer/ContactUsScreen";
+import SupportChatScreen from "../screens/SupportChatScreen";
+import RateAppScreen from "../screens/customer/RateAppScreen";
+
 // Navigators
 import CustomerNavigator from "./CustomerNavigator";
 import ProviderNavigator from "./ProviderNavigator";
@@ -32,9 +45,15 @@ import ProviderServicesScreen from "../screens/provider/ProviderServicesScreen";
 import CustomerOnboardingScreen from "../screens/customer/CustomerOnboardingScreen";
 import MarketplaceOnboardingScreen from "../screens/marketplace/MarketplaceOnboardingScreen";
 import { log } from "../utils/logger";
-import { getStoredAppLanguage, translate } from "../i18n";
+import { translate } from "../i18n";
 
-const Stack = createNativeStackNavigator();
+const AuthStackNav = createNativeStackNavigator<AuthStackParamList>();
+const CustomerOnboardingNav =
+  createNativeStackNavigator<CustomerOnboardingStackParamList>();
+const MarketplaceOnboardingNav =
+  createNativeStackNavigator<MarketplaceOnboardingStackParamList>();
+const ProviderOnboardingNav =
+  createNativeStackNavigator<ProviderOnboardingStackParamList>();
 
 // ─── Error Boundary to prevent white screens ───
 class ProviderErrorBoundary extends React.Component<
@@ -47,9 +66,16 @@ class ProviderErrorBoundary extends React.Component<
   }
 
   static getDerivedStateFromError(error: any) {
+    const raw = error?.message ?? error;
+    const hasMsg =
+      raw !== undefined &&
+      raw !== null &&
+      String(raw).trim().length > 0;
     return {
       hasError: true,
-      errorMessage: String(error?.message || error || "Unknown error"),
+      errorMessage: hasMsg
+        ? String(raw)
+        : translate("common.unknownError"),
       errorStack: String(error?.stack || ""),
     };
   }
@@ -67,8 +93,7 @@ class ProviderErrorBoundary extends React.Component<
 
   handleCopyError = async () => {
     const fullError = `Error: ${this.state.errorMessage}\n\nStack: ${this.state.errorStack}`;
-    const lang = await getStoredAppLanguage();
-    Alert.alert(translate("common.errorDetailsTitle", lang), fullError);
+    Alert.alert(translate("common.errorDetailsTitle"), fullError);
   };
 
   render() {
@@ -76,9 +101,11 @@ class ProviderErrorBoundary extends React.Component<
       return (
         <View style={ebStyles.container}>
           <Text style={ebStyles.emoji}>⚠️</Text>
-          <Text style={ebStyles.title}>Something went wrong</Text>
+          <Text style={ebStyles.title}>
+            {translate("common.providerDashboardCrashTitle")}
+          </Text>
           <Text style={ebStyles.subtitle}>
-            The provider dashboard encountered an error. Please try again.
+            {translate("common.providerDashboardCrashSubtitle")}
           </Text>
           <ScrollView
             style={ebStyles.errorScroll}
@@ -97,7 +124,9 @@ class ProviderErrorBoundary extends React.Component<
             style={ebStyles.copyBtn}
             onPress={this.handleCopyError}
           >
-            <Text style={ebStyles.copyText}>📋 Copy Error Details</Text>
+            <Text style={ebStyles.copyText}>
+              {translate("common.copyErrorDetailsButton")}
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={ebStyles.retryBtn}
@@ -109,13 +138,17 @@ class ProviderErrorBoundary extends React.Component<
               })
             }
           >
-            <Text style={ebStyles.retryText}>Try Again</Text>
+            <Text style={ebStyles.retryText}>
+              {translate("common.tryAgainButton")}
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={ebStyles.logoutBtn}
             onPress={this.props.onLogout}
           >
-            <Text style={ebStyles.logoutText}>Logout</Text>
+            <Text style={ebStyles.logoutText}>
+              {translate("auth.logout")}
+            </Text>
           </TouchableOpacity>
         </View>
       );
@@ -180,61 +213,66 @@ const ebStyles = StyleSheet.create({
 // Auth Stack Component
 function AuthStack() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Landing" component={LandingScreen} />
-      <Stack.Screen name="Login" component={LoginScreen} />
-      <Stack.Screen name="AccountType" component={AccountTypeScreen} />
-      <Stack.Screen name="Signup" component={SignupScreen} />
-      <Stack.Screen name="OTP" component={OTPScreen} />
-      <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-      <Stack.Screen
+    <AuthStackNav.Navigator screenOptions={{ headerShown: false }}>
+      <AuthStackNav.Screen name="Landing" component={LandingScreen} />
+      <AuthStackNav.Screen name="Login" component={LoginScreen} />
+      <AuthStackNav.Screen name="AccountType" component={AccountTypeScreen} />
+      <AuthStackNav.Screen name="Signup" component={SignupScreen} />
+      <AuthStackNav.Screen name="OTP" component={OTPScreen} />
+      <AuthStackNav.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+      <AuthStackNav.Screen
         name="CompleteSocialSignup"
         component={CompleteSocialSignupScreen}
       />
-    </Stack.Navigator>
+      <AuthStackNav.Screen name="TermsAndPolicies" component={TermsAndPoliciesScreen} />
+      <AuthStackNav.Screen name="HelpCenter" component={HelpCenterScreen} />
+      <AuthStackNav.Screen name="ContactUs" component={ContactUsScreen} />
+      <AuthStackNav.Screen name="SupportChat" component={SupportChatScreen} />
+      <AuthStackNav.Screen name="RateApp" component={RateAppScreen} />
+    </AuthStackNav.Navigator>
   );
 }
 
 // Wrapper that shows onboarding before customer tabs
 function CustomerWithOnboarding() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen
+    <CustomerOnboardingNav.Navigator screenOptions={{ headerShown: false }}>
+      <CustomerOnboardingNav.Screen
         name="CustomerOnboarding"
         component={CustomerOnboardingScreen}
       />
-      <Stack.Screen name="CustomerMain" component={CustomerNavigator} />
-    </Stack.Navigator>
+      <CustomerOnboardingNav.Screen name="CustomerMain" component={CustomerNavigator} />
+    </CustomerOnboardingNav.Navigator>
   );
 }
 
 // Wrapper that shows onboarding before marketplace tabs
 function MarketplaceWithOnboarding() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen
+    <MarketplaceOnboardingNav.Navigator screenOptions={{ headerShown: false }}>
+      <MarketplaceOnboardingNav.Screen
         name="MarketplaceOnboarding"
         component={MarketplaceOnboardingScreen}
       />
-      <Stack.Screen name="ProviderMain" component={ProviderNavigator} />
-    </Stack.Navigator>
+      <MarketplaceOnboardingNav.Screen name="ProviderMain" component={ProviderNavigator} />
+    </MarketplaceOnboardingNav.Navigator>
   );
 }
 
 // Wrapper that shows onboarding before provider tabs
 function ProviderWithOnboarding() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen
+    <ProviderOnboardingNav.Navigator screenOptions={{ headerShown: false }}>
+      <ProviderOnboardingNav.Screen
         name="ProviderOnboarding"
         component={ProviderOnboardingScreen}
       />
-      <Stack.Screen name="ProviderMain" component={ProviderNavigator} />
-      <Stack.Screen
+      <ProviderOnboardingNav.Screen name="ProviderMain" component={ProviderNavigator} />
+      <ProviderOnboardingNav.Screen
         name="OnboardingServices"
         component={ProviderServicesScreen}
       />
-    </Stack.Navigator>
+    </ProviderOnboardingNav.Navigator>
   );
 }
 

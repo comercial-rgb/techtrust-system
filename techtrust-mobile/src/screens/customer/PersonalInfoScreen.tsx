@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from "react";
+import type { ComponentProps } from "react";
 import {
   View,
   Text,
@@ -23,6 +24,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+
+type IoniconName = ComponentProps<typeof Ionicons>["name"];
 import { useAuth } from "../../contexts/AuthContext";
 import { useI18n } from "../../i18n";
 import {
@@ -36,6 +39,7 @@ import {
 } from "../../services/authService";
 import * as ImagePicker from "expo-image-picker";
 import { log } from "../../utils/logger";
+import type { CustomerAppNavigation } from "../../navigation/types";
 
 // Generate arrays for date picker
 const MONTHS = [
@@ -57,7 +61,7 @@ const YEARS = Array.from({ length: 100 }, (_, i) =>
 );
 const DAYS = Array.from({ length: 31 }, (_, i) => (i + 1).toString());
 
-export default function PersonalInfoScreen({ navigation }: any) {
+export default function PersonalInfoScreen({ navigation }: { navigation: CustomerAppNavigation }) {
   const { t, language } = useI18n();
   const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
@@ -177,7 +181,7 @@ export default function PersonalInfoScreen({ navigation }: any) {
           ...prev,
           fullName: user.fullName || prev.fullName,
           email: user.email || prev.email,
-          phone: (user as any).phone || prev.phone,
+          phone: user.phone ?? prev.phone,
         }));
       }
     }
@@ -388,7 +392,10 @@ export default function PersonalInfoScreen({ navigation }: any) {
       const filename = uri.split('/').pop() || 'photo.jpg';
       const match = /\.(\w+)$/.exec(filename);
       const type = match ? `image/${match[1]}` : 'image/jpeg';
-      formDataUpload.append('photo', { uri, name: filename, type } as any);
+      formDataUpload.append(
+        "photo",
+        { uri, name: filename, type } as unknown as Blob,
+      );
       
       await api.post('/users/profile-photo', formDataUpload, {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -918,7 +925,11 @@ export default function PersonalInfoScreen({ navigation }: any) {
                   >
                     <View style={styles.securityItemLeft}>
                       <View style={[styles.securityIcon, { backgroundColor: getIconBg(session.isCurrentSession) }]}>
-                        <Ionicons name={getIcon(session.deviceType) as any} size={20} color={getIconColor(session.isCurrentSession)} />
+                        <Ionicons
+                          name={getIcon(session.deviceType) as IoniconName}
+                          size={20}
+                          color={getIconColor(session.isCurrentSession)}
+                        />
                       </View>
                       <View style={{ flex: 1 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>

@@ -19,12 +19,16 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useI18n } from "../i18n";
 import { useRoute } from "@react-navigation/native";
+import type { RouteProp } from "@react-navigation/native";
+import type { CustomerAppNavigation, CustomerAppParamList } from "../navigation/types";
 
-export default function PartsStoreProfileScreen({ navigation }: any) {
+export default function PartsStoreProfileScreen({ navigation }: { navigation: CustomerAppNavigation }) {
   const { t } = useI18n();
-  const ps = (t as any).partsStore || {};
-  const route = useRoute<any>();
-  const { storeId } = route.params;
+  const ps = t.partsStore || {};
+  const route = useRoute<RouteProp<CustomerAppParamList, "PartsStoreProfile">>();
+  const storeId = String(
+    (route.params as { storeId?: string } | undefined)?.storeId ?? "",
+  );
 
   const [store, setStore] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);

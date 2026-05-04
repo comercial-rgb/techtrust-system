@@ -90,13 +90,23 @@ export default function VeiculosPage() {
     try {
       const response = await api.getProfile();
       // Backend returns { user: {...}, subscription: {...} } at the same level
-      const raw = response.data as any;
-      const sub = raw?.subscription || raw?.user?.subscription;
+      const raw = (response.data ?? {}) as Record<string, unknown>;
+      const user = raw.user as Record<string, unknown> | undefined;
+      const sub = (raw.subscription ?? user?.subscription) as Record<string, unknown> | undefined;
       if (sub) {
-        const planKey = (sub.plan || '').toUpperCase();
+        const planKey = String(sub.plan ?? "").toUpperCase();
+        const planNested =
+          sub.plan && typeof sub.plan === "object"
+            ? (sub.plan as Record<string, unknown>)
+            : undefined;
         setSubscription({
-          plan: PLAN_LABELS[planKey] || sub.plan || 'Free',
-          vehicleLimit: sub.maxVehicles || sub.vehicleLimit || sub.plan?.vehicleLimit || 1,
+          plan: PLAN_LABELS[planKey] || String(sub.plan ?? "Free"),
+          vehicleLimit: Number(
+            sub.maxVehicles ??
+              sub.vehicleLimit ??
+              planNested?.vehicleLimit ??
+              1,
+          ),
         });
       } else {
         setSubscription({ plan: 'Free', vehicleLimit: 1 });

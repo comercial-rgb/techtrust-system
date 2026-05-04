@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: techtrust-backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: techtrust-backend/package-lock.json
+      - run: npm ci
+      - run: npm run smoke
+
+  mobile:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: techtrust-mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: techtrust-mobile/package-lock.json
+      - run: npm ci
+      - run: npm run qa:mobile
+
+  client-dashboard:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: techtrust-client-dashboard
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: techtrust-client-dashboard/package-lock.json
+      - run: npm ci
+      - run: npx tsc --noEmit
+
+  provider-dashboard:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: techtrust-provider-dashboard
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: techtrust-provider-dashboard/package-lock.json
+      - run: npm ci
+      - run: npx tsc --noEmit
+
+  admin-dashboard:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: techtrust-admin-dashboard
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: techtrust-admin-dashboard/package-lock.json
+      - run: npm ci
+      - run: npx tsc --noEmit

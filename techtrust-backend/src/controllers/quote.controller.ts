@@ -18,6 +18,19 @@ import {
   QUOTE_VALIDITY,
 } from "../config/businessRules";
 
+/** One element stored in Quote.partsList JSON */
+type QuotePartsListItem = {
+  id?: string;
+  type?: string;
+  description?: string;
+  partCode?: string;
+  brand?: string;
+  partCondition?: string;
+  quantity?: number | string;
+  unitPrice?: number | string;
+  isNoCharge?: boolean;
+};
+
 /**
  * POST /api/v1/quotes
  * Fornecedor cria orçamento para uma solicitação
@@ -154,7 +167,7 @@ export const createQuote = async (req: Request, res: Response) => {
     distanceKm = roadResult.distanceKm;
     const oneWayMiles = kmToMiles(distanceKm);
     // Apply round-trip multiplier if provider charges both ways
-    const travelChargeType = (providerProfile as any).travelChargeType ?? "ONE_WAY";
+    const travelChargeType = providerProfile.travelChargeType ?? "ONE_WAY";
     const distanceMiles = travelChargeType === "ROUND_TRIP" ? oneWayMiles * 2 : oneWayMiles;
 
     // freeKm is stored as real km (UI converts miles→km on save)
@@ -473,7 +486,7 @@ export const getQuote = async (req: Request, res: Response) => {
       : quote.provider,
     // Map partsList JSON → items array for mobile
     items: Array.isArray(quote.partsList)
-      ? (quote.partsList as any[]).map((item: any, idx: number) => ({
+      ? (quote.partsList as QuotePartsListItem[]).map((item, idx: number) => ({
           id: item.id || String(idx + 1),
           type:
             item.type === "LABOR" || item.type === "service" ? "LABOR" : "PART",

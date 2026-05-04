@@ -3,7 +3,7 @@
  * TechTrust Mobile
  */
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, type ComponentProps } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,8 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
+
+type MciName = ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -31,7 +33,7 @@ interface ToastProps {
   };
 }
 
-const toastConfig: Record<ToastType, { icon: string; bg: string; color: string }> = {
+const toastConfig: Record<ToastType, { icon: MciName; bg: string; color: string }> = {
   success: {
     icon: 'check-circle',
     bg: '#10b981',
@@ -127,7 +129,7 @@ export default function Toast({
     >
       <View style={styles.content}>
         <MaterialCommunityIcons
-          name={config.icon as any}
+          name={config.icon}
           size={24}
           color={config.color}
           style={styles.icon}

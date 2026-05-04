@@ -27,12 +27,25 @@ import api from "../../services/api";
 import { log } from "../../utils/logger";
 import { useI18n } from "../../i18n";
 import { interpolate } from "../../i18n/interpolate";
+import type { RouteProp } from "@react-navigation/native";
+import type {
+  ProviderAppNavigation,
+  ProviderProfileStackParamList,
+} from "../../navigation/types";
+import type { ComplianceItem } from "../../services/compliance.service";
 
-export default function ComplianceItemDetailScreen({ route, navigation }: any) {
+export default function ComplianceItemDetailScreen({
+  route,
+  navigation,
+}: {
+  route: RouteProp<ProviderProfileStackParamList, "ComplianceItemDetail">;
+  navigation: ProviderAppNavigation;
+}) {
   const { t, formatDate } = useI18n();
-  const tc = (t as any).providerCompliance || {};
+  const tc = t.providerCompliance;
+  const tcStrings = tc as Record<string, string | undefined>;
   const ci = t.complianceItem || ({} as NonNullable<typeof t.complianceItem>);
-  const { item } = route.params;
+  const item = (route.params as { item: ComplianceItem }).item;
   const [registrationNumber, setRegistrationNumber] = useState(
     item.registrationNumber || "",
   );
@@ -76,7 +89,7 @@ export default function ComplianceItemDetailScreen({ route, navigation }: any) {
         uri: file.uri,
         type: file.mimeType || "application/octet-stream",
         name: file.name || "document",
-      } as any);
+      } as unknown as Blob);
 
       const uploadRes = await api.post("/upload", formData, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -151,7 +164,7 @@ export default function ComplianceItemDetailScreen({ route, navigation }: any) {
           <Ionicons name="arrow-back" size={24} color="#1f2937" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
-          {(tc as any)[`complianceType_${item.type}`] ||
+          {tcStrings[`complianceType_${item.type}`] ||
             COMPLIANCE_TYPE_LABELS[item.type] ||
             item.type}
         </Text>

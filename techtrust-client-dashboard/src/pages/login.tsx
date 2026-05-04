@@ -63,7 +63,7 @@ export default function LoginPage() {
       return undefined
     }
 
-    if (!(window as any).AppleID) {
+    if (!window.AppleID) {
       await new Promise<void>((resolve, reject) => {
         const script = document.createElement('script')
         script.src = 'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js'
@@ -73,15 +73,16 @@ export default function LoginPage() {
       })
     }
 
-    ;(window as any).AppleID.auth.init({
+    window.AppleID!.auth.init({
       clientId,
       scope: 'name email',
       redirectURI: window.location.origin + window.location.pathname,
       usePopup: true,
     })
 
-    const data = await (window as any).AppleID.auth.signIn()
-    const idToken = data.authorization.id_token
+    const data = await window.AppleID!.auth.signIn()
+    const idToken = data.authorization?.id_token
+    if (!idToken) throw new Error('Apple Sign-In did not return an id_token')
     const payload = JSON.parse(atob(idToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')))
     const appleUserId = payload.sub
     const name = data.user ? `${data.user.name?.firstName || ''} ${data.user.name?.lastName || ''}`.trim() : undefined

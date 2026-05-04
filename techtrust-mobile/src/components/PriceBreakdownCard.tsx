@@ -428,7 +428,7 @@ export default function PriceBreakdownCard({
                       </Text>
                     </View>
                     <Text style={[styles.totalValue, { color: "#10b981" }]}>
-                      {(t as any).customer?.scopeBothIncluded || "Included"}
+                      {t.createRequest?.scopeBothIncluded || "Included"}
                     </Text>
                   </View>
                 )}

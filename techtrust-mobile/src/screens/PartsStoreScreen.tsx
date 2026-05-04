@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from "react";
+import type { ComponentProps } from "react";
 import {
   View,
   Text,
@@ -19,7 +20,10 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+
+type IoniconName = ComponentProps<typeof Ionicons>["name"];
 import { useI18n } from "../i18n";
+import type { CustomerAppNavigation } from "../navigation/types";
 
 const CATEGORIES = [
   { id: "engine", icon: "cog", color: "#ef4444" },
@@ -57,9 +61,9 @@ const CATEGORY_NAMES: Record<string, Record<string, string>> = {
   accessories: { en: "Accessories", pt: "Acessórios", es: "Accesorios" },
 };
 
-export default function PartsStoreScreen({ navigation }: any) {
+export default function PartsStoreScreen({ navigation }: { navigation: CustomerAppNavigation }) {
   const { t, language } = useI18n();
-  const ps = (t as any).partsStore || {};
+  const ps = t.partsStore || {};
 
   const [searchText, setSearchText] = useState("");
   const [stores, setStores] = useState<any[]>([]);
@@ -123,7 +127,7 @@ export default function PartsStoreScreen({ navigation }: any) {
           <Ionicons name="arrow-back" size={24} color="#111827" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{ps.title || "Parts Store"}</Text>
-        <TouchableOpacity onPress={() => navigation.navigate("PartsStoreFavorites")}>
+        <TouchableOpacity onPress={() => navigation.navigate("CarWashFavorites")}>
           <Ionicons name="heart-outline" size={24} color="#111827" />
         </TouchableOpacity>
       </View>
@@ -192,7 +196,11 @@ export default function PartsStoreScreen({ navigation }: any) {
                 }
               >
                 <View style={[styles.categoryIcon, { backgroundColor: `${cat.color}15` }]}>
-                  <Ionicons name={cat.icon as any} size={22} color={cat.color} />
+                  <Ionicons
+                    name={cat.icon as IoniconName}
+                    size={22}
+                    color={cat.color}
+                  />
                 </View>
                 <Text style={styles.categoryLabel} numberOfLines={2}>
                   {CATEGORY_NAMES[cat.id]?.[lang] || cat.id}

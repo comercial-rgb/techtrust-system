@@ -7,6 +7,16 @@ import { useI18n } from "../i18n";
 import { useNotifications } from "../contexts/NotificationsContext";
 import { CommonActions } from "@react-navigation/native";
 import { colors } from "../constants/theme";
+import type {
+  EmbeddedRequestsQuotesNavigationCast,
+  ProviderDashboardStackParamList,
+  ProviderMessagesStackParamList,
+  ProviderProfileStackParamList,
+  ProviderRequestsAndQuotesStackParamList,
+  ProviderTabParamList,
+  ProviderWorkOrdersStackParamList,
+  RequestsAndQuotesMainScreenProps,
+} from "./types";
 
 // Provider Screens
 import ProviderDashboardScreen from "../screens/provider/ProviderDashboardScreen";
@@ -55,99 +65,93 @@ import RepairInvoiceDetailsScreen from "../screens/customer/RepairInvoiceDetails
 import EstimateSharesScreen from "../screens/customer/EstimateSharesScreen";
 import CompareEstimatesScreen from "../screens/customer/CompareEstimatesScreen";
 
-const Tab = createBottomTabNavigator();
-const Stack = createNativeStackNavigator();
+const Tab = createBottomTabNavigator<ProviderTabParamList>();
+const DashboardStackNav =
+  createNativeStackNavigator<ProviderDashboardStackParamList>();
+const RequestsAndQuotesStackNav =
+  createNativeStackNavigator<ProviderRequestsAndQuotesStackParamList>();
+const WorkOrdersStackNav =
+  createNativeStackNavigator<ProviderWorkOrdersStackParamList>();
+const MessagesStackNav =
+  createNativeStackNavigator<ProviderMessagesStackParamList>();
+const ProfileStackNav =
+  createNativeStackNavigator<ProviderProfileStackParamList>();
 
 // Stack for Dashboard (Home)
 function DashboardStack() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen
+    <DashboardStackNav.Navigator screenOptions={{ headerShown: false }}>
+      <DashboardStackNav.Screen
         name="ProviderDashboardMain"
         component={ProviderDashboardScreen}
       />
-      <Stack.Screen name="Notifications" component={NotificationsScreen} />
-      <Stack.Screen name="ChatList" component={ChatListScreen} />
-      <Stack.Screen name="Chat" component={ChatScreen} />
-      <Stack.Screen name="ProviderReviews" component={ProviderReviewsScreen} />
-      <Stack.Screen name="ProviderBusiness" component={ProviderBusinessScreen} />
-      <Stack.Screen name="SOSInbox" component={ProviderSOSInboxScreen} />
-      <Stack.Screen name="SOSRateCard" component={ProviderSOSRateCardScreen} />
-      <Stack.Screen name="Appointments" component={AppointmentsScreen} />
-      <Stack.Screen
+      <DashboardStackNav.Screen name="Notifications" component={NotificationsScreen} />
+      <DashboardStackNav.Screen name="ChatList" component={ChatListScreen} />
+      <DashboardStackNav.Screen name="Chat" component={ChatScreen} />
+      <DashboardStackNav.Screen name="ProviderReviews" component={ProviderReviewsScreen} />
+      <DashboardStackNav.Screen name="ProviderBusiness" component={ProviderBusinessScreen} />
+      <DashboardStackNav.Screen name="SOSInbox" component={ProviderSOSInboxScreen} />
+      <DashboardStackNav.Screen name="SOSRateCard" component={ProviderSOSRateCardScreen} />
+      <DashboardStackNav.Screen name="Appointments" component={AppointmentsScreen} />
+      <DashboardStackNav.Screen
         name="AppointmentDetails"
         component={AppointmentDetailsScreen}
       />
-      <Stack.Screen
+      <DashboardStackNav.Screen
         name="ScheduleAppointment"
         component={ScheduleAppointmentScreen}
       />
       {/* Get Started checklist targets — stay within Dashboard tab so goBack returns to Dashboard */}
-      <Stack.Screen name="EditProfile" component={ProviderEditProfileScreen} />
-      <Stack.Screen name="Services" component={ProviderServicesScreen} />
-      <Stack.Screen name="WorkingHours" component={ProviderWorkingHoursScreen} />
-      <Stack.Screen name="ServiceArea" component={ProviderServiceAreaScreen} />
-    </Stack.Navigator>
-  );
-}
-
-// Stack for Requests (Pedidos)
-function RequestsStack() {
-  return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen
-        name="ProviderRequestsList"
-        component={ProviderRequestsScreen}
-      />
-      <Stack.Screen
-        name="ProviderRequestDetails"
-        component={ProviderRequestDetailsScreen}
-      />
-      <Stack.Screen name="Chat" component={ChatScreen} />
-    </Stack.Navigator>
+      <DashboardStackNav.Screen name="EditProfile" component={ProviderEditProfileScreen} />
+      <DashboardStackNav.Screen name="Services" component={ProviderServicesScreen} />
+      <DashboardStackNav.Screen name="WorkingHours" component={ProviderWorkingHoursScreen} />
+      <DashboardStackNav.Screen name="ServiceArea" component={ProviderServiceAreaScreen} />
+    </DashboardStackNav.Navigator>
   );
 }
 
 // D42 — Combined Requests & Quotes Stack (merged from 2 separate tabs)
 function RequestsAndQuotesStack() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen
+    <RequestsAndQuotesStackNav.Navigator screenOptions={{ headerShown: false }}>
+      <RequestsAndQuotesStackNav.Screen
         name="RequestsAndQuotesMain"
         component={RequestsAndQuotesScreen}
       />
-      <Stack.Screen
+      <RequestsAndQuotesStackNav.Screen
         name="ProviderRequestsList"
         component={ProviderRequestsScreen}
       />
-      <Stack.Screen
+      <RequestsAndQuotesStackNav.Screen
         name="ProviderRequestDetails"
         component={ProviderRequestDetailsScreen}
       />
-      <Stack.Screen
+      <RequestsAndQuotesStackNav.Screen
         name="ProviderQuotesList"
         component={ProviderQuotesScreen}
       />
-      <Stack.Screen
+      <RequestsAndQuotesStackNav.Screen
         name="ProviderQuoteDetails"
         component={ProviderQuoteDetailsScreen}
       />
-      <Stack.Screen
+      <RequestsAndQuotesStackNav.Screen
         name="QuoteWorkOrderDetails"
         component={ProviderWorkOrderDetailsScreen}
       />
-      <Stack.Screen name="EstimateShares" component={EstimateSharesScreen} />
-      <Stack.Screen
+      <RequestsAndQuotesStackNav.Screen name="EstimateShares" component={EstimateSharesScreen} />
+      <RequestsAndQuotesStackNav.Screen
         name="CompareEstimates"
         component={CompareEstimatesScreen}
       />
-      <Stack.Screen name="Chat" component={ChatScreen} />
-    </Stack.Navigator>
+      <RequestsAndQuotesStackNav.Screen name="Chat" component={ChatScreen} />
+    </RequestsAndQuotesStackNav.Navigator>
   );
 }
 
 // D42 — Combined Requests & Quotes Screen with segment control
-function RequestsAndQuotesScreen({ navigation }: any) {
+function RequestsAndQuotesScreen({
+  navigation,
+}: RequestsAndQuotesMainScreenProps) {
   const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<'requests' | 'quotes'>('requests');
 
@@ -219,115 +223,98 @@ function RequestsAndQuotesScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
       </View>
-      {activeTab === 'requests' ? (
-        <ProviderRequestsScreen navigation={navigation} />
+      {activeTab === "requests" ? (
+        <ProviderRequestsScreen
+          navigation={
+            navigation as unknown as EmbeddedRequestsQuotesNavigationCast<"ProviderRequestsList">
+          }
+        />
       ) : (
-        <ProviderQuotesScreen navigation={navigation} />
+        <ProviderQuotesScreen
+          navigation={
+            navigation as unknown as EmbeddedRequestsQuotesNavigationCast<"ProviderQuotesList">
+          }
+        />
       )}
     </View>
-  );
-}
-
-// Stack for Quotes (Orçamentos) — kept for backwards compatibility
-function QuotesStack() {
-  return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen
-        name="ProviderQuotesList"
-        component={ProviderQuotesScreen}
-      />
-      <Stack.Screen
-        name="ProviderQuoteDetails"
-        component={ProviderQuoteDetailsScreen}
-      />
-      <Stack.Screen
-        name="QuoteWorkOrderDetails"
-        component={ProviderWorkOrderDetailsScreen}
-      />
-      <Stack.Screen name="EstimateShares" component={EstimateSharesScreen} />
-      <Stack.Screen
-        name="CompareEstimates"
-        component={CompareEstimatesScreen}
-      />
-    </Stack.Navigator>
   );
 }
 
 // Stack for Work Orders (Serviços)
 function WorkOrdersStack() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen
+    <WorkOrdersStackNav.Navigator screenOptions={{ headerShown: false }}>
+      <WorkOrdersStackNav.Screen
         name="ProviderWorkOrdersList"
         component={ProviderWorkOrdersScreen}
       />
-      <Stack.Screen
+      <WorkOrdersStackNav.Screen
         name="ProviderWorkOrderDetails"
         component={ProviderWorkOrderDetailsScreen}
       />
-      <Stack.Screen name="Chat" component={ChatScreen} />
-      <Stack.Screen name="RepairInvoices" component={RepairInvoicesScreen} />
-      <Stack.Screen
+      <WorkOrdersStackNav.Screen name="Chat" component={ChatScreen} />
+      <WorkOrdersStackNav.Screen name="RepairInvoices" component={RepairInvoicesScreen} />
+      <WorkOrdersStackNav.Screen
         name="RepairInvoiceDetails"
         component={RepairInvoiceDetailsScreen}
       />
-    </Stack.Navigator>
+    </WorkOrdersStackNav.Navigator>
   );
 }
 
 // Stack for Messages (Chat)
 function MessagesStack() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="ChatListMain" component={ChatListScreen} />
-      <Stack.Screen name="Chat" component={ChatScreen} />
-    </Stack.Navigator>
+    <MessagesStackNav.Navigator screenOptions={{ headerShown: false }}>
+      <MessagesStackNav.Screen name="ChatListMain" component={ChatListScreen} />
+      <MessagesStackNav.Screen name="Chat" component={ChatScreen} />
+    </MessagesStackNav.Navigator>
   );
 }
 
 // Stack for Profile
 function ProfileStack() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen
+    <ProfileStackNav.Navigator screenOptions={{ headerShown: false }}>
+      <ProfileStackNav.Screen
         name="ProviderProfileMain"
         component={ProviderProfileScreen}
       />
-      <Stack.Screen name="EditProfile" component={ProviderEditProfileScreen} />
-      <Stack.Screen name="ProviderBusiness" component={ProviderBusinessScreen} />
-      <Stack.Screen name="Services" component={ProviderServicesScreen} />
-      <Stack.Screen
+      <ProfileStackNav.Screen name="EditProfile" component={ProviderEditProfileScreen} />
+      <ProfileStackNav.Screen name="ProviderBusiness" component={ProviderBusinessScreen} />
+      <ProfileStackNav.Screen name="Services" component={ProviderServicesScreen} />
+      <ProfileStackNav.Screen
         name="WorkingHours"
         component={ProviderWorkingHoursScreen}
       />
-      <Stack.Screen name="ServiceArea" component={ProviderServiceAreaScreen} />
-      <Stack.Screen name="Reports" component={ProviderReportsScreen} />
-      <Stack.Screen name="BankDetails" component={ProviderBankDetailsScreen} />
-      <Stack.Screen
+      <ProfileStackNav.Screen name="ServiceArea" component={ProviderServiceAreaScreen} />
+      <ProfileStackNav.Screen name="Reports" component={ProviderReportsScreen} />
+      <ProfileStackNav.Screen name="BankDetails" component={ProviderBankDetailsScreen} />
+      <ProfileStackNav.Screen
         name="PaymentHistory"
         component={ProviderPaymentHistoryScreen}
       />
-      <Stack.Screen name="Security" component={ProviderSecurityScreen} />
-      <Stack.Screen name="Help" component={ProviderHelpScreen} />
-      <Stack.Screen
+      <ProfileStackNav.Screen name="Security" component={ProviderSecurityScreen} />
+      <ProfileStackNav.Screen name="Help" component={ProviderHelpScreen} />
+      <ProfileStackNav.Screen
         name="TermsAndPolicies"
         component={ProviderTermsAndPoliciesScreen}
       />
-      <Stack.Screen name="Compliance" component={ProviderComplianceScreen} />
-      <Stack.Screen
+      <ProfileStackNav.Screen name="Compliance" component={ProviderComplianceScreen} />
+      <ProfileStackNav.Screen
         name="ComplianceItemDetail"
         component={ComplianceItemDetailScreen}
       />
-      <Stack.Screen
+      <ProfileStackNav.Screen
         name="TechnicianManagement"
         component={TechnicianManagementScreen}
       />
-      <Stack.Screen
+      <ProfileStackNav.Screen
         name="InsuranceManagement"
         component={InsuranceManagementScreen}
       />
-      <Stack.Screen name="SupportChat" component={SupportChatScreen} />
-    </Stack.Navigator>
+      <ProfileStackNav.Screen name="SupportChat" component={SupportChatScreen} />
+    </ProfileStackNav.Navigator>
   );
 }
 

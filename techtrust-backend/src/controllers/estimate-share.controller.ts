@@ -15,6 +15,7 @@
  */
 
 import { Request, Response } from "express";
+import { NotificationType } from "@prisma/client";
 import { prisma } from "../config/database";
 import { AppError } from "../middleware/error-handler";
 import { logger } from "../config/logger";
@@ -114,7 +115,7 @@ export const shareEstimate = async (req: Request, res: Response) => {
 
     const notifications = targetProviderIds.map((targetId: string) => ({
       userId: targetId,
-      type: "COMPETING_ESTIMATE_RECEIVED" as any,
+      type: NotificationType.COMPETING_ESTIMATE_RECEIVED,
       title: "Competing Estimate Opportunity",
       message: `A customer is looking for competing quotes for ${estimate.serviceRequest.title} on a ${vehicleInfo}. Check it out!`,
       data: {
@@ -297,8 +298,15 @@ export const getSharedEstimateDetail = async (req: Request, res: Response) => {
   }
 
   // Redact identity if needed
-  if (!share.shareOriginalProviderName && !isCustomer) {
-    (share.originalEstimate as any).provider = {
+  if (!share.shareOriginalProviderName && !isCustomer && share.originalEstimate) {
+    const oe = share.originalEstimate as {
+      provider: {
+        id: string | null;
+        fullName: string;
+        providerProfile: { businessName: string | null };
+      };
+    };
+    oe.provider = {
       id: null,
       fullName: "Another Provider",
       providerProfile: { businessName: null },

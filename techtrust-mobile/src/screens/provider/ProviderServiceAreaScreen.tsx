@@ -28,6 +28,8 @@ import { useFocusEffect } from "@react-navigation/native";
 import api from "../../services/api";
 import { log } from "../../utils/logger";
 import { useI18n } from "../../i18n";
+import { interpolate } from "../../i18n/interpolate";
+import type { ProviderAppNavigation } from "../../navigation/types";
 
 // ─── Florida counties grouped by metro region ─────────────────────────────────
 const FL_COUNTY_REGIONS = [
@@ -71,8 +73,9 @@ const FL_COUNTY_REGIONS = [
 
 const ALL_COUNTIES = FL_COUNTY_REGIONS.flatMap(r => r.data);
 
-export default function ProviderServiceAreaScreen({ navigation }: any) {
+export default function ProviderServiceAreaScreen({ navigation }: { navigation: ProviderAppNavigation }) {
   const { t } = useI18n();
+  const p = t.provider as Record<string, string | undefined>;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -197,12 +200,16 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerBtn}>
             <MaterialCommunityIcons name="arrow-left" size={24} color="#111827" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Service Area</Text>
+          <Text style={styles.headerTitle}>
+            {p?.serviceAreaScreenTitle || "Service Area"}
+          </Text>
           <View style={styles.headerBtn} />
         </View>
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
           <ActivityIndicator size="large" color="#2B5EA7" />
-          <Text style={{ marginTop: 12, color: "#6b7280" }}>Loading...</Text>
+          <Text style={{ marginTop: 12, color: "#6b7280" }}>
+            {p?.serviceAreaLoading || "Loading..."}
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -215,7 +222,9 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerBtn}>
           <MaterialCommunityIcons name="arrow-left" size={24} color="#111827" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Service Area</Text>
+        <Text style={styles.headerTitle}>
+          {p?.serviceAreaScreenTitle || "Service Area"}
+        </Text>
         <TouchableOpacity
           onPress={() =>
             Alert.alert(
@@ -261,11 +270,19 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
           ) : (
             <View style={styles.mapPlaceholder}>
               <MaterialCommunityIcons name="map-marker-radius" size={52} color="#2B5EA7" />
-              <Text style={styles.mapPlaceholderText}>{serviceRadius} mi radius</Text>
+              <Text style={styles.mapPlaceholderText}>
+                {interpolate(p?.serviceAreaMiChip || "{{miles}} mi", {
+                  miles: serviceRadius,
+                })}
+              </Text>
               <Text style={styles.mapPlaceholderSub}>
                 {serviceCounties.length > 0
-                  ? `${serviceCounties.length} county${serviceCounties.length > 1 ? "ies" : ""} selected`
-                  : "No counties selected yet"}
+                  ? interpolate(
+                      p?.serviceAreaMapPlaceholderCounties ||
+                        "{{count}} counties selected",
+                      { count: serviceCounties.length },
+                    )
+                  : p?.serviceAreaMapNoCountiesYet || "No counties selected yet"}
               </Text>
             </View>
           )}
@@ -273,16 +290,24 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
 
         {/* Base Address */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Base Address</Text>
+          <Text style={styles.sectionTitle}>
+            {p?.serviceAreaBaseAddressTitle || "Base address"}
+          </Text>
           <View style={styles.card}>
             <View style={styles.row}>
               <MaterialCommunityIcons name="map-marker" size={22} color="#2B5EA7" />
               <View style={{ flex: 1 }}>
                 <Text style={styles.addressText}>
-                  {baseAddress || "No address set — update in Settings → Profile"}
+                  {baseAddress ||
+                    p?.serviceAreaNoAddressHint ||
+                    "No address set — update in Profile → Edit Profile"}
                 </Text>
-                <TouchableOpacity onPress={() => navigation.navigate("Configuracoes")}>
-                  <Text style={styles.linkText}>Change in Profile Settings →</Text>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate("EditProfile")}
+                >
+                  <Text style={styles.linkText}>
+                    {p?.serviceAreaChangeAddressLink || "Open Edit Profile →"}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -291,14 +316,19 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
 
         {/* Service Radius */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Service Radius</Text>
+          <Text style={styles.sectionTitle}>
+            {p?.serviceAreaRadiusTitle || "Service radius"}
+          </Text>
           <Text style={styles.sectionDesc}>
-            Customers within this distance from your base address will see you in search results.
+            {p?.serviceAreaRadiusDesc ||
+              "Customers within this distance from your base address will see you in search results."}
           </Text>
           <View style={styles.card}>
             <View style={styles.radiusDisplay}>
               <Text style={styles.radiusNumber}>{serviceRadius}</Text>
-              <Text style={styles.radiusUnit}>miles</Text>
+              <Text style={styles.radiusUnit}>
+                {p?.serviceAreaMilesWord || "miles"}
+              </Text>
             </View>
             <View style={styles.chips}>
               {radiusOptions.map(r => (
@@ -308,7 +338,9 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
                   onPress={() => setServiceRadius(r)}
                 >
                   <Text style={[styles.chipText, serviceRadius === r && styles.chipTextActive]}>
-                    {r} mi
+                    {interpolate(p?.serviceAreaMiChip || "{{miles}} mi", {
+                      miles: r,
+                    })}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -320,9 +352,12 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.sectionTitle}>County Coverage</Text>
+              <Text style={styles.sectionTitle}>
+                {p?.serviceAreaCountyCoverageTitle || "County coverage"}
+              </Text>
               <Text style={styles.sectionDesc}>
-                Select the Florida counties you're willing to serve. This lets customers in those counties find you even if they're outside your radius.
+                {p?.serviceAreaCountyCoverageDesc ||
+                  "Select the Florida counties you're willing to serve. This lets customers in those counties find you even if they're outside your radius."}
               </Text>
             </View>
           </View>
@@ -332,12 +367,19 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
             <View style={{ flex: 1 }}>
               <Text style={styles.countyPickerLabel}>
                 {serviceCounties.length === 0
-                  ? "Select counties"
-                  : `${serviceCounties.length} of 67 counties selected`}
+                  ? p?.serviceAreaSelectCountiesEmpty || "Select counties"
+                  : interpolate(
+                      p?.serviceAreaCountiesSelectedOf67 ||
+                        "{{count}} of 67 counties selected",
+                      { count: serviceCounties.length },
+                    )}
               </Text>
               {serviceCounties.length > 0 && (
                 <Text style={styles.countyPickerSub} numberOfLines={2}>
-                  {serviceCounties.slice(0, 5).join(", ")}{serviceCounties.length > 5 ? ` +${serviceCounties.length - 5} more` : ""}
+                  {serviceCounties.slice(0, 5).join(", ")}
+                  {serviceCounties.length > 5
+                    ? ` ${interpolate(p?.serviceAreaCountyListMore || "+{{count}} more", { count: serviceCounties.length - 5 })}`
+                    : ""}
                 </Text>
               )}
             </View>
@@ -362,14 +404,21 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
 
         {/* Mobile / On-Site Service */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Service Types</Text>
+          <Text style={styles.sectionTitle}>
+            {p?.serviceTypesTitle || "Service types"}
+          </Text>
           <View style={styles.card}>
             {/* On-Site */}
             <View style={styles.switchRow}>
               <MaterialCommunityIcons name="truck" size={22} color="#374151" />
               <View style={{ flex: 1 }}>
-                <Text style={styles.switchLabel}>On-Site Service</Text>
-                <Text style={styles.switchDesc}>I travel to the customer's location</Text>
+                <Text style={styles.switchLabel}>
+                  {p?.serviceAreaOnSiteLabel || "On-site service"}
+                </Text>
+                <Text style={styles.switchDesc}>
+                  {p?.serviceAreaOnSiteDesc ||
+                    "I travel to the customer's location"}
+                </Text>
               </View>
               <Switch
                 value={mobileService}
@@ -383,8 +432,13 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
             <View style={[styles.switchRow, styles.switchRowBorder]}>
               <MaterialCommunityIcons name="car-emergency" size={22} color="#374151" />
               <View style={{ flex: 1 }}>
-                <Text style={styles.switchLabel}>Roadside Assistance</Text>
-                <Text style={styles.switchDesc}>Emergency service on highways</Text>
+                <Text style={styles.switchLabel}>
+                  {p?.serviceAreaRoadsideLabel || "Roadside assistance"}
+                </Text>
+                <Text style={styles.switchDesc}>
+                  {p?.serviceAreaRoadsideDesc ||
+                    "Emergency service on highways"}
+                </Text>
               </View>
               <Switch
                 value={roadsideAssistance}
@@ -397,10 +451,14 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
             {/* Travel fees (visible when mobile or roadside enabled) */}
             {(mobileService || roadsideAssistance) && (
               <View style={styles.travelFeeBox}>
-                <Text style={styles.travelFeeTitle}>Travel Fees</Text>
+                <Text style={styles.travelFeeTitle}>
+                  {p?.serviceAreaTravelFeesTitle || "Travel fees"}
+                </Text>
                 <View style={styles.feeRow}>
                   <View style={styles.feeGroup}>
-                    <Text style={styles.feeLabel}>Free Miles</Text>
+                    <Text style={styles.feeLabel}>
+                      {p?.serviceAreaFreeMilesLabel || "Free miles"}
+                    </Text>
                     <View style={styles.feeInput}>
                       <TextInput
                         style={styles.feeInputText}
@@ -414,7 +472,10 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
                     </View>
                   </View>
                   <View style={styles.feeGroup}>
-                    <Text style={styles.feeLabel}>Fee per Extra Mile</Text>
+                    <Text style={styles.feeLabel}>
+                      {p?.serviceAreaFeePerExtraMileLabel ||
+                        "Fee per extra mile"}
+                    </Text>
                     <View style={styles.feeInput}>
                       <Text style={styles.feePrefix}>$</Text>
                       <TextInput
@@ -425,7 +486,7 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
                           setExtraFeePerKm(clean.replace(/(\..*)\./g, "$1"));
                         }}
                         keyboardType="decimal-pad"
-                        placeholder="0.00"
+                        placeholder={t.common?.decimalPlaceholder ?? "0.00"}
                         placeholderTextColor="#9ca3af"
                       />
                       <Text style={styles.feeUnit}>/mi</Text>
@@ -433,7 +494,9 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
                   </View>
                 </View>
 
-                <Text style={styles.feeLabel}>Distance Charged</Text>
+                <Text style={styles.feeLabel}>
+                  {p?.serviceAreaDistanceChargedLabel || "Distance charged"}
+                </Text>
                 <View style={styles.chargeTypeRow}>
                   {(["ONE_WAY", "ROUND_TRIP"] as const).map(type => (
                     <TouchableOpacity
@@ -447,7 +510,9 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
                         color={travelChargeType === type ? "#2B5EA7" : "#9ca3af"}
                       />
                       <Text style={[styles.chargeTypeBtnText, travelChargeType === type && styles.chargeTypeBtnTextActive]}>
-                        {type === "ONE_WAY" ? "One Way" : "Round Trip"}
+                        {type === "ONE_WAY"
+                          ? p?.serviceAreaOneWay || "One way"
+                          : p?.serviceAreaRoundTrip || "Round trip"}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -455,8 +520,16 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
 
                 <Text style={styles.feeNote}>
                   {travelChargeType === "ROUND_TRIP"
-                    ? `First ${freeKm} mi free (each way) · $${extraFeePerKm}/mi extra · distance × 2`
-                    : `First ${freeKm} mi free · $${extraFeePerKm}/mi after that`}
+                    ? interpolate(
+                        p?.serviceAreaFeeNoteRoundTrip ||
+                          "First {{freeMiles}} mi free (each way) · ${{fee}}/mi extra · distance × 2",
+                        { freeMiles: freeKm, fee: extraFeePerKm },
+                      )
+                    : interpolate(
+                        p?.serviceAreaFeeNoteOneWay ||
+                          "First {{freeMiles}} mi free · ${{fee}}/mi after that",
+                        { freeMiles: freeKm, fee: extraFeePerKm },
+                      )}
                 </Text>
               </View>
             )}
@@ -470,7 +543,9 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
       <View style={styles.footer}>
         <TouchableOpacity style={[styles.saveBtn, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving}>
           {saving ? <ActivityIndicator color="#fff" size="small" /> : (
-            <Text style={styles.saveBtnText}>Save Changes</Text>
+            <Text style={styles.saveBtnText}>
+              {p?.serviceAreaSaveChanges || "Save changes"}
+            </Text>
           )}
         </TouchableOpacity>
       </View>
@@ -480,11 +555,17 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
         <SafeAreaView style={styles.pickerContainer}>
           <View style={styles.pickerHeader}>
             <TouchableOpacity onPress={() => { setCountySearch(""); setShowCountyPicker(false); }} style={styles.pickerClose}>
-              <Text style={styles.pickerCloseText}>Done</Text>
+              <Text style={styles.pickerCloseText}>
+                {p?.countyPickerDone || "Done"}
+              </Text>
             </TouchableOpacity>
-            <Text style={styles.pickerTitle}>Florida Counties</Text>
+            <Text style={styles.pickerTitle}>
+              {p?.countyPickerTitle || "Florida counties"}
+            </Text>
             <TouchableOpacity onPress={() => setServiceCounties([])} style={styles.pickerClose}>
-              <Text style={{ fontSize: 14, color: "#ef4444", fontWeight: "500" }}>Clear</Text>
+              <Text style={{ fontSize: 14, color: "#ef4444", fontWeight: "500" }}>
+                {p?.countyPickerClear || "Clear"}
+              </Text>
             </TouchableOpacity>
           </View>
 
@@ -493,12 +574,18 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
             <MaterialCommunityIcons name="map-marker-check" size={16} color="#2B5EA7" />
             <Text style={styles.pickerCountText}>
               {serviceCounties.length === 0
-                ? "No counties selected"
-                : `${serviceCounties.length} county${serviceCounties.length > 1 ? "ies" : ""} selected`}
+                ? p?.countyPickerNoneSelected || "No counties selected"
+                : interpolate(
+                    p?.countyPickerCountiesSelected ||
+                      "{{count}} counties selected",
+                    { count: serviceCounties.length },
+                  )}
             </Text>
             {serviceCounties.length < ALL_COUNTIES.length && (
               <TouchableOpacity onPress={() => setServiceCounties([...ALL_COUNTIES])}>
-                <Text style={styles.selectAllText}>Select all 67</Text>
+                <Text style={styles.selectAllText}>
+                  {p?.countyPickerSelectAll67 || "Select all 67"}
+                </Text>
               </TouchableOpacity>
             )}
           </View>
@@ -508,7 +595,9 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
             <MaterialCommunityIcons name="magnify" size={18} color="#9ca3af" />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search county..."
+              placeholder={
+                p?.countyPickerSearchPlaceholder || "Search county..."
+              }
               placeholderTextColor="#9ca3af"
               value={countySearch}
               onChangeText={setCountySearch}
@@ -534,8 +623,15 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
                 <Text style={styles.regionTitle}>{section.title}</Text>
                 <Text style={styles.regionSelectAll}>
                   {(section as typeof FL_COUNTY_REGIONS[0]).data.every(c => serviceCounties.includes(c))
-                    ? "Deselect all"
-                    : `Select all ${(section as typeof FL_COUNTY_REGIONS[0]).data.length}`}
+                    ? p?.countyPickerDeselectAll || "Deselect all"
+                    : interpolate(
+                        p?.countyPickerSelectAllCount ||
+                          "Select all {{count}}",
+                        {
+                          count: (section as typeof FL_COUNTY_REGIONS[0]).data
+                            .length,
+                        },
+                      )}
                 </Text>
               </TouchableOpacity>
             )}
@@ -550,7 +646,9 @@ export default function ProviderServiceAreaScreen({ navigation }: any) {
                     {selected && <MaterialCommunityIcons name="check" size={14} color="#fff" />}
                   </View>
                   <Text style={[styles.countyRowText, selected && styles.countyRowTextSelected]}>
-                    {county} County
+                    {interpolate(p?.countyRowWithSuffix || "{{name}} County", {
+                      name: county,
+                    })}
                   </Text>
                 </TouchableOpacity>
               );

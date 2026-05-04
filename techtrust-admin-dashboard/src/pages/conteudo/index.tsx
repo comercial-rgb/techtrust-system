@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { adminApi as api } from "../../services/api";
 import { logApiError } from "../../utils/logger";
+import { unwrapArrayData } from "../../utils/unwrapApiData";
 
 // Types
 interface Banner {
@@ -204,10 +205,10 @@ export default function ConteudoPage() {
           api.get("/admin/content/notices").catch(() => ({ data: [] })),
         ]);
 
-      setBanners(((bannersRes as any).data || []) as Banner[]);
-      setOffers(((offersRes as any).data || []) as SpecialOffer[]);
-      setArticles(((articlesRes as any).data || []) as Article[]);
-      setNotices(((noticesRes as any).data || []) as Notice[]);
+      setBanners(unwrapArrayData<Banner>(bannersRes.data));
+      setOffers(unwrapArrayData<SpecialOffer>(offersRes.data));
+      setArticles(unwrapArrayData<Article>(articlesRes.data));
+      setNotices(unwrapArrayData<Notice>(noticesRes.data));
     } catch (error) {
       logApiError("Error loading content:", error);
       setBanners([]);

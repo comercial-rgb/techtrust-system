@@ -21,6 +21,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useI18n } from "../../i18n";
 import api from "../../services/api";
+import type { ProviderAppNavigation } from "../../navigation/types";
 
 interface Review {
   id: string;
@@ -34,7 +35,7 @@ interface Review {
   reply?: string;
 }
 
-export default function ProviderReviewsScreen({ navigation }: any) {
+export default function ProviderReviewsScreen({ navigation }: { navigation: ProviderAppNavigation }) {
   const { t, formatDate, language } = useI18n();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
@@ -290,7 +291,9 @@ export default function ProviderReviewsScreen({ navigation }: any) {
               styles.filterTab,
               filter === String(star) && styles.filterTabActive,
             ]}
-            onPress={() => setFilter(String(star) as any)}
+            onPress={() =>
+              setFilter(String(star) as "all" | "5" | "4" | "3" | "2" | "1")
+            }
           >
             <Text
               style={[

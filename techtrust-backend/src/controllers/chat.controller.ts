@@ -23,7 +23,8 @@ function buildConversationId(userA: string, userB: string, serviceRequestId?: st
  */
 export const getConversations = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).user.id;
+    const userId = req.user?.id;
+    if (!userId) throw new AppError('Unauthorized', 401, 'UNAUTHORIZED');
 
     // Get distinct conversations with latest message
     const messages = await prisma.chatMessage.findMany({
@@ -94,7 +95,8 @@ export const getConversations = async (req: Request, res: Response, next: NextFu
  */
 export const getMessages = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).user.id;
+    const userId = req.user?.id;
+    if (!userId) throw new AppError('Unauthorized', 401, 'UNAUTHORIZED');
     const { conversationId } = req.params;
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 50;
@@ -157,7 +159,8 @@ export const getMessages = async (req: Request, res: Response, next: NextFunctio
  */
 export const sendMessage = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).user.id;
+    const userId = req.user?.id;
+    if (!userId) throw new AppError('Unauthorized', 401, 'UNAUTHORIZED');
     const { toUserId, message, workOrderId, serviceRequestId, attachments } = req.body;
 
     if (!toUserId || !message) {
@@ -223,7 +226,8 @@ export const sendMessage = async (req: Request, res: Response, next: NextFunctio
  */
 export const markAsRead = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).user.id;
+    const userId = req.user?.id;
+    if (!userId) throw new AppError('Unauthorized', 401, 'UNAUTHORIZED');
     const { messageId } = req.params;
 
     await prisma.chatMessage.updateMany({
@@ -250,7 +254,8 @@ export const markAsRead = async (req: Request, res: Response, next: NextFunction
  */
 export const markAllRead = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).user.id;
+    const userId = req.user?.id;
+    if (!userId) throw new AppError('Unauthorized', 401, 'UNAUTHORIZED');
     const { conversationId } = req.params;
 
     const result = await prisma.chatMessage.updateMany({

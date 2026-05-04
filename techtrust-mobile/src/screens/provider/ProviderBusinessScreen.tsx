@@ -17,6 +17,7 @@ import api from "../../services/api";
 import { colors } from "../../constants/theme";
 import { log } from "../../utils/logger";
 import { useI18n } from "../../i18n";
+import type { ProviderAppNavigation } from "../../navigation/types";
 
 const { width } = Dimensions.get("window");
 
@@ -58,7 +59,7 @@ interface ProviderProfile {
   pendingRequests: number;
 }
 
-export default function ProviderBusinessScreen({ navigation }: any) {
+export default function ProviderBusinessScreen({ navigation }: { navigation: ProviderAppNavigation }) {
   const { user } = useAuth();
   const { t } = useI18n();
   const [loading, setLoading] = useState(true);
@@ -77,10 +78,25 @@ export default function ProviderBusinessScreen({ navigation }: any) {
           ? profileRes.value.data?.data ?? profileRes.value.data ?? {}
           : {};
 
-      const s =
-        statsRes.status === "fulfilled" && (statsRes.value as any).data
-          ? (statsRes.value as any).data?.data ?? (statsRes.value as any).data
-          : {};
+      const statsValue =
+        statsRes.status === "fulfilled" ? statsRes.value : null;
+      let s: Record<string, unknown> = {};
+      if (
+        statsValue &&
+        typeof statsValue === "object" &&
+        "data" in statsValue
+      ) {
+        const outer = (statsValue as { data: unknown }).data;
+        if (outer && typeof outer === "object") {
+          const o = outer as { data?: unknown };
+          s =
+            o.data !== undefined &&
+            o.data !== null &&
+            typeof o.data === "object"
+              ? (o.data as Record<string, unknown>)
+              : (outer as Record<string, unknown>);
+        }
+      }
 
       setProfile({
         businessName:
@@ -99,8 +115,10 @@ export default function ProviderBusinessScreen({ navigation }: any) {
         mobileService: !!p.mobileService,
         roadsideAssistance: !!p.roadsideAssistance,
         serviceRadiusKm: Number(p.serviceRadiusKm) || 0,
-        completedServices: Number(s.completedServices ?? s.totalCompleted) || 0,
-        pendingRequests: Number(s.pendingRequests ?? s.totalPending) || 0,
+        completedServices:
+          Number(s["completedServices"] ?? s["totalCompleted"]) || 0,
+        pendingRequests:
+          Number(s["pendingRequests"] ?? s["totalPending"]) || 0,
       });
     } catch (error) {
       log.error("Error loading business data:", error);

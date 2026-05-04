@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, UserRole } from "@prisma/client";
 
 import { logger } from "../src/config/logger";
 const prisma = new PrismaClient();
@@ -24,7 +24,7 @@ async function main() {
 
   // All users (customers)
   const customers = await prisma.user.findMany({
-    where: { role: "CUSTOMER" as any },
+    where: { role: UserRole.CLIENT },
     select: { id: true, fullName: true, email: true },
   });
 

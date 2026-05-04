@@ -3,7 +3,7 @@
  * Design moderno seguindo padrões do fornecedor
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, type ComponentProps } from "react";
 import {
   View,
   Text,
@@ -26,12 +26,15 @@ import { FadeInView, ScalePress } from "../components/Animated";
 import { DashboardStatsSkeleton } from "../components/Skeleton";
 import { logos } from "../constants/images";
 import { useI18n } from "../i18n";
+import type enLocale from "../i18n/locales/en";
 import { getHomeData, Banner, Article } from "../services/content.service";
 import BannerCarousel from "../components/BannerCarousel";
 import SpecialOffersSection, {
   SpecialOffer,
 } from "../components/SpecialOffersSection";
 import ArticlesSection from "../components/ArticlesSection";
+import type { CustomerHomeStackNavigation } from "../navigation/types";
+import { mapProviderSearchApiRow } from "../utils/mapProviderSearch";
 
 // Storage key for wallet balance
 const WALLET_BALANCE_KEY = "@TechTrust:walletBalance";
@@ -86,8 +89,18 @@ interface Vehicle {
   mileage?: number;
 }
 
+type I18nT = typeof enLocale;
+type IoniconName = ComponentProps<typeof Ionicons>["name"];
+
+type DashboardStats = {
+  activeServices: number;
+  pendingQuotes: number;
+  completedServices: number;
+  totalSpent: number;
+};
+
 // Helper: time-based greeting
-function getTimeGreeting(t: any): string {
+function getTimeGreeting(t: I18nT): string {
   const hour = new Date().getHours();
   if (hour < 12) return t.customerDashboard?.goodMorning || 'Good morning';
   if (hour < 17) return t.customerDashboard?.goodAfternoon || 'Good afternoon';
@@ -95,8 +108,12 @@ function getTimeGreeting(t: any): string {
 }
 
 // Helper: contextual tips based on user state
-function getContextualTips(t: any, stats: any, requests: any[]): { text: string; icon: string }[] {
-  const tips: { text: string; icon: string }[] = [];
+function getContextualTips(
+  t: I18nT,
+  stats: DashboardStats,
+  requests: ServiceRequest[],
+): { text: string; icon: IoniconName }[] {
+  const tips: { text: string; icon: IoniconName }[] = [];
   const hasOilChange = requests.some(r => r.title?.toLowerCase().includes('oil'));
   const hasBrake = requests.some(r => r.title?.toLowerCase().includes('brake'));
   const isWinter = [11, 0, 1, 2].includes(new Date().getMonth());
@@ -123,7 +140,11 @@ function getContextualTips(t: any, stats: any, requests: any[]): { text: string;
   return tips;
 }
 
-export default function CustomerDashboardScreen({ navigation }: any) {
+export default function CustomerDashboardScreen({
+  navigation,
+}: {
+  navigation: CustomerHomeStackNavigation<"DashboardMain">;
+}) {
   const { user } = useAuth();
   const { t, formatDate, formatCurrency, language } = useI18n();
   const numberLocale =
@@ -174,12 +195,24 @@ export default function CustomerDashboardScreen({ navigation }: any) {
     setShowOfferProvidersModal(true);
   };
 
-  // Search providers for offer - TODO: Integrate with real API when providers search endpoint is available
   const handleSearchOfferProviders = async () => {
     if (!selectedOffer) return;
-    // For now, show empty results until providers API is integrated
-    // In production, call: api.get('/providers/search', { params: { offerId: selectedOffer.id, state: offerProviderState, city: offerProviderCity } })
-    setOfferProviders([]);
+    try {
+      const api = (await import("../services/api")).default;
+      const params: Record<string, string> = {
+        offerId: selectedOffer.id,
+      };
+      if (offerProviderState) params.state = offerProviderState;
+      if (offerProviderCity) params.city = offerProviderCity;
+      const res = await api.get("/providers/search", { params });
+      const raw = res.data?.data?.providers || [];
+      const found: ProviderResult[] = (raw as Record<string, unknown>[]).map(
+        (p) => mapProviderSearchApiRow(p) as ProviderResult,
+      );
+      setOfferProviders(found);
+    } catch {
+      setOfferProviders([]);
+    }
     setHasSearchedOfferProviders(true);
   };
 
@@ -198,8 +231,8 @@ export default function CustomerDashboardScreen({ navigation }: any) {
   ) => {
     setShowOfferProvidersModal(false);
     navigation.navigate("CreateRequest", {
-      preSelectedProvider: provider,
-      specialOffer: offer || null,
+      preSelectedProvider: provider as unknown as Record<string, unknown>,
+      specialOffer: (offer ?? null) as unknown as Record<string, unknown> | null,
     });
   };
 
@@ -257,7 +290,14 @@ export default function CustomerDashboardScreen({ navigation }: any) {
     setRefreshing(false);
   }
 
-  const getStatusInfo = (status: string) => {
+  const getStatusInfo = (
+    status: string,
+  ): {
+    label: string;
+    color: string;
+    bgColor: string;
+    icon: IoniconName;
+  } => {
     switch (status) {
       case "SEARCHING":
         return {
@@ -397,7 +437,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
             style={styles.actionBanner}
             onPress={() => {
               if (stats.pendingQuotes > 0) {
-                navigation.navigate("Services");
+                navigation.navigate("Services", { screen: "WorkOrdersList" });
               } else {
                 navigation.navigate("ServiceChoice");
               }
@@ -439,10 +479,10 @@ export default function CustomerDashboardScreen({ navigation }: any) {
               </View>
               <View style={styles.bannerText}>
                 <Text style={styles.bannerTitle}>
-                  {(t as any).carWash?.findNearby || "Find a Car Wash"}
+                  {t.carWash?.findNearby || "Find a Car Wash"}
                 </Text>
                 <Text style={styles.bannerSubtitle}>
-                  {(t as any).carWash?.nearbyDesc || "Discover car washes near you"}
+                  {t.carWash?.nearbyDesc || "Discover car washes near you"}
                 </Text>
               </View>
             </View>
@@ -483,10 +523,10 @@ export default function CustomerDashboardScreen({ navigation }: any) {
               </View>
               <View style={styles.bannerText}>
                 <Text style={styles.bannerTitle}>
-                  {(t as any).partsStore?.title || "Auto Parts Store"}
+                  {t.partsStore?.title || "Auto Parts Store"}
                 </Text>
                 <Text style={styles.bannerSubtitle}>
-                  {(t as any).partsStore?.dashboardDesc || "Find parts near you, compare prices & reserve"}
+                  {t.partsStore?.dashboardDesc || "Find parts near you, compare prices & reserve"}
                 </Text>
               </View>
             </View>
@@ -520,7 +560,9 @@ export default function CustomerDashboardScreen({ navigation }: any) {
             <View style={styles.statsGrid}>
               <TouchableOpacity
                 style={[styles.statCard, { borderLeftColor: "#3b82f6" }]}
-                onPress={() => navigation.navigate("Services")}
+                onPress={() =>
+                  navigation.navigate("Services", { screen: "WorkOrdersList" })
+                }
                 activeOpacity={0.7}
               >
                 <Ionicons name="construct-outline" size={24} color="#3b82f6" />
@@ -534,7 +576,9 @@ export default function CustomerDashboardScreen({ navigation }: any) {
 
               <TouchableOpacity
                 style={[styles.statCard, { borderLeftColor: "#f59e0b" }]}
-                onPress={() => navigation.navigate("Services")}
+                onPress={() =>
+                  navigation.navigate("Services", { screen: "WorkOrdersList" })
+                }
                 activeOpacity={0.7}
               >
                 <Ionicons name="pricetags-outline" size={24} color="#f59e0b" />
@@ -551,7 +595,9 @@ export default function CustomerDashboardScreen({ navigation }: any) {
 
               <TouchableOpacity
                 style={[styles.statCard, { borderLeftColor: "#10b981" }]}
-                onPress={() => navigation.navigate("Services")}
+                onPress={() =>
+                  navigation.navigate("Services", { screen: "WorkOrdersList" })
+                }
                 activeOpacity={0.7}
               >
                 <Ionicons name="checkmark-done-outline" size={24} color="#10b981" />
@@ -610,13 +656,15 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                 <MaterialCommunityIcons name="car-wash" size={22} color="#0ea5e9" />
               </View>
               <Text style={styles.quickAccessLabel} numberOfLines={2}>
-                {(t as any).carWash?.findCarWash || "Car Wash"}
+                {t.carWash?.findCarWash || "Car Wash"}
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.quickAccessCard}
-              onPress={() => navigation.navigate("Services")}
+              onPress={() =>
+                  navigation.navigate("Services", { screen: "WorkOrdersList" })
+                }
             >
               <View
                 style={[styles.quickAccessIcon, { backgroundColor: "#fef3c7" }]}
@@ -662,7 +710,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                 <Ionicons name="storefront" size={22} color="#7c3aed" />
               </View>
               <Text style={styles.quickAccessLabel} numberOfLines={2}>
-                {(t as any).partsStore?.tabLabel || "Auto Parts"}
+                {t.partsStore?.tabLabel || "Auto Parts"}
               </Text>
             </TouchableOpacity>
 
@@ -801,7 +849,11 @@ export default function CustomerDashboardScreen({ navigation }: any) {
             <Text style={styles.sectionTitle}>
               {t.customerDashboard?.myVehicles || "My Vehicles"}
             </Text>
-            <TouchableOpacity onPress={() => navigation.navigate("Vehicles")}>
+            <TouchableOpacity
+              onPress={() =>
+                navigation.navigate("Vehicles", { screen: "VehiclesList" })
+              }
+            >
               <Text style={styles.seeAllText}>
                 {t.customerDashboard?.seeAll || "See all"}
               </Text>
@@ -836,9 +888,10 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                       .filter(Boolean)
                       .join(" • ")}
                   </Text>
-                  {(vehicle as any).mileage > 0 && (
+                  {vehicle.mileage != null &&
+                    vehicle.mileage > 0 && (
                     <Text style={styles.vehicleMileage}>
-                      {Number((vehicle as any).mileage).toLocaleString(
+                      {Number(vehicle.mileage).toLocaleString(
                         numberLocale,
                       )}{" "}
                       mi
@@ -884,7 +937,9 @@ export default function CustomerDashboardScreen({ navigation }: any) {
             <Text style={styles.sectionTitle}>
               {t.customerDashboard?.recentRequests || "Recent Requests"}
             </Text>
-            <TouchableOpacity onPress={() => navigation.navigate("Services")}>
+            <TouchableOpacity onPress={() =>
+                  navigation.navigate("Services", { screen: "WorkOrdersList" })
+                }>
               <Text style={styles.seeAllText}>
                 {t.customerDashboard?.seeAll || "See all"}
               </Text>
@@ -937,7 +992,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                             ]}
                           >
                             <Ionicons
-                              name={statusInfo.icon as any}
+                              name={statusInfo.icon}
                               size={20}
                               color={statusInfo.color}
                             />
@@ -1032,7 +1087,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
               const tip = tips[currentTipIndex % tips.length];
               return (
                 <View style={styles.tipCard}>
-                  <Ionicons name={tip.icon as any} size={20} color="#f59e0b" />
+                  <Ionicons name={tip.icon} size={20} color="#f59e0b" />
                   <Text style={styles.tipText}>{tip.text}</Text>
                 </View>
               );
@@ -1051,16 +1106,18 @@ export default function CustomerDashboardScreen({ navigation }: any) {
               (() => {
                 // Support both API fields and legacy fields
                 const imgUrl =
-                  selectedOffer.imageUrl || (selectedOffer as any).image;
+                  selectedOffer.imageUrl || selectedOffer.image;
                 const imgSrc = imgUrl
                   ? String(imgUrl).startsWith("http")
                     ? String(imgUrl)
                     : `https://techtrust-api.onrender.com${imgUrl}`
                   : null;
                 const freeLbl = t.common?.free || "Free";
-                const discLbl = (selectedOffer as any).discountLabel as
-                  | string
-                  | undefined;
+                const discLbl =
+                  selectedOffer.discountLabel != null &&
+                  String(selectedOffer.discountLabel).trim() !== ""
+                    ? String(selectedOffer.discountLabel)
+                    : undefined;
                 const discRaw = selectedOffer.discount;
                 const discNum =
                   discRaw != null && discRaw !== ""
@@ -1076,7 +1133,7 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                     : discRaw != null && String(discRaw).trim() !== ""
                       ? String(discRaw)
                       : t.customerDashboard?.offerPromoBadge || "PROMO");
-                const fmtP = (v: any): string => {
+                const fmtP = (v: unknown): string => {
                   if (v == null || v === "") return "";
                   if (typeof v === "string") {
                     const tr = v.trim();
@@ -1091,13 +1148,13 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                   if (Number.isNaN(n)) return String(v);
                   return n === 0 ? freeLbl : formatCurrency(n);
                 };
-                const origPrice = fmtP((selectedOffer as any).originalPrice);
-                const discPrice = fmtP((selectedOffer as any).discountedPrice);
+                const origPrice = fmtP(selectedOffer.originalPrice);
+                const discPrice = fmtP(selectedOffer.discountedPrice);
                 const promoCode =
-                  (selectedOffer as any).promoCode || selectedOffer.code;
+                  selectedOffer.promoCode || selectedOffer.code;
                 let validUntilD = "";
-                if ((selectedOffer as any).validUntil) {
-                  const raw = String((selectedOffer as any).validUntil);
+                if (selectedOffer.validUntil) {
+                  const raw = String(selectedOffer.validUntil);
                   if (raw.includes("T")) {
                     const d = new Date(raw);
                     validUntilD = !isNaN(d.getTime()) ? formatDate(d) : raw;
@@ -1268,8 +1325,10 @@ export default function CustomerDashboardScreen({ navigation }: any) {
                   {selectedOffer.title}
                 </Text>
                 <Text style={styles.offerProvidersOfferDiscount}>
-                  {(selectedOffer as any).discountLabel ||
-                    selectedOffer.discount}
+                  {selectedOffer.discountLabel != null &&
+                  String(selectedOffer.discountLabel).trim() !== ""
+                    ? String(selectedOffer.discountLabel)
+                    : selectedOffer.discount}
                 </Text>
               </View>
             )}

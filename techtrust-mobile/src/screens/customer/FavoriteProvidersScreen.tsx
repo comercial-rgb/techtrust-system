@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import type { ComponentProps } from "react";
 import {
   View,
   Text,
@@ -16,8 +17,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+
+type IoniconName = ComponentProps<typeof Ionicons>["name"];
+type MciName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 import { useI18n } from '../../i18n';
 import { log } from "../../utils/logger";
+import type { CustomerAppNavigation } from "../../navigation/types";
 
 type FavoriteCategory = 'all' | 'repair' | 'carwash' | 'parts';
 
@@ -36,7 +41,7 @@ interface Provider {
   specialties: string[];
 }
 
-export default function FavoriteProvidersScreen({ navigation }: any) {
+export default function FavoriteProvidersScreen({ navigation }: { navigation: CustomerAppNavigation }) {
   const { t } = useI18n();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -115,7 +120,7 @@ export default function FavoriteProvidersScreen({ navigation }: any) {
       <View style={styles.providerHeader}>
         <View style={styles.providerAvatar}>
           <Ionicons 
-            name={getBusinessTypeIcon(item.businessType) as any} 
+            name={getBusinessTypeIcon(item.businessType) as MciName} 
             size={28} 
             color="#2B5EA7" 
           />
@@ -224,7 +229,11 @@ export default function FavoriteProvidersScreen({ navigation }: any) {
               {tab.key === 'carwash' ? (
                 <MaterialCommunityIcons name="car-wash" size={18} color={isActive ? tab.color : '#9ca3af'} />
               ) : (
-                <Ionicons name={tab.icon as any} size={18} color={isActive ? tab.color : '#9ca3af'} />
+                <Ionicons
+                  name={tab.icon as IoniconName}
+                  size={18}
+                  color={isActive ? tab.color : "#9ca3af"}
+                />
               )}
               <Text style={[styles.categoryTabText, isActive && { color: tab.color, fontWeight: '600' }]}>
                 {tab.label}

@@ -3,6 +3,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import type { ComponentProps } from "react";
 import {
   View,
   Text,
@@ -17,37 +18,22 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useI18n } from '../../i18n';
 import * as paymentService from '../../services/payment.service';
+import type { PaymentRecord } from '../../services/payment.service';
 import { log } from "../../utils/logger";
+import type { ProviderAppNavigation } from "../../navigation/types";
 
-interface Payment {
-  id: string;
-  paymentNumber: string;
-  status: string;
-  subtotal: number;
-  platformFee: number;
-  providerAmount: number;
-  totalAmount: number;
-  createdAt: string;
-  capturedAt: string | null;
-  workOrder: {
-    orderNumber: string;
-    serviceRequest: {
-      title: string;
-      vehicle: { plateNumber: string; make: string; model: string };
-    };
-  };
-}
+type MciName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
 type FilterType = 'all' | 'CAPTURED' | 'PENDING' | 'REFUNDED';
 
-export default function ProviderPaymentHistoryScreen({ navigation }: any) {
+export default function ProviderPaymentHistoryScreen({ navigation }: { navigation: ProviderAppNavigation }) {
   const { t, language, formatCurrency } = useI18n();
   const paymentDateLocale = useMemo(
     () => (language === "pt" ? "pt-BR" : language === "es" ? "es-ES" : "en-US"),
     [language],
   );
   const [filter, setFilter] = useState<FilterType>('all');
-  const [payments, setPayments] = useState<Payment[]>([]);
+  const [payments, setPayments] = useState<PaymentRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [balance, setBalance] = useState({ available: 0, pending: 0 });
@@ -58,7 +44,7 @@ export default function ProviderPaymentHistoryScreen({ navigation }: any) {
         paymentService.getPaymentHistory({ limit: 50 }),
         paymentService.getProviderBalance(),
       ]);
-      setPayments(historyRes.data as any);
+      setPayments(historyRes.data);
       setBalance(balanceRes);
     } catch (err) {
       log.error('Error loading payment history:', err);
@@ -99,7 +85,7 @@ export default function ProviderPaymentHistoryScreen({ navigation }: any) {
     }
   };
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: string): MciName => {
     switch (status) {
       case 'CAPTURED': return 'check-circle';
       case 'PENDING': case 'AUTHORIZED': return 'clock-outline';
@@ -116,7 +102,7 @@ export default function ProviderPaymentHistoryScreen({ navigation }: any) {
     });
   };
 
-  const renderPaymentItem = ({ item }: { item: Payment }) => (
+  const renderPaymentItem = ({ item }: { item: PaymentRecord }) => (
     <TouchableOpacity style={styles.paymentCard}>
       <View style={styles.paymentHeader}>
         <View style={styles.paymentInfo}>
@@ -124,10 +110,10 @@ export default function ProviderPaymentHistoryScreen({ navigation }: any) {
           <Text style={styles.clientName}>{item.workOrder?.serviceRequest?.title || 'Service'}</Text>
         </View>
         <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
-          <MaterialCommunityIcons 
-            name={getStatusIcon(item.status) as any} 
-            size={14} 
-            color={getStatusColor(item.status)} 
+          <MaterialCommunityIcons
+            name={getStatusIcon(item.status)}
+            size={14}
+            color={getStatusColor(item.status)}
           />
           <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
             {getStatusText(item.status)}

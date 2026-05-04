@@ -22,6 +22,32 @@ import { logger } from "../config/logger";
 import { generateInvoiceNumber } from "../utils/number-generators";
 import { generateRepairInvoicePdf } from "../services/pdf.service";
 
+type QuotePartsListRow = {
+  description?: string;
+  name?: string;
+  partsCost?: number | string;
+  cost?: number | string;
+  laborCost?: number | string;
+  quantity?: number | string;
+  partCondition?: string;
+  isNoCharge?: boolean;
+};
+
+type ApprovedSupplementRow = {
+  supplementId: string;
+  description: string;
+  amount: number;
+  approvedAt: Date;
+};
+
+type RejectedSupplementRow = {
+  supplementId: string;
+  description: string;
+  amount: number;
+  rejectedAt: Date;
+  reason?: string;
+};
+
 // ============================================
 // HELPER: Create Repair Invoice from approved Quote
 // Called from service-flow.controller when estimate approved
@@ -67,8 +93,10 @@ export const createRepairInvoiceFromQuote = async (
   const invoiceNumber = await generateInvoiceNumber();
 
   // Build line items from quote partsList (JSON field)
-  const rawParts = (quote.partsList as any[]) || [];
-  const lineItems = rawParts.map((item: any) => ({
+  const rawParts = Array.isArray(quote.partsList)
+    ? (quote.partsList as QuotePartsListRow[])
+    : [];
+  const lineItems = rawParts.map((item) => ({
     description: item.description || item.name || "Part/Service",
     partsCost: Number(item.partsCost || item.cost || 0),
     laborCost: Number(item.laborCost || 0),
@@ -77,7 +105,7 @@ export const createRepairInvoiceFromQuote = async (
     isNoCharge: item.isNoCharge || false,
     total:
       (Number(item.partsCost || item.cost || 0) + Number(item.laborCost || 0)) *
-      (item.quantity || 1),
+      Number(item.quantity || 1),
   }));
 
   const repairInvoice = await db.repairInvoice.create({
@@ -150,7 +178,9 @@ export const updateInvoiceWithSupplement = async (
   if (!invoice) return; // No invoice yet
 
   if (supplementData.approved) {
-    const currentApproved = (invoice.approvedSupplements as any[]) || [];
+    const currentApproved = Array.isArray(invoice.approvedSupplements)
+      ? ([...invoice.approvedSupplements] as unknown as ApprovedSupplementRow[])
+      : [];
     currentApproved.push({
       supplementId: supplementData.supplementId,
       description: supplementData.description,
@@ -170,7 +200,9 @@ export const updateInvoiceWithSupplement = async (
       },
     });
   } else {
-    const currentRejected = (invoice.rejectedSupplements as any[]) || [];
+    const currentRejected = Array.isArray(invoice.rejectedSupplements)
+      ? ([...invoice.rejectedSupplements] as unknown as RejectedSupplementRow[])
+      : [];
     currentRejected.push({
       supplementId: supplementData.supplementId,
       description: supplementData.description,

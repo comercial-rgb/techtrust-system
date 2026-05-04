@@ -3,6 +3,7 @@
  */
 
 import React, { useState } from 'react';
+import type { ComponentProps } from "react";
 import {
   View,
   Text,
@@ -13,7 +14,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+
+type MciName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 import { useI18n } from '../../i18n';
+import type { ProviderAppNavigation } from "../../navigation/types";
 
 interface FAQItem {
   id: string;
@@ -30,7 +34,7 @@ interface HelpCategory {
   backgroundColor: string;
 }
 
-export default function ProviderHelpScreen({ navigation }: any) {
+export default function ProviderHelpScreen({ navigation }: { navigation: ProviderAppNavigation }) {
   const { t } = useI18n();
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedFAQ, setExpandedFAQ] = useState<string | null>(null);
@@ -275,7 +279,11 @@ export default function ProviderHelpScreen({ navigation }: any) {
                   activeOpacity={0.7}
                 >
                   <View style={[styles.categoryIcon, { backgroundColor: category.backgroundColor }]}>
-                    <MaterialCommunityIcons name={category.icon as any} size={24} color={category.color} />
+                    <MaterialCommunityIcons
+                      name={category.icon as MciName}
+                      size={24}
+                      color={category.color}
+                    />
                   </View>
                   <Text style={[styles.categoryTitle, isActive && { color: category.color, fontWeight: '600' }]}>
                     {category.title}
@@ -354,7 +362,11 @@ export default function ProviderHelpScreen({ navigation }: any) {
               }}
             >
               <View style={{ width: 42, height: 42, borderRadius: 10, backgroundColor: '#fef2f2', justifyContent: 'center', alignItems: 'center' }}>
-                <MaterialCommunityIcons name={doc.icon as any} size={22} color="#dc2626" />
+                <MaterialCommunityIcons
+                  name={doc.icon as MciName}
+                  size={22}
+                  color="#dc2626"
+                />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 14, fontWeight: '600', color: '#1f2937' }}>{doc.title}</Text>

@@ -9,6 +9,7 @@ import {
   normalizeNotificationList,
   type NormalizedClientNotification,
 } from "../utils/notifications";
+import { unwrapApiData } from "../utils/unwrapApiData";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "https://techtrust-api.onrender.com/api/v1";
@@ -55,7 +56,7 @@ class ApiService {
       }
 
       // Backend wraps all responses in { success, data } — unwrap automatically
-      return { data: (data as any)?.data ?? data };
+      return { data: unwrapApiData<T>(data) };
     } catch (error: any) {
       logApiError("API Error:", error);
       return { error: error.message || "Erro de conexão com o servidor" };
@@ -460,7 +461,12 @@ class ApiService {
     serviceType?: string;
     radius?: number;
   }) {
-    const query = new URLSearchParams(params as any).toString();
+    const q = new URLSearchParams();
+    for (const [key, value] of Object.entries(params)) {
+      if (value === undefined || value === null) continue;
+      q.set(key, String(value));
+    }
+    const query = q.toString();
     return this.request<any[]>(`/providers/search?${query}`);
   }
 

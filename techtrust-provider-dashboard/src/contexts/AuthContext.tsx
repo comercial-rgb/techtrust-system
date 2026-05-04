@@ -12,6 +12,10 @@ interface User {
   fullName: string
   phone: string
   role: string
+  address?: string | null
+  city?: string | null
+  state?: string | null
+  zipCode?: string | null
   providerProfile?: {
     businessName: string
     businessType: string
@@ -71,8 +75,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const complianceRes = await api.get('/compliance/summary')
           const summary = complianceRes.data?.data || complianceRes.data
-          const hasUploads = summary?.complianceItems?.some((c: any) => c.documentUploads?.length > 0) ||
-                            summary?.insurancePolicies?.some((i: any) => i.coiUploads?.length > 0)
+          const hasUploads = summary?.complianceItems?.some(
+              (c: { documentUploads?: unknown[] }) => (c.documentUploads?.length ?? 0) > 0,
+            ) ||
+                            summary?.insurancePolicies?.some(
+                              (i: { coiUploads?: unknown[] }) => (i.coiUploads?.length ?? 0) > 0,
+                            )
           if (hasUploads) {
             localStorage.setItem('tt_provider_onboarding_done', 'true')
             setHasCompletedOnboarding(true)
@@ -155,8 +163,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const complianceRes = await api.get('/compliance/summary')
           const summary = complianceRes.data?.data || complianceRes.data
-          const hasUploads = summary?.complianceItems?.some((c: any) => c.documentUploads?.length > 0) ||
-                            summary?.insurancePolicies?.some((i: any) => i.coiUploads?.length > 0)
+          const hasUploads = summary?.complianceItems?.some(
+              (c: { documentUploads?: unknown[] }) => (c.documentUploads?.length ?? 0) > 0,
+            ) ||
+                            summary?.insurancePolicies?.some(
+                              (i: { coiUploads?: unknown[] }) => (i.coiUploads?.length ?? 0) > 0,
+                            )
           if (hasUploads) {
             localStorage.setItem('tt_provider_onboarding_done', 'true')
             setHasCompletedOnboarding(true)

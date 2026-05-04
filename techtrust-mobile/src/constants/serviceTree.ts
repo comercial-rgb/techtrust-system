@@ -1,3 +1,9 @@
+import type { ComponentProps } from "react";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+
+export type MaterialCommunityIconName =
+  ComponentProps<typeof MaterialCommunityIcons>["name"];
+
 /**
  * SERVICE & DIAGNOSTIC TREE — Complete Technical Reference
  * TechTrust AutoSolutions LLC
@@ -155,8 +161,23 @@ export const SERVICE_CATEGORY_GROUPS = [
 // getServiceTypeInfo — Shared helper for icon/color lookup
 // ============================================================
 
-export const getServiceTypeInfo = (type: string): { icon: string; color: string; bg: string; label: string } => {
-  const map: Record<string, { icon: string; color: string; bg: string; label: string }> = {
+export const getServiceTypeInfo = (
+  type: string,
+): {
+  icon: MaterialCommunityIconName;
+  color: string;
+  bg: string;
+  label: string;
+} => {
+  const map: Record<
+    string,
+    {
+      icon: MaterialCommunityIconName;
+      color: string;
+      bg: string;
+      label: string;
+    }
+  > = {
     // Backend ServiceType enums
     SCHEDULED_MAINTENANCE: { icon: "wrench-cog",        color: "#2E86C1", bg: "#dbeafe", label: "Maintenance" },
     REPAIR:                { icon: "wrench",             color: "#f97316", bg: "#ffedd5", label: "Repair" },

@@ -67,7 +67,10 @@ export const getStateProfile = async (req: Request, res: Response): Promise<any>
 /** POST /state-profiles - Create or update state profile */
 export const upsertStateProfile = async (req: Request, res: Response): Promise<any> => {
   try {
-    const user = (req as any).user;
+    const user = req.user;
+    if (!user?.id) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
     if (user.role !== "ADMIN") {
       return res.status(403).json({ success: false, message: "Admin only" });
     }
@@ -145,7 +148,10 @@ export const listComplianceRequirements = async (_req: Request, res: Response) =
 /** POST /compliance-requirements - Create or update a catalog requirement */
 export const upsertComplianceRequirement = async (req: Request, res: Response): Promise<any> => {
   try {
-    const user = (req as any).user;
+    const user = req.user;
+    if (!user?.id) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
     if (user.role !== "ADMIN") {
       return res.status(403).json({ success: false, message: "Admin only" });
     }
@@ -229,7 +235,10 @@ export const listJurisdictionPolicies = async (req: Request, res: Response) => {
 /** POST /jurisdiction-policies - Create or update a jurisdiction policy */
 export const upsertJurisdictionPolicy = async (req: Request, res: Response): Promise<any> => {
   try {
-    const user = (req as any).user;
+    const user = req.user;
+    if (!user?.id) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
     if (user.role !== "ADMIN") {
       return res.status(403).json({ success: false, message: "Admin only" });
     }
@@ -426,7 +435,10 @@ export const listDisclaimers = async (_req: Request, res: Response) => {
 /** POST /disclaimers - Create a new disclaimer version */
 export const createDisclaimer = async (req: Request, res: Response): Promise<any> => {
   try {
-    const user = (req as any).user;
+    const user = req.user;
+    if (!user?.id) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
     if (user.role !== "ADMIN") {
       return res.status(403).json({ success: false, message: "Admin only" });
     }

@@ -21,7 +21,10 @@ export const verifyEntity = async (
   res: Response,
 ): Promise<any> => {
   try {
-    const user = (req as any).user;
+    const user = req.user;
+    if (!user?.id) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
     if (user.role !== "ADMIN") {
       return res
         .status(403)
@@ -186,7 +189,10 @@ export const acceptRiskDisclaimer = async (
   res: Response,
 ): Promise<any> => {
   try {
-    const user = (req as any).user;
+    const user = req.user;
+    if (!user?.id) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
     const { providerId, serviceType } = req.body;
 
     if (!providerId || !serviceType) {
@@ -200,7 +206,7 @@ export const acceptRiskDisclaimer = async (
 
     const log = await prisma.userRiskAcceptanceLog.create({
       data: {
-        userId: user.userId,
+        userId: user.id,
         providerId,
         serviceType,
         disclaimerVersion: DISCLAIMER_VERSION,
@@ -234,7 +240,10 @@ export const checkRiskAcceptance = async (
   res: Response,
 ): Promise<any> => {
   try {
-    const user = (req as any).user;
+    const user = req.user;
+    if (!user?.id) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
     const { providerId, serviceType } = req.query;
 
     if (!providerId || !serviceType) {
@@ -249,7 +258,7 @@ export const checkRiskAcceptance = async (
     // Check for recent acceptance (within last 24 hours)
     const recentAcceptance = await prisma.userRiskAcceptanceLog.findFirst({
       where: {
-        userId: user.userId,
+        userId: user.id,
         providerId: providerId as string,
         serviceType: serviceType as string,
         createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
@@ -285,7 +294,10 @@ export const getPendingVerifications = async (
   res: Response,
 ): Promise<any> => {
   try {
-    const user = (req as any).user;
+    const user = req.user;
+    if (!user?.id) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
     if (user.role !== "ADMIN") {
       return res
         .status(403)

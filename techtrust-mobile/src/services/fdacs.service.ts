@@ -104,6 +104,10 @@ export interface RepairInvoice {
   diagnosticFee: number;
   diagnosticFeeWaived: boolean;
   status: string;
+  /** Some API versions expose narrative / dispute fields separately from `servicePerformed` */
+  workPerformed?: string;
+  disputeReason?: string;
+  estimateNumber?: string;
   customerAcceptedAt?: string;
   customerSignature?: string;
   completedAt?: string;

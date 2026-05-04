@@ -22,7 +22,11 @@ async function generateTicketNumber(): Promise<string> {
  */
 export const createTicket = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).user.id;
+    const auth = req.user;
+    if (!auth?.id) {
+      throw new AppError('Unauthorized', 401, 'UNAUTHORIZED');
+    }
+    const userId = auth.id;
     const { topic, subject, message, language } = req.body;
 
     if (!topic || !subject || !message) {
@@ -112,7 +116,10 @@ export const createTicket = async (req: Request, res: Response, next: NextFuncti
  */
 export const getTickets = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const user = (req as any).user;
+    const user = req.user;
+    if (!user?.id) {
+      throw new AppError('Unauthorized', 401, 'UNAUTHORIZED');
+    }
     const status = req.query.status as string;
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
@@ -165,7 +172,10 @@ export const getTickets = async (req: Request, res: Response, next: NextFunction
  */
 export const getTicketDetail = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const user = (req as any).user;
+    const user = req.user;
+    if (!user?.id) {
+      throw new AppError('Unauthorized', 401, 'UNAUTHORIZED');
+    }
     const { ticketId } = req.params;
 
     const ticket = await prisma.supportTicket.findUnique({
@@ -217,7 +227,10 @@ export const getTicketDetail = async (req: Request, res: Response, next: NextFun
  */
 export const sendTicketMessage = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const user = (req as any).user;
+    const user = req.user;
+    if (!user?.id) {
+      throw new AppError('Unauthorized', 401, 'UNAUTHORIZED');
+    }
     const { ticketId } = req.params;
     const { message, attachments } = req.body;
 

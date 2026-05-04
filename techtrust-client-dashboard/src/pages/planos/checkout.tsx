@@ -4,6 +4,8 @@ import Head from 'next/head';
 import { useAuth } from '../../contexts/AuthContext';
 import DashboardLayout from '../../components/DashboardLayout';
 import { api } from '../../services/api';
+import { unwrapApiData } from '../../utils/unwrapApiData';
+import '../../types/stripe-js';
 import { Loader2, CheckCircle, XCircle, CreditCard } from 'lucide-react';
 
 export default function CheckoutPage() {
@@ -31,7 +33,9 @@ export default function CheckoutPage() {
         return;
       }
 
-      loadStripeAndConfirm(publishableKey, secret as string);
+      const clientSecret = Array.isArray(secret) ? secret[0] : secret;
+      if (!clientSecret || typeof clientSecret !== "string") return;
+      loadStripeAndConfirm(publishableKey, clientSecret);
     }
 
     startCheckout();
@@ -43,13 +47,13 @@ export default function CheckoutPage() {
     }
 
     const response = await api.getStripeConfig();
-    const config = (response.data as any)?.data || response.data;
-    return config?.publishableKey;
+    const config = unwrapApiData<Record<string, unknown>>(response.data);
+    const pk = config?.publishableKey;
+    return typeof pk === "string" ? pk : undefined;
   }
 
   async function loadStripeAndConfirm(publishableKey: string, clientSecret: string) {
     try {
-      // @ts-ignore — Stripe.js loaded via script tag
       if (!window.Stripe) {
         const script = document.createElement('script');
         script.src = 'https://js.stripe.com/v3/';
@@ -71,8 +75,9 @@ export default function CheckoutPage() {
 
   async function initStripe(publishableKey: string, clientSecret: string) {
     try {
-      // @ts-ignore
-      const stripe = window.Stripe(publishableKey);
+      const StripeCtor = window.Stripe;
+      if (!StripeCtor) throw new Error('Stripe.js failed to load');
+      const stripe = StripeCtor(publishableKey);
 
       setStatus('ready');
 
@@ -112,9 +117,9 @@ export default function CheckoutPage() {
           }
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setStatus('error');
-      setMessage(err.message || 'Failed to initialize payment.');
+      setMessage(err instanceof Error ? err.message : 'Failed to initialize payment.');
     }
   }
 

@@ -924,7 +924,7 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
 
   // Processar somente faturas recorrentes de assinatura (billing_reason = subscription_cycle ou subscription_update)
   // Ignorar faturas de primeira cobrança (já tratadas em checkout.session.completed)
-  const billingReason = (invoice as any).billing_reason as string | undefined;
+  const billingReason = invoice.billing_reason ?? undefined;
   if (billingReason === 'subscription_create') return;
 
   const subscriptionId = typeof invoice.subscription === 'string'

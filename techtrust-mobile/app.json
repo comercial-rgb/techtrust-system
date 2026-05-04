@@ -48,7 +48,10 @@
     "extra": {
       "eas": {
         "projectId": "8aadadd9-dd3c-4b9a-8f3e-2a4278e4043a"
-      }
+      },
+      "storeIosItmsUrl": "itms-apps://itunes.apple.com/app/id0000000000",
+      "storeIosWebUrl": "https://apps.apple.com/app/id0000000000",
+      "storeAndroidUrl": "https://play.google.com/store/apps/details?id=com.techtrustauto.mobile"
     },
     "runtimeVersion": "1.1.0",
     "updates": {

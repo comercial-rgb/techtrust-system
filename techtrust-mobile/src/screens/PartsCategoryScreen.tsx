@@ -16,15 +16,26 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useI18n } from "../i18n";
 import { useRoute } from "@react-navigation/native";
+import type { RouteProp } from "@react-navigation/native";
+import type { CustomerAppNavigation, CustomerAppParamList } from "../navigation/types";
 
-export default function PartsCategoryScreen({ navigation }: any) {
+export default function PartsCategoryScreen({ navigation }: { navigation: CustomerAppNavigation }) {
   const { t } = useI18n();
-  const ps = (t as any).partsStore || {};
-  const route = useRoute<any>();
-  const categoryId = route.params?.categoryId;
-  const initialSearch = route.params?.search || "";
-  const screenTitle = route.params?.title || ps.products || "Products";
-  const showStores = route.params?.showStores || false;
+  const ps = t.partsStore || {};
+  const route = useRoute<RouteProp<CustomerAppParamList, "PartsCategory">>();
+  const p = route.params as
+    | {
+        categoryId?: string;
+        search?: string;
+        title?: string;
+        showStores?: boolean;
+      }
+    | undefined;
+  const categoryId = p?.categoryId;
+  const initialSearch = typeof p?.search === "string" ? p.search : "";
+  const screenTitle =
+    typeof p?.title === "string" ? p.title : ps.products || "Products";
+  const showStores = Boolean(p?.showStores);
 
   const [searchText, setSearchText] = useState(initialSearch);
   const [products, setProducts] = useState<any[]>([]);

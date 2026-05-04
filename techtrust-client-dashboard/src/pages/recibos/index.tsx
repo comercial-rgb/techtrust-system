@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 
 import { logApiError } from "../../utils/logger";
+import { unwrapArrayData } from "../../utils/unwrapApiData";
 interface Payment {
   id: string;
   paymentNumber: string;
@@ -75,22 +76,28 @@ export default function RecibosPage() {
     try {
       const response = await api.getPaymentHistory();
       if (response.data) {
-        const data = Array.isArray(response.data) ? response.data : (response.data as any)?.data || [];
-        setPayments(data.map((p: any) => ({
-          id: p.id,
-          paymentNumber: p.paymentNumber || `PAY-${p.id.slice(0, 8)}`,
-          status: p.status,
-          totalAmount: p.totalAmount || 0,
-          platformFee: p.platformFee || 0,
-          providerAmount: p.providerAmount || 0,
-          salesTaxAmount: p.salesTaxAmount || 0,
-          salesTaxRate: p.salesTaxRate || 0,
-          salesTaxCounty: p.salesTaxCounty || null,
-          cardLast4: p.cardLast4,
-          cardBrand: p.cardBrand,
-          createdAt: p.createdAt,
-          workOrder: p.workOrder,
-        })));
+        const data = unwrapArrayData<Record<string, unknown>>(response.data);
+        setPayments(
+          data.map((p) => {
+            const id = String(p.id ?? "");
+            return {
+              id,
+              paymentNumber: String(p.paymentNumber ?? `PAY-${id.slice(0, 8)}`),
+              status: String(p.status ?? ""),
+              totalAmount: Number(p.totalAmount ?? 0),
+              platformFee: Number(p.platformFee ?? 0),
+              providerAmount: Number(p.providerAmount ?? 0),
+              salesTaxAmount: Number(p.salesTaxAmount ?? 0),
+              salesTaxRate: Number(p.salesTaxRate ?? 0),
+              salesTaxCounty:
+                p.salesTaxCounty != null ? String(p.salesTaxCounty) : undefined,
+              cardLast4: p.cardLast4 != null ? String(p.cardLast4) : undefined,
+              cardBrand: p.cardBrand != null ? String(p.cardBrand) : undefined,
+              createdAt: String(p.createdAt ?? ""),
+              workOrder: p.workOrder as Payment["workOrder"] | undefined,
+            };
+          }),
+        );
       }
     } catch (err) {
       logApiError('Error loading payments:', err);

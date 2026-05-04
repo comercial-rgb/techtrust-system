@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
 import DashboardLayout from '../../components/DashboardLayout';
 import { api } from '../../services/api';
+import { unwrapArrayData } from '../../utils/unwrapApiData';
 import {
   ChevronLeft, Lock, Shield, Bell, Eye, EyeOff, ChevronRight,
   CheckCircle, AlertCircle, Laptop, Smartphone, Tablet, LogOut, AlertTriangle,
@@ -51,7 +52,7 @@ export default function SegurancaPage() {
     setSessionsLoading(true);
     try {
       const res = await api.getSessions();
-      setSessions((res.data as any) || []);
+      setSessions(unwrapArrayData<Session>(res.data));
     } catch {
       setSessions([{ id: 'current', deviceName: 'This Device', deviceType: 'desktop', lastActiveAt: new Date().toISOString(), isCurrentSession: true }]);
     } finally {

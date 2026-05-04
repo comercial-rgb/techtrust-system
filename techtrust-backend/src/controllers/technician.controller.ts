@@ -43,7 +43,10 @@ export const addTechnician = async (
 ): Promise<any> => {
   try {
     const { providerProfileId } = req.params;
-    const user = (req as any).user;
+    const user = req.user;
+    if (!user?.id) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
     const {
       fullName,
       phone,
@@ -64,7 +67,7 @@ export const addTechnician = async (
       return res
         .status(404)
         .json({ success: false, message: "Provider profile not found" });
-    if (profile.userId !== user.userId && user.role !== "ADMIN") {
+    if (profile.userId !== user.id && user.role !== "ADMIN") {
       return res
         .status(403)
         .json({ success: false, message: "Not authorized" });
@@ -121,7 +124,10 @@ export const updateTechnician = async (
 ): Promise<any> => {
   try {
     const { technicianId } = req.params;
-    const user = (req as any).user;
+    const user = req.user;
+    if (!user?.id) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
     const {
       fullName,
       phone,
@@ -145,7 +151,7 @@ export const updateTechnician = async (
         .status(404)
         .json({ success: false, message: "Technician not found" });
     if (
-      existing.providerProfile.userId !== user.userId &&
+      existing.providerProfile.userId !== user.id &&
       user.role !== "ADMIN"
     ) {
       return res
@@ -162,7 +168,12 @@ export const updateTechnician = async (
     const newUploads =
       epa609Uploads !== undefined ? epa609Uploads : existing.epa609Uploads;
     if (epa609CertNumber !== undefined || epa609Uploads !== undefined) {
-      if (!newCert && (!newUploads || (newUploads as any[]).length === 0)) {
+      if (
+        !newCert &&
+        (!newUploads ||
+          !Array.isArray(newUploads) ||
+          newUploads.length === 0)
+      ) {
         epa609Status = "NOT_PROVIDED";
       } else if (existing.epa609Status === "NOT_PROVIDED") {
         epa609Status = "PROVIDED_UNVERIFIED";
@@ -219,7 +230,10 @@ export const deactivateTechnician = async (
 ): Promise<any> => {
   try {
     const { technicianId } = req.params;
-    const user = (req as any).user;
+    const user = req.user;
+    if (!user?.id) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
 
     const existing = await prisma.technician.findUnique({
       where: { id: technicianId },
@@ -231,7 +245,7 @@ export const deactivateTechnician = async (
         .status(404)
         .json({ success: false, message: "Technician not found" });
     if (
-      existing.providerProfile.userId !== user.userId &&
+      existing.providerProfile.userId !== user.id &&
       user.role !== "ADMIN"
     ) {
       return res

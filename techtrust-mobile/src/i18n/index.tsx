@@ -46,6 +46,13 @@ const translations = {
 // Storage key
 export const LANGUAGE_KEY = "@techtrust_language";
 
+/** Last language from I18nProvider (for translate() outside React, e.g. error boundaries). */
+let lastKnownAppLanguage: Language = "en";
+
+export function getLastKnownAppLanguage(): Language {
+  return lastKnownAppLanguage;
+}
+
 /** Resolved app language from storage (for use outside React, e.g. biometric prompts). */
 export async function getStoredAppLanguage(): Promise<Language> {
   try {
@@ -209,6 +216,8 @@ export function I18nProvider({ children }: I18nProviderProps) {
     return null; // Or loading screen
   }
 
+  lastKnownAppLanguage = language;
+
   return (
     <I18nContext.Provider
       value={{
@@ -247,31 +256,19 @@ function getByPath(obj: unknown, pathKeys: string[]): unknown {
 }
 
 // Simple translate function for use outside React components
-export function translate(key: string, language: Language = "en"): string {
+export function translate(
+  key: string,
+  language: Language = getLastKnownAppLanguage(),
+): string {
   const keys = key.split(".");
-  if (language !== "en" && keys[0] === "createRequest" && keys.length > 1) {
-    const loc = getByPath(translations[language], keys);
-    if (typeof loc === "string" && loc.length > 0) {
-      return loc;
-    }
-    const enVal = getByPath(translations.en, keys);
-    if (typeof enVal === "string") {
-      return enVal;
-    }
-    return key;
-  }
-
-  let value: any = translations[language];
-
-  for (const k of keys) {
-    if (value && typeof value === "object" && k in value) {
-      value = value[k];
-    } else {
-      return key;
-    }
-  }
-
-  return typeof value === "string" ? value : key;
+  const walk = (root: (typeof translations)[Language]): string | undefined => {
+    const v = getByPath(root, keys);
+    return typeof v === "string" && v.length > 0 ? v : undefined;
+  };
+  const localized = walk(translations[language]);
+  if (localized) return localized;
+  const enStr = walk(translations.en);
+  return enStr ?? key;
 }
 
 export default {
@@ -280,5 +277,6 @@ export default {
   languages,
   translate,
   getStoredAppLanguage,
+  getLastKnownAppLanguage,
   LANGUAGE_KEY,
 };

@@ -220,7 +220,7 @@ async function calculateViaStripeTax(
   // Dynamic import to avoid circular dependency with stripe.service
   const Stripe = (await import("stripe")).default;
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: "2024-12-18.acacia" as any,
+    apiVersion: "2023-10-16",
   });
 
   const calculation = await stripe.tax.calculations.create({

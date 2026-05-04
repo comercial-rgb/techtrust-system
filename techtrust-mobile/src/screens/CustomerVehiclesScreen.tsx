@@ -20,6 +20,7 @@ import { FadeInView, ScalePress } from "../components/Animated";
 import { VehicleSkeleton } from "../components/Skeleton";
 import { useI18n } from "../i18n";
 import { log } from "../utils/logger";
+import type { CustomerAppNavigation } from "../navigation/types";
 
 interface Vehicle {
   id: string;
@@ -34,7 +35,7 @@ interface Vehicle {
   isDefault: boolean;
 }
 
-export default function CustomerVehiclesScreen({ navigation }: any) {
+export default function CustomerVehiclesScreen({ navigation }: { navigation: CustomerAppNavigation }) {
   const { t, language } = useI18n();
   const vehicleLocale = useMemo(
     () => (language === "pt" ? "pt-BR" : language === "es" ? "es-ES" : "en-US"),
@@ -234,11 +235,11 @@ export default function CustomerVehiclesScreen({ navigation }: any) {
               </View>
               <Text style={styles.emptyTitle}>
                 {t.profile?.noVehicles ||
-                  (t as any).vehicleDetails?.noVehicles ||
+                  t.vehicles?.noVehicles ||
                   "No vehicles registered"}
               </Text>
               <Text style={styles.emptySubtitle}>
-                {(t as any).vehicleDetails?.addFirstVehicle ||
+                {t.vehicles?.addFirstVehicle ||
                   "Add your first vehicle to request services"}
               </Text>
               <TouchableOpacity
@@ -409,7 +410,9 @@ export default function CustomerVehiclesScreen({ navigation }: any) {
                   <TouchableOpacity
                     style={styles.actionButtonEdit}
                     onPress={() =>
-                      navigation.navigate("AddVehicle", { vehicle })
+                      navigation.navigate("AddVehicle", {
+                        vehicle: vehicle as unknown as Record<string, unknown>,
+                      })
                     }
                   >
                     <Ionicons name="pencil-outline" size={18} color="#f59e0b" />

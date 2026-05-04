@@ -34,8 +34,9 @@ import {
   LoadingOverlay,
 } from "../components";
 import { log } from "../utils/logger";
+import type { CustomerAppNavigation } from "../navigation/types";
 
-export default function ProfileScreen({ navigation }: any) {
+export default function ProfileScreen({ navigation }: { navigation: CustomerAppNavigation }) {
   const theme = useTheme();
   const { t } = useI18n();
   const { user, logout } = useAuth();
@@ -164,26 +165,27 @@ export default function ProfileScreen({ navigation }: any) {
       title: t.profile?.editProfile || "Edit Profile",
       description: t.profile?.editProfileDesc || "Change name, address, etc",
       icon: "account-edit",
-      onPress: () => navigation.navigate('EditProfile'),
+      onPress: () => navigation.navigate("PersonalInfo"),
     },
     {
       title: t.profile?.changePassword || "Change Password",
       description:
         t.profile?.changePasswordDesc || "Change your access password",
       icon: "lock",
-      onPress: () => navigation.navigate('ChangePassword'),
+      onPress: () => navigation.navigate("HelpCenter"),
     },
     {
       title: t.nav?.notifications || "Notifications",
       description: t.profile?.notificationsDesc || "Configure alerts",
       icon: "bell",
-      onPress: () => navigation.navigate('Notifications'),
+      onPress: () =>
+        navigation.navigate("Home", { screen: "Notifications" }),
     },
     {
       title: t.profile?.helpSupport || "Help & Support",
       description: t.profile?.helpSupportDesc || "Help center",
       icon: "help-circle",
-      onPress: () => navigation.navigate('Support'),
+      onPress: () => navigation.navigate("HelpCenter"),
     },
   ];
 
@@ -260,7 +262,7 @@ export default function ProfileScreen({ navigation }: any) {
                   <Divider style={styles.divider} />
 
                   <View style={styles.subscriptionDetails}>
-                    <ScalePress onPress={() => navigation.navigate("Vehicles")}>
+                    <ScalePress onPress={() => navigation.navigate("MyVehicles")}>
                       <View style={styles.statBox}>
                         <Text style={styles.statEmoji}>🚗</Text>
                         <Text style={styles.statValue}>

@@ -5,7 +5,14 @@
  * Each session generates a ticket ID (SUP-XXXXXX)
  */
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  useMemo,
+  type ComponentProps,
+} from 'react';
 import {
   View,
   Text,
@@ -21,9 +28,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useI18n } from '../i18n';
+import { interpolate } from '../i18n/interpolate';
+import supportChatEn from '../i18n/locales/fragments/supportChat.en';
 import api from '../services/api';
 import { io, Socket } from 'socket.io-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { SupportChatScreenProps } from "../navigation/types";
+
+type IoniconName = ComponentProps<typeof Ionicons>["name"];
 
 // ============================================
 // FAQ TOPICS & ANSWERS
@@ -32,113 +44,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 interface FaqItem {
   id: string;
   topic: string;
-  icon: string;
+  icon: IoniconName;
   title: string;
   items: { q: string; a: string }[];
 }
-
-const FAQ_TOPICS: FaqItem[] = [
-  {
-    id: 'payments',
-    topic: 'payments',
-    icon: 'card-outline',
-    title: 'Payments & Billing',
-    items: [
-      {
-        q: 'How does payment work?',
-        a: 'When you accept a quote, a pre-authorization hold is placed on your card for the service amount plus fees. The charge is only captured after you approve the completed service.',
-      },
-      {
-        q: 'What fees are charged?',
-        a: 'A 10% platform fee is added to the service total. Payment processing fee (2.9% + $0.30) also applies. You see the full breakdown before accepting any quote.',
-      },
-      {
-        q: 'How do I get a refund?',
-        a: 'You have 48 hours after service approval to request a refund. Go to Services → select the order → Request Refund. You can also choose a 10% bonus platform credit instead.',
-      },
-      {
-        q: 'My payment failed, what do I do?',
-        a: 'Check that your card is valid and has sufficient funds. Go to Profile → Payment Methods to update your card. If the issue persists, contact us below.',
-      },
-    ],
-  },
-  {
-    id: 'services',
-    topic: 'services',
-    icon: 'construct-outline',
-    title: 'Services & Quotes',
-    items: [
-      {
-        q: 'How do I request a service?',
-        a: 'Go to Dashboard → New Request. Select your vehicle, service type, location preference (shop/mobile/roadside), add a description, and submit. Providers will send quotes within 48 hours.',
-      },
-      {
-        q: 'What is a mobile service?',
-        a: 'Mobile service means the provider comes to your location. A travel/displacement fee may apply based on distance. You\'ll see this fee clearly in the quote breakdown.',
-      },
-      {
-        q: 'How do I cancel a service?',
-        a: 'Go to Services → select the order → Cancel. Cancellation fees depend on the stage: 0% before work starts, 10% after scheduling, 25% after work has begun.',
-      },
-      {
-        q: 'My provider hasn\'t responded',
-        a: 'Providers have 48 hours to respond to your request. If no quotes are received, the request expires and you can create a new one. You\'re never charged for expired requests.',
-      },
-    ],
-  },
-  {
-    id: 'account',
-    topic: 'account',
-    icon: 'person-outline',
-    title: 'Account & Profile',
-    items: [
-      {
-        q: 'How do I update my information?',
-        a: 'Go to Profile → Personal Info to update your name, email, or phone. Go to Profile → Addresses to manage your saved addresses.',
-      },
-      {
-        q: 'How do I change my password?',
-        a: 'Go to Profile → Personal Info → Change Password. You\'ll need to enter your current password and choose a new one.',
-      },
-      {
-        q: 'How do I delete my account?',
-        a: 'Contact our support team below. Account deletion requires all active services to be completed and any outstanding payments settled first.',
-      },
-    ],
-  },
-  {
-    id: 'vehicles',
-    topic: 'vehicles',
-    icon: 'car-outline',
-    title: 'Vehicles',
-    items: [
-      {
-        q: 'How do I add a vehicle?',
-        a: 'Go to Vehicles tab → Add Vehicle. Enter the VIN for automatic detection, or manually enter make, model, and year. You can also scan your license plate.',
-      },
-      {
-        q: 'Can I transfer a vehicle?',
-        a: 'Yes! Go to Vehicles → select vehicle → Transfer. Enter the new owner\'s email. They\'ll receive a notification to accept the transfer.',
-      },
-    ],
-  },
-  {
-    id: 'technical',
-    topic: 'technical',
-    icon: 'phone-portrait-outline',
-    title: 'Technical Issues',
-    items: [
-      {
-        q: 'The app is running slow',
-        a: 'Try closing and reopening the app. Make sure you\'re on the latest version. Clear the app cache in your device settings if the problem persists.',
-      },
-      {
-        q: 'I\'m not receiving notifications',
-        a: 'Check that notifications are enabled in your device settings for TechTrust. Also verify in Profile → your notification preferences are turned on.',
-      },
-    ],
-  },
-];
 
 // ============================================
 // TYPES
@@ -154,8 +63,16 @@ interface Message {
 
 type ScreenPhase = 'topics' | 'faq_detail' | 'chat';
 
-export default function SupportChatScreen({ navigation, route }: any) {
+export default function SupportChatScreen({
+  navigation,
+  route,
+}: SupportChatScreenProps) {
   const { t, formatTime } = useI18n();
+  const sc = t.supportChat ?? supportChatEn;
+  const faqTopics = useMemo((): FaqItem[] => {
+    const raw = sc.faqTopics ?? supportChatEn.faqTopics;
+    return raw as FaqItem[];
+  }, [t]);
   const initialSubject = route?.params?.subject || '';
 
   // Phase control
@@ -212,10 +129,21 @@ export default function SupportChatScreen({ navigation, route }: any) {
       const userData = userDataStr ? JSON.parse(userDataStr) : {};
       const language = userData.language?.toLowerCase() || 'en';
 
+      const subjectLine =
+        subject ||
+        interpolate(sc?.helpWithTopicSlug || supportChatEn.helpWithTopicSlug, {
+          topic,
+        });
+      const messageLine =
+        subject ||
+        interpolate(sc?.needHelpWithTopicSlug || supportChatEn.needHelpWithTopicSlug, {
+          topic,
+        });
+
       const { data } = await api.post('/support/tickets', {
         topic,
-        subject: subject || `Help with ${topic}`,
-        message: subject || `I need help with ${topic}`,
+        subject: subjectLine,
+        message: messageLine,
         language,
       });
 
@@ -229,7 +157,10 @@ export default function SupportChatScreen({ navigation, route }: any) {
         const initialMessages: Message[] = [
           {
             id: 'system-welcome',
-            text: `Support ticket ${ticket.ticketNumber} created. An agent will respond shortly.`,
+            text: interpolate(
+              sc?.ticketCreatedBody || supportChatEn.ticketCreatedBody,
+              { ticketNumber: ticket.ticketNumber },
+            ),
             sender: 'system',
             timestamp: new Date().toISOString(),
           },
@@ -274,7 +205,10 @@ export default function SupportChatScreen({ navigation, route }: any) {
         const msgs: Message[] = [
           {
             id: 'system-resume',
-            text: `Resumed ticket ${detail.ticketNumber}`,
+            text: interpolate(
+              sc?.resumeTicketBody || supportChatEn.resumeTicketBody,
+              { ticketNumber: detail.ticketNumber },
+            ),
             sender: 'system',
             timestamp: new Date().toISOString(),
           },
@@ -377,7 +311,9 @@ export default function SupportChatScreen({ navigation, route }: any) {
             <View style={styles.activeTicketBanner}>
               <Ionicons name="chatbubble-ellipses" size={20} color="#2B5EA7" />
               <View style={{ flex: 1, marginLeft: 10 }}>
-                <Text style={styles.activeTicketTitle}>Active Support Tickets</Text>
+                <Text style={styles.activeTicketTitle}>
+                  {sc?.activeTicketsTitle || supportChatEn.activeTicketsTitle}
+                </Text>
                 {activeTickets.map((ticket) => (
                   <TouchableOpacity
                     key={ticket.id}
@@ -393,13 +329,15 @@ export default function SupportChatScreen({ navigation, route }: any) {
             </View>
           )}
 
-          <Text style={styles.topicsTitle}>How can we help you?</Text>
+          <Text style={styles.topicsTitle}>
+            {sc?.topicsTitle || supportChatEn.topicsTitle}
+          </Text>
           <Text style={styles.topicsSubtitle}>
-            Browse topics below to find quick answers, or talk to our support team.
+            {sc?.topicsSubtitle || supportChatEn.topicsSubtitle}
           </Text>
 
           {/* Topic Cards */}
-          {FAQ_TOPICS.map((topic) => (
+          {faqTopics.map((topic) => (
             <TouchableOpacity
               key={topic.id}
               style={styles.topicCard}
@@ -409,11 +347,15 @@ export default function SupportChatScreen({ navigation, route }: any) {
               }}
             >
               <View style={styles.topicIcon}>
-                <Ionicons name={topic.icon as any} size={24} color="#2B5EA7" />
+                <Ionicons name={topic.icon} size={24} color="#2B5EA7" />
               </View>
               <View style={styles.topicInfo}>
                 <Text style={styles.topicTitle}>{topic.title}</Text>
-                <Text style={styles.topicCount}>{topic.items.length} articles</Text>
+                <Text style={styles.topicCount}>
+                  {interpolate(sc?.articlesCount || supportChatEn.articlesCount, {
+                    count: topic.items.length,
+                  })}
+                </Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
             </TouchableOpacity>
@@ -453,7 +395,7 @@ export default function SupportChatScreen({ navigation, route }: any) {
           <View style={styles.faqContainer}>
             <View style={styles.faqHeader}>
               <View style={styles.faqHeaderIcon}>
-                <Ionicons name={selectedTopic.icon as any} size={28} color="#2B5EA7" />
+                <Ionicons name={selectedTopic.icon} size={28} color="#2B5EA7" />
               </View>
               <Text style={styles.faqHeaderTitle}>{selectedTopic.title}</Text>
             </View>
@@ -485,13 +427,26 @@ export default function SupportChatScreen({ navigation, route }: any) {
 
             {/* Didn't find answer */}
             <View style={styles.humanSection}>
-              <Text style={styles.humanTitle}>Didn't find your answer?</Text>
+              <Text style={styles.humanTitle}>
+                {sc?.didntFindAnswerTitle || supportChatEn.didntFindAnswerTitle}
+              </Text>
               <TouchableOpacity
                 style={styles.humanBtn}
-                onPress={() => startLiveChat(selectedTopic.topic, `Help with ${selectedTopic.title}`)}
+                onPress={() =>
+                  startLiveChat(
+                    selectedTopic.topic,
+                    interpolate(
+                      sc?.liveChatSubjectWithTopic ||
+                        supportChatEn.liveChatSubjectWithTopic,
+                      { topicTitle: selectedTopic.title },
+                    ),
+                  )
+                }
               >
                 <Ionicons name="chatbubbles" size={20} color="#fff" />
-                <Text style={styles.humanBtnText}>Chat with Support</Text>
+                <Text style={styles.humanBtnText}>
+                  {sc?.chatWithSupportBtn || supportChatEn.chatWithSupportBtn}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -555,7 +510,7 @@ export default function SupportChatScreen({ navigation, route }: any) {
             style={styles.input}
             value={inputText}
             onChangeText={setInputText}
-            placeholder="Type a message..."
+            placeholder={t.chat?.typeMessage || "Type a message..."}
             placeholderTextColor="#9ca3af"
             multiline
             maxLength={1000}
@@ -581,20 +536,25 @@ export default function SupportChatScreen({ navigation, route }: any) {
   // ============================================
 
   const getHeaderTitle = () => {
-    if (phase === 'chat' && ticketNumber) return `Support • ${ticketNumber}`;
+    if (phase === 'chat' && ticketNumber) {
+      return interpolate(sc?.headerWithTicket || supportChatEn.headerWithTicket, {
+        prefix: sc?.supportHeaderPrefix || supportChatEn.supportHeaderPrefix,
+        ticketNumber,
+      });
+    }
     if (phase === 'faq_detail' && selectedTopic) return selectedTopic.title;
-    return 'Help & Support';
+    return sc?.screenTitle || supportChatEn.screenTitle;
   };
 
   const handleBack = () => {
     if (phase === 'chat') {
       Alert.alert(
-        'Leave Chat',
-        'Your ticket will remain open. You can resume it anytime from the support screen.',
+        sc?.leaveChatTitle || supportChatEn.leaveChatTitle,
+        sc?.leaveChatBody || supportChatEn.leaveChatBody,
         [
-          { text: 'Stay', style: 'cancel' },
+          { text: sc?.stay || supportChatEn.stay, style: 'cancel' },
           {
-            text: 'Leave',
+            text: sc?.leave || supportChatEn.leave,
             onPress: () => {
               socketRef.current?.disconnect();
               setPhase('topics');
@@ -623,12 +583,16 @@ export default function SupportChatScreen({ navigation, route }: any) {
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={24} color="#111827" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Help & Support</Text>
+          <Text style={styles.headerTitle}>
+            {sc?.screenTitle || supportChatEn.screenTitle}
+          </Text>
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#2B5EA7" />
-          <Text style={styles.loadingText}>Creating support ticket...</Text>
+          <Text style={styles.loadingText}>
+            {sc?.creatingTicket || supportChatEn.creatingTicket}
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -645,14 +609,18 @@ export default function SupportChatScreen({ navigation, route }: any) {
           <Text style={styles.headerTitle} numberOfLines={1}>{getHeaderTitle()}</Text>
           {phase === 'chat' && (
             <Text style={styles.headerSubtitle}>
-              {isTyping ? 'Agent is typing...' : 'Support team'}
+              {isTyping
+                ? sc?.agentTyping || supportChatEn.agentTyping
+                : sc?.supportTeamSubtitle || supportChatEn.supportTeamSubtitle}
             </Text>
           )}
         </View>
         {phase === 'chat' && (
           <View style={styles.liveIndicator}>
             <View style={styles.liveDot} />
-            <Text style={styles.liveText}>Live</Text>
+            <Text style={styles.liveText}>
+              {sc?.liveBadge || supportChatEn.liveBadge}
+            </Text>
           </View>
         )}
       </View>

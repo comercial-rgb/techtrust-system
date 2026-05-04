@@ -3,7 +3,7 @@
  * Serviços em andamento e concluídos do fornecedor
  */
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, type ComponentProps } from "react";
 import {
   View,
   Text,
@@ -17,6 +17,9 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useI18n } from "../../i18n";
 import { log } from "../../utils/logger";
+import type { ProviderWorkOrdersListScreenNavigation } from "../../navigation/types";
+
+type MciName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
 interface WorkOrder {
   id: string;
@@ -40,7 +43,11 @@ interface WorkOrder {
   };
 }
 
-export default function ProviderWorkOrdersScreen({ navigation }: any) {
+export default function ProviderWorkOrdersScreen({
+  navigation,
+}: {
+  navigation: ProviderWorkOrdersListScreenNavigation;
+}) {
   const { t, language, formatCurrency } = useI18n();
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [filteredWorkOrders, setFilteredWorkOrders] = useState<WorkOrder[]>([]);
@@ -138,10 +145,12 @@ export default function ProviderWorkOrdersScreen({ navigation }: any) {
     setRefreshing(false);
   };
 
-  const getStatusInfo = (status: string) => {
+  const getStatusInfo = (
+    status: string,
+  ): { icon: MciName; color: string; bg: string; label: string } => {
     const statuses: Record<
       string,
-      { icon: string; color: string; bg: string; label: string }
+      { icon: MciName; color: string; bg: string; label: string }
     > = {
       PENDING_START: {
         icon: "clock-outline",
@@ -213,7 +222,7 @@ export default function ProviderWorkOrdersScreen({ navigation }: any) {
         <View style={styles.cardHeader}>
           <View style={[styles.statusIcon, { backgroundColor: statusInfo.bg }]}>
             <MaterialCommunityIcons
-              name={statusInfo.icon as any}
+              name={statusInfo.icon}
               size={22}
               color={statusInfo.color}
             />

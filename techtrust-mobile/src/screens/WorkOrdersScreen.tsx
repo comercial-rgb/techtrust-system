@@ -20,6 +20,7 @@ import {
   AnimatedProgressBar,
 } from '../components';
 import { log } from "../utils/logger";
+import type { CustomerAppNavigation } from "../navigation/types";
 
 interface WorkOrder {
   id: string;
@@ -42,7 +43,7 @@ interface WorkOrder {
   };
 }
 
-export default function WorkOrdersScreen({ navigation }: any) {
+export default function WorkOrdersScreen({ navigation }: { navigation: CustomerAppNavigation }) {
   const { t, formatCurrency } = useI18n();
   const theme = useTheme();
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);

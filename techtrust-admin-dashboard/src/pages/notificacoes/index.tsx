@@ -5,12 +5,15 @@ import AdminLayout from '../../components/AdminLayout';
 import { adminApi } from '../../services/api';
 import { Bell, Send, Plus, Users, Building2, Megaphone, CheckCircle, Clock } from 'lucide-react';
 import { logApiError } from "../../utils/logger";
+import { unwrapApiData } from "../../utils/unwrapApiData";
+
+type BroadcastTargetRole = 'ALL' | 'CUSTOMERS' | 'PROVIDERS';
 
 interface Notification {
   id: string;
   title: string;
   message: string;
-  targetRole: 'ALL' | 'CUSTOMERS' | 'PROVIDERS';
+  targetRole: BroadcastTargetRole;
   sentAt: string;
   readCount: number;
   totalRecipients: number;
@@ -22,16 +25,23 @@ export default function NotificacoesPage() {
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showModal, setShowModal] = useState(false);
-  const [newNotification, setNewNotification] = useState({ title: '', message: '', targetRole: 'ALL' as const });
+  const [newNotification, setNewNotification] = useState<{ title: string; message: string; targetRole: BroadcastTargetRole }>({ title: '', message: '', targetRole: 'ALL' });
 
   useEffect(() => { if (!authLoading && !isAuthenticated) router.push('/login'); }, [authLoading, isAuthenticated, router]);
   useEffect(() => { if (isAuthenticated) loadData(); }, [isAuthenticated]);
 
   async function loadData() {
     try {
-      const response = await adminApi.get<any>('/admin/notifications');
-      const list = response.data?.data?.notifications || response.data?.data || [];
-      setNotifications(Array.isArray(list) ? list : []);
+      const response = await adminApi.get<unknown>('/admin/notifications');
+      const inner = unwrapApiData<Record<string, unknown> | Notification[]>(response.data);
+      const list = Array.isArray(inner)
+        ? inner
+        : Array.isArray((inner as { notifications?: Notification[] }).notifications)
+          ? (inner as { notifications: Notification[] }).notifications
+          : Array.isArray((inner as { data?: Notification[] }).data)
+            ? (inner as { data: Notification[] }).data
+            : [];
+      setNotifications(list);
     } catch (error) {
       logApiError('Erro ao carregar notificações:', error);
       setNotifications([]);
@@ -144,17 +154,17 @@ export default function NotificacoesPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Destinatários</label>
                 <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { value: 'ALL', label: 'Todos', icon: Megaphone },
-                    { value: 'CUSTOMERS', label: 'Clientes', icon: Users },
-                    { value: 'PROVIDERS', label: 'Fornecedores', icon: Building2 },
-                  ].map((option) => {
+                  {([
+                    { value: 'ALL' as const, label: 'Todos', icon: Megaphone },
+                    { value: 'CUSTOMERS' as const, label: 'Clientes', icon: Users },
+                    { value: 'PROVIDERS' as const, label: 'Fornecedores', icon: Building2 },
+                  ] as const).map((option) => {
                     const Icon = option.icon;
                     return (
                       <button
                         key={option.value}
                         type="button"
-                        onClick={() => setNewNotification({ ...newNotification, targetRole: option.value as any })}
+                        onClick={() => setNewNotification({ ...newNotification, targetRole: option.value })}
                         className={`p-3 rounded-xl border-2 text-center transition-all ${
                           newNotification.targetRole === option.value
                             ? 'border-admin-500 bg-admin-50'

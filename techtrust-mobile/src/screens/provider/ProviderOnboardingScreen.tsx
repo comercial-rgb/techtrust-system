@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useRef } from "react";
+import type { ComponentProps } from "react";
 import {
   View,
   Text,
@@ -25,12 +26,16 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
+
+type MciName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../../contexts/AuthContext";
 import { useI18n } from "../../i18n";
+import { formatTime12h } from "../../i18n/formatTime12h";
 import api from "../../services/api";
+import type { ProviderOnboardingStackScreenProps } from "../../navigation/types";
 
 // ─── Step IDs ─────────────────────────────────────────────────────────────────
 const STEP_IDS = [
@@ -113,18 +118,19 @@ const TIME_OPTIONS = [
   "13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00","21:00","22:00",
 ];
 
-const to12h = (time: string): string => {
-  const [hStr, mStr] = time.split(":");
-  const h = parseInt(hStr, 10);
-  const ampm = h < 12 ? "AM" : "PM";
-  const hour = h % 12 || 12;
-  return `${hour}:${mStr} ${ampm}`;
-};
-
-export default function ProviderOnboardingScreen({ navigation }: any) {
+export default function ProviderOnboardingScreen({
+  navigation,
+}: ProviderOnboardingStackScreenProps<"ProviderOnboarding">) {
   const { user, completeOnboarding } = useAuth();
   const { t } = useI18n();
   const po = t.providerOnboarding;
+  const weekdayShort = t.weekdayShort as Record<string, string> | undefined;
+  const format12 = (time: string) =>
+    formatTime12h(
+      time,
+      t.common?.timeAm ?? "AM",
+      t.common?.timePm ?? "PM",
+    );
   const [currentStep, setCurrentStep] = useState(0);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -261,7 +267,14 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
     try {
       setUploading(true);
       const formData = new FormData();
-      formData.append("image", { uri, type: mimeType || "image/jpeg", name: fileName } as any);
+      formData.append(
+        "image",
+        {
+          uri,
+          type: mimeType || "image/jpeg",
+          name: fileName,
+        } as unknown as Blob,
+      );
       const res = await api.post("/upload", formData, { headers: { "Content-Type": "multipart/form-data" } });
       const url = res.data?.imageUrl || res.data?.url;
       if (!url) throw new Error("No URL returned");
@@ -426,7 +439,11 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
         ].map((b, i) => (
           <View key={i} style={styles.benefitRow}>
             <View style={[styles.benefitIcon, { backgroundColor: bgColor }]}>
-              <MaterialCommunityIcons name={b.icon as any} size={16} color={color} />
+              <MaterialCommunityIcons
+                name={b.icon as MciName}
+                size={16}
+                color={color}
+              />
             </View>
             <Text style={styles.benefitText}>{b.text}</Text>
           </View>
@@ -461,7 +478,11 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
     return (
       <View style={styles.stepBody}>
         <View style={[styles.iconCircle, { backgroundColor: bgColor }]}>
-          <MaterialCommunityIcons name={STEP_ICONS[target] as any} size={60} color={color} />
+          <MaterialCommunityIcons
+            name={STEP_ICONS[target] as MciName}
+            size={60}
+            color={color}
+          />
         </View>
         <Text style={styles.title}>{titleMap[target]}</Text>
         <Text style={styles.subtitle}>{subtitleMap[target]}</Text>
@@ -675,7 +696,9 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
               <View style={[styles.dayCheck, day.enabled && { backgroundColor: color }]}>
                 {day.enabled && <Ionicons name="checkmark" size={12} color="#fff" />}
               </View>
-              <Text style={[styles.dayName, !day.enabled && { color: "#9ca3af" }]}>{day.dayShort}</Text>
+              <Text style={[styles.dayName, !day.enabled && { color: "#9ca3af" }]}>
+                {weekdayShort?.[day.day] ?? day.dayShort}
+              </Text>
             </TouchableOpacity>
 
             {day.enabled ? (
@@ -684,14 +707,14 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
                   style={styles.timeBtn}
                   onPress={() => { setEditingDay(index); setEditingField("openTime"); setShowTimePicker(true); }}
                 >
-                  <Text style={styles.timeBtnText}>{to12h(day.openTime)}</Text>
+                  <Text style={styles.timeBtnText}>{format12(day.openTime)}</Text>
                 </TouchableOpacity>
                 <Text style={styles.timeSep}>–</Text>
                 <TouchableOpacity
                   style={styles.timeBtn}
                   onPress={() => { setEditingDay(index); setEditingField("closeTime"); setShowTimePicker(true); }}
                 >
-                  <Text style={styles.timeBtnText}>{to12h(day.closeTime)}</Text>
+                  <Text style={styles.timeBtnText}>{format12(day.closeTime)}</Text>
                 </TouchableOpacity>
               </View>
             ) : (
@@ -744,7 +767,9 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
                       setShowTimePicker(false);
                     }}
                   >
-                    <Text style={[styles.modalItemText, isSelected && { color, fontWeight: "700" }]}>{to12h(timeOpt)}</Text>
+                    <Text style={[styles.modalItemText, isSelected && { color, fontWeight: "700" }]}>
+                      {format12(timeOpt)}
+                    </Text>
                     {isSelected && <Ionicons name="checkmark" size={18} color={color} />}
                   </TouchableOpacity>
                 );
@@ -1010,7 +1035,11 @@ export default function ProviderOnboardingScreen({ navigation }: any) {
         ].map((item, i) => (
           <View key={i} style={styles.doneRow}>
             <View style={[styles.doneIcon, { backgroundColor: item.done ? STEP_BG.done : "#fef2f2" }]}>
-              <MaterialCommunityIcons name={item.icon as any} size={16} color={item.done ? STEP_COLORS.done : "#ef4444"} />
+              <MaterialCommunityIcons
+                name={item.icon as MciName}
+                size={16}
+                color={item.done ? STEP_COLORS.done : "#ef4444"}
+              />
             </View>
             <Text style={[styles.doneRowText, !item.done && { color: "#b91c1c" }]}>{item.label}</Text>
             <MaterialCommunityIcons

@@ -16,8 +16,9 @@ import carWashService from '../services/carWash.service';
 import { CarWashListItem } from '../types/carWash';
 import { colors, spacing, borderRadius, fontSize, fontWeight, shadows } from '../constants/theme';
 import { log } from "../utils/logger";
+import type { CustomerAppNavigation } from "../navigation/types";
 
-export default function CarWashFavoritesScreen({ navigation }: any) {
+export default function CarWashFavoritesScreen({ navigation }: { navigation: CustomerAppNavigation }) {
   const { t } = useI18n();
   const [favorites, setFavorites] = useState<CarWashListItem[]>([]);
   const [loading, setLoading] = useState(true);

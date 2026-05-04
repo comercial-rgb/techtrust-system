@@ -207,15 +207,15 @@ export const getAvailableRequests = async (req: Request, res: Response) => {
   // Filter by provider capabilities
   const filteredRequests = allRequests.filter((r) => {
     if (providerServices.length === 0) return true;
-    const rawType = (r as any).rawServiceType?.toLowerCase() || "";
+    const rawType = r.rawServiceType?.toLowerCase() || "";
     const matchingServices = RAW_TO_SERVICE_OFFERED[rawType] || ["GENERAL_REPAIR"];
     const serviceMatch = matchingServices.some((s) => providerServices.includes(s));
     if (!serviceMatch) return false;
-    const requestVehicleCategory = ((r as any).vehicleCategory || "").toUpperCase();
+    const requestVehicleCategory = (r.vehicleCategory || "").toUpperCase();
     if (requestVehicleCategory && providerVehicleTypes.length > 0) {
       if (!providerVehicleTypes.includes(requestVehicleCategory)) return false;
     }
-    const requestScope = (r as any).serviceScope || "";
+    const requestScope = r.serviceScope || "";
     if (requestScope === "parts" && !providerSellsParts) return false;
     return true;
   });
@@ -602,13 +602,35 @@ export const getOnboardingStatus = async (req: Request, res: Response) => {
 /**
  * GET /api/v1/providers/search
  * Buscar providers por localização e raio, ou por state/city/serviceType
- * Query params: lat, lng, radius (km), serviceType, state, city
+ * Query params: lat, lng, radius (km), serviceType, state, city, offerId
+ * (offerId loads SpecialOffer and derives serviceType when serviceType is omitted)
  */
 export const searchProvidersByLocation = async (
   req: Request,
   res: Response,
 ): Promise<void> => {
-  const { lat, lng, radius = 50, serviceType, state, city } = req.query;
+  const { lat, lng, radius = 50, serviceType, state, city, offerId } = req.query;
+
+  let effectiveServiceType = serviceType as string | undefined;
+  if (!effectiveServiceType && offerId && String(offerId).trim()) {
+    const offer = await prisma.specialOffer.findFirst({
+      where: { id: String(offerId), isActive: true },
+    });
+    if (offer?.serviceType) {
+      effectiveServiceType = String(offer.serviceType);
+    } else if (offer) {
+      try {
+        const apps = Array.isArray(offer.applicableServices)
+          ? offer.applicableServices
+          : JSON.parse(String(offer.applicableServices || "[]"));
+        if (Array.isArray(apps) && apps.length > 0) {
+          effectiveServiceType = apps.map(String).join(",");
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+  }
 
   const hasCoordinates = lat && lng;
   const hasLocationFilter = !!(state || city);
@@ -659,13 +681,13 @@ export const searchProvidersByLocation = async (
   // Filter by serviceType if provided (match against servicesOffered JSON array)
   // Supports comma-separated values for OR matching: e.g. "DIAGNOSTICS,BRAKES"
   const normalizeService = (v: string) => v.replace(/_/g, "").toUpperCase();
-  const filteredByService = serviceType
+  const filteredByService = effectiveServiceType
     ? providers.filter((p) => {
         try {
           const providerServices: string[] = Array.isArray(p.servicesOffered)
             ? p.servicesOffered
             : JSON.parse(String(p.servicesOffered || "[]"));
-          const targets = String(serviceType).split(",").map(normalizeService);
+          const targets = String(effectiveServiceType).split(",").map(normalizeService);
           const normalized = providerServices.map(normalizeService);
           return targets.some((t) => normalized.includes(t));
         } catch {
@@ -1185,19 +1207,19 @@ export const getPendingRequests = async (req: Request, res: Response) => {
     if (providerServices.length === 0) return true;
 
     // 1. Filter by service type
-    const rawType = (r as any).rawServiceType?.toLowerCase() || "";
+    const rawType = r.rawServiceType?.toLowerCase() || "";
     const matchingServices = RAW_TO_SERVICE_OFFERED[rawType] || ["GENERAL_REPAIR"];
     const serviceMatch = matchingServices.some((s) => providerServices.includes(s));
     if (!serviceMatch) return false;
 
     // 2. Filter by vehicle type (if the request specifies one)
-    const requestVehicleCategory = ((r as any).vehicleCategory || "").toUpperCase();
+    const requestVehicleCategory = (r.vehicleCategory || "").toUpperCase();
     if (requestVehicleCategory && providerVehicleTypes.length > 0) {
       if (!providerVehicleTypes.includes(requestVehicleCategory)) return false;
     }
 
     // 3. Filter parts-only requests (only show to providers that sell parts)
-    const requestScope = (r as any).serviceScope || "";
+    const requestScope = r.serviceScope || "";
     if (requestScope === "parts" && !providerSellsParts) return false;
 
     return true;

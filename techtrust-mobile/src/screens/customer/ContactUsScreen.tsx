@@ -8,8 +8,9 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useI18n } from '../../i18n';
+import type { CustomerAppNavigation } from "../../navigation/types";
 
-export default function ContactUsScreen({ navigation }: any) {
+export default function ContactUsScreen({ navigation }: { navigation: CustomerAppNavigation }) {
   const { t } = useI18n();
 
   const contactOptions = [

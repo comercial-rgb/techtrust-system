@@ -5,7 +5,14 @@
  * Requires payment method before creating request
  */
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useMemo,
+} from "react";
+import type { ComponentProps } from "react";
 import {
   View,
   Text,
@@ -29,8 +36,32 @@ import {
   useFocusEffect,
   CommonActions,
 } from "@react-navigation/native";
+import type { RouteProp } from "@react-navigation/native";
+import type {
+  CreateRequestScreenProps,
+  HomeStackParamList,
+} from "../navigation/types";
 import { log } from "../utils/logger";
 import { interpolate } from "../i18n/interpolate";
+
+type IoniconName = ComponentProps<typeof Ionicons>["name"];
+type MciName = ComponentProps<typeof MaterialCommunityIcons>["name"];
+
+type ServiceTypeGridEntry =
+  | { id: string; label: string; icon: MciName; iconLib: "mci"; hasProviders: boolean }
+  | { id: string; label: string; icon: IoniconName; hasProviders: boolean };
+
+type ServiceSubOptionRow = { id: string; label: string; icon?: string };
+type ServiceSubOptionSection = {
+  id: string;
+  label: string;
+  type: "single" | "multi";
+  options: ServiceSubOptionRow[];
+};
+type ServiceSubOptionsBlock = {
+  title: string;
+  sections: ServiceSubOptionSection[];
+};
 
 interface FavoriteProvider {
   id: string;
@@ -75,7 +106,9 @@ interface PaymentMethod {
   isDefault: boolean;
 }
 
-export default function CreateRequestScreen({ navigation }: any) {
+export default function CreateRequestScreen({
+  navigation,
+}: Pick<CreateRequestScreenProps, "navigation">) {
   const { t, language } = useI18n();
   const mileageNumberLocale = useMemo(
     () => (language === "pt" ? "pt-BR" : language === "es" ? "es-ES" : "en-US"),
@@ -85,15 +118,16 @@ export default function CreateRequestScreen({ navigation }: any) {
     string,
     string | undefined
   >;
-  const route = useRoute<any>();
+  const route = useRoute<RouteProp<HomeStackParamList, "CreateRequest">>();
 
   // Get pre-selected provider from navigation params (from Favorite Providers or Landing)
   const preSelectedProviderId = route.params?.providerId;
   const preSelectedProviderName = route.params?.providerName;
   const preSelectedProviderFromLanding: PreSelectedProvider | null =
-    route.params?.preSelectedProvider || null;
+    (route.params?.preSelectedProvider as PreSelectedProvider | undefined) ||
+    null;
   const specialOfferFromLanding: SpecialOffer | null =
-    route.params?.specialOffer || null;
+    (route.params?.specialOffer as SpecialOffer | null | undefined) || null;
 
   const [selectedVehicle, setSelectedVehicle] = useState<string>("");
   // Auto-select service type from special offer if present
@@ -195,18 +229,7 @@ export default function CreateRequestScreen({ navigation }: any) {
   const [pendingServiceId, setPendingServiceId] = useState<string>("");
 
   // Sub-options configuration per service type
-  const SERVICE_SUB_OPTIONS: Record<
-    string,
-    {
-      title: string;
-      sections: {
-        id: string;
-        label: string;
-        type: "single" | "multi";
-        options: { id: string; label: string; icon?: string }[];
-      }[];
-    }
-  > = {
+  const SERVICE_SUB_OPTIONS: Record<string, ServiceSubOptionsBlock> = {
     oil: {
       title: createRequestLabels?.oilChangeOptions || "Oil Change Details",
       sections: [
@@ -2905,13 +2928,14 @@ export default function CreateRequestScreen({ navigation }: any) {
           plate: v.plateNumber,
           fuelType: v.fuelType,
           bodyType: v.bodyType,
-          currentMileage: (v as any).currentMileage,
+          currentMileage: v.currentMileage,
         })),
       );
       if (vehicleData.length > 0) {
         setSelectedVehicle(vehicleData[0].id);
-        if ((vehicleData[0] as any).currentMileage) {
-          setMileage(String((vehicleData[0] as any).currentMileage));
+        const firstMileage = vehicleData[0].currentMileage;
+        if (firstMileage != null) {
+          setMileage(String(firstMileage));
         }
         // Auto-select vehicle type based on bodyType
         const firstBody = vehicleData[0].bodyType;
@@ -2938,7 +2962,7 @@ export default function CreateRequestScreen({ navigation }: any) {
 
   // Service types — aligned with Mobile App Service & Diagnostic Tree (Feb 2026)
   // Icons use Ionicons library
-  const serviceTypes: { id: string; label: string; icon: string; iconLib?: "mci"; hasProviders: boolean }[] = [
+  const serviceTypes: ServiceTypeGridEntry[] = [
     // Maintenance
     {
       id: "oil",
@@ -3115,7 +3139,79 @@ export default function CreateRequestScreen({ navigation }: any) {
   // Filter only services that have active providers
   const availableServices = serviceTypes.filter((s) => s.hasProviders);
 
-  const locationOptions = [
+  const collapsedVehicleTypeMci: Record<string, MciName> = {
+    car: "car-side",
+    suv: "car-estate",
+    truck: "car-pickup",
+    van: "van-passenger",
+    heavy_truck: "truck",
+    bus: "rv-truck",
+  };
+
+  const vehicleTypeGridOptions: { id: string; label: string; mciIcon: MciName }[] =
+    [
+      {
+        id: "car",
+        label: createRequestLabels?.vtCar || "Car / Sedan",
+        mciIcon: "car-side",
+      },
+      {
+        id: "suv",
+        label: createRequestLabels?.vtSuv || "SUV / Crossover",
+        mciIcon: "car-estate",
+      },
+      {
+        id: "truck",
+        label: createRequestLabels?.vtTruck || "Pickup Truck",
+        mciIcon: "car-pickup",
+      },
+      {
+        id: "van",
+        label: createRequestLabels?.vtVan || "Van / Minivan",
+        mciIcon: "van-passenger",
+      },
+      {
+        id: "heavy_truck",
+        label: createRequestLabels?.vtHeavyTruck || "Heavy Truck / Semi",
+        mciIcon: "truck",
+      },
+      {
+        id: "bus",
+        label: createRequestLabels?.vtBus || "Bus / RV",
+        mciIcon: "rv-truck",
+      },
+    ];
+
+  const serviceScopeOptions: {
+    id: string;
+    label: string;
+    icon: IoniconName;
+    desc: string;
+  }[] = [
+    {
+      id: "service",
+      label: createRequestLabels?.serviceOnly || "Service / Labor Only",
+      icon: "construct",
+      desc:
+        createRequestLabels?.serviceOnlyDesc ||
+        "I already have the parts, just need installation",
+    },
+    {
+      id: "both",
+      label: createRequestLabels?.partsAndService || "Parts + Service",
+      icon: "layers",
+      desc:
+        createRequestLabels?.partsAndServiceDesc ||
+        "Provider supplies parts and does the work",
+    },
+  ];
+
+  const locationOptions: {
+    id: string;
+    label: string;
+    icon: IoniconName;
+    description: string;
+  }[] = [
     {
       id: "shop",
       label: createRequestLabels?.takeToShop || "At the Shop",
@@ -3559,7 +3655,10 @@ export default function CreateRequestScreen({ navigation }: any) {
         {[
           { num: 1, label: createRequestLabels?.stepVehicle || "Vehicle & Service" },
           { num: 2, label: createRequestLabels?.stepDetails || "Details" },
-          { num: 3, label: createRequestLabels?.stepPreferences || "Preferences" },
+          {
+            num: 3,
+            label: createRequestLabels?.stepPreferences || "Schedule & Pay",
+          },
         ].map((step, index) => (
           <React.Fragment key={step.num}>
             {index > 0 && (
@@ -3670,10 +3769,11 @@ export default function CreateRequestScreen({ navigation }: any) {
                   <Ionicons name="car-outline" size={30} color="#2B5EA7" />
                 </View>
                 <Text style={styles.emptyVehicleTitle}>
-                  No vehicle registered
+                  {createRequestLabels?.emptyVehicleTitle || "No vehicle registered"}
                 </Text>
                 <Text style={styles.emptyVehicleText}>
-                  Add your vehicle first so providers receive the correct VIN, make, model, and service details.
+                  {createRequestLabels?.emptyVehicleMessage ||
+                    "Add your vehicle first so providers receive the correct VIN, make, model, and service details."}
                 </Text>
                 <TouchableOpacity
                   style={styles.emptyVehicleButton}
@@ -3791,15 +3891,15 @@ export default function CreateRequestScreen({ navigation }: any) {
                 ]}
                 onPress={() => handleServiceSelect(service.id, service.label)}
               >
-                {service.iconLib === "mci" ? (
+                {"iconLib" in service && service.iconLib === "mci" ? (
                   <MaterialCommunityIcons
-                    name={service.icon as any}
+                    name={service.icon}
                     size={26}
                     color={selectedService === service.id ? "#2B5EA7" : "#6b7280"}
                   />
                 ) : (
                   <Ionicons
-                    name={service.icon as any}
+                    name={service.icon}
                     size={24}
                     color={selectedService === service.id ? "#2B5EA7" : "#6b7280"}
                   />
@@ -3822,9 +3922,7 @@ export default function CreateRequestScreen({ navigation }: any) {
             /* Collapsed vehicle type when auto-detected */
             <View style={styles.vehicleTypeCollapsed}>
               <MaterialCommunityIcons
-                name={
-                  ({ car: "car-side", suv: "car-estate", truck: "car-pickup", van: "van-passenger", heavy_truck: "truck", bus: "rv-truck" } as Record<string, string>)[vehicleType] || "car"
-                }
+                name={collapsedVehicleTypeMci[vehicleType] ?? "car-side"}
                 size={22}
                 color="#2B5EA7"
               />
@@ -3858,38 +3956,7 @@ export default function CreateRequestScreen({ navigation }: any) {
             </Text>
           </View>
           <View style={styles.servicesGrid}>
-            {[
-              {
-                id: "car",
-                label: createRequestLabels?.vtCar || "Car / Sedan",
-                mciIcon: "car-side",
-              },
-              {
-                id: "suv",
-                label: createRequestLabels?.vtSuv || "SUV / Crossover",
-                mciIcon: "car-estate",
-              },
-              {
-                id: "truck",
-                label: createRequestLabels?.vtTruck || "Pickup Truck",
-                mciIcon: "car-pickup",
-              },
-              {
-                id: "van",
-                label: createRequestLabels?.vtVan || "Van / Minivan",
-                mciIcon: "van-passenger",
-              },
-              {
-                id: "heavy_truck",
-                label: createRequestLabels?.vtHeavyTruck || "Heavy Truck / Semi",
-                mciIcon: "truck",
-              },
-              {
-                id: "bus",
-                label: createRequestLabels?.vtBus || "Bus / RV",
-                mciIcon: "rv-truck",
-              },
-            ].map((vt) => (
+            {vehicleTypeGridOptions.map((vt) => (
               <TouchableOpacity
                 key={vt.id}
                 style={[
@@ -3912,7 +3979,7 @@ export default function CreateRequestScreen({ navigation }: any) {
                 }}
               >
                 <MaterialCommunityIcons
-                  name={vt.mciIcon as any}
+                  name={vt.mciIcon}
                   size={26}
                   color={vehicleType === vt.id ? "#2B5EA7" : "#6b7280"}
                 />
@@ -3940,10 +4007,10 @@ export default function CreateRequestScreen({ navigation }: any) {
             const subOpts = SERVICE_SUB_OPTIONS[selectedService];
             const partsList: string[] = [];
             if (subOpts) {
-              subOpts.sections.forEach((section: any) => {
+              subOpts.sections.forEach((section) => {
                 const selected = subOptionSelections[section.id] || [];
                 selected.forEach((optId: string) => {
-                  const opt = section.options.find((o: any) => o.id === optId);
+                  const opt = section.options.find((o) => o.id === optId);
                   if (opt) partsList.push(opt.label);
                 });
               });
@@ -4020,24 +4087,7 @@ export default function CreateRequestScreen({ navigation }: any) {
             {createRequestLabels?.serviceScopeLabel || "What do you need?"} *
           </Text>
           <View style={styles.locationContainer}>
-            {[
-              {
-                id: "service",
-                label: createRequestLabels?.serviceOnly || "Service / Labor Only",
-                icon: "construct",
-                desc:
-                  createRequestLabels?.serviceOnlyDesc ||
-                  "I already have the parts, just need installation",
-              },
-              {
-                id: "both",
-                label: createRequestLabels?.partsAndService || "Parts + Service",
-                icon: "layers",
-                desc:
-                  createRequestLabels?.partsAndServiceDesc ||
-                  "Provider supplies parts and does the work",
-              },
-            ].map((scope) => (
+            {serviceScopeOptions.map((scope) => (
               <TouchableOpacity
                 key={scope.id}
                 style={[
@@ -4053,7 +4103,7 @@ export default function CreateRequestScreen({ navigation }: any) {
                   ]}
                 >
                   <Ionicons
-                    name={scope.icon as any}
+                    name={scope.icon}
                     size={24}
                     color={serviceScope === scope.id ? "#2B5EA7" : "#6b7280"}
                   />
@@ -4140,7 +4190,7 @@ export default function CreateRequestScreen({ navigation }: any) {
                   ]}
                 >
                   <Ionicons
-                    name={option.icon as any}
+                    name={option.icon}
                     size={24}
                     color={
                       serviceLocation === option.id ? "#2B5EA7" : "#6b7280"
@@ -4830,7 +4880,7 @@ export default function CreateRequestScreen({ navigation }: any) {
                             ]}
                           >
                             <Ionicons
-                              name={(option.icon || "ellipse") as any}
+                              name={(option.icon || "ellipse") as IoniconName}
                               size={20}
                               color={isSelected ? "#fff" : "#6b7280"}
                             />

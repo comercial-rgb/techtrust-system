@@ -152,16 +152,22 @@ export default function SolicitacaoDetalhesPage() {
         alert(pmRes.error);
         return;
       }
-      const methods = (pmRes.data as any[]) || [];
+      type PmRow = {
+        id?: string;
+        isDefault?: boolean;
+        type?: string;
+        stripePaymentMethodId?: string;
+      };
+      const methods: PmRow[] = Array.isArray(pmRes.data) ? pmRes.data : [];
       const card =
         methods.find(
-          (m: any) =>
+          (m) =>
             m.isDefault &&
             (m.type === "credit" || m.type === "debit") &&
             m.stripePaymentMethodId,
         ) ||
         methods.find(
-          (m: any) =>
+          (m) =>
             (m.type === "credit" || m.type === "debit") &&
             m.stripePaymentMethodId,
         );
@@ -173,9 +179,15 @@ export default function SolicitacaoDetalhesPage() {
         return;
       }
 
+      const paymentMethodId = card.stripePaymentMethodId || card.id;
+      if (!paymentMethodId) {
+        alert("Cartão sem identificador de pagamento. Atualize a página ou adicione o cartão novamente.");
+        return;
+      }
+
       const response = await api.approveQuoteWithHold({
         quoteId,
-        paymentMethodId: card.id,
+        paymentMethodId,
         paymentProcessor: "STRIPE",
       });
       if (response.error) {

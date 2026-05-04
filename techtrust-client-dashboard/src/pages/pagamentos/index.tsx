@@ -16,6 +16,9 @@ import {
 } from 'lucide-react';
 
 import { logApiError } from "../../utils/logger";
+import { unwrapApiData, unwrapArrayData } from "../../utils/unwrapApiData";
+import "../../types/stripe-js";
+import type { StripeCardElement, StripeClient } from "../../types/stripe-js";
 interface PaymentMethod {
   id: string;
   type: string;
@@ -38,8 +41,8 @@ export default function PagamentosPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const stripeRef = useRef<any>(null);
-  const cardElementRef = useRef<any>(null);
+  const stripeRef = useRef<StripeClient | null>(null);
+  const cardElementRef = useRef<StripeCardElement | null>(null);
 
   // New card form
   const [newType, setNewType] = useState<'credit' | 'debit' | 'pix'>('credit');
@@ -76,19 +79,23 @@ export default function PagamentosPage() {
     try {
       const response = await api.getPaymentMethods();
       if (response.data) {
-        const data = Array.isArray(response.data) ? response.data : (response.data as any)?.data || [];
-        setMethods(data.map((m: any) => ({
-          id: m.id,
-          type: m.type,
-          cardBrand: m.cardBrand,
-          cardLast4: m.cardLast4,
-          cardExpMonth: m.cardExpMonth,
-          cardExpYear: m.cardExpYear,
-          holderName: m.holderName,
-          pixKey: m.pixKey,
-          isDefault: m.isDefault,
-          createdAt: m.createdAt,
-        })));
+        const data = unwrapArrayData<Record<string, unknown>>(response.data);
+        setMethods(
+          data.map((m) => ({
+            id: String(m.id ?? ""),
+            type: String(m.type ?? ""),
+            cardBrand: m.cardBrand != null ? String(m.cardBrand) : undefined,
+            cardLast4: m.cardLast4 != null ? String(m.cardLast4) : undefined,
+            cardExpMonth:
+              m.cardExpMonth != null ? Number(m.cardExpMonth) : undefined,
+            cardExpYear:
+              m.cardExpYear != null ? Number(m.cardExpYear) : undefined,
+            holderName: m.holderName != null ? String(m.holderName) : undefined,
+            pixKey: m.pixKey != null ? String(m.pixKey) : undefined,
+            isDefault: Boolean(m.isDefault),
+            createdAt: String(m.createdAt ?? ""),
+          })),
+        );
       }
     } catch (err) {
       logApiError('Error loading payment methods:', err);
@@ -102,11 +109,12 @@ export default function PagamentosPage() {
     setError('');
     try {
       if (newType === 'pix') {
-        const data: any = { type: newType };
         if (!pixKey) { setError('Enter PIX key'); setSubmitting(false); return; }
-        data.pixKey = pixKey;
 
-        const response = await api.addPaymentMethod(data);
+        const response = await api.addPaymentMethod({
+          type: newType,
+          pixKey: pixKey || undefined,
+        });
         if (response.error) {
           setError(response.error);
         } else {
@@ -130,8 +138,9 @@ export default function PagamentosPage() {
       }
 
       const setupResponse = await api.createSetupIntent();
-      const setupData = (setupResponse.data as any)?.data || setupResponse.data;
-      const clientSecret = setupData?.clientSecret;
+      const setupData = unwrapApiData<Record<string, unknown>>(setupResponse.data);
+      const cs = setupData?.clientSecret;
+      const clientSecret = typeof cs === "string" ? cs : "";
 
       if (setupResponse.error || !clientSecret) {
         setError(setupResponse.error || 'Could not prepare card verification.');
@@ -170,8 +179,8 @@ export default function PagamentosPage() {
       resetForm();
       loadMethods();
       setTimeout(() => setSuccess(''), 3000);
-    } catch (err: any) {
-      setError(err.message || 'Error adding payment method');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Error adding payment method');
     } finally {
       setSubmitting(false);
     }
@@ -185,7 +194,6 @@ export default function PagamentosPage() {
     }
 
     try {
-      // @ts-ignore — Stripe.js is loaded dynamically.
       if (!window.Stripe) {
         await new Promise<void>((resolve, reject) => {
           const existingScript = document.querySelector<HTMLScriptElement>('script[src="https://js.stripe.com/v3/"]');
@@ -206,8 +214,9 @@ export default function PagamentosPage() {
 
       if (cancelled || cardElementRef.current) return;
 
-      // @ts-ignore
-      stripeRef.current = window.Stripe(publishableKey);
+      const StripeCtor = window.Stripe;
+      if (!StripeCtor) throw new Error("Stripe.js failed to load");
+      stripeRef.current = StripeCtor(publishableKey);
       const elements = stripeRef.current.elements();
       const cardElement = elements.create('card', {
         style: {
@@ -220,8 +229,8 @@ export default function PagamentosPage() {
       });
       cardElement.mount('#stripe-card-element');
       cardElementRef.current = cardElement;
-    } catch (err: any) {
-      setError(err.message || 'Failed to load payment processor.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load payment processor.');
     }
   }
 
@@ -231,8 +240,9 @@ export default function PagamentosPage() {
     }
 
     const response = await api.getStripeConfig();
-    const config = (response.data as any)?.data || response.data;
-    return config?.publishableKey;
+    const config = unwrapApiData<Record<string, unknown>>(response.data);
+    const pk = config?.publishableKey;
+    return typeof pk === "string" ? pk : undefined;
   }
 
   function destroyCardElement() {

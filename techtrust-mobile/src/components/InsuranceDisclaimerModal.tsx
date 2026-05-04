@@ -43,7 +43,7 @@ export default function InsuranceDisclaimerModal({
   const [accepted, setAccepted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const rd = (t as any).riskDisclaimer || {};
+  const rd = t.riskDisclaimer || {};
   const defaultDisclaimer =
     (
       rd.defaultDisclaimerBody ||

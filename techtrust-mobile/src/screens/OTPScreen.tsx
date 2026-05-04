@@ -19,6 +19,7 @@ import { Text, useTheme } from "react-native-paper";
 import * as WebBrowser from "expo-web-browser";
 import { useAuth } from "../contexts/AuthContext";
 import { useI18n } from "../i18n";
+import { interpolate } from "../i18n/interpolate";
 import * as paymentService from "../services/payment.service";
 
 // ✨ Importando componentes de UI
@@ -33,11 +34,15 @@ import {
   LoadingOverlay,
   EnhancedButton,
 } from "../components";
+import type { AuthStackScreenProps } from "../navigation/types";
 
-export default function OTPScreen({ route, navigation }: any) {
+export default function OTPScreen({
+  route,
+  navigation,
+}: AuthStackScreenProps<"OTP">) {
   const theme = useTheme();
   const { t } = useI18n();
-  const authText = t.auth as any;
+  const authText = t.auth;
   const { verifyOTP, resendOTP } = useAuth();
 
   const routeUserId = route?.params?.userId as string | undefined;
@@ -141,7 +146,7 @@ export default function OTPScreen({ route, navigation }: any) {
     if (!userId) {
       setHasError(true);
       error(
-        authText?.errorCreatingAccount ||
+        authText?.otpMissingSignupData ||
           "Missing signup data. Please sign up again.",
       );
       setTimeout(() => setHasError(false), 500);
@@ -150,7 +155,7 @@ export default function OTPScreen({ route, navigation }: any) {
 
     if (!otpCode || otpCode.length !== 6) {
       setHasError(true);
-      error(authText?.enterOtpCode || "Digite o código de 6 dígitos");
+      error(authText?.enterOtpCode || "Enter the 6-digit code");
       setTimeout(() => setHasError(false), 500);
       return;
     }
@@ -158,7 +163,7 @@ export default function OTPScreen({ route, navigation }: any) {
     // Valida se são apenas números
     if (!/^\d{6}$/.test(otpCode)) {
       setHasError(true);
-      error("Código deve conter apenas números");
+      error(authText?.otpDigitsOnly || "The code must contain only digits.");
       setTimeout(() => setHasError(false), 500);
       return;
     }
@@ -174,10 +179,16 @@ export default function OTPScreen({ route, navigation }: any) {
         );
 
         if (!checkout.checkoutUrl) {
-          throw new Error("Checkout URL was not returned.");
+          throw new Error(
+            authText?.otpCheckoutUrlMissing ||
+              "Checkout link was not returned.",
+          );
         }
 
-        success("Account verified. Complete checkout to start your trial.");
+        success(
+          authText?.otpPaidPlanOpeningCheckout ||
+            "Account verified. Opening checkout to start your trial.",
+        );
         await WebBrowser.openBrowserAsync(checkout.checkoutUrl);
         return;
       }
@@ -204,7 +215,7 @@ export default function OTPScreen({ route, navigation }: any) {
 
     if (!userId) {
       error(
-        authText?.errorCreatingAccount ||
+        authText?.otpMissingSignupData ||
           "Missing signup data. Please sign up again.",
       );
       return;
@@ -223,7 +234,7 @@ export default function OTPScreen({ route, navigation }: any) {
         inputRefs.current[0]?.focus();
       })
       .catch((err: any) => {
-        error(err.message || "Erro ao reenviar código");
+        error(err.message || authText?.otpResendFailed || "Could not resend code.");
       })
       .finally(() => {
         setLoading(false);
@@ -304,7 +315,11 @@ export default function OTPScreen({ route, navigation }: any) {
                       );
                     })
                     .catch((err: any) => {
-                      error(err.message || "Could not send verification code.");
+                      error(
+                        err.message ||
+                          authText?.otpSendVerificationFailed ||
+                          "Could not send verification code.",
+                      );
                     })
                     .finally(() => setLoading(false));
                 }
@@ -395,8 +410,10 @@ export default function OTPScreen({ route, navigation }: any) {
               </ScalePress>
             ) : (
               <Text style={styles.timerText}>
-                {authText?.resendIn || "Resend in"}{" "}
-                <Text style={styles.timerNumber}>{resendTimer}s</Text>
+                {interpolate(
+                  authText?.resendInSeconds || "Resend in {{seconds}}s",
+                  { seconds: resendTimer },
+                )}
               </Text>
             )}
           </View>
@@ -407,7 +424,9 @@ export default function OTPScreen({ route, navigation }: any) {
           <ScalePress onPress={() => navigation.goBack()}>
             <View style={styles.backButton}>
               <Text style={styles.backIcon}>←</Text>
-              <Text style={styles.backText}>{t.common?.back || "Back"}</Text>
+              <Text style={styles.backText}>
+                {t.common?.back || "Back"}
+              </Text>
             </View>
           </ScalePress>
         </FadeInView>

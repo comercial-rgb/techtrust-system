@@ -15,13 +15,31 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
+import type { RouteProp } from "@react-navigation/native";
 import { useI18n } from "../../i18n";
 import { useAuth } from "../../contexts/AuthContext";
 import * as fdacsService from "../../services/fdacs.service";
 import { log } from "../../utils/logger";
+import type {
+  RepairInvoiceDetailsScreenNavigation,
+  WorkOrdersStackParamList,
+} from "../../navigation/types";
 
-export default function RepairInvoiceDetailsScreen({ route, navigation }: any) {
-  const { invoiceId } = route.params;
+export default function RepairInvoiceDetailsScreen({
+  route,
+  navigation,
+}: {
+  route: RouteProp<WorkOrdersStackParamList, "RepairInvoiceDetails">;
+  navigation: RepairInvoiceDetailsScreenNavigation;
+}) {
+  const raw = route.params;
+  const invoiceId =
+    raw &&
+    typeof raw === "object" &&
+    "invoiceId" in raw &&
+    typeof (raw as { invoiceId: unknown }).invoiceId === "string"
+      ? (raw as { invoiceId: string }).invoiceId
+      : "";
   const { user } = useAuth();
   const { t, formatCurrency } = useI18n();
   const isProvider = user?.role === "PROVIDER";
@@ -39,6 +57,11 @@ export default function RepairInvoiceDetailsScreen({ route, navigation }: any) {
   );
 
   async function loadInvoice() {
+    if (!invoiceId) {
+      setInvoice(null);
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       const res = await fdacsService.getInvoice(invoiceId);
@@ -168,7 +191,7 @@ export default function RepairInvoiceDetailsScreen({ route, navigation }: any) {
   }
 
   const statusInfo = getStatusInfo(invoice.status);
-  const lineItems = (invoice as any).lineItems || [];
+  const lineItems = invoice.lineItems ?? [];
   const hasSupplement = Number(invoice.supplementsTotal) > 0;
 
   return (
@@ -268,17 +291,17 @@ export default function RepairInvoiceDetailsScreen({ route, navigation }: any) {
         </View>
 
         {/* Work Performed */}
-        {(invoice as any).workPerformed && (
+        {(invoice.workPerformed || invoice.servicePerformed) && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{t.fdacs.workPerformed}</Text>
             <Text style={styles.bodyText}>
-              {(invoice as any).workPerformed}
+              {invoice.workPerformed || invoice.servicePerformed}
             </Text>
           </View>
         )}
 
         {/* Dispute Reason */}
-        {(invoice as any).disputeReason && (
+        {invoice.disputeReason && (
           <View
             style={[
               styles.section,
@@ -289,7 +312,7 @@ export default function RepairInvoiceDetailsScreen({ route, navigation }: any) {
               {t.fdacs.disputeReason}
             </Text>
             <Text style={styles.bodyText}>
-              {(invoice as any).disputeReason}
+              {invoice.disputeReason}
             </Text>
           </View>
         )}
@@ -321,7 +344,7 @@ export default function RepairInvoiceDetailsScreen({ route, navigation }: any) {
           <Text style={styles.fdacsText}>{t.fdacs.fdacsComplianceText}</Text>
           <Text style={[styles.fdacsText, { marginTop: 4 }]}>
             {t.fdacs.writtenEstimateRef}:{" "}
-            {(invoice as any).estimateNumber || t.fdacs.na}
+            {invoice.estimateNumber || t.fdacs.na}
           </Text>
         </View>
       </ScrollView>

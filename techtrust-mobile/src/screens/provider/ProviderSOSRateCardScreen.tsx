@@ -21,6 +21,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import api from "../../services/api";
 import { log } from "../../utils/logger";
 import { useI18n } from "../../i18n";
+import type { ProviderAppNavigation } from "../../navigation/types";
 
 // ─── SOS service types ────────────────────────────────────────────────────────
 
@@ -115,9 +116,9 @@ function initRateCard(): RateCardState {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function ProviderSOSRateCardScreen({ navigation }: any) {
+export default function ProviderSOSRateCardScreen({ navigation }: { navigation: ProviderAppNavigation }) {
   const { t, formatCurrency } = useI18n();
-  const tr = (t as any).providerSosRates || ({} as Record<string, string | undefined>);
+  const tr = t.providerSosRates as Record<string, string | undefined>;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [rateCard, setRateCard] = useState<RateCardState>(initRateCard());
@@ -135,12 +136,16 @@ export default function ProviderSOSRateCardScreen({ navigation }: any) {
       const data = res.data?.data;
       if (data?.rateCard) {
         const merged = initRateCard();
-        for (const [key, entry] of Object.entries(data.rateCard as Record<string, any>)) {
+        for (const [key, raw] of Object.entries(
+          (data.rateCard ?? {}) as Record<string, unknown>,
+        )) {
           if (!merged[key]) continue;
+          const entry = raw as Record<string, unknown>;
           if (key === "TOWING") {
             merged[key] = {
               baseFee: entry.baseFee != null ? String(entry.baseFee) : "",
-              perMileRate: entry.perMileRate != null ? String(entry.perMileRate) : "",
+              perMileRate:
+                entry.perMileRate != null ? String(entry.perMileRate) : "",
               active: !!entry.active,
             };
           } else {
@@ -163,11 +168,12 @@ export default function ProviderSOSRateCardScreen({ navigation }: any) {
   const handleSave = async () => {
     // Validate: active types must have a price
     for (const row of SOS_TYPES) {
-      const entry = rateCard[row.key] as any;
-      if (!entry.active) continue;
+      const entry = rateCard[row.key];
+      if (!entry || !entry.active) continue;
       const rowLabel = getRateCardRowCopy(row.key, tr).label;
       if (row.pricingType === "towing") {
-        if (!entry.baseFee || Number(entry.baseFee) <= 0) {
+        const towing = entry as TowingRate;
+        if (!towing.baseFee || Number(towing.baseFee) <= 0) {
           Alert.alert(
             tr.missingPriceTitle || t.providerSosRates?.missingPriceTitle || "Missing price",
             tr.missingPriceTowing ||
@@ -177,7 +183,8 @@ export default function ProviderSOSRateCardScreen({ navigation }: any) {
           return;
         }
       } else {
-        if (!entry.price || Number(entry.price) <= 0) {
+        const flat = entry as FlatRate;
+        if (!flat.price || Number(flat.price) <= 0) {
           const msg =
             (tr.missingPriceFor || t.providerSosRates?.missingPriceFor || "")
               .replace(/\{\{label\}\}/g, rowLabel)
@@ -191,19 +198,24 @@ export default function ProviderSOSRateCardScreen({ navigation }: any) {
 
     setSaving(true);
     try {
-      const payload: Record<string, any> = {};
+      const payload: Record<string, unknown> = {};
       for (const row of SOS_TYPES) {
-        const entry = rateCard[row.key] as any;
+        const entry = rateCard[row.key];
+        if (!entry) continue;
         if (row.pricingType === "towing") {
+          const towing = entry as TowingRate;
           payload[row.key] = {
-            baseFee: entry.baseFee ? Number(entry.baseFee) : null,
-            perMileRate: entry.perMileRate ? Number(entry.perMileRate) : null,
-            active: entry.active,
+            baseFee: towing.baseFee ? Number(towing.baseFee) : null,
+            perMileRate: towing.perMileRate
+              ? Number(towing.perMileRate)
+              : null,
+            active: towing.active,
           };
         } else {
+          const flat = entry as FlatRate;
           payload[row.key] = {
-            price: entry.price ? Number(entry.price) : null,
-            active: entry.active,
+            price: flat.price ? Number(flat.price) : null,
+            active: flat.active,
           };
         }
       }
@@ -337,7 +349,7 @@ export default function ProviderSOSRateCardScreen({ navigation }: any) {
         {/* Rate card entries */}
         <View style={{ paddingHorizontal: 16, gap: 12, paddingBottom: 32 }}>
           {SOS_TYPES.map((row) => {
-            const entry = rateCard[row.key] as any;
+            const entry = rateCard[row.key]!;
             const copy = getRateCardRowCopy(row.key, tr);
             return (
               <View key={row.key} style={[styles.card, entry.active && styles.cardActive]}>
@@ -360,6 +372,9 @@ export default function ProviderSOSRateCardScreen({ navigation }: any) {
                 {entry.active && (
                   <View style={styles.priceFields}>
                     {row.pricingType === "towing" ? (
+                      (() => {
+                        const towing = entry as TowingRate;
+                        return (
                       <>
                         <View style={styles.fieldRow}>
                           <Text style={styles.fieldLabel}>
@@ -367,7 +382,7 @@ export default function ProviderSOSRateCardScreen({ navigation }: any) {
                           </Text>
                           <TextInput
                             style={styles.priceInput}
-                            value={entry.baseFee}
+                            value={towing.baseFee}
                             onChangeText={(v) => updateEntry(row.key, "baseFee", v)}
                             keyboardType="decimal-pad"
                             placeholder={tr.phBase || t.providerSosRates?.phBase || "e.g. 100"}
@@ -380,27 +395,29 @@ export default function ProviderSOSRateCardScreen({ navigation }: any) {
                           </Text>
                           <TextInput
                             style={styles.priceInput}
-                            value={entry.perMileRate}
+                            value={towing.perMileRate}
                             onChangeText={(v) => updateEntry(row.key, "perMileRate", v)}
                             keyboardType="decimal-pad"
                             placeholder={tr.phPerMile || t.providerSosRates?.phPerMile || "e.g. 4.50"}
                             placeholderTextColor="#9ca3af"
                           />
                         </View>
-                        {entry.baseFee && entry.perMileRate && (
+                        {towing.baseFee && towing.perMileRate && (
                           <Text style={styles.exampleText}>
                             {(tr.exampleMiles || t.providerSosRates?.exampleMiles || "Example: {{miles}} mi = {{amount}}")
                               .replace("{{miles}}", "5")
                               .replace(
                                 "{{amount}}",
                                 formatCurrency(
-                                  Number(entry.baseFee) +
-                                    5 * Number(entry.perMileRate),
+                                  Number(towing.baseFee) +
+                                    5 * Number(towing.perMileRate),
                                 ),
                               )}
                           </Text>
                         )}
                       </>
+                        );
+                      })()
                     ) : (
                       <View style={styles.fieldRow}>
                         <Text style={styles.fieldLabel}>
@@ -408,7 +425,7 @@ export default function ProviderSOSRateCardScreen({ navigation }: any) {
                         </Text>
                         <TextInput
                           style={styles.priceInput}
-                          value={entry.price}
+                          value={(entry as FlatRate).price}
                           onChangeText={(v) => updateEntry(row.key, "price", v)}
                           keyboardType="decimal-pad"
                           placeholder={tr.phFixed || t.providerSosRates?.phFixed || "e.g. 75"}

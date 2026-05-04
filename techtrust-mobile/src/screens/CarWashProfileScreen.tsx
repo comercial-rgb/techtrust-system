@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import type { ComponentProps } from "react";
 import {
   View, StyleSheet, ScrollView, TouchableOpacity, Image,
   Linking, Platform, Share, FlatList, ActivityIndicator, StatusBar, Dimensions,
@@ -12,11 +13,17 @@ import {
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+
+type IoniconName = ComponentProps<typeof Ionicons>["name"];
 import { useI18n } from '../i18n';
 import carWashService from '../services/carWash.service';
 import { CarWashProfile } from '../types/carWash';
 import { colors, spacing, borderRadius, fontSize, fontWeight, shadows } from '../constants/theme';
 import { log } from "../utils/logger";
+import type {
+  CarWashProfileScreenNavigation,
+  CarWashProfileScreenRoute,
+} from "../navigation/types";
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -48,10 +55,18 @@ const AMENITY_ICONS: Record<string, string> = {
   loyalty_program: 'ribbon-outline',
 };
 
-export default function CarWashProfileScreen({ route, navigation }: any) {
+export default function CarWashProfileScreen({
+  route,
+  navigation,
+}: {
+  route: CarWashProfileScreenRoute;
+  navigation: CarWashProfileScreenNavigation;
+}) {
   const { t, formatDate, formatCurrency, language } = useI18n();
-  const cwT = (t as any).carWash as Record<string, string | undefined> | undefined;
-  const { carWashId } = route.params;
+  const cwT = t.carWash as Record<string, string | undefined> | undefined;
+  const carWashId = String(
+    (route.params as { carWashId?: string } | undefined)?.carWashId ?? "",
+  );
   const [profile, setProfile] = useState<CarWashProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -428,7 +443,10 @@ export default function CarWashProfileScreen({ route, navigation }: any) {
                 <View key={am.id} style={styles.amenityItem}>
                   <View style={styles.amenityIconBg}>
                     <Ionicons
-                      name={(AMENITY_ICONS[am.amenity.key] || 'checkmark') as any}
+                      name={
+                        (AMENITY_ICONS[am.amenity.key] ||
+                          "checkmark") as IoniconName
+                      }
                       size={18}
                       color="#10b981"
                     />

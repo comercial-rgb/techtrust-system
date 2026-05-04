@@ -14,7 +14,10 @@ import {
 } from 'lucide-react';
 
 import { logApiError } from "../../utils/logger";
+import { unwrapApiData } from "../../utils/unwrapApiData";
 type IconType = React.FC<{ className?: string }>;
+
+type UrgencyLevel = "LOW" | "MEDIUM" | "HIGH" | "EMERGENCY";
 
 interface Vehicle {
   id: string;
@@ -56,7 +59,7 @@ export default function NovaSolicitacaoPage() {
   const [serviceType, setServiceType] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [urgency, setUrgency] = useState<'LOW' | 'MEDIUM' | 'HIGH' | 'EMERGENCY'>('MEDIUM');
+  const [urgency, setUrgency] = useState<UrgencyLevel>("MEDIUM");
   const [preferredDate, setPreferredDate] = useState('');
   const [serviceLocationType, setServiceLocationType] = useState<'IN_SHOP' | 'MOBILE'>('IN_SHOP');
   const [customerAddress, setCustomerAddress] = useState('');
@@ -333,7 +336,16 @@ export default function NovaSolicitacaoPage() {
     },
   };
 
-  const URGENCY_OPTIONS = [
+  const URGENCY_OPTIONS: {
+    value: UrgencyLevel;
+    labelKey: string;
+    descKey: string;
+    dot: string;
+    ring: string;
+    text: string;
+    bg: string;
+    border: string;
+  }[] = [
     { value: 'LOW',       labelKey: 'client.requests.urgencyLow',       descKey: 'client.requests.urgencyLowDesc',       dot: 'bg-green-400',  ring: 'ring-green-200',  text: 'text-green-700',  bg: 'bg-green-50',  border: 'border-green-300' },
     { value: 'MEDIUM',    labelKey: 'client.requests.urgencyMedium',    descKey: 'client.requests.urgencyMediumDesc',    dot: 'bg-yellow-400', ring: 'ring-yellow-200', text: 'text-yellow-700', bg: 'bg-yellow-50', border: 'border-yellow-300' },
     { value: 'HIGH',      labelKey: 'client.requests.urgencyHigh',      descKey: 'client.requests.urgencyHighDesc',      dot: 'bg-orange-400', ring: 'ring-orange-200', text: 'text-orange-700', bg: 'bg-orange-50', border: 'border-orange-300' },
@@ -371,18 +383,20 @@ export default function NovaSolicitacaoPage() {
         }
       }
       if (profileRes?.data) {
-        const profile = (profileRes.data as any)?.user || profileRes.data;
-        const addresses = profile?.addressesJson;
+        const root = unwrapApiData<Record<string, unknown>>(profileRes.data) as Record<string, unknown>;
+        const profile = (root.user as Record<string, unknown> | undefined) ?? root;
+        const addresses = profile.addressesJson;
         const defaultAddr = Array.isArray(addresses)
-          ? (addresses.find((a: any) => a.isDefault) || addresses[0])
+          ? (addresses.find((a) => (a as Record<string, unknown>).isDefault) || addresses[0])
           : null;
-        if (defaultAddr) {
-          const addrStr = [defaultAddr.street, defaultAddr.city, defaultAddr.state, defaultAddr.zipCode]
+        if (defaultAddr && typeof defaultAddr === "object") {
+          const addr = defaultAddr as Record<string, unknown>;
+          const addrStr = [addr.street, addr.city, addr.state, addr.zipCode]
             .filter(Boolean).join(', ');
           setCustomerAddress(addrStr);
-          if (defaultAddr.latitude && defaultAddr.longitude) {
-            setServiceLatitude(defaultAddr.latitude);
-            setServiceLongitude(defaultAddr.longitude);
+          if (addr.latitude && addr.longitude) {
+            setServiceLatitude(Number(addr.latitude));
+            setServiceLongitude(Number(addr.longitude));
           }
         }
       }
@@ -848,7 +862,7 @@ export default function NovaSolicitacaoPage() {
                     {URGENCY_OPTIONS.map((opt) => (
                       <button
                         key={opt.value}
-                        onClick={() => setUrgency(opt.value as any)}
+                        onClick={() => setUrgency(opt.value)}
                         className={`p-3.5 rounded-xl border-2 text-left transition-all ${
                           urgency === opt.value
                             ? `${opt.border} ${opt.bg} shadow-sm`

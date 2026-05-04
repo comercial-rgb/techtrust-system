@@ -23,6 +23,10 @@ import { FadeInView, ScalePress } from "../components/Animated";
 import { useI18n } from "../i18n";
 import { interpolate } from "../i18n/interpolate";
 import { log } from "../utils/logger";
+import type {
+  InsuranceScreenNavigation,
+  InsuranceScreenRoute,
+} from "../navigation/types";
 
 interface InsurancePolicy {
   id: string;
@@ -53,10 +57,16 @@ const US_INSURANCE_PROVIDERS = [
   'Lemonade', 'Hippo', 'Tesla Insurance', 'Clearcover',
 ];
 
-export default function InsuranceScreen({ navigation, route }: any) {
+export default function InsuranceScreen({
+  navigation,
+  route,
+}: {
+  navigation: InsuranceScreenNavigation;
+  route: InsuranceScreenRoute;
+}) {
   const { t, formatDate, formatCurrency } = useI18n();
   const ins = t.insurance || ({} as NonNullable<typeof t.insurance>);
-  const vi = (t as any).vehicleInsurance || {};
+  const vi = t.vehicleInsurance || {};
   const coverageOptions = useMemo(
     () => [
       { value: "Full Coverage", label: vi.coverageFull || "Full Coverage" },
@@ -81,7 +91,7 @@ export default function InsuranceScreen({ navigation, route }: any) {
   );
   const coverageLabel = (coverageType: string) =>
     coverageOptions.find((o) => o.value === coverageType)?.label || coverageType;
-  const { vehicleId } = route.params || {};
+  const { vehicleId } = (route.params || {}) as { vehicleId?: string };
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [policies, setPolicies] = useState<InsurancePolicy[]>([]);
@@ -983,7 +993,10 @@ export default function InsuranceScreen({ navigation, route }: any) {
                       onPress={() =>
                         setFormData((prev) => ({
                           ...prev,
-                          premiumFrequency: freq.id as any,
+                          premiumFrequency: freq.id as
+                            | "monthly"
+                            | "semi-annual"
+                            | "annual",
                         }))
                       }
                     >

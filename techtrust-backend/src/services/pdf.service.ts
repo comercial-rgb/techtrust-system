@@ -29,6 +29,16 @@ const fonts = {
 
 const printer = new PdfPrinter(fonts);
 
+/** Row shape stored in RepairInvoice / Receipt lineItems JSON */
+type LineItemRow = {
+  quantity?: unknown;
+  unitPrice?: unknown;
+  description?: unknown;
+  type?: unknown;
+  partCondition?: unknown;
+  isNoCharge?: unknown;
+};
+
 function createPdfBuffer(docDefinition: any): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     try {
@@ -116,7 +126,7 @@ export async function generateRepairInvoicePdf(
     ],
   ];
 
-  for (const item of lineItems as any[]) {
+  for (const item of lineItems as LineItemRow[]) {
     const qty = Number(item.quantity) || 1;
     const price = Number(item.unitPrice) || 0;
     const total = qty * price;
@@ -604,7 +614,7 @@ export async function generateReceiptPdf(receiptId: string): Promise<string> {
     ],
   ];
 
-  for (const item of lineItems as any[]) {
+  for (const item of lineItems as LineItemRow[]) {
     const qty = Number(item.quantity) || 1;
     const price = Number(item.unitPrice) || 0;
     tableBody.push([

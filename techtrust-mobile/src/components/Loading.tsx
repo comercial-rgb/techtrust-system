@@ -3,7 +3,7 @@
  * TechTrust Mobile
  */
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, type ComponentProps } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,8 @@ import {
   Dimensions,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+
+type MciName = ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 const { width, height } = Dimensions.get('window');
 
@@ -139,7 +141,7 @@ interface EnhancedButtonProps {
   size?: ButtonSize;
   loading?: boolean;
   disabled?: boolean;
-  icon?: string;
+  icon?: MciName;
   iconPosition?: 'left' | 'right';
   fullWidth?: boolean;
   style?: any;
@@ -223,7 +225,7 @@ export function EnhancedButton({
           <View style={styles.buttonContent}>
             {icon && iconPosition === 'left' && (
               <MaterialCommunityIcons
-                name={icon as any}
+                name={icon}
                 size={s.iconSize}
                 color={v.text}
                 style={{ marginRight: 8 }}
@@ -234,7 +236,7 @@ export function EnhancedButton({
             </Text>
             {icon && iconPosition === 'right' && (
               <MaterialCommunityIcons
-                name={icon as any}
+                name={icon}
                 size={s.iconSize}
                 color={v.text}
                 style={{ marginLeft: 8 }}
@@ -294,7 +296,7 @@ export function RefreshIndicator({ refreshing }: RefreshIndicatorProps) {
 // ============================================
 
 interface EmptyStateProps {
-  icon?: string;
+  icon?: MciName;
   title: string;
   description?: string;
   actionLabel?: string;
@@ -302,7 +304,7 @@ interface EmptyStateProps {
 }
 
 export function EmptyState({
-  icon = 'inbox-outline',
+  icon = "inbox-outline",
   title,
   description,
   actionLabel,
@@ -330,7 +332,7 @@ export function EmptyState({
   return (
     <View style={styles.emptyContainer}>
       <Animated.View style={{ transform: [{ translateY: bounceAnim }] }}>
-        <MaterialCommunityIcons name={icon as any} size={80} color="#d1d5db" />
+        <MaterialCommunityIcons name={icon} size={80} color="#d1d5db" />
       </Animated.View>
       <Text style={styles.emptyTitle}>{title}</Text>
       {description && <Text style={styles.emptyDescription}>{description}</Text>}

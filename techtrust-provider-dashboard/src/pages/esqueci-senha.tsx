@@ -33,28 +33,29 @@ export default function EsqueciSenhaPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Step 1: Send reset code
-  const handleSendCode = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const submitForgotPassword = async () => {
     setError("");
-
     if (!email.trim() || !email.includes("@")) {
       setError("Please enter a valid email address");
       return;
     }
-
     setLoading(true);
     try {
       await api.post("/auth/forgot-password", {
         email: email.trim().toLowerCase(),
       });
-      setStep("code");
-    } catch (err: any) {
-      // Always proceed to code step to prevent email enumeration
-      setStep("code");
+    } catch {
+      /* ignore */
     } finally {
       setLoading(false);
     }
+  };
+
+  // Step 1: Send reset code
+  const handleSendCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await submitForgotPassword();
+    setStep("code");
   };
 
   // Step 2: Verify code
@@ -95,11 +96,20 @@ export default function EsqueciSenhaPage() {
         newPassword,
       });
       setStep("success");
-    } catch (err: any) {
-      setError(
-        err.response?.data?.message ||
-          "Failed to reset password. Please try again.",
-      );
+    } catch (err: unknown) {
+      let msg = "";
+      if (
+        err &&
+        typeof err === "object" &&
+        "response" in err &&
+        err.response &&
+        typeof err.response === "object" &&
+        "data" in err.response
+      ) {
+        const m = (err.response as { data?: { message?: unknown } }).data?.message;
+        if (typeof m === "string") msg = m;
+      }
+      setError(msg || "Failed to reset password. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -107,7 +117,8 @@ export default function EsqueciSenhaPage() {
 
   // Step indicators
   const steps = ["email", "code", "password"] as const;
-  const currentStepIndex = steps.indexOf(step as any);
+  const currentStepIndex =
+    step === "success" ? steps.length : steps.indexOf(step);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-8">
@@ -254,10 +265,7 @@ export default function EsqueciSenhaPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    setLoading(true);
-                    handleSendCode({ preventDefault: () => {} } as any);
-                  }}
+                  onClick={() => void submitForgotPassword()}
                   className="w-full text-center text-sm text-primary-600 hover:text-primary-700 font-medium py-2"
                 >
                   Resend Code

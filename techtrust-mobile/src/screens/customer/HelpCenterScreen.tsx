@@ -3,7 +3,8 @@
  * D23: Live Chat with support integrated
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import type { ComponentProps } from "react";
 import {
   View,
   Text,
@@ -17,8 +18,16 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+
+type IoniconName = ComponentProps<typeof Ionicons>["name"];
 import { useI18n } from '../../i18n';
 import { useRoute } from '@react-navigation/native';
+import type { RouteProp } from "@react-navigation/native";
+import helpCenterFaqEn from '../../i18n/locales/fragments/helpCenterFaq.en';
+import type {
+  CustomerAppNavigation,
+  CustomerAppParamList,
+} from "../../navigation/types";
 
 type ScreenMode = 'help' | 'chat';
 
@@ -36,9 +45,17 @@ interface FAQItem {
   category: string;
 }
 
-export default function HelpCenterScreen({ navigation }: any) {
+type BotResponseKey =
+  | 'quote'
+  | 'payment'
+  | 'cancel'
+  | 'account'
+  | 'human'
+  | 'default';
+
+export default function HelpCenterScreen({ navigation }: { navigation: CustomerAppNavigation }) {
   const { t, formatTime } = useI18n();
-  const route = useRoute<any>();
+  const route = useRoute<RouteProp<CustomerAppParamList, "HelpCenter">>();
   const fromDashboard = route.params?.fromDashboard;
   
   const [searchQuery, setSearchQuery] = useState('');
@@ -50,30 +67,51 @@ export default function HelpCenterScreen({ navigation }: any) {
   const [isTyping, setIsTyping] = useState(false);
   const chatListRef = useRef<FlatList>(null);
 
-  const QUICK_REPLIES = [
-    'How do I get a quote?',
-    'Payment issue',
-    'Cancel a service',
-    'Account help',
-    'Talk to a human',
-  ];
+  const botResponses = useMemo((): Record<BotResponseKey, string> => {
+    const c = t.customer as Record<string, string | undefined> | undefined;
+    return {
+      quote: String(c?.helpBotQuote ?? ''),
+      payment: String(c?.helpBotPayment ?? ''),
+      cancel: String(c?.helpBotCancel ?? ''),
+      account: String(c?.helpBotAccount ?? ''),
+      human: String(c?.helpBotHuman ?? ''),
+      default: String(c?.helpBotDefault ?? ''),
+    };
+  }, [t]);
 
-  const BOT_RESPONSES: Record<string, string> = {
-    'quote': 'To request a quote, go to the Home tab and tap "Need a service?". Select your vehicle, describe the service, and submit. Providers will respond within hours!',
-    'payment': 'For payment issues, go to Profile > Payment Methods to manage your cards. If you see an incorrect charge, use "Report Issue" on the service details screen.',
-    'cancel': 'You can cancel before accepting a quote at no cost. After accepting: >24h = 10% fee, <24h = 25% fee. Use the "Cancel" button on the service details.',
-    'account': 'For account changes, go to Profile > Personal Information. You can update email, phone, name, and more. For account deletion, scroll to the bottom of that screen.',
-    'human': "I'm connecting you to a support agent. Our team is available Mon-Fri 8am-8pm EST. Average wait time is under 5 minutes. You'll receive a notification when an agent joins.",
-    'default': "Thanks for your message! I can help with quotes, payments, cancellations, and account questions. Type your question or pick a quick reply below.",
-  };
+  const quickReplyDefs = useMemo(() => {
+    const c = t.customer as Record<string, string | undefined> | undefined;
+    return [
+      { key: 'quote' as const, label: String(c?.helpQuickReplyQuote ?? '') },
+      { key: 'payment' as const, label: String(c?.helpQuickReplyPayment ?? '') },
+      { key: 'cancel' as const, label: String(c?.helpQuickReplyCancel ?? '') },
+      { key: 'account' as const, label: String(c?.helpQuickReplyAccount ?? '') },
+      { key: 'human' as const, label: String(c?.helpQuickReplyHuman ?? '') },
+    ];
+  }, [t]);
+
+  const categories = useMemo(() => {
+    const c = t.customer as Record<string, string | undefined> | undefined;
+    return [
+      { id: 'all', label: String(c?.helpCategoryAll ?? ''), icon: 'grid' as const },
+      { id: 'account', label: String(c?.helpCategoryAccount ?? ''), icon: 'person' as const },
+      { id: 'services', label: String(c?.helpCategoryServices ?? ''), icon: 'construct' as const },
+      { id: 'payments', label: String(c?.helpCategoryPayments ?? ''), icon: 'card' as const },
+      { id: 'vehicles', label: String(c?.helpCategoryVehicles ?? ''), icon: 'car' as const },
+    ];
+  }, [t]);
 
   const startChat = () => {
     setScreenMode('chat');
     if (chatMessages.length === 0) {
+      const greeting =
+        (t.customer as Record<string, string | undefined> | undefined)
+          ?.helpVirtualGreeting ??
+        "Hi! 👋 I'm TechTrust's virtual assistant. How can I help you today?";
       setChatMessages([
         {
           id: '1',
-          text: "Hi! 👋 I'm TechTrust's virtual assistant. How can I help you today?",
+          text: greeting,
           sender: 'bot',
           timestamp: new Date(),
         },
@@ -81,8 +119,8 @@ export default function HelpCenterScreen({ navigation }: any) {
     }
   };
 
-  const sendMessage = (text?: string) => {
-    const msg = text || chatInput.trim();
+  const sendMessage = (text?: string, responseHint?: BotResponseKey) => {
+    const msg = (text ?? chatInput).trim();
     if (!msg) return;
 
     const userMsg: ChatMessage = {
@@ -97,17 +135,25 @@ export default function HelpCenterScreen({ navigation }: any) {
 
     // Simulate bot response
     setTimeout(() => {
-      const lower = msg.toLowerCase();
-      let responseKey = 'default';
-      if (lower.includes('quote') || lower.includes('service')) responseKey = 'quote';
-      else if (lower.includes('pay') || lower.includes('charge') || lower.includes('card')) responseKey = 'payment';
-      else if (lower.includes('cancel')) responseKey = 'cancel';
-      else if (lower.includes('account') || lower.includes('profile') || lower.includes('email')) responseKey = 'account';
-      else if (lower.includes('human') || lower.includes('agent') || lower.includes('person') || lower.includes('talk')) responseKey = 'human';
+      let responseKey: BotResponseKey = responseHint ?? 'default';
+      if (!responseHint) {
+        const lower = msg.toLowerCase();
+        if (lower.includes('quote') || lower.includes('service') || lower.includes('orçamento') || lower.includes('presupuesto') || lower.includes('orcamento')) {
+          responseKey = 'quote';
+        } else if (lower.includes('pay') || lower.includes('charge') || lower.includes('card') || lower.includes('pagamento') || lower.includes('pago')) {
+          responseKey = 'payment';
+        } else if (lower.includes('cancel') || lower.includes('cancelar')) {
+          responseKey = 'cancel';
+        } else if (lower.includes('account') || lower.includes('profile') || lower.includes('email') || lower.includes('conta') || lower.includes('cuenta')) {
+          responseKey = 'account';
+        } else if (lower.includes('human') || lower.includes('agent') || lower.includes('person') || lower.includes('talk') || lower.includes('humano') || lower.includes('pessoa')) {
+          responseKey = 'human';
+        }
+      }
 
       const botMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        text: BOT_RESPONSES[responseKey],
+        text: botResponses[responseKey],
         sender: responseKey === 'human' ? 'agent' : 'bot',
         timestamp: new Date(),
       };
@@ -127,7 +173,12 @@ export default function HelpCenterScreen({ navigation }: any) {
           </View>
         )}
         <View style={[chatStyles.bubble, isUser ? chatStyles.bubbleUser : chatStyles.bubbleBot, isAgent && chatStyles.bubbleAgent]}>
-          {isAgent && <Text style={chatStyles.agentLabel}>Support Agent</Text>}
+          {isAgent && (
+            <Text style={chatStyles.agentLabel}>
+              {(t.customer as Record<string, string | undefined> | undefined)
+                ?.helpSupportAgentLabel ?? 'Support Agent'}
+            </Text>
+          )}
           <Text style={[chatStyles.msgText, isUser && chatStyles.msgTextUser]}>{item.text}</Text>
           <Text style={[chatStyles.msgTime, isUser && chatStyles.msgTimeUser]}>
             {formatTime(item.timestamp)}
@@ -145,76 +196,23 @@ export default function HelpCenterScreen({ navigation }: any) {
     }
   };
 
-  const categories = [
-    { id: 'all', label: 'All', icon: 'grid' },
-    { id: 'account', label: 'Account', icon: 'person' },
-    { id: 'services', label: 'Services', icon: 'construct' },
-    { id: 'payments', label: 'Payments', icon: 'card' },
-    { id: 'vehicles', label: 'Vehicles', icon: 'car' },
-  ];
-
-  const faqs: FAQItem[] = [
-    {
-      id: '1',
-      question: 'How do I request a service quote?',
-      answer: 'To request a quote, go to the Home tab and tap "Need a service?" or the + button. Select your vehicle, describe the service needed, and submit. Local providers will send you quotes within hours.',
-      category: 'services',
-    },
-    {
-      id: '2',
-      question: 'How do I add a new vehicle?',
-      answer: 'Go to the Vehicles tab and tap the "Add Vehicle" card. Enter your vehicle\'s make, model, year, and license plate. You can also add optional details like VIN number and current mileage.',
-      category: 'vehicles',
-    },
-    {
-      id: '3',
-      question: 'How do I pay for a service?',
-      answer: 'TechTrust uses a pre-authorization (hold) payment model. When you accept a quote, a temporary hold is placed on your card for the quoted amount plus fees. Your card is NOT charged until you review and approve the completed service. You can add or manage payment methods in Profile > Payment Methods.',
-      category: 'payments',
-    },
-    {
-      id: '4',
-      question: 'Can I cancel a service request?',
-      answer: 'Yes. Before accepting a quote, you can cancel at no cost. After accepting a quote: cancellations made more than 24 hours after acceptance incur a 10% fee; within 24 hours, a 25% fee applies. Once service has started, cancellation requires provider validation. Use the "Cancel" button on the service details screen — the fee is calculated automatically.',
-      category: 'services',
-    },
-    {
-      id: '5',
-      question: 'How do I change my email or phone number?',
-      answer: 'Go to Profile > Personal Information. Tap the edit icon, make your changes, and save. You may need to verify your new email or phone number.',
-      category: 'account',
-    },
-    {
-      id: '6',
-      question: 'Is my payment information secure?',
-      answer: 'Yes. All payment information is processed through PCI-DSS compliant payment processors (Stripe and/or Chase Payment Solutions). We never store your full card number on our servers. Data is encrypted using TLS/SSL both in transit and at rest.',
-      category: 'payments',
-    },
-    {
-      id: '7',
-      question: 'How do I rate a service provider?',
-      answer: 'After a service is completed, you\'ll be prompted to rate your experience. You can also rate later by going to Services > View completed service > Leave a Review.',
-      category: 'services',
-    },
-    {
-      id: '8',
-      question: 'What if I\'m not satisfied with a service?',
-      answer: 'Contact the service provider first to resolve the issue. If you can\'t reach a resolution, contact our support team through the "Contact Us" option. We\'ll help mediate the situation.',
-      category: 'services',
-    },
-    {
-      id: '9',
-      question: 'How do I delete my account?',
-      answer: 'Go to Profile > Personal Information > Delete Account. Note that this action is irreversible and will delete all your data, including service history and saved vehicles.',
-      category: 'account',
-    },
-    {
-      id: '10',
-      question: 'How do refunds work?',
-      answer: 'Refund requests must be submitted within 48 hours of service approval. Use the "Report Issue" button on the service details screen. Approved refunds are processed to your original payment method within 5-10 business days. Alternatively, you can choose a platform credit and receive a 10% bonus on the refund amount.',
-      category: 'payments',
-    },
-  ];
+  const faqs = useMemo((): FAQItem[] => {
+    const raw = (t as unknown as { helpCenterFaq?: FAQItem[] }).helpCenterFaq;
+    if (Array.isArray(raw) && raw.length > 0) {
+      return raw.map((item) => ({
+        id: String(item.id),
+        question: String(item.question),
+        answer: String(item.answer),
+        category: String(item.category),
+      }));
+    }
+    return helpCenterFaqEn.map((item) => ({
+      id: String(item.id),
+      question: String(item.question),
+      answer: String(item.answer),
+      category: String(item.category),
+    }));
+  }, [t]);
 
   const filteredFAQs = faqs.filter(faq => {
     const matchesCategory = selectedCategory === 'all' || faq.category === selectedCategory;
@@ -223,32 +221,36 @@ export default function HelpCenterScreen({ navigation }: any) {
     return matchesCategory && (searchQuery === '' || matchesSearch);
   });
 
-  const quickActions = [
-    { 
-      id: 'contact', 
-      title: 'Live Chat', 
-      subtitle: 'Chat with support',
-      icon: 'chatbubbles',
-      color: '#3b82f6',
-      onPress: () => startChat(),
-    },
-    { 
-      id: 'report', 
-      title: 'Report Issue', 
-      subtitle: 'Report a problem',
-      icon: 'warning',
-      color: '#f59e0b',
-      onPress: () => navigation.navigate('ContactUs', { subject: 'Report Issue' }),
-    },
-    { 
-      id: 'feedback', 
-      title: 'Give Feedback', 
-      subtitle: 'Share your thoughts',
-      icon: 'heart',
-      color: '#ec4899',
-      onPress: () => navigation.navigate('RateApp'),
-    },
-  ];
+  const quickActions = (() => {
+    const c = t.customer as Record<string, string | undefined> | undefined;
+    const reportSubject = String(c?.helpReportIssueSubject ?? 'Report Issue');
+    return [
+      {
+        id: 'contact' as const,
+        title: String(c?.helpChatTitle ?? 'Live Chat'),
+        subtitle: String(c?.helpQuickActionLiveSub ?? ''),
+        icon: 'chatbubbles' as const,
+        color: '#3b82f6',
+        onPress: () => startChat(),
+      },
+      {
+        id: 'report' as const,
+        title: String(c?.helpQuickActionReportTitle ?? ''),
+        subtitle: String(c?.helpQuickActionReportSub ?? ''),
+        icon: 'warning' as const,
+        color: '#f59e0b',
+        onPress: () => navigation.navigate('SupportChat', { subject: reportSubject }),
+      },
+      {
+        id: 'feedback' as const,
+        title: String(c?.helpQuickActionFeedbackTitle ?? ''),
+        subtitle: String(c?.helpQuickActionFeedbackSub ?? ''),
+        icon: 'heart' as const,
+        color: '#ec4899',
+        onPress: () => navigation.navigate('RateApp'),
+      },
+    ];
+  })();
 
   // ========= CHAT MODE =========
   if (screenMode === 'chat') {
@@ -260,10 +262,15 @@ export default function HelpCenterScreen({ navigation }: any) {
             <Ionicons name="arrow-back" size={24} color="#111827" />
           </TouchableOpacity>
           <View style={{ alignItems: 'center' }}>
-            <Text style={styles.headerTitle}>Live Chat</Text>
+            <Text style={styles.headerTitle}>
+              {(t.customer as Record<string, string | undefined> | undefined)
+                ?.helpChatTitle ?? 'Live Chat'}
+            </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
               <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#10b981' }} />
-              <Text style={{ fontSize: 12, color: '#10b981' }}>Online</Text>
+              <Text style={{ fontSize: 12, color: '#10b981' }}>
+                {t.common?.online ?? 'Online'}
+              </Text>
             </View>
           </View>
           <View style={{ width: 40 }} />
@@ -304,13 +311,13 @@ export default function HelpCenterScreen({ navigation }: any) {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={chatStyles.quickReplies}
             >
-              {QUICK_REPLIES.map((reply, i) => (
+              {quickReplyDefs.map((def, i) => (
                 <TouchableOpacity
                   key={i}
                   style={chatStyles.quickReplyBtn}
-                  onPress={() => sendMessage(reply)}
+                  onPress={() => sendMessage(def.label, def.key)}
                 >
-                  <Text style={chatStyles.quickReplyText}>{reply}</Text>
+                  <Text style={chatStyles.quickReplyText}>{def.label}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -320,7 +327,7 @@ export default function HelpCenterScreen({ navigation }: any) {
           <View style={chatStyles.inputBar}>
             <TextInput
               style={chatStyles.chatInput}
-              placeholder="Type your message..."
+              placeholder={t.chat?.typeMessage || "Type a message..."}
               placeholderTextColor="#9ca3af"
               value={chatInput}
               onChangeText={setChatInput}
@@ -380,7 +387,11 @@ export default function HelpCenterScreen({ navigation }: any) {
               onPress={action.onPress}
             >
               <View style={[styles.quickActionIcon, { backgroundColor: `${action.color}15` }]}>
-                <Ionicons name={action.icon as any} size={24} color={action.color} />
+                <Ionicons
+                  name={action.icon as IoniconName}
+                  size={24}
+                  color={action.color}
+                />
               </View>
               <Text style={styles.quickActionTitle}>{action.title}</Text>
               <Text style={styles.quickActionSubtitle}>{action.subtitle}</Text>
@@ -404,7 +415,7 @@ export default function HelpCenterScreen({ navigation }: any) {
               onPress={() => setSelectedCategory(category.id)}
             >
               <Ionicons 
-                name={category.icon as any} 
+                name={category.icon as IoniconName} 
                 size={16} 
                 color={selectedCategory === category.id ? '#fff' : '#6b7280'} 
               />

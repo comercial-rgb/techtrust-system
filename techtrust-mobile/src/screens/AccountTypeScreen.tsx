@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import type { ComponentProps } from "react";
 import {
   View,
   Text,
@@ -13,98 +14,97 @@ import {
   Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+
+type IoniconName = ComponentProps<typeof Ionicons>["name"];
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "react-native-paper";
 import { useI18n } from "../i18n";
+import { localeBulletList } from "../i18n/localeBulletList";
 import { useAuth } from "../contexts/AuthContext";
 import {
   signInWithGoogle,
   signInWithApple,
   isAppleSignInAvailable,
 } from "../services/authService";
+import type { AuthStackScreenProps } from "../navigation/types";
 
 const ACCOUNT_TYPES = [
   {
     key: "CLIENT" as const,
     icon: "car-sport-outline",
-    activeIcon: "car-sport",
     color: "#2B5EA7",
     bgColor: "#eff6ff",
     borderColor: "#bfdbfe",
-    title: "Customer",
-    titlePt: "Cliente",
-    subtitle: "I need auto services",
-    subtitlePt: "Preciso de serviços automotivos",
-    bullets: [
-      "Request repairs, maintenance & roadside help",
-      "Get quotes from nearby providers",
-      "Track service history & vehicle health",
-      "Manage payments securely",
-    ],
-    bulletsPt: [
-      "Solicite reparos, manutenção e assistência",
-      "Receba orçamentos de prestadores próximos",
-      "Histórico de serviços e saúde do veículo",
-      "Pagamentos seguros e rastreáveis",
-    ],
   },
   {
     key: "PROVIDER" as const,
     icon: "construct-outline",
-    activeIcon: "construct",
     color: "#0f766e",
     bgColor: "#f0fdfa",
     borderColor: "#99f6e4",
-    title: "Service Provider",
-    titlePt: "Prestador de Serviços",
-    subtitle: "I offer auto repair & maintenance",
-    subtitlePt: "Ofereço reparo e manutenção",
-    bullets: [
-      "Receive service requests from nearby customers",
-      "Send quotes & manage work orders",
-      "Process payments & track earnings",
-      "Build your reputation with verified reviews",
-    ],
-    bulletsPt: [
-      "Receba solicitações de clientes próximos",
-      "Envie orçamentos e gerencie ordens de serviço",
-      "Processe pagamentos e acompanhe ganhos",
-      "Construa reputação com avaliações verificadas",
-    ],
   },
   {
     key: "MARKETPLACE" as const,
     icon: "storefront-outline",
-    activeIcon: "storefront",
     color: "#0891b2",
     bgColor: "#f0fdff",
     borderColor: "#a5f3fc",
-    title: "Marketplace",
-    titlePt: "Marketplace",
-    subtitle: "Car wash or auto parts store",
-    subtitlePt: "Lava-rápido ou loja de autopeças",
-    bullets: [
-      "List your car wash or auto parts store",
-      "Receive online bookings & orders",
-      "Manage inventory & promotions",
-      "Expand your customer base digitally",
-    ],
-    bulletsPt: [
-      "Cadastre seu lava-rápido ou loja de peças",
-      "Receba agendamentos e pedidos online",
-      "Gerencie estoque e promoções",
-      "Expanda sua base de clientes digitalmente",
-    ],
   },
 ] as const;
 
 type Role = (typeof ACCOUNT_TYPES)[number]["key"];
 
-export default function AccountTypeScreen({ navigation }: any) {
+function accountTypeCardCopy(
+  role: Role,
+  at: {
+    clientTitle: string;
+    clientSubtitle: string;
+    clientBullets: string;
+    providerTitle: string;
+    providerSubtitle: string;
+    providerBullets: string;
+    marketplaceTitle: string;
+    marketplaceSubtitle: string;
+    marketplaceBullets: string;
+  },
+): { title: string; subtitle: string; bullets: string[] } {
+  if (role === "CLIENT") {
+    return {
+      title: at.clientTitle,
+      subtitle: at.clientSubtitle,
+      bullets: localeBulletList(
+        at.clientBullets,
+        "Request repairs, maintenance & roadside help\nGet quotes from nearby providers\nTrack service history & vehicle health\nManage payments securely",
+      ),
+    };
+  }
+  if (role === "PROVIDER") {
+    return {
+      title: at.providerTitle,
+      subtitle: at.providerSubtitle,
+      bullets: localeBulletList(
+        at.providerBullets,
+        "Receive service requests from nearby customers\nSend quotes & manage work orders\nProcess payments & track earnings\nBuild your reputation with verified reviews",
+      ),
+    };
+  }
+  return {
+    title: at.marketplaceTitle,
+    subtitle: at.marketplaceSubtitle,
+    bullets: localeBulletList(
+      at.marketplaceBullets,
+      "List your car wash or auto parts store\nReceive online bookings & orders\nManage inventory & promotions\nExpand your customer base digitally",
+    ),
+  };
+}
+
+export default function AccountTypeScreen({
+  navigation,
+}: AuthStackScreenProps<"AccountType">) {
   const theme = useTheme();
-  const { language, t } = useI18n();
+  const { t } = useI18n();
   const { socialLogin } = useAuth();
-  const isPt = language === "pt";
+  const at = t.accountType;
 
   const [showSocialModal, setShowSocialModal] = useState(false);
   const [pendingSocialProvider, setPendingSocialProvider] = useState<"google" | "apple" | null>(null);
@@ -143,6 +143,10 @@ export default function AccountTypeScreen({ navigation }: any) {
       if (result.status === "AUTHENTICATED") {
         // Already logged in — AuthContext handles navigation
       } else if (result.status === "NEEDS_PASSWORD") {
+        if (!result.userId) {
+          setSocialLoading(false);
+          return;
+        }
         navigation.navigate("CompleteSocialSignup", {
           userId: result.userId,
           email: result.email,
@@ -182,10 +186,10 @@ export default function AccountTypeScreen({ navigation }: any) {
         </TouchableOpacity>
         <View style={styles.headerText}>
           <Text style={styles.headerTitle}>
-            {isPt ? "Criar conta" : "Create account"}
+            {at.headerTitle}
           </Text>
           <Text style={styles.headerSub}>
-            {isPt ? "Escolha como você vai usar o app" : "Choose how you'll use the app"}
+            {at.headerSubtitle}
           </Text>
         </View>
       </View>
@@ -195,47 +199,54 @@ export default function AccountTypeScreen({ navigation }: any) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {ACCOUNT_TYPES.map((type) => (
-          <TouchableOpacity
-            key={type.key}
-            style={[styles.card, { borderColor: type.borderColor, backgroundColor: type.bgColor }]}
-            onPress={() => handleSelect(type.key)}
-            activeOpacity={0.85}
-          >
-            {/* Icon + Title row */}
-            <View style={styles.cardTop}>
-              <View style={[styles.iconCircle, { backgroundColor: type.color }]}>
-                <Ionicons name={type.icon as any} size={26} color="#fff" />
-              </View>
-              <View style={styles.cardTitleBlock}>
-                <Text style={[styles.cardTitle, { color: type.color }]}>
-                  {isPt ? type.titlePt : type.title}
-                </Text>
-                <Text style={styles.cardSubtitle}>
-                  {isPt ? type.subtitlePt : type.subtitle}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={type.color} style={{ opacity: 0.6 }} />
-            </View>
-
-            {/* Bullet points */}
-            <View style={styles.bullets}>
-              {(isPt ? type.bulletsPt : type.bullets).map((b, i) => (
-                <View key={i} style={styles.bulletRow}>
-                  <Ionicons name="checkmark-circle" size={15} color={type.color} style={{ marginTop: 1 }} />
-                  <Text style={styles.bulletText}>{b}</Text>
+        {ACCOUNT_TYPES.map((type) => {
+          const copy = accountTypeCardCopy(type.key, at);
+          return (
+            <TouchableOpacity
+              key={type.key}
+              style={[styles.card, { borderColor: type.borderColor, backgroundColor: type.bgColor }]}
+              onPress={() => handleSelect(type.key)}
+              activeOpacity={0.85}
+            >
+              {/* Icon + Title row */}
+              <View style={styles.cardTop}>
+                <View style={[styles.iconCircle, { backgroundColor: type.color }]}>
+                  <Ionicons
+                    name={type.icon as IoniconName}
+                    size={26}
+                    color="#fff"
+                  />
                 </View>
-              ))}
-            </View>
-          </TouchableOpacity>
-        ))}
+                <View style={styles.cardTitleBlock}>
+                  <Text style={[styles.cardTitle, { color: type.color }]}>
+                    {copy.title}
+                  </Text>
+                  <Text style={styles.cardSubtitle}>
+                    {copy.subtitle}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={type.color} style={{ opacity: 0.6 }} />
+              </View>
+
+              {/* Bullet points */}
+              <View style={styles.bullets}>
+                {copy.bullets.map((b, i) => (
+                  <View key={i} style={styles.bulletRow}>
+                    <Ionicons name="checkmark-circle" size={15} color={type.color} style={{ marginTop: 1 }} />
+                    <Text style={styles.bulletText}>{b}</Text>
+                  </View>
+                ))}
+              </View>
+            </TouchableOpacity>
+          );
+        })}
 
         {/* Social Signup Section */}
         <View style={styles.socialSection}>
           <View style={styles.socialDivider}>
             <View style={styles.socialDividerLine} />
             <Text style={styles.socialDividerText}>
-              {isPt ? "ou crie uma conta com" : "or sign up with"}
+              {at.socialDivider}
             </Text>
             <View style={styles.socialDividerLine} />
           </View>
@@ -243,9 +254,7 @@ export default function AccountTypeScreen({ navigation }: any) {
           <View style={styles.socialInfoBox}>
             <MaterialCommunityIcons name="information-outline" size={14} color="#6b7280" />
             <Text style={styles.socialInfoText}>
-              {isPt
-                ? "Você escolherá o tipo de conta (cliente ou prestador) após autenticar."
-                : "You'll choose your account type (customer or provider) after authenticating."}
+              {at.socialSignupHint}
             </Text>
           </View>
 
@@ -283,11 +292,11 @@ export default function AccountTypeScreen({ navigation }: any) {
         {/* Footer — always 32px below last card */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            {isPt ? "Já tem uma conta? " : "Already have an account? "}
+            {t.auth?.alreadyHaveAccount || "Already have an account?"}{" "}
           </Text>
           <TouchableOpacity onPress={() => navigation.navigate("Login")}>
             <Text style={[styles.footerLink, { color: theme.colors.primary }]}>
-              {isPt ? "Entrar" : "Sign in"}
+              {t.auth?.login || "Login"}
             </Text>
           </TouchableOpacity>
         </View>
@@ -308,12 +317,10 @@ export default function AccountTypeScreen({ navigation }: any) {
           <View style={styles.modalSheet}>
             <View style={styles.modalHandle} />
             <Text style={styles.modalTitle}>
-              {isPt ? "Você é..." : "I am a..."}
+              {at.modalTitle}
             </Text>
             <Text style={styles.modalSub}>
-              {isPt
-                ? "Escolha como usará o app com esta conta social."
-                : "Choose how you'll use the app with this social account."}
+              {at.modalSubtitle}
             </Text>
 
             <TouchableOpacity
@@ -324,8 +331,8 @@ export default function AccountTypeScreen({ navigation }: any) {
                 <Ionicons name="car-sport-outline" size={26} color="#2B5EA7" />
               </View>
               <View style={styles.roleText}>
-                <Text style={styles.roleTitle}>{isPt ? "Cliente" : "Customer"}</Text>
-                <Text style={styles.roleSub}>{isPt ? "Preciso de serviços automotivos" : "I need auto services"}</Text>
+                <Text style={styles.roleTitle}>{at.modalCustomerTitle}</Text>
+                <Text style={styles.roleSub}>{at.modalCustomerSubtitle}</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
             </TouchableOpacity>
@@ -338,14 +345,16 @@ export default function AccountTypeScreen({ navigation }: any) {
                 <Ionicons name="construct-outline" size={26} color="#0f766e" />
               </View>
               <View style={styles.roleText}>
-                <Text style={styles.roleTitle}>{isPt ? "Prestador" : "Service Provider"}</Text>
-                <Text style={styles.roleSub}>{isPt ? "Ofereço reparo e manutenção" : "I offer auto repair & services"}</Text>
+                <Text style={styles.roleTitle}>{at.modalProviderTitle}</Text>
+                <Text style={styles.roleSub}>{at.modalProviderSubtitle}</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.modalCancel} onPress={() => setShowSocialModal(false)}>
-              <Text style={styles.modalCancelText}>{isPt ? "Cancelar" : "Cancel"}</Text>
+              <Text style={styles.modalCancelText}>
+                {t.common?.cancel || "Cancel"}
+              </Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>

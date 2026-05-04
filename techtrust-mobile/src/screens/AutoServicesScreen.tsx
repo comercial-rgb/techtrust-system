@@ -10,8 +10,15 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useI18n } from "../i18n";
 import CarWashMapScreen from "./CarWashMapScreen";
 import PartsStoreScreen from "./PartsStoreScreen";
+import type {
+  CarWashStackScreenProps,
+  CustomerAppNavigation,
+  CustomerCarWashMapScreenNavigation,
+} from "../navigation/types";
 
-export default function AutoServicesScreen({ navigation }: any) {
+export default function AutoServicesScreen({
+  navigation,
+}: CarWashStackScreenProps<"CarWashMapMain">) {
   const [activeTab, setActiveTab] = useState<"carWash" | "autoParts">("carWash");
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
@@ -38,7 +45,7 @@ export default function AutoServicesScreen({ navigation }: any) {
               activeTab === "carWash" && styles.segmentTextActive,
             ]}
           >
-            {(t as any).carWash?.tabCarWash || "Car Wash"}
+            {t.carWash?.tabLabel || "Car Wash"}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -59,7 +66,7 @@ export default function AutoServicesScreen({ navigation }: any) {
               activeTab === "autoParts" && styles.segmentTextActive,
             ]}
           >
-            {(t as any).partsStore?.tabLabel || "Auto Parts"}
+            {t.partsStore?.tabLabel || "Auto Parts"}
           </Text>
         </TouchableOpacity>
       </View>
@@ -70,9 +77,15 @@ export default function AutoServicesScreen({ navigation }: any) {
       >
         <View style={styles.content}>
           {activeTab === "carWash" ? (
-            <CarWashMapScreen navigation={navigation} />
+            <CarWashMapScreen
+              navigation={
+                navigation as unknown as CustomerCarWashMapScreenNavigation
+              }
+            />
           ) : (
-            <PartsStoreScreen navigation={navigation} />
+            <PartsStoreScreen
+              navigation={navigation as unknown as CustomerAppNavigation}
+            />
           )}
         </View>
       </SafeAreaInsetsContext.Provider>

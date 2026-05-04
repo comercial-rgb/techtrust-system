@@ -15,13 +15,21 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
+import type { RouteProp } from "@react-navigation/native";
 import { useI18n } from "../../i18n";
 import { useAuth } from "../../contexts/AuthContext";
 import * as fdacsService from "../../services/fdacs.service";
 import { log } from "../../utils/logger";
+import type { CustomerAppNavigation, CustomerAppParamList } from "../../navigation/types";
 
-export default function CompareEstimatesScreen({ route, navigation }: any) {
-  const { shareId } = route.params;
+export default function CompareEstimatesScreen({
+  route,
+  navigation,
+}: {
+  route: RouteProp<CustomerAppParamList, "CompareEstimates">;
+  navigation: CustomerAppNavigation;
+}) {
+  const shareId = route.params?.shareId;
   const { user } = useAuth();
   const { t, formatCurrency } = useI18n();
   const [loading, setLoading] = useState(true);
@@ -34,6 +42,11 @@ export default function CompareEstimatesScreen({ route, navigation }: any) {
   );
 
   async function loadDetail() {
+    if (!shareId) {
+      setShare(null);
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       const res = await fdacsService.getSharedEstimateDetail(shareId);
@@ -46,6 +59,7 @@ export default function CompareEstimatesScreen({ route, navigation }: any) {
   }
 
   async function handleCloseSharing() {
+    if (!shareId) return;
     Alert.alert(t.fdacs.closeSharingTitle, t.fdacs.closeSharingMessage, [
       { text: t.common.cancel, style: "cancel" },
       {
@@ -78,7 +92,7 @@ export default function CompareEstimatesScreen({ route, navigation }: any) {
   const original = share.originalQuote;
   const competing = share.competingQuotes || [];
   const isOwner =
-    share.customerId === user?.id || share.customerId === (user as any)?.userId;
+    share.customerId === user?.id || share.customerId === user?.userId;
 
   return (
     <SafeAreaView style={styles.container}>

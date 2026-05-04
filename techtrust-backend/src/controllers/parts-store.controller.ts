@@ -395,7 +395,10 @@ export const getStoreReviews = async (req: Request, res: Response) => {
  * Get user's favorite parts stores
  */
 export const getFavorites = async (req: Request, res: Response) => {
-  const userId = (req as any).userId;
+  const userId = req.user?.id;
+  if (!userId) {
+    throw new AppError("Unauthorized", 401, "UNAUTHORIZED");
+  }
 
   const favorites = await prisma.partsStoreFavorite.findMany({
     where: { userId },
@@ -417,7 +420,10 @@ export const getFavorites = async (req: Request, res: Response) => {
  * Toggle favorite on a parts store
  */
 export const toggleFavorite = async (req: Request, res: Response) => {
-  const userId = (req as any).userId;
+  const userId = req.user?.id;
+  if (!userId) {
+    throw new AppError("Unauthorized", 401, "UNAUTHORIZED");
+  }
   const { id } = req.params;
 
   const existing = await prisma.partsStoreFavorite.findUnique({
@@ -442,7 +448,10 @@ export const toggleFavorite = async (req: Request, res: Response) => {
  * Create a review for a parts store
  */
 export const createStoreReview = async (req: Request, res: Response) => {
-  const userId = (req as any).userId;
+  const userId = req.user?.id;
+  if (!userId) {
+    throw new AppError("Unauthorized", 401, "UNAUTHORIZED");
+  }
   const { id } = req.params;
   const { rating, comment } = req.body;
 
@@ -477,7 +486,10 @@ export const createStoreReview = async (req: Request, res: Response) => {
  * Reserve a product for pickup
  */
 export const reserveProduct = async (req: Request, res: Response) => {
-  const userId = (req as any).userId;
+  const userId = req.user?.id;
+  if (!userId) {
+    throw new AppError("Unauthorized", 401, "UNAUTHORIZED");
+  }
   const { productId } = req.params;
   const { quantity = 1, notes } = req.body;
 
@@ -559,7 +571,10 @@ export const trackAction = async (req: Request, res: Response) => {
  * Create a new parts store (provider)
  */
 export const createStore = async (req: Request, res: Response) => {
-  const userId = (req as any).userId;
+  const userId = req.user?.id;
+  if (!userId) {
+    throw new AppError("Unauthorized", 401, "UNAUTHORIZED");
+  }
 
   const provider = await prisma.providerProfile.findUnique({
     where: { userId },
@@ -584,7 +599,10 @@ export const createStore = async (req: Request, res: Response) => {
  * Get provider's own parts stores
  */
 export const getMyStores = async (req: Request, res: Response) => {
-  const userId = (req as any).userId;
+  const userId = req.user?.id;
+  if (!userId) {
+    throw new AppError("Unauthorized", 401, "UNAUTHORIZED");
+  }
 
   const provider = await prisma.providerProfile.findUnique({
     where: { userId },

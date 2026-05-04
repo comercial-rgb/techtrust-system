@@ -3,6 +3,7 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import type { ComponentProps } from "react";
 import {
   View,
   Text,
@@ -17,11 +18,14 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+
+type IoniconName = ComponentProps<typeof Ionicons>["name"];
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from "expo-location";
 import api from "../../services/api";
 import { useI18n } from "../../i18n";
 import { log } from "../../utils/logger";
+import type { CustomerAppNavigation } from "../../navigation/types";
 
 // Google Places API key (optional - falls back to Nominatim/OSM)
 const GOOGLE_PLACES_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_KEY || "";
@@ -76,9 +80,9 @@ interface Address {
   longitude?: number;
 }
 
-export default function AddressesScreen({ navigation }: any) {
+export default function AddressesScreen({ navigation }: { navigation: CustomerAppNavigation }) {
   const { t } = useI18n();
-  const ab = (t as any).addressBook || {};
+  const ab = t.addressBook || {};
   const [loading, setLoading] = useState(true);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [showModal, setShowModal] = useState(false);
@@ -536,7 +540,7 @@ export default function AddressesScreen({ navigation }: any) {
                 <View style={styles.addressHeader}>
                   <View style={styles.addressIcon}>
                     <Ionicons
-                      name={getAddressIcon(address.label) as any}
+                      name={getAddressIcon(address.label) as IoniconName}
                       size={20}
                       color="#2B5EA7"
                     />
@@ -710,7 +714,7 @@ export default function AddressesScreen({ navigation }: any) {
                     onPress={() => setFormData({ ...formData, label })}
                   >
                     <Ionicons
-                      name={getAddressIcon(label) as any}
+                      name={getAddressIcon(label) as IoniconName}
                       size={18}
                       color={formData.label === label ? "#2B5EA7" : "#6b7280"}
                     />

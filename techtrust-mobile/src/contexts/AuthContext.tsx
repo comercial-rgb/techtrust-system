@@ -13,18 +13,26 @@ import React, {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import api from "../services/api";
 import { log } from "../utils/logger";
+import {
+  pickClientPlan,
+  type ClientPlanTier,
+} from "../utils/clientPlan";
 
 // ============================================
 // TYPES
 // ============================================
 interface User {
   id: string;
+  /** Some API payloads use `userId` interchangeably with `id` */
+  userId?: string;
   email: string;
   fullName: string;
   phone?: string;
   createdAt?: string;
   role: "CUSTOMER" | "PROVIDER" | "MARKETPLACE";
   avatarUrl?: string;
+  /** Customer subscription tier for fee breakdowns (from /users/me or login) */
+  clientPlan?: ClientPlanTier;
   providerProfile?: {
     businessName: string;
     businessType: string;
@@ -158,13 +166,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Token válido, atualizar dados do usuário
           // /users/me returns { data: { user: {...}, subscription: {...} } }
           const rawData = response.data.data;
-          const apiUser = rawData.user || rawData; // support both nested and flat formats
+          const apiUser = rawData.user || rawData;
+          const sub = (rawData as { subscription?: { plan?: unknown; planTier?: unknown } })
+            .subscription;
           const normalizedUser: User = {
             id: apiUser.id,
             email: apiUser.email,
             fullName: apiUser.fullName,
             phone: apiUser.phone || "",
-            role: apiUser.role === "CLIENT" ? "CUSTOMER" : (apiUser.role === "PROVIDER" && apiUser.providerProfile?.businessType ? "MARKETPLACE" : apiUser.role),
+            role:
+              apiUser.role === "CLIENT"
+                ? "CUSTOMER"
+                : apiUser.role === "PROVIDER" &&
+                    apiUser.providerProfile?.businessType
+                  ? "MARKETPLACE"
+                  : apiUser.role,
+            clientPlan: pickClientPlan(
+              sub?.plan,
+              sub?.planTier,
+              (apiUser as { selectedPlan?: unknown }).selectedPlan,
+              (apiUser as { clientPlan?: unknown }).clientPlan,
+            ),
             providerProfile: apiUser.providerProfile
               ? {
                   businessName: apiUser.providerProfile.businessName || "",
@@ -244,13 +266,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await api.post("/auth/login", { email, password });
 
-      const { token, refreshToken, user: apiUser } = response.data.data;
+      const loginData = response.data.data;
+      const { token, refreshToken, user: apiUser } = loginData;
+      const sub = (loginData as { subscription?: { plan?: unknown; planTier?: unknown } })
+        .subscription;
       const normalizedUser: User = {
         id: apiUser.id,
         email: apiUser.email,
         fullName: apiUser.fullName,
         phone: apiUser.phone || "",
         role: apiUser.role === "CLIENT" ? "CUSTOMER" : apiUser.role,
+        clientPlan: pickClientPlan(
+          sub?.plan,
+          sub?.planTier,
+          (apiUser as { selectedPlan?: unknown }).selectedPlan,
+        ),
         providerProfile: apiUser.providerProfile
           ? {
               businessName: apiUser.providerProfile.businessName || "",
@@ -291,18 +321,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setHasCompletedOnboarding(onboardingDone === "true");
 
       setUser(normalizedUser);
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Verificar se é erro de telefone não verificado
-      const errorCode = error?.response?.data?.code;
+      const err = error as {
+        response?: { data?: { code?: string; message?: string; data?: unknown } };
+        message?: string;
+      };
+      const errorCode = err?.response?.data?.code;
       const message =
-        error?.response?.data?.message ||
-        error?.message ||
+        err?.response?.data?.message ||
+        err?.message ||
         "Erro ao fazer login";
 
-      // Criar erro com código para tratamento específico
-      const loginError = new Error(message) as any;
-      loginError.code = errorCode;
-      loginError.data = error?.response?.data?.data;
+      const loginError = Object.assign(new Error(message), {
+        code: errorCode,
+        data: err?.response?.data?.data,
+      }) as Error & { code?: string; data?: unknown };
       throw loginError;
     }
   };
@@ -365,18 +399,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setHasCompletedOnboarding(onboardingDone === "true");
 
       setUser(normalizedUser);
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Verificar se é erro de telefone não verificado
-      const errorCode = error?.response?.data?.code;
+      const err = error as {
+        response?: { data?: { code?: string; message?: string; data?: unknown } };
+        message?: string;
+      };
+      const errorCode = err?.response?.data?.code;
       const message =
-        error?.response?.data?.message ||
-        error?.message ||
+        err?.response?.data?.message ||
+        err?.message ||
         "Erro ao fazer login";
 
-      // Criar erro com código para tratamento específico
-      const loginError = new Error(message) as any;
-      loginError.code = errorCode;
-      loginError.data = error?.response?.data?.data;
+      const loginError = Object.assign(new Error(message), {
+        code: errorCode,
+        data: err?.response?.data?.data,
+      }) as Error & { code?: string; data?: unknown };
       throw loginError;
     }
   };
@@ -438,13 +476,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         method,
       });
 
-      const { token, refreshToken, user: apiUser } = response.data.data;
+      const verifyData = response.data.data;
+      const { token, refreshToken, user: apiUser } = verifyData;
+      const sub = (verifyData as { subscription?: { plan?: unknown; planTier?: unknown } })
+        .subscription;
       const normalizedUser: User = {
         id: apiUser.id,
         email: apiUser.email,
         fullName: apiUser.fullName,
         phone: apiUser.phone || "",
         role: apiUser.role === "CLIENT" ? "CUSTOMER" : apiUser.role,
+        clientPlan: pickClientPlan(
+          sub?.plan,
+          sub?.planTier,
+          (apiUser as { selectedPlan?: unknown }).selectedPlan,
+        ),
         providerProfile: apiUser.providerProfile
           ? {
               businessName: apiUser.providerProfile.businessName || "",
@@ -525,6 +571,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = response.data.data;
 
       if (data.status === "AUTHENTICATED") {
+        const authPayload = data as {
+          subscription?: { plan?: unknown; planTier?: unknown };
+        };
         // User is fully authenticated
         const normalizedUser: User = {
           id: data.user.id,
@@ -532,6 +581,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           fullName: data.user.fullName,
           phone: data.user.phone || "",
           role: data.user.role === "CLIENT" ? "CUSTOMER" : (data.user.role === "PROVIDER" && data.user.providerProfile?.businessType ? "MARKETPLACE" : data.user.role),
+          clientPlan: pickClientPlan(
+            authPayload.subscription?.plan,
+            authPayload.subscription?.planTier,
+            (data.user as { selectedPlan?: unknown }).selectedPlan,
+            (data.user as { clientPlan?: unknown }).clientPlan,
+          ),
           avatarUrl: data.user.avatarUrl,
           providerProfile: data.user.providerProfile
             ? {
@@ -599,12 +654,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = response.data.data;
 
       if (data.status === "AUTHENTICATED") {
+        const authPayload = data as {
+          subscription?: { plan?: unknown; planTier?: unknown };
+        };
         const normalizedUser: User = {
           id: data.user.id,
           email: data.user.email,
           fullName: data.user.fullName,
           phone: data.user.phone || "",
           role: data.user.role === "CLIENT" ? "CUSTOMER" : (data.user.role === "PROVIDER" && data.user.providerProfile?.businessType ? "MARKETPLACE" : data.user.role),
+          clientPlan: pickClientPlan(
+            authPayload.subscription?.plan,
+            authPayload.subscription?.planTier,
+            (data.user as { selectedPlan?: unknown }).selectedPlan,
+            (data.user as { clientPlan?: unknown }).clientPlan,
+          ),
           avatarUrl: data.user.avatarUrl,
           providerProfile: data.user.providerProfile
             ? {

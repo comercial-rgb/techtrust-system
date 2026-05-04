@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
 import DashboardLayout from '../../components/DashboardLayout';
 import { api } from '../../services/api';
+import { unwrapApiData } from '../../utils/unwrapApiData';
 import {
   ChevronLeft, MapPin, Plus, Star, Pencil, Trash2, X, Check,
   AlertCircle, CheckCircle, Home, Building, Navigation, ChevronDown,
@@ -77,8 +78,8 @@ export default function EnderecosPage() {
   async function loadAddresses() {
     try {
       const res = await api.getProfile();
-      const raw = res.data as any;
-      const u = raw?.user || raw;
+      const raw = unwrapApiData<Record<string, unknown>>(res.data) as Record<string, unknown>;
+      const u = (raw.user as Record<string, unknown> | undefined) ?? raw;
       const stored = u?.addressesJson;
       const parsed: Address[] = Array.isArray(stored) ? stored : (typeof stored === 'string' ? JSON.parse(stored) : []);
       setAddresses(parsed);

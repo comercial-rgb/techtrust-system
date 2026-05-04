@@ -2,10 +2,19 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: [
-      'localhost',
-      'provider.techtrustautosolutions.com',
-      'techtrustautosolutions.com',
+    remotePatterns: [
+      { protocol: 'http', hostname: 'localhost', pathname: '/**' },
+      { protocol: 'https', hostname: 'localhost', pathname: '/**' },
+      {
+        protocol: 'https',
+        hostname: 'provider.techtrustautosolutions.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'techtrustautosolutions.com',
+        pathname: '/**',
+      },
     ],
   },
   // Custom headers for SEO and security

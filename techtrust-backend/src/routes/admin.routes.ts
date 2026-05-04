@@ -6,6 +6,7 @@
  */
 
 import { Router, Request, Response } from "express";
+import { Prisma, SubscriptionPlan } from "@prisma/client";
 import { prisma } from "../config/database";
 import { logger } from "../config/logger";
 import { authenticate, authorize } from "../middleware/auth";
@@ -992,7 +993,7 @@ router.patch(
 
     const order = await prisma.workOrder.update({
       where: { id },
-      data: updateData as any,
+      data: updateData as Prisma.WorkOrderUpdateInput,
     });
 
     logger.warn(
@@ -1463,11 +1464,12 @@ router.get(
 
     // Format for response
     const formattedPlans = plans.map((plan) => {
-      const planKeyUpper = plan.planKey.toUpperCase() as any;
-      let subscribers = countMap.get(planKeyUpper) || 0;
+      const planKeyUpperStr = plan.planKey.toUpperCase();
+      let subscribers =
+        countMap.get(planKeyUpperStr as SubscriptionPlan) || 0;
 
       // Add freemium users to the FREE plan count
-      if (planKeyUpper === "FREE" || planKeyUpper === "FREEMIUM") {
+      if (planKeyUpperStr === "FREE" || planKeyUpperStr === "FREEMIUM") {
         subscribers += freemiumCount;
       }
 
@@ -1992,7 +1994,7 @@ router.post(
         startDate: startDate ? new Date(startDate) : null,
         endDate: endDate ? new Date(endDate) : null,
         targetAudience: targetAudience || "all",
-        createdById: (req as any).user?.id,
+        createdById: req.user?.id,
       },
     });
 
@@ -2148,7 +2150,7 @@ router.post(
         isFeatured: isFeatured ?? false,
         usageLimit,
         applicableServices: applicableServices || [],
-        createdById: (req as any).user?.id,
+        createdById: req.user?.id,
       },
     });
 
@@ -2307,7 +2309,7 @@ router.post(
         isFeatured: isFeatured ?? false,
         position: position || 0,
         publishedAt: isPublished ? new Date() : null,
-        authorId: (req as any).user?.id,
+        authorId: req.user?.id,
       },
     });
 
@@ -2471,7 +2473,7 @@ router.post(
         targetAudience: targetAudience || "all",
         actionLabel,
         actionUrl,
-        createdById: (req as any).user?.id,
+        createdById: req.user?.id,
       },
     });
 

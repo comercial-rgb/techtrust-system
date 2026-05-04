@@ -173,10 +173,18 @@ export default function ConfiguracoesPage() {
       const p = response.data || {};
       const hours = p.businessHours || {};
 
-      const parseDay = (day: any): WorkDay =>
-        day ? { open: day.open || day.openTime || "08:00", close: day.close || day.closeTime || "18:00", closed: day.closed !== undefined ? !!day.closed : !day.enabled } : DEFAULT_DAY;
+      const parseDay = (day: unknown): WorkDay => {
+        if (!day || typeof day !== "object") return DEFAULT_DAY;
+        const d = day as Record<string, unknown>;
+        return {
+          open: String(d.open || d.openTime || "08:00"),
+          close: String(d.close || d.closeTime || "18:00"),
+          closed:
+            d.closed !== undefined ? !!d.closed : !Boolean(d.enabled),
+        };
+      };
 
-      const u = user as any;
+      const u = user;
 
       setProfile({
         businessName: p.businessName || u?.fullName || "",

@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from "react";
+import type { ComponentProps } from "react";
 import {
   View,
   Text,
@@ -14,6 +15,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+
+type IoniconName = ComponentProps<typeof Ionicons>["name"];
 import { colors } from "../constants/theme";
 import { useI18n } from "../i18n";
 import {
@@ -21,11 +24,12 @@ import {
   type MobileNotificationListItem,
 } from "../utils/notifications";
 import { useNotificationsOptional } from "../contexts/NotificationsContext";
+import type { NotificationsScreenNavigation } from "../navigation/types";
 
 type Notification = MobileNotificationListItem;
 
 interface NotificationsScreenProps {
-  navigation: any;
+  navigation: NotificationsScreenNavigation;
   userType?: "customer" | "provider";
 }
 
@@ -141,7 +145,7 @@ export default function NotificationsScreen({
         activeOpacity={0.7}
       >
         <View style={[styles.iconContainer, { backgroundColor: icon.bg }]}>
-          <Ionicons name={icon.name as any} size={22} color={icon.color} />
+          <Ionicons name={icon.name as IoniconName} size={22} color={icon.color} />
         </View>
         <View style={styles.content}>
           <View style={styles.header}>

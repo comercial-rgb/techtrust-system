@@ -20,6 +20,7 @@ import { useI18n } from '../../i18n';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { log } from "../../utils/logger";
+import type { CustomerAppNavigation } from "../../navigation/types";
 
 interface ServiceRecord {
   id: string;
@@ -41,7 +42,7 @@ interface ServiceRecord {
   rating?: number;
 }
 
-export default function ServiceHistoryScreen({ navigation }: any) {
+export default function ServiceHistoryScreen({ navigation }: { navigation: CustomerAppNavigation }) {
   const { t, language, formatCurrency } = useI18n();
   const listDateLocale =
     language === 'pt' ? 'pt-BR' : language === 'es' ? 'es-ES' : 'en-US';
@@ -323,7 +324,9 @@ export default function ServiceHistoryScreen({ navigation }: any) {
               styles.filterButton,
               filter === f.key && styles.filterButtonActive,
             ]}
-            onPress={() => setFilter(f.key as any)}
+            onPress={() =>
+              setFilter(f.key as "all" | "completed" | "cancelled")
+            }
           >
             <Text style={[
               styles.filterButtonText,

@@ -13,12 +13,22 @@ import { Ionicons } from '@expo/vector-icons';
 import { useI18n } from '../i18n';
 import carWashService from '../services/carWash.service';
 import { colors, spacing, borderRadius, fontSize, fontWeight } from '../constants/theme';
+import type { RouteProp } from "@react-navigation/native";
+import type { CustomerAppNavigation, CustomerAppParamList } from "../navigation/types";
 
 const STAR_SIZE = 40;
 
-export default function CarWashReviewScreen({ route, navigation }: any) {
+export default function CarWashReviewScreen({
+  route,
+  navigation,
+}: {
+  route: RouteProp<CustomerAppParamList, "CarWashReview">;
+  navigation: CustomerAppNavigation;
+}) {
   const { t } = useI18n();
-  const { carWashId, businessName } = route.params;
+  const p = route.params as { carWashId?: string; businessName?: string } | undefined;
+  const carWashId = p?.carWashId ?? "";
+  const businessName = p?.businessName ?? "";
 
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
@@ -30,6 +40,10 @@ export default function CarWashReviewScreen({ route, navigation }: any) {
         t.carWash?.ratingRequiredTitle || 'Rating required',
         t.carWash?.ratingRequired || 'Please select a star rating before submitting.',
       );
+      return;
+    }
+    if (!carWashId) {
+      Alert.alert(t.common?.error || "Error", "Invalid request.");
       return;
     }
 
@@ -64,7 +78,9 @@ export default function CarWashReviewScreen({ route, navigation }: any) {
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Ionicons name="close" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Write a Review</Text>
+          <Text style={styles.headerTitle}>
+            {t.carWash?.writeReviewTitle || "Write a Review"}
+          </Text>
           <View style={{ width: 24 }} />
         </View>
 
@@ -73,7 +89,9 @@ export default function CarWashReviewScreen({ route, navigation }: any) {
           <Text style={styles.businessName}>{businessName}</Text>
 
           {/* Star Rating */}
-          <Text style={styles.label}>How was your experience?</Text>
+          <Text style={styles.label}>
+            {t.carWash?.howWasExperience || "How was your experience?"}
+          </Text>
           <View style={styles.starsRow}>
             {[1, 2, 3, 4, 5].map((star) => (
               <TouchableOpacity key={star} onPress={() => setRating(star)}>
@@ -86,19 +104,24 @@ export default function CarWashReviewScreen({ route, navigation }: any) {
             ))}
           </View>
           <Text style={styles.ratingLabel}>
-            {rating === 0 && 'Tap a star to rate'}
-            {rating === 1 && 'Poor'}
-            {rating === 2 && 'Fair'}
-            {rating === 3 && 'Good'}
-            {rating === 4 && 'Very Good'}
-            {rating === 5 && 'Excellent'}
+            {rating === 0 && (t.carWash?.tapToRate || "Tap a star to rate")}
+            {rating === 1 && (t.carWash?.ratingPoor || "Poor")}
+            {rating === 2 && (t.carWash?.ratingFair || "Fair")}
+            {rating === 3 && (t.carWash?.ratingGood || "Good")}
+            {rating === 4 && (t.carWash?.ratingVeryGood || "Very Good")}
+            {rating === 5 && (t.carWash?.ratingExcellent || "Excellent")}
           </Text>
 
           {/* Comment */}
-          <Text style={styles.label}>Share your experience (optional)</Text>
+          <Text style={styles.label}>
+            {t.carWash?.shareExperience || "Share your experience (optional)"}
+          </Text>
           <TextInput
             style={styles.commentInput}
-            placeholder="What did you like or dislike? How was the wash quality, speed, and customer service?"
+            placeholder={
+              t.carWash?.reviewPlaceholder ||
+              "What did you like or dislike? How was the wash quality, speed, and customer service?"
+            }
             placeholderTextColor={colors.textLight}
             value={comment}
             onChangeText={setComment}
@@ -120,7 +143,9 @@ export default function CarWashReviewScreen({ route, navigation }: any) {
             {loading ? (
               <ActivityIndicator size="small" color={colors.white} />
             ) : (
-              <Text style={styles.submitBtnText}>Submit Review</Text>
+              <Text style={styles.submitBtnText}>
+                {t.carWash?.submitReview || "Submit Review"}
+              </Text>
             )}
           </TouchableOpacity>
         </View>

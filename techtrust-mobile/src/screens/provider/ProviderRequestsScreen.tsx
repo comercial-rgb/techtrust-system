@@ -19,6 +19,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useI18n } from "../../i18n";
 import { getServiceTypeInfo as getServiceTypeInfoFromTree } from "../../constants/serviceTree";
 import { log } from "../../utils/logger";
+import type { ProviderRequestsQuotesStackNavigation } from "../../navigation/types";
 
 interface ServiceRequest {
   id: string;
@@ -42,7 +43,11 @@ interface ServiceRequest {
   quotesCount: number;
 }
 
-export default function ProviderRequestsScreen({ navigation }: any) {
+export default function ProviderRequestsScreen({
+  navigation,
+}: {
+  navigation: ProviderRequestsQuotesStackNavigation<"ProviderRequestsList">;
+}) {
   const { t } = useI18n();
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [filteredRequests, setFilteredRequests] = useState<ServiceRequest[]>(
@@ -167,7 +172,7 @@ export default function ProviderRequestsScreen({ navigation }: any) {
         <View style={styles.cardHeader}>
           <View style={[styles.typeIcon, { backgroundColor: typeInfo.bg }]}>
             <MaterialCommunityIcons
-              name={typeInfo.icon as any}
+              name={typeInfo.icon}
               size={20}
               color={typeInfo.color}
             />
@@ -355,7 +360,8 @@ export default function ProviderRequestsScreen({ navigation }: any) {
             </Text>
             <Text style={styles.emptySubtitle}>
               {searchQuery
-                ? ((t.common as any)?.tryDifferentTerms || "Try different search terms")
+                ? (t.common?.tryDifferentTerms ||
+                    "Try different search terms")
                 : filter === "nearby"
                   ? (t.provider?.expandRadius || "Try expanding your service area in Profile settings.")
                   : (t.provider?.noRequestsDesc || "New service requests from customers in your area will appear here.")}

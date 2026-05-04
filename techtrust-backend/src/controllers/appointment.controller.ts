@@ -17,6 +17,10 @@
  */
 
 import { Request, Response } from "express";
+import {
+  AppointmentStatus,
+  ServiceType,
+} from "@prisma/client";
 import { prisma } from "../config/database";
 import { AppError } from "../middleware/error-handler";
 import { logger } from "../config/logger";
@@ -25,6 +29,14 @@ import {
   CANCELLATION_RULES,
   PROVIDER_POINTS,
 } from "../config/businessRules";
+
+type BusinessHoursDay = {
+  open?: string;
+  close?: string;
+  start?: string;
+  end?: string;
+};
+type BusinessHoursJson = Record<string, BusinessHoursDay | undefined>;
 
 // ============================================
 // 1. SCHEDULE APPOINTMENT
@@ -115,7 +127,7 @@ export const scheduleAppointment = async (req: Request, res: Response) => {
       scheduledTime,
       estimatedDuration,
       serviceDescription,
-      serviceType: serviceType as any,
+      serviceType: serviceType as ServiceType,
       locationType,
       address,
       latitude,
@@ -386,7 +398,7 @@ export const providerEnRoute = async (req: Request, res: Response) => {
   const updated = await prisma.appointment.update({
     where: { id },
     data: {
-      status: "PROVIDER_EN_ROUTE" as any,
+      status: AppointmentStatus.PROVIDER_EN_ROUTE,
       providerEnRouteAt: new Date(),
     },
   });
@@ -429,7 +441,12 @@ export const checkInAppointment = async (req: Request, res: Response) => {
     where: {
       id,
       providerId,
-      status: { in: ["CONFIRMED", "PROVIDER_EN_ROUTE"] as any },
+      status: {
+        in: [
+          AppointmentStatus.CONFIRMED,
+          AppointmentStatus.PROVIDER_EN_ROUTE,
+        ],
+      },
     },
     include: {
       customer: { select: { id: true, fullName: true } },
@@ -677,7 +694,8 @@ export const getProviderSlots = async (req: Request, res: Response) => {
   });
 
   // Parse business hours to generate available slots
-  const businessHours = provider.providerProfile?.businessHours as any;
+  const businessHours = provider.providerProfile
+    ?.businessHours as BusinessHoursJson | null | undefined;
   let availableSlots: string[] = [];
 
   if (date && businessHours) {
@@ -692,21 +710,22 @@ export const getProviderSlots = async (req: Request, res: Response) => {
     if (dayHours && (dayHours.open || dayHours.start)) {
       const openTime = dayHours.open || dayHours.start;
       const closeTime = dayHours.close || dayHours.end;
+      if (openTime && closeTime) {
+        const [openH] = openTime.split(":").map(Number);
+        const [closeH, closeM] = closeTime.split(":").map(Number);
 
-      const [openH] = openTime.split(":").map(Number);
-      const [closeH, closeM] = closeTime.split(":").map(Number);
+        const bookedTimes = new Set(
+          bookedAppointments
+            .filter((a) => a.scheduledTime)
+            .map((a) => a.scheduledTime),
+        );
 
-      const bookedTimes = new Set(
-        bookedAppointments
-          .filter((a) => a.scheduledTime)
-          .map((a) => a.scheduledTime),
-      );
-
-      // Generate 1-hour slots
-      for (let h = openH; h < closeH || (h === closeH && 0 < closeM); h++) {
-        const slot = `${String(h).padStart(2, "0")}:00`;
-        if (!bookedTimes.has(slot)) {
-          availableSlots.push(slot);
+        // Generate 1-hour slots
+        for (let h = openH; h < closeH || (h === closeH && 0 < closeM); h++) {
+          const slot = `${String(h).padStart(2, "0")}:00`;
+          if (!bookedTimes.has(slot)) {
+            availableSlots.push(slot);
+          }
         }
       }
     }
@@ -747,7 +766,12 @@ export const reportProviderNoShow = async (req: Request, res: Response) => {
     where: {
       id,
       customerId: userId,
-      status: { in: ["CONFIRMED", "PROVIDER_EN_ROUTE"] as any },
+      status: {
+        in: [
+          AppointmentStatus.CONFIRMED,
+          AppointmentStatus.PROVIDER_EN_ROUTE,
+        ],
+      },
     },
     include: {
       provider: {

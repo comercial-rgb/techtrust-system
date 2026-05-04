@@ -27,6 +27,7 @@ import api from "../services/api";
 import { getPaymentMethods } from "../services/payment.service";
 import * as serviceFlowService from "../services/service-flow.service";
 import { log } from "../utils/logger";
+import type { RequestDetailsScreenProps } from "../navigation/types";
 
 const { width } = Dimensions.get("window");
 
@@ -95,9 +96,12 @@ function getStepIndex(status?: string): number {
   }
 }
 
-export default function RequestDetailsScreen({ navigation, route }: any) {
+export default function RequestDetailsScreen({
+  navigation,
+  route,
+}: RequestDetailsScreenProps) {
   const { t, formatDate, formatTime, formatCurrency } = useI18n();
-  const td = (t as any).requestDetails || {};
+  const td = t.requestDetails || {};
   const { requestId } = route.params || { requestId: "1" };
   const [loading, setLoading] = useState(true);
   const [request, setRequest] = useState<any>(null);
@@ -230,11 +234,14 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
         result.assets.forEach((asset, index) => {
           const uri = asset.uri;
           const ext = uri.split(".").pop() || "jpg";
-          formData.append("files", {
-            uri,
-            name: `photo_${index}.${ext}`,
-            type: `image/${ext === "png" ? "png" : "jpeg"}`,
-          } as any);
+          formData.append(
+            "files",
+            {
+              uri,
+              name: `photo_${index}.${ext}`,
+              type: `image/${ext === "png" ? "png" : "jpeg"}`,
+            } as unknown as Blob,
+          );
         });
 
         const uploadRes = await api.post("/uploads/service-request-photos", formData, {
@@ -273,7 +280,7 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
   }
 
   function handleAcceptQuote(quote: Quote) {
-    const tq = (t as any).quote || {};
+    const tq = t.quote || {};
     Alert.alert(
       tq.acceptQuote || "Accept Quote",
       interpolate(
@@ -353,14 +360,17 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
   }
 
   function handleChat(quote: Quote) {
-    navigation.navigate("Messages", {
+    navigation.navigate("Profile", {
       screen: "Chat",
       params: {
         chatId: `chat-${quote.id}`,
-        recipientId: quote.provider.id,
-        recipientName: quote.provider.businessName,
-        recipientType: "provider",
         requestId: request?.requestNumber,
+        serviceRequestId: quote.id,
+        participant: {
+          id: quote.provider.id,
+          name: quote.provider.businessName,
+          role: "provider",
+        },
       },
     });
   }
@@ -436,8 +446,8 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
   }
 
   function getStatusLabel(status?: string): string {
-    const tsr = (t as any).serviceRequest || {};
-    const two = (t as any).workOrder || {};
+    const tsr = t.serviceRequest || {};
+    const two = t.workOrder || {};
     const l: Record<string, string> = {
       SEARCHING_PROVIDERS: tsr.searching || "Searching",
       QUOTES_RECEIVED: tsr.quotesReceived || "Quotes Received",
@@ -693,7 +703,7 @@ export default function RequestDetailsScreen({ navigation, route }: any) {
               <><View style={s.kvRow}><Text style={s.kvLabel}>{td.whatsIncluded || "What's Included"}</Text><Text style={s.kvValue}>{getScopeLabel(request.serviceScope)}</Text></View><View style={s.kvDivider} /></>
             )}
             {request?.urgency && (
-              <><View style={s.kvRow}><Text style={s.kvLabel}>{(t as any).createRequest?.urgency || "Urgency"}</Text><Text style={[s.kvValue, { color: request.urgency === "urgent" ? "#ef4444" : request.urgency === "high" ? "#f59e0b" : "#374151", fontWeight: "600" }]}>{request.urgency.charAt(0).toUpperCase() + request.urgency.slice(1)}</Text></View><View style={s.kvDivider} /></>
+              <><View style={s.kvRow}><Text style={s.kvLabel}>{t.createRequest?.urgency || "Urgency"}</Text><Text style={[s.kvValue, { color: request.urgency === "urgent" ? "#ef4444" : request.urgency === "high" ? "#f59e0b" : "#374151", fontWeight: "600" }]}>{request.urgency.charAt(0).toUpperCase() + request.urgency.slice(1)}</Text></View><View style={s.kvDivider} /></>
             )}
             <View style={s.kvRow}><Text style={s.kvLabel}>{td.submitted || "Submitted"}</Text><Text style={s.kvValue}>{request?.createdAt ? `${formatDate(request.createdAt)} ${formatTime(request.createdAt)}` : "-"}</Text></View>
           </View>

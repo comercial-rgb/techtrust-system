@@ -26,9 +26,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { FadeInView, ScalePress } from "../components/Animated";
+import type { RouteProp } from "@react-navigation/native";
 import { useI18n } from "../i18n";
 import { getVehicleRecalls, RecallItem } from "../services/nhtsa.service";
 import { log } from "../utils/logger";
+import type { CustomerAppNavigation, CustomerAppParamList } from "../navigation/types";
 
 interface MaintenanceRecord {
   id: string;
@@ -108,14 +110,30 @@ function pastServiceTypeDisplayLabel(
   return label || typeId;
 }
 
-export default function VehicleDetailsScreen({ navigation, route }: any) {
+export default function VehicleDetailsScreen({
+  navigation,
+  route,
+}: {
+  navigation: CustomerAppNavigation;
+  route: RouteProp<CustomerAppParamList, "VehicleDetails">;
+}) {
   const { t, language, formatCurrency } = useI18n();
-  const fiatSymbol = ((t as any).formats?.currencySymbol as string | undefined) || "$";
+  const fiatSymbol = t.formats?.currencySymbol || "$";
   const vehicleLocale = useMemo(
     () => (language === "pt" ? "pt-BR" : language === "es" ? "es-ES" : "en-US"),
     [language],
   );
-  const { vehicleId } = route.params || {};
+  const raw = route.params;
+  const vehicleId =
+    raw &&
+    typeof raw === "object" &&
+    "vehicleId" in raw &&
+    typeof (raw as { vehicleId: unknown }).vehicleId === "string"
+      ? (raw as { vehicleId: string }).vehicleId
+      : "";
+  const showOnboardingParam = Boolean(
+    (raw as { showOnboarding?: boolean } | undefined)?.showOnboarding,
+  );
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [vehicle, setVehicle] = useState<VehicleDetails | null>(null);
@@ -239,12 +257,17 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
   }, [vehicleId]);
 
   useEffect(() => {
-    if (!loading && vehicle && route.params?.showOnboarding) {
+    if (!loading && vehicle && showOnboardingParam) {
       setShowOnboarding(true);
     }
-  }, [loading, vehicle]);
+  }, [loading, vehicle, showOnboardingParam]);
 
   async function loadVehicleDetails() {
+    if (!vehicleId) {
+      setVehicle(null);
+      setLoading(false);
+      return;
+    }
     try {
       // Buscar detalhes do veículo da API
       const api = (await import("../services/api")).default;
@@ -346,7 +369,7 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
   }
 
   function formatMileage(miles: number) {
-    const mileAbbr = ((t as any).carWash?.mile as string | undefined) || "mi";
+    const mileAbbr = t.carWash?.mile || "mi";
     return `${miles.toLocaleString(vehicleLocale)} ${mileAbbr}`;
   }
 
@@ -418,7 +441,11 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
         </Text>
         <TouchableOpacity
           style={styles.editBtn}
-          onPress={() => navigation.navigate("AddVehicle", { vehicle })}
+          onPress={() =>
+            navigation.navigate("AddVehicle", {
+              vehicle: vehicle as unknown as Record<string, unknown>,
+            })
+          }
         >
           <Ionicons name="create-outline" size={24} color="#2B5EA7" />
         </TouchableOpacity>
@@ -1110,11 +1137,8 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
             <ScalePress
               onPress={() =>
                 navigation.navigate("Home", {
-                  screen: "Dashboard",
-                  params: {
-                    screen: "CreateRequest",
-                    params: { vehicleId: vehicle.id },
-                  },
+                  screen: "CreateRequest",
+                  params: { vehicleId: vehicle.id },
                 })
               }
               style={styles.primaryButton}
@@ -1241,14 +1265,34 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
                 </Text>
 
                 <View style={{ width: '100%', gap: 12 }}>
-                  {[
-                    { icon: 'shield-checkmark-outline', color: '#10b981', bg: '#d1fae5', title: t.vehicle?.onboardingBulletAccurateQuotesTitle, desc: t.vehicle?.onboardingBulletAccurateQuotesDesc },
-                    { icon: 'time-outline', color: '#2B5EA7', bg: '#dbeafe', title: t.vehicle?.onboardingBulletServiceHistoryTitle, desc: t.vehicle?.onboardingBulletServiceHistoryDesc },
-                    { icon: 'notifications-outline', color: '#f59e0b', bg: '#fef3c7', title: t.vehicle?.onboardingBulletRecallAlertsTitle, desc: t.vehicle?.onboardingBulletRecallAlertsDesc },
-                  ].map(item => (
+                  {(
+                    [
+                      {
+                        icon: "shield-checkmark-outline" as const,
+                        color: "#10b981",
+                        bg: "#d1fae5",
+                        title: t.vehicle?.onboardingBulletAccurateQuotesTitle,
+                        desc: t.vehicle?.onboardingBulletAccurateQuotesDesc,
+                      },
+                      {
+                        icon: "time-outline" as const,
+                        color: "#2B5EA7",
+                        bg: "#dbeafe",
+                        title: t.vehicle?.onboardingBulletServiceHistoryTitle,
+                        desc: t.vehicle?.onboardingBulletServiceHistoryDesc,
+                      },
+                      {
+                        icon: "notifications-outline" as const,
+                        color: "#f59e0b",
+                        bg: "#fef3c7",
+                        title: t.vehicle?.onboardingBulletRecallAlertsTitle,
+                        desc: t.vehicle?.onboardingBulletRecallAlertsDesc,
+                      },
+                    ] as const
+                  ).map((item) => (
                     <View key={item.title} style={{ flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#f8fafc', borderRadius: 14, padding: 14, gap: 12 }}>
                       <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: item.bg, justifyContent: 'center', alignItems: 'center' }}>
-                        <Ionicons name={item.icon as any} size={20} color={item.color} />
+                        <Ionicons name={item.icon} size={20} color={item.color} />
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={{ fontSize: 14, fontWeight: '700', color: '#111827', marginBottom: 2 }}>{item.title}</Text>
@@ -1276,30 +1320,42 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
                   </Text>
                 </View>
 
-                {[
-                  {
-                    icon: 'car-outline',
-                    color: '#2B5EA7',
-                    bg: '#dbeafe',
-                    title: t.vehicle?.vehicleInformation || "Vehicle information",
-                    desc: t.vehicle?.onboardingVehicleCardDesc,
-                    action: t.vehicle?.editVehicle || "Edit Vehicle",
-                    onAction: () => { setShowOnboarding(false); navigation.navigate('AddVehicle', { vehicle }); },
-                  },
-                  {
-                    icon: 'shield-outline',
-                    color: '#059669',
-                    bg: '#d1fae5',
-                    title: t.vehicle?.onboardingInsuranceCardTitle || "Insurance details",
-                    desc: t.vehicle?.onboardingInsuranceCardDesc,
-                    action: t.vehicle?.manageInsurance || "Manage Insurance",
-                    onAction: () => { setShowOnboarding(false); navigation.navigate('Insurance', { vehicleId: vehicle?.id }); },
-                  },
-                ].map(item => (
+                {(
+                  [
+                    {
+                      icon: "car-outline" as const,
+                      color: "#2B5EA7",
+                      bg: "#dbeafe",
+                      title: t.vehicle?.vehicleInformation || "Vehicle information",
+                      desc: t.vehicle?.onboardingVehicleCardDesc,
+                      action: t.vehicle?.editVehicle || "Edit Vehicle",
+                      onAction: () => {
+                        setShowOnboarding(false);
+                        navigation.navigate("AddVehicle", {
+                          vehicle: vehicle as unknown as Record<string, unknown>,
+                        });
+                      },
+                    },
+                    {
+                      icon: "shield-outline" as const,
+                      color: "#059669",
+                      bg: "#d1fae5",
+                      title: t.vehicle?.onboardingInsuranceCardTitle || "Insurance details",
+                      desc: t.vehicle?.onboardingInsuranceCardDesc,
+                      action: t.vehicle?.manageInsurance || "Manage Insurance",
+                      onAction: () => {
+                        setShowOnboarding(false);
+                        navigation.navigate("Insurance", {
+                          vehicleId: vehicle?.id,
+                        });
+                      },
+                    },
+                  ] as const
+                ).map((item) => (
                   <View key={item.title} style={{ backgroundColor: '#f8fafc', borderRadius: 16, padding: 16, marginBottom: 12 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 }}>
                       <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: item.bg, justifyContent: 'center', alignItems: 'center' }}>
-                        <Ionicons name={item.icon as any} size={22} color={item.color} />
+                        <Ionicons name={item.icon} size={22} color={item.color} />
                       </View>
                       <Text style={{ fontSize: 16, fontWeight: '700', color: '#111827', flex: 1 }}>{item.title}</Text>
                     </View>
@@ -1333,46 +1389,48 @@ export default function VehicleDetailsScreen({ navigation, route }: any) {
                   </Text>
                 </View>
 
-                {[
-                  {
-                    icon: 'add-circle-outline',
-                    color: '#fff',
-                    bg: '#2B5EA7',
-                    title: t.vehicle?.requestService || "Request Service",
-                    desc: t.vehicle?.onboardingDescRequestService,
-                  },
-                  {
-                    icon: 'shield-checkmark-outline',
-                    color: '#2B5EA7',
-                    bg: '#dbeafe',
-                    title: t.vehicle?.manageInsurance || "Manage Insurance",
-                    desc: t.vehicle?.onboardingDescManageInsurance,
-                  },
-                  {
-                    icon: 'swap-horizontal-outline',
-                    color: '#7c3aed',
-                    bg: '#ede9fe',
-                    title: t.vehicle?.transferVehicle || "Transfer Vehicle",
-                    desc: t.vehicle?.onboardingDescTransferVehicle,
-                  },
-                  {
-                    icon: 'construct-outline',
-                    color: '#ea580c',
-                    bg: '#fff7ed',
-                    title: t.vehicle?.findParts || "Find Parts",
-                    desc: t.vehicle?.onboardingDescFindParts,
-                  },
-                  {
-                    icon: 'time-outline',
-                    color: '#6b7280',
-                    bg: '#f3f4f6',
-                    title: t.vehicle?.addPastService || "Add Past Service",
-                    desc: t.vehicle?.onboardingDescAddPastService,
-                  },
-                ].map(item => (
+                {(
+                  [
+                    {
+                      icon: "add-circle-outline" as const,
+                      color: "#fff",
+                      bg: "#2B5EA7",
+                      title: t.vehicle?.requestService || "Request Service",
+                      desc: t.vehicle?.onboardingDescRequestService,
+                    },
+                    {
+                      icon: "shield-checkmark-outline" as const,
+                      color: "#2B5EA7",
+                      bg: "#dbeafe",
+                      title: t.vehicle?.manageInsurance || "Manage Insurance",
+                      desc: t.vehicle?.onboardingDescManageInsurance,
+                    },
+                    {
+                      icon: "swap-horizontal-outline" as const,
+                      color: "#7c3aed",
+                      bg: "#ede9fe",
+                      title: t.vehicle?.transferVehicle || "Transfer Vehicle",
+                      desc: t.vehicle?.onboardingDescTransferVehicle,
+                    },
+                    {
+                      icon: "construct-outline" as const,
+                      color: "#ea580c",
+                      bg: "#fff7ed",
+                      title: t.vehicle?.findParts || "Find Parts",
+                      desc: t.vehicle?.onboardingDescFindParts,
+                    },
+                    {
+                      icon: "time-outline" as const,
+                      color: "#6b7280",
+                      bg: "#f3f4f6",
+                      title: t.vehicle?.addPastService || "Add Past Service",
+                      desc: t.vehicle?.onboardingDescAddPastService,
+                    },
+                  ] as const
+                ).map((item) => (
                   <View key={item.title} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 14, backgroundColor: '#f8fafc', borderRadius: 14, padding: 14 }}>
                     <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: item.bg, justifyContent: 'center', alignItems: 'center', flexShrink: 0 }}>
-                      <Ionicons name={item.icon as any} size={20} color={item.color} />
+                      <Ionicons name={item.icon} size={20} color={item.color} />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontSize: 14, fontWeight: '700', color: '#111827', marginBottom: 3 }}>{item.title}</Text>

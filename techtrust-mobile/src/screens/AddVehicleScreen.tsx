@@ -22,11 +22,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useI18n } from "../i18n";
 import { useRoute } from "@react-navigation/native";
+import type { RouteProp } from "@react-navigation/native";
 import * as ImagePicker from "expo-image-picker";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { decodeVIN, isValidVINFormat } from "../services/nhtsa.service";
 import api from "../services/api";
 import { log } from "../utils/logger";
+import type { CustomerAppNavigation, CustomerAppParamList } from "../navigation/types";
 
 const { width } = Dimensions.get("window");
 const PHOTO_SIZE = (width - 48 - 16) / 3; // 3 photos per row with padding
@@ -60,69 +62,103 @@ const US_STATES = [
   { code: 'DC', name: 'District of Columbia' },
 ];
 
-const VEHICLE_COLORS = [
-  'White', 'Black', 'Silver', 'Gray', 'Red', 'Blue', 'Dark Blue',
-  'Green', 'Yellow', 'Orange', 'Brown', 'Beige', 'Gold', 'Maroon',
-  'Champagne', 'Purple', 'Other',
-];
+/** Stored values stay English; labels come from `t.vehicle.*`. */
+const FUEL_SPECS = [
+  { value: "Gasoline", labelKey: "fuelGasoline" },
+  { value: "Diesel", labelKey: "fuelDiesel" },
+  { value: "Hybrid", labelKey: "fuelHybrid" },
+  { value: "Plug-in Hybrid", labelKey: "fuelPlugInHybrid" },
+  { value: "Electric", labelKey: "fuelElectric" },
+  { value: "E85 / Flex Fuel", labelKey: "fuelE85Flex" },
+  { value: "Natural Gas (CNG)", labelKey: "fuelCNG" },
+  { value: "Hydrogen", labelKey: "fuelHydrogen" },
+] as const;
+
+const VEHICLE_CATEGORY_SPECS = [
+  { value: "Car", labelKey: "categoryCar" },
+  { value: "SUV", labelKey: "categorySUV" },
+  { value: "Pickup Truck", labelKey: "categoryPickup" },
+  { value: "Van / Minivan", labelKey: "categoryVan" },
+  { value: "Light Truck", labelKey: "categoryLightTruck" },
+  { value: "Heavy Truck / Semi", labelKey: "categoryHeavyTruck" },
+  { value: "Bus / RV", labelKey: "categoryBusRv" },
+  { value: "Motorcycle", labelKey: "categoryMotorcycle" },
+  { value: "Convertible", labelKey: "categoryConvertible" },
+  { value: "Coupe", labelKey: "categoryCoupe" },
+  { value: "Wagon", labelKey: "categoryWagon" },
+] as const;
+
+const COLOR_SPECS = [
+  { value: "White", labelKey: "colorWhite" },
+  { value: "Black", labelKey: "colorBlack" },
+  { value: "Silver", labelKey: "colorSilver" },
+  { value: "Gray", labelKey: "colorGray" },
+  { value: "Red", labelKey: "colorRed" },
+  { value: "Blue", labelKey: "colorBlue" },
+  { value: "Dark Blue", labelKey: "colorDarkBlue" },
+  { value: "Green", labelKey: "colorGreen" },
+  { value: "Yellow", labelKey: "colorYellow" },
+  { value: "Orange", labelKey: "colorOrange" },
+  { value: "Brown", labelKey: "colorBrown" },
+  { value: "Beige", labelKey: "colorBeige" },
+  { value: "Gold", labelKey: "colorGold" },
+  { value: "Maroon", labelKey: "colorMaroon" },
+  { value: "Champagne", labelKey: "colorChampagne" },
+  { value: "Purple", labelKey: "colorPurple" },
+  { value: "Other", labelKey: "colorOther" },
+] as const;
 
 interface VehiclePhoto {
   uri: string;
   id: string;
 }
 
-export default function AddVehicleScreen({ navigation }: any) {
+export default function AddVehicleScreen({ navigation }: { navigation: CustomerAppNavigation }) {
   const { t } = useI18n();
-  const route = useRoute<any>();
+  const vLoc = (t.vehicle ?? {}) as Record<string, string | undefined>;
+  const vehicleLabel = (labelKey: string, english: string) =>
+    vLoc[labelKey] || english;
+  const route = useRoute<RouteProp<CustomerAppParamList, "AddVehicle">>();
 
   // Check if we're editing an existing vehicle
-  const editVehicle = route.params?.vehicle || null;
+  // API returns many optional fields not on the slim `Vehicle` type — keep loose for form init
+  const editVehicle = (route.params?.vehicle as Record<string, unknown> | undefined) ?? null;
   const isEditing = !!editVehicle;
+  const ev = (key: string) => {
+    const v = editVehicle?.[key];
+    return v === null || v === undefined ? "" : String(v);
+  };
 
   // Estados básicos
-  const [vin, setVin] = useState(editVehicle?.vin || "");
-  const [plateNumber, setPlateNumber] = useState(
-    editVehicle?.plateNumber || "",
-  );
-  const [plateState, setPlateState] = useState(editVehicle?.plateState || "");
-  const [color, setColor] = useState(editVehicle?.color || "");
+  const [vin, setVin] = useState(ev("vin"));
+  const [plateNumber, setPlateNumber] = useState(ev("plateNumber"));
+  const [plateState, setPlateState] = useState(ev("plateState"));
+  const [color, setColor] = useState(ev("color"));
 
   // Estados auto-preenchidos via VIN ou manuais
-  const [make, setMake] = useState(editVehicle?.make || "");
-  const [model, setModel] = useState(editVehicle?.model || "");
-  const [year, setYear] = useState(editVehicle?.year?.toString() || "");
-  const [engineType, setEngineType] = useState(editVehicle?.engineType || "");
-  const [fuelType, setFuelType] = useState(editVehicle?.fuelType || "");
-  const [bodyType, setBodyType] = useState(editVehicle?.bodyType || "");
-  const [trim, setTrim] = useState(editVehicle?.trim || "");
-  const [driveType, setDriveType] = useState(editVehicle?.driveType || "");
-  const [numberOfRows, setNumberOfRows] = useState(
-    editVehicle?.numberOfRows?.toString() || "",
-  );
-  const [seatingCapacity, setSeatingCapacity] = useState(
-    editVehicle?.seatingCapacity?.toString() || "",
-  );
+  const [make, setMake] = useState(ev("make"));
+  const [model, setModel] = useState(ev("model"));
+  const [year, setYear] = useState(ev("year"));
+  const [engineType, setEngineType] = useState(ev("engineType"));
+  const [fuelType, setFuelType] = useState(ev("fuelType"));
+  const [bodyType, setBodyType] = useState(ev("bodyType"));
+  const [trim, setTrim] = useState(ev("trim"));
+  const [driveType, setDriveType] = useState(ev("driveType"));
+  const [numberOfRows, setNumberOfRows] = useState(ev("numberOfRows"));
+  const [seatingCapacity, setSeatingCapacity] = useState(ev("seatingCapacity"));
   const [countryOfManufacturer, setCountryOfManufacturer] = useState(
-    editVehicle?.countryOfManufacturer || "",
+    ev("countryOfManufacturer"),
   );
-  const [category, setCategory] = useState(editVehicle?.category || "");
-  const [transmission, setTransmission] = useState(
-    editVehicle?.transmission || "",
-  );
+  const [category, setCategory] = useState(ev("category"));
+  const [transmission, setTransmission] = useState(ev("transmission"));
 
-  const [mileage, setMileage] = useState(
-    editVehicle?.currentMileage?.toString() || "",
-  );
-  const [vehicleType, setVehicleType] = useState(
-    editVehicle?.vehicleType || "",
-  );
-  const [primaryDriver, setPrimaryDriver] = useState(
-    editVehicle?.primaryDriver || "",
-  );
+  const [mileage, setMileage] = useState(ev("currentMileage"));
+  const [vehicleType, setVehicleType] = useState(ev("vehicleType"));
+  const [primaryDriver, setPrimaryDriver] = useState(ev("primaryDriver"));
   const [saving, setSaving] = useState(false);
   const [decodingVIN, setDecodingVIN] = useState(false);
   const [vinDecoded, setVinDecoded] = useState(false);
-  const [manualEntry, setManualEntry] = useState(!editVehicle?.vin);
+  const [manualEntry, setManualEntry] = useState(!ev("vin"));
   const [showStateModal, setShowStateModal] = useState(false);
 
   // VIN Scanner state
@@ -666,30 +702,6 @@ export default function AddVehicleScreen({ navigation }: any) {
     "Tesla",
     "Volvo",
   ];
-  const fuelTypes = [
-    "Gasoline",
-    "Diesel",
-    "Hybrid",
-    "Plug-in Hybrid",
-    "Electric",
-    "E85 / Flex Fuel",
-    "Natural Gas (CNG)",
-    "Hydrogen",
-  ];
-  const vehicleTypes = [
-    "Car",
-    "SUV",
-    "Pickup Truck",
-    "Van / Minivan",
-    "Light Truck",
-    "Heavy Truck / Semi",
-    "Bus / RV",
-    "Motorcycle",
-    "Convertible",
-    "Coupe",
-    "Wagon",
-  ];
-
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -1111,14 +1123,14 @@ export default function AddVehicleScreen({ navigation }: any) {
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>{t.vehicle?.color || "Color"}</Text>
           <View style={styles.optionsRow}>
-            {VEHICLE_COLORS.map((c) => (
+            {COLOR_SPECS.map(({ value, labelKey }) => (
               <TouchableOpacity
-                key={c}
-                style={[styles.optionChip, color === c && styles.optionChipSelected]}
-                onPress={() => setColor(c)}
+                key={value}
+                style={[styles.optionChip, color === value && styles.optionChipSelected]}
+                onPress={() => setColor(value)}
               >
-                <Text style={[styles.optionChipText, color === c && styles.optionChipTextSelected]}>
-                  {c}
+                <Text style={[styles.optionChipText, color === value && styles.optionChipTextSelected]}>
+                  {vehicleLabel(labelKey, value)}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -1131,22 +1143,22 @@ export default function AddVehicleScreen({ navigation }: any) {
             {t.vehicle?.vehicleType || "Vehicle Type"}
           </Text>
           <View style={styles.optionsRow}>
-            {vehicleTypes.map((type) => (
+            {VEHICLE_CATEGORY_SPECS.map(({ value, labelKey }) => (
               <TouchableOpacity
-                key={type}
+                key={value}
                 style={[
                   styles.optionChip,
-                  vehicleType === type && styles.optionChipSelected,
+                  vehicleType === value && styles.optionChipSelected,
                 ]}
-                onPress={() => setVehicleType(type)}
+                onPress={() => setVehicleType(value)}
               >
                 <Text
                   style={[
                     styles.optionChipText,
-                    vehicleType === type && styles.optionChipTextSelected,
+                    vehicleType === value && styles.optionChipTextSelected,
                   ]}
                 >
-                  {type}
+                  {vehicleLabel(labelKey, value)}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -1159,22 +1171,22 @@ export default function AddVehicleScreen({ navigation }: any) {
             {t.vehicle?.fuelType || "Fuel Type"}
           </Text>
           <View style={styles.optionsRow}>
-            {fuelTypes.map((fuel) => (
+            {FUEL_SPECS.map(({ value, labelKey }) => (
               <TouchableOpacity
-                key={fuel}
+                key={value}
                 style={[
                   styles.optionChip,
-                  fuelType === fuel && styles.optionChipSelected,
+                  fuelType === value && styles.optionChipSelected,
                 ]}
-                onPress={() => setFuelType(fuel)}
+                onPress={() => setFuelType(value)}
               >
                 <Text
                   style={[
                     styles.optionChipText,
-                    fuelType === fuel && styles.optionChipTextSelected,
+                    fuelType === value && styles.optionChipTextSelected,
                   ]}
                 >
-                  {fuel}
+                  {vehicleLabel(labelKey, value)}
                 </Text>
               </TouchableOpacity>
             ))}

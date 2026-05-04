@@ -43,9 +43,7 @@ export default function EsqueciSenhaPage() {
     return data;
   };
 
-  // Step 1
-  const handleSendCode = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const submitForgotPassword = async () => {
     setError("");
     if (!email.trim() || !email.includes("@")) {
       setError("Please enter a valid email address");
@@ -58,9 +56,16 @@ export default function EsqueciSenhaPage() {
       });
     } catch {
       /* proceed anyway */
+    } finally {
+      setLoading(false);
     }
+  };
+
+  // Step 1
+  const handleSendCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await submitForgotPassword();
     setStep("code");
-    setLoading(false);
   };
 
   // Step 2
@@ -99,18 +104,28 @@ export default function EsqueciSenhaPage() {
         newPassword,
       });
       setStep("success");
-    } catch (err: any) {
-      setError(
-        err.response?.data?.message ||
-          "Failed to reset password. Please try again.",
-      );
+    } catch (err: unknown) {
+      let msg = "";
+      if (
+        err &&
+        typeof err === "object" &&
+        "response" in err &&
+        err.response &&
+        typeof err.response === "object" &&
+        "data" in err.response
+      ) {
+        const m = (err.response as { data?: { message?: unknown } }).data?.message;
+        if (typeof m === "string") msg = m;
+      }
+      setError(msg || "Failed to reset password. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   const steps = ["email", "code", "password"] as const;
-  const currentStepIndex = steps.indexOf(step as any);
+  const currentStepIndex =
+    step === "success" ? steps.length : steps.indexOf(step);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-8">
@@ -248,7 +263,7 @@ export default function EsqueciSenhaPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={(e) => handleSendCode(e as any)}
+                  onClick={() => void submitForgotPassword()}
                   className="w-full text-center text-sm text-primary-600 hover:text-primary-700 font-medium py-2"
                 >
                   Resend Code

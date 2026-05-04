@@ -17,8 +17,9 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useI18n } from "../../i18n";
 import * as fdacsService from "../../services/fdacs.service";
 import { log } from "../../utils/logger";
+import type { CustomerAppNavigation } from "../../navigation/types";
 
-export default function RepairInvoicesScreen({ navigation }: any) {
+export default function RepairInvoicesScreen({ navigation }: { navigation: CustomerAppNavigation }) {
   const { t, formatDate, formatCurrency } = useI18n();
   const [loading, setLoading] = useState(true);
   const [invoices, setInvoices] = useState<fdacsService.RepairInvoice[]>([]);

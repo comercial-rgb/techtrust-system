@@ -23,7 +23,7 @@ if (!stripeSecretKey) {
 }
 
 const stripe = new Stripe(stripeSecretKey, {
-  apiVersion: "2024-12-18.acacia" as any,
+  apiVersion: "2023-10-16",
   typescript: true,
 });
 

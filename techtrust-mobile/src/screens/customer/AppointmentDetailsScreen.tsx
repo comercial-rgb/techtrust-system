@@ -15,20 +15,30 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect } from "@react-navigation/native";
+import { CommonActions, useFocusEffect } from "@react-navigation/native";
 import { useI18n } from "../../i18n";
 import { useAuth } from "../../contexts/AuthContext";
 import * as fdacsService from "../../services/fdacs.service";
 import { log } from "../../utils/logger";
+import type {
+  AppointmentDetailsScreenNavigation,
+  AppointmentDetailsScreenRoute,
+} from "../../navigation/types";
 
-export default function AppointmentDetailsScreen({ navigation, route }: any) {
+export default function AppointmentDetailsScreen({
+  navigation,
+  route,
+}: {
+  navigation: AppointmentDetailsScreenNavigation;
+  route: AppointmentDetailsScreenRoute;
+}) {
   const { t, language, formatCurrency } = useI18n();
   const appointmentDateLocale = useMemo(
     () => (language === "pt" ? "pt-BR" : language === "es" ? "es-ES" : "en-US"),
     [language],
   );
   const { user } = useAuth();
-  const { appointmentId } = route.params;
+  const appointmentId = route.params?.appointmentId ?? "";
   const [loading, setLoading] = useState(true);
   const [appointment, setAppointment] = useState<any>(null);
   const [processing, setProcessing] = useState(false);
@@ -371,9 +381,29 @@ export default function AppointmentDetailsScreen({ navigation, route }: any) {
               <TouchableOpacity
                 key={q.id}
                 style={styles.estimateItem}
-                onPress={() =>
-                  navigation.navigate("QuoteDetails", { quoteId: q.id })
-                }
+                onPress={() => {
+                  if (isProvider) {
+                    navigation.dispatch(
+                      CommonActions.navigate({
+                        name: "ProviderRequests",
+                        params: {
+                          screen: "ProviderQuoteDetails",
+                          params: { quoteId: String(q.id) },
+                        },
+                      }),
+                    );
+                  } else {
+                    navigation.dispatch(
+                      CommonActions.navigate({
+                        name: "Home",
+                        params: {
+                          screen: "QuoteDetails",
+                          params: { quoteId: String(q.id) },
+                        },
+                      }),
+                    );
+                  }
+                }}
               >
                 <View>
                   <Text style={styles.estimateNumber}>

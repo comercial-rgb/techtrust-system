@@ -25,9 +25,13 @@ export interface SpecialOffer {
   title: string;
   description?: string;
   discount?: number | string;
+  /** API / CMS variant of `discount` */
+  discountLabel?: string | number;
   imageUrl?: string;
   image?: string; // Legacy support
   code?: string;
+  /** API variant of `code` */
+  promoCode?: string;
   originalPrice?: string | number;
   discountedPrice?: string | number;
   regularPrice?: number;
@@ -101,7 +105,7 @@ export default function SpecialOffersSection({
     }
 
     // Format discount display - support both API field (discountLabel) and legacy (discount)
-    const rawDiscount = (item as any).discountLabel || item.discount;
+    const rawDiscount = item.discountLabel ?? item.discount;
     const discountDisplay = rawDiscount
       ? typeof rawDiscount === "number"
         ? `${rawDiscount}% OFF`
@@ -111,11 +115,11 @@ export default function SpecialOffersSection({
     // Get prices - support API Decimal fields and string fields
     // API returns originalPrice/discountedPrice as Decimal (number), legacy data as string
     const rawOriginal =
-      item.originalPrice || (item as any).regularPrice || item.regularPrice;
+      item.originalPrice ?? item.regularPrice;
     const rawDiscounted =
-      item.discountedPrice || (item as any).specialPrice || item.specialPrice;
+      item.discountedPrice ?? item.specialPrice;
 
-    const formatPrice = (val: any): string | null => {
+    const formatPrice = (val: unknown): string | null => {
       if (!val) return null;
       if (typeof val === "string" && (val.startsWith("$") || val === "FREE"))
         return val;
@@ -161,7 +165,7 @@ export default function SpecialOffersSection({
     }
 
     // Get promo code - API uses promoCode, component interface uses code
-    const promoCode = item.code || (item as any).promoCode;
+    const promoCode = item.code ?? item.promoCode;
 
     return (
       <TouchableOpacity
