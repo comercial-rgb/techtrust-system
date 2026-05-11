@@ -103,111 +103,112 @@ router.post('/stripe', async (req: Request, res: Response): Promise<any> => {
 
   logger.info(`Webhook recebido: ${event.type} (${event.id})`);
 
-  const existingEvent = await prisma.stripeWebhookEvent.findUnique({
-    where: { id: event.id },
-  });
-  if (existingEvent?.processedAt) {
-    logger.info(`Webhook Stripe dedupe (já processado): ${event.id}`);
-    return res.json({ received: true, duplicate: true });
-  }
+  // Respond IMMEDIATELY — prevents Stripe timeout on cold-start Render dynos.
+  // Processing happens async below; the stripeWebhookEvent table provides idempotency.
+  // Stripe will retry if processedAt is never set (i.e. processing crashed).
+  res.json({ received: true });
 
-  await prisma.stripeWebhookEvent.upsert({
-    where: { id: event.id },
-    create: { id: event.id, type: event.type },
-    update: {},
-  });
+  setImmediate(async () => {
+    try {
+      const existingEvent = await prisma.stripeWebhookEvent.findUnique({
+        where: { id: event.id },
+      });
+      if (existingEvent?.processedAt) {
+        logger.info(`Webhook Stripe dedupe (já processado): ${event.id}`);
+        return;
+      }
 
-  try {
-    switch (event.type) {
-      // ==========================================
-      // PAYMENT INTENTS
-      // ==========================================
-      case 'payment_intent.amount_capturable_updated':
-        // Pré-autorização confirmada (hold ativo no cartão)
-        await handlePaymentIntentAuthorized(event.data.object as Stripe.PaymentIntent);
-        break;
+      await prisma.stripeWebhookEvent.upsert({
+        where: { id: event.id },
+        create: { id: event.id, type: event.type },
+        update: {},
+      });
 
-      case 'payment_intent.succeeded':
-        // Captura confirmada (cobrança real efetuada)
-        await handlePaymentIntentSucceeded(event.data.object as Stripe.PaymentIntent);
-        break;
+      switch (event.type) {
+        // ==========================================
+        // PAYMENT INTENTS
+        // ==========================================
+        case 'payment_intent.amount_capturable_updated':
+          // Pré-autorização confirmada (hold ativo no cartão)
+          await handlePaymentIntentAuthorized(event.data.object as Stripe.PaymentIntent);
+          break;
 
-      case 'payment_intent.canceled':
-        // Hold cancelado (void)
-        await handlePaymentIntentCanceled(event.data.object as Stripe.PaymentIntent);
-        break;
+        case 'payment_intent.succeeded':
+          // Captura confirmada (cobrança real efetuada)
+          await handlePaymentIntentSucceeded(event.data.object as Stripe.PaymentIntent);
+          break;
 
-      case 'payment_intent.payment_failed':
-        await handlePaymentIntentFailed(event.data.object as Stripe.PaymentIntent);
-        break;
+        case 'payment_intent.canceled':
+          // Hold cancelado (void)
+          await handlePaymentIntentCanceled(event.data.object as Stripe.PaymentIntent);
+          break;
 
-      // ==========================================
-      // SUBSCRIPTIONS
-      // ==========================================
-      case 'checkout.session.completed':
-        await handleCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session);
-        break;
+        case 'payment_intent.payment_failed':
+          await handlePaymentIntentFailed(event.data.object as Stripe.PaymentIntent);
+          break;
 
-      case 'customer.subscription.created':
-        await handleSubscriptionCreated(event.data.object as Stripe.Subscription);
-        break;
+        // ==========================================
+        // SUBSCRIPTIONS
+        // ==========================================
+        case 'checkout.session.completed':
+          await handleCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session);
+          break;
 
-      case 'customer.subscription.updated':
-        await handleSubscriptionUpdated(event.data.object as Stripe.Subscription);
-        break;
+        case 'customer.subscription.created':
+          await handleSubscriptionCreated(event.data.object as Stripe.Subscription);
+          break;
 
-      case 'customer.subscription.deleted':
-        await handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
-        break;
+        case 'customer.subscription.updated':
+          await handleSubscriptionUpdated(event.data.object as Stripe.Subscription);
+          break;
 
-      case 'invoice.payment_succeeded':
-        await handleInvoicePaymentSucceeded(event.data.object as Stripe.Invoice);
-        break;
+        case 'customer.subscription.deleted':
+          await handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
+          break;
 
-      case 'invoice.payment_failed':
-        await handleInvoicePaymentFailed(event.data.object as Stripe.Invoice);
-        break;
+        case 'invoice.payment_succeeded':
+          await handleInvoicePaymentSucceeded(event.data.object as Stripe.Invoice);
+          break;
 
-      // ==========================================
-      // STRIPE CONNECT
-      // ==========================================
-      case 'account.updated':
-        await handleAccountUpdated(event.data.object as Stripe.Account);
-        break;
+        case 'invoice.payment_failed':
+          await handleInvoicePaymentFailed(event.data.object as Stripe.Invoice);
+          break;
 
-      case 'transfer.created':
-        await handleTransferCreated(event.data.object as Stripe.Transfer);
-        break;
+        // ==========================================
+        // STRIPE CONNECT
+        // ==========================================
+        case 'account.updated':
+          await handleAccountUpdated(event.data.object as Stripe.Account);
+          break;
 
-      // ==========================================
-      // CHARGES / REFUNDS
-      // ==========================================
-      case 'charge.refunded':
-        await handleChargeRefunded(event.data.object as Stripe.Charge);
-        break;
+        case 'transfer.created':
+          await handleTransferCreated(event.data.object as Stripe.Transfer);
+          break;
 
-      case 'charge.dispute.created':
-        await handleDisputeCreated(event.data.object as Stripe.Dispute);
-        break;
+        // ==========================================
+        // CHARGES / REFUNDS
+        // ==========================================
+        case 'charge.refunded':
+          await handleChargeRefunded(event.data.object as Stripe.Charge);
+          break;
 
-      default:
-        logger.debug(`Webhook event não tratado: ${event.type}`);
+        case 'charge.dispute.created':
+          await handleDisputeCreated(event.data.object as Stripe.Dispute);
+          break;
+
+        default:
+          logger.debug(`Webhook event não tratado: ${event.type}`);
+      }
+
+      await prisma.stripeWebhookEvent.update({
+        where: { id: event.id },
+        data: { processedAt: new Date() },
+      });
+    } catch (error: any) {
+      // Log the error — Stripe will retry the event (processedAt remains null → handler is safe to re-run)
+      logger.error(`Erro ao processar webhook ${event.type} (${event.id}):`, error);
     }
-
-    await prisma.stripeWebhookEvent.update({
-      where: { id: event.id },
-      data: { processedAt: new Date() },
-    });
-
-    res.json({ received: true });
-  } catch (error: any) {
-    logger.error(`Erro ao processar webhook ${event.type}:`, error);
-    // 500 → Stripe reenvia; linha em stripe_webhook_events fica sem processedAt para reprocessar com segurança (handlers idempotentes por estado).
-    return res.status(500).json({
-      received: false,
-      error: error?.message || "webhook_processing_error",
-    });
-  }
+  });
 });
 
 // ============================================
